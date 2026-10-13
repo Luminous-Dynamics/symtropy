@@ -173,6 +173,10 @@ class AdapterTests(unittest.TestCase):
     def test_rejects_seed_tick_manifest_mismatch(self):
         source = self.source()
         source["seed"] = 7
+        source["resolved_config"]["seed"] = 7
+        source["run_manifest"]["resolved_config_sha256"] = hashlib.sha256(
+            canonical_json_bytes(source["resolved_config"])
+        ).hexdigest()
         with self.assertRaisesRegex(AdapterError, "disagree with run manifest"):
             adapt_source(json.dumps(source).encode())
 
