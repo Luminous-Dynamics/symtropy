@@ -206,6 +206,17 @@ class FlourishingAssessmentTests(unittest.TestCase):
         doc = add_evidence_and_known_values(assessment())
         constraint = doc["constraints"][0]
         constraint["scope"] = "overall_and_subgroups"
+        baseline = doc["alternatives"][0]["outcomes"][1]
+        baseline["subgroups"] = [
+            {
+                "group_id": "area-baseline",
+                "status": "UNKNOWN",
+                "value": None,
+                "uncertainty": None,
+                "missing_reason": "subgroup telemetry is unavailable",
+                "artifact_ids": [],
+            }
+        ]
         candidate = doc["alternatives"][1]["outcomes"][1]
         candidate["subgroups"] = [
             {
