@@ -1492,6 +1492,20 @@ mod tests {
     }
 
     #[test]
+    fn module_profile_rejects_mass_rating_overflow() {
+        let mut profile = iso_container_profile();
+        profile.tare_mass_grams = u64::MAX;
+        profile.max_payload_mass_grams = 1;
+        profile.max_gross_mass_grams = u64::MAX;
+        assert_eq!(
+            profile.validate(),
+            Err(CargoError::InvalidProfile(
+                "tare plus rated payload exceeds maximum gross mass"
+            ))
+        );
+    }
+
+    #[test]
     fn modular_cargo_accepts_matching_verified_profile_and_equipment() {
         let profile = iso_container_profile();
         let instance = cargo_instance(&profile);
@@ -1515,6 +1529,13 @@ mod tests {
         assert_eq!(
             check_module_compatibility(&profile, &instance, &equipment),
             Err(CargoError::DimensionsExceeded)
+        );
+
+        let mut equipment = rail_equipment();
+        equipment.max_module_gross_mass_grams = 5_000_000;
+        assert_eq!(
+            check_module_compatibility(&profile, &instance, &equipment),
+            Err(CargoError::EquipmentGrossMassExceeded)
         );
 
         let mut equipment = rail_equipment();
