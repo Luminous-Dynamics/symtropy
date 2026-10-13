@@ -494,6 +494,60 @@ mod tests {
     }
 
     #[test]
+    fn independent_world_seeds_produce_distinct_replay_streams() {
+        let profile = profile();
+        let mut first = SensorModelV1::new(42, profile.clone()).unwrap();
+        let mut second = SensorModelV1::new(43, profile).unwrap();
+        let a = first.capture_at(0, &truth(1.0)).unwrap();
+        let b = second.capture_at(0, &truth(1.0)).unwrap();
+        assert_ne!(a.readings[0].value, b.readings[0].value);
+    }
+
+    #[test]
+    fn fractional_sample_period_does_not_accumulate_rounding_drift() {
+        let mut profile = profile();
+        profile.sample_rate_hz = 3.0;
+        profile.noise_std = 0.0;
+        let mut sensor = SensorModelV1::new(1, profile).unwrap();
+
+        let first = sensor.capture_at(0, &truth(0.0)).unwrap();
+        assert_eq!(first.scheduled_time_ns, 0);
+        assert_eq!(sensor.next_due_time_ns(), 333_333_333);
+
+        let second = sensor.capture_at(333_333_333, &truth(0.0)).unwrap();
+        assert_eq!(second.scheduled_time_ns, 333_333_333);
+        assert_eq!(sensor.next_due_time_ns(), 666_666_666);
+
+        let third = sensor.capture_at(666_666_666, &truth(0.0)).unwrap();
+        assert_eq!(third.scheduled_time_ns, 666_666_666);
+        assert_eq!(sensor.next_due_time_ns(), 1_000_000_000);
+    }
+
+    #[test]
+    fn seeded_noise_has_zero_mean_and_declared_standard_deviation_at_scale() {
+        let mut sensor = SensorModelV1::new(0x51_5e_05, profile()).unwrap();
+        let mut values = Vec::with_capacity(1024);
+        for index in 0..1024u64 {
+            let sample = sensor
+                .capture_at(index * 10_000_000, &truth(0.0))
+                .unwrap();
+            values.push(sample.readings[0].value);
+        }
+        let mean = values.iter().sum::<f64>() / values.len() as f64;
+        let variance = values
+            .iter()
+            .map(|value| (value - mean) * (value - mean))
+            .sum::<f64>()
+            / values.len() as f64;
+        let observed_std = variance.sqrt();
+        assert!(mean.abs() < 0.15 * 0.02, "unexpected noise mean {mean}");
+        assert!(
+            (0.9 * 0.02..=1.1 * 0.02).contains(&observed_std),
+            "unexpected noise std {observed_std}"
+        );
+    }
+
+    #[test]
     fn timestamp_overflow_fails_without_consuming_sample() {
         let mut profile = profile();
         profile.latency_ns = u64::MAX;
