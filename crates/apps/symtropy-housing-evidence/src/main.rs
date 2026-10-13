@@ -44,6 +44,7 @@ struct VerificationReport {
     schema_sha256: Option<String>,
     manifest_sha256: Option<String>,
     expected_claims_sha256: Option<String>,
+    expected_claims_digest_pinned: bool,
     schema_valid: bool,
     case_id: Option<String>,
     declared_status: Option<String>,
@@ -108,7 +109,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
                 if !is_sha256(value) {
                     return Err("--expected-claims-sha256 must be 64 lowercase hexadecimal characters".to_string());
                 }
-                expected_claims_sha256 = Some(value.clone());
+                expected_claims_sha256 = Some(value.to_string());
             }
             "--artifact-root" => {
                 index += 1;
@@ -171,6 +172,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
     report.schema_sha256 = Some(sha256_hex(EMBEDDED_SCHEMA.as_bytes()));
     report.manifest_sha256 = Some(manifest_sha256);
     report.expected_claims_sha256 = expected_claims_actual_sha256;
+    report.expected_claims_digest_pinned = expected_claims_pinned;
     Ok((report, require_pass))
 }
 
@@ -178,12 +180,6 @@ fn usage() -> String {
     "Usage: housing-evidence-verify <manifest.json> \\
      [--expected-claims <requirements.json>] [--artifact-root <directory>] [--require-pass]"
         .to_string()
-}
-
-fn read_json(path: &Path) -> Result<Value, String> {
-    let bytes = fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    serde_json::from_slice(&bytes)
-        .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))
 }
 
 fn read_expected_claim_ids(path: &Path) -> Result<(BTreeSet<String>, String), String> {
@@ -671,6 +667,7 @@ fn report(
         schema_sha256: None,
         manifest_sha256: None,
         expected_claims_sha256: None,
+        expected_claims_digest_pinned: false,
         schema_valid,
         case_id,
         declared_status,
