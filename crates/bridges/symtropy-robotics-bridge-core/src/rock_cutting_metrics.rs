@@ -253,7 +253,11 @@ impl MechanicalSpecificEnergyV1 {
         let volume_component = self.mse_pa
             * (input.removed_volume_rate_standard_uncertainty_m3_s
                 / self.removed_volume_rate_m3_s);
+        // For f(P, V) = P / V, the covariance contribution is
+        // 2 * (df/dP) * (df/dV) * Cov(P, V), where df/dP = 1/V
+        // and df/dV = -P/V^2. Keep its magnitude here; variance subtracts it.
         let covariance_component = 2.0
+            * (1.0 / self.removed_volume_rate_m3_s)
             * (self.mse_pa / self.removed_volume_rate_m3_s)
             * input.covariance_power_volume_w_m3_s;
         let mut variance = power_component * power_component
@@ -539,6 +543,39 @@ mod tests {
         assert_eq!(uncertainty.observation_id, "cut-test-001");
         assert_eq!(uncertainty.source.artifact_id, "calibration-uncertainty-budget-001");
         assert!(uncertainty.relative_standard_uncertainty.unwrap() > 0.0);
+    }
+
+    #[test]
+    fn mse_uncertainty_applies_the_covariance_term_with_correct_sensitivity_coefficients() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
+        let mse = observation.calculate_mse().unwrap();
+        let power = mse.mechanical_power_w;
+        let volume_rate = mse.removed_volume_rate_m3_s;
+        let sigma_power = 20.0;
+        let sigma_volume = 1.0e-7;
+
+        for covariance in [1.0e-6, -1.0e-6] {
+            let mut input = uncertainty_input("cut-test-001");
+            input.power_standard_uncertainty_w = sigma_power;
+            input.removed_volume_rate_standard_uncertainty_m3_s = sigma_volume;
+            input.covariance_power_volume_w_m3_s = covariance;
+
+            let result = mse.propagate_standard_uncertainty(&input).unwrap();
+            let power_component = (sigma_power / volume_rate).powi(2);
+            let volume_component = (power * sigma_volume / volume_rate.powi(2)).powi(2);
+            let covariance_component =
+                2.0 * power * covariance / volume_rate.powi(3);
+            let expected_variance =
+                power_component + volume_component - covariance_component;
+            assert!(
+                (result.variance_pa2 - expected_variance).abs()
+                    < expected_variance.abs() * 1.0e-12,
+                "covariance={covariance}: got {}, expected {expected_variance}",
+                result.variance_pa2
+            );
+        }
     }
 
     #[test]
