@@ -386,7 +386,7 @@ The contracts fail closed on mass/volume/envelope overruns, unsupported mode/fam
 
 This remains a *single-demand route-option enumerator plus module/equipment, transfer-compatibility, custody and lifecycle-economics contracts*, not a complete transport optimization system. The new transfer check evaluates one supplied edge/equipment pair; network edges do not yet persistently reference equipment resources, and module profiles are not yet incorporated into route-level cargo-flow assignment or equipment scheduling. The solver does not yet allocate multiple simultaneous demands against shared capacity, optimize timetables/service frequency or vehicle schedules, select infrastructure investments, estimate stochastic reliability from data, or validate cost factors against operators. Custody checks are pure state-transition guards, not a signed/atomic ledger. Standard references and evidence digests must not be described as ISO or IATA certification.
 
-At this tranche, the Rust source has 40 authored test functions, including aggregate-capacity acceptance, shared-equipment overcommit across separate edges, duplicate assignment IDs, missing/duplicate budgets, capacity-unit mismatch and arithmetic-overflow cases. They still require exact-head CI before being treated as passing.
+At this tranche, the Rust source has 41 authored test functions, including aggregate-capacity acceptance, shared-equipment overcommit across separate edges, duplicate assignment IDs and edge IDs, missing/duplicate budgets, invalid scope/terminal, capacity-unit mismatch and arithmetic-overflow cases. They still require exact-head CI before being treated as passing.
 
 Next steps:
 1. qualify the exact Rust crate and its route/module/custody/economics/transfer-compatibility tests;
