@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:luminous-dynamics:schemas:housing-evidence-manifest:0.1.0",
   "title": "Housing Engineering Evidence Manifest",
-  "description": "Draft evidence envelope for reproducible housing engineering evaluations. Does not encode or certify building-code requirements.",
+  "description": "Draft evidence envelope for reproducible housing engineering evaluations. Does not encode or certify building-code requirements. Evaluated FAIL claims must carry non-empty input/output digests and a non-empty measured result just as PASS claims do.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -600,7 +600,10 @@
           "if": {
             "properties": {
               "status": {
-                "const": "PASS"
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
               }
             },
             "required": [
