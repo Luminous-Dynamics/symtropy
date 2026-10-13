@@ -33,6 +33,7 @@ use std::{
 };
 
 const STATUS_PASS: &str = "PASS";
+const STATUS_FAIL: &str = "FAIL";
 const EMBEDDED_SCHEMA: &str = include_str!("../../../../docs/built-environment/housing-evidence-manifest.schema.json");
 const STATUS_NOT_EVALUATED: &str = "NOT_EVALUATED";
 const STATUS_BLOCKED: &str = "BLOCKED";
