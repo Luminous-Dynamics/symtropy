@@ -22,7 +22,7 @@
 
 use jsonschema::draft202012;
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -507,7 +507,7 @@ fn verify_local_artifacts(
 
         for (artifact_id, path) in local_paths {
             match fs::read(&path) {
-                Ok(bytes) if sha256_hex(&bytes) == *digest => {
+                Ok(bytes) if sha256_hex(&bytes).as_str() == digest.as_str() => {
                     found_verified_bytes = true;
                     verified.insert(digest.clone());
                 }
@@ -609,6 +609,7 @@ fn report(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn fixture_values() -> (Value, Value) {
