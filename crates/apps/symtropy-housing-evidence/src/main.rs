@@ -62,6 +62,7 @@ struct ExpectedClaimsFile {
     case_id: String,
     jurisdiction: Value,
     model: Value,
+    model_artifact_sha256: Vec<String>,
     rule_pack: Value,
     toolchain: Value,
     mandatory_claims: Vec<ExpectedClaimContract>,
@@ -230,6 +231,18 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
     }
     if !expected.model.is_object() {
         return Err("expected-claims model must be an object".to_string());
+    }
+    if expected.model_artifact_sha256.is_empty() {
+        return Err("expected-claims model_artifact_sha256 must not be empty".to_string());
+    }
+    let mut model_digests = BTreeSet::new();
+    for digest in &expected.model_artifact_sha256 {
+        if !is_sha256(digest) {
+            return Err(format!("malformed expected model SHA-256: {digest}"));
+        }
+        if !model_digests.insert(digest) {
+            return Err(format!("duplicate expected model artifact SHA-256: {digest}"));
+        }
     }
     if !expected.rule_pack.is_object() {
         return Err("expected-claims rule_pack must be an object".to_string());
@@ -614,10 +627,26 @@ fn evaluate_manifest(
         );
     }
 
+    let actual_model_artifact_digests: BTreeSet<String> = manifest["model"]["artifact_ids"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .filter_map(|id| {
+            artifacts_by_id
+                .get(id)
+                .and_then(|artifact| artifact["sha256"].as_str())
+                .map(ToString::to_string)
+        })
+        .collect();
+    let expected_model_artifact_digests: BTreeSet<String> =
+        expected_claims.model_artifact_sha256.iter().cloned().collect();
+
     if expected_claims.schema_version != manifest["schema_version"].as_str().unwrap_or_default()
         || expected_claims.case_id != case_id.as_deref().unwrap_or_default()
         || expected_claims.jurisdiction != manifest["jurisdiction"]
         || expected_claims.model != manifest["model"]
+        || actual_model_artifact_digests != expected_model_artifact_digests
         || expected_claims.rule_pack != manifest["rule_pack"]
         || expected_claims.toolchain != manifest["toolchain"]
     {
@@ -628,7 +657,7 @@ fn evaluate_manifest(
             STATUS_INSUFFICIENT_EVIDENCE,
             0,
             vec![
-                "manifest case ID, exact model object, or exact rule-pack object differs from the independently pinned contract"
+                "manifest schema/case/jurisdiction/model object, model artifact digest set, rule-pack, or toolchain differs from the independently pinned contract"
                     .to_string(),
             ],
         );
@@ -1100,6 +1129,12 @@ mod tests {
             case_id: manifest["case_id"].as_str().unwrap().to_string(),
             jurisdiction: manifest["jurisdiction"].clone(),
             model: manifest["model"].clone(),
+            model_artifact_sha256: vec![
+                manifest["evidence_artifacts"][0]["sha256"]
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+            ],
             rule_pack: manifest["rule_pack"].clone(),
             toolchain: manifest["toolchain"].clone(),
             mandatory_claims: vec![ExpectedClaimContract {
@@ -1363,6 +1398,25 @@ mod tests {
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
         assert!(result.issues.iter().any(|issue| {
             issue.contains("pinned input artifact digests")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_model_artifact_bytes_cannot_reuse_a_stable_artifact_id() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        let substituted_digest = manifest["toolchain"][0]["executable_or_container_sha256"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        manifest["evidence_artifacts"][0]["sha256"] = json!(substituted_digest.clone());
+        manifest["claims"][0]["input_artifact_sha256"] = json!([substituted_digest.clone()]);
+        manifest["claims"][0]["output_artifact_sha256"] = json!([substituted_digest]);
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("model artifact digest set")
         }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
