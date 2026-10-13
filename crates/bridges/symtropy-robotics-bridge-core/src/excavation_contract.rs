@@ -215,16 +215,6 @@ impl MaterialAwareExcavationRequestV1 {
                 "requested_duration_ns",
             ));
         }
-        if self.feed_speed_m_s > self.tool.feed_speed_limit_m_s {
-            return Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
-                "feed_speed_m_s",
-            ));
-        }
-        if self.angular_speed_rad_s > self.tool.angular_speed_limit_rad_s {
-            return Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
-                "angular_speed_rad_s",
-            ));
-        }
         for (field, value) in [
             ("feed_speed_limit_m_s", self.tool.feed_speed_limit_m_s),
             ("angular_speed_limit_rad_s", self.tool.angular_speed_limit_rad_s),
@@ -235,6 +225,16 @@ impl MaterialAwareExcavationRequestV1 {
             if !value.is_finite() || value <= 0.0 {
                 return Err(ExcavationContractErrorV1::InvalidCommand(field));
             }
+        }
+        if self.feed_speed_m_s > self.tool.feed_speed_limit_m_s {
+            return Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "feed_speed_m_s",
+            ));
+        }
+        if self.angular_speed_rad_s > self.tool.angular_speed_limit_rad_s {
+            return Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "angular_speed_rad_s",
+            ));
         }
         Ok(())
     }
