@@ -1334,15 +1334,13 @@ mod tests {
         assert_eq!(arms.len(), 8);
         for (index, arm) in arms.iter().enumerate() {
             assert_eq!(arm["arm_index"].as_u64(), Some(index as u64));
-            assert_eq!(
-                arm["arm_id"].as_str(),
-                Some(&format!(
-                    "A{}{}{}",
-                    arm["friction_modulation"].as_bool().unwrap() as u8,
-                    arm["resonance_prediction_error"].as_bool().unwrap() as u8,
-                    arm["emotional_contagion"].as_bool().unwrap() as u8
-                ))
+            let expected_id = format!(
+                "A{}{}{}",
+                arm["friction_modulation"].as_bool().unwrap() as u8,
+                arm["resonance_prediction_error"].as_bool().unwrap() as u8,
+                arm["emotional_contagion"].as_bool().unwrap() as u8
             );
+            assert_eq!(arm["arm_id"].as_str(), Some(expected_id.as_str()));
         }
         assert_eq!(arms[0]["arm_id"], "A000");
         assert_eq!(arms[7]["arm_id"], "A111");
