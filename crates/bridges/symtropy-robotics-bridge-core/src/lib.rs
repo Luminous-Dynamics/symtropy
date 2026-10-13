@@ -10,6 +10,7 @@ pub mod platform;
 pub mod safety;
 pub mod sensor_model;
 pub mod world_contract;
+pub mod world_manifest_commitment;
 pub use sensor_model::{
     SensorModelError, SensorModelV1, SensorReadingV1, SensorSampleDispositionV1,
     SensorSampleV1, SensorTruthChannelV1,
