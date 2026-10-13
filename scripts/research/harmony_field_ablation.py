@@ -464,6 +464,56 @@ def self_test():
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertEqual(report["missing_run_count"], 16)
 
+        def complete_records(self, plan):
+            records = []
+            for run in plan["planned_runs"]:
+                records.append({
+                    "schema_version": RESULT_SCHEMA,
+                    "run_id": run["run_id"],
+                    "candidate_commit": plan["candidate_commit"],
+                    "configuration_sha256": run["configuration_sha256"],
+                    "run_status": "completed",
+                    "termination_reason": "task_complete",
+                    "primary_endpoint": 1.0,
+                    "secondary_metrics": {"collision_count": 0},
+                    "validation_failure_count": 0,
+                    "nonfinite_count": 0,
+                    "invariant_drift": 0.0,
+                    "artifact_sha256": "f"*64,
+                    "replay_status": "exact_match",
+                    "replay_evidence_sha256": "e"*64,
+                })
+            return records
+
+        def test_complete_manifest_passes_mechanical_checks_only(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="c"*40, task_id="smoke", scenario_config=scenario,
+                                          seeds=[1,2], held_out_seeds=[2], dimensions=[3],
+                                          source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                results = Path(tmp) / "results.jsonl"
+                results.write_text("".join(json.dumps(r) + "\\n" for r in self.complete_records(plan)), encoding="utf-8")
+                report = validate_results(plan, results)
+                self.assertEqual(report["validation_status"], "qualified_manifest")
+                self.assertEqual(report["completed_run_count"], 16)
+                self.assertIn("no effect estimates", report["note"])
+
+        def test_nonzero_validation_counter_disqualifies_complete_manifest(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="d"*40, task_id="smoke", scenario_config=scenario,
+                                          seeds=[1,2], held_out_seeds=[2], dimensions=[3],
+                                          source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                records = self.complete_records(plan)
+                records[0]["validation_failure_count"] = 1
+                results = Path(tmp) / "results.jsonl"
+                results.write_text("".join(json.dumps(r) + "\\n" for r in records), encoding="utf-8")
+                report = validate_results(plan, results)
+                self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
+                self.assertEqual(report["completed_runs_with_invalid_counters"], 1)
+
         def test_malformed_status_values_fail_closed_without_crashing(self):
             with tempfile.TemporaryDirectory() as tmp:
                 scenario = self.scenario(Path(tmp) / "scenario.json")
