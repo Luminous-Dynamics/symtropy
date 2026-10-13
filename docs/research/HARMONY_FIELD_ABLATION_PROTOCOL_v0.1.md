@@ -47,6 +47,14 @@ This complete design is required to estimate the three main effects and the F×R
 
 Each seed is a matched block: every treatment for that seed starts from identical initial state, source placements/profiles, task inputs, time step, solver configuration, and non-treatment random streams. Create a fresh world for every seed × treatment × parameter/model variant tuple; never carry state between arms.
 
+**A shared seed is not enough to claim common random numbers.** Different treatment arms may take different branches and consume a stateful PRNG stream in different orders, so later draws may no longer represent the same stochastic events. The scenario contract must state the actual random-stream strategy and cross-treatment alignment:
+- Prefer counter-based/event-keyed randomness where the variates can be keyed to stable logical events (scenario, subsystem, entity, tick, event identity) that remain comparable across treatment arms.
+- Independent subsystem streams can isolate unrelated sources of randomness, but do not automatically align draws within a subsystem when a treatment changes branch behavior.
+- If the implementation only uses the same initial seed with a stateful stream, record `same_seed_only`; use seeds as blocks, but do not claim common-random-number variance reduction.
+- Use `common_random_numbers_verified` only when the implementation and an audit demonstrate that the intended stochastic inputs align across arms. Preserve the alignment evidence and disclose any events with no counterpart in another arm.
+
+Record the RNG algorithm/version, stream derivation policy, and alignment evidence in the frozen scenario configuration. Do not retrofit a favorable alignment claim after inspecting outcomes.
+
 Partition seeds before tuning:
 1. **Development seeds:** debug the harness and explore candidate parameter settings.
 2. **Held-out seeds:** remain unopened until the model/parameter choice and analysis are frozen.
@@ -107,6 +115,7 @@ Publish one machine-readable record per seed × arm × parameter/model variant, 
     parameter_values
     solver_and_timestep
     platform_and_toolchain
+    random_stream_contract
     run_status
     termination_reason
     primary_endpoint
@@ -148,6 +157,7 @@ An unrun test, queued job, skipped suite, absent artifact, or invalid interval d
 This protocol adapts general methodological guidance; it is not a claim that any experiment has already been run:
 
 1. Borgonovo, E., Pangallo, M., Rivkin, J., Rizzo, L., & Siggelkow, N. (2022). *Sensitivity analysis of agent-based models: a new protocol*. Computational and Mathematical Organization Theory, 28, 52–94. https://doi.org/10.1007/s10588-021-09358-5 — describes matching sensitivity methods to questions and using factorial designs to estimate main and interaction effects.
+3. Heikes, R. G., Montgomery, D. C., & Rardin, R. L. (1976). *Using common random numbers in simulation experiments — an approach to statistical analysis*. Simulation, 27(3). https://doi.org/10.1177/003754977602700301 — discusses using the same pseudo-random streams across alternatives as a simulation-comparison design. For this experiment, a fixed seed alone does not prove that treatment arms consumed equivalent draws, so the RNG alignment policy and evidence must be recorded.
 2. Troost, C. et al. (2023). *How to keep it adequate: A protocol for ensuring validity in agent-based simulation*. Environmental Modelling & Software, 159, 105559. https://doi.org/10.1016/j.envsoft.2022.105559 — frames validity as context-adequacy across model choice, inference, uncertainty analysis, and interpretation, with uncertainty traced throughout.
 
 ## 10. Current implementation notes
