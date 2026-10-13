@@ -130,6 +130,20 @@ def _constraint_status(
     comparator = constraint.get("comparator")
     threshold = constraint.get("threshold")
     upper = constraint.get("threshold_upper")
+    if comparator not in ("<=", ">=", "between"):
+        errors.append(f"{label}.comparator: unsupported comparator {comparator!r}")
+        return "UNKNOWN"
+    if not _is_number(threshold):
+        errors.append(f"{label}.threshold: expected a finite number")
+        return "UNKNOWN"
+    if comparator == "between":
+        if not _is_number(upper) or threshold > upper:
+            errors.append(f"{label}: between requires finite threshold <= threshold_upper")
+            return "UNKNOWN"
+    elif "threshold_upper" in constraint:
+        errors.append(f"{label}: threshold_upper is only valid with comparator='between'")
+        return "UNKNOWN"
+
     observed: list[tuple[str, dict[str, Any]]] = []
     for target_name, target in targets:
         _validate_known_unknown(target, f"{label}.{target_name}", artifact_ids, errors)
@@ -141,28 +155,44 @@ def _constraint_status(
         saw_unknown = False
 
     failed = False
+    uncertainty_overlap = False
     for _, target in observed:
         value = target["value"]
-        if not _is_number(threshold):
-            errors.append(f"{label}.threshold: expected a finite number")
-            return "UNKNOWN"
-        if comparator == "<=":
-            failed = failed or value > threshold
-        elif comparator == ">=":
-            failed = failed or value < threshold
-        elif comparator == "between":
-            if not _is_number(upper) or threshold > upper:
-                errors.append(f"{label}: between requires finite threshold <= threshold_upper")
-                return "UNKNOWN"
-            failed = failed or value < threshold or value > upper
-        else:
-            errors.append(f"{label}.comparator: unsupported comparator {comparator!r}")
-            return "UNKNOWN"
+        interval = target.get("uncertainty")
+        if interval is None:
+            # Without a declared uncertainty interval, evaluate the reported value
+            # as the supplied measurement. Its scientific limitations remain explicit.
+            if comparator == "<=":
+                failed = failed or value > threshold
+            elif comparator == ">=":
+                failed = failed or value < threshold
+            else:  # validated comparator == "between"
+                failed = failed or value < threshold or value > upper
+            continue
 
+        low, high = interval["lower"], interval["upper"]
+        # Treat the declared uncertainty envelope conservatively. If it overlaps a
+        # failure region and does not lie wholly inside the permitted region, the
+        # constraint is unresolved rather than passed.
+        if comparator == "<=":
+            if low > threshold:
+                failed = True
+            elif high > threshold:
+                uncertainty_overlap = True
+        elif comparator == ">=":
+            if high < threshold:
+                failed = True
+            elif low < threshold:
+                uncertainty_overlap = True
+        else:  # validated comparator == "between"
+            if high < threshold or low > upper:
+                failed = True
+            elif low < threshold or high > upper:
+                uncertainty_overlap = True
     # A known violation is decisive even if another subgroup is unknown.
     if failed:
         return "FAIL"
-    if saw_unknown or len(observed) != len(targets):
+    if uncertainty_overlap or saw_unknown or len(observed) != len(targets):
         return "UNKNOWN"
     return "PASS"
 
