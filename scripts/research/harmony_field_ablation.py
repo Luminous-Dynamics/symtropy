@@ -875,7 +875,7 @@ def self_test():
                 evidence_path = Path(tmp) / plan["scenario_config"]["random_stream_contract"]["alignment_evidence_path"]
                 evidence_path.write_text("altered evidence", encoding="utf-8")
                 results = Path(tmp) / "results.jsonl"
-                results.write_text("".join(json.dumps(r) + "\\n" for r in records), encoding="utf-8")
+                results.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
                 report = validate_results(plan, results, Path(tmp))
                 self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
                 self.assertTrue(any("random-stream alignment evidence hash" in e for e in report["errors"]))
