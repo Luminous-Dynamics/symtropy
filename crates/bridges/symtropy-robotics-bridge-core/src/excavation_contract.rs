@@ -44,6 +44,8 @@ pub struct MaterialAwareExcavationRequestV1 {
     pub material_profile_id: String,
     /// Exact initial rock/terrain geometry targeted by this operation.
     pub target_geometry_artifact: ArtifactRef,
+    /// Frame in which the spatial state delta is expressed.
+    pub target_frame_id: String,
     pub solver_id: String,
     pub tool: ExcavationToolProfileV1,
     /// Commanded linear feed speed, in m/s.
@@ -65,12 +67,25 @@ pub enum ExcavationDispositionV1 {
     Cancelled,
 }
 
+/// Supported artifact encodings for an excavation spatial state transition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExcavationStateDeltaFormatV1 {
+    /// Per-voxel material/occupancy update with explicit grid dimensions and origin.
+    VoxelMaterialPatch,
+    /// Surface triangle mesh and associated material/property patch.
+    TriangleMeshPatch,
+    /// Signed-distance-field or occupancy-field patch with declared sampling.
+    SpatialFieldPatch,
+    /// Sparse, indexed set of removed cells for a declared volumetric grid.
+    CellRemovalMask,
+}
+
 /// A spatial state change produced by a completed excavation attempt.
 ///
-/// The transition artifacts must identify the exact previous geometry and world
-/// generation and carry the resulting geometry plus a machine-readable delta
-/// (for example, a voxel mask or mesh/material patch). This contract validates
-/// identities/digests but does not decode or certify the geometry update.
+/// The transition artifacts identify the exact previous geometry and world
+/// generation and carry the resulting geometry plus a versioned, frame-bound
+/// delta artifact. This contract validates identifiers/digests but does not
+/// decode or certify the geometry update.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExcavationSpatialDeltaV1 {
     pub base_world_generation: u64,
@@ -78,6 +93,9 @@ pub struct ExcavationSpatialDeltaV1 {
     pub base_geometry_artifact: ArtifactRef,
     pub result_geometry_artifact: ArtifactRef,
     pub state_delta_artifact: ArtifactRef,
+    pub state_delta_format: ExcavationStateDeltaFormatV1,
+    pub state_delta_schema_version: u16,
+    pub coordinate_frame_id: String,
 }
 
 /// A measured or solver-reported excavation output. Values use named SI units.
@@ -130,6 +148,7 @@ pub enum ExcavationContractErrorV1 {
     UndeclaredToolProfileArtifact,
     ToolProfileIdentityMismatch,
     UndeclaredTargetGeometryArtifact,
+    UnknownTargetFrame(String),
     InvalidSpatialDelta,
     UnknownMaterialProfile(String),
     UnknownSolver(String),
@@ -218,6 +237,13 @@ impl MaterialAwareExcavationRequestV1 {
             .any(|asset| asset == &self.target_geometry_artifact)
         {
             return Err(ExcavationContractErrorV1::UndeclaredTargetGeometryArtifact);
+        }
+        if self.target_frame_id.trim().is_empty()
+            || !world.frames.iter().any(|frame| frame.frame_id == self.target_frame_id)
+        {
+            return Err(ExcavationContractErrorV1::UnknownTargetFrame(
+                self.target_frame_id.clone(),
+            ));
         }
 
         let solver = world
@@ -349,6 +375,9 @@ fn validate_spatial_delta(
     if delta.base_world_generation != request.world_generation
         || delta.result_world_generation != expected_result_generation
         || delta.base_geometry_artifact != request.target_geometry_artifact
+        || delta.coordinate_frame_id != request.target_frame_id
+        || delta.coordinate_frame_id.trim().is_empty()
+        || delta.state_delta_schema_version == 0
         || !valid_artifact(&delta.base_geometry_artifact)
         || !valid_artifact(&delta.result_geometry_artifact)
         || !valid_artifact(&delta.state_delta_artifact)
@@ -526,6 +555,7 @@ mod tests {
             input_digest_sha256: "e".repeat(SHA256_HEX_LENGTH),
             material_profile_id: "granite-synthetic-001".to_owned(),
             target_geometry_artifact: artifact("rock-face-geometry", '8'),
+            target_frame_id: "world".to_owned(),
             solver_id: "reduced-order-cutter-v1".to_owned(),
             tool: ExcavationToolProfileV1 {
                 tool_id: "disc-cutter-001".to_owned(),
@@ -575,6 +605,9 @@ mod tests {
                 base_geometry_artifact: artifact("rock-face-geometry", '8'),
                 result_geometry_artifact: artifact("rock-face-after-cut-001", '6'),
                 state_delta_artifact: artifact("rock-face-delta-001", '7'),
+                state_delta_format: ExcavationStateDeltaFormatV1::CellRemovalMask,
+                state_delta_schema_version: 1,
+                coordinate_frame_id: "world".to_owned(),
             }),
             warnings: if disposition == ExcavationDispositionV1::CompletedWithWarnings {
                 vec!["Synthetic warning fixture".to_owned()]
@@ -625,6 +658,15 @@ mod tests {
             unknown_target_geometry
                 .validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
             Err(ExcavationContractErrorV1::UndeclaredTargetGeometryArtifact)
+        );
+
+        let mut unknown_frame = request();
+        unknown_frame.target_frame_id = "unregistered-frame".to_owned();
+        assert_eq!(
+            unknown_frame.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
+            Err(ExcavationContractErrorV1::UnknownTargetFrame(
+                "unregistered-frame".to_owned()
+            ))
         );
 
         let mut excessive_feed = request();
@@ -683,6 +725,21 @@ mod tests {
             bad_delta_digest.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
+
+        let mut wrong_frame = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        wrong_frame.spatial_delta.as_mut().unwrap().coordinate_frame_id =
+            "unregistered-frame".to_owned();
+        assert_eq!(
+            wrong_frame.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+        );
+
+        let mut missing_delta_schema = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        missing_delta_schema.spatial_delta.as_mut().unwrap().state_delta_schema_version = 0;
+        assert_eq!(
+            missing_delta_schema.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            Err(ExcavationContractErrorV1::InvalidSpatialDelta)
+        );
     }
 
     #[test]
@@ -694,6 +751,9 @@ mod tests {
             base_geometry_artifact: artifact("rock-face-geometry", '8'),
             result_geometry_artifact: artifact("rock-face-after-cut-001", '6'),
             state_delta_artifact: artifact("rock-face-delta-001", '7'),
+            state_delta_format: ExcavationStateDeltaFormatV1::CellRemovalMask,
+            state_delta_schema_version: 1,
+            coordinate_frame_id: "world".to_owned(),
         });
         assert_eq!(
             failed.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
