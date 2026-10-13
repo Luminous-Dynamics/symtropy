@@ -14,15 +14,8 @@
     "format": "IFC",
     "schema_or_version": "IFC4X3_ADD2",
     "unit_system": "SI",
-    "artifacts": [
-      {
-        "artifact_id": "synthetic-model-placeholder",
-        "media_type": "application/x-step",
-        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "role": "model",
-        "uri": null,
-        "retention_class": "example-only"
-      }
+    "artifact_ids": [
+      "synthetic-model-placeholder"
     ]
   },
   "rule_pack": {
@@ -81,5 +74,15 @@
     "No construction-ready model or evaluated building-code rule is included.",
     "Jurisdiction and rule pack are deliberately provisional."
   ],
-  "supersedes_case_id": null
+  "supersedes_case_id": null,
+  "evidence_artifacts": [
+    {
+      "artifact_id": "synthetic-model-placeholder",
+      "media_type": "application/x-step",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "model",
+      "uri": null,
+      "retention_class": "example-only"
+    }
+  ]
 }
