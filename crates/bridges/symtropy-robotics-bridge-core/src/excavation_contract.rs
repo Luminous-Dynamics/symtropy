@@ -89,8 +89,8 @@ pub struct MaterialAwareExcavationResultV1 {
     /// Echo the entire request so exact request identity is checked, not sampled.
     pub request: MaterialAwareExcavationRequestV1,
     pub disposition: ExcavationDispositionV1,
-    /// Digest-bound solver/measurement result bundle; required only for completed outputs.
-    pub output_artifact: Option<ArtifactRef>,
+    /// Digest-bound result or diagnostic bundle; failure logs can be retained without outputs.
+    pub result_artifact: Option<ArtifactRef>,
     /// Non-completed dispositions must not carry accepted physical outputs.
     pub response: Option<ExcavationResponseV1>,
     pub warnings: Vec<String>,
@@ -113,7 +113,7 @@ pub enum ExcavationContractErrorV1 {
     UnsupportedSolverDomain(PhysicsDomain),
     InvalidCommand(&'static str),
     RequestIdentityMismatch,
-    InvalidOutputArtifact,
+    InvalidResultArtifact,
     InconsistentDisposition,
     InvalidOutput(&'static str),
     OperatingEnvelopeExceeded(&'static str),
@@ -248,11 +248,11 @@ impl MaterialAwareExcavationResultV1 {
             ExcavationDispositionV1::CompletedWithinEnvelope
             | ExcavationDispositionV1::CompletedWithWarnings => {
                 let artifact = self
-                    .output_artifact
+                    .result_artifact
                     .as_ref()
-                    .ok_or(ExcavationContractErrorV1::InvalidOutputArtifact)?;
+                    .ok_or(ExcavationContractErrorV1::InvalidResultArtifact)?;
                 if !valid_artifact(artifact) {
-                    return Err(ExcavationContractErrorV1::InvalidOutputArtifact);
+                    return Err(ExcavationContractErrorV1::InvalidResultArtifact);
                 }
                 let response = self
                     .response
@@ -269,8 +269,15 @@ impl MaterialAwareExcavationResultV1 {
                 }
             }
             _ => {
-                if self.output_artifact.is_some() || self.response.is_some() {
+                if self.response.is_some() {
                     return Err(ExcavationContractErrorV1::InconsistentDisposition);
+                }
+                if self
+                    .result_artifact
+                    .as_ref()
+                    .is_some_and(|artifact| !valid_artifact(artifact))
+                {
+                    return Err(ExcavationContractErrorV1::InvalidResultArtifact);
                 }
             }
         }
@@ -483,7 +490,7 @@ mod tests {
             schema_version: MATERIAL_AWARE_EXCAVATION_SCHEMA_VERSION,
             request: request(),
             disposition,
-            output_artifact: completed.then(|| artifact("excavation-output-001", 'f')),
+            result_artifact: completed.then(|| artifact("excavation-output-001", 'f')),
             response: completed.then(response),
             warnings: if disposition == ExcavationDispositionV1::CompletedWithWarnings {
                 vec!["Synthetic warning fixture".to_owned()]
@@ -555,6 +562,11 @@ mod tests {
     #[test]
     fn noncompleted_result_cannot_claim_removed_volume() {
         let mut failed = result(ExcavationDispositionV1::OutOfDomain);
+        failed.result_artifact = Some(artifact("solver-diagnostics-001", '8'));
+        assert!(failed
+            .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request())
+            .is_ok());
+
         failed.response = Some(response());
         assert_eq!(
             failed.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
@@ -584,6 +596,25 @@ mod tests {
                 "peak_thrust_n"
             ))
         );
+
+        let mut over_torque = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        over_torque.response.as_mut().unwrap().peak_torque_nm = 30.0;
+        assert_eq!(
+            over_torque.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
+            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "peak_torque_nm"
+            ))
+        );
+
+        let mut over_energy = result(ExcavationDispositionV1::CompletedWithinEnvelope);
+        over_energy.response.as_mut().unwrap().mechanical_energy_j = 2_501.0;
+        assert_eq!(
+            over_energy.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
+            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "mechanical_energy_j"
+            ))
+        );
+
         overlimit.disposition = ExcavationDispositionV1::CompletedWithWarnings;
         overlimit.warnings = vec!["Peak thrust exceeded declared tool limit.".to_owned()];
         assert!(overlimit
