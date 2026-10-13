@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/harmony-field-runtime-adapter
+      - research/harmony-field-runtime-adapter-smoke
   pull_request:
     branches:
       - feat/harmony-field-factorial-switches
@@ -49,7 +50,10 @@ jobs:
               print(f"ADAPTER_FORMATTED_B64_CHUNK:{index // 3000:04d}:{encoded[index:index + 3000]}")
           print("ADAPTER_FORMATTED_B64_END")
           PY
-
+          # The formatter output is reviewed/committed separately. Restore the
+          # exact checked-out bytes before tests and the strict clean-tree run gate.
+          git checkout -- crates/domains/symtropy-consciousness-physics/examples/harmony_field_ablation_adapter.rs
+          test -z "$(git status --porcelain --untracked-files=all)"
 
       - name: Compile the runtime adapter with locked dependencies
         run: cargo check --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter
@@ -59,3 +63,57 @@ jobs:
 
       - name: Exercise real runtime adapter smoke and replay
         run: cargo test --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter
+
+      - name: Plan real factorial harness smoke
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/research/harmony-field-runtime-adapter-smoke' }}
+        run: |
+          set -euo pipefail
+          rm -f /tmp/harmony-field-smoke-plan.json
+          python3 scripts/research/harmony_field_ablation.py plan \
+            --candidate-commit "$(git rev-parse HEAD)" \
+            --task-id harmony-field-crossing-traffic-smoke-v1 \
+            --scenario-config scripts/research/scenarios/harmony_field_crossing_traffic_smoke.json \
+            --seeds 101,102,103 --held-out-seeds 102,103 \
+            --dimensions 3 --source-strengths 1.0 --radii 20.0 \
+            --output /tmp/harmony-field-smoke-plan.json
+
+      - name: Execute real Symtropy PhysicsWorld runs and replay
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/research/harmony-field-runtime-adapter-smoke' }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/harmony-field-smoke-artifacts
+          cargo run --locked -p symtropy-consciousness-physics \
+            --example harmony_field_ablation_adapter -- \
+            --plan /tmp/harmony-field-smoke-plan.json \
+            --artifact-root /tmp/harmony-field-smoke-artifacts
+
+      - name: Validate actual trace and replay artifact hashes
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/research/harmony-field-runtime-adapter-smoke' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/research/harmony_field_ablation.py validate \
+            --plan /tmp/harmony-field-smoke-plan.json \
+            --results /tmp/harmony-field-smoke-artifacts/results.jsonl \
+            --artifact-root /tmp/harmony-field-smoke-artifacts \
+            --report /tmp/harmony-field-smoke-artifacts/validation-report.json
+
+      - name: Analyze held-out smoke cells (pipeline only; no utility claim)
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/research/harmony-field-runtime-adapter-smoke' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/research/harmony_field_ablation.py analyze \
+            --plan /tmp/harmony-field-smoke-plan.json \
+            --results /tmp/harmony-field-smoke-artifacts/results.jsonl \
+            --artifact-root /tmp/harmony-field-smoke-artifacts \
+            --output /tmp/harmony-field-smoke-artifacts/analysis.json
+
+      - name: Preserve smoke plan and evidence, including failures
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/research/harmony-field-runtime-adapter-smoke'
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmony-field-runtime-smoke
+          path: |
+            /tmp/harmony-field-smoke-plan.json
+            /tmp/harmony-field-smoke-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
