@@ -190,7 +190,12 @@ def _constraint_status(
             uncertainty_overlap = True
             continue
 
-        low, high = interval["lower"], interval["upper"]
+        low, high = interval.get("lower"), interval.get("upper")
+        if not _is_number(low) or not _is_number(high) or low > high:
+            # Continue collecting validation errors instead of raising when this
+            # function is called directly with malformed input outside the CLI.
+            uncertainty_overlap = True
+            continue
         # Treat the declared uncertainty envelope conservatively. If it overlaps a
         # failure region and does not lie wholly inside the permitted region, the
         # constraint is unresolved rather than passed.
