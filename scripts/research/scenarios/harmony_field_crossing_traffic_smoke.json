@@ -1,5 +1,30 @@
 {
   "task_description": "Four-agent deterministic crossing-traffic task: each sphere is driven toward its assigned opposite-corner goal under a bounded proportional-derivative controller; the F/R/E switches govern field-friction coupling, resonance-scaled collision surprise, and proximity-weighted emotional contagion.",
+  "task_parameters": {
+    "start_positions_model_units": [[-12.0, -12.0, 0.0], [-12.0, 12.0, 0.0], [12.0, -12.0, 0.0], [12.0, 12.0, 0.0]],
+    "goal_positions_model_units": [[12.0, 12.0, 0.0], [12.0, -12.0, 0.0], [-12.0, 12.0, 0.0], [-12.0, -12.0, 0.0]],
+    "initial_position_jitter_half_width": 0.25,
+    "gravity": [0.0, 0.0, 0.0],
+    "body": {
+      "radius": 0.75,
+      "mass": 1.0,
+      "friction": 0.6,
+      "restitution": 0.05,
+      "linear_damping": 0.1
+    },
+    "controller": {
+      "kp": 2.0,
+      "kd": 2.5,
+      "force_norm_cap": 30.0
+    },
+    "goal_radius": 2.0,
+    "initial_harmony_profiles": [
+      [0.90, 0.10, 0.20, 0.10, 0.15, 0.25, 0.10, 0.80, 0.85],
+      [0.15, 0.88, 0.15, 0.20, 0.10, 0.35, 0.80, 0.15, 0.15],
+      [0.20, 0.10, 0.92, 0.15, 0.30, 0.80, 0.10, 0.20, 0.55],
+      [0.35, 0.25, 0.30, 0.90, 0.65, 0.25, 0.30, 0.45, 0.30]
+    ]
+  },
   "primary_endpoint": {
     "name": "goal_completion_fraction",
     "units": "fraction_of_4_agents_within_2_model_units_of_goal_at_terminal_tick",
