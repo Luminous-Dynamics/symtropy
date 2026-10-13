@@ -18,6 +18,7 @@ except ImportError:  # CI installs the pinned schema validator.
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
+PREREG_SCHEMA_PATH = ROOT / "docs/humanity-atlas/constraint-preregistration-v0.1.schema.json"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate_flourishing_assessment import main, validate_assessment  # noqa: E402
 
@@ -354,6 +355,23 @@ class FlourishingAssessmentTests(unittest.TestCase):
             errors, _ = validate_assessment(doc, artifact_root=root, verify_artifacts=True)
         self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
 
+    def test_preregistration_content_must_match_constraint_even_with_valid_digest(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        artifact_id = doc["constraints"][0]["preregistration_artifact_id"]
+        artifact = next(item for item in doc["artifacts"] if item["artifact_id"] == artifact_id)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialize_artifact_files(doc, root)
+            path = root / artifact["path"]
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["threshold"] = 0.75
+            tampered_but_rehashed = (json.dumps(payload, indent=2) + "\\n").encode("utf-8")
+            path.write_bytes(tampered_but_rehashed)
+            artifact["sha256"] = hashlib.sha256(tampered_but_rehashed).hexdigest()
+            errors, report = validate_assessment(doc, artifact_root=root, verify_artifacts=True)
+        self.assertTrue(any("does not bind matching values" in error and "threshold" in error for error in errors))
+        self.assertIsNone(report)
+
     def test_subgroup_violation_is_not_hidden_by_an_unknown_subgroup(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         constraint = doc["constraints"][0]
@@ -434,6 +452,18 @@ class FlourishingAssessmentTests(unittest.TestCase):
         jsonschema.Draft202012Validator(
             schema, format_checker=jsonschema.FormatChecker()
         ).validate(assessment())
+
+    @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_preregistration_artifact_schema_accepts_bound_record(self) -> None:
+        doc = assessment()
+        constraint = doc["constraints"][0]
+        payload = json.loads(preregistration_payload(constraint))
+        schema = json.loads(PREREG_SCHEMA_PATH.read_text(encoding="utf-8"))
+        jsonschema.Draft202012Validator.check_schema(schema)
+        validator = jsonschema.Draft202012Validator(
+            schema, format_checker=jsonschema.FormatChecker()
+        )
+        self.assertEqual(list(validator.iter_errors(payload)), [])
 
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
     def test_subgroup_uncertainty_reference_resolves(self) -> None:
