@@ -22,9 +22,6 @@ EXPECTED_REGISTRY_DIGEST = (
 EXPECTED_QUALIFIED_DIGEST = (
     "962c4a535296a60b34905d73393e820c193d1eac7c87b1f53d2702b2e1f9f38b"
 )
-EXPECTED_CHANGED_BASIS_DIGEST = (
-    "a0e1f5d57d8a"  # replaced below by the independent mutation vector
-)
 
 
 def u16(value: int) -> bytes:
@@ -61,6 +58,7 @@ def external_spec_registry_bytes(uri: str, sha256_hex: str) -> bytes:
     result.extend(u64(1))
     result.extend(text("custom"))
     result.append(255)
+    result.append(0)  # right-handed; left-handed declarations are rejected
     result.extend(text(uri))
     result.extend(digest)
     return bytes(result)
@@ -93,11 +91,17 @@ def main() -> None:
         ("robot-base", 4),     # FRD, not body FLU
         ("camera-optical", 3),
     ])
-    assert hashlib.sha256(changed_basis).digest() != registry_digest
+    assert hashlib.sha256(changed_basis).hexdigest() == (
+        "79ab768e881a534fee13f1f2529de2e6e5dbb5583664cca8a5fc716fa45d7900"
+    )
 
     custom_lower = external_spec_registry_bytes("urn:example:coordinate-spec:1", "ab" * 32)
     custom_upper = external_spec_registry_bytes("urn:example:coordinate-spec:1", ("ab" * 32).upper())
     assert custom_lower == custom_upper
+    assert len(custom_lower) == 136
+    assert hashlib.sha256(custom_lower).hexdigest() == (
+        "ba0cb450887c424f642868ef8356bcc3e0e9ea33469e40799db2c2a95531bb36"
+    )
 
     qualified = qualified_digest(registry_digest)
     assert qualified == EXPECTED_QUALIFIED_DIGEST, qualified
