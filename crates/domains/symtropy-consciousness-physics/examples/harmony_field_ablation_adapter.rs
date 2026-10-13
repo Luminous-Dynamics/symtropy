@@ -36,6 +36,8 @@ const KP: f64 = 2.0;
 const KD: f64 = 2.5;
 const FORCE_CAP: f64 = 30.0;
 const GOAL_RADIUS: f64 = 2.0;
+const MANIFEST_TOOL_PATH: &str = "scripts/research/harmony_field_ablation.py";
+const SCENARIO_PATH: &str = "scripts/research/scenarios/harmony_field_crossing_traffic_smoke.json";
 const RNG_EVIDENCE_PATH: &str = "scripts/research/scenarios/harmony_field_rng_alignment.md";
 const RNG_EVIDENCE_RELATIVE: &str = "rng-alignment-review.md";
 const RNG_EVIDENCE_SHA256: &str =
@@ -342,8 +344,10 @@ fn validate_plan(plan: &Value) -> Result<(), String> {
             .ok_or_else(|| "influence_radii are missing".to_string())?,
         "parameter_grid.influence_radii",
     )?;
-    if strengths.iter().any(|x| *x < 0.0) || radii.iter().any(|x| *x <= 0.0) {
-        return Err("source strengths must be non-negative and radii strictly positive".to_string());
+    if strengths.iter().any(|x| *x < 0.0 || *x > 1_000_000.0)
+        || radii.iter().any(|x| *x < 0.0001 || *x > 1_000_000.0)
+    {
+        return Err("source strengths must be in [0, 1e6] and radii in [1e-4, 1e6] for this smoke adapter".to_string());
     }
     if strengths.iter().enumerate().any(|(i, x)| strengths[..i].contains(x))
         || radii.iter().enumerate().any(|(i, x)| radii[..i].contains(x))
@@ -994,6 +998,22 @@ fn execute() -> Result<(), String> {
     let candidate_commit = value_string(&plan, "candidate_commit")?.to_string();
     let plan_sha = value_string(&plan, "plan_sha256")?.to_string();
     validate_source_checkout(&repo_root, &candidate_commit)?;
+
+    // Bind the inline plan scenario and planner identity to the exact files in
+    // this checkout rather than trusting self-consistent but externally edited JSON.
+    let scenario_bytes = fs::read(repo_root.join(SCENARIO_PATH))
+        .map_err(|e| format!("cannot read frozen scenario file: {e}"))?;
+    let tracked_scenario: Value = serde_json_runtime::from_slice(&scenario_bytes)
+        .map_err(|e| format!("tracked scenario file is not valid JSON: {e}"))?;
+    if plan.get("scenario_config") != Some(&tracked_scenario) {
+        return Err("plan scenario_config differs from the committed frozen scenario file".to_string());
+    }
+    let manifest_tool_bytes = fs::read(repo_root.join(MANIFEST_TOOL_PATH))
+        .map_err(|e| format!("cannot read required manifest tool {MANIFEST_TOOL_PATH}: {e}"))?;
+    let actual_tool_sha = sha256(&manifest_tool_bytes);
+    if value_string(&plan, "tool_sha256")? != actual_tool_sha {
+        return Err("plan tool_sha256 does not match the committed manifest-tool bytes".to_string());
+    }
 
     let audit_path = repo_root.join(RNG_EVIDENCE_PATH);
     let audit_bytes = fs::read(&audit_path)
