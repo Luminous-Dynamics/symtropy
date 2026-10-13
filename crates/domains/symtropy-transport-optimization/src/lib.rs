@@ -685,6 +685,124 @@ pub fn check_module_compatibility(
 }
 
 
+/// Terminal transfer equipment is modeled independently from a vehicle position.
+/// A crane, conveyor, roller deck, or cross-dock station can support a mode pair
+/// without being part of either vehicle's physical loading envelope. This is a
+/// compatibility declaration only; it does not certify safe loading or securement.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferEquipmentProfile {
+    pub equipment_id: String,
+    pub terminal_id: String,
+    pub supported_mode_pairs: BTreeSet<(Mode, Mode)>,
+    pub max_module_dimensions_mm: [u32; 3],
+    pub accepted_orientations: BTreeSet<CargoOrientation>,
+    pub max_module_gross_mass_grams: u64,
+    pub supported_families: BTreeSet<CargoModuleFamily>,
+    pub interfaces: BTreeSet<HandlingInterface>,
+    pub available_temperature_millicelsius: Option<TemperatureBand>,
+    pub supplies_module_power: bool,
+}
+
+impl CargoTransferEquipmentProfile {
+    pub fn validate(&self) -> Result<(), CargoError> {
+        if self.equipment_id.trim().is_empty()
+            || self.terminal_id.trim().is_empty()
+            || self.supported_mode_pairs.is_empty()
+            || self.max_module_dimensions_mm.contains(&0)
+            || self.accepted_orientations.is_empty()
+            || self.max_module_gross_mass_grams == 0
+            || self.supported_families.is_empty()
+            || self.interfaces.is_empty()
+        {
+            return Err(CargoError::InvalidEquipment(
+                "transfer equipment requires identity, terminal, mode pairs, dimensions, mass, families and interfaces",
+            ));
+        }
+        if let Some(band) = self.available_temperature_millicelsius {
+            band.validate()?;
+        }
+        Ok(())
+    }
+}
+
+/// Validate one module against one explicit intermodal transfer edge and the
+/// terminal equipment assigned to that edge. Movement-edge/fleet compatibility
+/// is still checked separately with check_module_compatibility; this function
+/// does not perform route allocation or safety-critical load calculations.
+pub fn check_cargo_transfer_compatibility(
+    profile: &CargoModuleProfile,
+    instance: &CargoModuleInstance,
+    edge: &Edge,
+    equipment: &CargoTransferEquipmentProfile,
+) -> Result<(), CargoError> {
+    let (from_mode, to_mode) = match edge.operation {
+        EdgeOperation::Transfer { from, to } => (from, to),
+        EdgeOperation::Movement { .. } => return Err(CargoError::TransferEdgeRequired),
+    };
+    equipment.validate()?;
+    if edge.from != edge.to || edge.from != equipment.terminal_id {
+        return Err(CargoError::TransferTerminalMismatch);
+    }
+    if edge.capacity == 0 {
+        return Err(CargoError::TransferCapacityUnavailable);
+    }
+    if !equipment.supported_mode_pairs.contains(&(from_mode, to_mode)) {
+        return Err(CargoError::TransferModePairUnsupported);
+    }
+    if !profile.permitted_modes.contains(&from_mode)
+        || !profile.permitted_modes.contains(&to_mode)
+    {
+        return Err(CargoError::ModeNotPermitted);
+    }
+
+    let gross_mass = instance.validate_against(profile)?;
+    if profile.conformity == ProfileConformity::NonConforming {
+        return Err(CargoError::ProfileNonConforming);
+    }
+    if !equipment.supported_families.contains(&profile.family) {
+        return Err(CargoError::FamilyNotSupported);
+    }
+    if !profile
+        .interfaces
+        .iter()
+        .any(|interface| equipment.interfaces.contains(interface))
+    {
+        return Err(CargoError::HandlingInterfaceMismatch);
+    }
+    let compatible_orientations: Vec<_> = profile
+        .permitted_orientations
+        .intersection(&equipment.accepted_orientations)
+        .copied()
+        .collect();
+    if compatible_orientations.is_empty() {
+        return Err(CargoError::OrientationNotSupported);
+    }
+    if !compatible_orientations.iter().any(|orientation| {
+        orientation
+            .permute_dimensions(profile.outer_dimensions_mm)
+            .iter()
+            .zip(equipment.max_module_dimensions_mm)
+            .all(|(module, limit)| *module <= limit)
+    }) {
+        return Err(CargoError::DimensionsExceeded);
+    }
+    if gross_mass > equipment.max_module_gross_mass_grams {
+        return Err(CargoError::EquipmentGrossMassExceeded);
+    }
+    if profile.requires_power && !equipment.supplies_module_power {
+        return Err(CargoError::ModulePowerUnavailable);
+    }
+    if let Some(required) = profile.required_temperature_millicelsius {
+        let Some(available) = equipment.available_temperature_millicelsius else {
+            return Err(CargoError::TemperatureControlUnavailable);
+        };
+        if !available.contains_band(required) {
+            return Err(CargoError::TemperatureControlUnavailable);
+        }
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BindingConstraint {
     Mass,
@@ -902,6 +1020,10 @@ pub enum CargoError {
     EquipmentGrossMassExceeded,
     ModulePowerUnavailable,
     TemperatureControlUnavailable,
+    TransferEdgeRequired,
+    TransferTerminalMismatch,
+    TransferModePairUnsupported,
+    TransferCapacityUnavailable,
 }
 
 impl fmt::Display for CargoError {
@@ -954,6 +1076,18 @@ impl fmt::Display for CargoError {
             Self::ModulePowerUnavailable => write!(f, "module power requirement cannot be met"),
             Self::TemperatureControlUnavailable => {
                 write!(f, "equipment cannot satisfy the module temperature requirement")
+            }
+            Self::TransferEdgeRequired => {
+                write!(f, "cargo transfer compatibility requires a transfer edge")
+            }
+            Self::TransferTerminalMismatch => {
+                write!(f, "transfer edge terminal does not match assigned transfer equipment")
+            }
+            Self::TransferModePairUnsupported => {
+                write!(f, "transfer equipment does not support this transport-mode pair")
+            }
+            Self::TransferCapacityUnavailable => {
+                write!(f, "transfer edge has no declared positive capacity")
             }
         }
     }
@@ -2016,6 +2150,33 @@ mod tests {
         }
     }
 
+    fn cargo_transfer_equipment() -> CargoTransferEquipmentProfile {
+        CargoTransferEquipmentProfile {
+            equipment_id: "hub-cross-dock-crane-3".to_owned(),
+            terminal_id: "Hub".to_owned(),
+            supported_mode_pairs: BTreeSet::from([(Mode::Road, Mode::Rail)]),
+            max_module_dimensions_mm: [6_100, 2_500, 2_600],
+            accepted_orientations: BTreeSet::from([CargoOrientation::XYZ]),
+            max_module_gross_mass_grams: 25_000_000,
+            supported_families: BTreeSet::from([CargoModuleFamily::IsoSeries1Container]),
+            interfaces: BTreeSet::from([HandlingInterface::IsoCornerFittings]),
+            available_temperature_millicelsius: None,
+            supplies_module_power: false,
+        }
+    }
+
+    fn road_rail_transfer_edge() -> Edge {
+        Edge::transfer(
+            "road-rail-at-hub",
+            "Hub",
+            Mode::Road,
+            Mode::Rail,
+            100,
+            QuantityUnit::Shipments,
+            metrics(10, 0, 120, 0, 2, 1, 0, 1, 1),
+        )
+    }
+
     fn rail_equipment() -> HandlingEquipmentProfile {
         HandlingEquipmentProfile {
             equipment_id: "rail-wagon-position-7".to_owned(),
@@ -2032,6 +2193,88 @@ mod tests {
             aircraft_position_id: None,
             accepted_uld_type_codes: BTreeSet::new(),
         }
+    }
+
+    #[test]
+    fn cargo_transfer_accepts_explicit_mode_pair_terminal_and_interface() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_rejects_wrong_terminal_and_unsupported_mode_pair() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+
+        let mut equipment = cargo_transfer_equipment();
+        equipment.terminal_id = "Different-terminal".to_owned();
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            Err(CargoError::TransferTerminalMismatch)
+        );
+
+        let mut equipment = cargo_transfer_equipment();
+        equipment.supported_mode_pairs = BTreeSet::from([(Mode::Rail, Mode::Maritime)]);
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            Err(CargoError::TransferModePairUnsupported)
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_rejects_movement_edges_and_zero_capacity() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let equipment = cargo_transfer_equipment();
+
+        let movement = Edge::movement(
+            "road-movement",
+            "Hub",
+            "Market",
+            Mode::Road,
+            100,
+            QuantityUnit::Shipments,
+            metrics(10, 0, 120, 5_000, 2, 1, 0, 1, 1),
+        );
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &movement, &equipment),
+            Err(CargoError::TransferEdgeRequired)
+        );
+
+        let mut no_capacity = road_rail_transfer_edge();
+        no_capacity.capacity = 0;
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &no_capacity, &equipment),
+            Err(CargoError::TransferCapacityUnavailable)
+        );
+    }
+
+    #[test]
+    fn cargo_transfer_rejects_missing_interface_and_equipment_overload() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+
+        let mut equipment = cargo_transfer_equipment();
+        equipment.interfaces = BTreeSet::from([HandlingInterface::ForkPockets]);
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            Err(CargoError::HandlingInterfaceMismatch)
+        );
+
+        let mut equipment = cargo_transfer_equipment();
+        equipment.max_module_gross_mass_grams = 1;
+        assert_eq!(
+            check_cargo_transfer_compatibility(&profile, &instance, &edge, &equipment),
+            Err(CargoError::EquipmentGrossMassExceeded)
+        );
     }
 
     #[test]
