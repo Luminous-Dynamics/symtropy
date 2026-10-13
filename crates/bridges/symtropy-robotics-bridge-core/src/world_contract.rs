@@ -1065,6 +1065,7 @@ pub enum WorldValidationCode {
     SensorFrameNotAttachedToPlatform,
     SensorFrameProviderMismatch,
     SolverProfileMismatch,
+    ArtifactDigestConflict,
     WorldManifestDigestMismatch,
     WorldManifestCommitmentUnavailable,
 }
@@ -1085,8 +1086,8 @@ fn record_artifact_digest_identity(
     match seen.get(&artifact.artifact_id) {
         Some(previous) if previous != &normalized_digest => {
             issues.push(WorldValidationIssue::new(
-                WorldValidationCode::DuplicateIdentity,
-                format!("{path}.artifact_id"),
+                WorldValidationCode::ArtifactDigestConflict,
+                format!("{path}.sha256"),
             ));
         }
         Some(_) => {}
@@ -1652,8 +1653,8 @@ mod tests {
         manifest.platforms[0].geometry.sha256 = "00".repeat(32);
         let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| {
-            issue.code == WorldValidationCode::DuplicateIdentity
-                && issue.path == "platforms[0].geometry.artifact_id"
+            issue.code == WorldValidationCode::ArtifactDigestConflict
+                && issue.path == "platforms[0].geometry.sha256"
         }));
     }
 
