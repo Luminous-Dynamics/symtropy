@@ -8,6 +8,9 @@
 //! certify that any declared solver is physically accurate.
 
 use crate::platform::PlatformType;
+use crate::world_manifest_commitment::{
+    WorldManifestCommitmentError, WorldManifestDigestV1,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -690,6 +693,9 @@ pub struct SolverRequestIdentityV1 {
     /// Scenario identity must match the manifest in which this request runs.
     pub scenario_id: String,
     pub world_generation: u64,
+    /// Digest recomputed from the complete canonical WorldManifestV1. The
+    /// receiving world recomputes it before admitting this result.
+    pub world_manifest_digest: WorldManifestDigestV1,
     /// Exact declared solver profile, including build and parameter digests.
     /// Binding only a name/ID would allow a changed implementation to reuse
     /// an old request identity.
@@ -915,6 +921,24 @@ impl WorldManifestV1 {
             ));
         }
 
+        match self.content_digest_v1() {
+            Ok(actual_digest) if actual_digest != expected_request.world_manifest_digest => {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::WorldManifestDigestMismatch,
+                    "request.world_manifest_digest",
+                ));
+            }
+            Err(WorldManifestCommitmentError::CanonicalBytesTooLarge { .. }) => {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::WorldManifestCommitmentUnavailable,
+                    "world_manifest",
+                ));
+            }
+            // Invalid manifest issues were already reported by validate()
+            // above; don't duplicate those diagnostics here.
+            Err(WorldManifestCommitmentError::InvalidManifest(_)) | Ok(_) => {}
+        }
+
         match self
             .solvers
             .iter()
@@ -1007,6 +1031,8 @@ pub enum WorldValidationCode {
     SensorFrameNotAttachedToPlatform,
     SensorFrameProviderMismatch,
     SolverProfileMismatch,
+    WorldManifestDigestMismatch,
+    WorldManifestCommitmentUnavailable,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -1109,6 +1135,7 @@ mod tests {
             request_id: 7,
             scenario_id: "hard-rock-workcell-smoke-v1".to_owned(),
             world_generation: 12,
+            world_manifest_digest: valid_manifest().content_digest_v1().unwrap(),
             solver: SolverDeclarationV1 {
                 solver_id: "acoustic-reference".to_owned(),
                 domain: PhysicsDomain::Acoustic,
@@ -1499,5 +1526,50 @@ mod tests {
         }
     }
 
+
+
+    #[test]
+    fn world_admission_rejects_manifest_content_change_without_generation_bump() {
+        let mut manifest = valid_manifest();
+        let expected = valid_request();
+        // Deliberately keep scenario identity and generation unchanged. The
+        // content digest must still detect this physics-relevant mutation.
+        manifest.gravity_mps2[0] = 0.5;
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::WorldManifestDigestMismatch
+                && issue.path == "request.world_manifest_digest"
+        }));
+    }
+
+    #[test]
+    fn world_admission_accepts_result_with_matching_manifest_commitment() {
+        let manifest = valid_manifest();
+        let expected = valid_request();
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        assert_eq!(
+            manifest.validate_solver_result_against_world(&expected, &result),
+            Ok(())
+        );
+    }
 
 }
