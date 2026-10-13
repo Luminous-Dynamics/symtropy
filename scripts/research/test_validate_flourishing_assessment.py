@@ -242,6 +242,18 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertEqual(by_id["candidate"]["constraint_results"][0]["status"], "FAIL")
         self.assertEqual(by_id["candidate"]["comparison_status"], "INELIGIBLE")
 
+    def test_checked_in_not_evidence_fixture_remains_unresolved(self) -> None:
+        fixture_path = ROOT / "docs/humanity-atlas/fixtures/flourishing-assessment.not-evidence.json"
+        doc = json.loads(fixture_path.read_text(encoding="utf-8"))
+        errors, report = validate_assessment(doc)
+        self.assertEqual(errors, [])
+        self.assertEqual(report["assessment_status"], "VALIDATED_ASSESSMENT_NOT_POLICY_APPROVAL")
+        self.assertIsNone(report["ranking"])
+        self.assertEqual(
+            {a["comparison_status"] for a in report["alternatives"]},
+            {"UNRESOLVED"},
+        )
+
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
     def test_unknown_fixture_conforms_to_pinned_draft_2020_12_schema(self) -> None:
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
