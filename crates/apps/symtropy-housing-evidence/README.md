@@ -36,7 +36,7 @@ A separate requirements file has this shape:
 }
 ```
 
-The requirements file must come from a controlled source independent of the manifest being evaluated. Merely storing it next to a manifest does not make it an independent trust anchor.
+The requirements file must come from a controlled source independent of the manifest being evaluated, and its expected SHA-256 digest must be supplied out of band. Merely storing it next to a manifest does not make it an independent trust anchor.
 
 Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha256`, and claim input/output digest arrays must be present in `evidence_artifacts`. Their `uri` values must be safe, unescaped relative file paths under the artifact root. Example: `model/main.ifc`, with the file located at `<artifact-root>/model/main.ifc`.
 
@@ -44,9 +44,12 @@ Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha25
 cargo run -p symtropy-housing-evidence -- \
   project-manifest.json \
   --expected-claims mandatory-claims.json \
+  --expected-claims-sha256 <digest-pinned-out-of-band> \
   --artifact-root ./project-artifacts \
   --require-pass
 ```
+
+The verifier hashes the exact bytes of the manifest, embedded schema, and provided requirements file and includes those digests and the verifier version in its JSON report. The expected-claims digest must be supplied from a trusted source outside the manifest; hashing a requirements file and then trusting a digest copied from that same untrusted file does not create an independent trust anchor.
 
 ## Exit codes
 
