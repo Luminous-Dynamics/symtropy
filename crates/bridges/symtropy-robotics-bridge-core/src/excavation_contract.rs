@@ -741,7 +741,11 @@ mod tests {
         let mut missing_delta_schema = result(ExcavationDispositionV1::CompletedWithinEnvelope);
         missing_delta_schema.spatial_delta.as_mut().unwrap().state_delta_schema_version = 0;
         assert_eq!(
-            missing_delta_schema.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
+            missing_delta_schema.validate_against(
+                &world,
+                &"d".repeat(SHA256_HEX_LENGTH),
+                &expected
+            ),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
     }
