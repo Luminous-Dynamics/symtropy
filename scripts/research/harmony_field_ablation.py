@@ -134,6 +134,37 @@ def validate_scenario(scenario):
     if not isinstance(solver, dict) or not solver:
         raise ValidationError("scenario needs a non-empty solver_and_timestep object")
 
+    random_contract = scenario.get("random_stream_contract")
+    if not isinstance(random_contract, dict):
+        raise ValidationError("scenario needs a random_stream_contract object")
+    strategy = random_contract.get("strategy")
+    strategies = {
+        "counter_based_event_keyed",
+        "independent_component_substreams",
+        "single_stateful_stream",
+        "deterministic_no_randomness",
+    }
+    if strategy not in strategies:
+        raise ValidationError("random_stream_contract.strategy must identify the actual RNG strategy")
+    alignment = random_contract.get("treatment_alignment")
+    alignments = {
+        "event_keyed",
+        "common_random_numbers_verified",
+        "same_seed_only",
+        "not_applicable",
+    }
+    if alignment not in alignments:
+        raise ValidationError("random_stream_contract.treatment_alignment must explicitly identify cross-treatment alignment")
+    evidence = random_contract.get("alignment_evidence")
+    if not isinstance(evidence, str) or not evidence.strip():
+        raise ValidationError("random_stream_contract.alignment_evidence must explain how alignment was implemented or why it is unavailable")
+    if strategy == "counter_based_event_keyed" and alignment != "event_keyed":
+        raise ValidationError("counter-based event-keyed RNG requires treatment_alignment=event_keyed")
+    if strategy == "deterministic_no_randomness" and alignment != "not_applicable":
+        raise ValidationError("deterministic-no-randomness runs require treatment_alignment=not_applicable")
+    if alignment == "event_keyed" and strategy != "counter_based_event_keyed":
+        raise ValidationError("event_keyed alignment requires counter_based_event_keyed strategy")
+
 
 def make_plan(args):
     commit = args.candidate_commit.lower()
@@ -618,6 +649,14 @@ def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates
         "analysis_tool_sha256": file_sha256(Path(__file__)),
         "python_version": sys.version.split()[0],
         "primary_endpoint": endpoint,
+        "random_stream_contract": plan["scenario_config"]["random_stream_contract"],
+        "pairing_semantics": (
+            "event-keyed common random numbers declared by the scenario contract"
+            if plan["scenario_config"]["random_stream_contract"]["treatment_alignment"] == "event_keyed"
+            else "paired by seed block, but common-random-number variance reduction is not assumed"
+            if plan["scenario_config"]["random_stream_contract"]["treatment_alignment"] == "same_seed_only"
+            else "scenario-declared alignment; inspect random_stream_contract.alignment_evidence"
+        ),
         "positive_effect_means": "better according to preregistered primary_endpoint.direction",
         "held_out_seed_count": len(held_out),
         "bootstrap": {
@@ -642,6 +681,11 @@ def self_test():
                 "primary_endpoint": {"name": "utility", "units": "score", "direction": "higher_is_better",
                                      "meaningful_effect_threshold": 0.05},
                 "solver_and_timestep": {"solver": "test", "dt": 0.016},
+                "random_stream_contract": {
+                    "strategy": "counter_based_event_keyed",
+                    "treatment_alignment": "event_keyed",
+                    "alignment_evidence": "synthetic unit fixture with deterministic event-key mapping",
+                },
             }), encoding="utf-8")
             return path
 
