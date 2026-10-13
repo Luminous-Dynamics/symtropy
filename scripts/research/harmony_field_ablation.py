@@ -158,6 +158,14 @@ def validate_scenario(scenario):
     evidence = random_contract.get("alignment_evidence")
     if not isinstance(evidence, str) or not evidence.strip():
         raise ValidationError("random_stream_contract.alignment_evidence must explain how alignment was implemented or why it is unavailable")
+    evidence_path = random_contract.get("alignment_evidence_path")
+    if not isinstance(evidence_path, str) or not evidence_path.strip():
+        raise ValidationError("random_stream_contract.alignment_evidence_path must name a verifiable evidence file")
+    evidence_relative = Path(evidence_path)
+    if evidence_relative.is_absolute() or ".." in evidence_relative.parts:
+        raise ValidationError("random_stream_contract.alignment_evidence_path must be relative and must not traverse parents")
+    if not is_sha(random_contract.get("alignment_evidence_sha256")):
+        raise ValidationError("random_stream_contract.alignment_evidence_sha256 must be a lowercase SHA-256 digest")
     if strategy == "counter_based_event_keyed" and alignment != "event_keyed":
         raise ValidationError("counter-based event-keyed RNG requires treatment_alignment=event_keyed")
     if strategy == "deterministic_no_randomness" and alignment != "not_applicable":
@@ -422,6 +430,13 @@ def validate_results(plan, path, artifact_root=None):
         return {"validation_status": "invalid_plan", "errors": errors}
     records = []
     root = Path(artifact_root) if artifact_root is not None else path.parent
+    rng_contract = plan["scenario_config"]["random_stream_contract"]
+    try:
+        actual_rng_evidence = artifact_sha256(root, rng_contract["alignment_evidence_path"])
+        if actual_rng_evidence != rng_contract["alignment_evidence_sha256"]:
+            errors.append("random-stream alignment evidence hash does not match artifact bytes")
+    except ValidationError as exc:
+        errors.append(f"random-stream alignment evidence verification failed: {exc}")
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError as exc:
@@ -676,6 +691,11 @@ def self_test():
 
     class Tests(unittest.TestCase):
         def scenario(self, path):
+            evidence_path = path.parent / "rng-alignment-evidence.txt"
+            evidence_path.write_text(
+                "Synthetic test fixture only: event IDs map deterministically to RNG values.",
+                encoding="utf-8",
+            )
             path.write_text(json.dumps({
                 "task_description": "test scenario",
                 "primary_endpoint": {"name": "utility", "units": "score", "direction": "higher_is_better",
@@ -684,7 +704,9 @@ def self_test():
                 "random_stream_contract": {
                     "strategy": "counter_based_event_keyed",
                     "treatment_alignment": "event_keyed",
-                    "alignment_evidence": "synthetic unit fixture with deterministic event-key mapping",
+                    "alignment_evidence": "Synthetic test fixture; not a claim about the Symtropy RNG.",
+                    "alignment_evidence_path": evidence_path.name,
+                    "alignment_evidence_sha256": file_sha256(evidence_path),
                 },
             }), encoding="utf-8")
             return path
@@ -841,6 +863,22 @@ def self_test():
                 result.write_text("", encoding="utf-8")
                 report = analyze_results(plan, result, Path(tmp), bootstrap_replicates=100)
                 self.assertEqual(report["analysis_status"], "NOT_QUALIFIED")
+
+        def test_modified_random_stream_evidence_fails_qualification(self):
+            with tempfile.TemporaryDirectory() as tmp:
+                scenario = self.scenario(Path(tmp) / "scenario.json")
+                args = argparse.Namespace(candidate_commit="9"*40, task_id="rng-evidence-test",
+                                          scenario_config=scenario, seeds=[1,2], held_out_seeds=[2],
+                                          dimensions=[3], source_strengths=[1.0], radii=[8.0])
+                plan = make_plan(args)
+                records = self.complete_records(plan, Path(tmp))
+                evidence_path = Path(tmp) / plan["scenario_config"]["random_stream_contract"]["alignment_evidence_path"]
+                evidence_path.write_text("altered evidence", encoding="utf-8")
+                results = Path(tmp) / "results.jsonl"
+                results.write_text("".join(json.dumps(r) + "\\n" for r in records), encoding="utf-8")
+                report = validate_results(plan, results, Path(tmp))
+                self.assertEqual(report["validation_status"], "NOT_QUALIFIED")
+                self.assertTrue(any("random-stream alignment evidence hash" in e for e in report["errors"]))
 
         def test_modified_artifact_bytes_fail_hash_verification(self):
             with tempfile.TemporaryDirectory() as tmp:
