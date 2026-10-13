@@ -64,6 +64,13 @@ def external_spec_registry_bytes(uri: str, sha256_hex: str) -> bytes:
     return bytes(result)
 
 
+def apply_matrix(matrix: list[list[int]], vector: list[float]) -> list[float]:
+    return [
+        sum(matrix[row][column] * vector[column] for column in range(3))
+        for row in range(3)
+    ]
+
+
 def qualified_digest(registry_digest: bytes) -> str:
     envelope = (
         QUALIFIED_WORLD_DOMAIN
@@ -103,6 +110,11 @@ def main() -> None:
         "ba0cb450887c424f642868ef8356bcc3e0e9ea33469e40799db2c2a95531bb36"
     )
 
+    flu_from_frd = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]
+    enu_from_ned = [[0, 1, 0], [1, 0, 0], [0, 0, -1]]
+    assert apply_matrix(flu_from_frd, [1.0, 2.0, 3.0]) == [1.0, -2.0, -3.0]
+    assert apply_matrix(enu_from_ned, [1.0, 2.0, 3.0]) == [2.0, 1.0, -3.0]
+
     qualified = qualified_digest(registry_digest)
     assert qualified == EXPECTED_QUALIFIED_DIGEST, qualified
     assert hashlib.sha256(b"abc").hexdigest() == (
@@ -113,6 +125,7 @@ def main() -> None:
     print("PASS: table permutation preserves identity")
     print("PASS: axis convention mutation changes registry identity")
     print("PASS: custom-spec SHA-256 hex case is normalized")
+    print("PASS: FLU/FRD and NED/ENU signed-permutation vectors")
     print("PASS: FIPS SHA-256 abc canary")
 
 
