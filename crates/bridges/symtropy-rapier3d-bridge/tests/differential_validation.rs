@@ -262,7 +262,6 @@ fn free_fall_scenario() -> PhysicsScenario3d {
     }
 }
 
-
 /// Build a free-fall scenario whose total simulated duration is exactly one
 /// second. The semi-implicit integrator's position error should decrease as
 /// the fixed timestep is refined; the analytical trajectory is independent of
@@ -601,5 +600,119 @@ fn native_and_rapier_friction_reduces_sliding_sphere_speed() {
             high_speed + 0.15 < low_speed,
             "{backend} high friction did not reduce slide speed: low={low_speed}, high={high_speed}"
         );
+    }
+}
+
+
+fn box_stack_scenario(box_count: usize) -> PhysicsScenario3d {
+    assert!(box_count >= 3 && box_count <= 5);
+    let mut bodies = vec![ScenarioBody3d {
+        id: ValidationBodyId(1),
+        body_type: ScenarioBodyType::Static,
+        shape: ScenarioShape3d::Cuboid {
+            half_extents_m: [4.0, 0.5, 4.0],
+        },
+        position_m: [0.0, -0.5, 0.0],
+        linear_velocity_mps: [0.0, 0.0, 0.0],
+        mass_kg: 0.0,
+        friction: 0.8,
+        restitution: 0.0,
+    }];
+
+    for index in 0..box_count {
+        bodies.push(ScenarioBody3d {
+            id: ValidationBodyId(100 + index as u64),
+            body_type: ScenarioBodyType::Dynamic,
+            shape: ScenarioShape3d::Cuboid {
+                half_extents_m: [0.5, 0.5, 0.5],
+            },
+            // Deliberately begin with a small, known overlap so this exercises
+            // contact resolution immediately rather than only free fall.
+            position_m: [0.0, 0.48 + index as f64 * 0.98, 0.0],
+            linear_velocity_mps: [0.0, 0.0, 0.0],
+            mass_kg: 1.0,
+            friction: 0.8,
+            restitution: 0.0,
+        });
+    }
+
+    PhysicsScenario3d {
+        schema_version: PHYSICS_SCENARIO_SCHEMA_VERSION,
+        scenario_id: format!("axis-aligned-box-stack-{box_count}-v0"),
+        gravity_mps2: [0.0, -9.81, 0.0],
+        dt_s: 1.0 / 120.0,
+        steps: 600,
+        sample_every_steps: 1,
+        bodies,
+    }
+}
+
+fn assert_stack_trace_is_bounded(trace: &PhysicsTrace3d, box_count: usize, backend: &str) {
+    assert_eq!(
+        trace.samples.len(),
+        601,
+        "{backend} must preserve every requested per-step observation"
+    );
+    let expected_body_count = box_count + 1;
+    let mut peak_speed = 0.0_f64;
+
+    for sample in &trace.samples {
+        assert_eq!(
+            sample.bodies.len(),
+            expected_body_count,
+            "{backend} changed body cardinality at step {}",
+            sample.step
+        );
+        for body in &sample.bodies {
+            assert!(
+                body.is_finite(),
+                "{backend} produced a non-finite state at step {} for body {}",
+                sample.step,
+                body.body_id.0
+            );
+            if body.body_id.0 >= 100 {
+                let speed = body
+                    .linear_velocity_mps
+                    .iter()
+                    .map(|component| component * component)
+                    .sum::<f64>()
+                    .sqrt();
+                peak_speed = peak_speed.max(speed);
+            }
+        }
+    }
+
+    assert!(
+        peak_speed < 5.0,
+        "{backend} stack produced an explosive impulse: peak speed={peak_speed} m/s"
+    );
+
+    let final_sample = trace.final_sample().expect("stack trace has samples");
+    for index in 0..box_count {
+        let body_id = ValidationBodyId(100 + index as u64);
+        let body = final_sample
+            .bodies
+            .iter()
+            .find(|body| body.body_id == body_id)
+            .expect("every stacked box retains its stable identity");
+        let expected_y = 0.5 + index as f64;
+        assert!(
+            (body.position_m[1] - expected_y).abs() < 0.45,
+            "{backend} box {index} did not remain near its stack level: y={}, expected={expected_y}",
+            body.position_m[1]
+        );
+    }
+}
+
+#[test]
+fn three_and_five_box_stacks_remain_finite_and_bounded_for_both_backends() {
+    for box_count in [3_usize, 5_usize] {
+        let scenario = box_stack_scenario(box_count);
+
+        let native = run_native_scenario_3d(&scenario).unwrap();
+        assert_stack_trace_is_bounded(&native, box_count, "native");
+
+        let rapier = run_rapier_scenario_3d(&scenario).unwrap();
+        assert_stack_trace_is_bounded(&rapier, box_count, "Rapier");
     }
 }
