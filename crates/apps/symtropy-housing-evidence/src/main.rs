@@ -400,11 +400,11 @@ fn evaluate_manifest(
         if claim["claim_type"].as_str() == Some("code_compliance") {
             let source_id = claim["requirement"]["source_id"].as_str();
             match source_id {
-                Some(id) if source_ids.contains(id) => {}
-                Some(id) => issues.push(format!(
-                    "code compliance claim {id} references a source absent from the rule pack"
+                Some(source_id) if source_ids.contains(source_id) => {}
+                Some(source_id) => issues.push(format!(
+                    "code compliance claim {id} references source_id {source_id} absent from the rule pack"
                 )),
-                None => issues.push(format!("code compliance claim {} has no source_id", id)),
+                None => issues.push(format!("code compliance claim {id} has no source_id")),
             }
         }
 
@@ -440,6 +440,33 @@ fn evaluate_manifest(
             STATUS_BLOCKED,
             0,
             issues,
+        );
+    }
+
+    // A mandatory failure must never be hidden by a more ambiguous aggregate.
+    // The manifest is not trusted to choose a weaker top-level status.
+    let failed_mandatory_ids: Vec<String> = claims
+        .iter()
+        .filter(|claim| claim["mandatory"].as_bool() == Some(true))
+        .filter(|claim| claim["status"].as_str() == Some(STATUS_FAIL))
+        .filter_map(|claim| claim["claim_id"].as_str().map(ToString::to_string))
+        .collect();
+
+    if !failed_mandatory_ids.is_empty()
+        && declared_status.as_deref() != Some(STATUS_FAIL)
+    {
+        let issue = format!(
+            "declared aggregate status {:?} conflicts with failed mandatory claim(s) {:?}; FAIL takes precedence",
+            declared_status.as_deref(),
+            failed_mandatory_ids
+        );
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_FAIL,
+            0,
+            vec![issue],
         );
     }
 
@@ -894,6 +921,22 @@ mod tests {
         assert_eq!(report.manifest_sha256.as_deref(), Some(manifest_digest.as_str()));
         assert_eq!(report.expected_claims_sha256.as_deref(), Some(expected_digest.as_str()));
         assert!(report.expected_claims_digest_pinned);
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn mandatory_failure_cannot_be_hidden_by_not_evaluated_aggregate() {
+        let (schema, mut manifest, root, _) = set_up_pass_manifest();
+        manifest["claims"][0]["status"] = json!(STATUS_FAIL);
+        manifest["overall_status"] = json!(STATUS_NOT_EVALUATED);
+
+        let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
+        assert!(result.schema_valid, "{:?}", result.issues);
+        assert_eq!(result.effective_status, STATUS_FAIL);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("FAIL takes precedence")
+                && issue.contains("example-structural-claim")
+        }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
