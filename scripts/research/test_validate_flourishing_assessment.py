@@ -247,6 +247,13 @@ class FlourishingAssessmentTests(unittest.TestCase):
         self.assertTrue(any("between requires finite threshold" in error for error in errors))
         self.assertIsNone(report)
 
+    def test_malformed_quantified_interval_returns_validation_error(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        del doc["alternatives"][1]["outcomes"][1]["uncertainty"]["lower"]
+        errors, report = validate_assessment(doc)
+        self.assertTrue(any("bounds must be finite" in error for error in errors))
+        self.assertIsNone(report)
+
     def test_missing_metric_outcome_is_rejected(self) -> None:
         doc = assessment()
         doc["alternatives"][0]["outcomes"].pop()
