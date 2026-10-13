@@ -79,6 +79,42 @@ pub struct MechanicalSpecificEnergyV1 {
     pub source: ArtifactRef,
 }
 
+/// One-standard-deviation measurement uncertainty inputs for MSE propagation.
+///
+/// The covariance is Cov(power, removed-volume-rate), in W·m^3/s. Use zero only
+/// when independence is justified by the measurement model; it is not a default
+/// claim that the inputs are independent.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MseUncertaintyInputV1 {
+    pub observation_id: String,
+    pub power_standard_uncertainty_w: f64,
+    pub removed_volume_rate_standard_uncertainty_m3_s: f64,
+    pub covariance_power_volume_w_m3_s: f64,
+    /// Calibration/uncertainty budget artifact, with digest of exact bytes.
+    pub source: ArtifactRef,
+}
+
+/// First-order propagated standard uncertainty for a specific MSE observation.
+///
+/// This is local linear uncertainty propagation, not a confidence interval and
+/// not a substitute for Monte Carlo/distribution propagation when inputs are
+/// strongly nonlinear, skewed, or near operating limits.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MechanicalSpecificEnergyUncertaintyV1 {
+    pub schema_version: u16,
+    pub observation_id: String,
+    pub material_profile_id: String,
+    pub tool_id: String,
+    pub variance_pa2: f64,
+    pub standard_uncertainty_pa: f64,
+    /// None when MSE is zero, because relative uncertainty is undefined.
+    pub relative_standard_uncertainty: Option<f64>,
+    pub power_standard_uncertainty_w: f64,
+    pub removed_volume_rate_standard_uncertainty_m3_s: f64,
+    pub covariance_power_volume_w_m3_s: f64,
+    pub source: ArtifactRef,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CuttingMetricError {
     UnsupportedSchemaVersion,
@@ -95,6 +131,14 @@ pub enum CuttingMetricError {
     UnknownMaterialProfile(String),
     /// The world did not pass structural validation before admitting this result.
     InvalidWorldManifest(Vec<WorldValidationIssue>),
+    /// Uncertainty inputs do not match the observation or are outside valid ranges.
+    InvalidUncertaintyInput,
+    /// The covariance magnitude exceeds the bound implied by the standard deviations.
+    InvalidCovariance,
+    /// The uncertainty input is bound to a different observation.
+    UncertaintyObservationMismatch,
+    /// Propagated variance/standard uncertainty is not finite or is materially negative.
+    UncertaintyNotFinite,
 }
 
 impl fmt::Display for CuttingMetricError {
@@ -132,11 +176,136 @@ impl fmt::Display for CuttingMetricError {
                 "world manifest failed admission validation with {} issue(s)",
                 issues.len()
             ),
+            Self::InvalidUncertaintyInput => formatter.write_str(
+                "uncertainties and measurement context must be finite, non-negative, and valid",
+            ),
+            Self::InvalidCovariance => formatter.write_str(
+                "power-volume covariance exceeds the bound implied by input uncertainties",
+            ),
+            Self::UncertaintyObservationMismatch => formatter.write_str(
+                "uncertainty inputs must identify the same observation as the MSE result",
+            ),
+            Self::UncertaintyNotFinite => formatter.write_str(
+                "propagated MSE uncertainty is not finite or has materially negative variance",
+            ),
         }
     }
 }
 
 impl std::error::Error for CuttingMetricError {}
+
+impl MechanicalSpecificEnergyV1 {
+    /// Propagate standard uncertainties through MSE = power / removed-volume-rate.
+    ///
+    /// Uses first-order propagation with the supplied covariance. The uncertainty
+    /// record must identify this exact observation and a digest-bound source. It
+    /// rejects impossible covariance matrices rather than silently clipping them.
+    pub fn propagate_standard_uncertainty(
+        &self,
+        input: &MseUncertaintyInputV1,
+    ) -> Result<MechanicalSpecificEnergyUncertaintyV1, CuttingMetricError> {
+        if input.observation_id.trim().is_empty()
+            || input.observation_id != self.observation_id
+        {
+            return Err(CuttingMetricError::UncertaintyObservationMismatch);
+        }
+        if !self.mechanical_power_w.is_finite()
+            || self.mechanical_power_w < 0.0
+            || !self.removed_volume_rate_m3_s.is_finite()
+            || self.removed_volume_rate_m3_s <= 0.0
+            || !self.mse_pa.is_finite()
+            || self.mse_pa < 0.0
+        {
+            return Err(CuttingMetricError::InvalidUncertaintyInput);
+        }
+        let expected_mse = self.mechanical_power_w / self.removed_volume_rate_m3_s;
+        let consistency_tolerance = 8.0 * f64::EPSILON * expected_mse.abs().max(1.0);
+        if !expected_mse.is_finite()
+            || (expected_mse - self.mse_pa).abs() > consistency_tolerance
+        {
+            return Err(CuttingMetricError::InvalidUncertaintyInput);
+        }
+        if !input.power_standard_uncertainty_w.is_finite()
+            || input.power_standard_uncertainty_w < 0.0
+            || !input.removed_volume_rate_standard_uncertainty_m3_s.is_finite()
+            || input.removed_volume_rate_standard_uncertainty_m3_s < 0.0
+            || !input.covariance_power_volume_w_m3_s.is_finite()
+        {
+            return Err(CuttingMetricError::InvalidUncertaintyInput);
+        }
+        if input.source.artifact_id.trim().is_empty() || input.source.uri.trim().is_empty() {
+            return Err(CuttingMetricError::InvalidSourceArtifact);
+        }
+        if !is_sha256_hex(&input.source.sha256) {
+            return Err(CuttingMetricError::InvalidSourceDigest);
+        }
+        let covariance_bound = input.power_standard_uncertainty_w
+            * input.removed_volume_rate_standard_uncertainty_m3_s;
+        if !covariance_bound.is_finite() {
+            return Err(CuttingMetricError::InvalidUncertaintyInput);
+        }
+        if input.covariance_power_volume_w_m3_s.abs() > covariance_bound {
+            return Err(CuttingMetricError::InvalidCovariance);
+        }
+
+        let power_component =
+            input.power_standard_uncertainty_w / self.removed_volume_rate_m3_s;
+        let volume_component = self.mse_pa
+            * (input.removed_volume_rate_standard_uncertainty_m3_s
+                / self.removed_volume_rate_m3_s);
+        let covariance_component = 2.0
+            * (self.mse_pa / self.removed_volume_rate_m3_s)
+            * input.covariance_power_volume_w_m3_s;
+        let mut variance = power_component * power_component
+            + volume_component * volume_component
+            - covariance_component;
+        if !power_component.is_finite()
+            || !volume_component.is_finite()
+            || !covariance_component.is_finite()
+            || !variance.is_finite()
+        {
+            return Err(CuttingMetricError::UncertaintyNotFinite);
+        }
+        if variance < 0.0 {
+            let roundoff_bound = 16.0
+                * f64::EPSILON
+                * (power_component * power_component
+                    + volume_component * volume_component
+                    + covariance_component.abs());
+            if variance.abs() <= roundoff_bound {
+                variance = 0.0;
+            } else {
+                return Err(CuttingMetricError::UncertaintyNotFinite);
+            }
+        }
+        let standard_uncertainty_pa = variance.sqrt();
+        let relative_standard_uncertainty = if self.mse_pa > 0.0 {
+            Some(standard_uncertainty_pa / self.mse_pa)
+        } else {
+            None
+        };
+        if !standard_uncertainty_pa.is_finite()
+            || relative_standard_uncertainty.is_some_and(|value| !value.is_finite())
+        {
+            return Err(CuttingMetricError::UncertaintyNotFinite);
+        }
+
+        Ok(MechanicalSpecificEnergyUncertaintyV1 {
+            schema_version: CUTTING_METRIC_SCHEMA_VERSION,
+            observation_id: self.observation_id.clone(),
+            material_profile_id: self.material_profile_id.clone(),
+            tool_id: self.tool_id.clone(),
+            variance_pa2: variance,
+            standard_uncertainty_pa,
+            relative_standard_uncertainty,
+            power_standard_uncertainty_w: input.power_standard_uncertainty_w,
+            removed_volume_rate_standard_uncertainty_m3_s: input
+                .removed_volume_rate_standard_uncertainty_m3_s,
+            covariance_power_volume_w_m3_s: input.covariance_power_volume_w_m3_s,
+            source: input.source.clone(),
+        })
+    }
+}
 
 impl RockCuttingObservationV1 {
     /// Calculate this observation's MSE only after admitting it against a valid world.
@@ -330,6 +499,67 @@ mod tests {
             uri: "urn:symtropy:test:rock-cutting-sensor-bundle-001".to_owned(),
             sha256: "a".repeat(SHA256_HEX_LENGTH),
         }
+    }
+
+    fn uncertainty_input(observation_id: &str) -> MseUncertaintyInputV1 {
+        MseUncertaintyInputV1 {
+            observation_id: observation_id.to_owned(),
+            power_standard_uncertainty_w: 20.0,
+            removed_volume_rate_standard_uncertainty_m3_s: 1.0e-7,
+            covariance_power_volume_w_m3_s: 0.0,
+            source: ArtifactRef {
+                artifact_id: "calibration-uncertainty-budget-001".to_owned(),
+                uri: "urn:symtropy:test:calibration-uncertainty-budget-001".to_owned(),
+                sha256: "b".repeat(SHA256_HEX_LENGTH),
+            },
+        }
+    }
+
+    #[test]
+    fn mse_uncertainty_uses_power_volume_variances_and_retains_provenance() {
+        let observation = observation(CuttingPowerInputV1::DerivedFromToolLoads {
+            rotary_torque_magnitude_nm: 20.0,
+            angular_speed_magnitude_rad_s: 100.0,
+            axial_force_magnitude_n: 1_000.0,
+            feed_speed_magnitude_m_s: 0.001,
+        });
+        let mse = observation.calculate_mse().unwrap();
+        let uncertainty = mse
+            .propagate_standard_uncertainty(&uncertainty_input("cut-test-001"))
+            .unwrap();
+        let power_component = 20.0 / mse.removed_volume_rate_m3_s;
+        let volume_component = mse.mse_pa * (1.0e-7 / mse.removed_volume_rate_m3_s);
+        let expected_std = (power_component.powi(2) + volume_component.powi(2)).sqrt();
+        assert!((uncertainty.standard_uncertainty_pa - expected_std).abs() < expected_std * 1.0e-12);
+        assert_eq!(uncertainty.observation_id, "cut-test-001");
+        assert_eq!(uncertainty.source.artifact_id, "calibration-uncertainty-budget-001");
+        assert!(uncertainty.relative_standard_uncertainty.unwrap() > 0.0);
+    }
+
+    #[test]
+    fn mse_uncertainty_rejects_impossible_covariance() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
+        let mse = observation.calculate_mse().unwrap();
+        let mut input = uncertainty_input("cut-test-001");
+        input.covariance_power_volume_w_m3_s = 3.0e-6;
+        assert_eq!(
+            mse.propagate_standard_uncertainty(&input),
+            Err(CuttingMetricError::InvalidCovariance)
+        );
+    }
+
+    #[test]
+    fn mse_uncertainty_rejects_a_different_observation_identity() {
+        let observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
+        let mse = observation.calculate_mse().unwrap();
+        assert_eq!(
+            mse.propagate_standard_uncertainty(&uncertainty_input("other-observation")),
+            Err(CuttingMetricError::UncertaintyObservationMismatch)
+        );
     }
 
     fn observation(power_input: CuttingPowerInputV1) -> RockCuttingObservationV1 {
