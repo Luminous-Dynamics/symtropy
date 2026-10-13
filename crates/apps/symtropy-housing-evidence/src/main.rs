@@ -1543,6 +1543,9 @@ mod tests {
         fs::write(root.join("rule-source.bin"), source_bytes).expect("write source fixture");
         let source_digest = sha256_hex(source_bytes);
 
+        manifest["rule_pack"]["source_references"][0]["source_id"] = json!("synthetic-rule-source");
+        manifest["rule_pack"]["source_references"][0]["uri"] =
+            json!("https://example.invalid/synthetic-rule-source");
         manifest["rule_pack"]["source_references"][0]["source_type"] = json!("legislation");
         manifest["rule_pack"]["source_references"][0]["edition"] = json!("synthetic-edition-v1");
         manifest["rule_pack"]["source_references"][0]["effective_from"] = json!("2026-01-01");
@@ -1560,7 +1563,7 @@ mod tests {
         manifest["claims"][0]["claim_type"] = json!("code_compliance");
         manifest["claims"][0]["requirement"] = json!({
             "requirement_id": "SYNTHETIC-CLAUSE-1.1",
-            "source_id": "za-nbr-act",
+            "source_id": "synthetic-rule-source",
             "applicability_notes": "synthetic test only"
         });
         expected.rule_pack = manifest["rule_pack"].clone();
