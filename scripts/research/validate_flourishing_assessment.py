@@ -145,6 +145,9 @@ def _constraint_status(
 ) -> str:
     targets: list[tuple[str, dict[str, Any]]] = [("overall", outcome)]
     scope = constraint.get("scope")
+    if scope not in ("overall", "overall_and_subgroups"):
+        errors.append(f"{label}.scope: expected overall or overall_and_subgroups")
+        return "UNKNOWN"
     subgroups = outcome.get("subgroups", [])
     if scope == "overall_and_subgroups":
         if not isinstance(subgroups, list) or not subgroups:
@@ -271,6 +274,7 @@ def validate_assessment(
         if constraint.get("non_compensable") is not True:
             errors.append(f"constraints[{constraint_id}]: every registered hard constraint must be non-compensable")
         preregistration_id = constraint.get("preregistration_artifact_id")
+        preregistration_collected_at = None
         if "preregistration_artifact_id" not in constraint:
             errors.append(f"constraints[{constraint_id}]: preregistration_artifact_id is required (use null when unproven)")
         elif preregistration_id is not None:
@@ -280,14 +284,16 @@ def validate_assessment(
                 preregistration = artifacts[preregistration_id]
                 if preregistration.get("purpose") != "pre-registration":
                     errors.append(f"constraints[{constraint_id}]: referenced artifact purpose must be 'pre-registration'")
-                collected_at = _time(
+                preregistration_collected_at = _time(
                     preregistration.get("collected_at"),
                     f"artifacts[{preregistration_id}].collected_at",
                     errors,
                 )
-                if collected_at and analysis_started_at and collected_at > analysis_started_at:
+                if preregistration_collected_at and analysis_started_at and preregistration_collected_at > analysis_started_at:
                     errors.append(f"constraints[{constraint_id}]: preregistration artifact must predate analysis")
         predeclared = _time(constraint.get("predeclared_at"), f"constraints[{constraint_id}].predeclared_at", errors)
+        if preregistration_collected_at and predeclared and preregistration_collected_at > predeclared:
+            errors.append(f"constraints[{constraint_id}]: preregistration artifact must be captured no later than predeclared_at")
         if predeclared and analysis_started_at and predeclared > analysis_started_at:
             errors.append(f"constraints[{constraint_id}]: must be predeclared no later than analysis_started_at")
 
@@ -359,9 +365,11 @@ def validate_assessment(
             group_ids = [g.get("group_id") for g in groups if isinstance(g, dict)]
             if len(group_ids) != len(set(group_ids)):
                 errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups: duplicate group_id")
-            for group in groups:
-                if isinstance(group, dict):
-                    _validate_known_unknown(group, f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}", artifact_ids, errors)
+            for group_index, group in enumerate(groups):
+                if not isinstance(group, dict):
+                    errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups[{group_index}]: expected an object")
+                    continue
+                _validate_known_unknown(group, f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}", artifact_ids, errors)
 
         c_report: list[dict[str, str]] = []
         for constraint_id, constraint in constraints.items():
