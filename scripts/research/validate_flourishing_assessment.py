@@ -146,7 +146,7 @@ def _validate_known_unknown(
 
 def _constraint_status(
     constraint: dict[str, Any], outcome: dict[str, Any], label: str,
-    artifact_ids: set[str], errors: list[str]
+    artifact_ids: set[str], verified_preregistration_ids: set[str], errors: list[str]
 ) -> str:
     targets: list[tuple[str, dict[str, Any]]] = [("overall", outcome)]
     scope = constraint.get("scope")
@@ -183,7 +183,11 @@ def _constraint_status(
         if target.get("status") == "KNOWN" and _is_number(target.get("value")):
             observed.append((target_name, target))
     preregistration_id = constraint.get("preregistration_artifact_id")
-    preregistration_missing = not isinstance(preregistration_id, str) or not preregistration_id
+    preregistration_missing = (
+        not isinstance(preregistration_id, str)
+        or not preregistration_id
+        or preregistration_id not in verified_preregistration_ids
+    )
     saw_unknown = preregistration_missing or any(
         target.get("status") == "UNKNOWN" for _, target in targets
     )
@@ -304,6 +308,7 @@ def validate_assessment(
 
     # Verify paths before reading bytes; a digest string alone is not evidence of integrity.
     verified_artifact_contents: dict[str, bytes] = {}
+    verified_preregistration_ids: set[str] = set()
     preregistration_limit = 64 * 1024
     for artifact_id, artifact in artifacts.items():
         relative = artifact.get("path")
@@ -433,6 +438,8 @@ def validate_assessment(
             errors.append(
                 f"constraints[{constraint_id}]: pre-registration artifact does not bind matching values for {mismatched}"
             )
+        else:
+            verified_preregistration_ids.add(preregistration_id)
 
     metric_ids = set(metrics)
     required_hard_metric_ids = {
@@ -516,7 +523,14 @@ def validate_assessment(
             if outcome is None:
                 status = "UNKNOWN"
             else:
-                status = _constraint_status(constraint, outcome, f"constraints[{constraint_id}]@{alt_id}", artifact_ids, errors)
+                status = _constraint_status(
+                    constraint,
+                    outcome,
+                    f"constraints[{constraint_id}]@{alt_id}",
+                    artifact_ids,
+                    verified_preregistration_ids,
+                    errors,
+                )
             coverage_matches = subgroup_coverage_matches.get(constraint_id, True)
             if (
                 constraint.get("scope") == "overall_and_subgroups"
@@ -557,10 +571,12 @@ def validate_assessment(
         "contract_version": "0.1",
         "assessment_id": document.get("assessment_id"),
         "assessment_status": "VALIDATED_ASSESSMENT_NOT_POLICY_APPROVAL",
+        "artifact_bytes_verified": bool(verify_artifacts),
         "ranking": None,
         "alternatives": report_alternatives,
         "limitations": [
-            "This report checks declared structure, references, chronology, and artifact bytes only.",
+            "This report checks declared structure, references, chronology, and artifact bytes only when artifact_bytes_verified is true.",
+            "A hard constraint cannot pass unless its structured pre-registration artifact bytes were verified and matched to the declared constraint.",
             "PASS is relative to the registered threshold and evidence; it does not establish scientific validity or legal compliance.",
             "No candidate is ranked and no claim of real-world causal effect is made.",
         ],
