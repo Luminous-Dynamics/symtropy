@@ -150,6 +150,7 @@ def make_plan(args):
     scenario = read_object(args.scenario_config)
     validate_scenario(scenario)
     scenario_sha = digest(scenario)
+    tool_sha = file_sha256(Path(__file__))
     arm_list = arms()
     runs = []
     for seed in seeds:
@@ -186,6 +187,7 @@ def make_plan(args):
     unsigned = {
         "schema_version": PLAN_SCHEMA,
         "protocol_version": PROTOCOL_VERSION,
+        "tool_sha256": tool_sha,
         "candidate_commit": commit,
         "task_id": args.task_id.strip(),
         "scenario_config": scenario,
@@ -210,6 +212,8 @@ def validate_plan(plan):
     errors = []
     if not isinstance(plan, dict) or plan.get("schema_version") != PLAN_SCHEMA:
         return ["unsupported plan schema"]
+    if not is_sha(plan.get("tool_sha256")):
+        errors.append("tool_sha256 missing or malformed")
     unsigned = {k: v for k, v in plan.items() if k != "plan_sha256"}
     try:
         if plan.get("plan_sha256") != digest(unsigned):
