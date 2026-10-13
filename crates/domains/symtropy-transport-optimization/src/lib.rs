@@ -2341,6 +2341,18 @@ mod tests {
     }
 
     #[test]
+    fn cargo_custody_revision_overflow_fails_closed() {
+        let mut current = cargo_custody_state();
+        current.revision = u64::MAX;
+        let mut handoff = cargo_custody_handoff();
+        handoff.expected_revision = u64::MAX;
+        assert_eq!(
+            apply_cargo_custody_handoff(&current, &handoff),
+            Err(CargoCustodyError::RevisionOverflow)
+        );
+    }
+
+    #[test]
     fn cold_chain_rejects_missing_or_out_of_range_temperature_evidence() {
         let mut profile = iso_container_profile();
         profile.profile_id = "cold-chain-pod-v1".to_owned();
