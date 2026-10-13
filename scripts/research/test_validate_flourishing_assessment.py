@@ -514,6 +514,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             exit_code = main([str(fixture_path)])
         self.assertEqual(exit_code, 0)
         report = json.loads(output.getvalue())
+        self.assertFalse(report["artifact_bytes_verified"])
         self.assertIsNone(report["ranking"])
         self.assertEqual(report["assessment_status"], "VALIDATED_ASSESSMENT_NOT_POLICY_APPROVAL")
         self.assertEqual(
