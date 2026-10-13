@@ -25,7 +25,8 @@ pub use material_profile::{
 };
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use rock_cutting_metrics::{
-    CuttingMetricError, CuttingPowerBasisV1, CuttingPowerInputV1, MechanicalSpecificEnergyV1,
+    CuttingMetricError, CuttingPowerBasisV1, CuttingPowerInputV1,
+    MechanicalSpecificEnergyUncertaintyV1, MechanicalSpecificEnergyV1, MseUncertaintyInputV1,
     RockCuttingObservationV1,
 };
 pub use platform::PlatformType;
