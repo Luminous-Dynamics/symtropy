@@ -48,12 +48,12 @@ After the domain and canonical-format version, fields are encoded in this exact 
 6. Three gravity components as binary64 bit patterns, in XYZ order.
 7. Frame count and frames sorted by exact UTF-8 frame ID.
 8. World fidelity tag (u8).
-9. World-asset count and assets sorted by artifact ID, then URI, then digest text.
+9. World-asset count and assets sorted by unique artifact ID. Duplicate world-asset IDs are rejected during manifest validation.
 10. Solver count and solvers sorted by solver ID.
 11. Sensor count and sensors sorted by sensor ID.
 12. Platform count and platforms sorted by platform ID.
 
-Sorting applies only to collections whose meaning is set membership rather than sequence order. Fixed numeric arrays retain their defined order. Per-platform actuators are sorted by actuator ID; a platform's sensor-ID membership list is sorted lexicographically. Duplicate identities are rejected by manifest validation before encoding.
+Sorting applies only to collections whose meaning is set membership rather than sequence order. Fixed numeric arrays retain their defined order. Per-platform actuators are sorted by actuator ID; a platform's sensor-ID membership list is sorted lexicographically. Duplicate identities, including duplicate world-asset artifact IDs, are rejected by manifest validation before encoding. World asset artifact IDs must be unique within the world_assets table; reuse the same identity through platform geometry/kinematics references rather than declaring conflicting rows.
 
 ## Nested field grammars
 
