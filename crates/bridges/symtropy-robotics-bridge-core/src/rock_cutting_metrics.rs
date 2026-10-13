@@ -450,7 +450,9 @@ fn is_sha256_hex(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::material_profile::{RockLithologyV1, RockMaterialConditionV1, RockMaterialProfileV1};
+    use crate::material_profile::{
+        RockLithologyV1, RockMaterialConditionV1, RockMaterialProfileV1,
+    };
     use crate::world_contract::{
         CoordinateFrameV1, FrameTransformV1, PhysicsFidelity, WORLD_MANIFEST_SCHEMA_VERSION,
     };
@@ -530,7 +532,10 @@ mod tests {
         let power_component = 20.0 / mse.removed_volume_rate_m3_s;
         let volume_component = mse.mse_pa * (1.0e-7 / mse.removed_volume_rate_m3_s);
         let expected_std = (power_component.powi(2) + volume_component.powi(2)).sqrt();
-        assert!((uncertainty.standard_uncertainty_pa - expected_std).abs() < expected_std * 1.0e-12);
+        assert!(
+            (uncertainty.standard_uncertainty_pa - expected_std).abs()
+                < expected_std * 1.0e-12
+        );
         assert_eq!(uncertainty.observation_id, "cut-test-001");
         assert_eq!(uncertainty.source.artifact_id, "calibration-uncertainty-budget-001");
         assert!(uncertainty.relative_standard_uncertainty.unwrap() > 0.0);
