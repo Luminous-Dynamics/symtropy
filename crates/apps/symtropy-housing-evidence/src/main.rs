@@ -759,6 +759,43 @@ mod tests {
     }
 
     #[test]
+    fn cli_pass_requires_pinned_requirements_and_emits_provenance_digests() {
+        let (schema, manifest, root, _) = set_up_pass_manifest();
+        assert_eq!(EMBEDDED_SCHEMA, serde_json::to_string_pretty(&schema).unwrap() + "\\n");
+
+        let manifest_path = root.join("manifest.json");
+        let manifest_bytes = serde_json::to_vec_pretty(&manifest).expect("serialize manifest");
+        fs::write(&manifest_path, &manifest_bytes).expect("write manifest");
+
+        let requirements_path = root.join("requirements.json");
+        let requirements_bytes = serde_json::to_vec_pretty(&json!({
+            "mandatory_claim_ids": ["example-structural-claim"]
+        }))
+        .expect("serialize requirements");
+        fs::write(&requirements_path, &requirements_bytes).expect("write requirements");
+        let expected_digest = sha256_hex(&requirements_bytes);
+
+        let args = vec![
+            manifest_path.display().to_string(),
+            "--expected-claims".to_string(),
+            requirements_path.display().to_string(),
+            "--expected-claims-sha256".to_string(),
+            expected_digest.clone(),
+            "--artifact-root".to_string(),
+            root.display().to_string(),
+            "--require-pass".to_string(),
+        ];
+        let (report, require_pass) = run(args).expect("verify pinned pass");
+        assert!(require_pass);
+        assert_eq!(report.effective_status, STATUS_PASS, "{:?}", report.issues);
+        assert!(report.schema_sha256.is_some());
+        assert_eq!(report.manifest_sha256.as_deref(), Some(sha256_hex(&manifest_bytes).as_str()));
+        assert_eq!(report.expected_claims_sha256.as_deref(), Some(expected_digest.as_str()));
+        assert!(report.expected_claims_digest_pinned);
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
     fn pass_is_insufficient_without_independent_expected_claim_set() {
         let (schema, manifest, root, _) = set_up_pass_manifest();
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
