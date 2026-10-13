@@ -104,13 +104,15 @@ A machine-readable implementation of this contract should not qualify an assessm
 - all mandatory metrics and constraints are registered before candidate results are evaluated;
 - each reported value is linked to source artifacts, transformations, units, scope, time window, and uncertainty or explicit unknowns;
 - all alternatives share comparable baseline boundaries and evaluation windows;
-- subgroup coverage and privacy rules are checked, and missing coverage is visible;
+- subgroup coverage and privacy rules are checked; all alternatives use the same declared subgroup identifiers, and missing coverage is represented explicitly as unknown rather than omitted;
 - no unknown hard constraint is treated as passed and no composite score overrides a failed constraint;
+- every hard constraint binds a structured, digest-verified pre-registration record whose metric, comparator, thresholds, scope, non-compensable flag, and declaration timestamp exactly match the assessment; that record cannot be reused as outcome evidence;
+- invoking the semantic checker without verifying local artifact bytes cannot qualify a hard constraint; reports state whether bytes were verified;
 - the full outcome vector remains available whenever a composite score is displayed;
 - sensitivity analysis flags material rank reversals;
 - evidence level and run status remain separate, with no promotion from a failed or incomplete run;
 - the decision record preserves dissent, limitations, approval authority, and stop/fallback conditions;
-- validation tests include adversarial cases for missing values, subgroup suppression, stale data, mismatched units, unsupported causal claims, and hidden hard-constraint failures.
+- validation tests include adversarial cases for missing values, subgroup suppression, stale data, mismatched units, unsupported causal claims, hidden hard-constraint failures, re-hashed but semantically mismatched pre-registration artifacts, path traversal/control characters, and attempts to overwrite assessment/evidence files with reports.
 
 ## 8. Research references
 
