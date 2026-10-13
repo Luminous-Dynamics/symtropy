@@ -25,9 +25,9 @@ pub const QUALIFIED_WORLD_DOMAIN_V2: &[u8] = b"symtropy.robotics.qualified-world
 
 /// A named, explicit meaning for the positive axes of a coordinate frame.
 ///
-/// The first five variants freeze widely used robotics conventions described
-/// by ROS REP-103. ExternalSpec pins a custom convention by both URI and digest;
-/// the URI alone is not treated as immutable specification identity.
+/// Body FLU, ENU, NED, and camera optical variants follow ROS REP-103; FRD
+/// follows MAVLink's frame definitions. ExternalSpec pins a custom convention by
+/// both URI and digest; the URI alone is not immutable specification identity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FrameAxisConventionV1 {
     /// +X forward, +Y left, +Z up.
