@@ -53,6 +53,10 @@ Every consequential claim should be represented as a machine-readable record wit
 
 A hash proves that an artifact matches a recorded digest; it does not prove that the artifact is correct. Digital signatures prove who signed a record under a particular key policy; they do not prove the physical conditions described by the record.
 
+A draft JSON Schema for this envelope is available at [`housing-evidence-manifest.schema.json`](housing-evidence-manifest.schema.json). The [`example-not-evidence.json`](fixtures/example-not-evidence.json) fixture is intentionally synthetic: its digest is a placeholder, no engineering computation has run, and its status is `NOT_EVALUATED`. It must never be used as a real project record.
+
+The JSON Schema checks document shape; it cannot alone establish that a digest matches an artifact, that a clause is applicable, or that the overall status is truthful. A separate verifier must enforce cross-record invariants, including that an aggregate `PASS` is impossible while any mandatory claim is unresolved or failed. Add fixture-based tests for both permitted and rejected cases before treating the contract as stable.
+
 ### 3.3 Fail-closed result states
 
 Use separate status values; do not reduce every state to a green/red badge.
