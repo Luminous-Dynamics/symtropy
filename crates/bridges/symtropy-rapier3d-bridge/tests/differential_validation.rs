@@ -716,3 +716,31 @@ fn three_and_five_box_stacks_remain_finite_and_bounded_for_both_backends() {
         assert_stack_trace_is_bounded(&rapier, box_count, "Rapier");
     }
 }
+
+
+#[test]
+fn stack_trace_is_invariant_to_nonsemantic_body_insertion_order() {
+    // The scenario contract assigns stable IDs, and both runners normalize by
+    // those IDs before constructing the world. Reversing input order must not
+    // silently change solver history under this declared deterministic policy.
+    let scenario = box_stack_scenario(3);
+    let mut permuted = scenario.clone();
+    permuted.bodies.reverse();
+
+    assert_eq!(scenario.scenario_id, permuted.scenario_id);
+    assert_ne!(scenario.bodies, permuted.bodies);
+
+    let native_reference = run_native_scenario_3d(&scenario).unwrap();
+    let native_permuted = run_native_scenario_3d(&permuted).unwrap();
+    assert_eq!(
+        native_reference, native_permuted,
+        "native stack trace changed under a nonsemantic input permutation"
+    );
+
+    let rapier_reference = run_rapier_scenario_3d(&scenario).unwrap();
+    let rapier_permuted = run_rapier_scenario_3d(&permuted).unwrap();
+    assert_eq!(
+        rapier_reference, rapier_permuted,
+        "Rapier stack trace changed under a nonsemantic input permutation"
+    );
+}
