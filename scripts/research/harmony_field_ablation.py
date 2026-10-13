@@ -379,11 +379,12 @@ def atomic_json(path, value):
             os.unlink(temp)
 
 
-def validate_results(plan, path):
+def validate_results(plan, path, artifact_root=None):
     errors = validate_plan(plan)
     if errors:
         return {"validation_status": "invalid_plan", "errors": errors}
     records = []
+    root = Path(artifact_root) if artifact_root is not None else path.parent
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError as exc:
@@ -411,7 +412,7 @@ def validate_results(plan, path):
             errors.append(f"duplicate result for {run_id}")
             continue
         by_id[run_id] = item
-        errors.extend(validate_result(item, planned_by_id[run_id], plan["candidate_commit"]))
+        errors.extend(validate_result(item, planned_by_id[run_id], plan["candidate_commit"], root))
     missing = set(planned_by_id) - set(by_id)
     if missing:
         errors.append(f"{len(missing)} planned result record(s) missing; missing is not zero or pass")
