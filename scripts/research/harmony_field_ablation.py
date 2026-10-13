@@ -512,6 +512,14 @@ def percentile(values, probability):
     return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
 
 
+def sample_variance(values):
+    """Unbiased sample variance; returns None when fewer than two observations exist."""
+    if len(values) < 2:
+        return None
+    mean = sum(values) / len(values)
+    return sum((value - mean) ** 2 for value in values) / (len(values) - 1)
+
+
 def bootstrap_mean_interval(values, replicates, rng):
     if not values:
         raise ValidationError("cannot estimate effect without paired seed-level values")
@@ -608,10 +616,37 @@ def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates
             }
         seed_order = [seed for seed in held_out]
         arm_effects = []
+        baseline_values = [seed_values[seed]["A000"] for seed in seed_order]
         for arm in arms():
             arm_id = arm["arm_id"]
-            deltas = [seed_values[seed][arm_id] - seed_values[seed]["A000"] for seed in seed_order]
+            treatment_values = [seed_values[seed][arm_id] for seed in seed_order]
+            deltas = [treatment - baseline for treatment, baseline in zip(treatment_values, baseline_values)]
             estimate, lower, upper = bootstrap_mean_interval(deltas, bootstrap_replicates, rng)
+            if arm_id == "A000":
+                pairing_diagnostic = {
+                    "status": "not_applicable_baseline",
+                    "paired_difference_sample_variance": 0.0,
+                    "independent_difference_variance_estimate": None,
+                    "paired_to_independent_variance_ratio": None,
+                }
+            else:
+                paired_variance = sample_variance(deltas)
+                independent_variance = sample_variance(treatment_values) + sample_variance(baseline_values)
+                ratio = paired_variance / independent_variance if independent_variance and independent_variance > 0.0 else None
+                if ratio is None:
+                    status = "undefined_zero_or_unestimable_denominator"
+                elif ratio < 1.0:
+                    status = "paired_variance_lower_than_independent_estimate"
+                elif ratio > 1.0:
+                    status = "paired_variance_higher_than_independent_estimate"
+                else:
+                    status = "paired_variance_equal_to_independent_estimate"
+                pairing_diagnostic = {
+                    "status": status,
+                    "paired_difference_sample_variance": paired_variance,
+                    "independent_difference_variance_estimate": independent_variance,
+                    "paired_to_independent_variance_ratio": ratio,
+                }
             arm_effects.append({
                 "arm_id": arm_id,
                 "arm_index": arm["arm_index"],
@@ -621,6 +656,7 @@ def analyze_results(plan, results_path, artifact_root=None, bootstrap_replicates
                 ],
                 "mean_paired_difference_positive_is_better": estimate,
                 "bootstrap_95_percentile_interval": [lower, upper],
+                "pairing_variance_diagnostic": pairing_diagnostic,
                 "interpretation": "baseline" if arm_id == "A000" else interpret_effect(lower, upper, threshold),
             })
         factorial_effects = []
@@ -838,8 +874,9 @@ def self_test():
                 records = self.complete_records(plan, Path(tmp))
                 configs = {r["run_id"]: r["configuration"] for r in plan["planned_runs"]}
                 for record in records:
-                    enabled = configs[record["run_id"]]["mechanisms"]["friction_modulation"]
-                    record["primary_endpoint"] = 1.0 if enabled else 0.0
+                    cfg = configs[record["run_id"]]
+                    enabled = cfg["mechanisms"]["friction_modulation"]
+                    record["primary_endpoint"] = cfg["seed"] * 0.1 + (1.0 if enabled else 0.0)
                 results = Path(tmp) / "results.jsonl"
                 results.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
                 report = analyze_results(plan, results, Path(tmp), bootstrap_replicates=100, bootstrap_seed=23)
@@ -851,6 +888,10 @@ def self_test():
                 self.assertEqual(by_name["F"]["bootstrap_95_percentile_interval"], [1.0, 1.0])
                 self.assertAlmostEqual(by_name["R"]["effect_positive_is_better"], 0.0)
                 self.assertAlmostEqual(by_name["E"]["effect_positive_is_better"], 0.0)
+                arm_a100 = next(arm for arm in report["variants"][0]["arm_vs_A000"] if arm["arm_id"] == "A100")
+                diagnostic = arm_a100["pairing_variance_diagnostic"]
+                self.assertEqual(diagnostic["status"], "paired_variance_lower_than_independent_estimate")
+                self.assertEqual(diagnostic["paired_to_independent_variance_ratio"], 0.0)
 
         def test_analysis_refuses_unqualified_manifest(self):
             with tempfile.TemporaryDirectory() as tmp:
