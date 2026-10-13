@@ -46,6 +46,36 @@ def is_sha(value):
     return isinstance(value, str) and bool(SHA_RE.fullmatch(value))
 
 
+def file_sha256(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def artifact_sha256(root, relative_name):
+    """Hash an evidence file confined to the declared artifact root."""
+    if not isinstance(relative_name, str) or not relative_name.strip():
+        raise ValidationError("artifact path must be a non-empty relative path")
+    relative = Path(relative_name)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValidationError("artifact path must be relative and may not traverse parents")
+    root = root.resolve()
+    try:
+        target = (root / relative).resolve(strict=True)
+    except OSError as exc:
+        raise ValidationError(f"artifact file is missing or unreadable: {relative_name}") from exc
+    if target == root or root not in target.parents:
+        raise ValidationError("artifact path resolves outside the declared artifact root")
+    if not target.is_file():
+        raise ValidationError(f"artifact path is not a regular file: {relative_name}")
+    try:
+        return file_sha256(target)
+    except OSError as exc:
+        raise ValidationError(f"cannot hash artifact {relative_name}: {exc}") from exc
+
+
 def arms():
     """A000..A111, with F/R/E stored in bits 2/1/0 respectively."""
     return [{
@@ -283,7 +313,7 @@ def validate_plan(plan):
     return errors
 
 
-def validate_result(record, planned, commit):
+def validate_result(record, planned, commit, artifact_root):
     errors = []
     label = "result " + planned["run_id"]
     if not isinstance(record, dict):
@@ -310,18 +340,27 @@ def validate_result(record, planned, commit):
             errors.append(label + ": completed run needs finite primary_endpoint")
         if not finite_number(record.get("invariant_drift")):
             errors.append(label + ": completed run needs finite invariant_drift")
-        if not is_sha(record.get("artifact_sha256")):
-            errors.append(label + ": completed run needs artifact_sha256")
         metrics = record.get("secondary_metrics")
         if not isinstance(metrics, dict) or any(not finite_number(v) for v in metrics.values()):
             errors.append(label + ": secondary_metrics must be an object of finite numbers")
+        try:
+            actual = artifact_sha256(artifact_root, record.get("artifact_path"))
+            if record.get("artifact_sha256") != actual:
+                errors.append(label + ": artifact_sha256 does not match artifact bytes")
+        except ValidationError as exc:
+            errors.append(label + f": artifact verification failed: {exc}")
     elif record.get("primary_endpoint") is not None:
         errors.append(label + ": non-completed run must have null primary_endpoint")
     replay = record.get("replay_status")
     if not isinstance(replay, str) or replay not in REPLAY:
         errors.append(label + ": invalid/missing replay_status")
-    if isinstance(replay, str) and replay in {"exact_match", "bounded_nondeterminism_accepted"} and not is_sha(record.get("replay_evidence_sha256")):
-        errors.append(label + ": accepted replay status needs replay_evidence_sha256")
+    if isinstance(replay, str) and replay in {"exact_match", "bounded_nondeterminism_accepted"}:
+        try:
+            actual_replay = artifact_sha256(artifact_root, record.get("replay_evidence_path"))
+            if record.get("replay_evidence_sha256") != actual_replay:
+                errors.append(label + ": replay_evidence_sha256 does not match evidence bytes")
+        except ValidationError as exc:
+            errors.append(label + f": replay-evidence verification failed: {exc}")
     return errors
 
 
