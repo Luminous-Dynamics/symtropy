@@ -40,7 +40,7 @@ Every observation MUST record:
 - exact units for every quantitative field, metric method, thresholds, and the validity domain;
 - reuse/license state, required attribution, source limitations, prohibited inferences, and whether a survey or specialist investigation remains required.
 
-Use GeoJSON with explicit CRS metadata and a declared [OGC:CRS84](https://www.ogc.org/standard/crs/) axis order for interchange geometry; preserve the native CRS and vertical datum for raw grids and survey artifacts. Do not silently relabel a projected grid as longitude/latitude. CRS84 geometry is not a substitute for a professional coordinate/survey specification.
+Use RFC 7946 GeoJSON in WGS 84 longitude/latitude coordinate order (equivalent to OGC:CRS84) for interchange geometry. Keep native projected-grid CRS, transformation parameters, vertical datum, and survey reference system in explicit sidecar metadata/artifacts; do not invent a custom CRS member or silently relabel projected coordinates as longitude/latitude. GeoJSON interchange coordinates are not a substitute for a professional coordinate/survey specification.
 
 ## 4. Source and derived data are different
 
