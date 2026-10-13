@@ -16,8 +16,8 @@ use rapier3d::prelude::*;
 use symtropy_physics::validation::{
     BodyObservation3d, PHYSICS_SCENARIO_SCHEMA_VERSION, PHYSICS_TRACE_SCHEMA_VERSION,
     PhysicsBackendDescriptor, PhysicsSample3d, PhysicsScenario3d, PhysicsTrace3d, ScenarioBody3d,
-    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId, compare_traces_3d,
-    run_native_scenario_3d,
+    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId,
+    compare_traces_3d, run_native_scenario_3d,
 };
 use symtropy_physics::world::NoOpCallback;
 use symtropy_rapier3d_bridge::RapierPhysicsBridge;
@@ -262,6 +262,150 @@ fn free_fall_scenario() -> PhysicsScenario3d {
     }
 }
 
+
+/// Build a free-fall scenario whose total simulated duration is exactly one
+/// second. The semi-implicit integrator's position error should decrease as
+/// the fixed timestep is refined; the analytical trajectory is independent of
+/// either engine implementation.
+fn free_fall_at_dt(dt_s: f64) -> PhysicsScenario3d {
+    let mut scenario = free_fall_scenario();
+    scenario.scenario_id = format!("analytical-free-fall-dt-{dt_s:.6}");
+    scenario.dt_s = dt_s;
+    scenario.steps = (1.0 / dt_s).round() as u64;
+    scenario.sample_every_steps = scenario.steps;
+    scenario
+}
+
+fn analytical_free_fall_position_error(
+    scenario: &PhysicsScenario3d,
+    trace: &PhysicsTrace3d,
+) -> f64 {
+    let body = &scenario.bodies[0];
+    let time_s = scenario.dt_s * scenario.steps as f64;
+    let initial_y = body.position_m[1];
+    let initial_vy = body.linear_velocity_mps[1];
+    let gravity_y = scenario.gravity_mps2[1];
+    let expected_y = initial_y + initial_vy * time_s + 0.5 * gravity_y * time_s * time_s;
+    (trace.final_sample().unwrap().bodies[0].position_m[1] - expected_y).abs()
+}
+
+fn assert_free_fall_converges(
+    coarse_scenario: &PhysicsScenario3d,
+    coarse_trace: &PhysicsTrace3d,
+    fine_scenario: &PhysicsScenario3d,
+    fine_trace: &PhysicsTrace3d,
+    backend: &str,
+) {
+    let coarse_error = analytical_free_fall_position_error(coarse_scenario, coarse_trace);
+    let fine_error = analytical_free_fall_position_error(fine_scenario, fine_trace);
+    assert!(coarse_error.is_finite() && fine_error.is_finite());
+    assert!(
+        coarse_error > 1.0e-3,
+        "{backend} coarse error unexpectedly vanished: {coarse_error}"
+    );
+    assert!(
+        fine_error < coarse_error * 0.65,
+        "{backend} did not converge under dt refinement: coarse={coarse_error}, fine={fine_error}"
+    );
+}
+
+/// Contact scenarios use a finite axis-aligned cuboid floor, within the shared
+/// v0.1 shape domain. The floor's top surface is y=0.
+fn contact_scenario(
+    scenario_id: &str,
+    sphere_y: f64,
+    sphere_vx: f64,
+    friction: f64,
+    restitution: f64,
+    steps: u64,
+    dt_s: f64,
+    sample_every_steps: u64,
+) -> PhysicsScenario3d {
+    let material = |id, body_type, shape, position_m, linear_velocity_mps, mass_kg| {
+        ScenarioBody3d {
+            id: ValidationBodyId(id),
+            body_type,
+            shape,
+            position_m,
+            linear_velocity_mps,
+            mass_kg,
+            friction,
+            restitution,
+        }
+    };
+    PhysicsScenario3d {
+        schema_version: PHYSICS_SCENARIO_SCHEMA_VERSION,
+        scenario_id: scenario_id.to_owned(),
+        gravity_mps2: [0.0, -9.81, 0.0],
+        dt_s,
+        steps,
+        sample_every_steps,
+        bodies: vec![
+            material(
+                1,
+                ScenarioBodyType::Static,
+                ScenarioShape3d::Cuboid {
+                    half_extents_m: [5.0, 0.5, 5.0],
+                },
+                [0.0, -0.5, 0.0],
+                [0.0, 0.0, 0.0],
+                0.0,
+            ),
+            material(
+                2,
+                ScenarioBodyType::Dynamic,
+                ScenarioShape3d::Sphere { radius_m: 0.5 },
+                [0.0, sphere_y, 0.0],
+                [sphere_vx, 0.0, 0.0],
+                1.0,
+            ),
+        ],
+    }
+}
+
+fn final_body(trace: &PhysicsTrace3d, id: ValidationBodyId) -> &BodyObservation3d {
+    trace
+        .final_sample()
+        .expect("trace has a final sample")
+        .bodies
+        .iter()
+        .find(|body| body.body_id == id)
+        .expect("trace contains the requested validation body")
+}
+
+fn post_contact_peak_y(
+    trace: &PhysicsTrace3d,
+    id: ValidationBodyId,
+    after_time_s: f64,
+) -> f64 {
+    trace
+        .samples
+        .iter()
+        .filter(|sample| sample.time_s >= after_time_s)
+        .filter_map(|sample| {
+            sample
+                .bodies
+                .iter()
+                .find(|body| body.body_id == id)
+                .map(|body| body.position_m[1])
+        })
+        .fold(f64::NEG_INFINITY, f64::max)
+}
+
+fn assert_restitution_is_observable(
+    inelastic: &PhysicsTrace3d,
+    bouncy: &PhysicsTrace3d,
+    backend: &str,
+) {
+    let inelastic_peak = post_contact_peak_y(inelastic, ValidationBodyId(2), 0.60);
+    let bouncy_peak = post_contact_peak_y(bouncy, ValidationBodyId(2), 0.60);
+    assert!(inelastic_peak.is_finite() && bouncy_peak.is_finite());
+    assert!(
+        bouncy_peak > inelastic_peak + 0.20,
+        "{backend} restitution did not produce a meaningful bounce: inelastic={inelastic_peak}, bouncy={bouncy_peak}"
+    );
+}
+
 #[test]
 fn rapier_adapter_executes_common_free_fall_scenario() {
     let trace = run_rapier_scenario_3d(&free_fall_scenario()).unwrap();
@@ -326,4 +470,136 @@ fn adapter_rejects_values_that_overflow_reference_precision() {
         run_rapier_scenario_3d(&scenario),
         Err(RapierValidationError::OutsideReferenceRange("position_m.x"))
     );
+}
+
+#[test]
+fn analytical_free_fall_position_error_converges_for_both_engines() {
+    let coarse_scenario = free_fall_at_dt(0.02);
+    let fine_scenario = free_fall_at_dt(0.01);
+
+    let coarse_native = run_native_scenario_3d(&coarse_scenario).unwrap();
+    let fine_native = run_native_scenario_3d(&fine_scenario).unwrap();
+    assert_free_fall_converges(
+        &coarse_scenario,
+        &coarse_native,
+        &fine_scenario,
+        &fine_native,
+        "native",
+    );
+
+    let coarse_rapier = run_rapier_scenario_3d(&coarse_scenario).unwrap();
+    let fine_rapier = run_rapier_scenario_3d(&fine_scenario).unwrap();
+    assert_free_fall_converges(
+        &coarse_scenario,
+        &coarse_rapier,
+        &fine_scenario,
+        &fine_rapier,
+        "Rapier",
+    );
+}
+
+#[test]
+fn native_and_rapier_keep_a_sphere_near_resting_contact() {
+    let scenario = contact_scenario(
+        "resting-sphere-v0",
+        0.55,
+        0.0,
+        0.8,
+        0.0,
+        800,
+        0.0025,
+        40,
+    );
+    for (backend, trace) in [
+        ("native", run_native_scenario_3d(&scenario).unwrap()),
+        ("Rapier", run_rapier_scenario_3d(&scenario).unwrap()),
+    ] {
+        let sphere = final_body(&trace, ValidationBodyId(2));
+        assert!(
+            (0.38..=0.72).contains(&sphere.position_m[1]),
+            "{backend} resting sphere drifted from the support surface: y={}",
+            sphere.position_m[1]
+        );
+        assert!(
+            sphere.linear_velocity_mps[1].abs() < 0.75,
+            "{backend} resting sphere retained excessive vertical velocity: vy={}",
+            sphere.linear_velocity_mps[1]
+        );
+    }
+}
+
+#[test]
+fn native_and_rapier_restitution_changes_post_impact_trajectory() {
+    let inelastic_scenario = contact_scenario(
+        "inelastic-drop-v0",
+        2.0,
+        0.0,
+        0.5,
+        0.0,
+        560,
+        0.0025,
+        1,
+    );
+    let bouncy_scenario = contact_scenario(
+        "restitution-drop-v0",
+        2.0,
+        0.0,
+        0.5,
+        0.8,
+        560,
+        0.0025,
+        1,
+    );
+    let native_inelastic = run_native_scenario_3d(&inelastic_scenario).unwrap();
+    let native_bouncy = run_native_scenario_3d(&bouncy_scenario).unwrap();
+    assert_restitution_is_observable(&native_inelastic, &native_bouncy, "native");
+
+    let rapier_inelastic = run_rapier_scenario_3d(&inelastic_scenario).unwrap();
+    let rapier_bouncy = run_rapier_scenario_3d(&bouncy_scenario).unwrap();
+    assert_restitution_is_observable(&rapier_inelastic, &rapier_bouncy, "Rapier");
+}
+
+#[test]
+fn native_and_rapier_friction_reduces_sliding_sphere_speed() {
+    let low_friction = contact_scenario(
+        "low-friction-slide-v0",
+        0.51,
+        2.0,
+        0.0,
+        0.0,
+        600,
+        0.0025,
+        20,
+    );
+    let high_friction = contact_scenario(
+        "high-friction-slide-v0",
+        0.51,
+        2.0,
+        1.0,
+        0.0,
+        600,
+        0.0025,
+        20,
+    );
+    for (backend, low_trace, high_trace) in [
+        (
+            "native",
+            run_native_scenario_3d(&low_friction).unwrap(),
+            run_native_scenario_3d(&high_friction).unwrap(),
+        ),
+        (
+            "Rapier",
+            run_rapier_scenario_3d(&low_friction).unwrap(),
+            run_rapier_scenario_3d(&high_friction).unwrap(),
+        ),
+    ] {
+        let low_speed = final_body(&low_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
+        let high_speed =
+            final_body(&high_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
+        assert!(low_speed > 0.5, "{backend} zero-friction lane lost too much speed: {low_speed}");
+        assert!(
+            high_speed + 0.15 < low_speed,
+            "{backend} high friction did not reduce slide speed: low={low_speed}, high={high_speed}"
+        );
+    }
 }
