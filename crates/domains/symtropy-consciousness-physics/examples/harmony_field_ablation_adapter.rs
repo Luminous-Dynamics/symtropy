@@ -1047,7 +1047,7 @@ fn execute() -> Result<(), String> {
             .ok_or_else(|| format!("{run_id} configuration missing"))?;
         let seed = cfg.get("seed").and_then(Value::as_u64).unwrap_or(0);
         let first = catch_unwind(AssertUnwindSafe(|| run_simulation(cfg, &run_id, &candidate_commit, &plan_sha)));
-        let replay = catch_unwind(AssertUnwindSafe(|| run_simulation(cfg, &candidate_commit, &plan_sha)));
+        let replay = catch_unwind(AssertUnwindSafe(|| run_simulation(cfg, &run_id, &candidate_commit, &plan_sha)));
 
         let first_output = match first {
             Ok(Ok(output)) => Some(output),
