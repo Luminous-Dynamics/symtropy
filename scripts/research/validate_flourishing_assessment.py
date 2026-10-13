@@ -301,8 +301,8 @@ def validate_assessment(
                 if preregistration_collected_at and analysis_started_at and preregistration_collected_at > analysis_started_at:
                     errors.append(f"constraints[{constraint_id}]: preregistration artifact must predate analysis")
         predeclared = _time(constraint.get("predeclared_at"), f"constraints[{constraint_id}].predeclared_at", errors)
-        if preregistration_collected_at and predeclared and preregistration_collected_at > predeclared:
-            errors.append(f"constraints[{constraint_id}]: preregistration artifact must be captured no later than predeclared_at")
+        if preregistration_collected_at and predeclared and preregistration_collected_at < predeclared:
+            errors.append(f"constraints[{constraint_id}]: pre-registration artifact capture must be at or after predeclared_at")
         if predeclared and analysis_started_at and predeclared > analysis_started_at:
             errors.append(f"constraints[{constraint_id}]: must be predeclared no later than analysis_started_at")
 
@@ -493,7 +493,10 @@ def validate_assessment(
             if outcome.get("unit") != metric.get("unit"):
                 errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}]: unit does not match metric registry")
             _validate_known_unknown(outcome, f"alternatives[{alt_id}].outcomes[{metric_id}]", artifact_ids, errors)
-            for artifact_ref in outcome.get("artifact_ids", []) if isinstance(outcome.get("artifact_ids"), list) else []:
+            outcome_artifact_refs = outcome.get("artifact_ids", [])
+            if not isinstance(outcome_artifact_refs, list):
+                outcome_artifact_refs = []
+            for artifact_ref in outcome_artifact_refs:
                 if artifact_ref in artifacts and artifacts[artifact_ref].get("purpose") == "pre-registration":
                     errors.append(
                         f"alternatives[{alt_id}].outcomes[{metric_id}]: pre-registration artifact cannot support a measured outcome"
@@ -510,7 +513,10 @@ def validate_assessment(
                     errors.append(f"alternatives[{alt_id}].outcomes[{metric_id}].subgroups[{group_index}]: expected an object")
                     continue
                 _validate_known_unknown(group, f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}", artifact_ids, errors)
-                for artifact_ref in group.get("artifact_ids", []) if isinstance(group.get("artifact_ids"), list) else []:
+                group_artifact_refs = group.get("artifact_ids", [])
+                if not isinstance(group_artifact_refs, list):
+                    group_artifact_refs = []
+                for artifact_ref in group_artifact_refs:
                     if artifact_ref in artifacts and artifacts[artifact_ref].get("purpose") == "pre-registration":
                         errors.append(
                             f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}: pre-registration artifact cannot support a measured outcome"
