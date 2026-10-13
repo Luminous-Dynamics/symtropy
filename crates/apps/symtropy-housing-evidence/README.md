@@ -9,7 +9,7 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 - checks artifact/claim identifiers and SHA-256 cross-references, including the executable/container and configuration digests of tools used by evaluated claims;
 - requires an independently pinned schema/case/jurisdiction/model/rule-pack/toolchain contract and mandatory-claim definitions before accepting an aggregate `PASS`;
 - compares each mandatory claim's type, statement, element scope, requirement reference, validity domain, and acceptance criteria against that contract;
-- requires mandatory code-compliance claims to cite a rule-pack source snapshot whose digest resolves to locally verifiable artifact bytes;
+- requires mandatory code-compliance claims to cite a legislation/standard/regulation/technical-guidance source with an edition or effective date, clause/location, public/licensed rights status, and a source digest resolving to locally verifiable artifact bytes;
 - requires local artifact bytes under an explicit root and verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`;
 - emits a machine-readable report with separate producer-declared `declared_status`, conservative `effective_status`, and `evidence_integrity_status` fields, plus the actual verifier-binary and schema SHA-256 values.
 

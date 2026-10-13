@@ -554,14 +554,62 @@ fn evaluate_manifest(
                         let source = source_references
                             .iter()
                             .find(|source| source["source_id"].as_str() == Some(source_id));
-                        match source.and_then(|source| source["source_sha256"].as_str()) {
-                            Some(digest) if artifacts_by_digest.contains_key(digest) => {}
-                            Some(digest) => issues.push(format!(
-                                "mandatory code compliance claim {id} source digest {digest} is absent from evidence_artifacts"
-                            )),
-                            None => issues.push(format!(
-                                "mandatory code compliance claim {id} source {source_id} has no source_sha256"
-                            )),
+                        if let Some(source) = source {
+                            if !matches!(
+                                source["source_type"].as_str(),
+                                Some(
+                                    "legislation"
+                                        | "standard"
+                                        | "regulation"
+                                        | "technical_guidance"
+                                )
+                            ) {
+                                issues.push(format!(
+                                    "mandatory code compliance claim {id} source {source_id} is not a legislation, standard, regulation, or technical-guidance source"
+                                ));
+                            }
+
+                            let has_edition = source["edition"]
+                                .as_str()
+                                .is_some_and(|value| !value.trim().is_empty());
+                            let has_effective_date = source["effective_from"]
+                                .as_str()
+                                .is_some_and(|value| !value.trim().is_empty());
+                            if !has_edition && !has_effective_date {
+                                issues.push(format!(
+                                    "mandatory code compliance claim {id} source {source_id} has no edition or effective_from date"
+                                ));
+                            }
+                            if source["clause_or_location"]
+                                .as_str()
+                                .is_none_or(|value| value.trim().is_empty())
+                            {
+                                issues.push(format!(
+                                    "mandatory code compliance claim {id} source {source_id} has no clause_or_location"
+                                ));
+                            }
+                            if !matches!(
+                                source["rights_status"].as_str(),
+                                Some("public" | "licensed")
+                            ) {
+                                issues.push(format!(
+                                    "mandatory code compliance claim {id} source {source_id} has unresolved or restricted rights status"
+                                ));
+                            }
+
+                            match source["source_sha256"].as_str() {
+                                Some(digest) if artifacts_by_digest.contains_key(digest) => {}
+                                Some(digest) => issues.push(format!(
+                                    "mandatory code compliance claim {id} source digest {digest} is absent from evidence_artifacts"
+                                )),
+                                None => issues.push(format!(
+                                    "mandatory code compliance claim {id} source {source_id} has no source_sha256"
+                                )),
+                            }
+                        } else {
+                            issues.push(format!(
+                                "mandatory code compliance claim {id} source {source_id} could not be resolved"
+                            ));
                         }
                     }
                 }
@@ -1455,6 +1503,36 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
         assert!(result.issues.iter().any(|issue| issue.contains("no executable/container digest")));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn mandatory_code_compliance_claim_requires_edition_clause_and_usable_rights() {
+        let (schema, mut manifest, root, _) = set_up_pass_manifest();
+        manifest["claims"][0]["claim_type"] = json!("code_compliance");
+        manifest["claims"][0]["requirement"] = json!({
+            "requirement_id": "SYNTHETIC-CLAUSE",
+            "source_id": "za-nbr-act",
+            "applicability_notes": "test fixture only"
+        });
+        let digest = manifest["evidence_artifacts"][0]["sha256"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        manifest["rule_pack"]["source_references"][0]["source_sha256"] = json!(digest);
+        manifest["rule_pack"]["source_references"][0]["rights_status"] = json!("unknown");
+
+        let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("no edition or effective_from date")
+        }));
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("no clause_or_location")
+        }));
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("unresolved or restricted rights status")
+        }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
