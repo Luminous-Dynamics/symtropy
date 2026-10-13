@@ -34,11 +34,13 @@ use std::{
 
 const STATUS_PASS: &str = "PASS";
 const STATUS_EVIDENCE_INTEGRITY_VERIFIED: &str = "EVIDENCE_INTEGRITY_VERIFIED";
+const STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED: &str = "NOT_VERIFIED";
 const STATUS_FAIL: &str = "FAIL";
 const EMBEDDED_SCHEMA: &str = include_str!("../../../../docs/built-environment/housing-evidence-manifest.schema.json");
 const STATUS_NOT_EVALUATED: &str = "NOT_EVALUATED";
 const STATUS_BLOCKED: &str = "BLOCKED";
 const STATUS_INSUFFICIENT_EVIDENCE: &str = "INSUFFICIENT_EVIDENCE";
+const STATUS_REQUIRES_REVIEW: &str = "REQUIRES_REVIEW";
 
 #[derive(Debug, Serialize)]
 struct VerificationReport {
@@ -51,6 +53,7 @@ struct VerificationReport {
     case_id: Option<String>,
     declared_status: Option<String>,
     effective_status: String,
+    evidence_integrity_status: String,
     artifact_digests_verified: usize,
     issues: Vec<String>,
 }
@@ -79,6 +82,7 @@ struct ExpectedClaimContract {
     requirement: Value,
     tool_id: String,
     input_artifact_sha256: Vec<String>,
+    output_artifact_sha256: Vec<String>,
     validity_domain: String,
     acceptance_criteria: String,
 }
@@ -98,13 +102,15 @@ fn main() -> ExitCode {
                 return ExitCode::from(2);
             }
             if report.declared_status.as_deref() == Some(STATUS_PASS)
-                && report.effective_status != STATUS_EVIDENCE_INTEGRITY_VERIFIED
+                && (report.effective_status != STATUS_PASS
+                    || report.evidence_integrity_status != STATUS_EVIDENCE_INTEGRITY_VERIFIED)
             {
                 return ExitCode::from(2);
             }
             if require_pass
                 && (report.declared_status.as_deref() != Some(STATUS_PASS)
-                    || report.effective_status != STATUS_EVIDENCE_INTEGRITY_VERIFIED)
+                    || report.effective_status != STATUS_PASS
+                    || report.evidence_integrity_status != STATUS_EVIDENCE_INTEGRITY_VERIFIED)
             {
                 return ExitCode::from(3);
             }
@@ -263,6 +269,7 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
             || claim.statement.trim().is_empty()
             || claim.tool_id.trim().is_empty()
             || claim.input_artifact_sha256.is_empty()
+            || claim.output_artifact_sha256.is_empty()
             || claim.validity_domain.trim().is_empty()
             || claim.acceptance_criteria.trim().is_empty()
         {
@@ -285,6 +292,21 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
             if !input_digests.insert(digest) {
                 return Err(format!(
                     "expected claim {} has duplicate input artifact digest: {digest}",
+                    claim.claim_id
+                ));
+            }
+        }
+        let mut output_digests = BTreeSet::new();
+        for digest in &claim.output_artifact_sha256 {
+            if !is_sha256(digest) {
+                return Err(format!(
+                    "expected claim {} has a malformed output artifact SHA-256: {digest}",
+                    claim.claim_id
+                ));
+            }
+            if !output_digests.insert(digest) {
+                return Err(format!(
+                    "expected claim {} has duplicate output artifact digest: {digest}",
                     claim.claim_id
                 ));
             }
@@ -503,7 +525,9 @@ fn evaluate_manifest(
             match source_id {
                 Some(source_id) if source_ids.contains(source_id) => {
                     if claim["mandatory"].as_bool() == Some(true)
-                        && claim["status"].as_str() == Some(STATUS_PASS)
+                        && claim["status"].as_str().is_some_and(|status| {
+                            status == STATUS_PASS || status == STATUS_FAIL
+                        })
                     {
                         let source = source_references
                             .iter()
@@ -561,39 +585,37 @@ fn evaluate_manifest(
         );
     }
 
-    // A mandatory failure must never be hidden by a more ambiguous aggregate.
-    // The manifest is not trusted to choose a weaker top-level status.
-    let failed_mandatory_ids: Vec<String> = claims
-        .iter()
-        .filter(|claim| claim["mandatory"].as_bool() == Some(true))
-        .filter(|claim| claim["status"].as_str() == Some(STATUS_FAIL))
-        .filter_map(|claim| claim["claim_id"].as_str().map(ToString::to_string))
-        .collect();
+    // A stronger mandatory claim state must not be hidden by a weaker
+    // producer-declared aggregate. This is conservative aggregation, not a
+    // re-evaluation of the underlying engineering claim.
+    if declared_status.as_deref() != Some(STATUS_PASS) {
+        let declared = declared_status.as_deref().unwrap_or(STATUS_BLOCKED);
+        let highest_claim_status = claims
+            .iter()
+            .filter(|claim| claim["mandatory"].as_bool() == Some(true))
+            .filter_map(|claim| claim["status"].as_str())
+            .max_by_key(|status| status_precedence(status))
+            .unwrap_or(declared);
 
-    if !failed_mandatory_ids.is_empty()
-        && declared_status.as_deref() != Some(STATUS_FAIL)
-    {
-        let issue = format!(
-            "declared aggregate status {:?} conflicts with failed mandatory claim(s) {:?}; FAIL takes precedence",
-            declared_status.as_deref(),
-            failed_mandatory_ids
-        );
+        if status_precedence(highest_claim_status) > status_precedence(declared) {
+            let issue = format!(
+                "declared aggregate status {declared:?} understates mandatory claim state {highest_claim_status:?}; conservative status takes precedence"
+            );
+            return report(
+                true,
+                case_id,
+                declared_status,
+                highest_claim_status,
+                0,
+                vec![issue],
+            );
+        }
+
         return report(
             true,
             case_id,
             declared_status,
-            STATUS_FAIL,
-            0,
-            vec![issue],
-        );
-    }
-
-    if declared_status.as_deref() != Some(STATUS_PASS) {
-        return report(
-            true,
-            case_id,
-            declared_status.clone(),
-            declared_status.as_deref().unwrap_or(STATUS_BLOCKED),
+            declared,
             0,
             Vec::new(),
         );
@@ -763,6 +785,21 @@ fn evaluate_manifest(
                 expected.claim_id
             ));
         }
+        let actual_outputs: BTreeSet<String> = actual["output_artifact_sha256"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(ToString::to_string)
+            .collect();
+        let expected_outputs: BTreeSet<String> =
+            expected.output_artifact_sha256.iter().cloned().collect();
+        if actual_outputs != expected_outputs {
+            contract_issues.push(format!(
+                "mandatory claim {} differs from the pinned output artifact digests",
+                expected.claim_id
+            ));
+        }
         if actual["validity_domain"].as_str() != Some(expected.validity_domain.as_str()) {
             contract_issues.push(format!(
                 "mandatory claim {} differs from the pinned validity domain",
@@ -817,14 +854,19 @@ fn evaluate_manifest(
 
     let referenced_digests = referenced_digests(manifest);
     match verify_local_artifacts(&referenced_digests, &artifacts_by_digest, artifact_root) {
-        Ok(verified_count) => report(
-            true,
-            case_id,
-            declared_status,
-            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
-            verified_count,
-            Vec::new(),
-        ),
+        Ok(verified_count) => {
+            let mut result = report(
+                true,
+                case_id,
+                declared_status,
+                STATUS_PASS,
+                verified_count,
+                Vec::new(),
+            );
+            result.evidence_integrity_status =
+                STATUS_EVIDENCE_INTEGRITY_VERIFIED.to_string();
+            result
+        },
         Err(mut artifact_issues) => {
             issues.append(&mut artifact_issues);
             report(
@@ -1026,6 +1068,18 @@ fn sha256_hex(bytes: &[u8]) -> String {
     output
 }
 
+fn status_precedence(status: &str) -> u8 {
+    match status {
+        STATUS_PASS => 0,
+        STATUS_NOT_EVALUATED => 1,
+        STATUS_REQUIRES_REVIEW => 2,
+        STATUS_INSUFFICIENT_EVIDENCE => 3,
+        STATUS_BLOCKED => 4,
+        STATUS_FAIL => 5,
+        _ => 4,
+    }
+}
+
 fn report(
     schema_valid: bool,
     case_id: Option<String>,
@@ -1044,6 +1098,7 @@ fn report(
         case_id,
         declared_status,
         effective_status: effective_status.to_string(),
+        evidence_integrity_status: STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED.to_string(),
         artifact_digests_verified,
         issues,
     }
@@ -1150,6 +1205,12 @@ mod tests {
                         .unwrap()
                         .to_string(),
                 ],
+                output_artifact_sha256: vec![
+                    manifest["claims"][0]["output_artifact_sha256"][0]
+                        .as_str()
+                        .unwrap()
+                        .to_string(),
+                ],
                 validity_domain: "test-only".to_string(),
                 acceptance_criteria: "test-only".to_string(),
             }],
@@ -1206,13 +1267,12 @@ mod tests {
         ];
         let (report, require_pass) = run(args).expect("verify pinned pass");
         assert!(require_pass);
-        assert_eq!(
-            report.effective_status,
-            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
-            "{:?}",
-            report.issues
-        );
+        assert_eq!(report.effective_status, STATUS_PASS, "{:?}", report.issues);
         assert_eq!(report.declared_status.as_deref(), Some(STATUS_PASS));
+        assert_eq!(
+            report.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED
+        );
         assert!(report.schema_sha256.is_some());
         let manifest_digest = sha256_hex(&manifest_bytes);
         assert_eq!(report.manifest_sha256.as_deref(), Some(manifest_digest.as_str()));
@@ -1233,6 +1293,24 @@ mod tests {
         assert!(result.issues.iter().any(|issue| {
             issue.contains("FAIL takes precedence")
                 && issue.contains("example-structural-claim")
+        }));
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn weaker_aggregate_cannot_hide_mandatory_blocked_state() {
+        let (schema, mut manifest, root, _) = set_up_pass_manifest();
+        manifest["claims"][0]["status"] = json!(STATUS_BLOCKED);
+        manifest["overall_status"] = json!(STATUS_NOT_EVALUATED);
+
+        let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
+        );
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("understates mandatory claim state")
         }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
@@ -1260,13 +1338,12 @@ mod tests {
         let (schema, manifest, root, expected) = set_up_pass_manifest();
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert!(result.schema_valid, "{:?}", result.issues);
-        assert_eq!(
-            result.effective_status,
-            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
-            "{:?}",
-            result.issues
-        );
+        assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
         assert_eq!(result.declared_status.as_deref(), Some(STATUS_PASS));
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED
+        );
         assert_eq!(result.artifact_digests_verified, 2);
         fs::remove_dir_all(root).expect("clean temp dir");
     }
@@ -1319,6 +1396,9 @@ mod tests {
             input_artifact_sha256: vec![
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()
             ],
+            output_artifact_sha256: vec![
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()
+            ],
             validity_domain: "test-only".to_string(),
             acceptance_criteria: "test-only".to_string(),
         });
@@ -1361,14 +1441,34 @@ mod tests {
         expected.rule_pack = manifest["rule_pack"].clone();
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
-        assert_eq!(
-            result.effective_status,
-            STATUS_EVIDENCE_INTEGRITY_VERIFIED,
-            "{:?}",
-            result.issues
-        );
+        assert_eq!(result.effective_status, STATUS_PASS, "{:?}", result.issues);
         assert_eq!(result.declared_status.as_deref(), Some(STATUS_PASS));
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_VERIFIED
+        );
         assert_eq!(result.artifact_digests_verified, 3);
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn changed_claim_outputs_cannot_reuse_a_pinned_requirements_contract() {
+        let (schema, mut manifest, root, expected) = set_up_pass_manifest();
+        let substituted_digest = manifest["toolchain"][0]["executable_or_container_sha256"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        manifest["claims"][0]["output_artifact_sha256"] = json!([substituted_digest]);
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert_eq!(
+            result.evidence_integrity_status,
+            STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
+        );
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("pinned output artifact digests")
+        }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 

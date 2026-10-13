@@ -11,9 +11,9 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 - compares each mandatory claim's type, statement, element scope, requirement reference, validity domain, and acceptance criteria against that contract;
 - requires mandatory code-compliance claims to cite a rule-pack source snapshot whose digest resolves to locally verifiable artifact bytes;
 - requires local artifact bytes under an explicit root and verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`;
-- emits a machine-readable report that keeps the manifest's declared engineering status separate from the verifier's evidence-integrity verdict.
+- emits a machine-readable report with separate producer-declared `declared_status`, conservative `effective_status`, and `evidence_integrity_status` fields.
 
-It does **not** parse or interpret legislation/SANS clauses, independently recompute structural/building-physics results, determine whether a measured result satisfies an engineering criterion, establish physical truth, verify a person's professional registration, or issue approvals. A successful package verdict is named `EVIDENCE_INTEGRITY_VERIFIED`, not `PASS`: it means the pinned contract, manifest structure, and referenced local bytes passed these checks. The manifest's declared engineering status remains an assertion from the evidence producer.
+It does **not** parse or interpret legislation/SANS clauses, independently recompute structural/building-physics results, determine whether a measured result satisfies an engineering criterion, establish physical truth, verify a person's professional registration, or issue approvals. A successful package check sets `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED`; it does not replace the declared or effective engineering status. `effective_status` stays `PASS` only if the manifest declared PASS and all integrity checks succeed. The manifest's declared engineering status remains an assertion from the evidence producer.
 
 ## Run
 
@@ -75,6 +75,7 @@ A separate requirements file has this shape:
       "requirement": null,
       "tool_id": "approved-solver",
       "input_artifact_sha256": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      "output_artifact_sha256": ["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
       "validity_domain": "defined model revision and stated load case",
       "acceptance_criteria": "All specified capacity and serviceability limits are met."
     }
@@ -82,7 +83,7 @@ A separate requirements file has this shape:
 }
 ```
 
-The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the actual model artifact SHA-256 digests separately from stable artifact IDs. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, input-artifact digests, validity domain, and acceptance criteria. The all-zero executable digest and all-`a` input digest above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
+The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the actual model artifact SHA-256 digests separately from stable artifact IDs. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, exact input and output artifact digests, validity domain, and acceptance criteria. The all-zero executable digest and all-`a`/`b` input/output digests above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
 
 Artifacts referenced by `model.artifact_ids`, `model.unit_mapping_artifact_sha256`, and claim input/output digest arrays must be present in `evidence_artifacts`. Their `uri` values must be safe, unescaped relative file paths under the artifact root. Example: `model/main.ifc`, with the file located at `<artifact-root>/model/main.ifc`.
 
@@ -99,9 +100,9 @@ The verifier hashes the exact bytes of the manifest, embedded schema, and provid
 
 ## Exit codes
 
-- `0`: the manifest/schema check completed without a blocking error. Inspect both `declared_status` and `effective_status`; this exit code is not an engineering pass.
+- `0`: verification completed without a blocking error. Inspect `declared_status`, `effective_status`, and `evidence_integrity_status`; this exit code is not engineering certification.
 - `2`: malformed input/schema, inconsistent artifact references, unavailable/mismatched referenced bytes, or a declared `PASS` whose evidence package could not be integrity-verified.
-- `3`: `--require-pass` was requested but the manifest did not declare `PASS` with an `EVIDENCE_INTEGRITY_VERIFIED` verdict. This is an evidence-package gate, not certification.
+- `3`: `--require-pass` was requested but the manifest did not declare `PASS` with `effective_status: PASS` and `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED`. This is an evidence-package gate, not certification.
 
 Use `--require-pass` in gates where an engineering verification result is required. Preserve the JSON report as an evidence artifact.
 
@@ -113,6 +114,6 @@ This is an analytical oracle and unit/verification plumbing test only. It does *
 
 ## Trust boundaries
 
-An `EVIDENCE_INTEGRITY_VERIFIED` verdict requires all of the following: a valid embedded schema, a schema-valid manifest, exact matching against the independently pinned schema/case/jurisdiction/model/rule-pack/toolchain contract, exact mandatory-claim coverage and criteria, resolvable references, and locally verified artifact bytes. This verdict does **not** independently calculate structural capacity, heat transfer, fire behaviour, costs, or code compliance. The manifest's `overall_status: PASS` is still a declared claim by the producer. Independent solver verification, correct interpretation of applicable requirements, qualified review, and statutory approval remain separate gates.
+An `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED` result requires a valid embedded schema, a schema-valid manifest, exact matching against the independently pinned schema/case/jurisdiction/model/rule-pack/toolchain contract, exact mandatory-claim coverage and criteria—including input and output digests—resolvable references, and locally verified artifact bytes. This verdict does **not** independently calculate structural capacity, heat transfer, fire behaviour, costs, or code compliance. The manifest's `overall_status: PASS` is still a declared claim by the producer. Independent solver verification, correct interpretation of applicable requirements, qualified review, and statutory approval remain separate gates.
 
 The schema and verifier are versioned together. If the schema changes, its matching test fixture and verifier tests must be reviewed in the same change. The schema's JSON Schema validity does not prove that the mandatory requirement set, criteria, model revision, or rule-pack revision are the ones intended by the project; the externally pinned expected-claims contract constrains those values. The trusted party must still review and pin the contract itself.
