@@ -44,7 +44,8 @@
       "threshold": 1,
       "scope": "overall",
       "non_compensable": true,
-      "predeclared_at": "2026-10-13T10:00:00Z"
+      "predeclared_at": "2026-10-13T10:00:00Z",
+      "preregistration_artifact_id": null
     }
   ],
   "artifacts": [],
