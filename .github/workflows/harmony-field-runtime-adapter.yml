@@ -1,0 +1,43 @@
+name: HarmonyField Runtime Adapter
+
+on:
+  push:
+    branches:
+      - research/harmony-field-runtime-adapter
+  pull_request:
+    branches:
+      - feat/harmony-field-factorial-switches
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harmony-field-runtime-adapter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile and exercise adapter contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Compile the runtime adapter with locked dependencies
+        run: cargo check --locked -p symtropy-consciousness-physics --example harmony_field_ablation_adapter
+
+      - name: Test factorial mechanism switches
+        run: cargo test --locked -p symtropy-consciousness-physics --lib factorial
