@@ -92,17 +92,42 @@ def _validate_known_unknown(
             errors.append(f"{label}: KNOWN requires at least one evidence artifact")
         if missing_reason is not None:
             errors.append(f"{label}: KNOWN requires missing_reason=null")
-        if uncertainty is not None:
-            if not isinstance(uncertainty, dict):
-                errors.append(f"{label}.uncertainty: expected an object or null")
-            else:
+        if not isinstance(uncertainty, dict):
+            errors.append(f"{label}: KNOWN requires explicit uncertainty characterization")
+        else:
+            uncertainty_status = uncertainty.get("status")
+            method = uncertainty.get("method")
+            if not isinstance(method, str) or len(method.strip()) < 3:
+                errors.append(f"{label}.uncertainty.method: expected a non-empty method description")
+            if uncertainty_status == "NOT_QUANTIFIED":
+                reason = uncertainty.get("reason")
+                if not isinstance(reason, str) or len(reason.strip()) < 8:
+                    errors.append(f"{label}.uncertainty.reason: NOT_QUANTIFIED requires a reason")
+                if any(field in uncertainty for field in ("lower", "upper", "interpretation", "coverage_probability")):
+                    errors.append(f"{label}.uncertainty: NOT_QUANTIFIED cannot carry numeric bounds or interval metadata")
+            elif uncertainty_status == "QUANTIFIED":
+                if "reason" in uncertainty:
+                    errors.append(f"{label}.uncertainty: QUANTIFIED must not include a not-quantified reason")
                 low, high = uncertainty.get("lower"), uncertainty.get("upper")
+                interpretation = uncertainty.get("interpretation")
+                allowed_interpretations = {
+                    "coverage_interval", "plausible_bounds", "scenario_envelope",
+                    "sensitivity_range", "measurement_tolerance",
+                }
                 if not _is_number(low) or not _is_number(high) or low > high:
                     errors.append(f"{label}.uncertainty: bounds must be finite and lower <= upper")
                 elif _is_number(value) and not low <= value <= high:
                     errors.append(f"{label}.uncertainty: bounds must contain the reported value")
-                if not isinstance(uncertainty.get("method"), str) or not uncertainty["method"].strip():
-                    errors.append(f"{label}.uncertainty.method: required when uncertainty is supplied")
+                if interpretation not in allowed_interpretations:
+                    errors.append(f"{label}.uncertainty.interpretation: unsupported or missing interpretation")
+                coverage = uncertainty.get("coverage_probability")
+                if interpretation == "coverage_interval":
+                    if not _is_number(coverage) or not 0 < coverage <= 1:
+                        errors.append(f"{label}.uncertainty.coverage_probability: coverage_interval requires a value in (0, 1]")
+                elif "coverage_probability" in uncertainty:
+                    errors.append(f"{label}.uncertainty.coverage_probability: only valid for coverage_interval")
+            else:
+                errors.append(f"{label}.uncertainty.status: expected QUANTIFIED or NOT_QUANTIFIED")
     elif status == "UNKNOWN":
         if value is not None:
             errors.append(f"{label}: UNKNOWN requires value=null")
@@ -159,15 +184,10 @@ def _constraint_status(
     for _, target in observed:
         value = target["value"]
         interval = target.get("uncertainty")
-        if interval is None:
-            # Without a declared uncertainty interval, evaluate the reported value
-            # as the supplied measurement. Its scientific limitations remain explicit.
-            if comparator == "<=":
-                failed = failed or value > threshold
-            elif comparator == ">=":
-                failed = failed or value < threshold
-            else:  # validated comparator == "between"
-                failed = failed or value < threshold or value > upper
+        if not isinstance(interval, dict) or interval.get("status") != "QUANTIFIED":
+            # A point estimate without quantified uncertainty is descriptive only;
+            # it cannot establish that a non-compensable constraint is satisfied.
+            uncertainty_overlap = True
             continue
 
         low, high = interval["lower"], interval["upper"]
