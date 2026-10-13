@@ -61,7 +61,12 @@ def _unique_records(records: Any, key: str, label: str, errors: list[str]) -> di
 
 
 def _safe_relative_path(value: Any) -> bool:
-    if not isinstance(value, str) or not value or "\\" in value:
+    if (
+        not isinstance(value, str)
+        or not value
+        or "\\" in value
+        or any(ord(character) < 32 for character in value)
+    ):
         return False
     path = PurePosixPath(value)
     return not path.is_absolute() and all(part not in ("", ".", "..") for part in path.parts)
