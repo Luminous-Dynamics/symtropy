@@ -36,9 +36,11 @@ The verifier produces per-alternative feasibility statuses only:
 
 For a constraint scoped to `overall_and_subgroups`, every alternative must provide at least one subgroup record. A known violation is reported as `FAIL` even if another subgroup is unknown; missing observations do not erase observed harm.
 
-When an outcome supplies an uncertainty envelope, constraint evaluation is conservative: for an upper-bound constraint, the full envelope must lie at or below the threshold to pass; for a lower-bound constraint, the full envelope must lie at or above it; for a between-range constraint, the full envelope must lie inside the permitted range. An envelope that overlaps a constraint boundary yields `UNKNOWN`, not a pass. An envelope wholly outside the permitted range yields `FAIL`. These semantics treat the declared interval as the qualification envelope; they do not assume an interval is a probabilistic guarantee.
+Known outcomes must explicitly characterize uncertainty as either `QUANTIFIED` or `NOT_QUANTIFIED`. Quantified intervals identify their interpretation: `coverage_interval`, `plausible_bounds`, `scenario_envelope`, `sensitivity_range`, or `measurement_tolerance`. A coverage interval must state its coverage probability and method; this metadata does not itself prove that the stated coverage is calibrated. A known point estimate with `NOT_QUANTIFIED` uncertainty cannot clear a hard constraint.
 
-The current implementation validates registry references, units, timestamps, tri-state missingness, finite numbers, uncertainty bounds, preregistered threshold chronology, and artifact digests. It does not establish the validity of an instrument, data publisher, causal design, or simulator.
+When a quantified outcome supplies an uncertainty envelope, constraint evaluation is conservative: for an upper-bound constraint, the full envelope must lie at or below the threshold to pass; for a lower-bound constraint, the full envelope must lie at or above it; for a between-range constraint, the full envelope must lie inside the permitted range. An envelope that overlaps a constraint boundary yields `UNKNOWN`, not a pass. An envelope wholly outside the permitted range yields `FAIL`. These semantics treat the declared interval as a qualification envelope; they do not assume an interval is a probabilistic guarantee.
+
+The current implementation validates registry references, units, timestamps, tri-state missingness, finite numbers, uncertainty bounds and declared interpretation, preregistered threshold chronology, and artifact digests. It does not establish the validity of an instrument, data publisher, causal design, interval calibration, or simulator.
 
 ## Why a vector rather than one score?
 
@@ -48,5 +50,7 @@ References:
 - OECD (2025), [Guidelines on Measuring Subjective Well-being](https://www.oecd.org/en/publications/oecd-guidelines-on-measuring-subjective-well-being-2025-update_9203632a-en.html).
 - OECD, [Measuring well-being and progress](https://www.oecd.org/en/topics/sub-issues/measuring-well-being-and-progress.html).
 - UNDP, [The Human Development Index — what it is and what it is not](https://hdr.undp.org/content/human-development-index-what-it-and-what-it-not).
+- NIST, [Measurement Uncertainty](https://www.nist.gov/itl/sed/topic-areas/measurement-uncertainty) and [Reporting Uncertainty](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty).
+- OECD, [Decision-making under uncertainty](https://www.oecd.org/en/publications/managing-climate-risks-facing-up-to-losses-and-damages_55ea1cc9-en/full-report/component-8.html).
 
 **Evidence boundary:** the fixture is explicitly not evidence. The tests establish behavior of the schema and verifier only. They do not show that any real-world intervention improves well-being.
