@@ -536,6 +536,27 @@ class FlourishingAssessmentTests(unittest.TestCase):
             self.assertEqual(path.read_text(encoding="utf-8"), original)
 
     @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_cli_refuses_to_overwrite_registered_evidence(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialize_artifact_files(doc, root)
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(doc, indent=2) + "\\n", encoding="utf-8")
+            evidence_path = root / "sample.txt"
+            original_evidence = evidence_path.read_bytes()
+            error_output = StringIO()
+            with redirect_stderr(error_output):
+                exit_code = main([
+                    str(assessment_path),
+                    "--artifact-root", str(root),
+                    "--report", str(evidence_path),
+                ])
+            self.assertEqual(exit_code, 2)
+            self.assertIn("would overwrite the assessment", error_output.getvalue())
+            self.assertEqual(evidence_path.read_bytes(), original_evidence)
+
+    @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
     def test_unknown_fixture_conforms_to_pinned_draft_2020_12_schema(self) -> None:
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
