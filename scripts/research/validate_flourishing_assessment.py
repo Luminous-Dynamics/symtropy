@@ -174,10 +174,11 @@ def _constraint_status(
         _validate_known_unknown(target, f"{label}.{target_name}", artifact_ids, errors)
         if target.get("status") == "KNOWN" and _is_number(target.get("value")):
             observed.append((target_name, target))
-    if any(target.get("status") == "UNKNOWN" for _, target in targets):
-        saw_unknown = True
-    else:
-        saw_unknown = False
+    preregistration_id = constraint.get("preregistration_artifact_id")
+    preregistration_missing = not isinstance(preregistration_id, str) or not preregistration_id
+    saw_unknown = preregistration_missing or any(
+        target.get("status") == "UNKNOWN" for _, target in targets
+    )
 
     failed = False
     uncertainty_overlap = False
@@ -269,6 +270,23 @@ def validate_assessment(
             errors.append(f"constraints[{constraint_id}]: metric {metric_id!r} is not registered as hard_constraint")
         if constraint.get("non_compensable") is not True:
             errors.append(f"constraints[{constraint_id}]: every registered hard constraint must be non-compensable")
+        preregistration_id = constraint.get("preregistration_artifact_id")
+        if "preregistration_artifact_id" not in constraint:
+            errors.append(f"constraints[{constraint_id}]: preregistration_artifact_id is required (use null when unproven)")
+        elif preregistration_id is not None:
+            if not isinstance(preregistration_id, str) or preregistration_id not in artifacts:
+                errors.append(f"constraints[{constraint_id}]: references unknown preregistration artifact {preregistration_id!r}")
+            else:
+                preregistration = artifacts[preregistration_id]
+                if preregistration.get("purpose") != "pre-registration":
+                    errors.append(f"constraints[{constraint_id}]: referenced artifact purpose must be 'pre-registration'")
+                collected_at = _time(
+                    preregistration.get("collected_at"),
+                    f"artifacts[{preregistration_id}].collected_at",
+                    errors,
+                )
+                if collected_at and analysis_started_at and collected_at > analysis_started_at:
+                    errors.append(f"constraints[{constraint_id}]: preregistration artifact must predate analysis")
         predeclared = _time(constraint.get("predeclared_at"), f"constraints[{constraint_id}].predeclared_at", errors)
         if predeclared and analysis_started_at and predeclared > analysis_started_at:
             errors.append(f"constraints[{constraint_id}]: must be predeclared no later than analysis_started_at")
