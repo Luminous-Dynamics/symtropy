@@ -690,7 +690,10 @@ pub struct SolverRequestIdentityV1 {
     /// Scenario identity must match the manifest in which this request runs.
     pub scenario_id: String,
     pub world_generation: u64,
-    pub solver_id: String,
+    /// Exact declared solver profile, including build and parameter digests.
+    /// Binding only a name/ID would allow a changed implementation to reuse
+    /// an old request identity.
+    pub solver: SolverDeclarationV1,
     pub input_digest_sha256: String,
     pub simulation_time_start_ns: u64,
     pub simulation_time_end_ns: u64,
@@ -701,7 +704,7 @@ impl SolverRequestIdentityV1 {
         let mut issues = Vec::new();
         if self.run_id.trim().is_empty()
             || self.scenario_id.trim().is_empty()
-            || self.solver_id.trim().is_empty()
+            || self.solver.solver_id.trim().is_empty()
         {
             issues.push(WorldValidationIssue::new(
                 WorldValidationCode::EmptyIdentity,
@@ -712,6 +715,27 @@ impl SolverRequestIdentityV1 {
             issues.push(WorldValidationIssue::new(
                 WorldValidationCode::EmptyIdentity,
                 "request_identity.scenario_id",
+            ));
+        }
+        if self.solver.implementation.trim().is_empty()
+            || self.solver.version.trim().is_empty()
+            || self.solver.output_contract_version == 0
+        {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::InvalidSolver,
+                "request.solver",
+            ));
+        }
+        if !is_sha256_hex(&self.solver.build_sha256) {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::InvalidDigest,
+                "request.solver.build_sha256",
+            ));
+        }
+        if !is_sha256_hex(&self.solver.parameters_sha256) {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::InvalidDigest,
+                "request.solver.parameters_sha256",
             ));
         }
         if self.simulation_time_end_ns < self.simulation_time_start_ns {
@@ -891,15 +915,22 @@ impl WorldManifestV1 {
             ));
         }
 
-        if !self
+        match self
             .solvers
             .iter()
-            .any(|solver| solver.solver_id.as_str() == expected_request.solver_id.as_str())
+            .find(|solver| solver.solver_id.as_str() == expected_request.solver.solver_id.as_str())
         {
-            issues.push(WorldValidationIssue::new(
+            None => issues.push(WorldValidationIssue::new(
                 WorldValidationCode::UnknownSolverReference,
-                "request.solver_id",
-            ));
+                "request.solver.solver_id",
+            )),
+            Some(declared) if declared != &expected_request.solver => {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::SolverProfileMismatch,
+                    "request.solver",
+                ));
+            }
+            Some(_) => {}
         }
 
         let frame_ids: BTreeSet<&str> = self
@@ -975,6 +1006,7 @@ pub enum WorldValidationCode {
     InvalidPlatformBaseFrame,
     SensorFrameNotAttachedToPlatform,
     SensorFrameProviderMismatch,
+    SolverProfileMismatch,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -1077,7 +1109,16 @@ mod tests {
             request_id: 7,
             scenario_id: "hard-rock-workcell-smoke-v1".to_owned(),
             world_generation: 12,
-            solver_id: "acoustic-reference".to_owned(),
+            solver: SolverDeclarationV1 {
+                solver_id: "acoustic-reference".to_owned(),
+                domain: PhysicsDomain::Acoustic,
+                implementation: "low-order-wave-propagation".to_owned(),
+                version: "0.1.0".to_owned(),
+                build_sha256: "b".repeat(SHA256_HEX_LENGTH),
+                parameters_sha256: "c".repeat(SHA256_HEX_LENGTH),
+                output_contract_version: 1,
+                fidelity: PhysicsFidelity::DeterministicReference,
+            },
             input_digest_sha256: "d".repeat(SHA256_HEX_LENGTH),
             simulation_time_start_ns: 10_000_000,
             simulation_time_end_ns: 11_000_000,
@@ -1271,7 +1312,7 @@ mod tests {
     fn world_admission_rejects_undeclared_solver() {
         let manifest = valid_manifest();
         let mut expected = valid_request();
-        expected.solver_id = "missing-solver".to_owned();
+        expected.solver.solver_id = "missing-solver".to_owned();
         let result = SolverResultEnvelopeV1 {
             schema_version: SOLVER_RESULT_SCHEMA_VERSION,
             request: expected.clone(),
@@ -1285,7 +1326,7 @@ mod tests {
             .unwrap_err();
         assert!(issues.iter().any(|issue| {
             issue.code == WorldValidationCode::UnknownSolverReference
-                && issue.path == "request.solver_id"
+                && issue.path == "request.solver.solver_id"
         }));
     }
 
@@ -1425,5 +1466,38 @@ mod tests {
                 && issue.path == "platforms[0].sensor_ids[0]"
         }));
     }
+
+
+    #[test]
+    fn world_admission_rejects_changed_solver_profile_with_same_id() {
+        for variant in 0..7 {
+            let mut expected = valid_request();
+            match variant {
+                0 => expected.solver.implementation = "different-implementation".to_owned(),
+                1 => expected.solver.version = "0.2.0".to_owned(),
+                2 => expected.solver.build_sha256 = "f".repeat(SHA256_HEX_LENGTH),
+                3 => expected.solver.parameters_sha256 = "e".repeat(SHA256_HEX_LENGTH),
+                4 => expected.solver.output_contract_version = 2,
+                5 => expected.solver.domain = PhysicsDomain::Thermal,
+                _ => expected.solver.fidelity = PhysicsFidelity::CoupledRegion,
+            }
+            let result = SolverResultEnvelopeV1 {
+                schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+                request: expected.clone(),
+                disposition: SolverResultDisposition::NumericalNonConvergence,
+                output_digest_sha256: None,
+                outputs: Vec::new(),
+                warnings: Vec::new(),
+            };
+            let issues = valid_manifest()
+                .validate_solver_result_against_world(&expected, &result)
+                .unwrap_err();
+            assert!(issues.iter().any(|issue| {
+                issue.code == WorldValidationCode::SolverProfileMismatch
+                    && issue.path == "request.solver"
+            }), "profile variant {variant} was not rejected");
+        }
+    }
+
 
 }
