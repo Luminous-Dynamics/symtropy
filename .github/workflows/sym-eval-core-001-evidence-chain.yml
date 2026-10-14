@@ -1,0 +1,35 @@
+name: SYM-EVAL-CORE-001 Evidence Chain
+
+on:
+  pull_request:
+    paths:
+      - 'crates/domains/symtropy-game-state/src/eval_evidence.rs'
+      - 'crates/domains/symtropy-game-state/src/lib.rs'
+      - 'docs/research/SYM_EVAL_CORE_001_EVIDENCE_CHAIN.md'
+      - '.github/workflows/sym-eval-core-001-evidence-chain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt,clippy
+          rustup override set 1.96.0
+      - name: Format evidence core
+        run: cargo fmt -p symtropy-game-state -- --check
+      - name: Check evidence core
+        run: cargo check -p symtropy-game-state --all-targets --locked
+      - name: Test evidence core
+        run: cargo test -p symtropy-game-state eval_evidence --locked
+      - name: Strict Clippy evidence core
+        run: cargo clippy -p symtropy-game-state --all-targets --locked -- -D warnings
+      - name: Workspace membership invariant
+        run: bash scripts/check-workspace.sh
+      - name: License invariant
+        run: bash scripts/check-licenses.sh
