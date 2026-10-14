@@ -726,6 +726,68 @@ mod tests {
     }
 
     #[test]
+    fn future_published_evidence_is_accepted_before_its_valid_from_time() {
+        let ev = evidence(
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            5,
+            120,
+            200,
+            90,
+        );
+        let assignment = assignment(
+            "transfer-1",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            1,
+            120,
+            130,
+        );
+        let report = plan(&[assignment], &[ev], 100, 100).expect("future-published schedule");
+
+        assert_eq!(report.assignments[0].window.planned_start_epoch_seconds, 120);
+        assert_eq!(report.resources[0].capacity_limit_units, 5);
+    }
+
+    #[test]
+    fn overlapping_capacity_aggregation_overflow_fails_closed() {
+        let ev = evidence(
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            u64::MAX,
+            80,
+            200,
+            90,
+        );
+        let first = assignment(
+            "transfer-a",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            u64::MAX,
+            100,
+            120,
+        );
+        let second = assignment(
+            "transfer-b",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            1,
+            110,
+            130,
+        );
+
+        assert_eq!(
+            plan(&[first, second], &[ev], 100, 100),
+            Err(ScheduledCapacityPlanError::CapacityArithmeticOverflow)
+        );
+    }
+
+    #[test]
     fn future_schedule_must_cover_the_entire_operation_window() {
         let ev = evidence(
             "budget-1",
