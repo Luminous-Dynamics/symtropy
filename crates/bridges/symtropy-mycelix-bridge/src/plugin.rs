@@ -1,8 +1,11 @@
 // Copyright (c) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use bevy_tokio_tasks::TokioTasksPlugin;
+use tokio::sync::Semaphore;
 
 use crate::config::MycelixConfig;
 use crate::events::MycelixResponse;
@@ -40,11 +43,20 @@ impl Plugin for BevyMycelixPlugin {
         }
 
         // Bounded channels so a saturated conductor can't OOM the game.
-        let (req_tx, req_rx) = flume::bounded(self.config.inflight_budget);
-        let (resp_tx, resp_rx) = flume::bounded(self.config.inflight_budget);
+        // One shared admission semaphore covers queued requests, subprocess
+        // work, and responses not yet transferred into Bevy's message queue.
+        let inflight_budget = self.config.effective_inflight_budget();
+        if self.config.inflight_budget == 0 {
+            warn!("symtropy-mycelix-bridge: inflight_budget=0 normalized to 1");
+        }
+        let (req_tx, req_rx) = flume::bounded(inflight_budget);
+        let (resp_tx, resp_rx) = flume::bounded(inflight_budget);
+        // One shared credit budget covers queued requests, dispatched calls,
+        // and responses awaiting transfer into Bevy's message queue.
+        let admission = Arc::new(Semaphore::new(inflight_budget));
 
         app.insert_resource(self.config.clone())
-            .insert_resource(MycelixClient::new(req_tx))
+            .insert_resource(MycelixClient::new(req_tx, admission))
             .insert_resource(MycelixResponseInbox { rx: resp_rx })
             .insert_resource(MycelixRequestOutbox {
                 rx: Some(req_rx),

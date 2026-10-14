@@ -78,9 +78,10 @@ fn log_and_exit(mut reader: MessageReader<MycelixResponse>, mut exit: MessageWri
             // for exhaustiveness.
             MycelixResponse::ProposalSubmitted {
                 requester,
+                proposal_id,
                 action_hash,
             } => {
-                info!(?requester, %action_hash, "received ProposalSubmitted (unexpected for M1 smoke)");
+                info!(?requester, %proposal_id, %action_hash, "received ProposalSubmitted (unexpected for M1 smoke)");
             }
             MycelixResponse::VoteCast {
                 requester,
@@ -88,9 +89,14 @@ fn log_and_exit(mut reader: MessageReader<MycelixResponse>, mut exit: MessageWri
             } => {
                 info!(?requester, %proposal_id, "received VoteCast (unexpected for M1 smoke)");
             }
-            MycelixResponse::TendBalance { requester, balance } => {
+            MycelixResponse::TendBalance {
+                requester,
+                member_did,
+                balance,
+            } => {
                 info!(
                     ?requester,
+                    %member_did,
                     ?balance,
                     "received TendBalance (unexpected for M1 smoke)"
                 );
