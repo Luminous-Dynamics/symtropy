@@ -3,6 +3,7 @@
 **Status:** specification-only seed; not an executable or qualified simulator scenario.  
 **Parent issue:** [MARITIME-SIM-001 #1612](https://github.com/Luminous-Dynamics/symtropy/issues/1612)  
 **Related engineering contract:** [ENG-SYNTH #1172](https://github.com/Luminous-Dynamics/symtropy/issues/1172), [ENG-SYNTH-CRED #1173](https://github.com/Luminous-Dynamics/symtropy/issues/1173), [ENG-SYNTH-TWIN #1467](https://github.com/Luminous-Dynamics/symtropy/issues/1467)
+**Independent oracle contract:** [MARITIME_FLOATING_SITE_ORACLE_V0_1.md](./MARITIME_FLOATING_SITE_ORACLE_V0_1.md)
 
 ## Purpose
 
