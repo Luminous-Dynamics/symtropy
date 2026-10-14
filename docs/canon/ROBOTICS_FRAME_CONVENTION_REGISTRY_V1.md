@@ -34,7 +34,7 @@ The library provides `convention_conversion_matrix_v1(from, to)` and `convert_ve
 - Body FLU ↔ body FRD uses `[[1,0,0],[0,-1,0],[0,0,-1]]`.
 - Local NED ↔ ENU uses `[[0,1,0],[1,0,0],[0,0,-1]]`.
 
-The implementation composes basis matrices as `v_target = B_targetᵀ B_source v_source`. Tests pin both matrices and example vectors, verify round-trip conversion and squared-norm preservation, and assert the signed-permutation matrix shape. It rejects conversions between body, local-geographic, and camera-optical families instead of guessing a rotation; any `ExternalSpec` requires a separate verified adapter. Non-finite vectors are rejected.
+The implementation composes basis matrices as `v_target = B_targetᵀ B_source v_source`. Tests pin both matrices and example vectors, verify round-trip conversion and squared-norm preservation, assert exactly one nonzero signed unit per row and column, and require determinant +1 so no reflection is admitted. It rejects conversions between body, local-geographic, and camera-optical families instead of guessing a rotation; any `ExternalSpec` requires a separate verified adapter. Non-finite vectors are rejected.
 
 This API converts components of a vector in the same underlying physical reference frame. It does not change the vector's physical frame, account for different origins, compose robot/camera mount transforms, or convert poses. Use the declared world frame graph and a verified rigid transform when the physical frames differ.
 
