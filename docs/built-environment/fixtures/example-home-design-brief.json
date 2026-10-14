@@ -221,7 +221,8 @@
       "origin": "resident",
       "verification_state": "resident_confirmed",
       "source_reference": null,
-      "rationale": "Work and rest need a reliable acoustic and visual boundary."
+      "rationale": "Work and rest need a reliable acoustic and visual boundary.",
+      "verification_evidence_refs": []
     },
     {
       "requirement_id": "resident-step-free-entry",
@@ -231,7 +232,8 @@
       "origin": "resident",
       "verification_state": "resident_confirmed",
       "source_reference": null,
-      "rationale": "This is a requested functional goal; it is not a finding of code compliance."
+      "rationale": "This is a requested functional goal; it is not a finding of code compliance.",
+      "verification_evidence_refs": []
     },
     {
       "requirement_id": "compare-solar-ready-options",
@@ -241,7 +243,8 @@
       "origin": "resident",
       "verification_state": "resident_confirmed",
       "source_reference": null,
-      "rationale": "Keep future upgradeability separate from a modeled or measured energy result."
+      "rationale": "Keep future upgradeability separate from a modeled or measured energy result.",
+      "verification_evidence_refs": []
     }
   ],
   "design_preferences": {

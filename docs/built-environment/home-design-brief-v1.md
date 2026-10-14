@@ -38,7 +38,7 @@ Keep this contract renderer-neutral and repository-neutral. Do not introduce a d
 
 ## 3. Data contract
 
-The normative shape for this proposal is [`home-design-brief.schema.json`](home-design-brief.schema.json). The [synthetic example](fixtures/example-home-design-brief.json) is test data only.
+The normative shape for this proposal is [`home-design-brief.schema.json`](home-design-brief.schema.json). The [synthetic example](fixtures/example-home-design-brief.json) is test data only. The Rust CLI validates schema and implemented cross-field semantics with `cargo run -p symtropy-housing-evidence -- --validate-brief docs/built-environment/fixtures/example-home-design-brief.json`. This command validates the brief contract only; it does not generate a design or evaluate engineering safety.
 
 A brief contains:
 - project kind and an explicitly scoped target-budget range;
@@ -59,7 +59,7 @@ SI units are used in this version. Monetary totals state their ISO-style three-l
 - `exploration_goal`: compare feasibility and alternatives without implying a commitment.
 - `external_requirement_reference`: identify a claimed outside requirement with a source pointer. Its presence does not make it applicable or verified.
 
-Origin and verification state are separate fields. `resident_confirmed` means the resident confirmed their own intent; it is not professional or authority approval. Only a suitable evidence workflow can support claims of professional review or authority confirmation. A source pointer may itself be stale, inapplicable, or rights-restricted.
+Origin and verification state are separate fields. `resident_confirmed` means the resident confirmed their own intent; it is not professional or authority approval. Claims of `professionally_reviewed` or `authority_confirmed` must carry one or more `verification_evidence_refs` pointing to separate review/decision records. These IDs are references, not proof: the evidence pipeline must resolve them and verify provenance, scope, supersession and authority. A source pointer may itself be stale, inapplicable, or rights-restricted.
 
 ### Conflict policy
 
@@ -91,9 +91,10 @@ The shareable brief intentionally has no coordinate fields, street-address field
 - [ ] JSON Schema passes its declared Draft 2020-12 meta-schema validation.
 - [ ] The synthetic example validates; invalid field, missing-field, out-of-range priority and policy-weakening mutations fail.
 - [ ] Unknown properties fail closed; no remote schema reference is necessary to validate the brief.
-- [ ] The pipeline can report duplicate space IDs, unknown adjacency targets, duplicate priority axes, invalid budget range ordering and contradictory requirements as semantic errors. JSON Schema alone does not prove these cross-field invariants.
+- [ ] The Rust CLI reports duplicate space IDs, unknown/self/duplicate adjacency relations, duplicate priority axes, invalid budget range ordering, duplicate requirement IDs, and unsupported survey-availability claims as semantic errors. Arbitrary contradictory free-text requirements still need a separate conflict-analysis step.
 - [ ] A generation result points to the exact brief revision/digest and preserves the unresolved requirements and limitations.
 - [ ] Candidate comparisons expose separate cost, comfort, accessibility, resilience and environmental measures with assumptions and units.
+- [ ] Professional/authority verification states have explicit evidence-reference fields; references are resolved and authenticated only by the separate evidence workflow.
 - [ ] IFC export/import and IDS checks are a later integration gate with a declared supported subset and round-trip/loss-report fixtures.
 - [ ] No brief-only workflow labels a candidate as structurally safe, code compliant, permitted or construction ready.
 - [ ] Exact-head CI results, including these new tests, finish successfully before any pass claim.

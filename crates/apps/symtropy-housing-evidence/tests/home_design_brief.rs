@@ -99,3 +99,14 @@ fn authority_requirement_requires_a_source_pointer() {
         "authority-origin requirement without a source pointer must fail"
     );
 }
+
+#[test]
+fn professional_or_authority_review_requires_separate_evidence_reference() {
+    let (schema, mut example) = schema_and_example();
+    example["requirements"][0]["verification_state"] = json!("authority_confirmed");
+    example["requirements"][0]["verification_evidence_refs"] = json!([]);
+    assert!(
+        !validation_errors(&schema, &example).is_empty(),
+        "authority confirmation without an evidence reference must fail"
+    );
+}

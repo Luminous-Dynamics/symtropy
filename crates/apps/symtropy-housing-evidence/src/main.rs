@@ -23,6 +23,8 @@
 //! Artifact URIs used by a PASS manifest must be safe, relative paths beneath
 //! --artifact-root. Remote retrieval is intentionally not supported.
 
+mod home_design_brief;
+
 use jsonschema::draft202012;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -102,7 +104,37 @@ struct ExpectedClaimContract {
 }
 
 fn main() -> ExitCode {
-    match run(env::args().skip(1).collect()) {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("--validate-brief") {
+        if args.len() != 2 {
+            eprintln!("Usage: housing-evidence-verify --validate-brief <brief.json>");
+            return ExitCode::from(2);
+        }
+
+        return match home_design_brief::validate_path(Path::new(&args[1])) {
+            Ok(report) => {
+                match serde_json::to_string_pretty(&report) {
+                    Ok(output) => println!("{output}"),
+                    Err(error) => {
+                        eprintln!("failed to serialize brief validation report: {error}");
+                        return ExitCode::from(2);
+                    }
+                }
+
+                if report.schema_valid && report.semantic_valid {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(2)
+                }
+            }
+            Err(error) => {
+                eprintln!("home design brief validation failed: {error}");
+                ExitCode::from(2)
+            }
+        };
+    }
+
+    match run(args) {
         Ok((report, require_pass)) => {
             match serde_json::to_string_pretty(&report) {
                 Ok(output) => println!("{output}"),
@@ -253,6 +285,7 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
 fn usage() -> String {
     [
         "Usage: housing-evidence-verify <manifest.json>",
+        "       housing-evidence-verify --validate-brief <brief.json>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
         "  [--artifact-root <directory>] [--require-pass]",

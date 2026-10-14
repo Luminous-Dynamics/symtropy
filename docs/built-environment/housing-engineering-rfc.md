@@ -186,7 +186,7 @@ No result is to be described as passed until evidence is produced for the exact 
 ## 8. Project integration milestones
 
 - **M0 — Contract and vocabulary:** stabilize this evidence schema, IDs, status semantics, artifact hashing, and clean-run manifest.
-- **M0.5 — Resident-owned brief:** capture spaces, priorities, accessibility goals, budget bounds, privacy scope, and non-negotiable conflict behavior before generating candidates; see [Home Design Brief V1](home-design-brief-v1.md), its schema/fixture, and schema regression tests.
+- **M0.5 — Resident-owned brief:** capture spaces, priorities, accessibility goals, budget bounds, privacy scope, and non-negotiable conflict behavior before generating candidates; see [Home Design Brief V1](home-design-brief-v1.md), its schema/fixture, and schema regression tests and the `housing-evidence-verify --validate-brief <brief.json>` schema/cross-field validator.
 - **M1 — Model ingestion:** import/export a narrow IFC subset; validate units, IDs, and loss reports; add IDS validation.
 - **M2 — Verification harness:** define scenario files, solver-adapter contract, reference cases, negative controls, and exact-head reproducibility.
 - **M3 — First engineering domain:** choose one discipline and solver only after a documented comparison of candidates, licenses, and validation evidence.

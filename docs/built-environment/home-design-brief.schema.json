@@ -464,7 +464,8 @@
           "topic",
           "origin",
           "verification_state",
-          "source_reference"
+          "source_reference",
+          "verification_evidence_refs"
         ],
         "properties": {
           "requirement_id": {
@@ -591,6 +592,17 @@
               "null"
             ],
             "maxLength": 1500
+          },
+          "verification_evidence_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 40,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "References to separate review or decision records; opaque identifiers do not themselves prove review or approval."
           }
         },
         "allOf": [
@@ -609,6 +621,29 @@
               "properties": {
                 "source_reference": {
                   "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "verification_state": {
+                  "enum": [
+                    "professionally_reviewed",
+                    "authority_confirmed"
+                  ]
+                }
+              },
+              "required": [
+                "verification_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "verification_evidence_refs": {
+                  "type": "array",
+                  "minItems": 1
                 }
               }
             }
