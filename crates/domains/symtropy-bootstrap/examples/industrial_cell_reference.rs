@@ -24,7 +24,7 @@ fn main() {
 }
 
 fn run() -> Result<(), String> {
-    println!("industrial-cell-reference/v0.1");
+    println!("industrial-cell-reference/v0.2");
     println!("fixture_class=synthetic_not_physical_qualification");
 
     // A locally serviceable seed cell still depends on imported metrology and
@@ -263,9 +263,9 @@ fn run() -> Result<(), String> {
         return Err("underfunded inventory consumption was not rejected atomically".to_string());
     }
 
-    println!("fault_duplicate_energy_event=REJECTED_NO_MUTATION");
-    println!("fault_non_monotonic_energy_sequence=REJECTED_NO_MUTATION");
-    println!("fault_inventory_overdraw=REJECTED_NO_MUTATION");
+    println!("fault_scenario=LEDGER-DUPLICATE-EVENT:REJECTED_NO_MUTATION");
+    println!("fault_scenario=LEDGER-STALE-SEQUENCE:REJECTED_NO_MUTATION");
+    println!("fault_scenario=INVENTORY-OVERDRAW:REJECTED_NO_MUTATION");
     println!("fault_campaign=3/3_SYNTHETIC_NEGATIVE_CONTROLS");
     println!("RESULT=PASS_SYNTHETIC_REFERENCE_CONTRACTS");
     println!("CLAIM_CEILING=no lunar process or robot performance is established");
