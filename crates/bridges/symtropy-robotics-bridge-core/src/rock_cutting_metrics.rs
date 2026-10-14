@@ -671,7 +671,14 @@ mod tests {
         assert_eq!(result.rotary_power_w, Some(2_000.0));
         assert_eq!(result.axial_power_w, Some(1.0));
         assert_eq!(result.mechanical_power_w, 2_001.0);
-        assert_eq!(result.mse_pa, 200_100_000.0);
+        let expected_mse_pa = 200_100_000.0;
+        let roundoff_tolerance =
+            4.0 * f64::EPSILON * expected_mse_pa.abs().max(1.0);
+        assert!(
+            (result.mse_pa - expected_mse_pa).abs() <= roundoff_tolerance,
+            "expected MSE {expected_mse_pa}, got {}, tolerance {roundoff_tolerance}",
+            result.mse_pa
+        );
         assert_eq!(
             result.power_basis,
             CuttingPowerBasisV1::DerivedFromToolLoads
