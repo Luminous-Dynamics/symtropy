@@ -155,6 +155,7 @@ pub enum ScheduledCapacityPlanError {
     ObservationTooOldAtOperationStart,
     NotCurrent,
     InvalidOperationWindow,
+    OperationWindowAlreadyStarted,
     WindowNotCoveredByEvidence,
     DuplicateEvidenceIdentity,
     AmbiguousCapacityEvidence,
@@ -184,6 +185,7 @@ impl fmt::Display for ScheduledCapacityPlanError {
             Self::ObservationTooOldAtOperationStart => "capacity observation will be too old by planned operation start",
             Self::NotCurrent => "capacity evidence is superseded, revoked, or conflicted",
             Self::InvalidOperationWindow => "operation window has a blank time profile or empty/reversed interval",
+            Self::OperationWindowAlreadyStarted => "operation window starts before the plan evaluation instant",
             Self::WindowNotCoveredByEvidence => "capacity evidence validity does not contain the full operation window",
             Self::DuplicateEvidenceIdentity => "capacity evidence repeats an evidence ID or has incompatible lineage",
             Self::AmbiguousCapacityEvidence => "overlapping current capacity evidence for the same physical resource is ambiguous",
@@ -427,6 +429,9 @@ pub fn validate_scheduled_capacity_plan(
         assignment.window.validate()?;
         if assignment.window.time_profile_id != policy.expected_time_profile_id {
             return Err(ScheduledCapacityPlanError::TimeProfileMismatch);
+        }
+        if assignment.window.planned_start_epoch_seconds < evaluation_time_epoch_seconds {
+            return Err(ScheduledCapacityPlanError::OperationWindowAlreadyStarted);
         }
         if assignment.capacity_units == 0 {
             return Err(ScheduledCapacityPlanError::InvalidCapacity);
@@ -831,6 +836,32 @@ mod tests {
         assert_eq!(
             plan(&[empty], &[ev], 100, 100),
             Err(ScheduledCapacityPlanError::TimeProfileMismatch)
+        );
+    }
+
+    #[test]
+    fn operation_window_that_started_before_evaluation_fails_closed() {
+        let ev = evidence(
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            5,
+            80,
+            200,
+            90,
+        );
+        let already_started = assignment(
+            "transfer-1",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            1,
+            90,
+            110,
+        );
+        assert_eq!(
+            plan(&[already_started], &[ev], 100, 100),
+            Err(ScheduledCapacityPlanError::OperationWindowAlreadyStarted)
         );
     }
 
