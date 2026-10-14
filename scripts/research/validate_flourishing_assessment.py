@@ -291,8 +291,8 @@ def validate_assessment(
                 errors.append(f"constraints[{constraint_id}]: references unknown preregistration artifact {preregistration_id!r}")
             else:
                 preregistration = artifacts[preregistration_id]
-                if preregistration.get("purpose") != "pre-registration":
-                    errors.append(f"constraints[{constraint_id}]: referenced artifact purpose must be 'pre-registration'")
+                if preregistration.get("role") != "pre-registration":
+                    errors.append(f"constraints[{constraint_id}]: referenced artifact role must be 'pre-registration'")
                 preregistration_collected_at = _time(
                     preregistration.get("collected_at"),
                     f"artifacts[{preregistration_id}].collected_at",
@@ -331,15 +331,15 @@ def validate_assessment(
             errors.append(f"artifacts[{artifact_id}].sha256: expected 64 hexadecimal characters")
             continue
         normalized_digest = digest.lower()
-        purpose = artifact.get("purpose")
+        role = artifact.get("role")
         prior_digest_role = seen_digest_roles.get(normalized_digest)
-        if prior_digest_role is not None and prior_digest_role[1] != purpose:
+        if prior_digest_role is not None and prior_digest_role[1] != role:
             errors.append(
                 f"artifacts[{artifact_id}].sha256: identical bytes already registered as "
                 f"artifact {prior_digest_role[0]!r} under a different evidence role"
             )
         else:
-            seen_digest_roles.setdefault(normalized_digest, (artifact_id, purpose))
+            seen_digest_roles.setdefault(normalized_digest, (artifact_id, role))
         if verify_artifacts:
             if artifact_root is None:
                 errors.append("artifact verification requested without an artifact root")
@@ -363,7 +363,7 @@ def validate_assessment(
                 errors.append(f"artifacts[{artifact_id}]: file not found: {relative}")
                 continue
 
-            if artifact.get("purpose") == "pre-registration":
+            if artifact.get("role") == "pre-registration":
                 try:
                     with candidate.open("rb") as stream:
                         payload = stream.read(preregistration_limit + 1)
@@ -526,7 +526,7 @@ def validate_assessment(
             if not isinstance(outcome_artifact_refs, list):
                 outcome_artifact_refs = []
             for artifact_ref in outcome_artifact_refs:
-                if artifact_ref in artifacts and artifacts[artifact_ref].get("purpose") == "pre-registration":
+                if artifact_ref in artifacts and artifacts[artifact_ref].get("role") == "pre-registration":
                     errors.append(
                         f"alternatives[{alt_id}].outcomes[{metric_id}]: pre-registration artifact cannot support a measured outcome"
                     )
@@ -546,7 +546,7 @@ def validate_assessment(
                 if not isinstance(group_artifact_refs, list):
                     group_artifact_refs = []
                 for artifact_ref in group_artifact_refs:
-                    if artifact_ref in artifacts and artifacts[artifact_ref].get("purpose") == "pre-registration":
+                    if artifact_ref in artifacts and artifacts[artifact_ref].get("role") == "pre-registration":
                         errors.append(
                             f"alternatives[{alt_id}].outcomes[{metric_id}].subgroup:{group.get('group_id', '?')}: pre-registration artifact cannot support a measured outcome"
                         )
