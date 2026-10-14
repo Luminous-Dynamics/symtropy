@@ -3462,7 +3462,7 @@ mod tests {
         assert_eq!(
             validate_cargo_transfer_plan_with_evidence(
                 &entries,
-                &[edge.clone()],
+                std::slice::from_ref(&edge),
                 &[early],
                 1_000,
                 capacity_freshness_policy(),
