@@ -1,0 +1,228 @@
+name: ECON-04D Encumbrance Handoff Qualification
+
+on:
+  push:
+    branches:
+      - "ci/econ-encumbrance-handoff-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: econ-encumbrance-handoff-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: e4c700acefb93f18fc523e1646de0e6be81c8205
+  ECON04C_PARENT: 8f7c996d4e59018b591e0703ea24f873748d7e07
+
+jobs:
+  qualify:
+    name: Frozen ECON-04D / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact subject and ancestry
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${ECON04C_PARENT}" "${PRODUCT_HEAD}"
+          count="$(git rev-list --count "${ECON04C_PARENT}..${PRODUCT_HEAD}")"
+          echo "econ04d_commits_above_parent=${count}"
+          test "${count}" = "4"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-core/src/stock_reservation.rs \
+            crates/core/symtropy-core/src/reservation_reconciliation.rs \
+            crates/core/symtropy-core/src/encumbrance_handoff.rs \
+            crates/core/symtropy-core/src/lib.rs \
+            crates/core/symtropy-core/tests/econ_stock_reservation.rs \
+            crates/core/symtropy-core/tests/econ_reservation_reconciliation.rs \
+            crates/core/symtropy-core/tests/econ_encumbrance_handoff.rs \
+            crates/core/symtropy-core/ECONOMIC_STOCK_RESERVATION_V01.md \
+            crates/core/symtropy-core/ECONOMIC_RESERVATION_RECONCILIATION_V01.md \
+            crates/core/symtropy-core/ECONOMIC_ENCUMBRANCE_HANDOFF_V01.md \
+            > "${RUNNER_TEMP}/econ04d-source-sha256.txt"
+          cat "${RUNNER_TEMP}/econ04d-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check symtropy-core all targets
+        id: check
+        run: cargo check -p symtropy-core --locked --all-targets
+
+      - name: Run ECON-04D public handoff corpus
+        id: handoff
+        run: cargo test -p symtropy-core --locked --test econ_encumbrance_handoff
+
+      - name: Run ECON-04C reconciliation regressions
+        id: reservation_reconciliation
+        run: cargo test -p symtropy-core --locked --test econ_reservation_reconciliation
+
+      - name: Run ECON-04B reservation regressions
+        id: reservation_regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-core --locked --lib stock_reservation::tests
+          cargo test -p symtropy-core --locked --test econ_stock_reservation
+
+      - name: Run ECON-04 commodity regressions
+        id: commodity_regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-core --locked --lib commodity::tests
+          cargo test -p symtropy-core --locked --test econ_commodity_identity
+
+      - name: Run prerequisite ECON regressions
+        id: econ_regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-core --locked --lib economic_repartition::tests
+          cargo test -p symtropy-core --locked --lib economic_partition::tests
+          cargo test -p symtropy-core --locked --lib economic_resolution::tests
+          cargo test -p symtropy-core --locked --lib settlement::tests
+          cargo test -p symtropy-core --locked --lib financial::tests
+          cargo test -p symtropy-core --locked --lib economic::tests
+
+      - name: Run complete symtropy-core library regression
+        id: core_tests
+        run: cargo test -p symtropy-core --locked --lib
+
+      - name: Run strict symtropy-core Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-core --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit handoff authority surface
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-core/src/encumbrance_handoff.rs
+          contract=crates/core/symtropy-core/ECONOMIC_ENCUMBRANCE_HANDOFF_V01.md
+
+          grep -Fq 'pub fn handoff_full_reservation' "${source}"
+          grep -Fq 'pub struct EncumbranceHandoffReceipt' "${source}"
+          grep -Fq 'StockReservationEvent::Release' "${source}"
+          grep -Fq 'StockReservationEvent::Reserve' "${source}"
+          grep -Fq 'candidate.transact' "${source}"
+          grep -Fq 'QuantityConservationMismatch' "${source}"
+          grep -Fq 'NoSemanticHandoff' "${source}"
+          grep -Fq 'receipt.validate(stock, &candidate)' "${source}"
+          grep -Fq 'reserved_on_lot_before == reserved_on_lot_after' "${contract}"
+          grep -Fq 'available_on_lot_before == available_on_lot_after' "${contract}"
+          grep -Fq 'Full-handoff-only boundary' "${contract}"
+
+          if grep -Eq '\b(f32|f64)\b' "${source}"; then
+            echo 'floating-point type found in handoff authority' >&2
+            exit 1
+          fi
+          if grep -Eq '\.(establish|deplete|split|transfer_ownership|transfer_custody|relocate)\(' "${source}"; then
+            echo 'handoff authority directly mutates stock state' >&2
+            exit 1
+          fi
+          if grep -Eq '^pub struct .*Ledger' "${source}"; then
+            echo 'parallel handoff/cargo ledger introduced' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          HANDOFF: ${{ steps.handoff.outcome }}
+          RECON: ${{ steps.reservation_reconciliation.outcome }}
+          RESERVATION: ${{ steps.reservation_regressions.outcome }}
+          COMMODITY: ${{ steps.commodity_regressions.outcome }}
+          ECON: ${{ steps.econ_regressions.outcome }}
+          CORE: ${{ steps.core_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/econ04d-encumbrance-handoff-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+          keys = ["SUBJECT","SOURCE","FMT","CHECK","HANDOFF","RECON","RESERVATION","COMMODITY","ECON","CORE","CLIPPY","AUDIT","POSTFLIGHT"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          def version(cmd):
+              try: return subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception: return "unavailable"
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "ECON-04D-encumbrance-handoff-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "econ04c_parent": os.environ["ECON04C_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "atomic full reservation-to-successor encumbrance handoff with conserved lot reserved/available quantity and replayable historical receipt; no shipment, route, custody, ownership, settlement, legal-lien, or distributed-consensus authority",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/econ04d-source-sha256.txt" "${RUNNER_TEMP}/econ04d-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: econ04d-encumbrance-handoff-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/econ04d-encumbrance-handoff-v01.json
+            ${{ runner.temp }}/econ04d-encumbrance-handoff-v01.json.sha256
+            ${{ runner.temp }}/econ04d-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
