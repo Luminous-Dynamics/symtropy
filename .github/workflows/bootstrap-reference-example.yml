@@ -5,6 +5,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "crates/domains/symtropy-bootstrap/**"
+      - "**/*.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "rustfmt.toml"
+      - ".rustfmt.toml"
       - "scripts/verify-industrial-cell-reference.sh"
       - "docs/tech/industrial-cell-fault-corpus-v0.1.json"
       - "docs/tech/AUTONOMOUS_SPACE_INDUSTRIAL_CELL_REFERENCE_CAMPAIGN_V0_1.md"
