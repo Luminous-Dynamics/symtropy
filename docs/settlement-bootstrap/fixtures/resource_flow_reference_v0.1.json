@@ -6,20 +6,42 @@
     "time_unit": "day",
     "notice": "All quantities and rates in this corpus are invented arithmetic fixtures. They are not human consumption recommendations, engineering limits, or planetary/environmental data."
   },
-  "population_scale_probes": [1, 12, 100, 1000, 10000, 30000],
+  "population_scale_probes": [
+    1,
+    12,
+    100,
+    1000,
+    10000,
+    30000
+  ],
   "cases": [
     {
       "id": "exact_demand_12",
       "kind": "arithmetic",
       "population": 12,
       "demand_components": {
-        "per_person_rate_u_per_person_day": { "min": 2, "max": 2 },
-        "fixed_system_load_u_per_day": { "min": 5, "max": 5 },
-        "growth_load_u_per_day": { "min": 3, "max": 3 },
-        "declared_losses_u_per_day": { "min": 4, "max": 4 }
+        "per_person_rate_u_per_person_day": {
+          "min": 2,
+          "max": 2
+        },
+        "fixed_system_load_u_per_day": {
+          "min": 5,
+          "max": 5
+        },
+        "growth_load_u_per_day": {
+          "min": 3,
+          "max": 3
+        },
+        "declared_losses_u_per_day": {
+          "min": 4,
+          "max": 4
+        }
       },
       "expected": {
-        "demand_u_per_day": { "min": 36, "max": 36 }
+        "demand_u_per_day": {
+          "min": 36,
+          "max": 36
+        }
       }
     },
     {
@@ -27,16 +49,40 @@
       "kind": "arithmetic",
       "population": 12,
       "demand_components": {
-        "per_person_rate_u_per_person_day": { "min": 1.5, "max": 2.5 },
-        "fixed_system_load_u_per_day": { "min": 4, "max": 6 },
-        "growth_load_u_per_day": { "min": 0, "max": 2 },
-        "declared_losses_u_per_day": { "min": 2, "max": 5 }
+        "per_person_rate_u_per_person_day": {
+          "min": 1.5,
+          "max": 2.5
+        },
+        "fixed_system_load_u_per_day": {
+          "min": 4,
+          "max": 6
+        },
+        "growth_load_u_per_day": {
+          "min": 0,
+          "max": 2
+        },
+        "declared_losses_u_per_day": {
+          "min": 2,
+          "max": 5
+        }
       },
-      "inventory_u": { "min": 120, "max": 180 },
-      "qualified_inflow_u_per_day": { "min": 0, "max": 8 },
+      "inventory_u": {
+        "min": 120,
+        "max": 180
+      },
+      "qualified_inflow_u_per_day": {
+        "min": 0,
+        "max": 8
+      },
       "expected": {
-        "demand_u_per_day": { "min": 24, "max": 43 },
-        "net_depletion_u_per_day": { "min": 16, "max": 43 },
+        "demand_u_per_day": {
+          "min": 24,
+          "max": 43
+        },
+        "net_depletion_u_per_day": {
+          "min": 16,
+          "max": 43
+        },
         "runway_days_lower_fraction": "120/43",
         "runway_days_upper_fraction": "45/4",
         "uncertainty_interpretation": "Rectangular interval envelope; no probability distribution or independence claim."
@@ -77,7 +123,9 @@
         "total_demand_u_per_day": 2000,
         "nominal_capacity_covers_total": true,
         "all_groups_covered": false,
-        "uncovered_groups": ["habitat-b"],
+        "uncovered_groups": [
+          "habitat-b"
+        ],
         "status": "FAIL_LOCAL_COVERAGE"
       }
     },
@@ -134,13 +182,34 @@
       "id": "shared_power_bus_is_common_mode_failure",
       "kind": "dependency_gate",
       "components": [
-        { "id": "pump-1", "depends_on": ["main-power-bus"] },
-        { "id": "pump-2", "depends_on": ["main-power-bus"] },
-        { "id": "pump-3", "depends_on": ["main-power-bus"] }
+        {
+          "id": "pump-1",
+          "depends_on": [
+            "main-power-bus"
+          ]
+        },
+        {
+          "id": "pump-2",
+          "depends_on": [
+            "main-power-bus"
+          ]
+        },
+        {
+          "id": "pump-3",
+          "depends_on": [
+            "main-power-bus"
+          ]
+        }
       ],
-      "failed_dependencies": ["main-power-bus"],
+      "failed_dependencies": [
+        "main-power-bus"
+      ],
       "expected": {
-        "unavailable_components": ["pump-1", "pump-2", "pump-3"],
+        "unavailable_components": [
+          "pump-1",
+          "pump-2",
+          "pump-3"
+        ],
         "independent_redundancy_claim": false,
         "status": "COMMON_MODE_OUTAGE"
       }
@@ -163,8 +232,16 @@
       "id": "stale_conflicting_sensor_observations",
       "kind": "evidence_freshness",
       "observations": [
-        { "source": "sensor-a", "value": "safe", "freshness": "STALE" },
-        { "source": "sensor-b", "value": "unsafe", "freshness": "CURRENT" }
+        {
+          "source": "sensor-a",
+          "value": "safe",
+          "freshness": "STALE"
+        },
+        {
+          "source": "sensor-b",
+          "value": "unsafe",
+          "freshness": "CURRENT"
+        }
       ],
       "independent_adjudication_evidence": null,
       "expected": {
@@ -172,6 +249,87 @@
         "status": "BLOCKED_CONFLICTING_EVIDENCE",
         "last_write_wins": false
       }
+    },
+    {
+      "id": "thirty_thousand_multi_module_aggregate_masks_local_deficit",
+      "kind": "distribution_gate",
+      "population": 30000,
+      "per_person_demand_u_per_day": 2,
+      "nominal_total_rated_capacity_u_per_day": 62000,
+      "groups": [
+        {
+          "id": "habitat-north",
+          "population": 12000,
+          "rated_capacity_u_per_day": 24000,
+          "delivered_capacity_u_per_day": 24000
+        },
+        {
+          "id": "habitat-central",
+          "population": 10000,
+          "rated_capacity_u_per_day": 20000,
+          "delivered_capacity_u_per_day": 18000,
+          "transport_status": "BOTTLENECKED"
+        },
+        {
+          "id": "habitat-south",
+          "population": 8000,
+          "rated_capacity_u_per_day": 18000,
+          "delivered_capacity_u_per_day": 18000
+        }
+      ],
+      "inter_group_transfer_paths": [
+        {
+          "from": "habitat-south",
+          "to": "habitat-central",
+          "available": false,
+          "capacity_u_per_day": 0
+        }
+      ],
+      "expected": {
+        "total_demand_u_per_day": 60000,
+        "total_delivered_capacity_u_per_day": 60000,
+        "total_rated_capacity_u_per_day": 62000,
+        "aggregate_delivered_covers_total": true,
+        "all_groups_covered": false,
+        "uncovered_groups": [
+          "habitat-central"
+        ],
+        "surplus_groups": [
+          "habitat-south"
+        ],
+        "status": "FAIL_LOCAL_COVERAGE",
+        "reason": "Aggregate delivery equals total demand, but the central habitat is 2,000 units/day short and south-habitat surplus cannot traverse a disabled transfer path."
+      }
     }
-  ]
+  ],
+  "population_scaling_reference": {
+    "per_person_rate_u_per_person_day": 2,
+    "expected_person_component_u_per_day": [
+      {
+        "population": 1,
+        "demand": 2
+      },
+      {
+        "population": 12,
+        "demand": 24
+      },
+      {
+        "population": 100,
+        "demand": 200
+      },
+      {
+        "population": 1000,
+        "demand": 2000
+      },
+      {
+        "population": 10000,
+        "demand": 20000
+      },
+      {
+        "population": 30000,
+        "demand": 60000
+      }
+    ],
+    "note": "Only the synthetic per-person component is linear in this probe. Fixed loads, network constraints, capacity, waste, losses, and topology need separate modeling."
+  }
 }
