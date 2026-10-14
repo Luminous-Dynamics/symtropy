@@ -70,9 +70,9 @@ pub enum FrameConventionConversionError {
 impl fmt::Display for FrameConventionConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::IncompatibleConventionFamilies => f.write_str(
-                "different reference families require an explicit frame transform",
-            ),
+            Self::IncompatibleConventionFamilies => {
+                f.write_str("different reference families require an explicit frame transform")
+            }
             Self::ExternalConventionRequiresAdapter => f.write_str(
                 "external coordinate conventions require an explicit, separately verified adapter",
             ),
@@ -104,7 +104,10 @@ pub fn convention_conversion_matrix_v1(
     }
 
     // v_common = B_from * v_from, while v_target = B_target^T * v_common.
-    Ok(multiply_axis_matrices(transpose_axis_matrix(to_to_common), from_to_common))
+    Ok(multiply_axis_matrices(
+        transpose_axis_matrix(to_to_common),
+        from_to_common,
+    ))
 }
 
 /// Convert finite vector components between compatible conventions.
@@ -129,9 +132,7 @@ fn convention_basis_to_common(
 ) -> Result<(KnownConventionFamily, AxisConversionMatrixV1), FrameConventionConversionError> {
     const IDENTITY: AxisConversionMatrixV1 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
     match convention {
-        FrameAxisConventionV1::BodyForwardLeftUp => {
-            Ok((KnownConventionFamily::Body, IDENTITY))
-        }
+        FrameAxisConventionV1::BodyForwardLeftUp => Ok((KnownConventionFamily::Body, IDENTITY)),
         FrameAxisConventionV1::FrdForwardRightDown => Ok((
             KnownConventionFamily::Body,
             [[1, 0, 0], [0, -1, 0], [0, 0, -1]],
@@ -199,7 +200,10 @@ pub struct FrameConventionIssue {
 
 impl FrameConventionIssue {
     fn new(code: FrameConventionIssueCode, path: impl Into<String>) -> Self {
-        Self { code, path: path.into() }
+        Self {
+            code,
+            path: path.into(),
+        }
     }
 }
 
@@ -357,8 +361,11 @@ impl FrameConventionRegistryV1 {
         world: &WorldManifestV1,
     ) -> Result<(), Vec<FrameConventionIssue>> {
         let mut issues = self.validate().err().unwrap_or_default();
-        let world_ids: BTreeSet<&str> =
-            world.frames.iter().map(|frame| frame.frame_id.as_str()).collect();
+        let world_ids: BTreeSet<&str> = world
+            .frames
+            .iter()
+            .map(|frame| frame.frame_id.as_str())
+            .collect();
         let mut binding_ids = BTreeSet::new();
 
         for (index, binding) in self.frames.iter().enumerate() {
@@ -390,7 +397,8 @@ impl FrameConventionRegistryV1 {
 
     /// Canonical registry bytes, independent of JSON/Serde and input table order.
     pub fn canonical_bytes_v1(&self) -> Result<Vec<u8>, QualifiedWorldError> {
-        self.validate().map_err(QualifiedWorldError::InvalidFrameConventionRegistry)?;
+        self.validate()
+            .map_err(QualifiedWorldError::InvalidFrameConventionRegistry)?;
         let mut encoder = RegistryEncoder::new();
         encoder.raw(FRAME_CONVENTION_DOMAIN_V1);
         encoder.u16(FRAME_CONVENTION_FORMAT_VERSION_V1);
@@ -443,19 +451,22 @@ impl QualifiedWorldManifestV2 {
     /// canonical registry's size; both component encoders validate before use.
     pub fn canonical_bytes_v2(&self) -> Result<Vec<u8>, QualifiedWorldError> {
         self.validate()?;
-        let world_digest = self.world
+        let world_digest = self
+            .world
             .content_digest_v1()
             .map_err(|error| match error {
-                WorldManifestCommitmentError::InvalidManifest(
-                    issues,
-                ) => QualifiedWorldError::InvalidWorldManifest(issues),
-                WorldManifestCommitmentError::CanonicalBytesTooLarge {
-                    limit_bytes,
-                } => QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes },
+                WorldManifestCommitmentError::InvalidManifest(issues) => {
+                    QualifiedWorldError::InvalidWorldManifest(issues)
+                }
+                WorldManifestCommitmentError::CanonicalBytesTooLarge { limit_bytes } => {
+                    QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes }
+                }
             })?;
         let convention_digest = self.frame_conventions.content_digest_v1()?;
         let mut bytes = Vec::with_capacity(
-            QUALIFIED_WORLD_DOMAIN_V2.len() + 2 + world_digest.as_bytes().len()
+            QUALIFIED_WORLD_DOMAIN_V2.len()
+                + 2
+                + world_digest.as_bytes().len()
                 + convention_digest.as_bytes().len(),
         );
         bytes.extend_from_slice(QUALIFIED_WORLD_DOMAIN_V2);
@@ -510,17 +521,18 @@ impl QualifiedSolverRequestV2 {
         identity
             .validate()
             .map_err(QualifiedWorldError::InvalidSolverRequestIdentity)?;
-        let expected_inner_digest = world
-            .world
-            .content_digest_v1()
-            .map_err(|error| match error {
-                WorldManifestCommitmentError::InvalidManifest(
-                    issues,
-                ) => QualifiedWorldError::InvalidWorldManifest(issues),
-                WorldManifestCommitmentError::CanonicalBytesTooLarge {
-                    limit_bytes,
-                } => QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes },
-            })?;
+        let expected_inner_digest =
+            world
+                .world
+                .content_digest_v1()
+                .map_err(|error| match error {
+                    WorldManifestCommitmentError::InvalidManifest(issues) => {
+                        QualifiedWorldError::InvalidWorldManifest(issues)
+                    }
+                    WorldManifestCommitmentError::CanonicalBytesTooLarge { limit_bytes } => {
+                        QualifiedWorldError::WorldManifestCommitmentTooLarge { limit_bytes }
+                    }
+                })?;
         if identity.world_manifest_digest != expected_inner_digest {
             return Err(QualifiedWorldError::QualifiedWorldDigestMismatch);
         }
@@ -655,12 +667,12 @@ impl RegistryEncoder {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::platform::PlatformType;
     use crate::world_contract::{
         ActuatorProfileV1, ArtifactRef, CoordinateFrameV1, FrameTransformV1, PhysicsDomain,
-        PhysicsFidelity, PlatformProfileV1, SensorModality, SensorProfileV1, SolverDeclarationV1,
-        WORLD_MANIFEST_SCHEMA_VERSION, SOLVER_RESULT_SCHEMA_VERSION,
+        PhysicsFidelity, PlatformProfileV1, SOLVER_RESULT_SCHEMA_VERSION, SensorModality,
+        SensorProfileV1, SolverDeclarationV1, WORLD_MANIFEST_SCHEMA_VERSION,
     };
-    use crate::platform::PlatformType;
 
     fn artifact(id: &str) -> ArtifactRef {
         ArtifactRef {
@@ -757,15 +769,19 @@ pub(crate) mod tests {
     }
 
     fn registry_for(world: &WorldManifestV1) -> FrameConventionRegistryV1 {
-        let frames = world.frames.iter().map(|frame| FrameConventionBindingV1 {
-            frame_id: frame.frame_id.clone(),
-            convention: match frame.frame_id.as_str() {
-                "world" => FrameAxisConventionV1::EnuEastNorthUp,
-                "robot-base" => FrameAxisConventionV1::BodyForwardLeftUp,
-                "camera-optical" => FrameAxisConventionV1::CameraOpticalRightDownForward,
-                _ => FrameAxisConventionV1::FrdForwardRightDown,
-            },
-        }).collect();
+        let frames = world
+            .frames
+            .iter()
+            .map(|frame| FrameConventionBindingV1 {
+                frame_id: frame.frame_id.clone(),
+                convention: match frame.frame_id.as_str() {
+                    "world" => FrameAxisConventionV1::EnuEastNorthUp,
+                    "robot-base" => FrameAxisConventionV1::BodyForwardLeftUp,
+                    "camera-optical" => FrameAxisConventionV1::CameraOpticalRightDownForward,
+                    _ => FrameAxisConventionV1::FrdForwardRightDown,
+                },
+            })
+            .collect();
         FrameConventionRegistryV1 {
             schema_version: FRAME_CONVENTION_REGISTRY_SCHEMA_VERSION_V1,
             frames,
@@ -814,7 +830,10 @@ pub(crate) mod tests {
             convention_conversion_matrix_v1(&frd, &flu).unwrap(),
             [[1, 0, 0], [0, -1, 0], [0, 0, -1]]
         );
-        assert_eq!(convert_vector_v1([1.0, 2.0, 3.0], &frd, &flu).unwrap(), [1.0, -2.0, -3.0]);
+        assert_eq!(
+            convert_vector_v1([1.0, 2.0, 3.0], &frd, &flu).unwrap(),
+            [1.0, -2.0, -3.0]
+        );
 
         let ned = FrameAxisConventionV1::NedNorthEastDown;
         let enu = FrameAxisConventionV1::EnuEastNorthUp;
@@ -822,7 +841,10 @@ pub(crate) mod tests {
             convention_conversion_matrix_v1(&ned, &enu).unwrap(),
             [[0, 1, 0], [1, 0, 0], [0, 0, -1]]
         );
-        assert_eq!(convert_vector_v1([1.0, 2.0, 3.0], &ned, &enu).unwrap(), [2.0, 1.0, -3.0]);
+        assert_eq!(
+            convert_vector_v1([1.0, 2.0, 3.0], &ned, &enu).unwrap(),
+            [2.0, 1.0, -3.0]
+        );
     }
 
     #[test]
@@ -843,11 +865,8 @@ pub(crate) mod tests {
             ),
         ];
 
-        let squared_norm = |v: [f64; 3]| {
-            v.iter()
-                .map(|component| component * component)
-                .sum::<f64>()
-        };
+        let squared_norm =
+            |v: [f64; 3]| v.iter().map(|component| component * component).sum::<f64>();
         for (from, to) in pairs {
             let matrix = convention_conversion_matrix_v1(&from, &to).unwrap();
             for row in matrix {
@@ -855,10 +874,7 @@ pub(crate) mod tests {
                 assert!(row.iter().all(|value| (-1..=1).contains(value)));
             }
             for column in 0..3 {
-                assert_eq!(
-                    matrix.iter().filter(|row| row[column] != 0).count(),
-                    1
-                );
+                assert_eq!(matrix.iter().filter(|row| row[column] != 0).count(), 1);
             }
             let determinant = i16::from(matrix[0][0])
                 * (i16::from(matrix[1][1]) * i16::from(matrix[2][2])
@@ -869,7 +885,10 @@ pub(crate) mod tests {
                 + i16::from(matrix[0][2])
                     * (i16::from(matrix[1][0]) * i16::from(matrix[2][1])
                         - i16::from(matrix[1][1]) * i16::from(matrix[2][0]));
-            assert_eq!(determinant, 1, "axis basis conversion must be a proper rotation");
+            assert_eq!(
+                determinant, 1,
+                "axis basis conversion must be a proper rotation"
+            );
 
             let converted = convert_vector_v1(vector, &from, &to).unwrap();
             let restored = convert_vector_v1(converted, &to, &from).unwrap();
@@ -996,8 +1015,13 @@ pub(crate) mod tests {
         };
         let digest = registry.content_digest_v1().unwrap();
         let mut upper = registry;
-        let FrameAxisConventionV1::ExternalSpec { specification_sha256, .. } =
-            &mut upper.frames[0].convention else { unreachable!() };
+        let FrameAxisConventionV1::ExternalSpec {
+            specification_sha256,
+            ..
+        } = &mut upper.frames[0].convention
+        else {
+            unreachable!()
+        };
         *specification_sha256 = specification_sha256.to_uppercase();
         assert_eq!(digest, upper.content_digest_v1().unwrap());
     }
@@ -1038,8 +1062,7 @@ pub(crate) mod tests {
         let original = qualified_world();
         let digest = original.content_digest_v2().unwrap();
         let mut altered = original;
-        altered.frame_conventions.frames[1].convention =
-            FrameAxisConventionV1::FrdForwardRightDown;
+        altered.frame_conventions.frames[1].convention = FrameAxisConventionV1::FrdForwardRightDown;
         assert_ne!(digest, altered.content_digest_v2().unwrap());
     }
 

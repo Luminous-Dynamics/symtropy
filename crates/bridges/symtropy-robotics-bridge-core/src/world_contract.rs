@@ -8,9 +8,7 @@
 //! certify that any declared solver is physically accurate.
 
 use crate::platform::PlatformType;
-use crate::world_manifest_commitment::{
-    WorldManifestCommitmentError, WorldManifestDigestV1,
-};
+use crate::world_manifest_commitment::{WorldManifestCommitmentError, WorldManifestDigestV1};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -414,7 +412,9 @@ impl WorldManifestV1 {
                 &mut issues,
             );
             let kinematics_path = format!("{path}.kinematics");
-            platform.kinematics.validate_at(&kinematics_path, &mut issues);
+            platform
+                .kinematics
+                .validate_at(&kinematics_path, &mut issues);
             record_artifact_digest_identity(
                 &platform.kinematics,
                 &kinematics_path,
@@ -487,8 +487,7 @@ impl WorldManifestV1 {
         let mut frame_ids = BTreeSet::new();
         for (index, frame) in self.frames.iter().enumerate() {
             let path = format!("frames[{index}]");
-            if frame.frame_id.trim().is_empty()
-                || frame.frame_id.trim() != frame.frame_id.as_str()
+            if frame.frame_id.trim().is_empty() || frame.frame_id.trim() != frame.frame_id.as_str()
             {
                 issues.push(WorldValidationIssue::new(
                     WorldValidationCode::InvalidFrame,
@@ -503,7 +502,11 @@ impl WorldManifestV1 {
             }
         }
 
-        let roots = self.frames.iter().filter(|frame| frame.parent_frame_id.is_none()).count();
+        let roots = self
+            .frames
+            .iter()
+            .filter(|frame| frame.parent_frame_id.is_none())
+            .count();
         let world_root_is_valid = self.frames.iter().any(|frame| {
             frame.frame_id == "world"
                 && frame.parent_frame_id.is_none()
@@ -558,8 +561,7 @@ impl WorldManifestV1 {
                         ));
                     }
                     let translation_is_finite = translation_m.iter().all(|value| value.is_finite());
-                    let quaternion_is_finite =
-                        rotation_xyzw.iter().all(|value| value.is_finite());
+                    let quaternion_is_finite = rotation_xyzw.iter().all(|value| value.is_finite());
                     let quaternion_norm_squared =
                         rotation_xyzw.iter().map(|value| value * value).sum::<f64>();
                     if !translation_is_finite
@@ -588,8 +590,7 @@ impl WorldManifestV1 {
                         ));
                     }
                     let provider_is_declared = self.platforms.iter().any(|platform| {
-                        platform.kinematics.artifact_id.as_str()
-                            == provider_artifact_id.as_str()
+                        platform.kinematics.artifact_id.as_str() == provider_artifact_id.as_str()
                     });
                     if !provider_is_declared {
                         issues.push(WorldValidationIssue::new(
@@ -702,17 +703,13 @@ impl WorldManifestV1 {
                 if !descends_from_platform {
                     issues.push(WorldValidationIssue::new(
                         WorldValidationCode::SensorFrameNotAttachedToPlatform,
-                        format!(
-                            "platforms[{platform_index}].sensor_ids[{sensor_index}]"
-                        ),
+                        format!("platforms[{platform_index}].sensor_ids[{sensor_index}]"),
                     ));
                 }
                 if !kinematic_providers_match {
                     issues.push(WorldValidationIssue::new(
                         WorldValidationCode::SensorFrameProviderMismatch,
-                        format!(
-                            "platforms[{platform_index}].sensor_ids[{sensor_index}]"
-                        ),
+                        format!("platforms[{platform_index}].sensor_ids[{sensor_index}]"),
                     ));
                 }
             }
@@ -1224,8 +1221,16 @@ mod tests {
         manifest.fixed_step_ns = 0;
         manifest.gravity_mps2[1] = f64::NAN;
         let issues = manifest.validate().unwrap_err();
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::InvalidTimeStep));
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::NonFiniteValue));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::InvalidTimeStep)
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::NonFiniteValue)
+        );
     }
 
     #[test]
@@ -1234,8 +1239,16 @@ mod tests {
         manifest.sensors[0].model_solver_id = Some("missing-solver".to_owned());
         manifest.sensors[0].noise_unit.clear();
         let issues = manifest.validate().unwrap_err();
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::UnknownSolverReference));
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::MissingUnit));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::UnknownSolverReference)
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::MissingUnit)
+        );
     }
 
     #[test]
@@ -1249,8 +1262,7 @@ mod tests {
                 && issue.path == "sensors[0].sample_rate_hz"
         }));
         assert!(issues.iter().any(|issue| {
-            issue.code == WorldValidationCode::InvalidRange
-                && issue.path == "sensors[0].jitter_ns"
+            issue.code == WorldValidationCode::InvalidRange && issue.path == "sensors[0].jitter_ns"
         }));
     }
 
@@ -1287,9 +1299,11 @@ mod tests {
 
         result.request.world_generation += 1;
         let issues = result.validate_against(&expected).unwrap_err();
-        assert!(issues.iter().any(|issue| {
-            issue.code == WorldValidationCode::RequestIdentityMismatch
-        }));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| { issue.code == WorldValidationCode::RequestIdentityMismatch })
+        );
     }
 
     #[test]
@@ -1305,15 +1319,23 @@ mod tests {
         };
 
         result.request.input_digest_sha256 = "f".repeat(SHA256_HEX_LENGTH);
-        assert!(result.validate_against(&expected).unwrap_err().iter().any(|issue| {
-            issue.code == WorldValidationCode::RequestIdentityMismatch
-        }));
+        assert!(
+            result
+                .validate_against(&expected)
+                .unwrap_err()
+                .iter()
+                .any(|issue| { issue.code == WorldValidationCode::RequestIdentityMismatch })
+        );
 
         result.request = expected.clone();
         result.request.simulation_time_end_ns += 1;
-        assert!(result.validate_against(&expected).unwrap_err().iter().any(|issue| {
-            issue.code == WorldValidationCode::RequestIdentityMismatch
-        }));
+        assert!(
+            result
+                .validate_against(&expected)
+                .unwrap_err()
+                .iter()
+                .any(|issue| { issue.code == WorldValidationCode::RequestIdentityMismatch })
+        );
     }
 
     #[test]
@@ -1334,10 +1356,26 @@ mod tests {
             warnings: Vec::new(),
         };
         let issues = result.validate_against(&expected).unwrap_err();
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::InvalidDigest));
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::NonFiniteValue));
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::MissingUnit));
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::MissingFrame));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::InvalidDigest)
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::NonFiniteValue)
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::MissingUnit)
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::MissingFrame)
+        );
         result.disposition = SolverResultDisposition::NumericalNonConvergence;
         result.output_digest_sha256 = None;
         result.outputs.clear();
@@ -1365,7 +1403,11 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.frames[1].parent_frame_id = Some("ae-front-left".to_owned());
         let issues = manifest.validate().unwrap_err();
-        assert!(issues.iter().any(|issue| issue.code == WorldValidationCode::FrameCycle));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == WorldValidationCode::FrameCycle)
+        );
     }
 
     #[test]
@@ -1445,7 +1487,6 @@ mod tests {
         }));
     }
 
-
     #[test]
     fn world_admission_rejects_stale_world_generation() {
         let manifest = valid_manifest();
@@ -1490,7 +1531,6 @@ mod tests {
         }));
     }
 
-
     #[test]
     fn platform_base_frame_must_use_its_declared_kinematics_provider() {
         let mut manifest = valid_manifest();
@@ -1515,8 +1555,6 @@ mod tests {
                 && issue.path == "platforms[0].sensor_ids[0]"
         }));
     }
-
-
 
     #[test]
     fn sensor_frame_rejects_a_different_declared_robots_kinematics_provider() {
@@ -1555,7 +1593,6 @@ mod tests {
         }));
     }
 
-
     #[test]
     fn world_admission_rejects_changed_solver_profile_with_same_id() {
         for variant in 0..7 {
@@ -1580,14 +1617,15 @@ mod tests {
             let issues = valid_manifest()
                 .validate_solver_result_against_world(&expected, &result)
                 .unwrap_err();
-            assert!(issues.iter().any(|issue| {
-                issue.code == WorldValidationCode::SolverProfileMismatch
-                    && issue.path == "request.solver"
-            }), "profile variant {variant} was not rejected");
+            assert!(
+                issues.iter().any(|issue| {
+                    issue.code == WorldValidationCode::SolverProfileMismatch
+                        && issue.path == "request.solver"
+                }),
+                "profile variant {variant} was not rejected"
+            );
         }
     }
-
-
 
     #[test]
     fn world_admission_rejects_manifest_content_change_without_generation_bump() {
@@ -1633,7 +1671,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn duplicate_world_asset_identity_is_rejected() {
         let mut manifest = valid_manifest();
@@ -1664,5 +1701,4 @@ mod tests {
             manifest.platforms[0].geometry.sha256.to_uppercase();
         assert!(manifest.validate().is_ok());
     }
-
 }

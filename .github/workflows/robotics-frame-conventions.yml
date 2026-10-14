@@ -49,21 +49,24 @@ jobs:
 
       - name: Verify independent canonical reference
         id: reference
-        continue-on-error: true
         run: python3 scripts/verify_frame_convention_registry_v1.py
 
       - name: Install Linux build dependencies
+        if: always()
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libudev-dev pkg-config
 
       - name: Set up pinned Rust toolchain
+        id: rust_toolchain
+        if: always()
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
       - name: Cache Cargo dependencies
+        if: always()
         uses: Swatinem/rust-cache@v2
 
       # Keep later checks running when one gate fails, so a formatting failure
@@ -71,36 +74,17 @@ jobs:
       # the job if any required check did not succeed.
       - name: Check robotics bridge formatting
         id: fmt
-        continue-on-error: true
+        if: ${{ always() && steps.rust_toolchain.outcome == 'success' }}
         run: cargo fmt --package symtropy-robotics-bridge-core -- --check
-
-      # Diagnostic helper: the package has multiple pre-existing rustfmt diffs.
-      # Export the rustfmt-normalized source only to let us prepare a clean
-      # follow-up commit. The check above remains the true committed-head gate.
-      - name: Export rustfmt-normalized source snapshot for repair
-        if: always()
-        run: |
-          cargo fmt --package symtropy-robotics-bridge-core
-          for source in \
-            crates/bridges/symtropy-robotics-bridge-core/src/lib.rs \
-            crates/bridges/symtropy-robotics-bridge-core/src/sensor_model.rs \
-            crates/bridges/symtropy-robotics-bridge-core/src/world_contract.rs \
-            crates/bridges/symtropy-robotics-bridge-core/src/world_frame_conventions.rs \
-            crates/bridges/symtropy-robotics-bridge-core/src/world_manifest_commitment.rs; do
-            echo "RUSTFMT_SNAPSHOT_BEGIN:$source"
-            base64 -w0 "$source"
-            echo
-            echo "RUSTFMT_SNAPSHOT_END:$source"
-          done
 
       - name: Run robotics bridge library tests
         id: tests
-        continue-on-error: true
+        if: ${{ always() && steps.rust_toolchain.outcome == 'success' }}
         run: cargo test -p symtropy-robotics-bridge-core --lib
 
       - name: Run robotics bridge Clippy
         id: clippy
-        continue-on-error: true
+        if: ${{ always() && steps.rust_toolchain.outcome == 'success' }}
         run: cargo clippy -p symtropy-robotics-bridge-core --all-targets -- -D warnings
 
       - name: Enforce all qualification gates
