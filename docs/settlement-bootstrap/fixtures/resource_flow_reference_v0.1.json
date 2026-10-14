@@ -1,0 +1,177 @@
+{
+  "contract_version": "0.1.0",
+  "authority": "NON_AUTHORITATIVE_SYNTHETIC_REFERENCE",
+  "units": {
+    "abstract_resource_unit": "u",
+    "time_unit": "day",
+    "notice": "All quantities and rates in this corpus are invented arithmetic fixtures. They are not human consumption recommendations, engineering limits, or planetary/environmental data."
+  },
+  "population_scale_probes": [1, 12, 100, 1000, 10000, 30000],
+  "cases": [
+    {
+      "id": "exact_demand_12",
+      "kind": "arithmetic",
+      "population": 12,
+      "demand_components": {
+        "per_person_rate_u_per_person_day": { "min": 2, "max": 2 },
+        "fixed_system_load_u_per_day": { "min": 5, "max": 5 },
+        "growth_load_u_per_day": { "min": 3, "max": 3 },
+        "declared_losses_u_per_day": { "min": 4, "max": 4 }
+      },
+      "expected": {
+        "demand_u_per_day": { "min": 36, "max": 36 }
+      }
+    },
+    {
+      "id": "bounded_runway_12",
+      "kind": "arithmetic",
+      "population": 12,
+      "demand_components": {
+        "per_person_rate_u_per_person_day": { "min": 1.5, "max": 2.5 },
+        "fixed_system_load_u_per_day": { "min": 4, "max": 6 },
+        "growth_load_u_per_day": { "min": 0, "max": 2 },
+        "declared_losses_u_per_day": { "min": 2, "max": 5 }
+      },
+      "inventory_u": { "min": 120, "max": 180 },
+      "qualified_inflow_u_per_day": { "min": 0, "max": 8 },
+      "expected": {
+        "demand_u_per_day": { "min": 24, "max": 43 },
+        "net_depletion_u_per_day": { "min": 16, "max": 43 },
+        "runway_days_lower_fraction": "120/43",
+        "runway_days_upper_fraction": "45/4",
+        "uncertainty_interpretation": "Rectangular interval envelope; no probability distribution or independence claim."
+      }
+    },
+    {
+      "id": "upper_bound_exceeds_service_capacity",
+      "kind": "capacity_gate",
+      "source_case": "bounded_runway_12",
+      "available_capacity_u_per_day": 30,
+      "expected": {
+        "minimum_demand_is_covered": true,
+        "maximum_demand_is_covered": false,
+        "status": "NOT_CERTIFIED_WORST_CASE",
+        "reason": "The upper supported demand bound exceeds available capacity; a point estimate or midpoint must not turn this into PASS."
+      }
+    },
+    {
+      "id": "aggregate_capacity_hides_disconnected_group",
+      "kind": "distribution_gate",
+      "population": 1000,
+      "per_person_demand_u_per_day": 2,
+      "nominal_total_capacity_u_per_day": 2000,
+      "groups": [
+        {
+          "id": "habitat-a",
+          "population": 600,
+          "delivered_capacity_u_per_day": 1200
+        },
+        {
+          "id": "habitat-b",
+          "population": 400,
+          "delivered_capacity_u_per_day": 0,
+          "transport_status": "DISCONNECTED"
+        }
+      ],
+      "expected": {
+        "total_demand_u_per_day": 2000,
+        "nominal_capacity_covers_total": true,
+        "all_groups_covered": false,
+        "uncovered_groups": ["habitat-b"],
+        "status": "FAIL_LOCAL_COVERAGE"
+      }
+    },
+    {
+      "id": "unknown_atmosphere_blocks_habitability_claim",
+      "kind": "unknown_gate",
+      "environment": {
+        "atmosphere_status": "UNKNOWN",
+        "pressure_status": "UNKNOWN"
+      },
+      "expected": {
+        "habitability_status": "UNKNOWN",
+        "breathable_status": "UNKNOWN",
+        "earth_defaults_applied": false,
+        "status": "BLOCKED_UNKNOWN_ENVIRONMENT"
+      }
+    },
+    {
+      "id": "quarantined_resource_is_not_usable_stock",
+      "kind": "resource_qualification",
+      "resource": {
+        "type": "water",
+        "gross_quantity_u": 1000,
+        "quarantine_status": "QUARANTINED",
+        "treatment_qualification": "UNKNOWN",
+        "usable_quantity_for_allocation_u": 0
+      },
+      "expected": {
+        "gross_quantity_preserved": true,
+        "quarantined_quantity_counted_as_usable": false,
+        "status": "BLOCKED_UNQUALIFIED_RESOURCE"
+      }
+    },
+    {
+      "id": "mass_volume_dimension_mismatch",
+      "kind": "unit_gate",
+      "demand": {
+        "resource_type": "water",
+        "dimension": "volume",
+        "unit": "L/day"
+      },
+      "supply": {
+        "resource_type": "water",
+        "dimension": "mass",
+        "unit": "kg/day"
+      },
+      "conversion_evidence": null,
+      "expected": {
+        "status": "REJECT_INCOMPATIBLE_DIMENSIONS",
+        "silent_conversion": false
+      }
+    },
+    {
+      "id": "shared_power_bus_is_common_mode_failure",
+      "kind": "dependency_gate",
+      "components": [
+        { "id": "pump-1", "depends_on": ["main-power-bus"] },
+        { "id": "pump-2", "depends_on": ["main-power-bus"] },
+        { "id": "pump-3", "depends_on": ["main-power-bus"] }
+      ],
+      "failed_dependencies": ["main-power-bus"],
+      "expected": {
+        "unavailable_components": ["pump-1", "pump-2", "pump-3"],
+        "independent_redundancy_claim": false,
+        "status": "COMMON_MODE_OUTAGE"
+      }
+    },
+    {
+      "id": "lost_transfer_ack_is_ambiguous",
+      "kind": "inventory_integrity",
+      "resource_lot_id": "lot-17",
+      "source_quantity_before_u": 100,
+      "transfer_quantity_u": 40,
+      "transfer_acknowledgement": "LOST",
+      "destination_receipt": "UNCONFIRMED",
+      "expected": {
+        "inventory_state": "AMBIGUOUS",
+        "transfer_counted_at_both_ends": false,
+        "status": "RECONCILIATION_REQUIRED"
+      }
+    },
+    {
+      "id": "stale_conflicting_sensor_observations",
+      "kind": "evidence_freshness",
+      "observations": [
+        { "source": "sensor-a", "value": "safe", "freshness": "STALE" },
+        { "source": "sensor-b", "value": "unsafe", "freshness": "CURRENT" }
+      ],
+      "independent_adjudication_evidence": null,
+      "expected": {
+        "state": "UNKNOWN_CONFLICTED",
+        "status": "BLOCKED_CONFLICTING_EVIDENCE",
+        "last_write_wins": false
+      }
+    }
+  ]
+}
