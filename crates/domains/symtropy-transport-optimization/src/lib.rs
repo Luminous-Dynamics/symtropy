@@ -799,6 +799,7 @@ pub struct CargoTransferCapacityEvidenceV1 {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CargoTransferCapacityFreshnessPolicy {
+    pub expected_time_profile_id: &'static str,
     pub max_observation_age_seconds: u64,
     pub allowed_future_clock_skew_seconds: u64,
 }
@@ -807,6 +808,7 @@ pub struct CargoTransferCapacityFreshnessPolicy {
 pub enum CargoTransferCapacityEvidenceError {
     InvalidIdentityOrProvenance,
     InvalidRevisionLineage,
+    TimeProfileMismatch,
     MissingObservationTime,
     MissingRepositoryRecordTime,
     MissingValidityInterval,
@@ -824,6 +826,7 @@ impl fmt::Display for CargoTransferCapacityEvidenceError {
         match self {
             Self::InvalidIdentityOrProvenance => write!(f, "capacity evidence identity or provenance is incomplete"),
             Self::InvalidRevisionLineage => write!(f, "capacity evidence revision lineage is invalid"),
+            Self::TimeProfileMismatch => write!(f, "capacity evidence time profile does not match the consumer policy"),
             Self::MissingObservationTime => write!(f, "capacity evidence has no explicit capacity observation time"),
             Self::MissingRepositoryRecordTime => write!(f, "capacity evidence has no repository record time"),
             Self::MissingValidityInterval => write!(f, "capacity evidence has no declared validity interval"),
@@ -865,6 +868,9 @@ pub fn validate_cargo_transfer_capacity_evidence(
         || evidence.revision == 0
     {
         return Err(CargoTransferCapacityEvidenceError::InvalidIdentityOrProvenance);
+    }
+    if evidence.time_profile_id != policy.expected_time_profile_id {
+        return Err(CargoTransferCapacityEvidenceError::TimeProfileMismatch);
     }
 
     if evidence
@@ -3147,6 +3153,7 @@ mod tests {
 
     fn capacity_freshness_policy() -> CargoTransferCapacityFreshnessPolicy {
         CargoTransferCapacityFreshnessPolicy {
+            expected_time_profile_id: "unix-epoch-utc-seconds-v1",
             max_observation_age_seconds: 100,
             allowed_future_clock_skew_seconds: 5,
         }
@@ -3183,6 +3190,17 @@ mod tests {
                 capacity_freshness_policy(),
             ),
             Err(CargoTransferCapacityEvidenceError::MissingObservationTime)
+        );
+
+        let mut wrong_time_profile = capacity_evidence(evidence.budget.clone(), Some(980));
+        wrong_time_profile.time_profile_id = "local-clock-unspecified".to_owned();
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &wrong_time_profile,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::TimeProfileMismatch)
         );
     }
 
