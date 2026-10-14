@@ -531,7 +531,7 @@ impl PersistentWgslFieldRuntime {
                 limits.max_buffer_size
             )));
         }
-        if byte_size > u64::from(limits.max_storage_buffer_binding_size) {
+        if byte_size > limits.max_storage_buffer_binding_size {
             return Err(FieldStepError::GpuDispatchFailed(format!(
                 "field storage binding requires {byte_size} bytes, device max_storage_buffer_binding_size is {}",
                 limits.max_storage_buffer_binding_size
