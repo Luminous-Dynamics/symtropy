@@ -60,7 +60,7 @@ Before using real data, freeze a source manifest containing the exact publisher,
 
 ## Qualification gates
 
-- **H0 — deterministic contract:** tests cover invalid/empty/already-started windows, incompatible time profiles, future validity, expired evidence, evidence that goes stale before use, half-open endpoint behavior, duplicate/ambiguous evidence, adjacent/non-overlapping bookings, overlapping overcommitment, unit mismatch, conflicts, replay determinism and exact report lineage.
+- **H0 — deterministic contract:** tests cover invalid/empty/already-started windows, incompatible time profiles, future-published evidence, expired evidence, evidence that goes stale before use, half-open endpoint behavior, duplicate/ambiguous evidence, adjacent/non-overlapping bookings, overlapping overcommitment, unit mismatch, arithmetic overflow, conflicts, replay determinism and exact report lineage.
 - **H1 — frozen source snapshot:** acquire only rights-reviewed data; preserve exact source bytes and transformations. No operational capacity should be inferred from aggregate national throughput.
 - **H2 — offline corridor replay:** compare simulated schedules with a separately computed verifier and historical outcomes where compatible evidence exists. Preserve unknown/stale/conflicted states.
 - **H3 — operator and safety review:** infrastructure managers and qualified operators validate resource identities, capacity units, operating windows and constraints.
@@ -72,11 +72,13 @@ Passing H0 is only a code-contract result. It cannot be promoted to a real-world
 
 The Rust tests are synthetic and offline. They intentionally cover:
 - evidence expiring before the planned end;
+- a future-published schedule accepted before its valid-from instant when its operation window is fully covered;
 - evidence fresh at evaluation but stale at planned start;
 - equal half-open boundaries;
 - zero/reversed/already-started windows and incompatible time profiles;
 - non-overlapping windows reusing capacity;
 - intersecting assignments exceeding capacity;
+- integer overflow when concurrent quantities are aggregated;
 - conflicting current evidence for the same resource;
 - preserved observation/record timestamps, policy, source digest and window;
 - deterministic replay and changed-window receipts;
