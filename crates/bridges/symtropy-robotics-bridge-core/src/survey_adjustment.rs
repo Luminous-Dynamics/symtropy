@@ -641,6 +641,30 @@ mod tests {
     }
 
     #[test]
+    fn two_parameter_unequal_weight_solution_matches_hand_computed_reference() {
+        let mut adjustment = input();
+        adjustment.parameter_names = vec!["east_m".to_owned(), "north_m".to_owned()];
+        adjustment.fixed_parameters.clear();
+        adjustment.fitting_observations = vec![
+            observation("east", &[1.0, 0.0], 10.0, 1.0),
+            observation("north", &[0.0, 1.0], 20.0, 2.0),
+            observation("diagonal", &[1.0, 1.0], 31.0, 1.0),
+        ];
+        adjustment.independent_checkpoints.clear();
+        adjustment.excluded_observations.clear();
+
+        let result = adjustment.solve().expect("full-rank two-parameter network");
+        assert!((result.parameter_estimates[0].value - 61.0 / 6.0).abs() < 1.0e-10);
+        assert!((result.parameter_estimates[1].value - 62.0 / 3.0).abs() < 1.0e-10);
+        assert_eq!(result.degrees_of_freedom, 1);
+        assert_eq!(result.formal_covariance_row_major.len(), 4);
+        assert!((result.formal_covariance_row_major[0] - 5.0 / 6.0).abs() < 1.0e-10);
+        assert!((result.formal_covariance_row_major[1] + 2.0 / 3.0).abs() < 1.0e-10);
+        assert!((result.formal_covariance_row_major[2] + 2.0 / 3.0).abs() < 1.0e-10);
+        assert!((result.formal_covariance_row_major[3] - 4.0 / 3.0).abs() < 1.0e-10);
+    }
+
+    #[test]
     fn independent_checkpoints_never_change_the_fit() {
         let mut original = input();
         let original_result = original.solve().expect("solution");
