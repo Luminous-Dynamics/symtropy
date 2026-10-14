@@ -1,0 +1,278 @@
+name: PHYS-OBS-07 Exact Step Receipt Qualification
+
+on:
+  push:
+    branches:
+      - "ci/exact-step-receipt-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exact-step-receipt-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 1a9a81bc224be5d5e828cfbbdc5f3d9a30a13d13
+  PRODUCT_PARENT: 28383cfa1e8d3464f0b59b54bc0f0202413bf24e
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-07 exact step receipt / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/src/timed_evidence.rs"
+            "crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+          git diff --quiet "${PRODUCT_PARENT}..${PRODUCT_HEAD}" -- \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/world.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/exact-step-receipt-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run exact step receipt theorem
+        run: cargo test -p symtropy-physics --locked --test exact_step_receipt_v01
+
+      - name: Run PHYS-OBS-05 issued endpoint regression
+        run: cargo test -p symtropy-physics --locked --test qualified_stamped_endpoint_v01
+
+      - name: Run sealed evidence authority regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit exact-receipt claim boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          module=crates/core/symtropy-physics/src/timed_evidence.rs
+          contract=crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md
+          tests=crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs
+
+          grep -Fq 'pub struct LocalQualifiedStepExecutionReceipt' "${module}"
+          grep -Fq 'pub struct LocalReceiptedEvidencePhysicsAuthorityWorld' "${module}"
+          grep -Fq 'pub fn seal(' "${module}"
+          grep -Fq 'pub const fn evidence_authority(&self)' "${module}"
+          grep -Fq 'pub fn step_authorized(' "${module}"
+          grep -Fq 'pub fn step_authorized_with_callback(' "${module}"
+          grep -Fq 'dt_bits: dt.to_bits()' "${module}"
+          grep -Fq 'pub fn into_namespace(' "${module}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('crates/core/symtropy-physics/src/timed_evidence.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md').read_text()
+          tests = Path('crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs').read_text()
+
+          receipt = 'LocalQualifiedStepExecutionReceipt'
+          derive = re.search(
+              rf'#\[derive\(([^)]*)\)\]\s*pub struct {receipt}',
+              text,
+              re.MULTILINE,
+          )
+          assert derive is not None
+          traits = {part.strip() for part in derive.group(1).split(',')}
+          assert {'Debug', 'PartialEq', 'Eq'} <= traits
+          assert 'Clone' not in traits
+          assert 'Copy' not in traits
+          assert 'Serialize' not in traits
+          assert 'Deserialize' not in traits
+
+          receipt_start = text.index(f'pub struct {receipt}')
+          receipt_end = text.index('\n}\n', receipt_start) + 2
+          receipt_block = text[receipt_start:receipt_end]
+          for line in receipt_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+          assert 'stamp: LocalQualifiedAuthorityStepStamp' in receipt_block
+          assert 'dt_bits: u64' in receipt_block
+
+          wrapper = 'LocalReceiptedEvidencePhysicsAuthorityWorld'
+          wrapper_start = text.index(f'pub struct {wrapper}')
+          wrapper_end = text.index('\n}\n', wrapper_start) + 2
+          wrapper_block = text[wrapper_start:wrapper_end]
+          fields = [line.strip() for line in wrapper_block.splitlines()[1:] if ':' in line]
+          assert fields == ['evidence: LocalEvidencePhysicsAuthorityWorld<D>,']
+
+          assert 'pub fn new' not in text
+          assert 'pub const fn new' not in text
+          assert 'from_evidence' not in text
+          assert 'into_evidence' not in text
+          assert 'evidence_authority_mut' not in text
+          assert 'DerefMut' not in text
+          assert 'Serialize' not in text
+          assert 'Deserialize' not in text
+          assert 'unsafe ' not in text
+
+          seal_start = text.index('pub fn seal(')
+          seal_end = text.index('\n    pub const fn physical_authority_id', seal_start)
+          seal = text[seal_start:seal_end]
+          assert 'LocalNamespacePhysicsAuthorityWorld<D>' in seal
+          assert 'LocalEvidencePhysicsAuthorityWorld<D>' not in seal.split('->', 1)[0]
+          assert 'LocalEvidencePhysicsAuthorityWorld::seal(namespace)' in seal
+
+          projection_start = text.index('pub const fn evidence_authority(&self)')
+          projection_end = text.index('\n    pub fn validate_subject', projection_start)
+          projection = text[projection_start:projection_end]
+          assert '-> &LocalEvidencePhysicsAuthorityWorld<D>' in projection
+          assert 'mut ' not in projection.split('->', 1)[1]
+
+          pure_start = text.index('pub fn step_authorized(')
+          pure_end = text.index('\n    /// Execute one callback-coupled', pure_start)
+          pure = text[pure_start:pure_end]
+          assert 'Result<LocalQualifiedStepExecutionReceipt, LocalEvidenceAuthorityError>' in pure
+          assert pure.index('self.evidence.step_authorized(dt)?') < pure.index('dt_bits: dt.to_bits()')
+          assert pure.count('self.evidence.step_authorized(dt)?') == 1
+
+          callback_start = text.index('pub fn step_authorized_with_callback(')
+          callback_end = text.index('\n    /// Leave the receipted', callback_start)
+          callback = text[callback_start:callback_end]
+          assert 'Result<LocalQualifiedStepExecutionReceipt, LocalEvidenceAuthorityError>' in callback
+          assert callback.index('.step_authorized_with_callback(dt, callback)?') < callback.index('dt_bits: dt.to_bits()')
+          assert callback.count('.step_authorized_with_callback(dt, callback)?') == 1
+
+          impl_start = text.index(f'impl<const D: usize> {wrapper}')
+          impl_end = text.rindex('\n}')
+          impl_text = text[impl_start:impl_end]
+          public_step_methods = re.findall(r'pub fn (step_authorized(?:_with_callback)?)\(', impl_text)
+          assert sorted(public_step_methods) == ['step_authorized', 'step_authorized_with_callback']
+
+          assert 'Vec<LocalQualifiedStepExecutionReceipt' not in text
+          assert 'elapsed' not in ''.join(
+              line for line in text.splitlines() if not line.strip().startswith('//')
+          ).lower()
+
+          assert 'invalid_dt_values_mint_no_receipt_and_preserve_first_step_index' in tests
+          assert 'pure_step_receipt_binds_exact_executed_binary64_value' in tests
+          assert 'callback_path_uses_the_same_exact_receipt_rule' in tests
+          assert 'successive_distinct_dt_values_remain_exact_and_step_bound' in tests
+          assert 'endpoint_capture_after_receipted_step_binds_the_same_strong_stamp' in tests
+          assert 'clean_exit_and_reseal_breaks_receipt_temporal_lineage' in tests
+          assert 'caught_callback_panic_mints_no_receipt_and_preserves_quarantine' in tests
+
+          assert 'does not prove that `dt` follows a fixed cadence' in contract
+          assert 'receipt whose stamp is **`N+1`**' in contract
+          assert 'No fixed-step policy' in contract
+          assert 'continuous occupancy' in contract
+          assert 'settlement authority' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/exact-step-receipt-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/exact-step-receipt-source-sha256.txt" \
+            "${RUNNER_TEMP}/exact-step-receipt-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-OBS-07 exact qualified step execution receipt v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'fresh_receipted_incarnation': True,
+              'successful_strong_step_without_receipt_path': False,
+              'exact_executed_dt_bits': True,
+              'receipt_only_after_normal_step_return': True,
+              'immutable_observation_projection': True,
+              'mutable_inner_evidence_projection': False,
+              'fixed_cadence_authority': False,
+              'cumulative_simulation_time_authority': False,
+              'wall_clock_authority': False,
+              'continuous_occupancy_authority': False,
+              'dwell_arrival_authority': False,
+              'custody_delivery_settlement_authority': False,
+          }
+          Path('exact-step-receipt-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-step-receipt-${{ env.PRODUCT_HEAD }}
+          path: |
+            exact-step-receipt-qualification-receipt.json
+            ${{ runner.temp }}/exact-step-receipt-source-sha256.txt
+            ${{ runner.temp }}/exact-step-receipt-source-sha256-post.txt
+          if-no-files-found: error
