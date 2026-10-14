@@ -1,0 +1,69 @@
+name: Living World LENV contact evidence v0 qualification
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-contact-evidence:
+    name: Qualify exact LENV contact evidence reference subject
+    runs-on: ubuntu-latest
+    env:
+      PRODUCT_SHA: 9522a85ec4baade6dd99a34923a9c1a27baf60ba
+      PARENT_SHA: 889bbc94918bcc7f82b5807a0badb265e9388474
+      PRODUCT_FILE: crates/domains/symtropy-lifesim-core/tests/contact_evidence_reference.rs
+      CARGO_TARGET_DIR: /tmp/living-world-lenv-contact-evidence-v0-target
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Assert exact one-file product scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          test "$(git diff --name-status "$PARENT_SHA" "$PRODUCT_SHA")" = $'A\t'"$PRODUCT_FILE"
+          git hash-object Cargo.lock | tee /tmp/cargo-lock.before
+          git rev-parse HEAD^{tree} | tee /tmp/tree.before
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check focused formatting
+        run: cargo fmt --package symtropy-lifesim-core -- --check
+
+      - name: Execute LENV contact evidence reference tests
+        run: cargo test --locked -p symtropy-lifesim-core --test contact_evidence_reference
+
+      - name: Strict focused Clippy
+        run: cargo clippy --locked -p symtropy-lifesim-core --test contact_evidence_reference -- -D warnings
+
+      - name: Focused all-target dependency check
+        run: cargo check --locked -p symtropy-lifesim-core --test contact_evidence_reference
+
+      - name: Assert immutable exact subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$(cat /tmp/tree.before)"
+          test "$(git hash-object Cargo.lock)" = "$(cat /tmp/cargo-lock.before)"
+          git diff --exit-code
+          git diff --cached --exit-code
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "$untracked" ]; then
+            printf 'unexpected untracked files:\n%s\n' "$untracked"
+            exit 1
+          fi
