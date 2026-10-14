@@ -22,7 +22,7 @@ python scripts/research/validate_flourishing_assessment.py \
 python -m unittest discover -s scripts/research -p 'test_validate_flourishing_assessment.py' -v
 ```
 
-The CLI verifies every declared relative artifact path against bytes beneath the input JSON's parent directory by default. Use `--artifact-root DIR` when artifacts live in a separate directory, and `--report FILE` to save the machine-readable report. It rejects path traversal, control characters, duplicate normalized paths across artifact IDs, symlinks resolving outside the root, missing evidence files, and digest mismatches. Duplicate paths are forbidden so one file cannot be relabeled under another evidence role. The report writer also refuses to overwrite the input assessment, schema, or any registered artifact. It never downloads a URI or treats a digest-shaped string as proof of source authenticity.
+The CLI verifies every declared relative artifact path against bytes beneath the input JSON's parent directory by default. Use `--artifact-root DIR` when artifacts live in a separate directory, and `--report FILE` to save the machine-readable report. It rejects path traversal, control characters, duplicate normalized paths across artifact IDs, distinct paths resolving through symlinks to the same file, missing evidence files, and digest mismatches. It also rejects identical SHA-256 bytes registered under different evidence roles, including a copied pre-registration record relabelled as measured-outcome evidence. The report writer refuses to overwrite the input assessment, schema, or any registered artifact. It never downloads a URI or treats a digest-shaped string as proof of source authenticity.
 
 ## Interpretation of the report
 
@@ -58,5 +58,7 @@ References:
 - NIST, [Measurement Uncertainty](https://www.nist.gov/itl/sed/topic-areas/measurement-uncertainty) and [Reporting Uncertainty](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty).
 - OECD, [Decision-making under uncertainty](https://www.oecd.org/en/publications/managing-climate-risks-facing-up-to-losses-and-damages_55ea1cc9-en/full-report/component-8.html).
 - NASA, [Systems Engineering Handbook — Appendix D: Requirements Verification Matrix and Appendix E: Validation Plan](https://www.nasa.gov/reference/system-engineering-handbook-appendix/): link each requirement to its source, verification method, validation plan, evidence, and disposition of anomalies.
+- W3C, [PROV Model Primer](https://www.w3.org/TR/prov-primer/): represent the entities, activities, and agents involved in producing data, with derivation and responsibility links.
+- Research Object Crate, [RO-Crate 1.2 data entities](https://github.com/ResearchObject/ro-crate/blob/main/docs/_specification/1.2/data-entities.md): describe files and datasets as explicit entities and link them through a package-level metadata graph.
 
 **Evidence boundary:** the fixture is explicitly not evidence. The tests establish behavior of the schema and verifier only. They do not show that any real-world intervention improves well-being.
