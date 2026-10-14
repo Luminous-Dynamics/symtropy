@@ -8,6 +8,9 @@
 //! certify that any declared solver is physically accurate.
 
 use crate::platform::PlatformType;
+use crate::world_manifest_commitment::{
+    WorldManifestCommitmentError, WorldManifestDigestV1,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -229,8 +232,25 @@ impl WorldManifestV1 {
             ));
         }
 
+        // Repeated references to one artifact ID must agree on content identity.
+        // URIs may differ as mirrors, but the expected bytes may not.
+        let mut artifact_digests_by_id = BTreeMap::new();
+        let mut world_asset_ids = BTreeSet::new();
         for (index, artifact) in self.world_assets.iter().enumerate() {
-            artifact.validate_at(&format!("world_assets[{index}]"), &mut issues);
+            let path = format!("world_assets[{index}]");
+            artifact.validate_at(&path, &mut issues);
+            record_artifact_digest_identity(
+                artifact,
+                &path,
+                &mut artifact_digests_by_id,
+                &mut issues,
+            );
+            if !world_asset_ids.insert(artifact.artifact_id.as_str()) {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::DuplicateIdentity,
+                    format!("world_assets[{index}].artifact_id"),
+                ));
+            }
         }
 
         let mut solver_ids = BTreeSet::new();
@@ -341,7 +361,14 @@ impl WorldManifestV1 {
                 ));
             }
             if let Some(artifact) = &sensor.calibration_artifact {
-                artifact.validate_at(&format!("{path}.calibration_artifact"), &mut issues);
+                let artifact_path = format!("{path}.calibration_artifact");
+                artifact.validate_at(&artifact_path, &mut issues);
+                record_artifact_digest_identity(
+                    artifact,
+                    &artifact_path,
+                    &mut artifact_digests_by_id,
+                    &mut issues,
+                );
             }
         }
 
@@ -378,12 +405,22 @@ impl WorldManifestV1 {
                     format!("{path}.platform_id"),
                 ));
             }
-            platform
-                .geometry
-                .validate_at(&format!("{path}.geometry"), &mut issues);
-            platform
-                .kinematics
-                .validate_at(&format!("{path}.kinematics"), &mut issues);
+            let geometry_path = format!("{path}.geometry");
+            platform.geometry.validate_at(&geometry_path, &mut issues);
+            record_artifact_digest_identity(
+                &platform.geometry,
+                &geometry_path,
+                &mut artifact_digests_by_id,
+                &mut issues,
+            );
+            let kinematics_path = format!("{path}.kinematics");
+            platform.kinematics.validate_at(&kinematics_path, &mut issues);
+            record_artifact_digest_identity(
+                &platform.kinematics,
+                &kinematics_path,
+                &mut artifact_digests_by_id,
+                &mut issues,
+            );
 
             let mut actuator_ids = BTreeSet::new();
             for (actuator_index, actuator) in platform.actuators.iter().enumerate() {
@@ -690,6 +727,9 @@ pub struct SolverRequestIdentityV1 {
     /// Scenario identity must match the manifest in which this request runs.
     pub scenario_id: String,
     pub world_generation: u64,
+    /// Digest recomputed from the complete canonical WorldManifestV1. The
+    /// receiving world recomputes it before admitting this result.
+    pub world_manifest_digest: WorldManifestDigestV1,
     /// Exact declared solver profile, including build and parameter digests.
     /// Binding only a name/ID would allow a changed implementation to reuse
     /// an old request identity.
@@ -915,6 +955,24 @@ impl WorldManifestV1 {
             ));
         }
 
+        match self.content_digest_v1() {
+            Ok(actual_digest) if actual_digest != expected_request.world_manifest_digest => {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::WorldManifestDigestMismatch,
+                    "request.world_manifest_digest",
+                ));
+            }
+            Err(WorldManifestCommitmentError::CanonicalBytesTooLarge { .. }) => {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::WorldManifestCommitmentUnavailable,
+                    "world_manifest",
+                ));
+            }
+            // Invalid manifest issues were already reported by validate()
+            // above; don't duplicate those diagnostics here.
+            Err(WorldManifestCommitmentError::InvalidManifest(_)) | Ok(_) => {}
+        }
+
         match self
             .solvers
             .iter()
@@ -1006,6 +1064,36 @@ pub enum WorldValidationCode {
     SensorFrameNotAttachedToPlatform,
     SensorFrameProviderMismatch,
     SolverProfileMismatch,
+    ArtifactDigestConflict,
+    WorldManifestDigestMismatch,
+    WorldManifestCommitmentUnavailable,
+}
+
+fn record_artifact_digest_identity(
+    artifact: &ArtifactRef,
+    path: &str,
+    seen: &mut BTreeMap<String, String>,
+    issues: &mut Vec<WorldValidationIssue>,
+) {
+    // Invalid hashes already receive InvalidDigest from ArtifactRef::validate_at;
+    // do not manufacture a second, misleading identity-conflict diagnostic.
+    if artifact.artifact_id.trim().is_empty() || !is_sha256_hex(&artifact.sha256) {
+        return;
+    }
+
+    let normalized_digest = artifact.sha256.to_ascii_lowercase();
+    match seen.get(&artifact.artifact_id) {
+        Some(previous) if previous != &normalized_digest => {
+            issues.push(WorldValidationIssue::new(
+                WorldValidationCode::ArtifactDigestConflict,
+                format!("{path}.sha256"),
+            ));
+        }
+        Some(_) => {}
+        None => {
+            seen.insert(artifact.artifact_id.clone(), normalized_digest);
+        }
+    }
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -1108,6 +1196,7 @@ mod tests {
             request_id: 7,
             scenario_id: "hard-rock-workcell-smoke-v1".to_owned(),
             world_generation: 12,
+            world_manifest_digest: valid_manifest().content_digest_v1().unwrap(),
             solver: SolverDeclarationV1 {
                 solver_id: "acoustic-reference".to_owned(),
                 domain: PhysicsDomain::Acoustic,
@@ -1498,5 +1587,82 @@ mod tests {
         }
     }
 
+
+
+    #[test]
+    fn world_admission_rejects_manifest_content_change_without_generation_bump() {
+        let mut manifest = valid_manifest();
+        let expected = valid_request();
+        // Deliberately keep scenario identity and generation unchanged. The
+        // content digest must still detect this physics-relevant mutation.
+        manifest.gravity_mps2[0] = 0.5;
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        let issues = manifest
+            .validate_solver_result_against_world(&expected, &result)
+            .unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::WorldManifestDigestMismatch
+                && issue.path == "request.world_manifest_digest"
+        }));
+    }
+
+    #[test]
+    fn world_admission_accepts_result_with_matching_manifest_commitment() {
+        let manifest = valid_manifest();
+        let expected = valid_request();
+        let result = SolverResultEnvelopeV1 {
+            schema_version: SOLVER_RESULT_SCHEMA_VERSION,
+            request: expected.clone(),
+            disposition: SolverResultDisposition::NumericalNonConvergence,
+            output_digest_sha256: None,
+            outputs: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        assert_eq!(
+            manifest.validate_solver_result_against_world(&expected, &result),
+            Ok(())
+        );
+    }
+
+
+    #[test]
+    fn duplicate_world_asset_identity_is_rejected() {
+        let mut manifest = valid_manifest();
+        manifest.world_assets.push(manifest.world_assets[0].clone());
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::DuplicateIdentity
+                && issue.path == "world_assets[1].artifact_id"
+        }));
+    }
+
+    #[test]
+    fn artifact_identity_cannot_name_conflicting_content_digests() {
+        let mut manifest = valid_manifest();
+        // `robot-cad` already appears in world_assets with a different digest.
+        manifest.platforms[0].geometry.sha256 = "00".repeat(32);
+        let issues = manifest.validate().unwrap_err();
+        assert!(issues.iter().any(|issue| {
+            issue.code == WorldValidationCode::ArtifactDigestConflict
+                && issue.path == "platforms[0].geometry.sha256"
+        }));
+    }
+
+    #[test]
+    fn artifact_identity_accepts_hex_case_variation() {
+        let mut manifest = valid_manifest();
+        manifest.platforms[0].geometry.sha256 =
+            manifest.platforms[0].geometry.sha256.to_uppercase();
+        assert!(manifest.validate().is_ok());
+    }
 
 }
