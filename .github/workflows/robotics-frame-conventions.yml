@@ -1,0 +1,99 @@
+name: Robotics frame-convention qualification
+
+on:
+  # PR #1610 is stacked on another feature branch. The repository-wide CI
+  # filters pull_request events to main, so this exact-head push trigger gives
+  # the stack a real qualification path without retargeting or merging it.
+  push:
+    branches:
+      - feat/robotics-qualified-frame-conventions
+    paths:
+      - '.github/workflows/robotics-frame-conventions.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'crates/bridges/symtropy-robotics-bridge-core/**'
+      - 'crates/core/symtropy-math/**'
+      - 'crates/core/symtropy-physics/**'
+      - 'crates/domains/symtropy-consciousness-physics/**'
+      - 'scripts/verify_frame_convention_registry_v1.py'
+  # Once the stacked change targets main, keep this check available on PRs too.
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/robotics-frame-conventions.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'crates/bridges/symtropy-robotics-bridge-core/**'
+      - 'crates/core/symtropy-math/**'
+      - 'crates/core/symtropy-physics/**'
+      - 'crates/domains/symtropy-consciousness-physics/**'
+      - 'scripts/verify_frame_convention_registry_v1.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-frame-conventions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-qualification:
+    name: Focused robotics bridge checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify independent canonical reference
+        id: reference
+        continue-on-error: true
+        run: python3 scripts/verify_frame_convention_registry_v1.py
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      # Keep later checks running when one gate fails, so a formatting failure
+      # does not hide compiler/test evidence. The final gate below still fails
+      # the job if any required check did not succeed.
+      - name: Check robotics bridge formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo fmt --package symtropy-robotics-bridge-core -- --check
+
+      - name: Run robotics bridge library tests
+        id: tests
+        continue-on-error: true
+        run: cargo test -p symtropy-robotics-bridge-core --lib
+
+      - name: Run robotics bridge Clippy
+        id: clippy
+        continue-on-error: true
+        run: cargo clippy -p symtropy-robotics-bridge-core --all-targets -- -D warnings
+
+      - name: Enforce all qualification gates
+        if: always()
+        env:
+          REFERENCE: ${{ steps.reference.outcome }}
+          FORMATTING: ${{ steps.fmt.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+        run: |
+          printf 'independent reference: %s\nformatting: %s\nRust tests: %s\nClippy: %s\n' "$REFERENCE" "$FORMATTING" "$TESTS" "$CLIPPY"
+          test "$REFERENCE" = success &&
+          test "$FORMATTING" = success &&
+          test "$TESTS" = success &&
+          test "$CLIPPY" = success
