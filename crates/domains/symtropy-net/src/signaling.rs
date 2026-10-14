@@ -19,7 +19,7 @@
 use std::sync::Arc;
 
 #[cfg(feature = "webrtc")]
-use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
 
 use serde::{Deserialize, Serialize};
 
@@ -338,15 +338,15 @@ impl SignalingClient {
         use tokio_tungstenite::connect_async_with_config;
 
         // The write budget must be large enough for one maximum-size relay packet.
-        let (ws_stream, _) = connect_async_with_config(url, Some(bounded_websocket_config()), false)
-            .await
-            .map_err(|error| format!("Signaling connect failed: {error}"))?;
+        let (ws_stream, _) =
+            connect_async_with_config(url, Some(bounded_websocket_config()), false)
+                .await
+                .map_err(|error| format!("Signaling connect failed: {error}"))?;
 
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         let (cmd_tx, mut cmd_rx) =
             mpsc::channel::<QueuedSignalCommand>(SIGNAL_COMMAND_QUEUE_CAPACITY);
-        let (evt_tx, evt_rx) =
-            mpsc::channel::<QueuedSignalingEvent>(SIGNAL_EVENT_QUEUE_CAPACITY);
+        let (evt_tx, evt_rx) = mpsc::channel::<QueuedSignalingEvent>(SIGNAL_EVENT_QUEUE_CAPACITY);
         let command_bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
         let event_bytes = Arc::new(Semaphore::new(MAX_SIGNAL_QUEUE_BYTES));
 
@@ -472,15 +472,11 @@ impl SignalingClient {
                                 SignalIncoming::PeerLeft { peer_id } => {
                                     SignalingEvent::PeerLeft(PeerId(peer_id))
                                 }
-                                SignalIncoming::Signal { from, data } => {
-                                    SignalingEvent::Signal {
-                                        from: PeerId(from),
-                                        data,
-                                    }
-                                }
-                                SignalIncoming::Error { message } => {
-                                    SignalingEvent::Error(message)
-                                }
+                                SignalIncoming::Signal { from, data } => SignalingEvent::Signal {
+                                    from: PeerId(from),
+                                    data,
+                                },
+                                SignalIncoming::Error { message } => SignalingEvent::Error(message),
                             };
 
                             // The parsed event now owns its data; release the raw JSON
@@ -638,11 +634,7 @@ mod tests {
         match decoded {
             SignalIncoming::Signal {
                 from,
-                data:
-                    SignalData::RelayData {
-                        channel,
-                        payload,
-                    },
+                data: SignalData::RelayData { channel, payload },
             } => {
                 assert_eq!(from, 7);
                 assert_eq!(channel, SignalChannel::Unreliable);
@@ -673,9 +665,11 @@ mod tests {
         })
         .expect("serialize control message one byte over cap");
         assert_eq!(one_over.len(), MAX_SIGNAL_CONTROL_BYTES + 1);
-        assert!(parse_incoming(&one_over)
-            .expect_err("control message one byte over cap must fail")
-            .contains("control message"));
+        assert!(
+            parse_incoming(&one_over)
+                .expect_err("control message one byte over cap must fail")
+                .contains("control message")
+        );
     }
 
     #[test]
@@ -687,9 +681,11 @@ mod tests {
                 payload: vec![0; MAX_PEER_MESSAGE_BYTES + 1],
             },
         };
-        assert!(serialized_outgoing(&outgoing)
-            .expect_err("outgoing binary packet is one byte too large")
-            .contains("relay packet"));
+        assert!(
+            serialized_outgoing(&outgoing)
+                .expect_err("outgoing binary packet is one byte too large")
+                .contains("relay packet")
+        );
 
         // Zero-valued JSON array elements make this oversized binary payload much
         // smaller than the outer-envelope cap, exercising the independent 1 MiB guard.
@@ -702,9 +698,11 @@ mod tests {
         };
         let json = serde_json::to_string(&incoming).expect("serialize oversized relay packet");
         assert!(json.len() < MAX_SIGNALING_MESSAGE_BYTES);
-        assert!(parse_incoming(&json)
-            .expect_err("inbound binary packet is one byte too large")
-            .contains("relay packet"));
+        assert!(
+            parse_incoming(&json)
+                .expect_err("inbound binary packet is one byte too large")
+                .contains("relay packet")
+        );
     }
 
     #[cfg(feature = "webrtc")]
@@ -840,15 +838,9 @@ mod tests {
         let (tx, mut rx) = mpsc::channel(SIGNAL_EVENT_QUEUE_CAPACITY);
         let bytes = Arc::new(Semaphore::new(10));
 
-        enqueue_event(
-            &tx,
-            &bytes,
-            SignalingEvent::Connected(PeerId(1)),
-            6,
-            10,
-        )
-        .await
-        .expect("first event occupies six bytes");
+        enqueue_event(&tx, &bytes, SignalingEvent::Connected(PeerId(1)), 6, 10)
+            .await
+            .expect("first event occupies six bytes");
 
         let pending_tx = tx.clone();
         let pending_bytes = bytes.clone();
@@ -863,11 +855,17 @@ mod tests {
             .await
         });
         yield_now().await;
-        assert!(!pending.is_finished(), "second event must wait for byte capacity");
+        assert!(
+            !pending.is_finished(),
+            "second event must wait for byte capacity"
+        );
 
         let first = rx.recv().await.expect("first event is queued");
         drop(first); // Dropping the mailbox item releases its byte permit.
-        pending.await.expect("enqueue task should not panic").expect("released capacity");
+        pending
+            .await
+            .expect("enqueue task should not panic")
+            .expect("released capacity");
         assert_eq!(bytes.available_permits(), 5);
 
         let second = rx.recv().await.expect("second event is queued");
