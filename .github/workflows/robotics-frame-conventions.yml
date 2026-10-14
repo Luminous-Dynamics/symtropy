@@ -74,6 +74,24 @@ jobs:
         continue-on-error: true
         run: cargo fmt --package symtropy-robotics-bridge-core -- --check
 
+      # Diagnostic helper: the package has multiple pre-existing rustfmt diffs.
+      # Export the rustfmt-normalized source only to let us prepare a clean
+      # follow-up commit. The check above remains the true committed-head gate.
+      - name: Export rustfmt-normalized source snapshot for repair
+        if: always()
+        run: |
+          cargo fmt --package symtropy-robotics-bridge-core
+          for source in \
+            crates/bridges/symtropy-robotics-bridge-core/src/lib.rs \
+            crates/bridges/symtropy-robotics-bridge-core/src/sensor_model.rs \
+            crates/bridges/symtropy-robotics-bridge-core/src/world_contract.rs \
+            crates/bridges/symtropy-robotics-bridge-core/src/world_frame_conventions.rs \
+            crates/bridges/symtropy-robotics-bridge-core/src/world_manifest_commitment.rs; do
+            printf 'RUSTFMT_SNAPSHOT_BEGIN:%s\\n' "$source"
+            base64 -w0 "$source"
+            printf '\\nRUSTFMT_SNAPSHOT_END:%s\\n' "$source"
+          done
+
       - name: Run robotics bridge library tests
         id: tests
         continue-on-error: true
