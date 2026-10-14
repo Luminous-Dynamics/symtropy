@@ -34,5 +34,8 @@ jobs:
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Check repository Rust formatting
+        run: cargo fmt --all -- --check
+
       - name: Execute industrial-cell reference contracts
         run: cargo run --locked -p symtropy-bootstrap --example industrial_cell_reference
