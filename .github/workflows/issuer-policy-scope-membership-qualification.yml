@@ -1,0 +1,256 @@
+name: PHYS-EVID-03B1C Issuer Policy Scope Membership Qualification
+
+on:
+  push:
+    branches:
+      - ci/issuer-policy-scope-membership-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-issuer-policy-scope-membership:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUBJECT_SHA: 58b76c2476b85b43c9c0472b05d28f582b82e9d1
+      B1B_SHA: 1f15527bd042972e59db8fa605396cc80986b59a
+      B1A_SHA: 509b4ea5af6167218c6e0c4ecaafdaff520d0705
+      MAIN_SHA: c9ff0eb980389fd72b876488a7acfbbd5acc4780
+
+      CONTRACT_BLOB: 929853b115db8cfc0ddfc45b84cb0c87d8a2b5dd
+      SOURCE_BLOB: c5069782465e388e0cf0aa00c7fe1cb917d2a0ea
+      ROOT_LIB_BLOB: 9881d34218795207917e37cff3fa877559205442
+
+      B1B_CONTRACT_BLOB: 5010d2fa174cbe921111588b245a0c997d78dd2c
+      B1B_SOURCE_BLOB: dff364eb03a28f9b681a79645cfb7aca0bc0aea7
+      B1A_SOURCE_BLOB: b7c0e89c653d8b7dcdd16fbefdb43ef1ca3dfe08
+      B1A_FIXTURE_BLOB: 3bdac8266bbb542bcd2456243e9e6df9ad5241c9
+      B1A_TEST_BLOB: dc84c236bfebfdf99a77241b737217b2c71f68c5
+      B1A_ORACLE_BLOB: a9f4ed0df06ad5a696ffbc77646fd20b5ede8d06
+
+    steps:
+      - name: Checkout exact B1C subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact three-level stacked lineage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse "$SUBJECT_SHA^")" = "$B1B_SHA"
+          test "$(git rev-parse "$B1B_SHA^")" = "$B1A_SHA"
+          test "$(git rev-parse "$B1A_SHA^")" = "$MAIN_SHA"
+          test "$(git rev-list --count "$B1B_SHA..$SUBJECT_SHA")" = "1"
+          test "$(git rev-list --count "$B1A_SHA..$B1B_SHA")" = "1"
+          test "$(git rev-list --count "$MAIN_SHA..$B1A_SHA")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "$B1B_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            docs/release/evidence/ISSUER_POLICY_SCOPE_MEMBERSHIP_V01.md
+            src/issuer_policy_membership.rs
+            src/lib.rs
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+      - name: Freeze B1C and predecessor semantic blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$SUBJECT_SHA:docs/release/evidence/ISSUER_POLICY_SCOPE_MEMBERSHIP_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/issuer_policy_membership.rs")" = "$SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/lib.rs")" = "$ROOT_LIB_BLOB"
+
+          test "$(git rev-parse "$B1B_SHA:docs/release/evidence/LOCAL_ISSUER_POLICY_TRUST_BOOTSTRAP_V01.md")" = "$B1B_CONTRACT_BLOB"
+          test "$(git rev-parse "$B1B_SHA:src/issuer_policy_trust.rs")" = "$B1B_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/issuer_policy_trust.rs")" = "$B1B_SOURCE_BLOB"
+
+          test "$(git rev-parse "$B1A_SHA:crates/core/symtropy-physics/src/issuer_policy.rs")" = "$B1A_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/issuer_policy.rs")" = "$B1A_SOURCE_BLOB"
+          test "$(git rev-parse "$B1A_SHA:crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json")" = "$B1A_FIXTURE_BLOB"
+          test "$(git rev-parse "$B1A_SHA:crates/core/symtropy-physics/tests/issuer_policy_canonical_v01.rs")" = "$B1A_TEST_BLOB"
+          test "$(git rev-parse "$B1A_SHA:crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py")" = "$B1A_ORACLE_BLOB"
+
+      - name: Prove no dependency or lock change across B1C
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$B1B_SHA:Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.toml")"
+          test "$(git rev-parse "$B1B_SHA:Cargo.lock")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.lock")"
+          test "$(git rev-parse "$B1B_SHA:crates/core/symtropy-physics/Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/Cargo.toml")"
+          test -z "$(git diff --name-only "$B1B_SHA" "$SUBJECT_SHA" -- Cargo.toml Cargo.lock crates/core/symtropy-physics/Cargo.toml)"
+
+      - name: Independent B1A canonical-policy oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py
+
+      - name: Static deterministic-membership and authority-boundary audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('src/issuer_policy_membership.rs').read_text()
+          production = text.split('#[cfg(test)]', 1)[0]
+          contract = Path('docs/release/evidence/ISSUER_POLICY_SCOPE_MEMBERSHIP_V01.md').read_text()
+          b1b = Path('src/issuer_policy_trust.rs').read_text().split('#[cfg(test)]', 1)[0]
+
+          required = [
+              'use crate::issuer_policy_trust::LocallyTrustedIssuerAuthorizationPolicyV1;',
+              'pub struct IssuerAuthorizationQueryV1',
+              'pub struct IssuerPolicyScopeMatchV1',
+              "trusted_policy: &'a LocallyTrustedIssuerAuthorizationPolicyV1",
+              "pub fn trusted_policy(&self) -> &'a LocallyTrustedIssuerAuthorizationPolicyV1",
+              'pub fn evaluate_issuer_policy_scope_v1',
+              "trusted_policy: &'a LocallyTrustedIssuerAuthorizationPolicyV1",
+              '.binary_search_by(|entry| entry.credential_id().cmp(&query.credential_id))',
+              'IssuerPolicyScopeDenyReasonV1::UnknownCredential',
+              'IssuerCredentialStatusV1::Active',
+              'IssuerPolicyScopeDenyReasonV1::CredentialDisabled',
+              'IssuerPolicyScopeDenyReasonV1::CredentialRevokedCompromised',
+              'query.physical_authority_id == 0',
+              '.physical_authority_ids()', '.binary_search(&query.physical_authority_id)',
+              '.claim_profiles()', '.binary_search(&query.claim_profile)',
+              '.session_profiles()', '.binary_search(&query.session_profile)',
+              '.attestation_suites()', '.binary_search(&query.attestation_suite)',
+              '.crypto_policy_profiles()', '.binary_search(&query.crypto_policy_profile)',
+              'Ok(IssuerPolicyScopeMatchV1',
+          ]
+          for needle in required:
+              assert needle in production, needle
+
+          assert 'TrustedIssuerAuthorizationPolicyV1' not in production.replace('LocallyTrustedIssuerAuthorizationPolicyV1', '')
+          assert 'LocallyTrustedIssuerAuthorizationPolicyV1' in contract
+          assert 'DeploymentAuthorizedIssuerPolicySnapshotV1' in contract
+          assert 'PHYS-EVID-03B1B2' in contract
+          assert 'LocallyTrustedIssuerAuthorizationPolicyV1' in b1b
+
+          match_struct = re.search(
+              r'pub struct IssuerPolicyScopeMatchV1<[^>]+>\s*\{(?P<body>.*?)\n\}',
+              production,
+              re.S,
+          )
+          assert match_struct
+          assert 'pub ' not in match_struct.group('body')
+
+          eval_body = production.split('pub fn evaluate_issuer_policy_scope_v1', 1)[1]
+          ordered = [
+              'binary_search_by', 'match entry.status()',
+              'query.physical_authority_id == 0', '.physical_authority_ids()',
+              '.claim_profiles()', '.session_profiles()', '.attestation_suites()',
+              '.crypto_policy_profiles()', 'Ok(IssuerPolicyScopeMatchV1',
+          ]
+          positions = [eval_body.index(token) for token in ordered]
+          assert positions == sorted(positions), positions
+
+          forbidden = [
+              'CryptographicallyValidEvidenceAttestationV1',
+              'IssuerAuthorizedPersistentPhysicsEvidenceV1',
+              'verify_signature', 'sign_', 'Sha256', 'sha2', 'blake3',
+              'Ed25519', 'MlDsa', 'ML_DSA', 'xenia_',
+              'ActionKey', 'compare_and_set', 'contradiction', 'settlement', 'escrow',
+              'SystemTime', 'Instant::now', 'std::fs', 'Path::', 'metadata(',
+          ]
+          for needle in forbidden:
+              assert needle not in production, needle
+
+          assert 'pub fn new(' not in production
+          assert 'impl From<IssuerPolicyScopeMatchV1' not in production
+          assert 'impl TryFrom<IssuerPolicyScopeMatchV1' not in production
+
+          print('PHYS-EVID-03B1C exact locally-trusted membership audit: PASS')
+          PY
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust format and integration checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check -p symtropy-physics --locked
+          cargo check -p symtropy-launcher --lib --locked
+
+      - name: B1A B1B B1C semantic corpora
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --test issuer_policy_canonical_v01 --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib issuer_policy_trust::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib issuer_policy_membership::tests --locked -- --nocapture
+
+      - name: Regressions and warnings-denied Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --lib --locked
+          cargo clippy -p symtropy-physics --lib --locked -- -D warnings
+          cargo clippy -p symtropy-launcher --lib --locked -- -D warnings
+
+      - name: Immutable-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:src/issuer_policy_membership.rs)" = "$SOURCE_BLOB"
+          test "$(git rev-parse HEAD:src/issuer_policy_trust.rs)" = "$B1B_SOURCE_BLOB"
+          test "$(git rev-parse HEAD:crates/core/symtropy-physics/src/issuer_policy.rs)" = "$B1A_SOURCE_BLOB"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-03B1C deterministic locally-trusted-policy scope membership v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'b1b_parent_sha': os.environ['B1B_SHA'],
+              'b1a_parent_sha': os.environ['B1A_SHA'],
+              'trusted_policy_type': 'LocallyTrustedIssuerAuthorizationPolicyV1',
+              'exact_credential_lookup': True,
+              'status_fail_closed': True,
+              'physical_authority_exact_membership': True,
+              'claim_profile_exact_membership': True,
+              'session_profile_exact_membership': True,
+              'attestation_suite_exact_membership': True,
+              'crypto_policy_exact_membership': True,
+              'scope_match_borrows_exact_local_snapshot': True,
+              'plain_query_authenticated': False,
+              'b1b_local_caller_only': True,
+              'bootstrap_caller_authenticated': False,
+              'deployment_authorization_claimed': False,
+              'b1b2_claimed': False,
+              'b0_crypto_validity_claimed': False,
+              'issuer_authorized_evidence_claimed': False,
+              'predecessor_separate_pass_laundering': False,
+              'trusted_time_claimed': False,
+              'contradiction_resolution_claimed': False,
+              'side_effect_authority_claimed': False,
+              'settlement_claimed': False,
+          }
+          Path('phys-evid-03b1c-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-03b1c-issuer-policy-membership-receipt
+          path: phys-evid-03b1c-receipt.json
+          if-no-files-found: error
