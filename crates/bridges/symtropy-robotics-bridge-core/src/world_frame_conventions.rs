@@ -850,6 +850,22 @@ pub(crate) mod tests {
                 assert_eq!(row.iter().filter(|value| **value != 0).count(), 1);
                 assert!(row.iter().all(|value| (-1..=1).contains(value)));
             }
+            for column in 0..3 {
+                assert_eq!(
+                    matrix.iter().filter(|row| row[column] != 0).count(),
+                    1
+                );
+            }
+            let determinant = i16::from(matrix[0][0])
+                * (i16::from(matrix[1][1]) * i16::from(matrix[2][2])
+                    - i16::from(matrix[1][2]) * i16::from(matrix[2][1]))
+                - i16::from(matrix[0][1])
+                    * (i16::from(matrix[1][0]) * i16::from(matrix[2][2])
+                        - i16::from(matrix[1][2]) * i16::from(matrix[2][0]))
+                + i16::from(matrix[0][2])
+                    * (i16::from(matrix[1][0]) * i16::from(matrix[2][1])
+                        - i16::from(matrix[1][1]) * i16::from(matrix[2][0]));
+            assert_eq!(determinant, 1, "axis basis conversion must be a proper rotation");
 
             let converted = convert_vector_v1(vector, &from, &to).unwrap();
             let restored = convert_vector_v1(converted, &to, &from).unwrap();
