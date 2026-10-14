@@ -43,10 +43,7 @@ pub enum SurveyAdjustmentErrorV1 {
     InvalidStandardUncertainty,
     InvalidRankTolerance,
     InsufficientObservations,
-    RankDeficient {
-        rank: usize,
-        required_rank: usize,
-    },
+    RankDeficient { rank: usize, required_rank: usize },
     NumericalFailure(&'static str),
 }
 
@@ -108,10 +105,7 @@ pub struct LinearizedSurveyObservationV1 {
 }
 
 impl LinearizedSurveyObservationV1 {
-    fn validate(
-        &self,
-        parameter_count: usize,
-    ) -> Result<(), SurveyAdjustmentErrorV1> {
+    fn validate(&self, parameter_count: usize) -> Result<(), SurveyAdjustmentErrorV1> {
         if !valid_identity(&self.observation_id) {
             return Err(SurveyAdjustmentErrorV1::InvalidIdentity("observation_id"));
         }
@@ -121,7 +115,10 @@ impl LinearizedSurveyObservationV1 {
             ));
         }
         if !self.value.is_finite()
-            || !self.coefficients.iter().all(|coefficient| coefficient.is_finite())
+            || !self
+                .coefficients
+                .iter()
+                .all(|coefficient| coefficient.is_finite())
         {
             return Err(SurveyAdjustmentErrorV1::InvalidNumber("observation"));
         }
@@ -151,10 +148,15 @@ impl SurveyAdjustmentProvenanceV1 {
             return Err(SurveyAdjustmentErrorV1::InvalidIdentity("algorithm_id"));
         }
         if !valid_identity(&self.algorithm_version) {
-            return Err(SurveyAdjustmentErrorV1::InvalidIdentity("algorithm_version"));
+            return Err(SurveyAdjustmentErrorV1::InvalidIdentity(
+                "algorithm_version",
+            ));
         }
         for (digest, name) in [
-            (self.algorithm_build_sha256.as_str(), "algorithm_build_sha256"),
+            (
+                self.algorithm_build_sha256.as_str(),
+                "algorithm_build_sha256",
+            ),
             (self.configuration_sha256.as_str(), "configuration_sha256"),
         ] {
             if !valid_sha256(digest) {
@@ -234,9 +236,7 @@ impl LinearizedSurveyAdjustmentV1 {
             return Err(SurveyAdjustmentErrorV1::TooManyItems("observations"));
         }
         if self.fitting_observations.is_empty() {
-            return Err(SurveyAdjustmentErrorV1::EmptySet(
-                "fitting_observations",
-            ));
+            return Err(SurveyAdjustmentErrorV1::EmptySet("fitting_observations"));
         }
         if !self.relative_rank_tolerance.is_finite()
             || self.relative_rank_tolerance <= 0.0
@@ -265,9 +265,7 @@ impl LinearizedSurveyAdjustmentV1 {
                 ));
             }
             if !fixed.value.is_finite() {
-                return Err(SurveyAdjustmentErrorV1::InvalidNumber(
-                    "fixed_parameter",
-                ));
+                return Err(SurveyAdjustmentErrorV1::InvalidNumber("fixed_parameter"));
             }
             if !fixed_indices.insert(fixed.parameter_index) {
                 return Err(SurveyAdjustmentErrorV1::DuplicateParameterIndex(
@@ -276,9 +274,7 @@ impl LinearizedSurveyAdjustmentV1 {
             }
         }
         if fixed_indices.len() == parameter_count {
-            return Err(SurveyAdjustmentErrorV1::EmptySet(
-                "free_parameters",
-            ));
+            return Err(SurveyAdjustmentErrorV1::EmptySet("free_parameters"));
         }
         let free_count = parameter_count - fixed_indices.len();
         if self.fitting_observations.len() < free_count {
@@ -290,9 +286,7 @@ impl LinearizedSurveyAdjustmentV1 {
     /// Run one weighted least-squares solve for supplied linearized equations.
     /// Nonlinear range/angle networks must linearize and call this in a controlled
     /// outer iteration with convergence and model-credibility checks.
-    pub fn solve(
-        &self,
-    ) -> Result<SurveyAdjustmentResultV1, SurveyAdjustmentErrorV1> {
+    pub fn solve(&self) -> Result<SurveyAdjustmentResultV1, SurveyAdjustmentErrorV1> {
         self.validate()?;
 
         let parameter_count = self.parameter_names.len();
@@ -314,9 +308,7 @@ impl LinearizedSurveyAdjustmentV1 {
             let fixed_contribution = self
                 .fixed_parameters
                 .iter()
-                .map(|entry| {
-                    observation.coefficients[entry.parameter_index] * entry.value
-                })
+                .map(|entry| observation.coefficients[entry.parameter_index] * entry.value)
                 .sum::<f64>();
             let sigma = observation.standard_uncertainty;
             weighted_values[row_index] = (observation.value - fixed_contribution) / sigma;
@@ -422,9 +414,9 @@ impl LinearizedSurveyAdjustmentV1 {
             });
         }
         if !weighted_sum_squares.is_finite()
-            || residuals.iter().any(|item| {
-                !item.residual.is_finite() || !item.normalized_residual.is_finite()
-            })
+            || residuals
+                .iter()
+                .any(|item| !item.residual.is_finite() || !item.normalized_residual.is_finite())
         {
             return Err(SurveyAdjustmentErrorV1::NumericalFailure(
                 "residual_not_finite",
@@ -432,8 +424,8 @@ impl LinearizedSurveyAdjustmentV1 {
         }
 
         let degrees_of_freedom = row_count - free_count;
-        let posterior_variance_factor = (degrees_of_freedom > 0)
-            .then_some(weighted_sum_squares / degrees_of_freedom as f64);
+        let posterior_variance_factor =
+            (degrees_of_freedom > 0).then_some(weighted_sum_squares / degrees_of_freedom as f64);
 
         // Formal covariance/cofactor matrix from the weighted design SVD.
         let mut covariance_row_major = vec![0.0; free_count * free_count];
@@ -495,10 +487,8 @@ impl LinearizedSurveyAdjustmentV1 {
         if !valid_identity(&artifact_id) || !valid_identity(&uri) {
             return Err(SurveyAdjustmentErrorV1::InvalidArtifact("adjustment_input"));
         }
-        let bytes =
-            serde_json::to_vec(self).map_err(|_| SurveyAdjustmentErrorV1::NumericalFailure(
-                "serialize_input",
-            ))?;
+        let bytes = serde_json::to_vec(self)
+            .map_err(|_| SurveyAdjustmentErrorV1::NumericalFailure("serialize_input"))?;
         if bytes.len() > MAX_ADJUSTMENT_PAYLOAD_BYTES {
             return Err(SurveyAdjustmentErrorV1::TooManyItems("payload_bytes"));
         }
@@ -663,7 +653,9 @@ mod tests {
         let checkpoint = changed_result
             .residuals
             .iter()
-            .find(|residual| residual.role == SurveyAdjustmentObservationRoleV1::IndependentCheckpoint)
+            .find(|residual| {
+                residual.role == SurveyAdjustmentObservationRoleV1::IndependentCheckpoint
+            })
             .expect("checkpoint residual retained");
         assert_eq!(checkpoint.residual, 910.0);
     }
@@ -738,7 +730,9 @@ mod tests {
     #[test]
     fn duplicate_fixed_indices_and_out_of_range_indices_are_rejected() {
         let mut duplicate = input();
-        duplicate.fixed_parameters.push(duplicate.fixed_parameters[0].clone());
+        duplicate
+            .fixed_parameters
+            .push(duplicate.fixed_parameters[0].clone());
         assert_eq!(
             duplicate.validate(),
             Err(SurveyAdjustmentErrorV1::DuplicateParameterIndex(1))
