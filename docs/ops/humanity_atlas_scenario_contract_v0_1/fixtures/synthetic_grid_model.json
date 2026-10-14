@@ -1,0 +1,1 @@
+{"model_id":"synthetic-grid-growth-v0","classification":"synthetic_fixture","annual_storage_growth_rate":0.08,"annual_demand_growth_rate":0.03,"unserved_energy_formula":"baseline_unserved_energy * (baseline_storage / current_storage) * (1 + demand_growth) ** elapsed_years","notes":"Toy equation to test the inter-repository scenario contract only; not a calibrated energy model."}

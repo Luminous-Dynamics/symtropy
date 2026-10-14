@@ -1,0 +1,185 @@
+name: Humanity Atlas Real Artifact Qualification
+
+on:
+  pull_request:
+    paths:
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_multiworld_output.py"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/test_adapt_multiworld_output.py"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh"
+      - "docs/ops/humanity_atlas_scenario_contract_v0_1/schemas/run-v0.1.schema.json"
+      - ".github/workflows/humanity-atlas-real-artifact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: humanity-atlas-real-artifact-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-artifact:
+    name: Simulator → adapter → independent consumer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: never
+      RUST_BACKTRACE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      LUMINOUS_MONOREPO_ROOT: ${{ github.workspace }}/luminous-dynamics
+      SOL_ATLAS_ROOT: ${{ github.workspace }}/sol-atlas-leptos
+      ATLAS_QUALIFICATION_DIR: /tmp/humanity-atlas-real-artifact-evidence
+      YEARS: "150"
+      SEED: "42"
+      HUMANITY_ATLAS_PRODUCER_SHA: b59b99621cdb3699eda32aa39f152bd3b693a534
+      HUMANITY_ATLAS_CONSUMER_SHA: d29742028e6d8b5c9b54bac7ae53721ecee3ac13
+    steps:
+      - name: Preflight private simulator read access
+        env:
+          LUMINOUS_MONOREPO_READ_TOKEN: ${{ secrets.LUMINOUS_MONOREPO_READ_TOKEN }}
+        run: |
+          mkdir -p "$ATLAS_QUALIFICATION_DIR"
+          STATUS_PATH="$ATLAS_QUALIFICATION_DIR/qualification-execution-status.json"
+          if [[ -z "$LUMINOUS_MONOREPO_READ_TOKEN" ]]; then
+            cat > "$STATUS_PATH" <<'JSON'
+          {
+            "record_type": "humanity-atlas-execution-status",
+            "execution_state": "blocked",
+            "qualification_state": "not_passed",
+            "last_phase": "private_producer_credential_preflight",
+            "blocker_code": "missing_luminous_monorepo_read_token",
+            "blocker": "Configure the LUMINOUS_MONOREPO_READ_TOKEN Actions secret with read-only Contents access to Luminous-Dynamics/luminous-dynamics. The real-artifact qualification did not run.",
+            "scientific_validation": "not_established_by_this_execution_status_record"
+          }
+          JSON
+            {
+              echo "## Humanity Atlas real-artifact qualification"
+              echo
+              echo "**BLOCKED — not passed.** The LUMINOUS_MONOREPO_READ_TOKEN Actions secret is missing. Configure a narrowly scoped read-only credential for the private simulator repository; no real-artifact qualification was run."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Missing LUMINOUS_MONOREPO_READ_TOKEN; private simulator checkout cannot use the Symtropy repository's default GITHUB_TOKEN."
+            exit 1
+          fi
+          cat > "$STATUS_PATH" <<'JSON'
+          {
+            "record_type": "humanity-atlas-execution-status",
+            "execution_state": "preflight_pending",
+            "qualification_state": "not_passed",
+            "last_phase": "private_producer_credential_preflight",
+            "blocker_code": "checkout_not_yet_verified",
+            "blocker": "Credential is present but private-repository access and the qualification have not yet been verified.",
+            "scientific_validation": "not_established_by_this_execution_status_record"
+          }
+          JSON
+
+      - name: Checkout simulator producer branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Luminous-Dynamics/luminous-dynamics
+          ref: ${{ env.HUMANITY_ATLAS_PRODUCER_SHA }}
+          path: luminous-dynamics
+          token: ${{ secrets.LUMINOUS_MONOREPO_READ_TOKEN }}
+          persist-credentials: false
+
+      - name: Checkout standalone Sol-Atlas consumer branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Luminous-Dynamics/sol-atlas-leptos
+          ref: ${{ env.HUMANITY_ATLAS_CONSUMER_SHA }}
+          path: sol-atlas-leptos
+          persist-credentials: false
+
+      - name: Checkout Symtropy adapter at the triggering commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          path: symtropy
+          persist-credentials: false
+
+      - name: Assert exact integration source revisions
+        env:
+          EXPECTED_SYMTROPY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          for entry in \
+            "symtropy:$EXPECTED_SYMTROPY_SHA" \
+            "luminous-dynamics:$HUMANITY_ATLAS_PRODUCER_SHA" \
+            "sol-atlas-leptos:$HUMANITY_ATLAS_CONSUMER_SHA"; do
+            checkout="${entry%%:*}"
+            expected="${entry#*:}"
+            actual="$(git -C "$checkout" rev-parse HEAD)"
+            printf '%s expected=%s\n%s actual=%s\n' "$checkout" "$expected" "$checkout" "$actual"
+            test "$actual" = "$expected"
+          done
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@3fc1e40d4c4ce3007de028907c886bc3996ce2ea # 1.96.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install required JSON Schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+
+      - name: Run real-artifact qualification and preserve evidence
+        working-directory: symtropy
+        run: |
+          # Preflight writes a blocker receipt before the shell gate can require an empty output directory.
+          rm -f "$ATLAS_QUALIFICATION_DIR/qualification-execution-status.json"
+          bash docs/ops/humanity_atlas_scenario_contract_v0_1/qualify_real_artifact.sh
+
+      - name: Record pre-qualification checkout blocker
+        if: failure()
+        run: |
+          python3 - "$ATLAS_QUALIFICATION_DIR/qualification-execution-status.json" "$GITHUB_WORKSPACE/luminous-dynamics" "$GITHUB_WORKSPACE/sol-atlas-leptos" <<'PY'
+          import json, os, sys
+          status_path, producer, consumer = sys.argv[1:]
+          current = {}
+          try:
+              with open(status_path, encoding="utf-8") as stream:
+                  current = json.load(stream)
+          except (OSError, json.JSONDecodeError):
+              pass
+          if current.get("execution_state") in {"failed", "completed_successfully", "blocked"}:
+              raise SystemExit(0)
+          if not os.path.isdir(os.path.join(producer, ".git")):
+              code = "private_producer_checkout_failed"
+              blocker = (
+                  "The private simulator repository checkout did not complete. "
+                  "Confirm LUMINOUS_MONOREPO_READ_TOKEN exists and has Contents: read "
+                  "access to Luminous-Dynamics/luminous-dynamics."
+              )
+          elif not os.path.isdir(os.path.join(consumer, ".git")):
+              code = "consumer_checkout_failed"
+              blocker = "The standalone Sol-Atlas consumer checkout did not complete; inspect the checkout step."
+          else:
+              code = "prequalification_step_failed"
+              blocker = "A required pre-qualification workflow step failed before the qualification script wrote its own status receipt."
+          current.update({
+              "record_type": "humanity-atlas-execution-status",
+              "execution_state": "blocked",
+              "qualification_state": "not_passed",
+              "last_phase": code,
+              "blocker_code": code,
+              "blocker": blocker,
+              "scientific_validation": "not_established_by_this_execution_status_record",
+          })
+          os.makedirs(os.path.dirname(status_path), exist_ok=True)
+          with open(status_path, "w", encoding="utf-8") as stream:
+              json.dump(current, stream, indent=2, sort_keys=True)
+              stream.write("\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
+              stream.write("## Humanity Atlas real-artifact qualification\n\n")
+              stream.write("**BLOCKED — not passed.** " + blocker + "\n")
+          PY
+
+      - name: Upload qualification evidence, including failed-gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: humanity-atlas-real-artifact-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/humanity-atlas-real-artifact-evidence/
+          if-no-files-found: warn
+          retention-days: 14

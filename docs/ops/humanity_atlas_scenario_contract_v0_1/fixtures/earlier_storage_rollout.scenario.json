@@ -1,0 +1,75 @@
+{
+  "schema_version": "humanity-atlas.scenario.v0.1",
+  "scenario_id": "ha.energy-storage.earlier-rollout.synthetic-v0-1",
+  "title": "Earlier storage rollout (synthetic contract fixture)",
+  "intent": "design_study",
+  "baseline": {
+    "dataset_id": "synthetic-grid-v0",
+    "dataset_sha256": "a976ef2368057b40265ee5b054ee3311bb22000dbac10edd57e3fb9919fe246e",
+    "reference_year": 2025
+  },
+  "horizon": {
+    "start_year": 2025,
+    "end_year": 2030,
+    "step_years": 1
+  },
+  "engine": {
+    "adapter": "synthetic_reference_only",
+    "engine_version": "contract-smoke-v0.1",
+    "model_sha256": "62656555cd45a4395bfba6c73706100572edd4f5aed84eb30164564de1b251c0",
+    "deterministic": true,
+    "seed": 0,
+    "replicates": 1
+  },
+  "interventions": [
+    {
+      "target_id": "world.energy-system",
+      "parameter": "annual_storage_growth_rate",
+      "operation": "multiply",
+      "value": 1.5,
+      "unit": "ratio",
+      "effective_year": 2026,
+      "expires_year": 2030
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "assumption.storage-growth",
+      "kind": "fixed",
+      "statement": "The synthetic annual storage growth rate comes from the fixture model.",
+      "value": 0.08,
+      "unit": "1/year"
+    },
+    {
+      "id": "assumption.demand-growth",
+      "kind": "fixed",
+      "statement": "The synthetic annual demand growth rate comes from the fixture model.",
+      "value": 0.03,
+      "unit": "1/year"
+    },
+    {
+      "id": "assumption.isolation",
+      "kind": "fixed",
+      "statement": "All other variables are held constant to isolate the toy intervention.",
+      "value": "unchanged",
+      "unit": "qualitative"
+    }
+  ],
+  "requested_metrics": [
+    {
+      "metric_id": "installed_storage_gwh",
+      "unit": "GWh",
+      "objective": "maximize"
+    },
+    {
+      "metric_id": "unserved_energy_gwh_per_year",
+      "unit": "GWh/year",
+      "objective": "minimize"
+    }
+  ],
+  "limitations": [
+    "Synthetic fixture only; numbers are not empirical or predictive.",
+    "A deterministic run does not estimate event probabilities or uncertainty.",
+    "The reference runner does not execute the Symtropy physics engine."
+  ]
+}
