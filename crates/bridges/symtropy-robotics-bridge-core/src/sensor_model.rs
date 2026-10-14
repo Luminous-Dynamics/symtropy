@@ -77,7 +77,10 @@ impl fmt::Display for SensorModelError {
                 formatter,
                 "serialized sensor state does not match its profile or sample schedule"
             ),
-            Self::CaptureNotDue { now_ns, next_due_ns } => write!(
+            Self::CaptureNotDue {
+                now_ns,
+                next_due_ns,
+            } => write!(
                 formatter,
                 "sensor capture at {now_ns} ns is early; next sample is due at {next_due_ns} ns"
             ),
@@ -89,7 +92,10 @@ impl fmt::Display for SensorModelError {
                 "sensor noise unit does not match truth channel {index}"
             ),
             Self::NonFiniteReading { index } => {
-                write!(formatter, "sensor model produced a non-finite reading at index {index}")
+                write!(
+                    formatter,
+                    "sensor model produced a non-finite reading at index {index}"
+                )
             }
             Self::ClockOverflow => write!(formatter, "sensor timestamp arithmetic overflowed"),
             Self::SampleIndexOverflow => write!(formatter, "sensor sample index overflowed"),
@@ -115,10 +121,7 @@ pub struct SensorModelV1 {
 impl SensorModelV1 {
     pub const SCHEMA_VERSION: u16 = 1;
 
-    pub fn new(
-        world_seed: u64,
-        profile: SensorProfileV1,
-    ) -> Result<Self, SensorModelError> {
+    pub fn new(world_seed: u64, profile: SensorProfileV1) -> Result<Self, SensorModelError> {
         validate_profile(&profile)?;
         let sample_rate_nanohz = (profile.sample_rate_hz * NANO_HERTZ_PER_HERTZ).round() as u64;
         if sample_rate_nanohz == 0 {
@@ -153,13 +156,11 @@ impl SensorModelV1 {
             return Err(SensorModelError::InvalidState);
         }
         validate_profile(&self.profile)?;
-        let expected_rate =
-            (self.profile.sample_rate_hz * NANO_HERTZ_PER_HERTZ).round() as u64;
+        let expected_rate = (self.profile.sample_rate_hz * NANO_HERTZ_PER_HERTZ).round() as u64;
         if expected_rate == 0 || expected_rate != self.sample_rate_nanohz {
             return Err(SensorModelError::InvalidState);
         }
-        if sample_time_ns(self.next_sample_index, self.sample_rate_nanohz)?
-            != self.next_due_time_ns
+        if sample_time_ns(self.next_sample_index, self.sample_rate_nanohz)? != self.next_due_time_ns
         {
             return Err(SensorModelError::InvalidState);
         }
@@ -187,9 +188,7 @@ impl SensorModelV1 {
 
         // Find the latest sample index whose quantized timestamp is <= the
         // supplied world clock. u128 avoids overflow for u64 clock values.
-        let due_index = (((acquisition_time_ns as u128 + 1)
-            * self.sample_rate_nanohz as u128)
-            - 1)
+        let due_index = (((acquisition_time_ns as u128 + 1) * self.sample_rate_nanohz as u128) - 1)
             / NANOS_TIMES_NANO_HERTZ;
         let due_index = u64::try_from(due_index).map_err(|_| SensorModelError::ClockOverflow)?;
         let missed_sample_count = due_index
@@ -225,10 +224,7 @@ impl SensorModelV1 {
                 // Twelve independent U[0,1) draws minus six give a bounded,
                 // zero-mean, unit-variance approximation to Gaussian noise.
                 // No platform-dependent transcendental functions are needed.
-                let unit_noise = (0..12)
-                    .map(|_| rng.unit_f64())
-                    .sum::<f64>()
-                    - 6.0;
+                let unit_noise = (0..12).map(|_| rng.unit_f64()).sum::<f64>() - 6.0;
                 let noisy = channel.value + self.profile.noise_std * unit_noise;
                 if !noisy.is_finite() {
                     return Err(SensorModelError::NonFiniteReading { index });
@@ -278,9 +274,7 @@ fn validate_profile(profile: &SensorProfileV1) -> Result<(), SensorModelError> {
     if profile.sensor_id.trim().is_empty() {
         return Err(SensorModelError::InvalidProfile("sensor identity is empty"));
     }
-    if !profile.sample_rate_hz.is_finite()
-        || !(1.0e-9..=1.0e9).contains(&profile.sample_rate_hz)
-    {
+    if !profile.sample_rate_hz.is_finite() || !(1.0e-9..=1.0e9).contains(&profile.sample_rate_hz) {
         return Err(SensorModelError::InvalidProfile(
             "sample rate must be between 1 nHz and 1 GHz",
         ));
@@ -407,6 +401,7 @@ mod tests {
         SensorProfileV1 {
             sensor_id: "imu-front".to_owned(),
             modality: SensorModality::Imu,
+            frame_id: "imu_link".to_owned(),
             model_solver_id: None,
             calibration_artifact: None,
             sample_rate_hz: 100.0,
@@ -557,9 +552,7 @@ mod tests {
         let mut sensor = SensorModelV1::new(0x51_5e_05, profile()).unwrap();
         let mut values = Vec::with_capacity(1024);
         for index in 0..1024u64 {
-            let sample = sensor
-                .capture_at(index * 10_000_000, &truth(0.0))
-                .unwrap();
+            let sample = sensor.capture_at(index * 10_000_000, &truth(0.0)).unwrap();
             values.push(sample.readings[0].value);
         }
         let mean = values.iter().sum::<f64>() / values.len() as f64;
