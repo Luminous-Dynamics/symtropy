@@ -985,7 +985,7 @@ pub fn validate_cargo_transfer_plan(
 ) -> Result<CargoTransferCapacityReport, CargoError> {
     let bindings: Vec<_> = entries
         .iter()
-        .map(|entry| entry.binding.clone())
+        .map(|entry| (*entry.binding).clone())
         .collect();
     let report = validate_cargo_transfer_capacity_plan(&bindings, edges, equipment_capacities)?;
     let edges_by_id: BTreeMap<_, _> = edges.iter().map(|edge| (edge.id.as_str(), edge)).collect();
