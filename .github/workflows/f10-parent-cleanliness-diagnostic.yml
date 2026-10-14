@@ -1,0 +1,77 @@
+name: F10 Parent Cleanliness Diagnostic
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f10-parent-cleanliness-diagnostic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose frozen #572 checkout mutation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact #572 parent
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: f323d7d2b9bdb9e923835fd24e4f499942a8fdd1
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind exact parent and clean baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "f323d7d2b9bdb9e923835fd24e4f499942a8fdd1"
+          echo "F10_DIAGNOSTIC_PARENT_HEAD=$(git rev-parse HEAD)"
+          echo "F10_DIAGNOSTIC_PARENT_TREE=$(git rev-parse HEAD^{tree})"
+          baseline="$(git status --porcelain=v1 --untracked-files=all)"
+          if [[ -n "${baseline}" ]]; then
+            echo "::error::Checkout was dirty before Cargo execution"
+            printf '%s\n' "${baseline}"
+            exit 1
+          fi
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Execute exact parent proof and expose all checkout mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked -p symtropy-fabrication --lib
+          cargo test --locked -p symtropy-fabrication --lib
+          cargo clippy --locked -p symtropy-fabrication --all-targets --all-features -- -D warnings
+
+          status="$(git status --porcelain=v1 --untracked-files=all)"
+          echo "F10_DIRTY_STATUS_BEGIN"
+          printf '%s\n' "${status}"
+          echo "F10_DIRTY_STATUS_END"
+
+          echo "F10_TRACKED_DIFF_BEGIN"
+          git diff --name-status
+          git diff --stat
+          echo "F10_TRACKED_DIFF_END"
+
+          echo "F10_UNTRACKED_BEGIN"
+          git ls-files --others --exclude-standard
+          echo "F10_UNTRACKED_END"
+
+          echo "F10_IGNORED_BUILD_PATHS_BEGIN"
+          git status --porcelain=v1 --ignored --untracked-files=all | grep '^!! ' | head -200 || true
+          echo "F10_IGNORED_BUILD_PATHS_END"
+
+          if [[ -n "${status}" ]]; then
+            echo "::error::Frozen #572 checkout changed during locked Cargo proof; see diagnostic blocks above"
+            exit 1
+          fi
+
+          echo "F10_PARENT_CLEAN_AFTER_CARGO=true"
