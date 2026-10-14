@@ -1,15 +1,17 @@
 import hashlib
 import json
 import os
+import tempfile
 import unittest
-from io import BytesIO
+from contextlib import redirect_stderr
+from io import BytesIO, StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
 from pathlib import Path
 
 from adapt_multiworld_output import (
     AdapterError, MAX_SOURCE_ARTIFACT_BYTES, _check_source_artifact_size,
-    adapt_source, canonical_json_bytes, read_source_artifact,
+    adapt_source, canonical_json_bytes, main, read_source_artifact,
 )
 
 
@@ -74,6 +76,18 @@ class AdapterTests(unittest.TestCase):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
         jsonschema.validate(instance=adapt_source(self.raw_source()), schema=schema)
+
+    def test_cli_refuses_to_overwrite_the_captured_source_artifact(self):
+        raw = self.raw_source()
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            source_path.write_bytes(raw)
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                status = main([str(source_path), "--output", str(source_path)])
+            self.assertEqual(status, 2)
+            self.assertIn("refusing to overwrite captured source bytes", stderr.getvalue())
+            self.assertEqual(source_path.read_bytes(), raw)
 
     def test_reader_rejects_growth_after_metadata_check(self):
         fake_path = Path("simulated-artifact.json")

@@ -361,6 +361,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="write envelope to this path; default is stdout")
     args = parser.parse_args(argv)
     try:
+        if args.output:
+            # Protect the captured source artifact, including symlink and hard-link
+            # aliases. Its bytes are part of the run's identity and must stay intact.
+            input_resolved = args.input.resolve()
+            output_resolved = args.output.resolve()
+            aliases_input = input_resolved == output_resolved
+            if not aliases_input and args.output.exists():
+                try:
+                    aliases_input = args.input.samefile(args.output)
+                except OSError as exc:
+                    raise AdapterError(f"cannot safely compare input/output file identity: {exc}") from exc
+            if aliases_input:
+                raise AdapterError(
+                    "output path aliases the input source artifact; refusing to overwrite captured source bytes"
+                )
         raw = read_source_artifact(args.input)
         envelope = adapt_source(raw, artifact_ref=args.artifact_ref)
         rendered = json.dumps(envelope, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
