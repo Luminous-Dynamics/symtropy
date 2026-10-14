@@ -152,38 +152,109 @@ impl SafetyTier {
 /// For a working demo, measure your platform's signal distribution
 /// first (e.g. via the `MANIP_BENCH_PHI_TRACE=1` pattern in the
 /// manipulator benchmark), then pass a platform-specific
-/// `sprint_threshold` and `floor` to this function.
+/// `sprint_threshold` and `floor` to [`try_sprint_floor_gain`].
 ///
 /// # Example
 ///
 /// ```
-/// use symtropy_consciousness_physics::safety::sprint_floor_gain;
+/// use symtropy_consciousness_physics::safety::try_sprint_floor_gain;
 ///
 /// // Platform's empirical signal band is [0.099, 0.145].
 /// // Pick sprint threshold near the top, floor above the crawl limit.
-/// let gain = sprint_floor_gain(0.14, 0.135, 0.3);
+/// let gain = try_sprint_floor_gain(0.14, 0.135, 0.3).expect("valid policy inputs");
 /// assert!((gain - 1.0).abs() < 1e-9);  // signal above sprint → full authority.
 ///
-/// let gain = sprint_floor_gain(0.11, 0.135, 0.3);
+/// let gain = try_sprint_floor_gain(0.11, 0.135, 0.3).expect("valid policy inputs");
 /// assert!((gain - 0.3).abs() < 1e-9);  // signal below sprint → floor.
 /// ```
 ///
-/// # Panics
+/// # Checked API
 ///
-/// Does not panic. `floor` outside [0, 1] is accepted but the caller
-/// is responsible for choosing a physically sensible value — typically
-/// above whatever gain floor the inverse-kinematics loop needs to
-/// converge, and below 1.0.
+/// Qualified control paths should call [`try_sprint_floor_gain`], which
+/// validates the signal and policy parameters and reports invalid input.
+///
+/// # Compatibility behavior
+///
+/// This legacy function remains for source compatibility. It is deprecated
+/// because it cannot communicate invalid input to the caller. Invalid input
+/// fails closed to zero gain; new and safety-relevant code must use the checked
+/// API and handle its error explicitly.
+#[deprecated(note = "use try_sprint_floor_gain and handle invalid inputs explicitly")]
 #[inline]
 pub fn sprint_floor_gain(signal: f64, sprint_threshold: f64, floor: f64) -> f64 {
-    if signal > sprint_threshold {
-        1.0
-    } else {
-        floor
+    try_sprint_floor_gain(signal, sprint_threshold, floor).unwrap_or(0.0)
+}
+
+/// Input-contract violation for the sprint/floor motor-authority mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MotorGainInputError {
+    NonFiniteSignal,
+    SignalOutOfRange,
+    NonFiniteSprintThreshold,
+    SprintThresholdOutOfRange,
+    NonFiniteFloor,
+    FloorOutOfRange,
+}
+
+impl std::fmt::Display for MotorGainInputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let message = match self {
+            Self::NonFiniteSignal => "motor-authority signal must be finite",
+            Self::SignalOutOfRange => "motor-authority signal must be in [0, 1]",
+            Self::NonFiniteSprintThreshold => "sprint threshold must be finite",
+            Self::SprintThresholdOutOfRange => "sprint threshold must be in [0, 1]",
+            Self::NonFiniteFloor => "motor-authority floor must be finite",
+            Self::FloorOutOfRange => "motor-authority floor must be in [0, 1]",
+        };
+        f.write_str(message)
     }
 }
 
+impl std::error::Error for MotorGainInputError {}
+
+/// Validate inputs and calculate the two-level sprint/floor motor gain.
+///
+/// The signal, sprint threshold, and floor must each be finite values in
+/// `[0, 1]`. The signal receives full authority only when it is strictly
+/// greater than the sprint threshold. Equality stays at the configured floor.
+///
+/// This function validates numerical input only. It does not establish that
+/// the threshold is empirically calibrated, that the floor is appropriate for
+/// a particular controller, or that the resulting controller is safe.
+#[inline]
+pub fn try_sprint_floor_gain(
+    signal: f64,
+    sprint_threshold: f64,
+    floor: f64,
+) -> Result<f64, MotorGainInputError> {
+    if !signal.is_finite() {
+        return Err(MotorGainInputError::NonFiniteSignal);
+    }
+    if !(0.0..=1.0).contains(&signal) {
+        return Err(MotorGainInputError::SignalOutOfRange);
+    }
+    if !sprint_threshold.is_finite() {
+        return Err(MotorGainInputError::NonFiniteSprintThreshold);
+    }
+    if !(0.0..=1.0).contains(&sprint_threshold) {
+        return Err(MotorGainInputError::SprintThresholdOutOfRange);
+    }
+    if !floor.is_finite() {
+        return Err(MotorGainInputError::NonFiniteFloor);
+    }
+    if !(0.0..=1.0).contains(&floor) {
+        return Err(MotorGainInputError::FloorOutOfRange);
+    }
+
+    Ok(if signal > sprint_threshold {
+        1.0
+    } else {
+        floor
+    })
+}
+
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 
@@ -273,5 +344,74 @@ mod tests {
                 phi
             );
         }
+    }
+    #[test]
+    fn checked_sprint_floor_gain_rejects_non_finite_values() {
+        use MotorGainInputError::*;
+
+        for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                try_sprint_floor_gain(invalid, 0.5, 0.3),
+                Err(NonFiniteSignal)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, invalid, 0.3),
+                Err(NonFiniteSprintThreshold)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, 0.5, invalid),
+                Err(NonFiniteFloor)
+            );
+        }
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_rejects_out_of_range_values() {
+        use MotorGainInputError::*;
+
+        for invalid in [-f64::EPSILON, 1.0 + f64::EPSILON] {
+            assert_eq!(
+                try_sprint_floor_gain(invalid, 0.5, 0.3),
+                Err(SignalOutOfRange)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, invalid, 0.3),
+                Err(SprintThresholdOutOfRange)
+            );
+            assert_eq!(
+                try_sprint_floor_gain(0.5, 0.5, invalid),
+                Err(FloorOutOfRange)
+            );
+        }
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_preserves_strict_threshold_and_bounds() {
+        assert_eq!(try_sprint_floor_gain(0.0, 0.0, 0.0), Ok(0.0));
+        assert_eq!(try_sprint_floor_gain(0.5, 0.5, 0.7), Ok(0.7));
+        assert_eq!(try_sprint_floor_gain(0.500_001, 0.5, 0.7), Ok(1.0));
+        assert_eq!(try_sprint_floor_gain(1.0, 0.0, 1.0), Ok(1.0));
+
+        for signal_i in 0..=10 {
+            for threshold_i in 0..=10 {
+                for floor_i in 0..=10 {
+                    let signal = signal_i as f64 / 10.0;
+                    let threshold = threshold_i as f64 / 10.0;
+                    let floor = floor_i as f64 / 10.0;
+                    let gain = try_sprint_floor_gain(signal, threshold, floor)
+                        .expect("all generated values are in [0, 1]");
+                    let expected = if signal > threshold { 1.0 } else { floor };
+                    assert_eq!(gain, expected);
+                    assert!(gain.is_finite() && (0.0..=1.0).contains(&gain));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn legacy_sprint_floor_gain_fails_closed_on_invalid_inputs() {
+        assert_eq!(sprint_floor_gain(f64::NAN, 0.5, 0.3), 0.0);
+        assert_eq!(sprint_floor_gain(0.8, 0.5, 1.5), 0.0);
+        assert_eq!(sprint_floor_gain(0.8, 0.5, f64::INFINITY), 0.0);
     }
 }
