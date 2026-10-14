@@ -819,6 +819,7 @@ pub enum CargoTransferCapacityEvidenceError {
     TimestampInFuture,
     NotCurrent,
     DuplicateBudgetIdentity,
+    UnreferencedBudgetEvidence,
 }
 
 impl fmt::Display for CargoTransferCapacityEvidenceError {
@@ -837,6 +838,7 @@ impl fmt::Display for CargoTransferCapacityEvidenceError {
             Self::TimestampInFuture => write!(f, "capacity evidence timestamp exceeds allowed future clock skew"),
             Self::NotCurrent => write!(f, "capacity evidence is superseded, revoked, or conflicted"),
             Self::DuplicateBudgetIdentity => write!(f, "capacity evidence repeats a budget identity"),
+            Self::UnreferencedBudgetEvidence => write!(f, "capacity evidence is not referenced by a proposed assignment"),
         }
     }
 }
@@ -1198,33 +1200,78 @@ pub fn validate_cargo_transfer_plan(
     Ok(report)
 }
 
-/// Validate a proposed transfer plan using evidence-bearing equipment
-/// budgets. Every supplied budget must pass the explicit freshness policy before
-/// the existing combined physical/capacity validator runs.
+/// Full result for a plan evaluated against evidence-bearing capacity inputs.
+/// The evidence is preserved so downstream receipts/replay can bind the result
+/// to exact input identities. “Freshness-qualified” is not source authentication.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferPlanEvidenceReport {
+    pub capacity_report: CargoTransferCapacityReport,
+    pub freshness_qualified_budget_evidence: Vec<CargoTransferCapacityEvidenceV1>,
+}
+
+/// Validate a proposed transfer plan using evidence-bearing equipment budgets.
+/// Every supplied budget must be referenced by an assignment and pass the
+/// explicit freshness policy before the combined physical/capacity gate runs.
+/// The result preserves the precise evidence inputs in deterministic order.
 pub fn validate_cargo_transfer_plan_with_evidence(
     entries: &[CargoTransferPlanEntry<'_>],
     edges: &[Edge],
     equipment_budgets: &[CargoTransferCapacityEvidenceV1],
     evaluation_time_epoch_seconds: u64,
     policy: CargoTransferCapacityFreshnessPolicy,
-) -> Result<CargoTransferCapacityReport, CargoTransferPlanEvidenceError> {
+) -> Result<CargoTransferPlanEvidenceReport, CargoTransferPlanEvidenceError> {
     let mut budget_ids = BTreeSet::new();
+    let referenced_resources: BTreeSet<_> = entries
+        .iter()
+        .map(|entry| {
+            (
+                entry.binding.equipment_id.as_str(),
+                entry.binding.capacity_scope_id.as_str(),
+            )
+        })
+        .collect();
     let mut capacities = Vec::with_capacity(equipment_budgets.len());
+    let mut accepted_evidence = Vec::with_capacity(equipment_budgets.len());
 
     for evidence in equipment_budgets {
         validate_cargo_transfer_capacity_evidence(evidence, evaluation_time_epoch_seconds, policy)?;
         if !budget_ids.insert(evidence.budget_id.as_str()) {
             return Err(CargoTransferCapacityEvidenceError::DuplicateBudgetIdentity.into());
         }
+        if !referenced_resources.contains(&(
+            evidence.budget.equipment_id.as_str(),
+            evidence.budget.capacity_scope_id.as_str(),
+        )) {
+            return Err(CargoTransferCapacityEvidenceError::UnreferencedBudgetEvidence.into());
+        }
         capacities.push(evidence.budget.clone());
+        accepted_evidence.push(evidence.clone());
     }
 
     capacities.sort_by(|left, right| {
         (&left.equipment_id, &left.capacity_scope_id)
             .cmp(&(&right.equipment_id, &right.capacity_scope_id))
     });
+    accepted_evidence.sort_by(|left, right| {
+        (
+            left.budget.capacity_scope_id.as_str(),
+            left.budget.equipment_id.as_str(),
+            left.budget_id.as_str(),
+            left.revision,
+        )
+            .cmp(&(
+                right.budget.capacity_scope_id.as_str(),
+                right.budget.equipment_id.as_str(),
+                right.budget_id.as_str(),
+                right.revision,
+            ))
+    });
 
-    Ok(validate_cargo_transfer_plan(entries, edges, &capacities)?)
+    let capacity_report = validate_cargo_transfer_plan(entries, edges, &capacities)?;
+    Ok(CargoTransferPlanEvidenceReport {
+        capacity_report,
+        freshness_qualified_budget_evidence: accepted_evidence,
+    })
 }
 
 /// Validate one module against one explicit intermodal transfer edge, the
@@ -3141,7 +3188,7 @@ mod tests {
             source_record_digest: "sha256:capacity-snapshot-91".to_owned(),
             revision: 3,
             supersedes_revision: Some(2),
-            source_event_time_epoch_seconds: Some(980),
+            source_event_time_epoch_seconds: Some(975),
             capacity_observed_at_epoch_seconds: observed_at,
             repository_recorded_at_epoch_seconds: Some(995),
             valid_from_epoch_seconds: Some(900),
@@ -3281,6 +3328,39 @@ mod tests {
             ),
             Err(CargoTransferCapacityEvidenceError::InvalidRevisionLineage)
         );
+    }
+
+    #[test]
+    fn plan_with_capacity_evidence_preserves_provenance_in_deterministic_report() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget, Some(980));
+        let report = validate_cargo_transfer_plan_with_evidence(
+            &entries,
+            &[edge],
+            std::slice::from_ref(&evidence),
+            1_000,
+            capacity_freshness_policy(),
+        )
+        .unwrap();
+
+        assert_eq!(report.capacity_report.assignment_count, 1);
+        assert_eq!(report.freshness_qualified_budget_evidence, vec![evidence.clone()]);
+        let retained = &report.freshness_qualified_budget_evidence[0];
+        assert_eq!(retained.source_event_time_epoch_seconds, Some(975));
+        assert_eq!(retained.capacity_observed_at_epoch_seconds, Some(980));
+        assert_eq!(retained.repository_recorded_at_epoch_seconds, Some(995));
+        assert_eq!(retained.source_record_digest, "sha256:capacity-snapshot-91");
     }
 
     #[test]
