@@ -761,6 +761,160 @@ pub struct CargoTransferEquipmentCapacity {
     pub capacity_unit: QuantityUnit,
 }
 
+/// Source qualification as reported by the adapter. These states are claims
+/// about source lifecycle, not cryptographic or physical-world verification.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CargoTransferCapacityEvidenceStatus {
+    ReportedCurrent,
+    Superseded,
+    Revoked,
+    Conflicted,
+}
+
+/// Provenance and time envelope for one equipment-capacity snapshot.
+///
+/// All timestamp fields use Unix epoch seconds under the declared time profile.
+/// The source business-event timestamp is intentionally not used as the capacity
+/// observation time. Repository record time describes bookkeeping only; freshness
+/// is evaluated from the explicit capacity observation timestamp.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferCapacityEvidenceV1 {
+    pub budget_id: String,
+    pub budget: CargoTransferEquipmentCapacity,
+    pub authority_id: String,
+    pub authority_profile_id: String,
+    pub source_record_id: String,
+    pub source_schema_profile_id: String,
+    pub source_record_digest: String,
+    pub revision: u64,
+    pub supersedes_revision: Option<u64>,
+    pub source_event_time_epoch_seconds: Option<u64>,
+    pub capacity_observed_at_epoch_seconds: Option<u64>,
+    pub repository_recorded_at_epoch_seconds: Option<u64>,
+    pub valid_from_epoch_seconds: Option<u64>,
+    pub valid_until_epoch_seconds: Option<u64>,
+    pub time_profile_id: String,
+    pub status: CargoTransferCapacityEvidenceStatus,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CargoTransferCapacityFreshnessPolicy {
+    pub max_observation_age_seconds: u64,
+    pub allowed_future_clock_skew_seconds: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CargoTransferCapacityEvidenceError {
+    InvalidIdentityOrProvenance,
+    InvalidRevisionLineage,
+    MissingObservationTime,
+    MissingRepositoryRecordTime,
+    MissingValidityInterval,
+    InvalidValidityInterval,
+    NotYetValid,
+    Expired,
+    ObservationTooOld,
+    TimestampInFuture,
+    NotCurrent,
+    DuplicateBudgetIdentity,
+}
+
+impl fmt::Display for CargoTransferCapacityEvidenceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidIdentityOrProvenance => write!(f, "capacity evidence identity or provenance is incomplete"),
+            Self::InvalidRevisionLineage => write!(f, "capacity evidence revision lineage is invalid"),
+            Self::MissingObservationTime => write!(f, "capacity evidence has no explicit capacity observation time"),
+            Self::MissingRepositoryRecordTime => write!(f, "capacity evidence has no repository record time"),
+            Self::MissingValidityInterval => write!(f, "capacity evidence has no declared validity interval"),
+            Self::InvalidValidityInterval => write!(f, "capacity evidence validity interval is empty or reversed"),
+            Self::NotYetValid => write!(f, "capacity evidence validity interval has not started"),
+            Self::Expired => write!(f, "capacity evidence validity interval has expired"),
+            Self::ObservationTooOld => write!(f, "capacity observation exceeds the requested freshness policy"),
+            Self::TimestampInFuture => write!(f, "capacity evidence timestamp exceeds allowed future clock skew"),
+            Self::NotCurrent => write!(f, "capacity evidence is superseded, revoked, or conflicted"),
+            Self::DuplicateBudgetIdentity => write!(f, "capacity evidence repeats a budget identity"),
+        }
+    }
+}
+
+impl std::error::Error for CargoTransferCapacityEvidenceError {}
+
+/// Validate evidence structure, source-reported lifecycle, explicit validity,
+/// and capacity observation freshness against a caller-supplied evaluation time.
+/// This function is deterministic and reads no ambient clock. It does not
+/// authenticate the issuer, recompute the source digest, prove physical truth,
+/// or establish live availability.
+pub fn validate_cargo_transfer_capacity_evidence(
+    evidence: &CargoTransferCapacityEvidenceV1,
+    evaluation_time_epoch_seconds: u64,
+    policy: CargoTransferCapacityFreshnessPolicy,
+) -> Result<(), CargoTransferCapacityEvidenceError> {
+    let budget = &evidence.budget;
+    if evidence.budget_id.trim().is_empty()
+        || budget.equipment_id.trim().is_empty()
+        || budget.terminal_id.trim().is_empty()
+        || budget.capacity_scope_id.trim().is_empty()
+        || budget.capacity_units == 0
+        || evidence.authority_id.trim().is_empty()
+        || evidence.authority_profile_id.trim().is_empty()
+        || evidence.source_record_id.trim().is_empty()
+        || evidence.source_schema_profile_id.trim().is_empty()
+        || evidence.source_record_digest.trim().is_empty()
+        || evidence.time_profile_id.trim().is_empty()
+        || evidence.revision == 0
+    {
+        return Err(CargoTransferCapacityEvidenceError::InvalidIdentityOrProvenance);
+    }
+
+    if evidence
+        .supersedes_revision
+        .is_some_and(|previous| previous >= evidence.revision)
+    {
+        return Err(CargoTransferCapacityEvidenceError::InvalidRevisionLineage);
+    }
+
+    if evidence.status != CargoTransferCapacityEvidenceStatus::ReportedCurrent {
+        return Err(CargoTransferCapacityEvidenceError::NotCurrent);
+    }
+
+    let observation = evidence
+        .capacity_observed_at_epoch_seconds
+        .ok_or(CargoTransferCapacityEvidenceError::MissingObservationTime)?;
+    let recorded = evidence
+        .repository_recorded_at_epoch_seconds
+        .ok_or(CargoTransferCapacityEvidenceError::MissingRepositoryRecordTime)?;
+    let valid_from = evidence
+        .valid_from_epoch_seconds
+        .ok_or(CargoTransferCapacityEvidenceError::MissingValidityInterval)?;
+    let valid_until = evidence
+        .valid_until_epoch_seconds
+        .ok_or(CargoTransferCapacityEvidenceError::MissingValidityInterval)?;
+
+    if valid_from >= valid_until {
+        return Err(CargoTransferCapacityEvidenceError::InvalidValidityInterval);
+    }
+    if evaluation_time_epoch_seconds < valid_from {
+        return Err(CargoTransferCapacityEvidenceError::NotYetValid);
+    }
+    if evaluation_time_epoch_seconds >= valid_until {
+        return Err(CargoTransferCapacityEvidenceError::Expired);
+    }
+
+    let latest_accepted_time = evaluation_time_epoch_seconds
+        .saturating_add(policy.allowed_future_clock_skew_seconds);
+    if observation > latest_accepted_time || recorded > latest_accepted_time {
+        return Err(CargoTransferCapacityEvidenceError::TimestampInFuture);
+    }
+    if evaluation_time_epoch_seconds.saturating_sub(observation)
+        > policy.max_observation_age_seconds
+    {
+        return Err(CargoTransferCapacityEvidenceError::ObservationTooOld);
+    }
+
+    Ok(())
+}
+
 /// Capacity use emitted by deterministic batch validation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoTransferCapacityUse {
@@ -961,6 +1115,35 @@ pub fn validate_cargo_transfer_capacity_plan(
     })
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CargoTransferPlanEvidenceError {
+    Evidence(CargoTransferCapacityEvidenceError),
+    Plan(CargoError),
+}
+
+impl fmt::Display for CargoTransferPlanEvidenceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Evidence(error) => write!(f, "capacity evidence rejected: {error}"),
+            Self::Plan(error) => write!(f, "cargo transfer plan rejected: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for CargoTransferPlanEvidenceError {}
+
+impl From<CargoTransferCapacityEvidenceError> for CargoTransferPlanEvidenceError {
+    fn from(error: CargoTransferCapacityEvidenceError) -> Self {
+        Self::Evidence(error)
+    }
+}
+
+impl From<CargoError> for CargoTransferPlanEvidenceError {
+    fn from(error: CargoError) -> Self {
+        Self::Plan(error)
+    }
+}
+
 /// One assignment's inputs for the combined physical-and-capacity plan gate.
 /// References keep canonical profiles/equipment outside the proposal while the
 /// binding explicitly names the selected module, edge, equipment and scope.
@@ -1007,6 +1190,35 @@ pub fn validate_cargo_transfer_plan(
     }
 
     Ok(report)
+}
+
+/// Validate a proposed transfer plan using evidence-bearing equipment
+/// budgets. Every supplied budget must pass the explicit freshness policy before
+/// the existing combined physical/capacity validator runs.
+pub fn validate_cargo_transfer_plan_with_evidence(
+    entries: &[CargoTransferPlanEntry<'_>],
+    edges: &[Edge],
+    equipment_budgets: &[CargoTransferCapacityEvidenceV1],
+    evaluation_time_epoch_seconds: u64,
+    policy: CargoTransferCapacityFreshnessPolicy,
+) -> Result<CargoTransferCapacityReport, CargoTransferPlanEvidenceError> {
+    let mut budget_ids = BTreeSet::new();
+    let mut capacities = Vec::with_capacity(equipment_budgets.len());
+
+    for evidence in equipment_budgets {
+        validate_cargo_transfer_capacity_evidence(evidence, evaluation_time_epoch_seconds, policy)?;
+        if !budget_ids.insert(evidence.budget_id.as_str()) {
+            return Err(CargoTransferCapacityEvidenceError::DuplicateBudgetIdentity.into());
+        }
+        capacities.push(evidence.budget.clone());
+    }
+
+    capacities.sort_by(|left, right| {
+        (&left.equipment_id, &left.capacity_scope_id)
+            .cmp(&(&right.equipment_id, &right.capacity_scope_id))
+    });
+
+    Ok(validate_cargo_transfer_plan(entries, edges, &capacities)?)
 }
 
 /// Validate one module against one explicit intermodal transfer edge, the
@@ -2909,6 +3121,37 @@ mod tests {
         }
     }
 
+    fn capacity_evidence(
+        budget: CargoTransferEquipmentCapacity,
+        observed_at: Option<u64>,
+    ) -> CargoTransferCapacityEvidenceV1 {
+        CargoTransferCapacityEvidenceV1 {
+            budget_id: "budget-crane-3-shift-a-r3".to_owned(),
+            budget,
+            authority_id: "hub-operator-1".to_owned(),
+            authority_profile_id: "terminal-capacity-authority-v1".to_owned(),
+            source_record_id: "snapshot-91".to_owned(),
+            source_schema_profile_id: "capacity-snapshot-v1".to_owned(),
+            source_record_digest: "sha256:capacity-snapshot-91".to_owned(),
+            revision: 3,
+            supersedes_revision: Some(2),
+            source_event_time_epoch_seconds: Some(980),
+            capacity_observed_at_epoch_seconds: observed_at,
+            repository_recorded_at_epoch_seconds: Some(995),
+            valid_from_epoch_seconds: Some(900),
+            valid_until_epoch_seconds: Some(1_200),
+            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
+            status: CargoTransferCapacityEvidenceStatus::ReportedCurrent,
+        }
+    }
+
+    fn capacity_freshness_policy() -> CargoTransferCapacityFreshnessPolicy {
+        CargoTransferCapacityFreshnessPolicy {
+            max_observation_age_seconds: 100,
+            allowed_future_clock_skew_seconds: 5,
+        }
+    }
+
     fn second_transfer_binding() -> CargoTransferResourceBinding {
         CargoTransferResourceBinding {
             assignment_id: "assignment-2".to_owned(),
@@ -2921,6 +3164,180 @@ mod tests {
             capacity_units: 1,
             capacity_unit: QuantityUnit::Shipments,
         }
+    }
+
+    #[test]
+    fn capacity_evidence_accepts_fresh_observation_and_requires_separate_observation_time() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget, Some(980));
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(&evidence, 1_000, capacity_freshness_policy()),
+            Ok(())
+        );
+
+        let missing_observation = capacity_evidence(evidence.budget.clone(), None);
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &missing_observation,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::MissingObservationTime)
+        );
+    }
+
+    #[test]
+    fn capacity_evidence_rejects_expired_old_future_and_malformed_inputs() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+
+        let expired = capacity_evidence(budget.clone(), Some(980));
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &expired,
+                1_200,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::Expired)
+        );
+
+        let old = capacity_evidence(budget.clone(), Some(800));
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(&old, 1_000, capacity_freshness_policy()),
+            Err(CargoTransferCapacityEvidenceError::ObservationTooOld)
+        );
+
+        let future = capacity_evidence(budget.clone(), Some(1_010));
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &future,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::TimestampInFuture)
+        );
+
+        let mut invalid_interval = capacity_evidence(budget, Some(980));
+        invalid_interval.valid_until_epoch_seconds = Some(900);
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &invalid_interval,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::InvalidValidityInterval)
+        );
+    }
+
+    #[test]
+    fn capacity_evidence_rejects_revoked_conflicted_and_invalid_revision_lineage() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let mut revoked = capacity_evidence(budget.clone(), Some(980));
+        revoked.status = CargoTransferCapacityEvidenceStatus::Revoked;
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &revoked,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::NotCurrent)
+        );
+
+        let mut conflicted = capacity_evidence(budget.clone(), Some(980));
+        conflicted.status = CargoTransferCapacityEvidenceStatus::Conflicted;
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &conflicted,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::NotCurrent)
+        );
+
+        let mut invalid_revision = capacity_evidence(budget, Some(980));
+        invalid_revision.supersedes_revision = Some(3);
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence(
+                &invalid_revision,
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityEvidenceError::InvalidRevisionLineage)
+        );
+    }
+
+    #[test]
+    fn plan_with_capacity_evidence_rejects_stale_budget_even_when_numeric_plan_fits() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        assert!(validate_cargo_transfer_plan(&entries, std::slice::from_ref(&edge), &[budget.clone()]).is_ok());
+
+        let stale_evidence = capacity_evidence(budget, Some(800));
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                &[edge],
+                &[stale_evidence],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
+                CargoTransferCapacityEvidenceError::ObservationTooOld,
+            ))
+        );
+    }
+
+    #[test]
+    fn plan_with_capacity_evidence_rejects_duplicate_budget_ids_and_not_yet_valid() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget.clone(), Some(980));
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                std::slice::from_ref(&edge),
+                &[evidence.clone(), evidence],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
+                CargoTransferCapacityEvidenceError::DuplicateBudgetIdentity,
+            ))
+        );
+
+        let mut early = capacity_evidence(budget, Some(980));
+        early.valid_from_epoch_seconds = Some(1_001);
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                &[edge],
+                &[early],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
+                CargoTransferCapacityEvidenceError::NotYetValid,
+            ))
+        );
     }
 
     #[test]
