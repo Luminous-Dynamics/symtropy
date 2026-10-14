@@ -1,0 +1,218 @@
+name: PHYS-EVID-03B1AF B1A Rustfmt Remediation Capsule
+
+on:
+  push:
+    branches:
+      - ci/issuer-policy-rustfmt-remediation-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-b1a-rustfmt-remediation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUBJECT_SHA: 509b4ea5af6167218c6e0c4ecaafdaff520d0705
+      BASE_SHA: c9ff0eb980389fd72b876488a7acfbbd5acc4780
+      SOURCE_PATH: crates/core/symtropy-physics/src/issuer_policy.rs
+      TEST_PATH: crates/core/symtropy-physics/tests/issuer_policy_canonical_v01.rs
+      SOURCE_BLOB_BEFORE: b7c0e89c653d8b7dcdd16fbefdb43ef1ca3dfe08
+      TEST_BLOB_BEFORE: dc84c236bfebfdf99a77241b737217b2c71f68c5
+      CONTRACT_BLOB: fe342df69a408110238498681a2dc8b269e17a36
+      LIB_BLOB: 2b2abc235296cd44a78e57fb99b6001a3492f8d4
+      FIXTURE_BLOB: 3bdac8266bbb542bcd2456243e9e6df9ad5241c9
+      ORACLE_BLOB: a9f4ed0df06ad5a696ffbc77646fd20b5ede8d06
+
+    steps:
+      - name: Checkout exact failed B1A subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Freeze failed product topology and clean checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          test "$(git rev-list --count "$BASE_SHA..$SUBJECT_SHA")" = "1"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            crates/core/symtropy-physics/ISSUER_AUTHORIZATION_POLICY_CANONICAL_V01.md
+            crates/core/symtropy-physics/src/issuer_policy.rs
+            crates/core/symtropy-physics/src/lib.rs
+            crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json
+            crates/core/symtropy-physics/tests/issuer_policy_canonical_v01.rs
+            crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          test "$(git rev-parse "$SUBJECT_SHA:$SOURCE_PATH")" = "$SOURCE_BLOB_BEFORE"
+          test "$(git rev-parse "$SUBJECT_SHA:$TEST_PATH")" = "$TEST_BLOB_BEFORE"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/ISSUER_AUTHORIZATION_POLICY_CANONICAL_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json")" = "$FIXTURE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py")" = "$ORACLE_BLOB"
+
+      - name: Prove dependency state unchanged in failed subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$BASE_SHA:Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.toml")"
+          test "$(git rev-parse "$BASE_SHA:Cargo.lock")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.lock")"
+          test "$(git rev-parse "$BASE_SHA:crates/core/symtropy-physics/Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/Cargo.toml")"
+
+      - name: Install pinned Rust 1.96 formatter
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+
+      - name: Capture before bytes outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          H="$RUNNER_TEMP/phys-evid-03b1af-rustfmt"
+          rm -rf "$H"
+          mkdir -p "$H"
+          cp "$SOURCE_PATH" "$H/issuer_policy.rs.before"
+          cp "$TEST_PATH" "$H/issuer_policy_canonical_v01.rs.before"
+          sha256sum "$SOURCE_PATH" | awk '{print $1}' > "$H/issuer_policy.rs.before.sha256"
+          sha256sum "$TEST_PATH" | awk '{print $1}' > "$H/issuer_policy_canonical_v01.rs.before.sha256"
+          rustfmt --version > "$H/rustfmt-version.txt"
+          rustc --version --verbose > "$H/rustc-version.txt"
+
+      - name: Generate exact pinned-rustfmt remediation
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 "$SOURCE_PATH"
+          rustfmt --edition 2024 "$TEST_PATH"
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          expected=("$SOURCE_PATH" "$TEST_PATH")
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          mapfile -t status_lines < <(git status --porcelain --untracked-files=all | sort)
+          expected_status=(" M $SOURCE_PATH" " M $TEST_PATH")
+          mapfile -t expected_status_sorted < <(printf '%s\n' "${expected_status[@]}" | sort)
+          test "${#status_lines[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_status_sorted[@]}") <(printf '%s\n' "${status_lines[@]}")
+
+      - name: Prove remediation closes original Rustfmt gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2024 --check "$SOURCE_PATH" "$TEST_PATH"
+          cargo fmt --all -- --check
+
+      - name: Freeze after bytes and exact patch outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          H="$RUNNER_TEMP/phys-evid-03b1af-rustfmt"
+          cp "$SOURCE_PATH" "$H/issuer_policy.rs.after"
+          cp "$TEST_PATH" "$H/issuer_policy_canonical_v01.rs.after"
+          sha256sum "$SOURCE_PATH" | awk '{print $1}' > "$H/issuer_policy.rs.after.sha256"
+          sha256sum "$TEST_PATH" | awk '{print $1}' > "$H/issuer_policy_canonical_v01.rs.after.sha256"
+          git diff --binary -- "$SOURCE_PATH" "$TEST_PATH" > "$H/b1a-rustfmt-remediation.patch"
+          test -s "$H/b1a-rustfmt-remediation.patch"
+          sha256sum "$H/b1a-rustfmt-remediation.patch" | awk '{print $1}' > "$H/b1a-rustfmt-remediation.patch.sha256"
+
+      - name: Emit formatting capsule receipt outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          h = Path(os.environ['RUNNER_TEMP']) / 'phys-evid-03b1af-rustfmt'
+          receipt = {
+              'theorem': 'PHYS-EVID-03B1AF pinned Rust 1.96 B1A formatting remediation capsule v0.1',
+              'failed_subject_sha': os.environ['SUBJECT_SHA'],
+              'base_sha': os.environ['BASE_SHA'],
+              'source_path': os.environ['SOURCE_PATH'],
+              'test_path': os.environ['TEST_PATH'],
+              'source_blob_before': os.environ['SOURCE_BLOB_BEFORE'],
+              'test_blob_before': os.environ['TEST_BLOB_BEFORE'],
+              'source_before_sha256': (h / 'issuer_policy.rs.before.sha256').read_text().strip(),
+              'source_after_sha256': (h / 'issuer_policy.rs.after.sha256').read_text().strip(),
+              'test_before_sha256': (h / 'issuer_policy_canonical_v01.rs.before.sha256').read_text().strip(),
+              'test_after_sha256': (h / 'issuer_policy_canonical_v01.rs.after.sha256').read_text().strip(),
+              'generated_patch_sha256': (h / 'b1a-rustfmt-remediation.patch.sha256').read_text().strip(),
+              'rustfmt_version': (h / 'rustfmt-version.txt').read_text().strip(),
+              'rustc_version': (h / 'rustc-version.txt').read_text().splitlines()[0],
+              'mutation_paths_exact': True,
+              'direct_rustfmt_check_passed': True,
+              'original_cargo_fmt_all_check_passed_after_remediation': True,
+              'capsule_emitted_outside_checkout': True,
+              'product_commit_created': False,
+              'b1a_semantic_qualification_claimed': False,
+              'trusted_policy_claimed': False,
+              'deployment_authorization_claimed': False,
+              'b0_crypto_validity_claimed': False,
+              'issuer_authorization_claimed': False,
+          }
+          (h / 'phys-evid-03b1af-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Final exact checkout and closed capsule gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+
+          mapfile -t status_lines < <(git status --porcelain --untracked-files=all | sort)
+          expected_status=(" M $SOURCE_PATH" " M $TEST_PATH")
+          mapfile -t expected_status_sorted < <(printf '%s\n' "${expected_status[@]}" | sort)
+          test "${#status_lines[@]}" = "2"
+          diff -u <(printf '%s\n' "${expected_status_sorted[@]}") <(printf '%s\n' "${status_lines[@]}")
+
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/ISSUER_AUTHORIZATION_POLICY_CANONICAL_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/fixtures/issuer_policy_v01_golden.json")" = "$FIXTURE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/issuer_policy_v01_oracle.py")" = "$ORACLE_BLOB"
+
+          H="$RUNNER_TEMP/phys-evid-03b1af-rustfmt"
+          mapfile -t capsule_files < <(find "$H" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort)
+          expected_capsule=(
+            b1a-rustfmt-remediation.patch
+            b1a-rustfmt-remediation.patch.sha256
+            issuer_policy.rs.after
+            issuer_policy.rs.after.sha256
+            issuer_policy.rs.before
+            issuer_policy.rs.before.sha256
+            issuer_policy_canonical_v01.rs.after
+            issuer_policy_canonical_v01.rs.after.sha256
+            issuer_policy_canonical_v01.rs.before
+            issuer_policy_canonical_v01.rs.before.sha256
+            phys-evid-03b1af-receipt.json
+            rustc-version.txt
+            rustfmt-version.txt
+          )
+          mapfile -t expected_capsule_sorted < <(printf '%s\n' "${expected_capsule[@]}" | sort)
+          test "${#capsule_files[@]}" = "${#expected_capsule_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_capsule_sorted[@]}") <(printf '%s\n' "${capsule_files[@]}")
+          test -z "$(find "$H" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          for file in "${expected_capsule[@]}"; do
+            test -s "$H/$file"
+          done
+
+      - name: Upload B1A formatting remediation capsule
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-03b1af-rustfmt-remediation
+          path: ${{ runner.temp }}/phys-evid-03b1af-rustfmt/
+          if-no-files-found: error
