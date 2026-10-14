@@ -832,7 +832,10 @@ impl fmt::Display for CargoTransferCapacityEvidenceError {
                 write!(f, "capacity evidence revision lineage is invalid")
             }
             Self::TimeProfileMismatch => {
-                write!(f, "capacity evidence time profile does not match the consumer policy")
+                write!(
+                    f,
+                    "capacity evidence time profile does not match the consumer policy"
+                )
             }
             Self::MissingObservationTime => {
                 write!(f, "capacity evidence has no explicit capacity observation time")
