@@ -1,0 +1,85 @@
+name: Retained Artifact Registry Tooling
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/retained-artifact-registry.yml"
+      - "scripts/verify-retained-artifact.py"
+      - "scripts/test-retained-artifact.py"
+      - "docs/release/evidence/retained-artifacts/*.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retained-artifact-registry-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Registry / Python 3.12 / ubuntu-slim
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      EXECUTION_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact execution head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Prove exact checkout and clean starting tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          python --version
+
+      - name: Compile verifier and tests without bytecode output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          for path in (
+              Path("scripts/verify-retained-artifact.py"),
+              Path("scripts/test-retained-artifact.py"),
+          ):
+              compile(path.read_text(encoding="utf-8"), str(path), "exec")
+          PY
+
+      - name: Run retained-artifact registry regression suite
+        run: python scripts/test-retained-artifact.py
+
+      - name: Validate checked-in Universal Matter v4.8 registry entry
+        run: >-
+          python scripts/verify-retained-artifact.py
+          --registry docs/release/evidence/retained-artifacts/universal-matter-v4.8.json
+
+      - name: Prove byte-clean final checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Claim boundary
+        shell: bash
+        run: |
+          cat <<'EOF'
+          This qualifies only the retained-artifact registry schema/verifier and
+          the checked-in metadata record. The Universal Matter v4.8 payload bytes
+          are deliberately not present in this workflow, so this run does NOT
+          establish artifact availability or byte verification, does not replay
+          Universal Matter v4.8, and does not establish Q1 or Q2.
+          EOF
