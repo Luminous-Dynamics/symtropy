@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use super::transparency::{
     AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyWitnessRecordV1,
-    TransparencyWitnessStateSnapshotV1, TransparencyWitnessSetV1,
+    TransparencyWitnessSetV1, TransparencyWitnessStateSnapshotV1,
 };
 
 pub const TRANSPARENCY_WITNESS_STORE_SCHEMA_VERSION: u32 = 1;
@@ -42,8 +42,7 @@ impl TransparencyWitnessStoreKeyV1 {
     }
 
     fn validate_basic(&self) -> Result<(), TransparencyWitnessStoreError> {
-        if !is_sha256_hex(&self.policy_commitment)
-            || !is_sha256_hex(&self.log_authority_commitment)
+        if !is_sha256_hex(&self.policy_commitment) || !is_sha256_hex(&self.log_authority_commitment)
         {
             return Err(TransparencyWitnessStoreError::Invalid(
                 "store key commitments must be lowercase SHA-256".to_string(),
@@ -94,9 +93,9 @@ impl TransparencyWitnessStoredStateV1 {
                 "unsupported external transparency witness store schema".to_string(),
             ));
         }
-        self.snapshot.validate_basic().map_err(|error| {
-            TransparencyWitnessStoreError::Invalid(error.to_string())
-        })?;
+        self.snapshot
+            .validate_basic()
+            .map_err(|error| TransparencyWitnessStoreError::Invalid(error.to_string()))?;
         Ok(())
     }
 
@@ -131,9 +130,7 @@ impl std::fmt::Debug for SharedTransparencyWitnessStateStore {
 
 impl SharedTransparencyWitnessStateStore {
     #[must_use]
-    pub fn new(
-        store: std::sync::Arc<dyn TransparencyWitnessStateStore + Send + Sync>,
-    ) -> Self {
+    pub fn new(store: std::sync::Arc<dyn TransparencyWitnessStateStore + Send + Sync>) -> Self {
         Self(store)
     }
 
@@ -254,7 +251,10 @@ pub fn restore_witness_set<S: TransparencyWitnessStateStore>(
     key: &TransparencyWitnessStoreKeyV1,
     policy: &super::transparency::TransparencyWitnessPolicyV1,
     log: &super::transparency::TransparencyLogAuthorityV1,
-) -> Result<Option<(TransparencyWitnessStoredStateV1, TransparencyWitnessSetV1)>, TransparencyWitnessStoreError> {
+) -> Result<
+    Option<(TransparencyWitnessStoredStateV1, TransparencyWitnessSetV1)>,
+    TransparencyWitnessStoreError,
+> {
     let Some(stored) = store.load(key)? else {
         return Ok(None);
     };
@@ -445,15 +445,29 @@ pub enum TransparencyWitnessStoreError {
 impl std::fmt::Display for TransparencyWitnessStoreError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Invalid(message) => write!(formatter, "invalid external witness state: {message}"),
-            Self::IdentityMismatch => write!(formatter, "external witness state identity mismatch"),
-            Self::GenerationMismatch => write!(formatter, "external witness state generation mismatch"),
-            Self::GenerationExhausted => write!(formatter, "external witness state generation exhausted"),
-            Self::StaleAcceptedCheckpoint(message) => write!(formatter, "stale accepted transparency checkpoint: {message}"),
-            Self::BackendContractViolation(message) => {
-                write!(formatter, "external witness store backend contract violation: {message}")
+            Self::Invalid(message) => {
+                write!(formatter, "invalid external witness state: {message}")
             }
-            Self::Backend(message) => write!(formatter, "external witness store backend error: {message}"),
+            Self::IdentityMismatch => write!(formatter, "external witness state identity mismatch"),
+            Self::GenerationMismatch => {
+                write!(formatter, "external witness state generation mismatch")
+            }
+            Self::GenerationExhausted => {
+                write!(formatter, "external witness state generation exhausted")
+            }
+            Self::StaleAcceptedCheckpoint(message) => write!(
+                formatter,
+                "stale accepted transparency checkpoint: {message}"
+            ),
+            Self::BackendContractViolation(message) => {
+                write!(
+                    formatter,
+                    "external witness store backend contract violation: {message}"
+                )
+            }
+            Self::Backend(message) => {
+                write!(formatter, "external witness store backend error: {message}")
+            }
         }
     }
 }
@@ -471,9 +485,9 @@ fn is_sha256_hex(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::transparency::{
-        transparency_genesis_digest, TransparencyCheckpointUnsignedV1,
-        TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessKeyV1,
-        TransparencyWitnessPolicyV1, TransparencyWitnessSignatureV1, TransparencyWitnessSetV1,
+        TransparencyCheckpointUnsignedV1, TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1,
+        TransparencyWitnessKeyV1, TransparencyWitnessPolicyV1, TransparencyWitnessSetV1,
+        TransparencyWitnessSignatureV1, transparency_genesis_digest,
     };
     use ring::{
         rand::SystemRandom,
@@ -504,15 +518,9 @@ mod tests {
             encode_hex(witness_pair.public_key().as_ref()),
         )
         .expect("witness");
-        let policy = TransparencyWitnessPolicyV1::new(
-            "policy-store",
-            "log-store",
-            1,
-            1,
-            1,
-            vec![witness],
-        )
-        .expect("policy");
+        let policy =
+            TransparencyWitnessPolicyV1::new("policy-store", "log-store", 1, 1, 1, vec![witness])
+                .expect("policy");
         let log = TransparencyLogAuthorityV1::from_public_key_hex(
             "log-store",
             1,
@@ -522,7 +530,10 @@ mod tests {
         (policy, log, log_pair, witness_pair)
     }
 
-    fn base_snapshot() -> (TransparencyWitnessStoreKeyV1, TransparencyWitnessStateSnapshotV1) {
+    fn base_snapshot() -> (
+        TransparencyWitnessStoreKeyV1,
+        TransparencyWitnessStateSnapshotV1,
+    ) {
         let policy_commitment = "11".repeat(32);
         let log_commitment = "22".repeat(32);
         let witness_one = TransparencyWitnessRecordV1::new(
@@ -559,18 +570,13 @@ mod tests {
     #[test]
     fn validate_cas_result_rejects_nonconforming_backend_response() {
         let (key, replacement) = base_snapshot();
-        let expected = TransparencyWitnessStoredStateV1::new(7, replacement.clone())
-            .expect("expected state");
+        let expected =
+            TransparencyWitnessStoredStateV1::new(7, replacement.clone()).expect("expected state");
 
         let wrong_generation = TransparencyWitnessStoredStateV1::new(42, replacement.clone())
             .expect("wrong generation");
-        let error = validate_cas_result(
-            &key,
-            Some(&expected),
-            &replacement,
-            &wrong_generation,
-        )
-        .expect_err("wrong generation must fail closed");
+        let error = validate_cas_result(&key, Some(&expected), &replacement, &wrong_generation)
+            .expect_err("wrong generation must fail closed");
         assert!(matches!(
             error,
             TransparencyWitnessStoreError::BackendContractViolation(_)
@@ -593,8 +599,8 @@ mod tests {
             altered_witnesses,
         )
         .expect("wrong snapshot");
-        let returned = TransparencyWitnessStoredStateV1::new(8, wrong_snapshot)
-            .expect("returned state");
+        let returned =
+            TransparencyWitnessStoredStateV1::new(8, wrong_snapshot).expect("returned state");
         let error = validate_cas_result(&key, Some(&expected), &replacement, &returned)
             .expect_err("returned snapshot must match requested replacement");
         assert!(matches!(
@@ -649,10 +655,7 @@ mod tests {
             "the losing concurrent create must be rejected as stale"
         );
 
-        let stored = store
-            .load(&key)
-            .expect("load")
-            .expect("winning state");
+        let stored = store.load(&key).expect("load").expect("winning state");
         assert_eq!(stored.generation(), 0);
         let winner = results
             .iter()
@@ -708,9 +711,8 @@ mod tests {
         let mut set = TransparencyWitnessSetV1::new(&policy).expect("set");
         set.bind_log_authority(&log).expect("bind");
         let snapshot = set.export_state().expect("export");
-        let restored =
-            TransparencyWitnessSetV1::from_external_state(&policy, &log, &snapshot)
-                .expect("restore");
+        let restored = TransparencyWitnessSetV1::from_external_state(&policy, &log, &snapshot)
+            .expect("restore");
 
         assert_eq!(
             restored.log_authority_commitment(),
@@ -758,7 +760,9 @@ mod tests {
         .expect("checkpoint");
         let checkpoint = unsigned
             .clone()
-            .into_signed(encode_hex(log_pair.sign(&unsigned.signing_digest()).as_ref()))
+            .into_signed(encode_hex(
+                log_pair.sign(&unsigned.signing_digest()).as_ref(),
+            ))
             .expect("signed checkpoint");
         let witness = policy.witness("w1").expect("w1");
         let witness_signature = TransparencyWitnessSignatureV1::new(
@@ -795,15 +799,17 @@ mod tests {
         let stale = TransparencyWitnessStateSnapshotV1::new(
             current.policy_commitment().to_string(),
             current.log_authority_commitment().to_string(),
-            vec![TransparencyWitnessRecordV1::new(
-                "w1",
-                9,
-                "aa".repeat(32),
-                9,
-                &"bb".repeat(32),
-                TransparencyVdsTreeHeadV1::empty(),
-            )
-            .expect("stale record")],
+            vec![
+                TransparencyWitnessRecordV1::new(
+                    "w1",
+                    9,
+                    "aa".repeat(32),
+                    9,
+                    &"bb".repeat(32),
+                    TransparencyVdsTreeHeadV1::empty(),
+                )
+                .expect("stale record"),
+            ],
         )
         .expect("stale snapshot");
         assert!(matches!(
@@ -823,7 +829,11 @@ mod tests {
             .expect("round-trip snapshot validity");
         assert_eq!(decoded, snapshot);
         assert_eq!(
-            decoded.witnesses().iter().map(|w| w.witness_id()).collect::<Vec<_>>(),
+            decoded
+                .witnesses()
+                .iter()
+                .map(|w| w.witness_id())
+                .collect::<Vec<_>>(),
             vec!["w1", "w2"]
         );
     }
@@ -853,9 +863,8 @@ mod tests {
             ],
         )
         .expect("altered snapshot");
-        let forged_expected =
-            TransparencyWitnessStoredStateV1::new(first.generation(), altered)
-                .expect("forged generation-matched state");
+        let forged_expected = TransparencyWitnessStoredStateV1::new(first.generation(), altered)
+            .expect("forged generation-matched state");
 
         let stale = store.compare_and_swap(&key, Some(&forged_expected), snapshot);
         assert!(matches!(
