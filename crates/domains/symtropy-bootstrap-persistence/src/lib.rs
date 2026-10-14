@@ -7,11 +7,11 @@
 //! execution records and treats in-memory kernel state as a checked projection.
 
 pub mod transparency;
-pub mod transparency_vds;
+pub mod transparency_c2sp;
 pub mod transparency_protocol;
 pub mod transparency_store;
 pub mod transparency_store_sqlite;
-pub mod transparency_c2sp;
+pub mod transparency_vds;
 
 pub use transparency_store_sqlite::SqliteTransparencyWitnessStateStore;
 
@@ -32,16 +32,16 @@ use symtropy_persistence::{JournalLoad, JournalLock, PersistenceError, SaveStore
 
 use transparency::{
     AcceptedTransparencyCheckpointV1, TransparencyCheckpointV1, TransparencyError,
-    TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessPolicyV1,
-    TransparencyWitnessEvidenceV1, TransparencyWitnessSetV1,
-    TransparencyWitnessSignatureV1, transparency_genesis_digest,
+    TransparencyLogAuthorityV1, TransparencyVdsTreeHeadV1, TransparencyWitnessEvidenceV1,
+    TransparencyWitnessPolicyV1, TransparencyWitnessSetV1, TransparencyWitnessSignatureV1,
+    transparency_genesis_digest,
 };
 use transparency_store::{
-    cas_replacement, restore_witness_set, validate_cas_result, SharedTransparencyWitnessStateStore,
-    TransparencyWitnessStateStore, TransparencyWitnessStoreError, TransparencyWitnessStoreKeyV1,
-    TransparencyWitnessStoredStateV1,
+    SharedTransparencyWitnessStateStore, TransparencyWitnessStateStore,
+    TransparencyWitnessStoreError, TransparencyWitnessStoreKeyV1, TransparencyWitnessStoredStateV1,
+    cas_replacement, restore_witness_set, validate_cas_result,
 };
-use transparency_vds::{verify_append_only_sha256, MerkleConsistencyProofV1};
+use transparency_vds::{MerkleConsistencyProofV1, verify_append_only_sha256};
 
 pub const EXECUTION_LIFECYCLE_SCHEMA_VERSION: u32 = 3;
 pub const EXECUTION_EVENT_KIND: &str = "symtropy.bootstrap.execution";
@@ -427,7 +427,8 @@ impl PersistedTransparencyEvidenceV1 {
                 .iter()
                 .map(|evidence| evidence.witness_id())
                 .collect::<Vec<_>>();
-            if evidence_ids != self
+            if evidence_ids
+                != self
                     .accepted_witnesses
                     .iter()
                     .map(String::as_str)
@@ -442,9 +443,7 @@ impl PersistedTransparencyEvidenceV1 {
                 .iter()
                 .map(|evidence| evidence.witness_signature())
                 .collect::<Vec<_>>();
-            if evidence_signatures
-                != self.witness_signatures.iter().collect::<Vec<_>>()
-            {
+            if evidence_signatures != self.witness_signatures.iter().collect::<Vec<_>>() {
                 return Err(AdapterError::Invalid(
                     "transparency per-witness evidence signatures do not match persisted witness signatures"
                         .to_string(),
@@ -581,8 +580,7 @@ impl DurableExecutionSecurityContext {
             ));
         }
 
-        let persisted_transparency_sequence =
-            Self::persisted_transparency_sequence(&loaded.chain)?;
+        let persisted_transparency_sequence = Self::persisted_transparency_sequence(&loaded.chain)?;
         if persisted_transparency_sequence > 0
             && transparency_witnesses.max_retained_sequence() == 0
         {
@@ -591,10 +589,7 @@ impl DurableExecutionSecurityContext {
                     .to_string(),
             ));
         }
-        Self::require_next_transparency_checkpoint(
-            &loaded.chain,
-            &transparency_checkpoint,
-        )?;
+        Self::require_next_transparency_checkpoint(&loaded.chain, &transparency_checkpoint)?;
 
         let event_count = u64::try_from(loaded.chain.events().len())
             .map_err(|_| AdapterError::Invalid("journal event count overflow".to_string()))?;
@@ -614,7 +609,8 @@ impl DurableExecutionSecurityContext {
 
         let transparency_witness_evidence = accepted_transparency.witness_evidence().to_vec();
         let transparency_witness_signatures = accepted_transparency.witness_signatures().to_vec();
-        let transparency_vds_consistency_proof = accepted_transparency.vds_consistency_proof().cloned();
+        let transparency_vds_consistency_proof =
+            accepted_transparency.vds_consistency_proof().cloned();
 
         Ok(Self {
             head_witness,
@@ -654,9 +650,8 @@ impl DurableExecutionSecurityContext {
         )
         .map_err(|error| AdapterError::Invalid(error.to_string()))?;
 
-        let restored =
-            restore_witness_set(&store, &key, &transparency_policy, &transparency_log)
-                .map_err(|error| AdapterError::Invalid(error.to_string()))?;
+        let restored = restore_witness_set(&store, &key, &transparency_policy, &transparency_log)
+            .map_err(|error| AdapterError::Invalid(error.to_string()))?;
 
         if let Some((stored, witness_set)) = restored {
             let mut context = Self::establish(
@@ -880,9 +875,7 @@ impl DurableExecutionSecurityContext {
     }
 
     #[must_use]
-    pub fn external_transparency_witness_state(
-        &self,
-    ) -> Option<&TransparencyWitnessStoredStateV1> {
+    pub fn external_transparency_witness_state(&self) -> Option<&TransparencyWitnessStoredStateV1> {
         self.transparency_external_store_state.as_ref()
     }
 
@@ -913,11 +906,14 @@ impl DurableExecutionSecurityContext {
                 "external witness store is unavailable for fenced recovery".to_string(),
             )
         })?;
-        let key = self.transparency_external_store_key.as_ref().ok_or_else(|| {
-            AdapterError::WitnessMismatch(
-                "external witness store key is unavailable for fenced recovery".to_string(),
-            )
-        })?;
+        let key = self
+            .transparency_external_store_key
+            .as_ref()
+            .ok_or_else(|| {
+                AdapterError::WitnessMismatch(
+                    "external witness store key is unavailable for fenced recovery".to_string(),
+                )
+            })?;
 
         let stored = store
             .load(key)
@@ -951,8 +947,9 @@ impl DurableExecutionSecurityContext {
         })?;
         let evidence = &event.payload.transparency_evidence;
         evidence.validate_against_event(
-            u64::try_from(loaded.chain.events().len() - 1)
-                .map_err(|_| AdapterError::WitnessMismatch("journal event count overflow".to_string()))?,
+            u64::try_from(loaded.chain.events().len() - 1).map_err(|_| {
+                AdapterError::WitnessMismatch("journal event count overflow".to_string())
+            })?,
             &event.previous_hash,
         )?;
 
@@ -968,18 +965,14 @@ impl DurableExecutionSecurityContext {
             .as_ref()
             .ok_or_else(|| {
                 AdapterError::WitnessMismatch(
-                    "fenced recovery has no retained external-store predecessor state"
-                        .to_string(),
+                    "fenced recovery has no retained external-store predecessor state".to_string(),
                 )
             })?;
-        let expected_generation = expected_before
-            .generation()
-            .checked_add(1)
-            .ok_or_else(|| {
-                AdapterError::WitnessMismatch(
-                    "external witness-store generation exhausted during recovery".to_string(),
-                )
-            })?;
+        let expected_generation = expected_before.generation().checked_add(1).ok_or_else(|| {
+            AdapterError::WitnessMismatch(
+                "external witness-store generation exhausted during recovery".to_string(),
+            )
+        })?;
         if stored.generation() != expected_generation {
             return Err(AdapterError::WitnessMismatch(
                 "external witness-store generation does not match the uncertain CAS transition"
@@ -1012,16 +1005,15 @@ impl DurableExecutionSecurityContext {
             expected_witnesses.insert(witness_id.clone(), replacement);
         }
 
-        let expected_snapshot =
-            transparency::TransparencyWitnessStateSnapshotV1::new(
-                expected_before.snapshot().policy_commitment().to_string(),
-                expected_before
-                    .snapshot()
-                    .log_authority_commitment()
-                    .to_string(),
-                expected_witnesses.into_values().collect(),
-            )
-            .map_err(AdapterError::from)?;
+        let expected_snapshot = transparency::TransparencyWitnessStateSnapshotV1::new(
+            expected_before.snapshot().policy_commitment().to_string(),
+            expected_before
+                .snapshot()
+                .log_authority_commitment()
+                .to_string(),
+            expected_witnesses.into_values().collect(),
+        )
+        .map_err(AdapterError::from)?;
 
         if stored.snapshot() != &expected_snapshot {
             return Err(AdapterError::WitnessMismatch(
@@ -1114,10 +1106,7 @@ impl DurableExecutionSecurityContext {
         )?;
 
         if require_new_transparency_sequence {
-            Self::require_next_transparency_checkpoint(
-                chain,
-                &self.transparency_checkpoint,
-            )?;
+            Self::require_next_transparency_checkpoint(chain, &self.transparency_checkpoint)?;
         }
 
         let event_count = u64::try_from(chain.events().len())
@@ -1176,12 +1165,14 @@ impl DurableExecutionSecurityContext {
             self.transparency_external_store_key.as_ref(),
             self.transparency_external_store_state.as_ref(),
         ) {
-            let replacement =
-                transparency_store::snapshot_after_accepted(expected.snapshot(), &accepted_transparency)
-                    .map_err(|error| {
-                        self.transparency_external_store_desynchronized = true;
-                        AdapterError::Invalid(error.to_string())
-                    })?;
+            let replacement = transparency_store::snapshot_after_accepted(
+                expected.snapshot(),
+                &accepted_transparency,
+            )
+            .map_err(|error| {
+                self.transparency_external_store_desynchronized = true;
+                AdapterError::Invalid(error.to_string())
+            })?;
 
             let next = match cas_replacement(store, key, expected, replacement) {
                 Ok(next) => next,
@@ -2348,8 +2339,7 @@ impl DurableExecutionAdapter {
             });
         if checkpoint.previous_checkpoint_digest() != expected_predecessor {
             return Err(AdapterError::Invalid(
-                "next transparency checkpoint does not extend the durable predecessor"
-                    .to_string(),
+                "next transparency checkpoint does not extend the durable predecessor".to_string(),
             ));
         }
 
@@ -2408,7 +2398,8 @@ impl DurableExecutionAdapter {
                 &previous_vds_root,
                 checkpoint.vds_tree_size(),
                 checkpoint.vds_root_hash(),
-                event.payload
+                event
+                    .payload
                     .transparency_evidence
                     .vds_consistency_proof
                     .as_ref(),
@@ -3287,7 +3278,8 @@ mod tests {
         fn load(
             &self,
             key: &TransparencyWitnessStoreKeyV1,
-        ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError> {
+        ) -> Result<Option<TransparencyWitnessStoredStateV1>, TransparencyWitnessStoreError>
+        {
             self.inner.load(key)
         }
 
@@ -3302,23 +3294,18 @@ mod tests {
                     "injected CAS failure".to_string(),
                 )),
                 2 => {
-                    let stored = self
-                        .inner
-                        .compare_and_swap(key, expected, replacement)?;
+                    let stored = self.inner.compare_and_swap(key, expected, replacement)?;
                     Err(TransparencyWitnessStoreError::Backend(format!(
                         "injected post-commit CAS response loss at generation {}",
                         stored.generation()
                     )))
                 }
                 3 if expected.is_none() => {
-                    self.inner
-                        .compare_and_swap(key, None, replacement)?;
+                    self.inner.compare_and_swap(key, None, replacement)?;
                     Err(TransparencyWitnessStoreError::GenerationMismatch)
                 }
                 4 => {
-                    let stored = self
-                        .inner
-                        .compare_and_swap(key, expected, replacement)?;
+                    let stored = self.inner.compare_and_swap(key, expected, replacement)?;
                     TransparencyWitnessStoredStateV1::new(
                         stored.generation().saturating_add(9),
                         stored.snapshot().clone(),
@@ -3395,8 +3382,11 @@ mod tests {
                 ],
             )
             .expect("transparency policy");
-            let genesis_transparency_digest =
-                transparency_genesis_digest("transparency-log", 1, &transparency_policy.commitment());
+            let genesis_transparency_digest = transparency_genesis_digest(
+                "transparency-log",
+                1,
+                &transparency_policy.commitment(),
+            );
 
             let genesis = freshness_test_attestation(
                 authority.authority_id(),
@@ -3427,15 +3417,16 @@ mod tests {
                 log_signer.public_key_hex(),
             )
             .expect("transparency log");
-            let (first_checkpoint, first_witness_signatures, first_vds_proof) = transparency_test_evidence(
-                adapter,
-                &transparency_log,
-                &transparency_policy,
-                &log_signer,
-                &witness_signers,
-                1,
-                &genesis_transparency_digest,
-            );
+            let (first_checkpoint, first_witness_signatures, first_vds_proof) =
+                transparency_test_evidence(
+                    adapter,
+                    &transparency_log,
+                    &transparency_policy,
+                    &log_signer,
+                    &witness_signers,
+                    1,
+                    &genesis_transparency_digest,
+                );
 
             let external_store = Arc::new(ToggleFailTransparencyStore::default());
             let context = DurableExecutionSecurityContext::establish_with_external_witness_store(
@@ -3585,12 +3576,7 @@ mod tests {
     }
 
     fn consistency_proof(m: usize, entries: &[Vec<u8>]) -> Vec<String> {
-        fn subproof(
-            m: usize,
-            entries: &[Vec<u8>],
-            complete: bool,
-            output: &mut Vec<String>,
-        ) {
+        fn subproof(m: usize, entries: &[Vec<u8>], complete: bool, output: &mut Vec<String>) {
             let n = entries.len();
             if m == n {
                 if !complete {
@@ -3723,17 +3709,25 @@ mod tests {
         let checkpoint_before = security.context.transparency_checkpoint().clone();
         let signatures_before = security.context.transparency_witness_signatures().to_vec();
         let evidence_before = security.context.transparency_witness_evidence().to_vec();
-        let proof_before = security.context.transparency_vds_consistency_proof().cloned();
+        let proof_before = security
+            .context
+            .transparency_vds_consistency_proof()
+            .cloned();
 
         let error = security.context.set_transparency_evidence(
             checkpoint_before.clone(),
-            vec![TransparencyWitnessSignatureV1::new("w1", "zz".repeat(64))
-                .expect("shape-valid signature object")],
+            vec![
+                TransparencyWitnessSignatureV1::new("w1", "zz".repeat(64))
+                    .expect("shape-valid signature object"),
+            ],
             None,
         );
 
         assert!(matches!(error, Err(AdapterError::Transparency(_))));
-        assert_eq!(security.context.transparency_checkpoint(), &checkpoint_before);
+        assert_eq!(
+            security.context.transparency_checkpoint(),
+            &checkpoint_before
+        );
         assert_eq!(
             security.context.transparency_witness_signatures(),
             signatures_before.as_slice()
@@ -3826,7 +3820,6 @@ mod tests {
                 .is_none()
         );
 
-
         fs::remove_dir_all(adapter.store().root()).expect("cleanup");
     }
 
@@ -3888,9 +3881,11 @@ mod tests {
             .reconcile_external_transparency_witness_store(&adapter)
             .expect("authoritative external state must reconcile");
 
-        assert!(!security
-            .context
-            .external_transparency_witness_store_desynchronized());
+        assert!(
+            !security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
         assert_eq!(
             security
                 .context
@@ -4020,7 +4015,10 @@ mod tests {
             SharedTransparencyWitnessStateStore::new(external_store.clone()),
             security.context.transparency_checkpoint().clone(),
             Vec::new(),
-            security.context.transparency_vds_consistency_proof().cloned(),
+            security
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect_err("invalid witness quorum must fail before external bootstrap");
 
@@ -4041,9 +4039,8 @@ mod tests {
         let security = TestSecurityMaterial::new(&adapter);
         let external_store = Arc::new(ToggleFailTransparencyStore::default());
 
-        let mut witness_set =
-            TransparencyWitnessSetV1::new(security.context.transparency_policy())
-                .expect("witness set");
+        let mut witness_set = TransparencyWitnessSetV1::new(security.context.transparency_policy())
+            .expect("witness set");
         witness_set
             .bind_log_authority(security.context.transparency_log())
             .expect("log binding");
@@ -4056,11 +4053,7 @@ mod tests {
 
         external_store
             .inner
-            .compare_and_swap(
-                &key,
-                None,
-                snapshot,
-            )
+            .compare_and_swap(&key, None, snapshot)
             .expect("seed malformed generation");
         let seeded = external_store
             .inner
@@ -4100,7 +4093,10 @@ mod tests {
             SharedTransparencyWitnessStateStore::new(external_store),
             security.context.transparency_checkpoint().clone(),
             security.context.transparency_witness_signatures().to_vec(),
-            security.context.transparency_vds_consistency_proof().cloned(),
+            security
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect_err("generation mismatch must fail closed on restore");
 
@@ -4143,7 +4139,10 @@ mod tests {
             SharedTransparencyWitnessStateStore::new(external_store.clone()),
             security.context.transparency_checkpoint().clone(),
             security.context.transparency_witness_signatures().to_vec(),
-            security.context.transparency_vds_consistency_proof().cloned(),
+            security
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect_err("nonconforming CAS response must fail closed");
 
@@ -4206,7 +4205,10 @@ mod tests {
             SharedTransparencyWitnessStateStore::new(external_store.clone()),
             security.context.transparency_checkpoint().clone(),
             security.context.transparency_witness_signatures().to_vec(),
-            security.context.transparency_vds_consistency_proof().cloned(),
+            security
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect("creation race must re-admit against the authoritative winner");
 
@@ -4264,7 +4266,12 @@ mod tests {
                 .external_transparency_witness_store_desynchronized()
         );
         assert_eq!(
-            adapter.load_verified().expect("journal").chain.events().len(),
+            adapter
+                .load_verified()
+                .expect("journal")
+                .chain
+                .events()
+                .len(),
             1,
             "journal append remains durable while the response contract is rejected"
         );
@@ -4316,8 +4323,7 @@ mod tests {
                 .as_nanos()
         ));
 
-        let sqlite_store =
-            SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
+        let sqlite_store = SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
         let shared_store = SharedTransparencyWitnessStateStore::new(Arc::new(sqlite_store));
 
         let cursor = FreshnessCursor {
@@ -4327,7 +4333,11 @@ mod tests {
                 .authority_commitment()
                 .to_string(),
             last_sequence: material.context.freshness_cursor().last_sequence(),
-            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_head_hash: material
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
             last_event_count: material.context.freshness_cursor().last_event_count(),
         };
 
@@ -4341,7 +4351,10 @@ mod tests {
             shared_store.clone(),
             material.context.transparency_checkpoint().clone(),
             material.context.transparency_witness_signatures().to_vec(),
-            material.context.transparency_vds_consistency_proof().cloned(),
+            material
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect("initial SQLite-backed context");
 
@@ -4362,7 +4375,11 @@ mod tests {
                 .authority_commitment()
                 .to_string(),
             last_sequence: material.context.freshness_cursor().last_sequence(),
-            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_head_hash: material
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
             last_event_count: material.context.freshness_cursor().last_event_count(),
         };
 
@@ -4376,7 +4393,10 @@ mod tests {
             shared_store,
             material.context.transparency_checkpoint().clone(),
             material.context.transparency_witness_signatures().to_vec(),
-            material.context.transparency_vds_consistency_proof().cloned(),
+            material
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect("reopened SQLite-backed context");
 
@@ -4407,8 +4427,7 @@ mod tests {
                 .as_nanos()
         ));
 
-        let sqlite_store =
-            SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
+        let sqlite_store = SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
         let shared_store = SharedTransparencyWitnessStateStore::new(Arc::new(sqlite_store));
 
         let cursor = FreshnessCursor {
@@ -4418,7 +4437,11 @@ mod tests {
                 .authority_commitment()
                 .to_string(),
             last_sequence: material.context.freshness_cursor().last_sequence(),
-            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_head_hash: material
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
             last_event_count: material.context.freshness_cursor().last_event_count(),
         };
 
@@ -4432,15 +4455,16 @@ mod tests {
             shared_store.clone(),
             material.context.transparency_checkpoint().clone(),
             material.context.transparency_witness_signatures().to_vec(),
-            material.context.transparency_vds_consistency_proof().cloned(),
+            material
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect("SQLite-backed context");
 
         let (process, run) = process_and_run();
         let (mut budget, mut inventory, mut energy) = initial_kernel_state();
-        security.set_freshness_attestation(
-            material.context.freshness_attestation().clone(),
-        );
+        security.set_freshness_attestation(material.context.freshness_attestation().clone());
 
         let _receipt = adapter
             .authorize_pending(
@@ -4467,8 +4491,7 @@ mod tests {
             .expect("persisted event");
         let evidence = &event.payload.transparency_evidence;
 
-        let reopened =
-            SqliteTransparencyWitnessStateStore::open(&path).expect("reopen SQLite");
+        let reopened = SqliteTransparencyWitnessStateStore::open(&path).expect("reopen SQLite");
         let key = security
             .transparency_external_store_key
             .as_ref()
@@ -4549,8 +4572,7 @@ mod tests {
         ));
         let backup = path.with_extension("sqlite3.backup");
 
-        let sqlite_store =
-            SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
+        let sqlite_store = SqliteTransparencyWitnessStateStore::open(&path).expect("sqlite store");
         let shared_store = SharedTransparencyWitnessStateStore::new(Arc::new(sqlite_store));
 
         let cursor = FreshnessCursor {
@@ -4560,7 +4582,11 @@ mod tests {
                 .authority_commitment()
                 .to_string(),
             last_sequence: material.context.freshness_cursor().last_sequence(),
-            last_head_hash: material.context.freshness_cursor().last_head_hash().to_string(),
+            last_head_hash: material
+                .context
+                .freshness_cursor()
+                .last_head_hash()
+                .to_string(),
             last_event_count: material.context.freshness_cursor().last_event_count(),
         };
 
@@ -4574,7 +4600,10 @@ mod tests {
             shared_store,
             material.context.transparency_checkpoint().clone(),
             material.context.transparency_witness_signatures().to_vec(),
-            material.context.transparency_vds_consistency_proof().cloned(),
+            material
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect("SQLite-backed context");
 
@@ -4652,8 +4681,7 @@ mod tests {
             &hex_encode(&security.transparency_checkpoint().digest()),
         );
         let vds_proof = Some(
-            MerkleConsistencyProofV1::new(Vec::new())
-                .expect("zero-size VDS predecessor proof"),
+            MerkleConsistencyProofV1::new(Vec::new()).expect("zero-size VDS predecessor proof"),
         );
         let cursor = FreshnessCursor {
             authority_commitment: security
@@ -4721,20 +4749,29 @@ mod tests {
             error,
             AdapterError::Invalid(message) if message.contains("injected CAS failure")
         ));
-        assert!(security
-            .context
-            .external_transparency_witness_store_desynchronized());
+        assert!(
+            security
+                .context
+                .external_transparency_witness_store_desynchronized()
+        );
         assert_eq!(
-            adapter.load_verified().expect("journal").chain.events().len(),
+            adapter
+                .load_verified()
+                .expect("journal")
+                .chain
+                .events()
+                .len(),
             1,
             "the journal append is retained, but the context must not continue"
         );
 
         security.external_store.cas_mode.store(0, Ordering::SeqCst);
-        assert!(security
-            .context
-            .reconcile_external_transparency_witness_store(&adapter)
-            .is_err());
+        assert!(
+            security
+                .context
+                .reconcile_external_transparency_witness_store(&adapter)
+                .is_err()
+        );
         assert!(
             security
                 .context
@@ -4813,7 +4850,8 @@ mod tests {
             3,
             &hex_encode(&security.context.transparency_checkpoint().digest()),
         );
-        security.context
+        security
+            .context
             .set_transparency_evidence(
                 transparency_sequence_three.0,
                 transparency_sequence_three.1,
@@ -4846,7 +4884,8 @@ mod tests {
             2,
             &"99".repeat(32),
         );
-        security.context
+        security
+            .context
             .set_transparency_evidence(
                 transparency_wrong_predecessor.0,
                 transparency_wrong_predecessor.1,
@@ -4965,7 +5004,10 @@ mod tests {
             fresh_witnesses,
             security.context.transparency_checkpoint().clone(),
             security.context.transparency_witness_signatures().to_vec(),
-            security.context.transparency_vds_consistency_proof().cloned(),
+            security
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect_err("fresh witness memory must not skip unseen checkpoints");
 
@@ -5307,7 +5349,10 @@ mod tests {
             transparency_witnesses,
             transparency_checkpoint,
             transparency_witness_signatures,
-            security.context.transparency_vds_consistency_proof().cloned(),
+            security
+                .context
+                .transparency_vds_consistency_proof()
+                .cloned(),
         )
         .expect_err("restart must not reinitialize from an unadvanced genesis cursor");
 
