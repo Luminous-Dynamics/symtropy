@@ -137,6 +137,194 @@ pub enum BentFeederAction {
     AdvanceTicks(u64),
 }
 
+
+/// Why an action is currently unavailable to the player.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActionBlockReason {
+    /// The operation has reached a terminal outcome.
+    OperationComplete,
+    /// A work perimeter must be established before work begins.
+    WorkPerimeterRequired,
+    /// Upstream isolation must be open before testing or repair.
+    IsolationRequired,
+    /// Local absence-of-voltage verification is still required.
+    DeEnergizedVerificationRequired,
+    /// A required part is absent or depleted.
+    MissingPart(String),
+    /// The configuration has no verified isolation history.
+    VerifiedIsolationRequired,
+    /// Neither a complete durable repair nor a valid bypass is ready.
+    RepairOrBypassRequired,
+    /// A temporary bypass requires non-critical load shedding.
+    NoncriticalLoadMustBeShed,
+}
+
+impl ActionBlockReason {
+    fn into_error(&self) -> BentFeederError {
+        match self {
+            Self::OperationComplete => BentFeederError::AlreadyComplete,
+            Self::WorkPerimeterRequired => BentFeederError::UnsafeSequence(
+                "establish the work perimeter before feeder work",
+            ),
+            Self::IsolationRequired => {
+                BentFeederError::UnsafeSequence("isolate upstream before this action")
+            }
+            Self::DeEnergizedVerificationRequired => BentFeederError::UnsafeSequence(
+                "verify the conductors de-energized before repair",
+            ),
+            Self::MissingPart(part) => BentFeederError::MissingPart(part.clone()),
+            Self::VerifiedIsolationRequired => BentFeederError::UnsafeSequence(
+                "test requires a verified isolation history",
+            ),
+            Self::RepairOrBypassRequired => BentFeederError::UnsafeSequence(
+                "no complete repair or load-shed bypass configuration is ready for test",
+            ),
+            Self::NoncriticalLoadMustBeShed => BentFeederError::UnsafeSequence(
+                "shed non-critical downstream load before testing a temporary bypass",
+            ),
+        }
+    }
+}
+
+/// Semantic cue an interactive client can render after a corresponding action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FeedbackCue {
+    /// Initial inspection yields physical readings.
+    InspectionReadout,
+    /// Physical work boundary is visibly and audibly established.
+    WorkBoundaryConfirmed,
+    /// Isolation and downstream service state have changed.
+    IsolationStateChanged,
+    /// Local instrument confirms absence of dangerous voltage.
+    VoltageAbsenceConfirmed,
+    /// Player can perceive the support moving into its braced state.
+    SupportMovementConfirmed,
+    /// Replacement insulation is seated and acknowledged.
+    InsulationReplacementConfirmed,
+    /// Temporary bypass status changes.
+    BypassStateChanged,
+    /// Non-critical demand has been shed.
+    LoadShedConfirmed,
+    /// Thermal trend becomes legible after bounded energization or elapsed time.
+    ThermalTrendChanged,
+    /// Critical resident service changes state.
+    CriticalServiceStatusChanged,
+    /// An unsafe live-work incident occurs.
+    SafetyIncidentAlarm,
+    /// Remaining service battery reserve changes.
+    BatteryReserveChanged,
+    /// A persistent operation outcome has been committed.
+    OutcomeCommitted,
+}
+
+/// Presentation channels for gameplay feedback. Haptics are supplemental, never mandatory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FeedbackChannel {
+    /// Shape, motion, iconography, text, or other non-color-only visual.
+    Visual,
+    /// Audio cue.
+    Audio,
+    /// Optional controller vibration or other haptic output.
+    Haptic,
+    /// Explicit instrument-style reading or numeric/text status.
+    InstrumentReadout,
+}
+
+impl FeedbackCue {
+    /// Minimum independent channels. Visuals must not rely on color alone.
+    pub const fn minimum_channels(self) -> &'static [FeedbackChannel] {
+        match self {
+            Self::InspectionReadout => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::WorkBoundaryConfirmed => {
+                &[FeedbackChannel::Visual, FeedbackChannel::Audio]
+            }
+            Self::IsolationStateChanged => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::Audio,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::VoltageAbsenceConfirmed => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::SupportMovementConfirmed => {
+                &[FeedbackChannel::Visual, FeedbackChannel::Audio]
+            }
+            Self::InsulationReplacementConfirmed => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::BypassStateChanged => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::LoadShedConfirmed => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::Audio,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::ThermalTrendChanged => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::CriticalServiceStatusChanged => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::Audio,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::SafetyIncidentAlarm => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::Audio,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::BatteryReserveChanged => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+            Self::OutcomeCommitted => &[
+                FeedbackChannel::Visual,
+                FeedbackChannel::InstrumentReadout,
+            ],
+        }
+    }
+
+    /// Optional channel additions; devices without haptics remain fully supported.
+    pub const fn optional_channels(self) -> &'static [FeedbackChannel] {
+        match self {
+            Self::SupportMovementConfirmed
+            | Self::InsulationReplacementConfirmed
+            | Self::BypassStateChanged => &[FeedbackChannel::Haptic],
+            _ => &[],
+        }
+    }
+}
+
+/// Read-only, renderer-independent explanation of one action's current affordance.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ActionPreview {
+    /// The action being previewed.
+    pub action: BentFeederAction,
+    /// Whether it is ready or the first actionable blocker.
+    pub readiness: ActionReadiness,
+    /// Semantic feedback for a successful application, not proof that it happened.
+    pub feedback_cues: Vec<FeedbackCue>,
+}
+
+/// Whether an action may be applied in the current authoritative state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActionReadiness {
+    /// Required preconditions are satisfied.
+    Ready,
+    /// Action is blocked by a known prerequisite.
+    Blocked {
+        /// First prerequisite the player can address.
+        reason: ActionBlockReason,
+    },
+}
+
 /// Event payload persisted for replay and delayed explanation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BentFeederEvent {
@@ -203,10 +391,95 @@ impl BentFeederOperation {
         }
     }
 
+
+    /// Previews an action without changing world state or appending an event.
+    pub fn preview_action(&self, action: &BentFeederAction) -> ActionPreview {
+        let readiness = match self.action_block_reason(action) {
+            Some(reason) => ActionReadiness::Blocked { reason },
+            None => ActionReadiness::Ready,
+        };
+        ActionPreview {
+            action: action.clone(),
+            readiness,
+            feedback_cues: feedback_cues_for_action(action),
+        }
+    }
+
+    fn action_block_reason(&self, action: &BentFeederAction) -> Option<ActionBlockReason> {
+        if self.phase == OperationPhase::Complete {
+            return Some(ActionBlockReason::OperationComplete);
+        }
+
+        match action {
+            BentFeederAction::Inspect
+            | BentFeederAction::EstablishPerimeter
+            | BentFeederAction::ShedNoncriticalLoad
+            | BentFeederAction::SafeRefusalAndRelocation
+            | BentFeederAction::UnsafeLiveShortcut
+            | BentFeederAction::AdvanceTicks(_) => None,
+            BentFeederAction::IsolateUpstream => {
+                (!self.perimeter_established)
+                    .then_some(ActionBlockReason::WorkPerimeterRequired)
+            }
+            BentFeederAction::VerifyDeEnergized => {
+                if !self.feeder.isolated || self.feeder.energized {
+                    Some(ActionBlockReason::IsolationRequired)
+                } else {
+                    None
+                }
+            }
+            BentFeederAction::BraceSupport => self
+                .safe_work_block_reason()
+                .or_else(|| self.part_block_reason("support-brace")),
+            BentFeederAction::ReplaceInsulator => self
+                .safe_work_block_reason()
+                .or_else(|| self.part_block_reason("insulator-kit")),
+            BentFeederAction::InstallTemporaryBypass => self
+                .safe_work_block_reason()
+                .or_else(|| self.part_block_reason("temporary-bypass")),
+            BentFeederAction::EnergizeForTest => self.test_block_reason(),
+        }
+    }
+
+    fn safe_work_block_reason(&self) -> Option<ActionBlockReason> {
+        if !self.perimeter_established {
+            Some(ActionBlockReason::WorkPerimeterRequired)
+        } else if !self.feeder.isolated || self.feeder.energized {
+            Some(ActionBlockReason::IsolationRequired)
+        } else if !self.feeder.verified_dead {
+            Some(ActionBlockReason::DeEnergizedVerificationRequired)
+        } else {
+            None
+        }
+    }
+
+    fn part_block_reason(&self, item: &str) -> Option<ActionBlockReason> {
+        (self.inventory.get(item).copied().unwrap_or(0) == 0)
+            .then(|| ActionBlockReason::MissingPart(item.to_owned()))
+    }
+
+    fn test_block_reason(&self) -> Option<ActionBlockReason> {
+        if !self.feeder.isolated || self.feeder.energized || !self.feeder.verified_dead {
+            return Some(ActionBlockReason::VerifiedIsolationRequired);
+        }
+        let durable = self.feeder.support_braced && self.feeder.insulator_replaced;
+        let bypass = self.feeder.temporary_bypass_installed && self.feeder.noncritical_load_shed;
+        if !durable
+            && self.feeder.temporary_bypass_installed
+            && !self.feeder.noncritical_load_shed
+        {
+            return Some(ActionBlockReason::NoncriticalLoadMustBeShed);
+        }
+        if !durable && !bypass {
+            return Some(ActionBlockReason::RepairOrBypassRequired);
+        }
+        None
+    }
+
     /// Applies one action and records the resulting causal event.
     pub fn apply(&mut self, action: BentFeederAction) -> Result<String, BentFeederError> {
-        if self.phase == OperationPhase::Complete {
-            return Err(BentFeederError::AlreadyComplete);
+        if let Some(reason) = self.action_block_reason(&action) {
+            return Err(reason.into_error());
         }
         let result = match action.clone() {
             BentFeederAction::Inspect => {
@@ -224,11 +497,6 @@ impl BentFeederOperation {
                 "wet-work perimeter established".into()
             }
             BentFeederAction::IsolateUpstream => {
-                if !self.perimeter_established {
-                    return Err(BentFeederError::UnsafeSequence(
-                        "establish the work perimeter before operating isolation",
-                    ));
-                }
                 self.feeder.energized = false;
                 self.feeder.isolated = true;
                 self.feeder.verified_dead = false;
@@ -238,31 +506,23 @@ impl BentFeederOperation {
                     .into()
             }
             BentFeederAction::VerifyDeEnergized => {
-                if !self.feeder.isolated || self.feeder.energized {
-                    return Err(BentFeederError::UnsafeSequence(
-                        "isolate upstream before verifying absence of voltage",
-                    ));
-                }
                 self.feeder.verified_dead = true;
                 self.phase = OperationPhase::RepairOrRefuse;
                 "local instrument verified conductors de-energized".into()
             }
             BentFeederAction::BraceSupport => {
-                self.require_safe_work_state()?;
                 consume(&mut self.inventory, "support-brace")?;
                 self.feeder.support_braced = true;
                 self.feeder.support_displacement_mm = 6;
                 "support braced and displacement reduced".into()
             }
             BentFeederAction::ReplaceInsulator => {
-                self.require_safe_work_state()?;
                 consume(&mut self.inventory, "insulator-kit")?;
                 self.feeder.insulator_replaced = true;
                 self.feeder.insulation_damage = 700;
                 "damaged insulation assembly replaced".into()
             }
             BentFeederAction::InstallTemporaryBypass => {
-                self.require_safe_work_state()?;
                 consume(&mut self.inventory, "temporary-bypass")?;
                 self.feeder.temporary_bypass_installed = true;
                 self.feeder.restricted_service = true;
@@ -311,33 +571,9 @@ impl BentFeederOperation {
         Ok(result)
     }
 
-    fn require_safe_work_state(&self) -> Result<(), BentFeederError> {
-        if self.perimeter_established
-            && self.feeder.isolated
-            && self.feeder.verified_dead
-            && !self.feeder.energized
-        {
-            Ok(())
-        } else {
-            Err(BentFeederError::UnsafeSequence(
-                "repair requires perimeter, isolation, and local de-energized verification",
-            ))
-        }
-    }
-
     fn energize_for_test(&mut self) -> Result<String, BentFeederError> {
-        if !self.feeder.isolated || !self.feeder.verified_dead {
-            return Err(BentFeederError::UnsafeSequence(
-                "test requires a verified isolation history",
-            ));
-        }
         let durable = self.feeder.support_braced && self.feeder.insulator_replaced;
         let bypass = self.feeder.temporary_bypass_installed && self.feeder.noncritical_load_shed;
-        if !durable && !bypass {
-            return Err(BentFeederError::UnsafeSequence(
-                "no complete repair or load-shed bypass configuration is ready for test",
-            ));
-        }
         self.phase = OperationPhase::Test;
         self.feeder.isolated = false;
         self.feeder.energized = true;
@@ -383,6 +619,43 @@ impl BentFeederOperation {
             self.feeder.restricted_service = true;
         }
         format!("advanced {ticks} ticks; physical and resident state persisted")
+    }
+}
+
+
+fn feedback_cues_for_action(action: &BentFeederAction) -> Vec<FeedbackCue> {
+    match action {
+        BentFeederAction::Inspect => vec![FeedbackCue::InspectionReadout],
+        BentFeederAction::EstablishPerimeter => vec![FeedbackCue::WorkBoundaryConfirmed],
+        BentFeederAction::IsolateUpstream => vec![
+            FeedbackCue::IsolationStateChanged,
+            FeedbackCue::CriticalServiceStatusChanged,
+            FeedbackCue::BatteryReserveChanged,
+        ],
+        BentFeederAction::VerifyDeEnergized => vec![FeedbackCue::VoltageAbsenceConfirmed],
+        BentFeederAction::BraceSupport => vec![FeedbackCue::SupportMovementConfirmed],
+        BentFeederAction::ReplaceInsulator => vec![FeedbackCue::InsulationReplacementConfirmed],
+        BentFeederAction::InstallTemporaryBypass => vec![FeedbackCue::BypassStateChanged],
+        BentFeederAction::ShedNoncriticalLoad => vec![FeedbackCue::LoadShedConfirmed],
+        BentFeederAction::EnergizeForTest => vec![
+            FeedbackCue::ThermalTrendChanged,
+            FeedbackCue::CriticalServiceStatusChanged,
+            FeedbackCue::OutcomeCommitted,
+        ],
+        BentFeederAction::SafeRefusalAndRelocation => vec![
+            FeedbackCue::CriticalServiceStatusChanged,
+            FeedbackCue::OutcomeCommitted,
+        ],
+        BentFeederAction::UnsafeLiveShortcut => vec![
+            FeedbackCue::SafetyIncidentAlarm,
+            FeedbackCue::CriticalServiceStatusChanged,
+            FeedbackCue::OutcomeCommitted,
+        ],
+        BentFeederAction::AdvanceTicks(_) => vec![
+            FeedbackCue::BatteryReserveChanged,
+            FeedbackCue::ThermalTrendChanged,
+            FeedbackCue::CriticalServiceStatusChanged,
+        ],
     }
 }
 
@@ -512,4 +785,128 @@ mod tests {
         assert!(operation.resident_service.relocated);
         assert!(!operation.resident_service.harmed);
     }
+
+    #[test]
+    fn action_preview_is_pure_and_names_the_first_fixable_prerequisite() {
+        let mut operation = BentFeederOperation::canonical(17);
+        let before = operation.clone();
+
+        let preview = operation.preview_action(&BentFeederAction::BraceSupport);
+        assert_eq!(
+            preview.readiness,
+            ActionReadiness::Blocked {
+                reason: ActionBlockReason::WorkPerimeterRequired,
+            }
+        );
+        assert!(preview
+            .feedback_cues
+            .contains(&FeedbackCue::SupportMovementConfirmed));
+        assert_eq!(operation, before, "preview must not mutate state or history");
+
+        operation
+            .apply(BentFeederAction::EstablishPerimeter)
+            .expect("establish perimeter");
+        assert_eq!(
+            operation
+                .preview_action(&BentFeederAction::IsolateUpstream)
+                .readiness,
+            ActionReadiness::Ready
+        );
+        operation
+            .apply(BentFeederAction::IsolateUpstream)
+            .expect("isolate upstream");
+        assert_eq!(
+            operation
+                .preview_action(&BentFeederAction::VerifyDeEnergized)
+                .readiness,
+            ActionReadiness::Ready
+        );
+    }
+
+    #[test]
+    fn preview_and_apply_share_bypass_load_shedding_gate() {
+        let mut operation = BentFeederOperation::canonical(18);
+        make_safe(&mut operation);
+        operation
+            .apply(BentFeederAction::InstallTemporaryBypass)
+            .expect("install bypass");
+        let before = operation.clone();
+
+        assert_eq!(
+            operation
+                .preview_action(&BentFeederAction::EnergizeForTest)
+                .readiness,
+            ActionReadiness::Blocked {
+                reason: ActionBlockReason::NoncriticalLoadMustBeShed,
+            }
+        );
+        assert!(operation
+            .apply(BentFeederAction::EnergizeForTest)
+            .is_err());
+        assert_eq!(operation, before, "blocked actions must not partially apply");
+
+        operation
+            .apply(BentFeederAction::ShedNoncriticalLoad)
+            .expect("shed non-critical load");
+        assert_eq!(
+            operation
+                .preview_action(&BentFeederAction::EnergizeForTest)
+                .readiness,
+            ActionReadiness::Ready
+        );
+    }
+
+    #[test]
+    fn critical_feedback_cues_have_multiple_required_channels() {
+        let cues = [
+            FeedbackCue::InspectionReadout,
+            FeedbackCue::WorkBoundaryConfirmed,
+            FeedbackCue::IsolationStateChanged,
+            FeedbackCue::VoltageAbsenceConfirmed,
+            FeedbackCue::SupportMovementConfirmed,
+            FeedbackCue::InsulationReplacementConfirmed,
+            FeedbackCue::BypassStateChanged,
+            FeedbackCue::LoadShedConfirmed,
+            FeedbackCue::ThermalTrendChanged,
+            FeedbackCue::CriticalServiceStatusChanged,
+            FeedbackCue::SafetyIncidentAlarm,
+            FeedbackCue::BatteryReserveChanged,
+            FeedbackCue::OutcomeCommitted,
+        ];
+        for cue in cues {
+            assert!(
+                cue.minimum_channels().len() >= 2,
+                "{cue:?} must not depend on one channel"
+            );
+            assert!(cue
+                .minimum_channels()
+                .contains(&FeedbackChannel::Visual));
+        }
+        assert!(FeedbackCue::SafetyIncidentAlarm
+            .minimum_channels()
+            .contains(&FeedbackChannel::Audio));
+        assert!(FeedbackCue::SupportMovementConfirmed
+            .optional_channels()
+            .contains(&FeedbackChannel::Haptic));
+    }
+
+    #[test]
+    fn completed_operation_previews_terminal_block_without_mutation() {
+        let mut operation = BentFeederOperation::canonical(19);
+        operation
+            .apply(BentFeederAction::UnsafeLiveShortcut)
+            .expect("unsafe action resolves");
+        let before = operation.clone();
+
+        assert_eq!(
+            operation
+                .preview_action(&BentFeederAction::Inspect)
+                .readiness,
+            ActionReadiness::Blocked {
+                reason: ActionBlockReason::OperationComplete,
+            }
+        );
+        assert_eq!(operation, before);
+    }
+
 }
