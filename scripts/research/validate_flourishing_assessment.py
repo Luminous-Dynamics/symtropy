@@ -311,6 +311,7 @@ def validate_assessment(
     verified_preregistration_ids: set[str] = set()
     preregistration_limit = 64 * 1024
     seen_artifact_paths: dict[str, str] = {}
+    seen_resolved_paths: dict[str, str] = {}
     for artifact_id, artifact in artifacts.items():
         relative = artifact.get("path")
         digest = artifact.get("sha256")
@@ -339,6 +340,14 @@ def validate_assessment(
             except ValueError:
                 errors.append(f"artifacts[{artifact_id}].path: resolves outside the artifact root")
                 continue
+            resolved_key = str(candidate)
+            prior_resolved_id = seen_resolved_paths.get(resolved_key)
+            if prior_resolved_id is not None:
+                errors.append(
+                    f"artifacts[{artifact_id}].path: resolves to the same file as artifact {prior_resolved_id!r}"
+                )
+                continue
+            seen_resolved_paths[resolved_key] = artifact_id
             if not candidate.is_file():
                 errors.append(f"artifacts[{artifact_id}]: file not found: {relative}")
                 continue
