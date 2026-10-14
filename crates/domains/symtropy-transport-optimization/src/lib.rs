@@ -3212,7 +3212,7 @@ mod tests {
             source_record_digest: "sha256:capacity-snapshot-91".to_owned(),
             revision: 3,
             supersedes_revision: Some(2),
-            source_event_time_epoch_seconds: Some(975),
+            source_event_time_epoch_seconds: Some(985),
             capacity_observed_at_epoch_seconds: observed_at,
             repository_recorded_at_epoch_seconds: Some(995),
             valid_from_epoch_seconds: Some(900),
@@ -3385,7 +3385,7 @@ mod tests {
         assert_eq!(report.capacity_report.assignment_count, 1);
         assert_eq!(report.freshness_qualified_budget_evidence, vec![evidence.clone()]);
         let retained = &report.freshness_qualified_budget_evidence[0];
-        assert_eq!(retained.source_event_time_epoch_seconds, Some(975));
+        assert_eq!(retained.source_event_time_epoch_seconds, Some(985));
         assert_eq!(retained.capacity_observed_at_epoch_seconds, Some(980));
         assert_eq!(retained.repository_recorded_at_epoch_seconds, Some(995));
         assert_eq!(retained.source_record_digest, "sha256:capacity-snapshot-91");
