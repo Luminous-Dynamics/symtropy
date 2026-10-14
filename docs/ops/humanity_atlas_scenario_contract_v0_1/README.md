@@ -108,13 +108,19 @@ is computed over these exact bytes.
 Then run the adapter from the Symtropy repository:
 
 ```sh
-python3 docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_multiworld_output.py /path/to/humanity-atlas-run.json > humanity-atlas-envelope.v0.1.json
+python3 docs/ops/humanity_atlas_scenario_contract_v0_1/adapt_multiworld_output.py /path/to/humanity-atlas-run.json --output humanity-atlas-envelope.v0.1.json
 ```
 
 The default artifact reference is `urn:sha256:<digest>`, which identifies the
 exact source bytes but is not itself a hosting location. When storing the source
 artifact in a content-addressed store or evidence service, pass its resolvable
 URI with `--artifact-ref`.
+
+For evidence preservation, `--output` refuses to replace an existing path unless
+`--overwrite` is explicit. Output is staged in the destination directory and
+installed atomically; destination symlinks are replaced as directory entries
+rather than followed. The source simulator artifact and any symlink or hard-link
+alias of it are never valid output destinations, even with `--overwrite`.
 
 The adapter also requires `resolved_config.seed` and
 `resolved_config.total_ticks` to agree with the top-level run before it emits

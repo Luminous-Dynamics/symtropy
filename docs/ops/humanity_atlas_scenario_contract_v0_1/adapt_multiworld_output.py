@@ -9,11 +9,13 @@ future, separately specified evidence workflow says otherwise.
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 import math
 import re
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -359,11 +361,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("input", type=Path, help="captured humanity-atlas-json source artifact")
     parser.add_argument("--artifact-ref", help="retrievable artifact URI; defaults to urn:sha256:<exact-input-digest>")
     parser.add_argument("--output", type=Path, help="write envelope to this path; default is stdout")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="atomically replace an existing output path (never the captured source artifact)",
+    )
     args = parser.parse_args(argv)
     try:
         if args.output:
-            # Protect the captured source artifact, including symlink and hard-link
-            # aliases. Its bytes are part of the run's identity and must stay intact.
+            # Protect captured source bytes through literal, resolved-path, symlink,
+            # and existing hard-link aliases. This protection cannot be overridden.
             input_resolved = args.input.resolve()
             output_resolved = args.output.resolve()
             aliases_input = input_resolved == output_resolved
@@ -376,11 +383,45 @@ def main(argv: list[str] | None = None) -> int:
                 raise AdapterError(
                     "output path aliases the input source artifact; refusing to overwrite captured source bytes"
                 )
+            if (args.output.exists() or args.output.is_symlink()) and not args.overwrite:
+                raise AdapterError(
+                    "output path already exists; refusing to replace it without --overwrite"
+                )
         raw = read_source_artifact(args.input)
         envelope = adapt_source(raw, artifact_ref=args.artifact_ref)
         rendered = json.dumps(envelope, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
         if args.output:
-            args.output.write_text(rendered, encoding="utf-8")
+            # Stage in the destination directory. Without --overwrite, a hard link
+            # installs the completed temporary file atomically only if the path is
+            # still absent; with --overwrite, os.replace swaps the directory entry
+            # rather than following a destination symlink or mutating other hard links.
+            temporary_path: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    dir=args.output.parent,
+                    prefix=f".{args.output.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as stream:
+                    temporary_path = Path(stream.name)
+                    stream.write(rendered)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                if args.overwrite:
+                    os.replace(temporary_path, args.output)
+                    temporary_path = None
+                else:
+                    os.link(temporary_path, args.output)
+                    temporary_path.unlink()
+                    temporary_path = None
+            finally:
+                if temporary_path is not None:
+                    try:
+                        temporary_path.unlink()
+                    except FileNotFoundError:
+                        pass
         else:
             sys.stdout.write(rendered)
     except (OSError, AdapterError, RecursionError) as exc:

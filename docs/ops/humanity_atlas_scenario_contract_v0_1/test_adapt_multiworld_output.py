@@ -89,6 +89,43 @@ class AdapterTests(unittest.TestCase):
             self.assertIn("refusing to overwrite captured source bytes", stderr.getvalue())
             self.assertEqual(source_path.read_bytes(), raw)
 
+    def test_cli_refuses_to_overwrite_an_existing_output_without_flag(self):
+        raw = self.raw_source()
+        preserved = b"previous evidence must remain unchanged\n"
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_path = Path(temp) / "run-envelope.json"
+            source_path.write_bytes(raw)
+            output_path.write_bytes(preserved)
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                status = main([str(source_path), "--output", str(output_path)])
+            self.assertEqual(status, 2)
+            self.assertIn("refusing to replace it without --overwrite", stderr.getvalue())
+            self.assertEqual(output_path.read_bytes(), preserved)
+
+    def test_cli_overwrite_replaces_only_selected_hard_link_entry(self):
+        raw = self.raw_source()
+        preserved = b"previous evidence must remain unchanged\n"
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_path = Path(temp) / "run-envelope.json"
+            alias_path = Path(temp) / "second-reference-to-old-output.json"
+            source_path.write_bytes(raw)
+            output_path.write_bytes(preserved)
+            try:
+                os.link(output_path, alias_path)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"hard-link creation is unavailable on this filesystem: {exc}")
+            status = main([
+                str(source_path), "--output", str(output_path), "--overwrite"
+            ])
+            self.assertEqual(status, 0)
+            envelope = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(envelope["run_id"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
+            self.assertEqual(alias_path.read_bytes(), preserved)
+            self.assertEqual(source_path.read_bytes(), raw)
+
     def test_cli_refuses_to_overwrite_a_hard_link_to_the_source_artifact(self):
         raw = self.raw_source()
         with tempfile.TemporaryDirectory() as temp:
