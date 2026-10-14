@@ -170,7 +170,13 @@ async fn step_async_with_backends(
     let sanitized_source: Vec<f32> = request
         .source
         .iter()
-        .map(|&value| if value.is_finite() { value.max(0.0) } else { 0.0 })
+        .map(|&value| {
+            if value.is_finite() {
+                value.max(0.0)
+            } else {
+                0.0
+            }
+        })
         .collect();
     let output = vec![0.0f32; cell_count];
     let params = GpuParams {
@@ -342,7 +348,6 @@ fn bind_entry(binding: u32, buffer: &wgpu::Buffer) -> wgpu::BindGroupEntry<'_> {
     }
 }
 
-
 /// An explicitly owned WGPU runtime for repeated field diffusion steps.
 ///
 /// The instance, adapter, device, shader, and compute pipeline live for the
@@ -400,7 +405,9 @@ impl PersistentWgslFieldRuntime {
                 force_fallback_adapter: false,
             })
             .await
-            .map_err(|error| FieldStepError::GpuUnavailable(format!("adapter request failed: {error}")))?;
+            .map_err(|error| {
+                FieldStepError::GpuUnavailable(format!("adapter request failed: {error}"))
+            })?;
         let adapter_info = adapter.get_info();
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -412,7 +419,9 @@ impl PersistentWgslFieldRuntime {
                 trace: wgpu::Trace::Off,
             })
             .await
-            .map_err(|error| FieldStepError::GpuUnavailable(format!("device request failed: {error}")))?;
+            .map_err(|error| {
+                FieldStepError::GpuUnavailable(format!("device request failed: {error}"))
+            })?;
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("field-diffuse-decay-persistent"),
@@ -488,16 +497,19 @@ impl PersistentWgslFieldRuntime {
             FieldStepError::GpuDispatchFailed("field width exceeds the WGSL u32 index space".into())
         })?;
         let height = u32::try_from(field.height()).map_err(|_| {
-            FieldStepError::GpuDispatchFailed("field height exceeds the WGSL u32 index space".into())
+            FieldStepError::GpuDispatchFailed(
+                "field height exceeds the WGSL u32 index space".into(),
+            )
         })?;
         if width == 0 || height == 0 {
             return Err(FieldStepError::GpuDispatchFailed(
                 "field dimensions must both be non-zero".into(),
             ));
         }
-        let cell_count = field.width().checked_mul(field.height()).ok_or_else(|| {
-            FieldStepError::GpuDispatchFailed("field cell count overflow".into())
-        })?;
+        let cell_count = field
+            .width()
+            .checked_mul(field.height())
+            .ok_or_else(|| FieldStepError::GpuDispatchFailed("field cell count overflow".into()))?;
         if request.source.len() != cell_count {
             return Err(FieldStepError::GpuDispatchFailed(format!(
                 "source length {} does not match field cell count {cell_count}",
@@ -507,7 +519,9 @@ impl PersistentWgslFieldRuntime {
         let byte_size = u64::try_from(cell_count)
             .ok()
             .and_then(|count| count.checked_mul(std::mem::size_of::<f32>() as u64))
-            .ok_or_else(|| FieldStepError::GpuDispatchFailed("field buffer byte size overflow".into()))?;
+            .ok_or_else(|| {
+                FieldStepError::GpuDispatchFailed("field buffer byte size overflow".into())
+            })?;
         let workgroups_x = width.div_ceil(8);
         let workgroups_y = height.div_ceil(8);
         let limits = self.device.limits();
@@ -551,19 +565,34 @@ impl PersistentWgslFieldRuntime {
             _pad1: 0,
         };
         let buffers = self.buffers.as_mut().ok_or_else(|| {
-            FieldStepError::GpuDispatchFailed("persistent field buffers were not initialized".into())
+            FieldStepError::GpuDispatchFailed(
+                "persistent field buffers were not initialized".into(),
+            )
         })?;
         for (packed, &value) in buffers.source_staging.iter_mut().zip(&request.source) {
-            *packed = if value.is_finite() { value.max(0.0) } else { 0.0 };
+            *packed = if value.is_finite() {
+                value.max(0.0)
+            } else {
+                0.0
+            };
         }
-        self.queue.write_buffer(&buffers.input, 0, bytemuck::cast_slice(input));
-        self.queue.write_buffer(&buffers.obstacle, 0, bytemuck::cast_slice(obstacle));
-        self.queue.write_buffer(&buffers.source, 0, bytemuck::cast_slice(&buffers.source_staging));
-        self.queue.write_buffer(&buffers.params, 0, bytemuck::bytes_of(&params));
+        self.queue
+            .write_buffer(&buffers.input, 0, bytemuck::cast_slice(input));
+        self.queue
+            .write_buffer(&buffers.obstacle, 0, bytemuck::cast_slice(obstacle));
+        self.queue.write_buffer(
+            &buffers.source,
+            0,
+            bytemuck::cast_slice(&buffers.source_staging),
+        );
+        self.queue
+            .write_buffer(&buffers.params, 0, bytemuck::bytes_of(&params));
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("field-persistent-command-encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("field-persistent-command-encoder"),
+            });
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("field-persistent-compute-pass"),
@@ -769,9 +798,9 @@ mod tests {
                     .expect("CPU reference step must succeed");
                 let cpu_elapsed = cpu_started.elapsed();
                 let gpu_started = std::time::Instant::now();
-                runtime
-                    .step(&mut gpu, &request)
-                    .unwrap_or_else(|error| panic!("persistent GPU step {step_index} failed: {error}"));
+                runtime.step(&mut gpu, &request).unwrap_or_else(|error| {
+                    panic!("persistent GPU step {step_index} failed: {error}")
+                });
                 let gpu_elapsed = gpu_started.elapsed();
                 println!(
                     "field_step_timing grid={}x{} step={} cpu_ms={:.3} gpu_end_to_end_upload_submit_completion_readback_ms={:.3}",
@@ -781,12 +810,7 @@ mod tests {
                     cpu_elapsed.as_secs_f64() * 1_000.0,
                     gpu_elapsed.as_secs_f64() * 1_000.0
                 );
-                let report = compare_layer_within_epsilon(
-                    &cpu,
-                    &gpu,
-                    FieldLayer::Nutrient,
-                    0.0001,
-                );
+                let report = compare_layer_within_epsilon(&cpu, &gpu, FieldLayer::Nutrient, 0.0001);
                 assert!(
                     report.within_epsilon(),
                     "step {step_index}, grid {width}x{height}, report={report:?}"
