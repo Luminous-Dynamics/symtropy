@@ -34,6 +34,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -57,6 +60,12 @@ jobs:
           reference_sha256="$(sha256sum crates/domains/symtropy-bootstrap/examples/industrial_cell_reference.rs | cut -d ' ' -f 1)"
           source_commit="${{ github.event.pull_request.head.sha || github.sha }}"
           tested_checkout_commit="$(git rev-parse HEAD)"
+          if [[ "$tested_checkout_commit" != "$source_commit" ]]; then
+            echo "FAIL: tested checkout is not the declared source commit" >&2
+            echo "source_commit=$source_commit" >&2
+            echo "tested_checkout_commit=$tested_checkout_commit" >&2
+            exit 1
+          fi
           event_commit="$GITHUB_SHA"
           git_ref="$GITHUB_REF"
           cat > industrial-cell-reference-receipt.json <<EOF
@@ -100,6 +109,7 @@ jobs:
             and .fixture_class == "synthetic_software_contract"
             and (.source_commit_sha | test("^[0-9a-f]{40}$|^[0-9a-f]{64}$"))
             and (.tested_checkout_commit_sha | test("^[0-9a-f]{40}$"))
+            and .source_commit_sha == .tested_checkout_commit_sha
             and (.scenario_manifest.sha256 | test("^[0-9a-f]{64}$"))
             and (.verifier.sha256 | test("^[0-9a-f]{64}$"))
             and (.reference_program.sha256 | test("^[0-9a-f]{64}$"))
