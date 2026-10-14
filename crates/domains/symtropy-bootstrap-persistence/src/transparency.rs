@@ -18,19 +18,17 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-use super::{DurableExecutionTrust, FreshnessAuthority};
 use super::transparency_vds::{
-    merkle_leaf_hash_sha256, verify_append_only_sha256, MerkleConsistencyProofV1,
-    MerkleInclusionProofV1,
+    MerkleConsistencyProofV1, MerkleInclusionProofV1, merkle_leaf_hash_sha256,
+    verify_append_only_sha256,
 };
+use super::{DurableExecutionTrust, FreshnessAuthority};
 
 pub const TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
-pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str =
-    "Ed25519-SHA256-VDS-JOURNAL-CHECKPOINT-v1";
+pub const TRANSPARENCY_CHECKPOINT_ALGORITHM: &str = "Ed25519-SHA256-VDS-JOURNAL-CHECKPOINT-v1";
 pub const TRANSPARENCY_WITNESS_ALGORITHM: &str = "Ed25519-SHA256-JOURNAL-WITNESS-v1";
 pub const TRANSPARENCY_INCLUSION_EVIDENCE_SCHEMA_VERSION: u32 = 1;
-pub const TRANSPARENCY_INCLUSION_EVIDENCE_ALGORITHM: &str =
-    "SHA-256-RFC9162-INCLUSION-EVIDENCE-v1";
+pub const TRANSPARENCY_INCLUSION_EVIDENCE_ALGORITHM: &str = "SHA-256-RFC9162-INCLUSION-EVIDENCE-v1";
 
 const TRANSPARENCY_DOMAIN: &str = "symtropy.transparency-checkpoint.v1.vds";
 const TRANSPARENCY_WITNESS_DOMAIN: &str = "symtropy.transparency-witness.v1";
@@ -56,7 +54,10 @@ impl TransparencyVdsTreeHeadV1 {
                 "zero-sized transparency VDS must use the empty-tree root".to_string(),
             ));
         }
-        Ok(Self { tree_size, root_hash })
+        Ok(Self {
+            tree_size,
+            root_hash,
+        })
     }
 
     #[must_use]
@@ -316,9 +317,9 @@ impl TransparencyInclusionEvidenceV1 {
             ));
         }
         self.checkpoint.validate_basic()?;
-        self.proof
-            .validate_basic()
-            .map_err(|error| TransparencyError::Invalid(format!("invalid inclusion proof: {error}")))?;
+        self.proof.validate_basic().map_err(|error| {
+            TransparencyError::Invalid(format!("invalid inclusion proof: {error}"))
+        })?;
         if self.proof.leaf_index() >= self.checkpoint.vds_tree_size() {
             return Err(TransparencyError::Invalid(
                 "inclusion proof leaf index is outside the checkpoint VDS".to_string(),
@@ -348,8 +349,13 @@ impl TransparencyInclusionEvidenceV1 {
             return Err(TransparencyError::InclusionLeafMismatch);
         }
         self.proof
-            .verify_sha256(self.checkpoint.vds_tree_size(), self.checkpoint.vds_root_hash())
-            .map_err(|error| TransparencyError::Invalid(format!("invalid inclusion proof: {error}")))
+            .verify_sha256(
+                self.checkpoint.vds_tree_size(),
+                self.checkpoint.vds_root_hash(),
+            )
+            .map_err(|error| {
+                TransparencyError::Invalid(format!("invalid inclusion proof: {error}"))
+            })
     }
 
     pub fn verify_entry(
@@ -1327,10 +1333,7 @@ impl TransparencyWitnessSetV1 {
             .iter()
             .cloned()
             .map(|signature| {
-                TransparencyWitnessEvidenceV1::new(
-                    signature,
-                    vds_consistency_proof.cloned(),
-                )
+                TransparencyWitnessEvidenceV1::new(signature, vds_consistency_proof.cloned())
             })
             .collect::<Result<Vec<_>, _>>()?;
         self.verify_candidate_with_witness_evidence(
@@ -1445,11 +1448,10 @@ impl TransparencyWitnessSetV1 {
                 }
             }
 
-            let retained_vds_head =
-                TransparencyVdsTreeHeadV1::new(
-                    retained.vds_tree_size,
-                    retained.vds_root_hash.clone(),
-                )?;
+            let retained_vds_head = TransparencyVdsTreeHeadV1::new(
+                retained.vds_tree_size,
+                retained.vds_root_hash.clone(),
+            )?;
             let evidence = evidence.bind_retained_vds_frontier(&retained_vds_head)?;
 
             verify_append_only_sha256(
@@ -1481,9 +1483,7 @@ impl TransparencyWitnessSetV1 {
             predecessor_states.insert(witness_id.clone(), retained.clone());
         }
 
-        accepted_evidence.sort_unstable_by(|left, right| {
-            left.witness_id().cmp(right.witness_id())
-        });
+        accepted_evidence.sort_unstable_by(|left, right| left.witness_id().cmp(right.witness_id()));
         let accepted_signatures = accepted_evidence
             .iter()
             .map(|evidence| evidence.witness_signature().clone())
@@ -1492,9 +1492,9 @@ impl TransparencyWitnessSetV1 {
             .first()
             .and_then(|evidence| evidence.vds_consistency_proof().cloned())
             .filter(|proof| {
-                accepted_evidence.iter().all(|evidence| {
-                    evidence.vds_consistency_proof() == Some(proof)
-                })
+                accepted_evidence
+                    .iter()
+                    .all(|evidence| evidence.vds_consistency_proof() == Some(proof))
             });
 
         if accepted_witnesses.len() < policy.quorum as usize {
@@ -1605,10 +1605,16 @@ impl std::fmt::Display for TransparencyError {
             Self::KeyReuse(message) => write!(formatter, "transparency key reuse: {message}"),
             Self::LogMismatch => write!(formatter, "transparency log mismatch"),
             Self::LogAuthorityUnbound => {
-                write!(formatter, "transparency witness state is not bound to a log authority")
+                write!(
+                    formatter,
+                    "transparency witness state is not bound to a log authority"
+                )
             }
             Self::LogAuthorityMismatch => {
-                write!(formatter, "transparency witness state is bound to a different log authority")
+                write!(
+                    formatter,
+                    "transparency witness state is bound to a different log authority"
+                )
             }
             Self::PolicyMismatch => write!(formatter, "transparency witness policy mismatch"),
             Self::JournalMismatch => write!(formatter, "transparency checkpoint/journal mismatch"),
@@ -1656,7 +1662,10 @@ impl std::fmt::Display for TransparencyError {
                 )
             }
             Self::InclusionLeafMismatch => {
-                write!(formatter, "transparency inclusion evidence leaf does not match entry")
+                write!(
+                    formatter,
+                    "transparency inclusion evidence leaf does not match entry"
+                )
             }
             Self::InsufficientQuorum => {
                 write!(formatter, "transparency witness quorum insufficient")
@@ -1935,12 +1944,7 @@ mod tests {
     }
 
     fn consistency_proof(m: usize, entries: &[Vec<u8>]) -> Vec<String> {
-        fn subproof(
-            m: usize,
-            entries: &[Vec<u8>],
-            complete: bool,
-            output: &mut Vec<String>,
-        ) {
+        fn subproof(m: usize, entries: &[Vec<u8>], complete: bool, output: &mut Vec<String>) {
             let n = entries.len();
             if m == n {
                 if !complete {
@@ -2011,8 +2015,7 @@ mod tests {
 
         let rotated_key =
             Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).expect("rotated key");
-        let rotated_pair =
-            Ed25519KeyPair::from_pkcs8(rotated_key.as_ref()).expect("rotated log");
+        let rotated_pair = Ed25519KeyPair::from_pkcs8(rotated_key.as_ref()).expect("rotated log");
         let rotated_log = TransparencyLogAuthorityV1::from_public_key_hex(
             "log-1",
             1,
@@ -2037,7 +2040,9 @@ mod tests {
         .expect("unsigned checkpoint");
         let checkpoint = unsigned
             .clone()
-            .into_signed(encode_hex(rotated_pair.sign(&unsigned.signing_digest()).as_ref()))
+            .into_signed(encode_hex(
+                rotated_pair.sign(&unsigned.signing_digest()).as_ref(),
+            ))
             .expect("rotated checkpoint");
 
         assert!(matches!(
@@ -2064,17 +2069,10 @@ mod tests {
             .expect("log");
         state.bind_log_authority(&log).expect("log binding");
 
-        let entries = vec![
-            b"leaf-0".to_vec(),
-            b"leaf-1".to_vec(),
-            b"leaf-2".to_vec(),
-        ];
-        let root_one =
-            crate::transparency_vds::merkle_tree_hash_sha256(&entries[..1]);
-        let root_two =
-            crate::transparency_vds::merkle_tree_hash_sha256(&entries[..2]);
-        let root_three =
-            crate::transparency_vds::merkle_tree_hash_sha256(&entries);
+        let entries = vec![b"leaf-0".to_vec(), b"leaf-1".to_vec(), b"leaf-2".to_vec()];
+        let root_one = crate::transparency_vds::merkle_tree_hash_sha256(&entries[..1]);
+        let root_two = crate::transparency_vds::merkle_tree_hash_sha256(&entries[..2]);
+        let root_three = crate::transparency_vds::merkle_tree_hash_sha256(&entries);
 
         state.witnesses.insert(
             "w1".to_string(),
@@ -2166,7 +2164,9 @@ mod tests {
         let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
             .expect("log");
         let first = accepted_first_checkpoint(&keys, &mut state, &policy);
-        state.commit_after_durable_append(first).expect("first commit");
+        state
+            .commit_after_durable_append(first)
+            .expect("first commit");
 
         let entries = vec![b"leaf-0".to_vec(), b"leaf-1".to_vec()];
         let root = crate::transparency_vds::merkle_tree_hash_sha256(&entries);
@@ -2260,11 +2260,15 @@ mod tests {
             }
             if index < power {
                 let mut path = inclusion_path(index, &entries[..power]);
-                path.push(crate::transparency_vds::merkle_tree_hash_sha256(&entries[power..]));
+                path.push(crate::transparency_vds::merkle_tree_hash_sha256(
+                    &entries[power..],
+                ));
                 path
             } else {
                 let mut path = inclusion_path(index - power, &entries[power..]);
-                path.push(crate::transparency_vds::merkle_tree_hash_sha256(&entries[..power]));
+                path.push(crate::transparency_vds::merkle_tree_hash_sha256(
+                    &entries[..power],
+                ));
                 path
             }
         }
@@ -2276,8 +2280,7 @@ mod tests {
             inclusion_path(leaf_index, &entries),
         )
         .expect("inclusion proof");
-        let evidence =
-            TransparencyInclusionEvidenceV1::new(checkpoint, proof).expect("evidence");
+        let evidence = TransparencyInclusionEvidenceV1::new(checkpoint, proof).expect("evidence");
 
         evidence
             .verify_entry(&log, &entries[leaf_index])
@@ -2346,13 +2349,11 @@ mod tests {
         let keys = TestKeys::new();
         let policy = policy(&keys);
         let mut state = TransparencyWitnessSetV1::new(&policy).expect("state");
-        let log =
-            TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
-                .expect("log");
+        let log = TransparencyLogAuthorityV1::from_public_key_hex("log-1", 1, keys.log_public())
+            .expect("log");
         state.bind_log_authority(&log).expect("log binding");
         let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
-        let mut checkpoint =
-            signed_checkpoint(&keys, &policy, 1, 1, &"77".repeat(32), &genesis);
+        let mut checkpoint = signed_checkpoint(&keys, &policy, 1, 1, &"77".repeat(32), &genesis);
 
         checkpoint.unsigned.schema_version = TRANSPARENCY_CHECKPOINT_SCHEMA_VERSION + 1;
         checkpoint.signature = encode_hex(keys.log.sign(&checkpoint.digest()).as_ref());
@@ -2671,14 +2672,7 @@ mod tests {
         let first = accepted_first_checkpoint(&keys, &mut state, &policy);
         state.commit_after_durable_append(first).expect("commit");
 
-        let forged = signed_checkpoint(
-            &keys,
-            &policy,
-            2,
-            2,
-            &"22".repeat(32),
-            &"99".repeat(32),
-        );
+        let forged = signed_checkpoint(&keys, &policy, 2, 2, &"22".repeat(32), &"99".repeat(32));
 
         let error = state
             .verify_candidate(
@@ -2713,8 +2707,7 @@ mod tests {
                 .expect("growth proof");
 
         let first = {
-            let genesis =
-                transparency_genesis_digest("log-1", 1, &policy.commitment());
+            let genesis = transparency_genesis_digest("log-1", 1, &policy.commitment());
             let unsigned = TransparencyCheckpointUnsignedV1::new(
                 "log-1",
                 1,
@@ -2764,14 +2757,7 @@ mod tests {
             .commit_after_durable_append(first_accepted)
             .expect("first commit");
 
-        let skipped = signed_checkpoint(
-            &keys,
-            &policy,
-            3,
-            2,
-            &"33".repeat(32),
-            &"22".repeat(32),
-        );
+        let skipped = signed_checkpoint(&keys, &policy, 3, 2, &"33".repeat(32), &"22".repeat(32));
         let mut skipped_unsigned = skipped.unsigned.clone();
         skipped_unsigned.vds_tree_head =
             TransparencyVdsTreeHeadV1::new(2, &second_root).expect("second tree head");
