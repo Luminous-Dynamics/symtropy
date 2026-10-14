@@ -1,0 +1,236 @@
+name: PHYS-EVID-02D Canonical Consecutive Presence Qualification
+
+on:
+  push:
+    branches:
+      - ci/canonical-consecutive-presence-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-canonical-consecutive-presence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUBJECT_SHA: 45833e9f30bd52e1e751822ed499b0863f191866
+      CONVERGENCE_SHA: 4bccbf716758ee372bb653a4de8c586623a58232
+      C1_PARENT_SHA: 6bd55619bc4a50d15bab6cf7569bcfb8d59f246e
+      OBS06_PARENT_SHA: e7fc7d90355917be2edac29b6d0ca3d1cd655a89
+      CONTRACT_BLOB: e495f9d750f2e4e44f05d66337fa8d4291c32ec5
+      SOURCE_BLOB: e0d8bb62ba92596e944d64ab499aa107f6c60e8c
+      LIB_BLOB: ba03894687708c42463035da41d72a33e12a0d89
+      VECTOR_BLOB: 8afba41493e3171cfd441b00110bd97cd7efc9de
+      ORACLE_BLOB: eea7fdefdcbefaafaae5fb7e35273864dc4fed40
+      C1_SOURCE_BLOB: 5bdee0b554880685e9138d7e45fff23fadfe174f
+      ENDPOINT_SOURCE_BLOB: 3d00108424f48cea946cfc5db0abb3c9d0414586
+      OBS06_CONTRACT_BLOB: b0f35ce122878bfa469d75fcf57f766fdd899214
+      OBS06_SOURCE_BLOB: f836bfc48a418db2e89e63747bed24d6289cb1b0
+      OBS06_TEST_BLOB: b4e4feac40cf222e1202c477339754671adf0bfd
+      CONVERGENCE_PHYSICS_LIB_BLOB: 6d57eacafc06d023963457525b7b4161bceda2d8
+
+    steps:
+      - name: Checkout exact product subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact semantic child and convergence gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$CONVERGENCE_SHA"
+          test "$(git rev-list --count "$CONVERGENCE_SHA..$SUBJECT_SHA")" = "1"
+          test "$(git rev-parse "$CONVERGENCE_SHA^1")" = "$C1_PARENT_SHA"
+          test "$(git rev-parse "$CONVERGENCE_SHA^2")" = "$OBS06_PARENT_SHA"
+          test "$(git rev-list --parents -n 1 "$CONVERGENCE_SHA" | awk '{print NF}')" = "3"
+
+          mapfile -t changed < <(git diff --name-only "$CONVERGENCE_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            docs/release/evidence/CANONICAL_CONSECUTIVE_SAMPLED_PRESENCE_V01.md
+            src/consecutive_presence_codec.rs
+            src/lib.rs
+            tests/fixtures/consecutive_presence_v1_vector.json
+            tests/verify_consecutive_presence_v1.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+      - name: Freeze convergence and product blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$CONVERGENCE_SHA:src/qualified_persistent_endpoint.rs")" = "$C1_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/qualified_persistent_endpoint.rs")" = "$C1_SOURCE_BLOB"
+          test "$(git rev-parse "$CONVERGENCE_SHA:src/endpoint_sample_codec.rs")" = "$ENDPOINT_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/endpoint_sample_codec.rs")" = "$ENDPOINT_SOURCE_BLOB"
+          test "$(git rev-parse "$CONVERGENCE_SHA:crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md")" = "$OBS06_CONTRACT_BLOB"
+          test "$(git rev-parse "$CONVERGENCE_SHA:crates/core/symtropy-physics/src/sampled_presence.rs")" = "$OBS06_SOURCE_BLOB"
+          test "$(git rev-parse "$CONVERGENCE_SHA:crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs")" = "$OBS06_TEST_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/sampled_presence.rs")" = "$OBS06_SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs")" = "$OBS06_TEST_BLOB"
+          test "$(git rev-parse "$CONVERGENCE_SHA:crates/core/symtropy-physics/src/lib.rs")" = "$CONVERGENCE_PHYSICS_LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:crates/core/symtropy-physics/src/lib.rs")" = "$CONVERGENCE_PHYSICS_LIB_BLOB"
+
+          test "$(git rev-parse "$SUBJECT_SHA:docs/release/evidence/CANONICAL_CONSECUTIVE_SAMPLED_PRESENCE_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/consecutive_presence_codec.rs")" = "$SOURCE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:src/lib.rs")" = "$LIB_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/consecutive_presence_v1_vector.json")" = "$VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_consecutive_presence_v1.py")" = "$ORACLE_BLOB"
+
+      - name: Independent Python oracles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/verify_endpoint_sample_v1.py
+          python3 tests/verify_consecutive_presence_v1.py
+
+      - name: Static authority and non-reimplementation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('src/consecutive_presence_codec.rs').read_text()
+          production = text.split('#[cfg(test)]', 1)[0]
+
+          required = [
+              'QualifiedPersistentEndpointSampleV1<D>',
+              'LocalConsecutiveSampledEndpointPresence::try_from_samples(',
+              'previous.live_token()',
+              'current.live_token()',
+              'decode_consecutive_sampled_presence_v1(&frame)',
+              'PhysicsEvidenceFrameKindV1::ConsecutiveSampledPresence',
+              'decode_endpoint_sample_v1(previous_frame)',
+              'decode_endpoint_sample_v1(current_frame)',
+              'previous_session.session_id_bytes() != current_session.session_id_bytes()',
+              'previous.center_offset_bits(axis) != current.center_offset_bits(axis)',
+              'previous.half_extent_bits(axis) != current.half_extent_bits(axis)',
+              'previous.membership() != CanonicalEndpointMembershipV1::Inside',
+              'current.membership() != CanonicalEndpointMembershipV1::Inside',
+              'previous_step.checked_add(1)',
+          ]
+          for needle in required:
+              assert needle in production, needle
+
+          live_call = production.index('LocalConsecutiveSampledEndpointPresence::try_from_samples(')
+          encode_call = production.index('encode_ordered_endpoint_frames_v1(')
+          assert live_call < encode_call
+
+          encoder = production.split('fn encode_ordered_endpoint_frames_v1(', 1)[1]
+          assert encoder.index('payload.extend_from_slice(previous);') < encoder.index('payload.extend_from_slice(current);')
+
+          for forbidden in [
+              'f64::from_bits', '.abs()', 'target_translation_bits',
+              'anchor_translation_bits', 'region_center_bits',
+              'offset_from_center_bits', '.sort(', 'sort_unstable',
+              'BTreeSet', 'HashSet',
+          ]:
+              assert forbidden not in production, forbidden
+
+          struct_marker = 'pub struct QualifiedPersistentConsecutivePresenceV1<const D: usize>'
+          struct_index = production.index(struct_marker)
+          assert '#[derive' not in production[max(0, struct_index - 220):struct_index]
+          assert re.search(
+              r'pub struct QualifiedPersistentConsecutivePresenceV1<const D: usize>\s*\{\s*live_relation: LocalConsecutiveSampledEndpointPresence<D>,\s*frame: Vec<u8>,\s*\}',
+              production,
+              re.S,
+          )
+          for forbidden in [
+              'Serialize', 'Deserialize',
+              'impl From<Vec<u8>> for QualifiedPersistentConsecutivePresenceV1',
+              'impl TryFrom<&[u8]> for QualifiedPersistentConsecutivePresenceV1',
+              'pub fn new(', 'pub fn from_bytes', 'pub fn from_decoded',
+              'sign_', 'verify_signature', 'DefaultHasher', 'ActionKey',
+              'compare_and_set', 'settlement', 'escrow',
+          ]:
+              assert forbidden not in production, forbidden
+
+          print('PHYS-EVID-02D static authority audit: PASS')
+          PY
+
+      - name: Install pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust format and check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check -p symtropy-launcher --lib --locked
+
+      - name: PHYS-EVID-02D and persistent predecessor tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --lib consecutive_presence_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib qualified_persistent_endpoint::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib endpoint_sample_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib evidence_session_binding_codec::tests --locked -- --nocapture
+          cargo test -p symtropy-launcher --lib evidence_session::tests --locked -- --nocapture
+
+      - name: PHYS-OBS-06/05/03 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --test consecutive_sampled_presence_v01 --locked -- --nocapture
+          cargo test -p symtropy-physics --test qualified_stamped_endpoint_v01 --locked -- --nocapture
+          cargo test -p symtropy-physics --test authority_endpoint_box_v01 --locked -- --nocapture
+
+      - name: Warnings-denied Clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-launcher --lib --locked -- -D warnings
+          cargo clippy -p symtropy-physics --lib --locked -- -D warnings
+
+      - name: Immutable-source postflight and receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:src/consecutive_presence_codec.rs)" = "$SOURCE_BLOB"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          receipt = {
+              'theorem': 'PHYS-EVID-02D canonical persistent consecutive sampled presence v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'convergence_sha': os.environ['CONVERGENCE_SHA'],
+              'ordered_convergence_parents': [os.environ['C1_PARENT_SHA'], os.environ['OBS06_PARENT_SHA']],
+              'payload_version': 1,
+              'd3_previous_endpoint_frame_len': 374,
+              'd3_current_endpoint_frame_len': 374,
+              'd3_relation_payload_len': 760,
+              'd3_relation_frame_len': 819,
+              'ordered_predecessors': True,
+              'live_relation_delegated_to_phys_obs_06': True,
+              'persistent_session_required': True,
+              'endpoint_geometry_reimplemented': False,
+              'predecessor_pass_laundering': False,
+              'elapsed_duration_claimed': False,
+              'continuous_occupancy_claimed': False,
+              'authentication_claimed': False,
+              'semantic_hash_commitment_claimed': False,
+              'trusted_replay_state_claimed': False,
+              'side_effect_authority_claimed': False,
+              'settlement_claimed': False,
+          }
+          Path('phys-evid-02d-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-02d-canonical-consecutive-presence-receipt
+          path: phys-evid-02d-receipt.json
+          if-no-files-found: error
