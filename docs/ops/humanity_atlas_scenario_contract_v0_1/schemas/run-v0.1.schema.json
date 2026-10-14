@@ -161,7 +161,8 @@
         "completed",
         "partial",
         "failed"
-      ]
+      ],
+      "description": "Execution status only. completed means the computation finished successfully; it does not imply that the scenario or simulated civilization survived."
     },
     "output_classification": {
       "enum": [

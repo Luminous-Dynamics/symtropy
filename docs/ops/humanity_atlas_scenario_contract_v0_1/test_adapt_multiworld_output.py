@@ -197,6 +197,32 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(envelope["run_id"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
             self.assertEqual(source_path.read_bytes(), raw)
 
+    def test_cli_overwrite_rejects_source_symlink_alias(self):
+        raw = self.raw_source()
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_alias = Path(temp) / "output-alias.json"
+            source_path.write_bytes(raw)
+            try:
+                output_alias.symlink_to(source_path)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"symlink creation is unavailable on this filesystem: {exc}")
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                status = main([
+                    str(source_path), "--output", str(output_alias), "--overwrite"
+                ])
+            self.assertEqual(status, 2)
+            self.assertIn("refusing to overwrite captured source bytes", stderr.getvalue())
+            self.assertTrue(output_alias.is_symlink())
+            self.assertEqual(source_path.read_bytes(), raw)
+
+    def test_rejects_non_boolean_survival_value(self):
+        source = self.source()
+        source["survived"] = "false"
+        with self.assertRaisesRegex(AdapterError, "source.survived must be a boolean"):
+            adapt_source(json.dumps(source, separators=(",", ":")).encode())
+
     def test_cli_refuses_to_overwrite_a_hard_link_to_the_source_artifact(self):
         raw = self.raw_source()
         with tempfile.TemporaryDirectory() as temp:

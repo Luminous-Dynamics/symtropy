@@ -165,8 +165,9 @@ The producer's `survived` boolean is retained as the terminal
 `civilization_survived` output indicator (0 = false, 1 = true). A false value
 also emits `scenario_survival_failure` in the warnings. This is separate from
 `run_status`: a completed run means the computation finished, not that the
-simulated civilization survived. Consumers must not use execution success as a
-proxy for positive scenario outcomes.
+simulated civilization survived. The run schema now states this distinction
+explicitly. Consumers must not use execution success as a proxy for positive
+scenario outcomes.
 
 The generic envelope's `engine_version` is taken from the producer's declared
 `source_model` value (`mycelix-multiworld-sim/<package version>`). The optional
