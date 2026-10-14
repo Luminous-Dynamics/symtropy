@@ -838,7 +838,10 @@ impl fmt::Display for CargoTransferCapacityEvidenceError {
                 )
             }
             Self::MissingObservationTime => {
-                write!(f, "capacity evidence has no explicit capacity observation time")
+                write!(
+                    f,
+                    "capacity evidence has no explicit capacity observation time"
+                )
             }
             Self::MissingRepositoryRecordTime => {
                 write!(f, "capacity evidence has no repository record time")
@@ -847,15 +850,24 @@ impl fmt::Display for CargoTransferCapacityEvidenceError {
                 write!(f, "capacity evidence has no declared validity interval")
             }
             Self::InvalidValidityInterval => {
-                write!(f, "capacity evidence validity interval is empty or reversed")
+                write!(
+                    f,
+                    "capacity evidence validity interval is empty or reversed"
+                )
             }
             Self::NotYetValid => write!(f, "capacity evidence validity interval has not started"),
             Self::Expired => write!(f, "capacity evidence validity interval has expired"),
             Self::ObservationTooOld => {
-                write!(f, "capacity observation exceeds the requested freshness policy")
+                write!(
+                    f,
+                    "capacity observation exceeds the requested freshness policy"
+                )
             }
             Self::TimestampInFuture => {
-                write!(f, "capacity evidence timestamp exceeds allowed future clock skew")
+                write!(
+                    f,
+                    "capacity evidence timestamp exceeds allowed future clock skew"
+                )
             }
             Self::NotCurrent => {
                 write!(f, "capacity evidence is superseded, revoked, or conflicted")
@@ -864,7 +876,10 @@ impl fmt::Display for CargoTransferCapacityEvidenceError {
                 write!(f, "capacity evidence repeats a budget identity")
             }
             Self::UnreferencedBudgetEvidence => {
-                write!(f, "capacity evidence is not referenced by a proposed assignment")
+                write!(
+                    f,
+                    "capacity evidence is not referenced by a proposed assignment"
+                )
             }
         }
     }
@@ -936,8 +951,8 @@ pub fn validate_cargo_transfer_capacity_evidence(
         return Err(CargoTransferCapacityEvidenceError::Expired);
     }
 
-    let latest_accepted_time = evaluation_time_epoch_seconds
-        .saturating_add(policy.allowed_future_clock_skew_seconds);
+    let latest_accepted_time =
+        evaluation_time_epoch_seconds.saturating_add(policy.allowed_future_clock_skew_seconds);
     if observation > latest_accepted_time || recorded > latest_accepted_time {
         return Err(CargoTransferCapacityEvidenceError::TimestampInFuture);
     }
@@ -3288,11 +3303,7 @@ mod tests {
 
         let expired = capacity_evidence(budget.clone(), Some(980));
         assert_eq!(
-            validate_cargo_transfer_capacity_evidence(
-                &expired,
-                1_200,
-                capacity_freshness_policy(),
-            ),
+            validate_cargo_transfer_capacity_evidence(&expired, 1_200, capacity_freshness_policy(),),
             Err(CargoTransferCapacityEvidenceError::Expired)
         );
 
@@ -3304,11 +3315,7 @@ mod tests {
 
         let future = capacity_evidence(budget.clone(), Some(1_010));
         assert_eq!(
-            validate_cargo_transfer_capacity_evidence(
-                &future,
-                1_000,
-                capacity_freshness_policy(),
-            ),
+            validate_cargo_transfer_capacity_evidence(&future, 1_000, capacity_freshness_policy(),),
             Err(CargoTransferCapacityEvidenceError::TimestampInFuture)
         );
 
@@ -3386,7 +3393,10 @@ mod tests {
         .unwrap();
 
         assert_eq!(report.capacity_report.assignment_count, 1);
-        assert_eq!(report.freshness_qualified_budget_evidence, vec![evidence.clone()]);
+        assert_eq!(
+            report.freshness_qualified_budget_evidence,
+            vec![evidence.clone()]
+        );
         let retained = &report.freshness_qualified_budget_evidence[0];
         assert_eq!(retained.source_event_time_epoch_seconds, Some(985));
         assert_eq!(retained.capacity_observed_at_epoch_seconds, Some(980));
@@ -3414,7 +3424,7 @@ mod tests {
                 std::slice::from_ref(&edge),
                 std::slice::from_ref(&budget),
             )
-                .is_ok()
+            .is_ok()
         );
 
         let stale_evidence = capacity_evidence(budget, Some(800));
