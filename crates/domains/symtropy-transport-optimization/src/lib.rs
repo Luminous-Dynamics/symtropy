@@ -825,20 +825,44 @@ pub enum CargoTransferCapacityEvidenceError {
 impl fmt::Display for CargoTransferCapacityEvidenceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidIdentityOrProvenance => write!(f, "capacity evidence identity or provenance is incomplete"),
-            Self::InvalidRevisionLineage => write!(f, "capacity evidence revision lineage is invalid"),
-            Self::TimeProfileMismatch => write!(f, "capacity evidence time profile does not match the consumer policy"),
-            Self::MissingObservationTime => write!(f, "capacity evidence has no explicit capacity observation time"),
-            Self::MissingRepositoryRecordTime => write!(f, "capacity evidence has no repository record time"),
-            Self::MissingValidityInterval => write!(f, "capacity evidence has no declared validity interval"),
-            Self::InvalidValidityInterval => write!(f, "capacity evidence validity interval is empty or reversed"),
+            Self::InvalidIdentityOrProvenance => {
+                write!(f, "capacity evidence identity or provenance is incomplete")
+            }
+            Self::InvalidRevisionLineage => {
+                write!(f, "capacity evidence revision lineage is invalid")
+            }
+            Self::TimeProfileMismatch => {
+                write!(f, "capacity evidence time profile does not match the consumer policy")
+            }
+            Self::MissingObservationTime => {
+                write!(f, "capacity evidence has no explicit capacity observation time")
+            }
+            Self::MissingRepositoryRecordTime => {
+                write!(f, "capacity evidence has no repository record time")
+            }
+            Self::MissingValidityInterval => {
+                write!(f, "capacity evidence has no declared validity interval")
+            }
+            Self::InvalidValidityInterval => {
+                write!(f, "capacity evidence validity interval is empty or reversed")
+            }
             Self::NotYetValid => write!(f, "capacity evidence validity interval has not started"),
             Self::Expired => write!(f, "capacity evidence validity interval has expired"),
-            Self::ObservationTooOld => write!(f, "capacity observation exceeds the requested freshness policy"),
-            Self::TimestampInFuture => write!(f, "capacity evidence timestamp exceeds allowed future clock skew"),
-            Self::NotCurrent => write!(f, "capacity evidence is superseded, revoked, or conflicted"),
-            Self::DuplicateBudgetIdentity => write!(f, "capacity evidence repeats a budget identity"),
-            Self::UnreferencedBudgetEvidence => write!(f, "capacity evidence is not referenced by a proposed assignment"),
+            Self::ObservationTooOld => {
+                write!(f, "capacity observation exceeds the requested freshness policy")
+            }
+            Self::TimestampInFuture => {
+                write!(f, "capacity evidence timestamp exceeds allowed future clock skew")
+            }
+            Self::NotCurrent => {
+                write!(f, "capacity evidence is superseded, revoked, or conflicted")
+            }
+            Self::DuplicateBudgetIdentity => {
+                write!(f, "capacity evidence repeats a budget identity")
+            }
+            Self::UnreferencedBudgetEvidence => {
+                write!(f, "capacity evidence is not referenced by a proposed assignment")
+            }
         }
     }
 }
@@ -3225,7 +3249,11 @@ mod tests {
         let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
         let evidence = capacity_evidence(budget, Some(980));
         assert_eq!(
-            validate_cargo_transfer_capacity_evidence(&evidence, 1_000, capacity_freshness_policy()),
+            validate_cargo_transfer_capacity_evidence(
+                &evidence,
+                1_000,
+                capacity_freshness_policy(),
+            ),
             Ok(())
         );
 
@@ -3378,7 +3406,11 @@ mod tests {
         }];
         let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
         assert!(
-            validate_cargo_transfer_plan(&entries, std::slice::from_ref(&edge), std::slice::from_ref(&budget))
+            validate_cargo_transfer_plan(
+                &entries,
+                std::slice::from_ref(&edge),
+                std::slice::from_ref(&budget),
+            )
                 .is_ok()
         );
 
