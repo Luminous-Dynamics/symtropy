@@ -739,6 +739,53 @@ mod tests {
     }
 
     #[test]
+    fn weighted_loop_adjustment_distributes_misclosure_by_declared_variance() {
+        let mut adjustment = input();
+        adjustment.parameter_names = vec![
+            "height_a_m".to_owned(),
+            "height_b_m".to_owned(),
+            "height_c_m".to_owned(),
+        ];
+        adjustment.fixed_parameters = vec![FixedSurveyParameterV1 {
+            parameter_index: 0,
+            value: 0.0,
+        }];
+        // A -> B -> C -> A leveling loop. The observed closure is -0.03 m.
+        // Independent hand adjustment distributes +0.03 m of residual by
+        // variance ratio 1:4:1, yielding heights B=10.025 m, C=15.035 m.
+        adjustment.fitting_observations = vec![
+            observation("loop-ab", &[-1.0, 1.0, 0.0], 10.02, 0.01),
+            observation("loop-bc", &[0.0, -1.0, 1.0], 4.99, 0.02),
+            observation("loop-ca", &[1.0, 0.0, -1.0], -15.04, 0.01),
+        ];
+        adjustment.independent_checkpoints.clear();
+        adjustment.excluded_observations.clear();
+
+        let result = adjustment.solve().expect("full-rank constrained leveling loop");
+        assert_eq!(result.free_parameter_indices, vec![1, 2]);
+        assert!((result.parameter_estimates[0].value).abs() < 1.0e-12);
+        assert!((result.parameter_estimates[1].value - 10.025).abs() < 1.0e-8);
+        assert!((result.parameter_estimates[2].value - 15.035).abs() < 1.0e-8);
+
+        for (id, expected) in [("loop-ab", 0.005), ("loop-bc", 0.020), ("loop-ca", 0.005)] {
+            let residual = result
+                .residuals
+                .iter()
+                .find(|item| item.observation_id == id)
+                .expect("loop residual present");
+            assert_eq!(residual.role, SurveyAdjustmentObservationRoleV1::Fit);
+            assert!((residual.residual - expected).abs() < 1.0e-8);
+        }
+        assert!((result.weighted_sum_squares - 1.5).abs() < 1.0e-8);
+        assert_eq!(result.degrees_of_freedom, 1);
+        assert_eq!(result.formal_covariance_row_major.len(), 4);
+        assert!((result.formal_covariance_row_major[0] - 1.0 / 12_000.0).abs() < 1.0e-9);
+        assert!((result.formal_covariance_row_major[1] - 1.0 / 60_000.0).abs() < 1.0e-9);
+        assert!((result.formal_covariance_row_major[2] - 1.0 / 60_000.0).abs() < 1.0e-9);
+        assert!((result.formal_covariance_row_major[3] - 1.0 / 12_000.0).abs() < 1.0e-9);
+    }
+
+    #[test]
     fn independent_checkpoints_never_change_the_fit() {
         let mut original = input();
         let original_result = original.solve().expect("solution");
