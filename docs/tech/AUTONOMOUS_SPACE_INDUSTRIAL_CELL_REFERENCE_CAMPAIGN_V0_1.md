@@ -329,3 +329,9 @@ The three current software fault cases are listed in the frozen [industrial-cell
 ## Standards crosswalk
 
 The existing G0–G8 gates now have a [standards crosswalk](AUTONOMOUS_SPACE_INDUSTRIAL_CELL_STANDARDS_CROSSWALK_V0_1.md) covering requirement/verification matrices, software assurance and independent verification, metrology/calibration, space-system verification/testing, robotics-cell safety analogs, machinery risk assessment, and technology-readiness terminology. It records official status as checked on 2026-10-14 and distinguishes reference guidance from requirements formally adopted by a mission or project. The crosswalk does not declare Symtropy or a future robot compliant with any cited standard.
+
+## Machine-readable software evidence receipt
+
+After the focused workflow successfully executes the reference and verifies the frozen corpus, it emits and uploads `industrial-cell-reference-receipt.json` with a companion SHA-256 file. The receipt binds the exact Git commit, workflow run ID/URL and attempt, pinned Rust toolchain, corpus digest, verifier digest, reference-program digest, synthetic fixture class, and explicit claim ceiling. The workflow only reaches this step after all required transcript markers and the exact three scenario count pass. A failed, canceled, queued, or NotRun job is not a receipt and must not be reinterpreted as success.
+
+The receipt is software-contract evidence only. It does not authenticate external physical observations, prove a calibration certificate is current, validate a lunar/Mars process, or qualify robot hardware. A downstream `BootstrapMilestone` may reference it as a `WorkflowRun` or `TestReport` artifact after independently checking the artifact checksum, run conclusion, exact source commit and manifest digest.
