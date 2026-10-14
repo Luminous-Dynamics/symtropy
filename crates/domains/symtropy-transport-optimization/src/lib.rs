@@ -3332,122 +3332,6 @@ mod tests {
     }
 
     #[test]
-    fn capacity_window_qualification_preserves_provenance_and_half_open_boundaries() {
-        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
-        let mut evidence = capacity_evidence(budget, Some(980));
-        evidence.valid_from_epoch_seconds = Some(1_000);
-        evidence.valid_until_epoch_seconds = Some(1_100);
-        let window = CargoTransferOperationWindowV1 {
-            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
-            planned_start_epoch_seconds: 1_000,
-            planned_end_epoch_seconds: 1_100,
-        };
-
-        let report = validate_cargo_transfer_capacity_evidence_for_window(
-            &evidence,
-            1_000,
-            &window,
-            capacity_freshness_policy(),
-        )
-        .unwrap();
-
-        assert_eq!(report.evidence, evidence);
-        assert_eq!(report.operation_window, window);
-        assert_eq!(report.evaluation_time_epoch_seconds, 1_000);
-        assert_eq!(report.freshness_policy.max_observation_age_seconds, 100);
-        assert_eq!(report.operation_window.planned_end_epoch_seconds, 1_100);
-    }
-
-    #[test]
-    fn capacity_window_rejects_evidence_that_expires_before_operation_starts() {
-        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
-        let mut evidence = capacity_evidence(budget, Some(980));
-        evidence.valid_until_epoch_seconds = Some(1_050);
-        let window = CargoTransferOperationWindowV1 {
-            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
-            planned_start_epoch_seconds: 1_060,
-            planned_end_epoch_seconds: 1_070,
-        };
-
-        assert_eq!(
-            validate_cargo_transfer_capacity_evidence_for_window(
-                &evidence,
-                1_000,
-                &window,
-                capacity_freshness_policy(),
-            ),
-            Err(CargoTransferCapacityWindowError::EvidenceValidityDoesNotCoverWindow)
-        );
-    }
-
-    #[test]
-    fn capacity_window_rejects_evidence_that_will_be_stale_at_operation_start() {
-        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
-        let evidence = capacity_evidence(budget, Some(950));
-        let window = CargoTransferOperationWindowV1 {
-            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
-            planned_start_epoch_seconds: 1_060,
-            planned_end_epoch_seconds: 1_070,
-        };
-
-        assert_eq!(
-            validate_cargo_transfer_capacity_evidence_for_window(
-                &evidence,
-                1_000,
-                &window,
-                capacity_freshness_policy(),
-            ),
-            Err(CargoTransferCapacityWindowError::ObservationTooOldAtOperationStart)
-        );
-    }
-
-    #[test]
-    fn capacity_window_rejects_invalid_started_and_wrong_profile_windows() {
-        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
-        let evidence = capacity_evidence(budget, Some(980));
-        let mut window = CargoTransferOperationWindowV1 {
-            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
-            planned_start_epoch_seconds: 1_000,
-            planned_end_epoch_seconds: 1_000,
-        };
-
-        assert_eq!(
-            validate_cargo_transfer_capacity_evidence_for_window(
-                &evidence,
-                1_000,
-                &window,
-                capacity_freshness_policy(),
-            ),
-            Err(CargoTransferCapacityWindowError::InvalidOperationWindow)
-        );
-
-        window.planned_start_epoch_seconds = 999;
-        window.planned_end_epoch_seconds = 1_010;
-        assert_eq!(
-            validate_cargo_transfer_capacity_evidence_for_window(
-                &evidence,
-                1_000,
-                &window,
-                capacity_freshness_policy(),
-            ),
-            Err(CargoTransferCapacityWindowError::OperationWindowAlreadyStarted)
-        );
-
-        window.planned_start_epoch_seconds = 1_000;
-        window.planned_end_epoch_seconds = 1_010;
-        window.time_profile_id = "other-time-profile".to_owned();
-        assert_eq!(
-            validate_cargo_transfer_capacity_evidence_for_window(
-                &evidence,
-                1_000,
-                &window,
-                capacity_freshness_policy(),
-            ),
-            Err(CargoTransferCapacityWindowError::TimeProfileMismatch)
-        );
-    }
-
-    #[test]
     fn capacity_evidence_rejects_revoked_conflicted_and_invalid_revision_lineage() {
         let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
         let mut revoked = capacity_evidence(budget.clone(), Some(980));
@@ -3475,7 +3359,124 @@ mod tests {
                 &invalid_revision,
                 1_000,
                 capacity_freshness_policy(),
-  TransferPlanEvidenceError::Evidence(
+            ),
+            Err(CargoTransferCapacityEvidenceError::InvalidRevisionLineage)
+        );
+    }
+
+    #[test]
+    fn plan_with_capacity_evidence_preserves_provenance_in_deterministic_report() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget, Some(980));
+        let report = validate_cargo_transfer_plan_with_evidence(
+            &entries,
+            &[edge],
+            std::slice::from_ref(&evidence),
+            1_000,
+            capacity_freshness_policy(),
+        )
+        .unwrap();
+
+        assert_eq!(report.capacity_report.assignment_count, 1);
+        assert_eq!(
+            report.freshness_qualified_budget_evidence,
+            vec![evidence.clone()]
+        );
+        let retained = &report.freshness_qualified_budget_evidence[0];
+        assert_eq!(retained.source_event_time_epoch_seconds, Some(985));
+        assert_eq!(retained.capacity_observed_at_epoch_seconds, Some(980));
+        assert_eq!(retained.repository_recorded_at_epoch_seconds, Some(995));
+        assert_eq!(retained.source_record_digest, "sha256:capacity-snapshot-91");
+    }
+
+    #[test]
+    fn plan_with_capacity_evidence_rejects_stale_budget_even_when_numeric_plan_fits() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        assert!(
+            validate_cargo_transfer_plan(
+                &entries,
+                std::slice::from_ref(&edge),
+                std::slice::from_ref(&budget),
+            )
+            .is_ok()
+        );
+
+        let stale_evidence = capacity_evidence(budget, Some(800));
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                &[edge],
+                &[stale_evidence],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
+                CargoTransferCapacityEvidenceError::ObservationTooOld,
+            ))
+        );
+    }
+
+    #[test]
+    fn plan_with_capacity_evidence_rejects_duplicate_budget_ids_and_not_yet_valid() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget.clone(), Some(980));
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                std::slice::from_ref(&edge),
+                &[evidence.clone(), evidence],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
+                CargoTransferCapacityEvidenceError::DuplicateBudgetIdentity,
+            ))
+        );
+
+        let mut early = capacity_evidence(budget, Some(980));
+        early.valid_from_epoch_seconds = Some(1_001);
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                std::slice::from_ref(&edge),
+                &[early],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
                 CargoTransferCapacityEvidenceError::NotYetValid,
             ))
         );
