@@ -204,8 +204,8 @@ pub struct LinearizedSurveyAdjustmentV1 {
     /// Exact constraints on parameter values; uncertainty of these controls
     /// must be modeled upstream if it is not negligible.
     pub fixed_parameters: Vec<FixedSurveyParameterV1>,
-    /// Relative cutoff compared with the largest singular value of the weighted
-    /// design matrix. Must be in (0, 1).
+    /// Relative cutoff compared with the largest singular value after the
+    /// weighted design matrix is column-equilibrated. Must be in (0, 1).
     pub relative_rank_tolerance: f64,
     pub provenance: SurveyAdjustmentProvenanceV1,
 }
@@ -326,8 +326,38 @@ impl LinearizedSurveyAdjustmentV1 {
             ));
         }
 
+        // Scale each non-zero weighted column to unit Euclidean norm before the
+        // rank test. This makes the rank decision substantially less sensitive to
+        // arbitrary parameter units (for example metres versus millimetres).
+        // A zero column keeps scale 1 and is rejected by the SVD rank check below.
+        // hypot accumulates norms without the avoidable overflow of sum(x * x).
+        let mut column_scales = Vec::with_capacity(free_count);
+        let mut equilibrated_design = weighted_design.clone();
+        for column in 0..free_count {
+            let mut norm = 0.0_f64;
+            for row in 0..row_count {
+                norm = norm.hypot(weighted_design[(row, column)]);
+            }
+            if !norm.is_finite() {
+                return Err(SurveyAdjustmentErrorV1::NumericalFailure(
+                    "column_scale_not_finite",
+                ));
+            }
+            let scale = if norm > 0.0 { norm } else { 1.0 };
+            column_scales.push(scale);
+            for row in 0..row_count {
+                equilibrated_design[(row, column)] /= scale;
+            }
+        }
+        if !equilibrated_design.iter().all(|value| value.is_finite()) {
+            return Err(SurveyAdjustmentErrorV1::NumericalFailure(
+                "equilibrated_design_not_finite",
+            ));
+        }
+
         // SVD avoids squaring the condition number by explicitly forming AᵀPA.
-        let decomposition = weighted_design.svd(true, true);
+        // Its singular values now describe the column-equilibrated design matrix.
+        let decomposition = equilibrated_design.svd(true, true);
         let singular_values = decomposition.singular_values.clone();
         let largest = singular_values.iter().copied().fold(0.0_f64, f64::max);
         if !largest.is_finite() || largest <= 0.0 {
@@ -363,7 +393,12 @@ impl LinearizedSurveyAdjustmentV1 {
                 .map(|(index, singular)| projected[index] / singular),
         );
         let v = v_t.transpose();
-        let free_solution = &v * scaled;
+        // The equilibrated system solves for y = diag(column_scales) * x.
+        // Transform estimates back to the caller's original parameter units.
+        let mut free_solution = &v * scaled;
+        for (index, scale) in column_scales.iter().enumerate() {
+            free_solution[index] /= scale;
+        }
         if !free_solution.iter().all(|value| value.is_finite()) {
             return Err(SurveyAdjustmentErrorV1::NumericalFailure(
                 "solution_not_finite",
@@ -431,12 +466,16 @@ impl LinearizedSurveyAdjustmentV1 {
         let mut covariance_row_major = vec![0.0; free_count * free_count];
         for row in 0..free_count {
             for column in 0..free_count {
-                let covariance = (0..free_count)
+                let equilibrated_covariance = (0..free_count)
                     .map(|component| {
                         v[(row, component)] * v[(column, component)]
                             / (singular_values[component] * singular_values[component])
                     })
                     .sum::<f64>();
+                // Cov(x) = D⁻¹ Cov(y) D⁻¹ for y = D x. Divide in two steps
+                // rather than multiplying scales, which itself could overflow.
+                let covariance =
+                    (equilibrated_covariance / column_scales[row]) / column_scales[column];
                 if !covariance.is_finite() {
                     return Err(SurveyAdjustmentErrorV1::NumericalFailure(
                         "covariance_not_finite",
@@ -568,6 +607,7 @@ pub struct SurveyAdjustmentResultV1 {
     pub degrees_of_freedom: usize,
     pub weighted_sum_squares: f64,
     pub posterior_variance_factor: Option<f64>,
+    /// Singular values of the column-equilibrated weighted design matrix.
     pub singular_values: Vec<f64>,
     pub relative_rank_tolerance: f64,
     pub provenance: SurveyAdjustmentProvenanceV1,
@@ -662,6 +702,40 @@ mod tests {
         assert!((result.formal_covariance_row_major[1] + 2.0 / 3.0).abs() < 1.0e-10);
         assert!((result.formal_covariance_row_major[2] + 2.0 / 3.0).abs() < 1.0e-10);
         assert!((result.formal_covariance_row_major[3] - 4.0 / 3.0).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn column_equilibration_preserves_solution_and_covariance_across_parameter_units() {
+        let mut adjustment = input();
+        adjustment.parameter_names = vec!["east_m".to_owned(), "north_scaled_unit".to_owned()];
+        adjustment.fixed_parameters.clear();
+        adjustment.fitting_observations = vec![
+            observation("east", &[1.0, 0.0], 10.0, 1.0),
+            observation("north", &[0.0, 1.0e-12], 20.0, 2.0),
+            observation("diagonal", &[1.0, 1.0e-12], 31.0, 1.0),
+        ];
+        adjustment.independent_checkpoints.clear();
+        adjustment.excluded_observations.clear();
+        // Without column equilibration this rank tolerance mistakes a parameter
+        // expressed at a 10^-12 numeric scale for a deficient direction.
+        adjustment.relative_rank_tolerance = 1.0e-10;
+
+        let result = adjustment.solve().expect("unit-rescaled full-rank network");
+        assert!((result.parameter_estimates[0].value - 61.0 / 6.0).abs() < 1.0e-8);
+        assert!(
+            (result.parameter_estimates[1].value / 1.0e12 - 62.0 / 3.0).abs() < 1.0e-8
+        );
+        assert_eq!(result.degrees_of_freedom, 1);
+        assert!((result.formal_covariance_row_major[0] - 5.0 / 6.0).abs() < 1.0e-8);
+        assert!(
+            (result.formal_covariance_row_major[1] / 1.0e12 + 2.0 / 3.0).abs() < 1.0e-8
+        );
+        assert!(
+            (result.formal_covariance_row_major[2] / 1.0e12 + 2.0 / 3.0).abs() < 1.0e-8
+        );
+        assert!(
+            (result.formal_covariance_row_major[3] / 1.0e24 - 4.0 / 3.0).abs() < 1.0e-8
+        );
     }
 
     #[test]
