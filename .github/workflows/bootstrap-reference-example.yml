@@ -7,6 +7,7 @@ on:
       - "crates/domains/symtropy-bootstrap/**"
       - "scripts/verify-industrial-cell-reference.sh"
       - "docs/tech/industrial-cell-fault-corpus-v0.1.json"
+      - "docs/tech/AUTONOMOUS_SPACE_INDUSTRIAL_CELL_REFERENCE_CAMPAIGN_V0_1.md"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
