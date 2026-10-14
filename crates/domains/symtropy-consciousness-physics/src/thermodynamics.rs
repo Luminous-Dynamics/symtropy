@@ -535,7 +535,7 @@ mod tests {
     }
 
     #[test]
-    fn ledger_overflow_does_not_partially_mutate_or_reset() {
+    fn ledger_overflow_does_not_partially_mutate() {
         let mut ledger = ThermodynamicLedger::new();
         ledger.energy_in = f64::MAX;
         assert_eq!(
@@ -543,11 +543,18 @@ mod tests {
             Err(ThermodynamicLedgerError::NumericalOverflow)
         );
         assert_eq!(ledger.energy_in, f64::MAX);
+        assert_eq!(ledger.phi_energy_integral, 0.0);
+    }
+
+    #[test]
+    fn invalid_public_ledger_state_is_not_reported_as_a_pass() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.energy_in = f64::NAN;
 
         let balance = ledger.tick_balance();
         assert!(balance.balance.is_nan());
         assert!(balance.conservation_error.is_infinite());
-        assert_eq!(ledger.energy_in, f64::MAX);
+        assert!(ledger.energy_in.is_nan());
         assert_eq!(ledger.tick_count, 0);
     }
 
