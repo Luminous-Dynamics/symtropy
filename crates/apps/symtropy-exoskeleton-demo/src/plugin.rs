@@ -8,7 +8,6 @@ use symthaea_exoskeleton::types::AssistanceMode;
 
 use crate::camera;
 use crate::consciousness_bridge;
-use crate::controller::ConsciousnessState;
 use crate::hud;
 use crate::resources::*;
 use crate::visualization;
@@ -50,9 +49,13 @@ fn update_sim_time(time: Res<Time>, mut sim_time: ResMut<SimTime>) {
 /// Flow:
 /// 1. Measure balance proxy (CoP magnitude) + battery — observation inputs
 /// 2. Consciousness tick → Φ → AssistanceMode (platform-provided API)
-/// 3. Controller computes PD torques toward target pose, scaled by mode factors
+/// 3. Low-level controller computes PD torques from exoskeleton state + authorized mode only
 /// 4. Step physics (simulator adds human CPG torques internally)
 /// 5. HDC encode new state → cosine-dissim PE for next tick
+///
+/// Wearer condition/health does not enter the PD controller directly. A future
+/// higher-level compensation adapter may alter assistance demand using explicit
+/// condition/capability evidence without teaching the controller medical semantics.
 fn step_exoskeleton(time: Res<Time>, mut exo: ResMut<ExoskeletonResources>) {
     let dt = time.delta_secs_f64();
     if dt <= 0.0 || dt > 0.1 {
@@ -86,15 +89,8 @@ fn step_exoskeleton(time: Res<Time>, mut exo: ResMut<ExoskeletonResources>) {
     let mode = AssistanceMode::from_phi(phi);
     exo.current_mode = mode;
 
-    // Controller computes assistive torques scaled by mode factors.
-    // NOTE: ConsciousnessState (fatigue/trauma/stress) isn't wired to any
-    // real signal yet -- ExoskeletonResources doesn't track it, so this
-    // demo doesn't yet show performance degradation under exertion/injury.
-    // Real, unwired feature; using the neutral (no-degradation) default
-    // rather than inventing a derivation.
-    let cmd = exo
-        .controller
-        .compute(&state, mode, ConsciousnessState::default());
+    // Low-level controller consumes only exoskeleton state + already-authorized mode.
+    let cmd = exo.controller.compute(&state, mode);
     exo.last_exo_effort = cmd.control_effort();
 
     // Step physics (simulator adds human CPG torques internally)
