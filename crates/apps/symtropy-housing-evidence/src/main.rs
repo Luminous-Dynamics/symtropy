@@ -1392,8 +1392,10 @@ mod tests {
         let cases = vec![
             vec![
                 "manifest.json",
-                "--expected-claims", "one.json",
-                "--expected-claims", "two.json",
+                "--expected-claims",
+                "one.json",
+                "--expected-claims",
+                "two.json",
             ],
             vec![
                 "manifest.json",
@@ -1404,8 +1406,10 @@ mod tests {
             ],
             vec![
                 "manifest.json",
-                "--artifact-root", "one",
-                "--artifact-root", "two",
+                "--artifact-root",
+                "one",
+                "--artifact-root",
+                "two",
             ],
             vec!["manifest.json", "--require-pass", "--require-pass"],
         ];
