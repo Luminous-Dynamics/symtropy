@@ -10,7 +10,8 @@ fn built_environment_root() -> PathBuf {
 fn schema_and_example() -> (Value, Value) {
     let root = built_environment_root();
     let schema: Value = serde_json::from_slice(
-        &fs::read(root.join("home-design-brief.schema.json")).expect("home design brief schema exists"),
+        &fs::read(root.join("home-design-brief.schema.json"))
+            .expect("home design brief schema exists"),
     )
     .expect("home design brief schema parses as JSON");
     let example: Value = serde_json::from_slice(
