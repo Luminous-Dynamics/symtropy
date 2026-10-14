@@ -43,7 +43,12 @@ fn run() -> Result<(), String> {
             Capability::new(
                 "precision_repair",
                 20,
-                ["local_block_production", "metrology", "control_electronics", "tools"],
+                [
+                    "local_block_production",
+                    "metrology",
+                    "control_electronics",
+                    "tools",
+                ],
             ),
         ],
         [
@@ -78,7 +83,10 @@ fn run() -> Result<(), String> {
         ));
     }
     if closure.fully_closed() {
-        return Err("imported metrology/control dependencies were incorrectly treated as closed".to_string());
+        return Err(
+            "imported metrology/control dependencies were incorrectly treated as closed"
+                .to_string(),
+        );
     }
 
     println!("mass_closure_ppm={}", closure.mass_closure_ppm);
@@ -167,42 +175,10 @@ fn run() -> Result<(), String> {
     // A Pareto frontier preserves meaningful trade-offs instead of hiding them
     // inside one opaque autonomy or efficiency score.
     let candidates = vec![
-        BootstrapCandidate::new(
-            "local-berm-kit",
-            10,
-            2,
-            1_500,
-            500,
-            25,
-            10_000,
-        )?,
-        BootstrapCandidate::new(
-            "sensor-calibration",
-            14,
-            3,
-            2_200,
-            300,
-            18,
-            20_000,
-        )?,
-        BootstrapCandidate::new(
-            "repair-cell",
-            20,
-            4,
-            5_000,
-            400,
-            30,
-            30_000,
-        )?,
-        BootstrapCandidate::new(
-            "wasteful-import",
-            5,
-            1,
-            6_000,
-            800,
-            50,
-            60_000,
-        )?,
+        BootstrapCandidate::new("local-berm-kit", 10, 2, 1_500, 500, 25, 10_000)?,
+        BootstrapCandidate::new("sensor-calibration", 14, 3, 2_200, 300, 18, 20_000)?,
+        BootstrapCandidate::new("repair-cell", 20, 4, 5_000, 400, 30, 30_000)?,
+        BootstrapCandidate::new("wasteful-import", 5, 1, 6_000, 800, 50, 60_000)?,
     ];
     let frontier = pareto_frontier(&candidates);
     let frontier_ids = frontier
@@ -210,7 +186,9 @@ fn run() -> Result<(), String> {
         .map(BootstrapCandidate::id)
         .collect::<Vec<_>>();
     if frontier_ids != ["local-berm-kit", "repair-cell", "sensor-calibration"] {
-        return Err(format!("unexpected deterministic Pareto frontier: {frontier_ids:?}"));
+        return Err(format!(
+            "unexpected deterministic Pareto frontier: {frontier_ids:?}"
+        ));
     }
     if frontier_ids.contains(&"wasteful-import") {
         return Err("dominated bootstrap candidate escaped the Pareto filter".to_string());
