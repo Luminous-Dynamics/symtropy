@@ -416,6 +416,7 @@ mod tests {
         SensorProfileV1 {
             sensor_id: "imu-front".to_owned(),
             modality: SensorModality::Imu,
+            frame_id: "imu_link".to_owned(),
             model_solver_id: None,
             calibration_artifact: None,
             sample_rate_hz: 100.0,
