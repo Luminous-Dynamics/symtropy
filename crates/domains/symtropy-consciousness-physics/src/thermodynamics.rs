@@ -134,6 +134,32 @@ impl Default for ThermodynamicConstants {
     }
 }
 
+/// Errors returned when a thermodynamic ledger receives invalid values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThermodynamicLedgerError {
+    InvalidEnergyAmount,
+    InvalidPhi,
+    InvalidPhiChange,
+    InvalidBitCount,
+    InvalidState,
+    NumericalOverflow,
+}
+
+impl std::fmt::Display for ThermodynamicLedgerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidEnergyAmount => write!(f, "energy amount must be finite and nonnegative"),
+            Self::InvalidPhi => write!(f, "Phi must be finite and in [0, 1]"),
+            Self::InvalidPhiChange => write!(f, "Phi delta must be finite and in [-1, 1]"),
+            Self::InvalidBitCount => write!(f, "bit count must be finite and nonnegative"),
+            Self::InvalidState => write!(f, "thermodynamic ledger state is invalid"),
+            Self::NumericalOverflow => write!(f, "ledger operation produced a non-finite result"),
+        }
+    }
+}
+
+impl std::error::Error for ThermodynamicLedgerError {}
+
 /// Thermodynamic ledger: tracks energy flow through the consciousness-physics system.
 #[derive(Debug, Clone)]
 pub struct ThermodynamicLedger {
@@ -167,83 +193,235 @@ impl ThermodynamicLedger {
         }
     }
 
+    fn state_is_valid(&self) -> bool {
+        self.energy_in.is_finite()
+            && self.energy_in >= 0.0
+            && self.energy_out.is_finite()
+            && self.energy_out >= 0.0
+            && self.phi_energy_integral.is_finite()
+            && self.phi_energy_integral >= 0.0
+            && self.phi_change_total.is_finite()
+            && self.phi_change_total >= 0.0
+            && self.lifetime_energy.is_finite()
+            && self.lifetime_energy >= 0.0
+            && self.lifetime_error.is_finite()
+            && self.lifetime_error >= 0.0
+    }
+
     /// Record an energy-consuming action.
     ///
-    /// `energy_cost` is the Joules consumed.
-    /// `phi` is the entity's current consciousness level.
+    /// The legacy void method is retained for compatibility. Invalid values
+    /// are rejected without mutating the ledger; callers needing the reason can
+    /// use try_record_action.
     pub fn record_action(&mut self, energy_cost: f64, phi: f64) {
-        self.energy_in += energy_cost;
-        self.phi_energy_integral += energy_cost * phi;
+        let _ = self.try_record_action(energy_cost, phi);
+    }
+
+    /// Record a finite, nonnegative energy cost and a Phi value in [0, 1].
+    pub fn try_record_action(
+        &mut self,
+        energy_cost: f64,
+        phi: f64,
+    ) -> Result<(), ThermodynamicLedgerError> {
+        if !energy_cost.is_finite() || energy_cost < 0.0 {
+            return Err(ThermodynamicLedgerError::InvalidEnergyAmount);
+        }
+        if !phi.is_finite() || !(0.0..=1.0).contains(&phi) {
+            return Err(ThermodynamicLedgerError::InvalidPhi);
+        }
+        if !self.state_is_valid() {
+            return Err(ThermodynamicLedgerError::InvalidState);
+        }
+
+        let new_energy_in = self.energy_in + energy_cost;
+        let phi_weighted_cost = energy_cost * phi;
+        let new_phi_energy_integral = self.phi_energy_integral + phi_weighted_cost;
+        if !new_energy_in.is_finite()
+            || !phi_weighted_cost.is_finite()
+            || !new_phi_energy_integral.is_finite()
+        {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+
+        self.energy_in = new_energy_in;
+        self.phi_energy_integral = new_phi_energy_integral;
+        Ok(())
     }
 
     /// Record energy dissipated (friction, damping, collision heat).
+    /// Invalid or negative values are rejected without changing the ledger.
     pub fn record_dissipation(&mut self, energy: f64) {
-        self.energy_out += energy;
+        let _ = self.try_record_dissipation(energy);
     }
 
-    /// Record a change in Phi for an entity.
+    /// Record a finite, nonnegative dissipation amount.
+    pub fn try_record_dissipation(
+        &mut self,
+        energy: f64,
+    ) -> Result<(), ThermodynamicLedgerError> {
+        if !energy.is_finite() || energy < 0.0 {
+            return Err(ThermodynamicLedgerError::InvalidEnergyAmount);
+        }
+        if !self.state_is_valid() {
+            return Err(ThermodynamicLedgerError::InvalidState);
+        }
+
+        let new_energy_out = self.energy_out + energy;
+        if !new_energy_out.is_finite() {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        self.energy_out = new_energy_out;
+        Ok(())
+    }
+
+    /// Record a change in Phi for an entity. A single delta must be in [-1, 1].
+    /// Invalid changes are rejected without mutating the ledger.
     pub fn record_phi_change(&mut self, delta_phi: f64) {
-        self.phi_change_total += delta_phi.abs();
+        let _ = self.try_record_phi_change(delta_phi);
+    }
+
+    pub fn try_record_phi_change(
+        &mut self,
+        delta_phi: f64,
+    ) -> Result<(), ThermodynamicLedgerError> {
+        if !delta_phi.is_finite() || delta_phi.abs() > 1.0 {
+            return Err(ThermodynamicLedgerError::InvalidPhiChange);
+        }
+        if !self.state_is_valid() {
+            return Err(ThermodynamicLedgerError::InvalidState);
+        }
+
+        let new_phi_change_total = self.phi_change_total + delta_phi.abs();
+        if !new_phi_change_total.is_finite() {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        self.phi_change_total = new_phi_change_total;
+        Ok(())
     }
 
     /// Finalize this tick: compute conservation error and accumulate.
+    ///
+    /// If direct writes to public fields have corrupted the ledger, this legacy
+    /// wrapper returns non-finite sentinels and leaves the invalid state intact.
+    /// Prefer try_tick_balance to receive a typed error.
     pub fn tick_balance(&mut self) -> TickBalance {
+        self.try_tick_balance().unwrap_or_else(|_| TickBalance {
+            energy_in: self.energy_in,
+            energy_out: self.energy_out,
+            balance: f64::NAN,
+            conservation_error: f64::INFINITY,
+            joules_per_phi: None,
+        })
+    }
+
+    /// Validate and finalize a tick. The residual is normalized by the larger
+    /// of input/output energy, so a zero-input/nonzero-output imbalance cannot
+    /// be incorrectly reported as zero error. A genuinely empty ledger has
+    /// zero error. On failure, no counters are reset or accumulated.
+    pub fn try_tick_balance(&mut self) -> Result<TickBalance, ThermodynamicLedgerError> {
+        if !self.state_is_valid() {
+            return Err(ThermodynamicLedgerError::InvalidState);
+        }
+
         let balance = self.energy_in - self.energy_out;
         let error = balance.abs();
-        self.lifetime_energy += self.energy_in;
-        self.lifetime_error += error;
-        self.tick_count += 1;
+        let reference_energy = self.energy_in.max(self.energy_out);
+        let conservation_error = if reference_energy > 0.0 {
+            error / reference_energy
+        } else {
+            0.0
+        };
+        let joules_per_phi = self.joules_per_phi();
+        if !balance.is_finite()
+            || !error.is_finite()
+            || !conservation_error.is_finite()
+            || joules_per_phi.is_some_and(|value| !value.is_finite())
+        {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+
+        let new_lifetime_energy = self.lifetime_energy + self.energy_in;
+        let new_lifetime_error = self.lifetime_error + error;
+        let new_tick_count = self
+            .tick_count
+            .checked_add(1)
+            .ok_or(ThermodynamicLedgerError::NumericalOverflow)?;
+        if !new_lifetime_energy.is_finite() || !new_lifetime_error.is_finite() {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
 
         let result = TickBalance {
             energy_in: self.energy_in,
             energy_out: self.energy_out,
             balance,
-            conservation_error: if self.energy_in > 1e-15 {
-                error / self.energy_in
-            } else {
-                0.0
-            },
-            joules_per_phi: self.joules_per_phi(),
+            conservation_error,
+            joules_per_phi,
         };
 
-        // Reset per-tick accumulators
+        self.lifetime_energy = new_lifetime_energy;
+        self.lifetime_error = new_lifetime_error;
+        self.tick_count = new_tick_count;
         self.energy_in = 0.0;
         self.energy_out = 0.0;
         self.phi_energy_integral = 0.0;
         self.phi_change_total = 0.0;
-
-        result
+        Ok(result)
     }
 
     /// Novel metric: Joules per unit Phi.
     ///
-    /// How much energy does it cost to maintain consciousness?
-    /// Returns None if no Phi change this tick.
+    /// How much energy does it cost to maintain Phi integration?
+    /// Returns None if no Phi change occurred, or the ledger state is invalid.
     pub fn joules_per_phi(&self) -> Option<f64> {
-        if self.phi_change_total < 1e-15 {
+        if !self.state_is_valid() || self.phi_change_total < 1e-15 {
             return None;
         }
-        Some(self.phi_energy_integral / self.phi_change_total)
+        let result = self.phi_energy_integral / self.phi_change_total;
+        result.is_finite().then_some(result)
     }
 
-    /// Minimum thermodynamic cost of processing `bits` of information.
-    /// Based on the Landauer bound at body temperature.
+    /// Minimum thermodynamic cost of processing bits of information.
+    /// Invalid bit counts return NaN in this compatibility-preserving wrapper.
     pub fn landauer_floor(bits: f64) -> f64 {
-        LANDAUER_BOUND_310K * bits
+        Self::try_landauer_floor(bits).unwrap_or(f64::NAN)
     }
 
-    /// Whether an energy cost exceeds the Landauer floor for given bits processed.
-    /// If the energy is below the floor, the computation is thermodynamically impossible.
+    pub fn try_landauer_floor(bits: f64) -> Result<f64, ThermodynamicLedgerError> {
+        if !bits.is_finite() || bits < 0.0 {
+            return Err(ThermodynamicLedgerError::InvalidBitCount);
+        }
+        let floor = LANDAUER_BOUND_310K * bits;
+        if !floor.is_finite() {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        Ok(floor)
+    }
+
+    /// Whether an energy cost meets the Landauer floor for the given bit count.
+    /// Invalid energy/bit inputs fail closed and return false.
     pub fn above_landauer_floor(energy: f64, bits: f64) -> bool {
-        energy >= Self::landauer_floor(bits)
+        energy.is_finite()
+            && energy >= 0.0
+            && Self::try_landauer_floor(bits).is_ok_and(|floor| energy >= floor)
     }
 
-    /// Lifetime conservation error rate.
+    /// Lifetime conservation error rate normalized by the larger cumulative
+    /// input/error scale. This remains meaningful if inputs were zero but
+    /// outputs/errors were not; a truly empty history returns zero.
     pub fn lifetime_error_rate(&self) -> f64 {
-        if self.lifetime_energy < 1e-15 {
+        if !self.state_is_valid() {
+            return f64::INFINITY;
+        }
+        let reference_energy = self.lifetime_energy.max(self.lifetime_error);
+        if reference_energy == 0.0 {
             return 0.0;
         }
-        self.lifetime_error / self.lifetime_energy
+        let rate = self.lifetime_error / reference_energy;
+        if rate.is_finite() {
+            rate
+        } else {
+            f64::INFINITY
+        }
     }
 }
 
@@ -302,6 +480,87 @@ mod tests {
             (balance.conservation_error - 0.2).abs() < 1e-10,
             "error = {}",
             balance.conservation_error
+        );
+    }
+
+    #[test]
+    fn zero_input_with_nonzero_dissipation_is_not_reported_as_zero_error() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_dissipation(100.0);
+        let balance = ledger.tick_balance();
+
+        assert_eq!(balance.energy_in, 0.0);
+        assert_eq!(balance.energy_out, 100.0);
+        assert_eq!(balance.balance, -100.0);
+        assert!((balance.conservation_error - 1.0).abs() < 1e-12);
+        assert!((ledger.lifetime_error_rate() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn tiny_zero_input_imbalance_is_not_hidden_by_absolute_epsilon() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_dissipation(5e-20);
+        let balance = ledger.tick_balance();
+        assert!((balance.conservation_error - 1.0).abs() < 1e-12);
+        assert!((ledger.lifetime_error_rate() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn invalid_ledger_inputs_fail_closed_without_partial_mutation() {
+        let mut ledger = ThermodynamicLedger::new();
+        for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -1.0] {
+            assert_eq!(
+                ledger.try_record_action(bad, 0.5),
+                Err(ThermodynamicLedgerError::InvalidEnergyAmount)
+            );
+            assert_eq!(
+                ledger.try_record_dissipation(bad),
+                Err(ThermodynamicLedgerError::InvalidEnergyAmount)
+            );
+        }
+        for bad_phi in [f64::NAN, f64::INFINITY, -0.1, 1.1] {
+            assert_eq!(
+                ledger.try_record_action(1.0, bad_phi),
+                Err(ThermodynamicLedgerError::InvalidPhi)
+            );
+        }
+        assert_eq!(
+            ledger.try_record_phi_change(f64::NAN),
+            Err(ThermodynamicLedgerError::InvalidPhiChange)
+        );
+        assert_eq!(ledger.energy_in, 0.0);
+        assert_eq!(ledger.energy_out, 0.0);
+        assert_eq!(ledger.phi_energy_integral, 0.0);
+        assert_eq!(ledger.phi_change_total, 0.0);
+    }
+
+    #[test]
+    fn ledger_overflow_does_not_partially_mutate_or_reset() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.energy_in = f64::MAX;
+        assert_eq!(
+            ledger.try_record_action(f64::MAX, 0.5),
+            Err(ThermodynamicLedgerError::NumericalOverflow)
+        );
+        assert_eq!(ledger.energy_in, f64::MAX);
+
+        let balance = ledger.tick_balance();
+        assert!(balance.balance.is_nan());
+        assert!(balance.conservation_error.is_infinite());
+        assert_eq!(ledger.energy_in, f64::MAX);
+        assert_eq!(ledger.tick_count, 0);
+    }
+
+    #[test]
+    fn landauer_helpers_reject_invalid_inputs() {
+        assert!(ThermodynamicLedger::landauer_floor(f64::NAN).is_nan());
+        assert!(ThermodynamicLedger::landauer_floor(-1.0).is_nan());
+        assert!(!ThermodynamicLedger::above_landauer_floor(f64::NAN, 1.0));
+        assert!(!ThermodynamicLedger::above_landauer_floor(1.0, f64::INFINITY));
+        assert!(ThermodynamicLedger::try_landauer_floor(1.0).is_ok());
+        assert_eq!(
+            ThermodynamicLedger::try_landauer_floor(-1.0),
+            Err(ThermodynamicLedgerError::InvalidBitCount)
         );
     }
 
