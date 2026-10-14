@@ -412,6 +412,31 @@ class FlourishingAssessmentTests(unittest.TestCase):
         )
         self.assertIsNone(report)
 
+    def test_copied_preregistration_bytes_cannot_be_relabelled_as_outcome_evidence(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialize_artifact_files(doc, root)
+            prereg_artifact = next(
+                artifact for artifact in doc["artifacts"]
+                if artifact["purpose"] == "pre-registration"
+            )
+            sample_artifact = next(
+                artifact for artifact in doc["artifacts"]
+                if artifact["artifact_id"] == "sample-artifact"
+            )
+            prereg_bytes = (root / prereg_artifact["path"]).read_bytes()
+            (root / sample_artifact["path"]).write_bytes(prereg_bytes)
+            sample_artifact["sha256"] = hashlib.sha256(prereg_bytes).hexdigest()
+            errors, report = validate_assessment(
+                doc, artifact_root=root, verify_artifacts=True
+            )
+        self.assertTrue(
+            any("identical bytes already registered" in error and "different evidence role" in error
+                for error in errors)
+        )
+        self.assertIsNone(report)
+
     def test_artifact_digest_is_checked_against_file_bytes(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         with tempfile.TemporaryDirectory() as temp:
