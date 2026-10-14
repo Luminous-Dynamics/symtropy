@@ -390,7 +390,7 @@ def main() -> None:
     )
     require(
         "all listed dependencies are required" in graph["edge_semantics"]["required_dependencies"].lower()
-        and "alternative groups" in graph["edge_semantics"]["alternative_groups"].lower()
+        and "alternative group" in graph["edge_semantics"]["alternative_groups"].lower()
         and "reject" in graph["edge_semantics"]["cycle_policy"].lower(),
         "dependency-graph logic semantics must be explicit",
     )
