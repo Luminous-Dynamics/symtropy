@@ -47,7 +47,7 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           actual="$(git rev-parse HEAD)"
-          printf 'expected=%s\\nactual=%s\\n' "$EXPECTED_SHA" "$actual"
+          printf 'expected=%s\nactual=%s\n' "$EXPECTED_SHA" "$actual"
           test "$actual" = "$EXPECTED_SHA"
       - name: Set up Python
         uses: actions/setup-python@v5
