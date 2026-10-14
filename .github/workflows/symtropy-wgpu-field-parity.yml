@@ -49,16 +49,36 @@ jobs:
             echo "actual_head=$ACTUAL_QUALIFICATION_SHA"
           } | tee .ci/symtropy-wgpu-parity/qualification-head.txt
 
-      - name: Install Mesa software Vulkan runtime
+      - name: Install and locate Mesa software Vulkan runtime
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools vulkan-validationlayers
+
+          # Runner images can move the manifest. Discover the installed lavapipe ICD.
+          icd_candidates=()
+          for root in /usr/share/vulkan/icd.d /etc/vulkan/icd.d; do
+            [[ -d "$root" ]] || continue
+            while IFS= read -r candidate; do
+              icd_candidates+=("$candidate")
+            done < <(find "$root" -maxdepth 1 -type f \( -iname '*lvp*.json' -o -iname '*lavapipe*.json' \) -print | sort)
+          done
+          if [[ "${#icd_candidates[@]}" -eq 0 ]]; then
+            echo "::error::No lavapipe Vulkan ICD manifest was found after package installation."
+            find /usr/share/vulkan /etc/vulkan -maxdepth 3 -type f -name '*.json' -print 2>/dev/null | sort || true
+            exit 1
+          fi
+
+          VK_ICD_FILENAMES="${icd_candidates[0]}"
           test -s "$VK_ICD_FILENAMES"
+          printf 'selected_vulkan_icd=%s\n' "$VK_ICD_FILENAMES" | tee .ci/symtropy-wgpu-parity/vulkan-icd-selection.txt
+          printf 'VK_ICD_FILENAMES=%s\n' "$VK_ICD_FILENAMES" >> "$GITHUB_ENV"
+          export VK_ICD_FILENAMES
           vulkaninfo --summary 2>&1 | tee .ci/symtropy-wgpu-parity/vulkaninfo-summary.txt
           dpkg-query -W -f='${Package}\t${Version}\n' \
             libvulkan1 mesa-vulkan-drivers vulkan-tools vulkan-validationlayers \
             > .ci/symtropy-wgpu-parity/vulkan-package-versions.txt
-
       - uses: dtolnay/rust-toolchain@3db9de313aa3e84732d075f6fd8938cc0d6d4b58 # Rust 1.96.0
 
       - name: Capture toolchain and input digests
