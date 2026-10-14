@@ -1,0 +1,116 @@
+name: Living World Shadow Continuity Guarded Repair
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/living-world-shadow-continuity-qualification.yml'
+      - '.github/scripts/lw55_shadow_continuity_repair.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: living-world-shadow-continuity-repair-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    name: Sampling-invariant continuity repair
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPECTED_PRODUCT_SHA: 59cee313afae1ad184d1b8382088eac2616822c9
+      PRODUCT_BRANCH: living-world/lw55-shadow-continuity-transcript
+      CONTINUITY_FILE: crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_execution_continuity.rs
+      OBSERVABLE_FILE: crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_observable_authority.rs
+      VALIDATION_FILE: crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_validation.rs
+
+    steps:
+      - name: Preserve repair script from helper subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: helper
+          persist-credentials: false
+
+      - name: Check out exact product branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.PRODUCT_BRANCH }}
+          path: product
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Fail closed on source drift
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PRODUCT_SHA"
+          test -z "$(git status --porcelain)"
+          printf 'PREIMAGE_HEAD=%s\n' "$(git rev-parse HEAD)"
+          printf 'PREIMAGE_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
+
+      - name: Apply guarded transform
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ../helper/.github/scripts/lw55_shadow_continuity_repair.py
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Format and constrain semantic diff
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          git diff --check
+          mapfile -t changed < <(git diff --name-only)
+          printf 'CHANGED=%s\n' "${changed[*]}"
+          test "${#changed[@]}" -eq 3
+          printf '%s\n' "${changed[@]}" | sort > "$RUNNER_TEMP/changed.txt"
+          printf '%s\n' "$CONTINUITY_FILE" "$OBSERVABLE_FILE" "$VALIDATION_FILE" | sort > "$RUNNER_TEMP/expected.txt"
+          diff -u "$RUNNER_TEMP/expected.txt" "$RUNNER_TEMP/changed.txt"
+
+      - name: Compile exact transformed authority surface
+        working-directory: product
+        shell: bash
+        run: cargo check --locked -p symtropy-lifesim-core --all-targets
+
+      - name: Execute continuity hostile fixtures
+        working-directory: product
+        shell: bash
+        run: cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture
+
+      - name: Execute full lifesim library tests
+        working-directory: product
+        shell: bash
+        run: cargo test --locked -p symtropy-lifesim-core --lib
+
+      - name: Strict Clippy
+        working-directory: product
+        shell: bash
+        run: cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+
+      - name: Commit qualified repair only after all gates pass
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PRODUCT_SHA"
+          git diff --check
+          git config user.name 'Luminous Qualification Bot'
+          git config user.email 'qualification-bot@users.noreply.github.com'
+          git add "$CONTINUITY_FILE" "$OBSERVABLE_FILE" "$VALIDATION_FILE"
+          git diff --cached --check
+          test -z "$(git status --porcelain | grep -v '^M  ' || true)"
+          git commit -m 'fix(lifesim): make shadow continuity sampling-invariant'
+          printf 'QUALIFIED_REPAIR_HEAD=%s\n' "$(git rev-parse HEAD)"
+          printf 'QUALIFIED_REPAIR_TREE=%s\n' "$(git rev-parse HEAD^{tree})"
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
