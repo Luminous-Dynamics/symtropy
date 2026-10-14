@@ -236,56 +236,28 @@ impl FeedbackCue {
         match self {
             Self::InspectionReadout => &[
                 FeedbackChannel::Visual,
+                FeedbackChannel::Audio,
                 FeedbackChannel::InstrumentReadout,
             ],
-            Self::WorkBoundaryConfirmed => {
+            Self::WorkBoundaryConfirmed | Self::SupportMovementConfirmed => {
                 &[FeedbackChannel::Visual, FeedbackChannel::Audio]
             }
-            Self::IsolationStateChanged => &[
+            Self::IsolationStateChanged
+            | Self::LoadShedConfirmed
+            | Self::CriticalServiceStatusChanged
+            | Self::SafetyIncidentAlarm
+            | Self::BatteryReserveChanged
+            | Self::OutcomeCommitted => &[
                 FeedbackChannel::Visual,
                 FeedbackChannel::Audio,
                 FeedbackChannel::InstrumentReadout,
             ],
-            Self::VoltageAbsenceConfirmed => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::SupportMovementConfirmed => {
-                &[FeedbackChannel::Visual, FeedbackChannel::Audio]
-            }
-            Self::InsulationReplacementConfirmed => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::BypassStateChanged => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::LoadShedConfirmed => &[
+            Self::VoltageAbsenceConfirmed
+            | Self::InsulationReplacementConfirmed
+            | Self::BypassStateChanged
+            | Self::ThermalTrendChanged => &[
                 FeedbackChannel::Visual,
                 FeedbackChannel::Audio,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::ThermalTrendChanged => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::CriticalServiceStatusChanged => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::Audio,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::SafetyIncidentAlarm => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::Audio,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::BatteryReserveChanged => &[
-                FeedbackChannel::Visual,
-                FeedbackChannel::InstrumentReadout,
-            ],
-            Self::OutcomeCommitted => &[
-                FeedbackChannel::Visual,
                 FeedbackChannel::InstrumentReadout,
             ],
         }
@@ -881,6 +853,9 @@ mod tests {
             assert!(cue
                 .minimum_channels()
                 .contains(&FeedbackChannel::Visual));
+            assert!(cue
+                .minimum_channels()
+                .contains(&FeedbackChannel::Audio));
         }
         assert!(FeedbackCue::SafetyIncidentAlarm
             .minimum_channels()
