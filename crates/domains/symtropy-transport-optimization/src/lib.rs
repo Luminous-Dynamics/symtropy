@@ -959,6 +959,54 @@ pub fn validate_cargo_transfer_capacity_plan(
     })
 }
 
+/// One assignment's inputs for the combined physical-and-capacity plan gate.
+/// References keep canonical profiles/equipment outside the proposal while the
+/// binding explicitly names the selected module, edge, equipment and scope.
+#[derive(Clone, Copy, Debug)]
+pub struct CargoTransferPlanEntry<'a> {
+    pub profile: &'a CargoModuleProfile,
+    pub instance: &'a CargoModuleInstance,
+    pub equipment: &'a CargoTransferEquipmentProfile,
+    pub binding: &'a CargoTransferResourceBinding,
+}
+
+/// Validate a complete transfer proposal through both existing gates: first
+/// aggregate edge/equipment capacity, then each assignment's physical transfer
+/// compatibility. Prefer this API over calling the numeric capacity validator
+/// alone when a proposed batch must be considered feasible.
+///
+/// The caller supplies authoritative graph edges and equipment budgets for the
+/// planning scope. This still does not establish budget freshness, reserve a
+/// time window, or prove live availability.
+pub fn validate_cargo_transfer_plan(
+    entries: &[CargoTransferPlanEntry<'_>],
+    edges: &[Edge],
+    equipment_capacities: &[CargoTransferEquipmentCapacity],
+) -> Result<CargoTransferCapacityReport, CargoError> {
+    let bindings: Vec<_> = entries
+        .iter()
+        .map(|entry| entry.binding.clone())
+        .collect();
+    let report = validate_cargo_transfer_capacity_plan(&bindings, edges, equipment_capacities)?;
+    let edges_by_id: BTreeMap<_, _> = edges.iter().map(|edge| (edge.id.as_str(), edge)).collect();
+
+    for entry in entries {
+        let edge = edges_by_id
+            .get(entry.binding.transfer_edge_id.as_str())
+            .copied()
+            .ok_or(CargoError::TransferResourceBindingMismatch)?;
+        check_cargo_transfer_compatibility(
+            entry.profile,
+            entry.instance,
+            edge,
+            entry.equipment,
+            entry.binding,
+        )?;
+    }
+
+    Ok(report)
+}
+
 /// Validate one module against one explicit intermodal transfer edge, the
 /// selected terminal equipment, and a resource binding. Movement-edge/fleet
 /// compatibility is checked separately with check_module_compatibility; this
@@ -2595,6 +2643,61 @@ mod tests {
                 &cargo_transfer_resource_binding(),
             ),
             Ok(())
+        );
+    }
+
+    #[test]
+    fn combined_cargo_transfer_plan_accepts_physical_fit_within_shared_capacity() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let equipment = cargo_transfer_equipment();
+        let binding = cargo_transfer_resource_binding();
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+        let budgets = [equipment_capacity(
+            "hub-cross-dock-crane-3",
+            3,
+            QuantityUnit::Shipments,
+        )];
+
+        let report = validate_cargo_transfer_plan(&entries, &[edge], &budgets).unwrap();
+        assert_eq!(report.assignment_count, 1);
+    }
+
+    #[test]
+    fn combined_cargo_transfer_plan_rejects_physical_mismatch_even_when_capacity_fits() {
+        let profile = iso_container_profile();
+        let instance = cargo_instance(&profile);
+        let edge = road_rail_transfer_edge();
+        let mut equipment = cargo_transfer_equipment();
+        equipment.supported_mode_pairs = BTreeSet::from([(Mode::Rail, Mode::Maritime)]);
+        let binding = cargo_transfer_resource_binding();
+        let budgets = [equipment_capacity(
+            "hub-cross-dock-crane-3",
+            3,
+            QuantityUnit::Shipments,
+        )];
+        assert!(validate_cargo_transfer_capacity_plan(
+            std::slice::from_ref(&binding),
+            std::slice::from_ref(&edge),
+            &budgets,
+        )
+        .is_ok());
+        let entries = [CargoTransferPlanEntry {
+            profile: &profile,
+            instance: &instance,
+            equipment: &equipment,
+            binding: &binding,
+        }];
+
+        assert_eq!(
+            validate_cargo_transfer_plan(&entries, &[edge], &budgets),
+            Err(CargoError::TransferModePairUnsupported)
         );
     }
 
