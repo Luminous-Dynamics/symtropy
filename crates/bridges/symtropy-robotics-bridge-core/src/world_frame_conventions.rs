@@ -826,6 +826,39 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn supported_component_conversions_are_inverse_and_norm_preserving() {
+        let vector = [1.25_f64, -2.0_f64, 4.5_f64];
+        let pairs = [
+            (
+                FrameAxisConventionV1::BodyForwardLeftUp,
+                FrameAxisConventionV1::FrdForwardRightDown,
+            ),
+            (
+                FrameAxisConventionV1::EnuEastNorthUp,
+                FrameAxisConventionV1::NedNorthEastDown,
+            ),
+            (
+                FrameAxisConventionV1::CameraOpticalRightDownForward,
+                FrameAxisConventionV1::CameraOpticalRightDownForward,
+            ),
+        ];
+
+        let squared_norm = |v: [f64; 3]| v.iter().map(|component| component * component).sum::<f64>();
+        for (from, to) in pairs {
+            let matrix = convention_conversion_matrix_v1(&from, &to).unwrap();
+            for row in matrix {
+                assert_eq!(row.iter().filter(|value| **value != 0).count(), 1);
+                assert!(row.iter().all(|value| [-1, 0, 1].contains(value)));
+            }
+
+            let converted = convert_vector_v1(vector, &from, &to).unwrap();
+            let restored = convert_vector_v1(converted, &to, &from).unwrap();
+            assert_eq!(restored, vector);
+            assert_eq!(squared_norm(converted), squared_norm(vector));
+        }
+    }
+
+    #[test]
     fn convention_conversion_never_guesses_across_reference_families() {
         assert!(matches!(
             convention_conversion_matrix_v1(
