@@ -145,11 +145,17 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
     while index < args.len() {
         match args[index].as_str() {
             "--expected-claims" => {
+                if expected_claims_path.is_some() {
+                    return Err("--expected-claims may only be supplied once".to_string());
+                }
                 index += 1;
                 let value = args.get(index).ok_or_else(usage)?;
                 expected_claims_path = Some(PathBuf::from(value));
             }
             "--expected-claims-sha256" => {
+                if expected_claims_sha256.is_some() {
+                    return Err("--expected-claims-sha256 may only be supplied once".to_string());
+                }
                 index += 1;
                 let value = args.get(index).ok_or_else(usage)?;
                 if !is_sha256(value) {
@@ -161,11 +167,19 @@ fn run(args: Vec<String>) -> Result<(VerificationReport, bool), String> {
                 expected_claims_sha256 = Some(value.to_string());
             }
             "--artifact-root" => {
+                if artifact_root.is_some() {
+                    return Err("--artifact-root may only be supplied once".to_string());
+                }
                 index += 1;
                 let value = args.get(index).ok_or_else(usage)?;
                 artifact_root = Some(PathBuf::from(value));
             }
-            "--require-pass" => require_pass = true,
+            "--require-pass" => {
+                if require_pass {
+                    return Err("--require-pass may only be supplied once".to_string());
+                }
+                require_pass = true;
+            }
             unknown => return Err(format!("unknown argument {unknown:?}\n{}", usage())),
         }
         index += 1;
@@ -1371,6 +1385,36 @@ mod tests {
             }],
         };
         (schema, manifest, root, expected)
+    }
+
+    #[test]
+    fn duplicate_cli_options_are_rejected() {
+        let cases = vec![
+            vec![
+                "manifest.json",
+                "--expected-claims", "one.json",
+                "--expected-claims", "two.json",
+            ],
+            vec![
+                "manifest.json",
+                "--expected-claims-sha256",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--expected-claims-sha256",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            ],
+            vec![
+                "manifest.json",
+                "--artifact-root", "one",
+                "--artifact-root", "two",
+            ],
+            vec!["manifest.json", "--require-pass", "--require-pass"],
+        ];
+
+        for case in cases {
+            let args = case.into_iter().map(ToString::to_string).collect();
+            let error = run(args).err().expect("duplicate option must be rejected");
+            assert!(error.contains("may only be supplied once"), "{error}");
+        }
     }
 
     #[test]
