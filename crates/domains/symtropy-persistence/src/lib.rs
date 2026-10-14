@@ -295,7 +295,6 @@ fn prepare_journal_for_append(path: &Path) -> Result<(), PersistenceError> {
     let tail = &bytes[final_start..];
 
     let mut file = OpenOptions::new()
-        .write(true)
         .append(true)
         .open(path)
         .map_err(PersistenceError::Io)?;
