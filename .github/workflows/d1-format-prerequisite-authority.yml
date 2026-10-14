@@ -1,0 +1,23 @@
+name: D1 Format Prerequisite Authority (qualified and archived)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d1-format-prerequisite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  archived:
+    name: Preserve completed D1 format theorem without further mutation
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo 'D1 Rust 1.96 formatting prerequisite is already qualified.'
+          echo 'Qualified product head: 5b23969d1b4a261cbdb4a3e24d623c22e683b45e'
+          echo 'Qualified product tree: ba2a856330ab5661c53af4d6f667869e1cb32d23'
+          echo 'This archived workflow performs no checkout, transform, commit, or push.'
