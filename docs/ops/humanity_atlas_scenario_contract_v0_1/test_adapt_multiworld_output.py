@@ -197,6 +197,24 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(envelope["run_id"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
             self.assertEqual(source_path.read_bytes(), raw)
 
+    def test_cli_rejects_symlink_loop_without_traceback(self):
+        raw = self.raw_source()
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_loop = Path(temp) / "output-loop.json"
+            source_path.write_bytes(raw)
+            try:
+                output_loop.symlink_to(output_loop)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"symlink creation is unavailable on this filesystem: {exc}")
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                status = main([str(source_path), "--output", str(output_loop)])
+            self.assertEqual(status, 2)
+            self.assertIn("cannot safely resolve input/output paths", stderr.getvalue())
+            self.assertNotIn("Traceback", stderr.getvalue())
+            self.assertEqual(source_path.read_bytes(), raw)
+
     def test_cli_overwrite_rejects_source_symlink_alias(self):
         raw = self.raw_source()
         with tempfile.TemporaryDirectory() as temp:

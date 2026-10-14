@@ -376,8 +376,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.output:
             # Protect captured source bytes through literal, resolved-path, symlink,
             # and existing hard-link aliases. This protection cannot be overridden.
-            input_resolved = args.input.resolve()
-            output_resolved = args.output.resolve()
+            try:
+                input_resolved = args.input.resolve()
+                output_resolved = args.output.resolve()
+            except (OSError, RuntimeError) as exc:
+                raise AdapterError(f"cannot safely resolve input/output paths: {exc}") from exc
             aliases_input = input_resolved == output_resolved
             if not aliases_input and args.output.exists():
                 try:
