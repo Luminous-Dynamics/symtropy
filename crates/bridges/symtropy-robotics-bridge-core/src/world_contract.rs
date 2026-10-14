@@ -997,7 +997,6 @@ pub enum WorldValidationCode {
     InvalidFrame,
     FrameCycle,
     InvalidTransform,
-    MissingFrame,
     UnknownFrameReference,
     UnknownFrameProvider,
     InvalidWorldGeneration,
