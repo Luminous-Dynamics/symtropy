@@ -331,5 +331,221 @@
       }
     ],
     "note": "Only the synthetic per-person component is linear in this probe. Fixed loads, network constraints, capacity, waste, losses, and topology need separate modeling."
+  },
+  "dependency_graph_reference": {
+    "contract_version": "0.1.0",
+    "node_state_semantics": {
+      "VERIFIED_AVAILABLE": "Counts as available for these synthetic logic checks only.",
+      "FAILED": "Unavailable until repaired and requalified.",
+      "REPORTED_REPAIRED_UNVERIFIED": "Does not count as available until verification evidence changes the state.",
+      "UNKNOWN": "Not certifiable as available; must remain unknown rather than be optimistically counted."
+    },
+    "edge_semantics": {
+      "required_dependencies": "All listed dependencies are required. If any required dependency is unavailable or not certifiable, the dependent cannot be counted as available.",
+      "alternative_groups": "A service is supported if at least one alternative group has every member VERIFIED_AVAILABLE. A group is an all-of path; groups are alternatives.",
+      "cycle_policy": "Reject dependency cycles rather than guessing a fixed point."
+    },
+    "cases": [
+      {
+        "id": "transitive_shared_bus_outage",
+        "nodes": [
+          {
+            "id": "main-power-bus",
+            "state": "FAILED",
+            "required_dependencies": []
+          },
+          {
+            "id": "water-pump",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "main-power-bus"
+            ]
+          },
+          {
+            "id": "water-loop",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "water-pump"
+            ]
+          },
+          {
+            "id": "clinic-hygiene",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "water-loop"
+            ]
+          }
+        ],
+        "expected": {
+          "direct_failed": [
+            "main-power-bus"
+          ],
+          "dependent_unavailable": [
+            "clinic-hygiene",
+            "water-loop",
+            "water-pump"
+          ],
+          "service_supported": false,
+          "status": "COMMON_MODE_CASCADE"
+        }
+      },
+      {
+        "id": "two_nominal_pumps_share_one_failed_source",
+        "nodes": [
+          {
+            "id": "power-bus",
+            "state": "FAILED",
+            "required_dependencies": []
+          },
+          {
+            "id": "pump-a",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "power-bus"
+            ]
+          },
+          {
+            "id": "pump-b",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "power-bus"
+            ]
+          }
+        ],
+        "alternative_groups": [
+          [
+            "pump-a"
+          ],
+          [
+            "pump-b"
+          ]
+        ],
+        "expected": {
+          "surviving_alternative_groups": [],
+          "service_supported": false,
+          "independent_redundancy": false,
+          "status": "NO_QUALIFIED_ALTERNATIVE"
+        }
+      },
+      {
+        "id": "independent_manual_fallback_survives",
+        "nodes": [
+          {
+            "id": "power-bus",
+            "state": "FAILED",
+            "required_dependencies": []
+          },
+          {
+            "id": "powered-pump",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "power-bus"
+            ]
+          },
+          {
+            "id": "manual-pump",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": []
+          }
+        ],
+        "alternative_groups": [
+          [
+            "powered-pump"
+          ],
+          [
+            "manual-pump"
+          ]
+        ],
+        "expected": {
+          "surviving_alternative_groups": [
+            [
+              "manual-pump"
+            ]
+          ],
+          "service_supported": true,
+          "status": "VERIFIED_FALLBACK_AVAILABLE"
+        }
+      },
+      {
+        "id": "reported_repair_does_not_restore_service",
+        "nodes": [
+          {
+            "id": "controller",
+            "state": "REPORTED_REPAIRED_UNVERIFIED",
+            "required_dependencies": []
+          },
+          {
+            "id": "pump",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "controller"
+            ]
+          },
+          {
+            "id": "water-service",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "pump"
+            ]
+          }
+        ],
+        "expected": {
+          "direct_failed": [
+            "controller"
+          ],
+          "dependent_unavailable": [
+            "pump",
+            "water-service"
+          ],
+          "service_supported": false,
+          "status": "REQUALIFICATION_REQUIRED"
+        }
+      },
+      {
+        "id": "dependency_cycle_rejected",
+        "nodes": [
+          {
+            "id": "pump",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "power-controller"
+            ]
+          },
+          {
+            "id": "power-controller",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "sensor-controller"
+            ]
+          },
+          {
+            "id": "sensor-controller",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "pump"
+            ]
+          }
+        ],
+        "expected": {
+          "status": "REJECT_CYCLE"
+        }
+      },
+      {
+        "id": "unknown_dependency_rejected",
+        "nodes": [
+          {
+            "id": "water-pump",
+            "state": "VERIFIED_AVAILABLE",
+            "required_dependencies": [
+              "missing-controller"
+            ]
+          }
+        ],
+        "expected": {
+          "status": "REJECT_UNKNOWN_DEPENDENCY",
+          "dependency": "missing-controller"
+        }
+      }
+    ]
   }
 }
