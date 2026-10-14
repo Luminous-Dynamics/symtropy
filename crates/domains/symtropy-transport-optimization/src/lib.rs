@@ -927,15 +927,16 @@ pub fn validate_cargo_transfer_capacity_plan(
         });
     }
     for ((resource_id, capacity_scope_id, capacity_unit), used) in equipment_used {
-        let budget = equipment_budgets
+        let capacity_units_limit = equipment_budgets
             .get(&(resource_id.as_str(), capacity_scope_id.as_str()))
+            .map(|budget| budget.capacity_units)
             .ok_or(CargoError::TransferCapacityBudgetMissing)?;
         capacity_uses.push(CargoTransferCapacityUse {
             resource_kind: CargoTransferCapacityResourceKind::Equipment,
             resource_id,
             capacity_scope_id,
             capacity_units_used: used,
-            capacity_units_limit: budget.capacity_units,
+            capacity_units_limit,
             capacity_unit,
         });
     }
