@@ -1,0 +1,44 @@
+{
+  "schema_version": "luminous.formal-provenance.v0",
+  "nodes": [
+    {
+      "schema_version": "luminous.formal-provenance.v0",
+      "kind": "Theorem",
+      "id": "theorem:physics-body-ref-resolution-v1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "label": "PhysicsBodyRef resolution is lineage-safe",
+      "semantic_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "schema_version": "luminous.formal-provenance.v0",
+      "kind": "ProofArtifact",
+      "id": "proof:physics-body-ref-resolution-v1",
+      "label": "Lineage-safe resolution proof artifact",
+      "metadata": {
+        "target_semantic_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schema_version": "luminous.formal-provenance.v0",
+      "kind": "ProofChecker",
+      "id": "checker:reference-v1",
+      "label": "Independent reference checker",
+      "content_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "edges": [
+    {
+      "schema_version": "luminous.formal-provenance.v0",
+      "id": "edge:proves:physics-body-ref-resolution-v1",
+      "source": "proof:physics-body-ref-resolution-v1",
+      "target": "theorem:physics-body-ref-resolution-v1",
+      "relation": "proves"
+    },
+    {
+      "schema_version": "luminous.formal-provenance.v0",
+      "id": "edge:checked_by:physics-body-ref-resolution-v1",
+      "source": "proof:physics-body-ref-resolution-v1",
+      "target": "checker:reference-v1",
+      "relation": "checked_by"
+    }
+  ]
+}
