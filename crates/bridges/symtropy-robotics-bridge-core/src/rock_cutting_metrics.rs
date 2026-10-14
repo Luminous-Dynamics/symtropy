@@ -21,9 +21,7 @@ pub enum CuttingPowerInputV1 {
     ///
     /// Electrical input power must not be labelled as tool-interface power
     /// without an explicit validated efficiency/loss model.
-    MeasuredToolInterfacePower {
-        mechanical_power_w: f64,
-    },
+    MeasuredToolInterfacePower { mechanical_power_w: f64 },
     /// Power estimated from magnitudes measured at the tool interface.
     ///
     /// Rotary power = torque magnitude × angular-speed magnitude.
@@ -169,7 +167,10 @@ impl fmt::Display for CuttingMetricError {
             }
             Self::MseNotFinite => formatter.write_str("mechanical specific energy is not finite"),
             Self::UnknownMaterialProfile(profile_id) => {
-                write!(formatter, "material profile {profile_id:?} is not declared by the world")
+                write!(
+                    formatter,
+                    "material profile {profile_id:?} is not declared by the world"
+                )
             }
             Self::InvalidWorldManifest(issues) => write!(
                 formatter,
@@ -204,9 +205,7 @@ impl MechanicalSpecificEnergyV1 {
         &self,
         input: &MseUncertaintyInputV1,
     ) -> Result<MechanicalSpecificEnergyUncertaintyV1, CuttingMetricError> {
-        if input.observation_id.trim().is_empty()
-            || input.observation_id != self.observation_id
-        {
+        if input.observation_id.trim().is_empty() || input.observation_id != self.observation_id {
             return Err(CuttingMetricError::UncertaintyObservationMismatch);
         }
         if !self.mechanical_power_w.is_finite()
@@ -220,14 +219,14 @@ impl MechanicalSpecificEnergyV1 {
         }
         let expected_mse = self.mechanical_power_w / self.removed_volume_rate_m3_s;
         let consistency_tolerance = 8.0 * f64::EPSILON * expected_mse.abs().max(1.0);
-        if !expected_mse.is_finite()
-            || (expected_mse - self.mse_pa).abs() > consistency_tolerance
-        {
+        if !expected_mse.is_finite() || (expected_mse - self.mse_pa).abs() > consistency_tolerance {
             return Err(CuttingMetricError::InvalidUncertaintyInput);
         }
         if !input.power_standard_uncertainty_w.is_finite()
             || input.power_standard_uncertainty_w < 0.0
-            || !input.removed_volume_rate_standard_uncertainty_m3_s.is_finite()
+            || !input
+                .removed_volume_rate_standard_uncertainty_m3_s
+                .is_finite()
             || input.removed_volume_rate_standard_uncertainty_m3_s < 0.0
             || !input.covariance_power_volume_w_m3_s.is_finite()
         {
@@ -248,11 +247,9 @@ impl MechanicalSpecificEnergyV1 {
             return Err(CuttingMetricError::InvalidCovariance);
         }
 
-        let power_component =
-            input.power_standard_uncertainty_w / self.removed_volume_rate_m3_s;
+        let power_component = input.power_standard_uncertainty_w / self.removed_volume_rate_m3_s;
         let volume_component = self.mse_pa
-            * (input.removed_volume_rate_standard_uncertainty_m3_s
-                / self.removed_volume_rate_m3_s);
+            * (input.removed_volume_rate_standard_uncertainty_m3_s / self.removed_volume_rate_m3_s);
         // For f(P, V) = P / V, the covariance contribution is
         // 2 * (df/dP) * (df/dV) * Cov(P, V), where df/dP = 1/V
         // and df/dV = -P/V^2. Keep its magnitude here; variance subtracts it.
@@ -260,8 +257,7 @@ impl MechanicalSpecificEnergyV1 {
             * (1.0 / self.removed_volume_rate_m3_s)
             * (self.mse_pa / self.removed_volume_rate_m3_s)
             * input.covariance_power_volume_w_m3_s;
-        let mut variance = power_component * power_component
-            + volume_component * volume_component
+        let mut variance = power_component * power_component + volume_component * volume_component
             - covariance_component;
         if !power_component.is_finite()
             || !volume_component.is_finite()
@@ -358,9 +354,7 @@ impl RockCuttingObservationV1 {
         if self.measurement_interval_ns == 0 {
             return Err(CuttingMetricError::InvalidMeasurementInterval);
         }
-        if !self.removed_volume_rate_m3_s.is_finite()
-            || self.removed_volume_rate_m3_s <= 0.0
-        {
+        if !self.removed_volume_rate_m3_s.is_finite() || self.removed_volume_rate_m3_s <= 0.0 {
             return Err(CuttingMetricError::InvalidRemovedVolumeRate);
         }
         if self.source.artifact_id.trim().is_empty() || self.source.uri.trim().is_empty() {
@@ -387,18 +381,12 @@ impl RockCuttingObservationV1 {
                     axial_force_magnitude_n,
                     feed_speed_magnitude_m_s,
                 } => {
-                    validate_magnitude(
-                        rotary_torque_magnitude_nm,
-                        "rotary_torque_magnitude_nm",
-                    )?;
+                    validate_magnitude(rotary_torque_magnitude_nm, "rotary_torque_magnitude_nm")?;
                     validate_magnitude(
                         angular_speed_magnitude_rad_s,
                         "angular_speed_magnitude_rad_s",
                     )?;
-                    validate_magnitude(
-                        axial_force_magnitude_n,
-                        "axial_force_magnitude_n",
-                    )?;
+                    validate_magnitude(axial_force_magnitude_n, "axial_force_magnitude_n")?;
                     validate_magnitude(feed_speed_magnitude_m_s, "feed_speed_magnitude_m_s")?;
 
                     let rotary = rotary_torque_magnitude_nm * angular_speed_magnitude_rad_s;
@@ -490,7 +478,9 @@ mod tests {
                         alteration_description: None,
                     },
                     properties: Vec::new(),
-                    notes: Some("Synthetic schema fixture only; not physical granite data.".to_owned()),
+                    notes: Some(
+                        "Synthetic schema fixture only; not physical granite data.".to_owned(),
+                    ),
                 })
                 .collect(),
             solvers: Vec::new(),
@@ -537,11 +527,13 @@ mod tests {
         let volume_component = mse.mse_pa * (1.0e-7 / mse.removed_volume_rate_m3_s);
         let expected_std = (power_component.powi(2) + volume_component.powi(2)).sqrt();
         assert!(
-            (uncertainty.standard_uncertainty_pa - expected_std).abs()
-                < expected_std * 1.0e-12
+            (uncertainty.standard_uncertainty_pa - expected_std).abs() < expected_std * 1.0e-12
         );
         assert_eq!(uncertainty.observation_id, "cut-test-001");
-        assert_eq!(uncertainty.source.artifact_id, "calibration-uncertainty-budget-001");
+        assert_eq!(
+            uncertainty.source.artifact_id,
+            "calibration-uncertainty-budget-001"
+        );
         assert!(uncertainty.relative_standard_uncertainty.unwrap() > 0.0);
     }
 
@@ -582,8 +574,7 @@ mod tests {
             let covariance_component = 2.0 * power * covariance / volume_rate.powi(3);
             let expected_variance = power_component + volume_component - covariance_component;
             assert!(
-                (result.variance_pa2 - expected_variance).abs()
-                    < expected_variance.abs() * 1.0e-12,
+                (result.variance_pa2 - expected_variance).abs() < expected_variance.abs() * 1.0e-12,
                 "covariance={covariance}: got {}, expected {expected_variance}",
                 result.variance_pa2
             );
@@ -700,10 +691,9 @@ mod tests {
 
     #[test]
     fn zero_removed_volume_rate_is_rejected_instead_of_returning_infinite_mse() {
-        let mut observation =
-            observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
-                mechanical_power_w: 1_500.0,
-            });
+        let mut observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
         observation.removed_volume_rate_m3_s = 0.0;
         assert_eq!(
             observation.calculate_mse(),
@@ -742,10 +732,9 @@ mod tests {
 
     #[test]
     fn invalid_source_digest_is_rejected() {
-        let mut observation =
-            observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
-                mechanical_power_w: 1_500.0,
-            });
+        let mut observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
         observation.source.sha256 = "not-a-digest".to_owned();
         assert_eq!(
             observation.calculate_mse(),
@@ -755,10 +744,9 @@ mod tests {
 
     #[test]
     fn schema_requires_exact_version_and_nonzero_interval() {
-        let mut observation =
-            observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
-                mechanical_power_w: 1_500.0,
-            });
+        let mut observation = observation(CuttingPowerInputV1::MeasuredToolInterfacePower {
+            mechanical_power_w: 1_500.0,
+        });
         observation.schema_version += 1;
         assert_eq!(
             observation.calculate_mse(),

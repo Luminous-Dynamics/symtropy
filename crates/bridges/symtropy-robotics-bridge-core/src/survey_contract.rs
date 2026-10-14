@@ -230,11 +230,12 @@ impl SurveyCoordinateFrameV1 {
             }
         }
 
-        let components = self.axis_directions.map(SurveyAxisDirectionV1::basis_component);
+        let components = self
+            .axis_directions
+            .map(SurveyAxisDirectionV1::basis_component);
         let basis_families: BTreeSet<u8> =
             components.iter().map(|(family, _, _)| *family).collect();
-        let axis_components: BTreeSet<u8> =
-            components.iter().map(|(_, axis, _)| *axis).collect();
+        let axis_components: BTreeSet<u8> = components.iter().map(|(_, axis, _)| *axis).collect();
         if basis_families.len() != 1 || axis_components.len() != 3 {
             return Err(SurveyContractErrorV1::InvalidCoordinateFrame(
                 "axis_directions",
@@ -251,7 +252,10 @@ impl SurveyCoordinateFrameV1 {
                 }
             }
         }
-        let sign_product = components.iter().map(|(_, _, sign)| *sign as i16).product::<i16>();
+        let sign_product = components
+            .iter()
+            .map(|(_, _, sign)| *sign as i16)
+            .product::<i16>();
         let determinant_positive = (inversions % 2 == 0) == (sign_product > 0);
         let handedness_matches = match self.handedness {
             SurveyHandednessV1::RightHanded => determinant_positive,
@@ -263,9 +267,7 @@ impl SurveyCoordinateFrameV1 {
 
         for (direction, unit) in self.axis_directions.iter().zip(self.axis_units) {
             if direction.is_angular() != unit.is_angular() {
-                return Err(SurveyContractErrorV1::InvalidCoordinateFrame(
-                    "axis_units",
-                ));
+                return Err(SurveyContractErrorV1::InvalidCoordinateFrame("axis_units"));
             }
         }
 
@@ -286,23 +288,15 @@ impl SurveyCoordinateFrameV1 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SurveyUncertaintyV1 {
-    StandardDeviation {
-        standard_deviation: [f64; 3],
-    },
-    Covariance {
-        covariance: [[f64; 3]; 3],
-    },
-    AbsoluteBounds {
-        absolute_bounds: [f64; 3],
-    },
+    StandardDeviation { standard_deviation: [f64; 3] },
+    Covariance { covariance: [[f64; 3]; 3] },
+    AbsoluteBounds { absolute_bounds: [f64; 3] },
 }
 
 impl SurveyUncertaintyV1 {
     pub fn validate(&self) -> Result<(), SurveyContractErrorV1> {
         match self {
-            Self::StandardDeviation {
-                standard_deviation,
-            } => {
+            Self::StandardDeviation { standard_deviation } => {
                 if !standard_deviation
                     .iter()
                     .all(|value| value.is_finite() && *value >= 0.0)
@@ -427,7 +421,10 @@ impl SurveySessionV1 {
                 "raw_observation_artifacts",
             ));
         }
-        validate_artifact(&self.instrument_profile_artifact, "instrument_profile_artifact")?;
+        validate_artifact(
+            &self.instrument_profile_artifact,
+            "instrument_profile_artifact",
+        )?;
         validate_artifact(&self.calibration_artifact, "calibration_artifact")?;
         for artifact in &self.raw_observation_artifacts {
             validate_artifact(artifact, "raw_observation_artifacts")?;
@@ -663,10 +660,7 @@ pub struct SurveyAccuracyMetricsV1 {
 
 impl SurveyAccuracyMetricsV1 {
     pub fn validate(&self) -> Result<(), SurveyContractErrorV1> {
-        for value in [
-            self.horizontal_rmse_m,
-            self.vertical_rmse_m,
-        ] {
+        for value in [self.horizontal_rmse_m, self.vertical_rmse_m] {
             if !value.is_finite() || value < 0.0 {
                 return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
                     "accuracy_metrics",
@@ -845,10 +839,7 @@ impl SurveyProcessingReceiptV1 {
         Ok(())
     }
 
-    pub fn verify_artifact(
-        &self,
-        artifact: &ArtifactRef,
-    ) -> Result<(), SurveyContractErrorV1> {
+    pub fn verify_artifact(&self, artifact: &ArtifactRef) -> Result<(), SurveyContractErrorV1> {
         self.validate_basic()?;
         verify_content_addressed(self, artifact, "processing_receipt_artifact")
     }
@@ -860,7 +851,9 @@ impl SurveyProcessingReceiptV1 {
     ) -> Result<(), SurveyContractErrorV1> {
         self.validate_basic()?;
         ensure_unique(
-            observations.iter().map(|observation| observation.observation_id.as_str()),
+            observations
+                .iter()
+                .map(|observation| observation.observation_id.as_str()),
             "observation_id",
         )?;
 
@@ -908,8 +901,7 @@ impl SurveyProcessingReceiptV1 {
                 if expected_role.is_some_and(|role| observation.role != role) {
                     return Err(SurveyContractErrorV1::InvalidProcessingReceipt(field));
                 }
-                if expected_role.is_some()
-                    && !self.source_frame_ids.contains(&observation.frame_id)
+                if expected_role.is_some() && !self.source_frame_ids.contains(&observation.frame_id)
                 {
                     return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
                         "observation_frame_not_declared",
@@ -1065,8 +1057,7 @@ impl SurveyChangeCandidateV1 {
         if self.volume_standard_uncertainty_m3 > policy.max_volume_standard_uncertainty_m3 {
             return Err(SurveyContractErrorV1::VolumeUncertaintyExceeded);
         }
-        let signal_to_detection_limit =
-            self.change_magnitude_m / self.minimum_detectable_change_m;
+        let signal_to_detection_limit = self.change_magnitude_m / self.minimum_detectable_change_m;
         if !signal_to_detection_limit.is_finite()
             || signal_to_detection_limit < policy.minimum_change_to_detection_limit_ratio
         {
@@ -1116,10 +1107,7 @@ impl SurveyAdmissionPolicyV1 {
         Ok(())
     }
 
-    pub fn verify_artifact(
-        &self,
-        artifact: &ArtifactRef,
-    ) -> Result<(), SurveyContractErrorV1> {
+    pub fn verify_artifact(&self, artifact: &ArtifactRef) -> Result<(), SurveyContractErrorV1> {
         self.validate()?;
         verify_content_addressed(self, artifact, "admission_policy_artifact")
     }
@@ -1153,11 +1141,7 @@ impl SurveyEvidenceEnvelopeV1 {
                 MAX_SURVEY_OBSERVATIONS,
                 "observations",
             ),
-            (
-                self.transforms.len(),
-                MAX_SURVEY_TRANSFORMS,
-                "transforms",
-            ),
+            (self.transforms.len(), MAX_SURVEY_TRANSFORMS, "transforms"),
             (
                 self.processing_receipts.len(),
                 MAX_SURVEY_RECEIPTS,
@@ -1182,7 +1166,9 @@ impl SurveyEvidenceEnvelopeV1 {
             "frame_id",
         )?;
         ensure_unique(
-            self.sessions.iter().map(|session| session.session_id.as_str()),
+            self.sessions
+                .iter()
+                .map(|session| session.session_id.as_str()),
             "session_id",
         )?;
         ensure_unique(
@@ -1192,7 +1178,9 @@ impl SurveyEvidenceEnvelopeV1 {
             "observation_id",
         )?;
         ensure_unique(
-            self.transforms.iter().map(|transform| transform.transform_id.as_str()),
+            self.transforms
+                .iter()
+                .map(|transform| transform.transform_id.as_str()),
             "transform_id",
         )?;
         ensure_unique(
@@ -1278,8 +1266,7 @@ impl SurveyEvidenceEnvelopeV1 {
         if !identity_is_valid(&artifact_id) || !identity_is_valid(&uri) {
             return Err(SurveyContractErrorV1::InvalidArtifact("envelope"));
         }
-        let bytes =
-            serde_json::to_vec(self).map_err(|_| SurveyContractErrorV1::InvalidPayload)?;
+        let bytes = serde_json::to_vec(self).map_err(|_| SurveyContractErrorV1::InvalidPayload)?;
         if bytes.len() > MAX_SURVEY_EVIDENCE_BYTES {
             return Err(SurveyContractErrorV1::PayloadTooLarge);
         }
@@ -1381,11 +1368,7 @@ mod tests {
         }
     }
 
-    fn observation(
-        id: &str,
-        role: SurveyObservationRoleV1,
-        timestamp: u64,
-    ) -> SurveyObservationV1 {
+    fn observation(id: &str, role: SurveyObservationRoleV1, timestamp: u64) -> SurveyObservationV1 {
         SurveyObservationV1 {
             schema_version: 1,
             observation_id: id.to_owned(),
@@ -1418,10 +1401,7 @@ mod tests {
         }
     }
 
-    fn qualified_receipt(
-        earlier: &ArtifactRef,
-        later: &ArtifactRef,
-    ) -> SurveyProcessingReceiptV1 {
+    fn qualified_receipt(earlier: &ArtifactRef, later: &ArtifactRef) -> SurveyProcessingReceiptV1 {
         SurveyProcessingReceiptV1 {
             schema_version: 1,
             receipt_id: "receipt-1".to_owned(),
@@ -1563,9 +1543,7 @@ mod tests {
         ];
         assert_eq!(
             wrong_handedness.validate(),
-            Err(SurveyContractErrorV1::InvalidCoordinateFrame(
-                "handedness"
-            ))
+            Err(SurveyContractErrorV1::InvalidCoordinateFrame("handedness"))
         );
 
         let mut valid_left_handed = frame("mine-local");
@@ -1672,25 +1650,22 @@ mod tests {
         let receipt = qualified_receipt(&earlier, &later);
         let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
         let evidence = evidence_for_admission();
-        let candidate = candidate(
-            &earlier,
-            &later,
-            &receipt_artifact,
-            &policy_artifact,
-        );
+        let candidate = candidate(&earlier, &later, &receipt_artifact, &policy_artifact);
 
-        assert!(candidate
-            .validate_for_admission(
-                7,
-                &artifact("geometry-before"),
-                "mine-local",
-                &receipt_artifact,
-                &receipt,
-                &evidence,
-                &admission_policy,
-                &policy_artifact,
-            )
-            .is_ok());
+        assert!(
+            candidate
+                .validate_for_admission(
+                    7,
+                    &artifact("geometry-before"),
+                    "mine-local",
+                    &receipt_artifact,
+                    &receipt,
+                    &evidence,
+                    &admission_policy,
+                    &policy_artifact,
+                )
+                .is_ok()
+        );
         assert_eq!(
             candidate.validate_for_admission(
                 8,
@@ -1732,12 +1707,7 @@ mod tests {
             .changed_volume_standard_uncertainty_m3 = Some(0.21);
         let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
         let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
-        let mut candidate = candidate(
-            &earlier,
-            &later,
-            &receipt_artifact,
-            &policy_artifact,
-        );
+        let mut candidate = candidate(&earlier, &later, &receipt_artifact, &policy_artifact);
         candidate.volume_standard_uncertainty_m3 = 0.21;
 
         assert_eq!(
@@ -1768,12 +1738,7 @@ mod tests {
             .expect("metrics")
             .horizontal_rmse_m = 0.06;
         let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
-        let candidate = candidate(
-            &earlier,
-            &later,
-            &receipt_artifact,
-            &policy_artifact,
-        );
+        let candidate = candidate(&earlier, &later, &receipt_artifact, &policy_artifact);
 
         assert_eq!(
             candidate.validate_for_admission(
@@ -1799,26 +1764,23 @@ mod tests {
         provisional.output_artifact = None;
         provisional.accuracy_metrics = None;
         provisional.independent_checkpoint_ids.clear();
-        assert!(provisional
-            .validate_against(
-                &[
-                    observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
-                    observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
-                ],
-                &[frame("mine-local")],
-            )
-            .is_ok());
+        assert!(
+            provisional
+                .validate_against(
+                    &[
+                        observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
+                        observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
+                    ],
+                    &[frame("mine-local")],
+                )
+                .is_ok()
+        );
 
         let admission_policy = policy();
         let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
         let receipt_artifact = serialized_artifact("provisional-receipt", &provisional);
         let evidence = evidence_for_admission();
-        let candidate = candidate(
-            &earlier,
-            &later,
-            &receipt_artifact,
-            &policy_artifact,
-        );
+        let candidate = candidate(&earlier, &later, &receipt_artifact, &policy_artifact);
         assert_eq!(
             candidate.validate_for_admission(
                 7,
@@ -1842,12 +1804,7 @@ mod tests {
         let receipt = qualified_receipt(&earlier, &later);
         let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
         let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
-        let mut candidate = candidate(
-            &earlier,
-            &later,
-            &receipt_artifact,
-            &policy_artifact,
-        );
+        let mut candidate = candidate(&earlier, &later, &receipt_artifact, &policy_artifact);
         candidate.change_magnitude_m = 0.15;
 
         assert_eq!(
@@ -1888,10 +1845,7 @@ mod tests {
         let mut modified = first_bytes;
         modified.push(b' ');
         assert_eq!(
-            VerifiedSurveyEvidenceEnvelopeV1::decode_verified_json(
-                &modified,
-                first_artifact
-            ),
+            VerifiedSurveyEvidenceEnvelopeV1::decode_verified_json(&modified, first_artifact),
             Err(SurveyContractErrorV1::PayloadDigestMismatch)
         );
     }
