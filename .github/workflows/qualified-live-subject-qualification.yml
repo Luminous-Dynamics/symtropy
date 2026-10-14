@@ -1,0 +1,201 @@
+name: PHYS-ID-04C Qualified Live Subject Qualification
+
+on:
+  push:
+    branches:
+      - "ci/qualified-live-subject-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualified-live-subject-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: bb8515f5139ae83b3b9c73a1a17b5ce9524eeaec
+  PRODUCT_PARENT: 24ef5c25d2be2bed3d4d484d1bb6bbcfcab21fa8
+
+jobs:
+  qualify:
+    name: Frozen PHYS-ID-04C qualified subject / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_QUALIFIED_LIVE_SUBJECT_V01.md"
+            "crates/core/symtropy-physics/src/authority_namespace.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+          git diff --quiet "${PRODUCT_PARENT}..${PRODUCT_HEAD}" -- \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/world.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_QUALIFIED_LIVE_SUBJECT_V01.md \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs \
+            crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            > "${RUNNER_TEMP}/qualified-live-subject-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run qualified live subject theorem
+        run: cargo test -p symtropy-physics --locked --test qualified_live_subject_v01
+
+      - name: Run local namespace regression
+        run: cargo test -p symtropy-physics --locked --test local_authority_namespace_v01
+
+      - name: Run legacy authority identity regression
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit no-laundering boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          module=crates/core/symtropy-physics/src/authority_namespace.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_QUALIFIED_LIVE_SUBJECT_V01.md
+          tests=crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs
+
+          grep -Fq 'pub struct LocalQualifiedValidatedNetBody' "${module}"
+          grep -Fq 'pub fn validate_subject(' "${module}"
+          grep -Fq 'let inner = self.authority_world.validate_subject(subject)?;' "${module}"
+          grep -Fq 'Ok(LocalQualifiedValidatedNetBody { inner })' "${module}"
+          grep -Fq 'equal_plain_subject_can_exist_in_legacy_and_qualified_worlds_without_equal_provenance' "${tests}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('crates/core/symtropy-physics/src/authority_namespace.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/PHYSICAL_AUTHORITY_QUALIFIED_LIVE_SUBJECT_V01.md').read_text()
+
+          name = 'LocalQualifiedValidatedNetBody'
+          start = text.index(f'pub struct {name}')
+          end = text.index('\n}\n', start) + 2
+          block = text[start:end]
+          assert not any(line.lstrip().startswith('pub ') for line in block.splitlines()[1:])
+          assert not re.search(r'#\[derive\([^\)]*(Serialize|Deserialize)[^\)]*\)\]\s*pub struct\s+' + name, text)
+          assert f'impl Clone for {name}' not in text
+          assert f'impl Copy for {name}' not in text
+          assert 'From<ValidatedNetBody' not in text
+          assert 'From<PhysicsBodySubject' not in text
+          assert f'Into<{name}' not in text
+          assert f'pub fn new' not in text[start:text.index('impl', end)]
+          assert 'pub inner:' not in block
+
+          validate_start = text.index('pub fn validate_subject(', text.index('impl<const D: usize> LocalNamespacePhysicsAuthorityWorld'))
+          validate_end = text.index('\n    }\n', validate_start) + 6
+          validate_block = text[validate_start:validate_end]
+          assert 'self.authority_world.validate_subject(subject)?' in validate_block
+          assert 'LocalQualifiedValidatedNetBody { inner }' in validate_block
+          return_annotation = validate_block.split('->', 1)[1].split('{', 1)[0]
+          assert 'Result<LocalQualifiedValidatedNetBody' in return_annotation
+          assert 'Result<ValidatedNetBody' not in return_annotation
+
+          assert 'legacy.validate_subject(subject)' in contract
+          assert 'No complete-world structural integrity' in contract
+          assert 'no cross-process identity' in contract
+          assert 'no temporal ordering' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_QUALIFIED_LIVE_SUBJECT_V01.md \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs \
+            crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            > "${RUNNER_TEMP}/qualified-live-subject-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/qualified-live-subject-source-sha256.txt" \
+            "${RUNNER_TEMP}/qualified-live-subject-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-ID-04C qualified live subject provenance v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'qualified_subject_token_only_from_qualified_wrapper': True,
+              'reuses_existing_live_subject_validation': True,
+              'generic_validated_body_upgrade': False,
+              'serde_live_token_authority': False,
+              'complete_world_structural_integrity': False,
+              'cross_process_identity': False,
+              'temporal_ordering': False,
+              'observation_authority': False,
+          }
+          Path('qualified-live-subject-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualified-live-subject-${{ env.PRODUCT_HEAD }}
+          path: |
+            qualified-live-subject-qualification-receipt.json
+            ${{ runner.temp }}/qualified-live-subject-source-sha256.txt
+            ${{ runner.temp }}/qualified-live-subject-source-sha256-post.txt
+          if-no-files-found: error
