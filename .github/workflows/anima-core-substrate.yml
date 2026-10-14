@@ -1,0 +1,58 @@
+name: ANIMA core substrate qualification
+
+on:
+  pull_request:
+    paths:
+      - 'crates/core/symtropy-anima-core/**'
+      - '.github/workflows/anima-core-substrate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'crates/core/symtropy-anima-core/**'
+      - '.github/workflows/anima-core-substrate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Qualify dependency-neutral ANIMA core (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: crates/core/symtropy-anima-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Capture exact lock identity
+        shell: bash
+        run: git hash-object Cargo.lock | tee /tmp/anima-core-lock.before
+
+      - name: Formatting
+        run: cargo fmt -- --check
+
+      - name: Unit tests
+        run: cargo test --locked
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: All-target check
+        run: cargo check --locked --all-targets
+
+      - name: Assert lock and source non-mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object Cargo.lock)" = "$(cat /tmp/anima-core-lock.before)"
+          git diff --exit-code -- Cargo.toml Cargo.lock src
+          test -z "$(git ls-files --others --exclude-standard .)"
