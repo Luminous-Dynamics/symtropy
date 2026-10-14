@@ -8,6 +8,8 @@
 //! certify that any declared solver is physically accurate.
 
 use crate::material_profile::RockMaterialProfileV1;
+#[cfg(test)]
+use crate::material_profile::{MaterialEvidenceClassV1, MaterialQuantityV1};
 use crate::platform::PlatformType;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
