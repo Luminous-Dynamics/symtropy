@@ -67,20 +67,14 @@ impl C2spCheckpointNoteBodyV1 {
             }
         }
         if extensions.iter().any(|extension| {
-            extension.is_empty()
-                || extension
-                    .bytes()
-                    .any(|byte| byte == b'\n' || byte == b'\r')
+            extension.is_empty() || extension.bytes().any(|byte| byte == b'\n' || byte == b'\r')
         }) {
             return Err(C2spWireError::Invalid(
                 "C2SP checkpoint extensions must be non-empty single lines".to_string(),
             ));
         }
 
-        let mut serialized = format!(
-            "{origin}\n{tree_size}\n{}\n",
-            base64_encode(&root)
-        );
+        let mut serialized = format!("{origin}\n{tree_size}\n{}\n", base64_encode(&root));
         for extension in &extensions {
             serialized.push_str(extension);
             serialized.push('\n');
@@ -105,7 +99,9 @@ impl C2spCheckpointNoteBodyV1 {
             ));
         }
 
-        let lines = serialized[..serialized.len() - 1].split('\n').collect::<Vec<_>>();
+        let lines = serialized[..serialized.len() - 1]
+            .split('\n')
+            .collect::<Vec<_>>();
         if lines.len() < 3 || lines.iter().any(|line| line.is_empty()) {
             return Err(C2spWireError::Invalid(
                 "C2SP checkpoint note requires at least three non-empty lines".to_string(),
@@ -120,8 +116,7 @@ impl C2spCheckpointNoteBodyV1 {
             .map(|line| (*line).to_string())
             .collect::<Vec<_>>();
 
-        let note =
-            Self::new(lines[0].to_string(), tree_size, &root_hex, extensions)?;
+        let note = Self::new(lines[0].to_string(), tree_size, &root_hex, extensions)?;
         if note.as_str() != serialized {
             return Err(C2spWireError::Invalid(
                 "C2SP checkpoint note is not canonical".to_string(),
@@ -147,7 +142,9 @@ impl C2spCheckpointNoteBodyV1 {
 
     #[must_use]
     pub fn root_hash_hex(&self) -> Result<String, C2spWireError> {
-        Ok(encode_hex(&decode_base64_exact::<32>(&self.root_hash_base64)?))
+        Ok(encode_hex(&decode_base64_exact::<32>(
+            &self.root_hash_base64,
+        )?))
     }
 
     #[must_use]
@@ -183,13 +180,11 @@ impl C2spCheckpointNoteBodyV1 {
             self.origin.clone(),
             self.tree_size,
             &encode_hex(
-                &decode_base64_exact::<32>(&self.root_hash_base64)
-                    .map_err(|_| {
-                        C2spWireError::Invalid(
-                            "C2SP checkpoint root must be canonical base64 for 32 bytes"
-                                .to_string(),
-                        )
-                    })?,
+                &decode_base64_exact::<32>(&self.root_hash_base64).map_err(|_| {
+                    C2spWireError::Invalid(
+                        "C2SP checkpoint root must be canonical base64 for 32 bytes".to_string(),
+                    )
+                })?,
             ),
             self.extensions.clone(),
         )?;
@@ -341,9 +336,9 @@ fn parse_canonical_decimal(value: &str) -> Result<u64, C2spWireError> {
             "C2SP tree size must be canonical ASCII decimal".to_string(),
         ));
     }
-    value.parse::<u64>().map_err(|_| {
-        C2spWireError::Invalid("C2SP tree size exceeds uint64 range".to_string())
-    })
+    value
+        .parse::<u64>()
+        .map_err(|_| C2spWireError::Invalid("C2SP tree size exceeds uint64 range".to_string()))
 }
 
 fn decode_hex_32(value: &str) -> Result<[u8; 32], C2spWireError> {
@@ -381,8 +376,7 @@ fn encode_hex(bytes: &[u8]) -> String {
     output
 }
 
-const BASE64_TABLE: &[u8; 64] =
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const BASE64_TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 fn base64_encode(bytes: &[u8]) -> String {
     let output_len = ((bytes.len() + 2) / 3) * 4;
@@ -421,8 +415,16 @@ fn decode_base64_exact<const N: usize>(encoded: &str) -> Result<[u8; N], C2spWir
     for chunk in chars.chunks_exact(4) {
         let a = base64_value(chunk[0])?;
         let b = base64_value(chunk[1])?;
-        let c = if chunk[2] == b'=' { 0 } else { base64_value(chunk[2])? };
-        let d = if chunk[3] == b'=' { 0 } else { base64_value(chunk[3])? };
+        let c = if chunk[2] == b'=' {
+            0
+        } else {
+            base64_value(chunk[2])?
+        };
+        let d = if chunk[3] == b'=' {
+            0
+        } else {
+            base64_value(chunk[3])?
+        };
 
         bytes.push((a << 2) | (b >> 4));
         if chunk[2] != b'=' {
@@ -433,9 +435,7 @@ fn decode_base64_exact<const N: usize>(encoded: &str) -> Result<[u8; N], C2spWir
         }
 
         if chunk[2] == b'=' && chunk[3] != b'=' {
-            return Err(C2spWireError::Invalid(
-                "invalid base64 padding".to_string(),
-            ));
+            return Err(C2spWireError::Invalid("invalid base64 padding".to_string()));
         }
     }
 
@@ -502,13 +502,9 @@ mod tests {
     #[test]
     fn checkpoint_note_maps_exactly_to_internal_vds_head() {
         let root = [0xabu8; 32];
-        let note = C2spCheckpointNoteBodyV1::new(
-            "example.com/log",
-            104,
-            &encode_hex(&root),
-            Vec::new(),
-        )
-        .expect("note");
+        let note =
+            C2spCheckpointNoteBodyV1::new("example.com/log", 104, &encode_hex(&root), Vec::new())
+                .expect("note");
         let unsigned = crate::transparency::TransparencyCheckpointUnsignedV1::new(
             "log-id",
             1,
@@ -525,7 +521,9 @@ mod tests {
         .expect("checkpoint");
         // A C2SP note adapter only compares the VDS head; note origin is a wire identifier.
         let signature = "00".repeat(64);
-        let checkpoint = unsigned.into_signed(signature).expect("shape-valid checkpoint");
+        let checkpoint = unsigned
+            .into_signed(signature)
+            .expect("shape-valid checkpoint");
         note.matches_checkpoint(&checkpoint).expect("matching VDS");
     }
 
@@ -573,14 +571,20 @@ mod tests {
         .expect("note");
         let parsed = C2spCheckpointNoteBodyV1::parse(note.as_str()).expect("parse");
         assert_eq!(parsed, note);
-        assert_eq!(parsed.root_hash_hex().expect("root"), encode_hex(&[0xabu8; 32]));
+        assert_eq!(
+            parsed.root_hash_hex().expect("root"),
+            encode_hex(&[0xabu8; 32])
+        );
     }
 
     #[test]
     fn checkpoint_note_rejects_noncanonical_tree_size_and_empty_root_mismatch() {
         let root = encode_hex(&[0x00u8; 32]);
         assert!(matches!(
-            C2spCheckpointNoteBodyV1::parse(&format!("example.com/log\n01\n{}\n", base64_encode(&[0u8; 32]))),
+            C2spCheckpointNoteBodyV1::parse(&format!(
+                "example.com/log\n01\n{}\n",
+                base64_encode(&[0u8; 32])
+            )),
             Err(C2spWireError::Invalid(_))
         ));
         assert!(matches!(
@@ -596,12 +600,7 @@ mod tests {
             Err(C2spWireError::Invalid(_))
         ));
         assert!(matches!(
-            C2spCheckpointNoteBodyV1::new(
-                "example.com/log",
-                1,
-                &"00".repeat(31),
-                Vec::new()
-            ),
+            C2spCheckpointNoteBodyV1::new("example.com/log", 1, &"00".repeat(31), Vec::new()),
             Err(C2spWireError::Invalid(_))
         ));
         assert!(matches!(
@@ -639,11 +638,12 @@ mod tests {
             key_id,
             timestamp,
             signature: {
-                let message = format!(
-                    "{COSIGNATURE_HEADER}\ntime {timestamp}\n{}",
-                    note.as_str()
-                );
-                key_pair.sign(message.as_bytes()).as_ref().try_into().expect("signature")
+                let message = format!("{COSIGNATURE_HEADER}\ntime {timestamp}\n{}", note.as_str());
+                key_pair
+                    .sign(message.as_bytes())
+                    .as_ref()
+                    .try_into()
+                    .expect("signature")
             },
         };
 
