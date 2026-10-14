@@ -126,6 +126,61 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(alias_path.read_bytes(), preserved)
             self.assertEqual(source_path.read_bytes(), raw)
 
+    def test_cli_overwrite_rejects_source_hard_link_alias(self):
+        raw = self.raw_source()
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_alias = Path(temp) / "output-alias.json"
+            source_path.write_bytes(raw)
+            try:
+                os.link(source_path, output_alias)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"hard-link creation is unavailable on this filesystem: {exc}")
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                status = main([
+                    str(source_path), "--output", str(output_alias), "--overwrite"
+                ])
+            self.assertEqual(status, 2)
+            self.assertIn("refusing to overwrite captured source bytes", stderr.getvalue())
+            self.assertEqual(source_path.read_bytes(), raw)
+            self.assertEqual(output_alias.read_bytes(), raw)
+
+    def test_cli_overwrite_replaces_symlink_entry_without_mutating_target(self):
+        raw = self.raw_source()
+        preserved = b"separate target evidence remains unchanged\n"
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_path = Path(temp) / "run-envelope.json"
+            target_path = Path(temp) / "existing-target.json"
+            source_path.write_bytes(raw)
+            target_path.write_bytes(preserved)
+            try:
+                output_path.symlink_to(target_path)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"symlink creation is unavailable on this filesystem: {exc}")
+            status = main([
+                str(source_path), "--output", str(output_path), "--overwrite"
+            ])
+            self.assertEqual(status, 0)
+            self.assertFalse(output_path.is_symlink())
+            envelope = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(envelope["run_id"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
+            self.assertEqual(target_path.read_bytes(), preserved)
+            self.assertEqual(source_path.read_bytes(), raw)
+
+    def test_cli_creates_new_output_when_path_is_absent(self):
+        raw = self.raw_source()
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_path = Path(temp) / "run-envelope.json"
+            source_path.write_bytes(raw)
+            status = main([str(source_path), "--output", str(output_path)])
+            self.assertEqual(status, 0)
+            envelope = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(envelope["run_id"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
+            self.assertEqual(source_path.read_bytes(), raw)
+
     def test_cli_refuses_to_overwrite_a_hard_link_to_the_source_artifact(self):
         raw = self.raw_source()
         with tempfile.TemporaryDirectory() as temp:
