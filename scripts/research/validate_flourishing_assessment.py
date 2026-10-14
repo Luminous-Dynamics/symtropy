@@ -312,6 +312,7 @@ def validate_assessment(
     preregistration_limit = 64 * 1024
     seen_artifact_paths: dict[str, str] = {}
     seen_resolved_paths: dict[str, str] = {}
+    seen_digest_roles: dict[str, tuple[str, Any]] = {}
     for artifact_id, artifact in artifacts.items():
         relative = artifact.get("path")
         digest = artifact.get("sha256")
@@ -329,6 +330,16 @@ def validate_assessment(
         if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
             errors.append(f"artifacts[{artifact_id}].sha256: expected 64 hexadecimal characters")
             continue
+        normalized_digest = digest.lower()
+        purpose = artifact.get("purpose")
+        prior_digest_role = seen_digest_roles.get(normalized_digest)
+        if prior_digest_role is not None and prior_digest_role[1] != purpose:
+            errors.append(
+                f"artifacts[{artifact_id}].sha256: identical bytes already registered as "
+                f"artifact {prior_digest_role[0]!r} under a different evidence role"
+            )
+        else:
+            seen_digest_roles.setdefault(normalized_digest, (artifact_id, purpose))
         if verify_artifacts:
             if artifact_root is None:
                 errors.append("artifact verification requested without an artifact root")
