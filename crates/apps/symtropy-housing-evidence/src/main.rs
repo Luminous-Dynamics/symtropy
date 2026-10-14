@@ -1959,18 +1959,18 @@ mod tests {
         // Keep the model's artifact IDs stable, but validly swap which bytes each ID names.
         manifest["evidence_artifacts"][0]["sha256"] = json!(second_digest.clone());
         manifest["evidence_artifacts"][0]["uri"] = json!("model-b.bin");
-        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "model-fixture-secondary",
-            "media_type": "application/octet-stream",
-            "sha256": first_digest.clone(),
-            "role": "model",
-            "uri": "model.bin",
-            "retention_class": "test-only"
-        }));
-        manifest["model"]["artifact_ids"] = json!([
-            "model-fixture",
-            "model-fixture-secondary"
-        ]);
+        manifest["evidence_artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "artifact_id": "model-fixture-secondary",
+                "media_type": "application/octet-stream",
+                "sha256": first_digest.clone(),
+                "role": "model",
+                "uri": "model.bin",
+                "retention_class": "test-only"
+            }));
+        manifest["model"]["artifact_ids"] = json!(["model-fixture", "model-fixture-secondary"]);
 
         // The expected contract now includes both IDs but retains the original binding.
         expected.model = manifest["model"].clone();
@@ -1987,9 +1987,12 @@ mod tests {
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("model artifact ID-to-digest mapping")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("model artifact ID-to-digest mapping") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
