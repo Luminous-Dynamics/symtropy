@@ -3337,11 +3337,7 @@ mod tests {
         let mut revoked = capacity_evidence(budget.clone(), Some(980));
         revoked.status = CargoTransferCapacityEvidenceStatus::Revoked;
         assert_eq!(
-            validate_cargo_transfer_capacity_evidence(
-                &revoked,
-                1_000,
-                capacity_freshness_policy(),
-            ),
+            validate_cargo_transfer_capacity_evidence(&revoked, 1_000, capacity_freshness_policy(),),
             Err(CargoTransferCapacityEvidenceError::NotCurrent)
         );
 
