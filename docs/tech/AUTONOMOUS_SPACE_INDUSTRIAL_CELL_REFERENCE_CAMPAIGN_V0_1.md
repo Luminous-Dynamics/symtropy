@@ -312,4 +312,14 @@ It composes existing kernel primitives into a small, deterministic end-to-end re
 - a causal energy-ledger consumption event with a conservation replay;
 - a Pareto frontier that excludes a dominated import-heavy option without collapsing all trade-offs into one score.
 
-All example quantities are synthetic fixture units, **not measured lunar material yields, kWh, factory performance or physical qualification evidence**. This is intended as a wiring/reference example for local Rust execution. It has been authored and source-inspected in this environment, but has **not** been compiled or run here; exact-head Cargo validation remains required. A passing example would verify only these bounded software contracts.
+All example quantities are synthetic fixture units, **not measured lunar material yields, kWh, factory performance or physical qualification evidence**. The reference validates bounded software contracts only; even a passing run is not a robot, process or physical qualification result. The paragraph above reflects the state when the example was first added; later exact-head execution history is tracked on PR #1543.
+
+## Fault-injected ledger controls — 2026-10-14
+
+The executable reference now includes three explicit fault cases in addition to the process-mass and energy-budget controls:
+
+1. **Duplicate energy event identity:** a second event reusing an accepted event ID must be rejected with no state or history mutation.
+2. **Non-monotonic energy sequence:** a stale sequence with a fresh event ID must be rejected with no state or history mutation.
+3. **Inventory overdraw:** a consumption event larger than available synthetic inventory must be rejected without changing the balance or appending history.
+
+Each control tests the failure path and atomicity, not just the returned error. The fixture uses in-memory synthetic quantities. Lost communications, sensor faults, route obstruction, tool wear, material contamination and hardware stop/recovery remain campaign-spec requirements, not yet executed robot-simulation scenarios. Do not count them as completed coverage until a frozen corpus and independent expected-outcome verifier exist.
