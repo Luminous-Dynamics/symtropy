@@ -285,6 +285,8 @@ fn validate_evidence(
         || !nonempty(&evidence.source_record_digest)
         || !nonempty(&evidence.time_profile_id)
         || evidence.terminal_id.as_deref().is_some_and(|id| !nonempty(id))
+        || (evidence.resource_kind == CargoTransferCapacityResourceKind::Equipment
+            && evidence.terminal_id.is_none())
         || evidence.capacity_units == 0
         || evidence.revision == 0
     {
@@ -437,8 +439,7 @@ pub fn validate_scheduled_capacity_plan(
             || item.resource_id != assignment.resource_id
             || item.capacity_scope_id != assignment.capacity_scope_id
             || item.capacity_unit != assignment.capacity_unit
-            || (assignment.terminal_id.is_some()
-                && assignment.terminal_id != item.terminal_id)
+            || assignment.terminal_id != item.terminal_id
         {
             return Err(ScheduledCapacityPlanError::ResourceBindingMismatch);
         }
