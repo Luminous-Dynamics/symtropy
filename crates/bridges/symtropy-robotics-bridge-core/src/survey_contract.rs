@@ -141,17 +141,24 @@ pub enum SurveyAxisDirectionV1 {
 }
 
 impl SurveyAxisDirectionV1 {
-    fn family(self) -> u8 {
+    /// Logical coordinate basis, component index, and axis sign. Basis families
+    /// prevent accidental mixes such as LocalX/East/GeocentricZ.
+    fn basis_component(self) -> (u8, u8, i8) {
         match self {
-            Self::East | Self::West | Self::Longitude => 0,
-            Self::North | Self::South | Self::Latitude => 1,
-            Self::Up | Self::Down => 2,
-            Self::GeocentricX => 3,
-            Self::GeocentricY => 4,
-            Self::GeocentricZ => 5,
-            Self::LocalX => 6,
-            Self::LocalY => 7,
-            Self::LocalZ => 8,
+            Self::East => (0, 0, 1),
+            Self::West => (0, 0, -1),
+            Self::Longitude => (0, 0, 1),
+            Self::North => (0, 1, 1),
+            Self::South => (0, 1, -1),
+            Self::Latitude => (0, 1, 1),
+            Self::Up => (0, 2, 1),
+            Self::Down => (0, 2, -1),
+            Self::GeocentricX => (1, 0, 1),
+            Self::GeocentricY => (1, 1, 1),
+            Self::GeocentricZ => (1, 2, 1),
+            Self::LocalX => (2, 0, 1),
+            Self::LocalY => (2, 1, 1),
+            Self::LocalZ => (2, 2, 1),
         }
     }
 
@@ -223,15 +230,35 @@ impl SurveyCoordinateFrameV1 {
             }
         }
 
-        let families: BTreeSet<u8> = self
-            .axis_directions
-            .iter()
-            .map(|direction| direction.family())
-            .collect();
-        if families.len() != 3 {
+        let components = self.axis_directions.map(SurveyAxisDirectionV1::basis_component);
+        let basis_families: BTreeSet<u8> =
+            components.iter().map(|(family, _, _)| *family).collect();
+        let axis_components: BTreeSet<u8> =
+            components.iter().map(|(_, axis, _)| *axis).collect();
+        if basis_families.len() != 1 || axis_components.len() != 3 {
             return Err(SurveyContractErrorV1::InvalidCoordinateFrame(
                 "axis_directions",
             ));
+        }
+
+        // The declared handedness must agree with axis order and direction.
+        let axis_order = components.map(|(_, axis, _)| axis);
+        let mut inversions = 0;
+        for (left, left_axis) in axis_order.iter().enumerate() {
+            for right_axis in axis_order.iter().skip(left + 1) {
+                if left_axis > right_axis {
+                    inversions += 1;
+                }
+            }
+        }
+        let sign_product = components.iter().map(|(_, _, sign)| *sign as i16).product::<i16>();
+        let determinant_positive = (inversions % 2 == 0) == (sign_product > 0);
+        let handedness_matches = match self.handedness {
+            SurveyHandednessV1::RightHanded => determinant_positive,
+            SurveyHandednessV1::LeftHanded => !determinant_positive,
+        };
+        if !handedness_matches {
+            return Err(SurveyContractErrorV1::InvalidCoordinateFrame("handedness"));
         }
 
         for (direction, unit) in self.axis_directions.iter().zip(self.axis_units) {
@@ -608,7 +635,7 @@ pub enum SurveyProcessingStageV1 {
     RawCapture,
     RegisteredSurvey,
     AdjustedControlSolution,
-    QualifiedChangeEstimate,
+    ChangeEstimate,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -623,10 +650,10 @@ pub enum SurveyProcessingDispositionV1 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SurveyAccuracyMetricsV1 {
+    /// Horizontal positional RMSE (RMSE_H), in metres.
     pub horizontal_rmse_m: f64,
+    /// Vertical positional RMSE (RMSE_V), in metres.
     pub vertical_rmse_m: f64,
-    pub horizontal_accuracy_95_m: f64,
-    pub vertical_accuracy_95_m: f64,
     /// Minimum reliably detectable change under the declared method and domain.
     pub detection_limit_m: Option<f64>,
     pub estimated_changed_volume_m3: Option<f64>,
@@ -639,8 +666,6 @@ impl SurveyAccuracyMetricsV1 {
         for value in [
             self.horizontal_rmse_m,
             self.vertical_rmse_m,
-            self.horizontal_accuracy_95_m,
-            self.vertical_accuracy_95_m,
         ] {
             if !value.is_finite() || value < 0.0 {
                 return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
@@ -805,7 +830,7 @@ impl SurveyProcessingReceiptV1 {
                     "qualified_without_evidence",
                 ));
             }
-            if self.stage == SurveyProcessingStageV1::QualifiedChangeEstimate {
+            if self.stage == SurveyProcessingStageV1::ChangeEstimate {
                 let metrics = self.accuracy_metrics.as_ref().expect("checked above");
                 if metrics.detection_limit_m.is_none()
                     || metrics.estimated_changed_volume_m3.is_none()
@@ -816,11 +841,6 @@ impl SurveyProcessingReceiptV1 {
                     ));
                 }
             }
-        } else if self.stage == SurveyProcessingStageV1::QualifiedChangeEstimate {
-            return Err(SurveyContractErrorV1::InvalidProcessingReceipt(
-                "change_estimate_not_qualified",
-            ));
-        }
         Ok(())
     }
 
@@ -1006,7 +1026,7 @@ impl SurveyChangeCandidateV1 {
         receipt.verify_artifact(qualification_receipt_artifact)?;
         policy.verify_artifact(policy_artifact)?;
         receipt.validate_against(&evidence.observations, &evidence.frames)?;
-        if receipt.stage != SurveyProcessingStageV1::QualifiedChangeEstimate
+        if receipt.stage != SurveyProcessingStageV1::ChangeEstimate
             || receipt.disposition != SurveyProcessingDispositionV1::Qualified
             || receipt.output_artifact.as_ref() != Some(&self.change_estimate_artifact)
             || receipt.output_frame_id.as_deref() != Some(self.coordinate_frame_id.as_str())
@@ -1036,8 +1056,8 @@ impl SurveyChangeCandidateV1 {
         {
             return Err(SurveyContractErrorV1::QualificationReceiptMismatch);
         }
-        if metrics.horizontal_accuracy_95_m > policy.max_horizontal_accuracy_95_m
-            || metrics.vertical_accuracy_95_m > policy.max_vertical_accuracy_95_m
+        if metrics.horizontal_rmse_m > policy.max_horizontal_rmse_m
+            || metrics.vertical_rmse_m > policy.max_vertical_rmse_m
         {
             return Err(SurveyContractErrorV1::AccuracyThresholdExceeded);
         }
@@ -1064,8 +1084,8 @@ pub struct SurveyAdmissionPolicyV1 {
     pub schema_version: u16,
     pub policy_id: String,
     pub minimum_independent_checkpoints: usize,
-    pub max_horizontal_accuracy_95_m: f64,
-    pub max_vertical_accuracy_95_m: f64,
+    pub max_horizontal_rmse_m: f64,
+    pub max_vertical_rmse_m: f64,
     pub max_volume_standard_uncertainty_m3: f64,
     pub minimum_change_to_detection_limit_ratio: f64,
 }
@@ -1390,8 +1410,6 @@ mod tests {
         SurveyAccuracyMetricsV1 {
             horizontal_rmse_m: 0.01,
             vertical_rmse_m: 0.02,
-            horizontal_accuracy_95_m: 0.02,
-            vertical_accuracy_95_m: 0.04,
             detection_limit_m: Some(0.1),
             estimated_changed_volume_m3: Some(1.0),
             changed_volume_standard_uncertainty_m3: Some(0.1),
@@ -1406,7 +1424,7 @@ mod tests {
         SurveyProcessingReceiptV1 {
             schema_version: 1,
             receipt_id: "receipt-1".to_owned(),
-            stage: SurveyProcessingStageV1::QualifiedChangeEstimate,
+            stage: SurveyProcessingStageV1::ChangeEstimate,
             disposition: SurveyProcessingDispositionV1::Qualified,
             input_artifacts: vec![earlier.clone(), later.clone()],
             output_artifact: Some(artifact("change-estimate")),
@@ -1446,8 +1464,8 @@ mod tests {
             schema_version: 1,
             policy_id: "mine-survey-admission-v1".to_owned(),
             minimum_independent_checkpoints: 1,
-            max_horizontal_accuracy_95_m: 0.05,
-            max_vertical_accuracy_95_m: 0.05,
+            max_horizontal_rmse_m: 0.05,
+            max_vertical_rmse_m: 0.05,
             max_volume_standard_uncertainty_m3: 0.2,
             minimum_change_to_detection_limit_ratio: 2.0,
         }
@@ -1519,6 +1537,44 @@ mod tests {
                 "axis_directions"
             ))
         );
+    }
+
+    #[test]
+    fn frame_rejects_mixed_axis_bases_and_false_handedness() {
+        let mut mixed = frame("mine-local");
+        mixed.axis_directions = [
+            SurveyAxisDirectionV1::LocalX,
+            SurveyAxisDirectionV1::North,
+            SurveyAxisDirectionV1::GeocentricZ,
+        ];
+        assert_eq!(
+            mixed.validate(),
+            Err(SurveyContractErrorV1::InvalidCoordinateFrame(
+                "axis_directions"
+            ))
+        );
+
+        let mut wrong_handedness = frame("mine-local");
+        wrong_handedness.axis_directions = [
+            SurveyAxisDirectionV1::West,
+            SurveyAxisDirectionV1::North,
+            SurveyAxisDirectionV1::Up,
+        ];
+        assert_eq!(
+            wrong_handedness.validate(),
+            Err(SurveyContractErrorV1::InvalidCoordinateFrame(
+                "handedness"
+            ))
+        );
+
+        let mut valid_left_handed = frame("mine-local");
+        valid_left_handed.axis_directions = [
+            SurveyAxisDirectionV1::West,
+            SurveyAxisDirectionV1::North,
+            SurveyAxisDirectionV1::Up,
+        ];
+        valid_left_handed.handedness = SurveyHandednessV1::LeftHanded;
+        assert!(valid_left_handed.validate().is_ok());
     }
 
     #[test]
@@ -1695,6 +1751,50 @@ mod tests {
                 &policy_artifact,
             ),
             Err(SurveyContractErrorV1::VolumeUncertaintyExceeded)
+        );
+    }
+
+    #[test]
+    fn provisional_change_receipt_is_retained_but_never_admitted() {
+        let earlier = artifact("earlier-survey");
+        let later = artifact("later-survey");
+        let mut provisional = qualified_receipt(&earlier, &later);
+        provisional.disposition = SurveyProcessingDispositionV1::Provisional;
+        provisional.output_artifact = None;
+        provisional.accuracy_metrics = None;
+        provisional.independent_checkpoint_ids.clear();
+        assert!(provisional
+            .validate_against(
+                &[
+                    observation("fit", SurveyObservationRoleV1::FitOrCalibration, 200),
+                    observation("check", SurveyObservationRoleV1::IndependentCheckpoint, 300),
+                ],
+                &[frame("mine-local")],
+            )
+            .is_ok());
+
+        let admission_policy = policy();
+        let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
+        let receipt_artifact = serialized_artifact("provisional-receipt", &provisional);
+        let evidence = evidence_for_admission();
+        let candidate = candidate(
+            &earlier,
+            &later,
+            &receipt_artifact,
+            &policy_artifact,
+        );
+        assert_eq!(
+            candidate.validate_for_admission(
+                7,
+                &artifact("geometry-before"),
+                "mine-local",
+                &receipt_artifact,
+                &provisional,
+                &evidence,
+                &admission_policy,
+                &policy_artifact,
+            ),
+            Err(SurveyContractErrorV1::QualificationReceiptMismatch)
         );
     }
 
