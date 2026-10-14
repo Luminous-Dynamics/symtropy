@@ -385,6 +385,33 @@ class FlourishingAssessmentTests(unittest.TestCase):
         errors, _ = validate_assessment(doc)
         self.assertTrue(any("duplicate artifact path" in error for error in errors))
 
+    def test_symlink_alias_cannot_reuse_preregistration_bytes_as_outcome_evidence(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialize_artifact_files(doc, root)
+            prereg_artifact = next(
+                artifact for artifact in doc["artifacts"]
+                if artifact["purpose"] == "pre-registration"
+            )
+            prereg_path = root / prereg_artifact["path"]
+            sample_artifact = next(
+                artifact for artifact in doc["artifacts"]
+                if artifact["artifact_id"] == "sample-artifact"
+            )
+            sample_path = root / sample_artifact["path"]
+            prereg_bytes = prereg_path.read_bytes()
+            sample_artifact["sha256"] = hashlib.sha256(prereg_bytes).hexdigest()
+            sample_path.unlink()
+            sample_path.symlink_to(prereg_path.name)
+            errors, report = validate_assessment(
+                doc, artifact_root=root, verify_artifacts=True
+            )
+        self.assertTrue(
+            any("resolves to the same file as artifact" in error for error in errors)
+        )
+        self.assertIsNone(report)
+
     def test_artifact_digest_is_checked_against_file_bytes(self) -> None:
         doc = add_evidence_and_known_values(assessment())
         with tempfile.TemporaryDirectory() as temp:
