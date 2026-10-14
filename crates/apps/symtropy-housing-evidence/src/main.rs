@@ -72,10 +72,17 @@ struct ExpectedClaimsFile {
     case_id: String,
     jurisdiction: Value,
     model: Value,
-    model_artifact_sha256: Vec<String>,
+    model_artifacts: Vec<ExpectedModelArtifact>,
     rule_pack: Value,
     toolchain: Value,
     mandatory_claims: Vec<ExpectedClaimContract>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ExpectedModelArtifact {
+    artifact_id: String,
+    sha256: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -289,17 +296,24 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
     if !expected.model.is_object() {
         return Err("expected-claims model must be an object".to_string());
     }
-    if expected.model_artifact_sha256.is_empty() {
-        return Err("expected-claims model_artifact_sha256 must not be empty".to_string());
+    if expected.model_artifacts.is_empty() {
+        return Err("expected-claims model_artifacts must not be empty".to_string());
     }
-    let mut model_digests = BTreeSet::new();
-    for digest in &expected.model_artifact_sha256 {
-        if !is_sha256(digest) {
-            return Err(format!("malformed expected model SHA-256: {digest}"));
+    let mut model_artifact_ids = BTreeSet::new();
+    for pin in &expected.model_artifacts {
+        if pin.artifact_id.trim().is_empty() {
+            return Err("expected model artifact IDs must not be empty".to_string());
         }
-        if !model_digests.insert(digest) {
+        if !is_sha256(&pin.sha256) {
             return Err(format!(
-                "duplicate expected model artifact SHA-256: {digest}"
+                "malformed expected model SHA-256 for artifact {}: {}",
+                pin.artifact_id, pin.sha256
+            ));
+        }
+        if !model_artifact_ids.insert(pin.artifact_id.as_str()) {
+            return Err(format!(
+                "duplicate expected model artifact ID: {}",
+                pin.artifact_id
             ));
         }
     }
@@ -755,7 +769,7 @@ fn evaluate_manifest(
         );
     }
 
-    let actual_model_artifact_digests: BTreeSet<String> = manifest["model"]["artifact_ids"]
+    let actual_model_artifacts: BTreeMap<String, String> = manifest["model"]["artifact_ids"]
         .as_array()
         .into_iter()
         .flatten()
@@ -764,13 +778,13 @@ fn evaluate_manifest(
             artifacts_by_id
                 .get(id)
                 .and_then(|artifact| artifact["sha256"].as_str())
-                .map(ToString::to_string)
+                .map(|digest| (id.to_string(), digest.to_string()))
         })
         .collect();
-    let expected_model_artifact_digests: BTreeSet<String> = expected_claims
-        .model_artifact_sha256
+    let expected_model_artifacts: BTreeMap<String, String> = expected_claims
+        .model_artifacts
         .iter()
-        .cloned()
+        .map(|pin| (pin.artifact_id.clone(), pin.sha256.clone()))
         .collect();
 
     let expected_schema_sha256 = sha256_hex(EMBEDDED_SCHEMA.as_bytes());
@@ -843,7 +857,7 @@ fn evaluate_manifest(
         || expected_claims.case_id != case_id.as_deref().unwrap_or_default()
         || expected_claims.jurisdiction != manifest["jurisdiction"]
         || expected_claims.model != manifest["model"]
-        || actual_model_artifact_digests != expected_model_artifact_digests
+        || actual_model_artifacts != expected_model_artifacts
         || expected_claims.rule_pack != manifest["rule_pack"]
         || expected_claims.toolchain != manifest["toolchain"]
     {
@@ -854,7 +868,7 @@ fn evaluate_manifest(
             STATUS_INSUFFICIENT_EVIDENCE,
             0,
             vec![
-                "manifest schema/case/jurisdiction/model object, model artifact digest set, rule-pack, or toolchain differs from the independently pinned contract"
+                "manifest schema/case/jurisdiction/model object, model artifact ID-to-digest mapping, rule-pack, or toolchain differs from the independently pinned contract"
                     .to_string(),
             ],
         );
@@ -1355,12 +1369,16 @@ mod tests {
             case_id: manifest["case_id"].as_str().unwrap().to_string(),
             jurisdiction: manifest["jurisdiction"].clone(),
             model: manifest["model"].clone(),
-            model_artifact_sha256: vec![
-                manifest["evidence_artifacts"][0]["sha256"]
+            model_artifacts: vec![ExpectedModelArtifact {
+                artifact_id: manifest["evidence_artifacts"][0]["artifact_id"]
                     .as_str()
                     .unwrap()
                     .to_string(),
-            ],
+                sha256: manifest["evidence_artifacts"][0]["sha256"]
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+            }],
             rule_pack: manifest["rule_pack"].clone(),
             toolchain: manifest["toolchain"].clone(),
             mandatory_claims: vec![ExpectedClaimContract {
@@ -1924,6 +1942,54 @@ mod tests {
                 .iter()
                 .any(|issue| { issue.contains("pinned input artifact digests") })
         );
+        fs::remove_dir_all(root).expect("clean temp dir");
+    }
+
+    #[test]
+    fn swapped_model_digest_assignments_are_rejected_even_when_the_set_is_unchanged() {
+        let (schema, mut manifest, root, mut expected) = set_up_pass_manifest();
+        let first_digest = manifest["evidence_artifacts"][0]["sha256"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let second_bytes = b"second synthetic model artifact - not engineering evidence";
+        fs::write(root.join("model-b.bin"), second_bytes).expect("write second model artifact");
+        let second_digest = sha256_hex(second_bytes);
+
+        // Keep the model's artifact IDs stable, but validly swap which bytes each ID names.
+        manifest["evidence_artifacts"][0]["sha256"] = json!(second_digest.clone());
+        manifest["evidence_artifacts"][0]["uri"] = json!("model-b.bin");
+        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
+            "artifact_id": "model-fixture-secondary",
+            "media_type": "application/octet-stream",
+            "sha256": first_digest.clone(),
+            "role": "model",
+            "uri": "model.bin",
+            "retention_class": "test-only"
+        }));
+        manifest["model"]["artifact_ids"] = json!([
+            "model-fixture",
+            "model-fixture-secondary"
+        ]);
+
+        // The expected contract now includes both IDs but retains the original binding.
+        expected.model = manifest["model"].clone();
+        expected.model_artifacts = vec![
+            ExpectedModelArtifact {
+                artifact_id: "model-fixture".to_string(),
+                sha256: first_digest,
+            },
+            ExpectedModelArtifact {
+                artifact_id: "model-fixture-secondary".to_string(),
+                sha256: second_digest,
+            },
+        ];
+
+        let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
+        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert!(result.issues.iter().any(|issue| {
+            issue.contains("model artifact ID-to-digest mapping")
+        }));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 

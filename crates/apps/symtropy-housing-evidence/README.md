@@ -52,7 +52,12 @@ A separate requirements file has this shape:
     "unit_system": "SI",
     "artifact_ids": ["dwelling-model"]
   },
-  "model_artifact_sha256": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+  "model_artifacts": [
+    {
+      "artifact_id": "dwelling-model",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
   "rule_pack": {
     "rule_pack_id": "ZA-low-rise-reviewed-v1",
     "status": "reviewed_for_use",
@@ -88,7 +93,7 @@ A separate requirements file has this shape:
 }
 ```
 
-The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the exact embedded schema digest, verifier package version and executable digest as well as the actual model artifact SHA-256 digests separately from stable artifact IDs. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; model, source-snapshot, tool and result bytes referenced by digest are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, exact input and output artifact digests, validity domain, and acceptance criteria. The all-zero/all-`a`/`b`/`c`/`d` executable, schema and input/output digests above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
+The requirements contract must come from a controlled source independent of the manifest, and its expected SHA-256 digest must be supplied out of band. It pins the exact embedded schema digest, verifier package version and executable digest as well as an explicit mapping from each model artifact ID to its SHA-256 digest. This prevents digest assignments from being swapped between IDs while preserving an otherwise unchanged digest set. It pins the schema version, case ID, jurisdiction, exact model, rule-pack and toolchain objects, plus the complete mandatory claim contract—not just stable claim IDs. The model object pins its revision and artifact IDs; the independent contract binds each model artifact ID to its exact digest, and model, source-snapshot, tool and result bytes are verified locally. Each claim contract pins its type, statement, element scope, requirement reference, approved tool ID, exact input and output artifact digests, validity domain, and acceptance criteria. The all-zero/all-`a`/`b`/`c`/`d` executable, schema and input/output digests above are illustrative placeholders only; never use these literal values for a real case. Merely storing this file next to a manifest does not make it an independent trust anchor.
 
 ### Establishing the out-of-band pins
 
