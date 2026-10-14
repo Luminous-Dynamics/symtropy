@@ -1,0 +1,60 @@
+name: Exact Site Authority Qualification
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: exact-site-authority-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Qualify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install System Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Check Formatting
+      run: cargo fmt --all -- --check
+
+    - name: Run Fabrication Tests
+      run: cargo test -p symtropy-fabrication --lib
+
+    - name: Run Construction Tests
+      run: cargo test -p symtropy-construction --lib
+
+    - name: Run Construction Clippy
+      run: cargo clippy -p symtropy-construction --all-targets --all-features -- -D warnings
+
+    - name: Workspace Invariants
+      if: runner.os == 'Linux'
+      run: bash scripts/check-workspace.sh
+
+    - name: License Headers
+      if: runner.os == 'Linux'
+      run: bash scripts/check-licenses.sh
+
+    - name: Verify Workspace Compatibility
+      if: runner.os == 'Linux'
+      run: cargo check --workspace --all-targets
