@@ -54,6 +54,21 @@ The reference capacity gate has 30 units/day available. The minimum supported de
 8. **Inventory reconciliation:** a lost transfer acknowledgement cannot cause the same lot to be counted at both source and destination.
 9. **Evidence conflict:** stale and contradictory observations stay unresolved without separate adjudication evidence; last-write-wins is forbidden.
 
+## Dependency graph and recovery gates
+
+The JSON fixture also contains a separate `dependency_graph_reference` contract. Edges mean **required dependencies**: every declared prerequisite must be available and qualified before a dependent node is counted as available. Alternative groups are explicit: a service is supported only if at least one all-of group has every member in `VERIFIED_AVAILABLE` state.
+
+The six graph cases freeze the following behaviors:
+
+1. A failed power bus propagates through the water pump, water loop, and clinic-hygiene service.
+2. Two pumps on the same failed source do not count as independent redundancy.
+3. A separately qualified manual fallback can remain available while the powered pump is lost.
+4. A repair report does not restore service while the repaired controller remains `REPORTED_REPAIRED_UNVERIFIED`; dependent services remain unavailable pending requalification.
+5. A cyclic dependency graph is rejected instead of guessing a fixed point.
+6. A reference to an undeclared dependency is rejected, with the missing identifier retained for diagnostics.
+
+This is a deliberately small graph-logic oracle, not a complete reliability model, fault-tree analysis, probabilistic risk assessment or diagnosis engine. It assumes the graph and qualification states have already been supplied by an authoritative evidence process; this code does not authenticate physical sensors, prove that a manual fallback exists, estimate failure rates, validate redundancy independence, or direct repairs. A future implementation needs typed node/edge identities, evidence lineage and freshness, units/capacity, time-dependent transitions, cycle detection, common-cause groups, and explicit repair/requalification receipts.
+
 ## Research implications
 
 The contract follows the structure of established human-spaceflight systems engineering without pretending their values transfer to an unknown planet:
