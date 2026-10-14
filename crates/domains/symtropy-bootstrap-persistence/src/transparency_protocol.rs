@@ -9,9 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::transparency_vds::{
-    MerkleConsistencyProofV1, MerkleInclusionProofV1, MerkleVdsError,
-};
+use super::transparency_vds::{MerkleConsistencyProofV1, MerkleInclusionProofV1, MerkleVdsError};
 
 /// Semantic binding for the RFC 9942 consistency-proof content tuple:
 /// [older tree size, newer tree size, consistency path].
@@ -69,11 +67,7 @@ impl Rfc9942ConsistencyProofContentV1 {
     }
 
     /// Verify using the sizes carried by this proof content object.
-    pub fn verify_sha256(
-        &self,
-        older_root: &str,
-        newer_root: &str,
-    ) -> Result<(), MerkleVdsError> {
+    pub fn verify_sha256(&self, older_root: &str, newer_root: &str) -> Result<(), MerkleVdsError> {
         self.validate_basic()?;
         self.consistency_path.verify_sha256(
             self.older_tree_size,
@@ -203,10 +197,7 @@ pub struct Rfc9942InclusionProofContentV1 {
 }
 
 impl Rfc9942InclusionProofContentV1 {
-    pub fn new(
-        tree_size: u64,
-        proof: MerkleInclusionProofV1,
-    ) -> Result<Self, MerkleVdsError> {
+    pub fn new(tree_size: u64, proof: MerkleInclusionProofV1) -> Result<Self, MerkleVdsError> {
         proof.validate_basic()?;
         if tree_size == 0 || proof.leaf_index() >= tree_size {
             return Err(MerkleVdsError::Invalid(
@@ -247,9 +238,7 @@ fn is_sha256_hex(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transparency_vds::{
-        merkle_leaf_hash_sha256, merkle_tree_hash_sha256,
-    };
+    use crate::transparency_vds::{merkle_leaf_hash_sha256, merkle_tree_hash_sha256};
 
     fn entries(count: usize) -> Vec<Vec<u8>> {
         (0..count)
@@ -258,12 +247,7 @@ mod tests {
     }
 
     fn consistency_proof(m: usize, entries: &[Vec<u8>]) -> Vec<String> {
-        fn subproof(
-            m: usize,
-            entries: &[Vec<u8>],
-            complete: bool,
-            output: &mut Vec<String>,
-        ) {
+        fn subproof(m: usize, entries: &[Vec<u8>], complete: bool, output: &mut Vec<String>) {
             let n = entries.len();
             if m == n {
                 if !complete {
@@ -317,21 +301,16 @@ mod tests {
         let new_entries = entries(7);
         let old_root = merkle_tree_hash_sha256(&old_entries);
         let new_root = merkle_tree_hash_sha256(&new_entries);
-        let path = MerkleConsistencyProofV1::new(consistency_proof(3, &new_entries))
-            .expect("proof");
-        let content =
-            Rfc9942ConsistencyProofContentV1::new(3, 7, path).expect("content");
+        let path =
+            MerkleConsistencyProofV1::new(consistency_proof(3, &new_entries)).expect("proof");
+        let content = Rfc9942ConsistencyProofContentV1::new(3, 7, path).expect("content");
 
         content
             .verify_sha256(&old_root, &new_root)
             .expect("bound consistency proof");
 
         assert!(matches!(
-            Rfc9942ConsistencyProofContentV1::new(
-                7,
-                3,
-                content.consistency_path().clone(),
-            ),
+            Rfc9942ConsistencyProofContentV1::new(7, 3, content.consistency_path().clone(),),
             Err(MerkleVdsError::Invalid(_))
         ));
     }
@@ -362,23 +341,21 @@ mod tests {
         let new_entries = entries(7);
         let old_root = merkle_tree_hash_sha256(&old_entries);
         let new_root = merkle_tree_hash_sha256(&new_entries);
-        let path = MerkleConsistencyProofV1::new(consistency_proof(3, &new_entries))
-            .expect("proof");
-        let content =
-            Rfc9942ConsistencyProofContentV1::new(3, 7, path).expect("content");
+        let path =
+            MerkleConsistencyProofV1::new(consistency_proof(3, &new_entries)).expect("proof");
+        let content = Rfc9942ConsistencyProofContentV1::new(3, 7, path).expect("content");
         let binding =
             Rfc9942ConsistencyProofBindingV1::new(content, old_root.clone(), new_root.clone())
                 .expect("binding");
 
         binding.verify_sha256().expect("bound roots");
 
-        let swapped =
-            Rfc9942ConsistencyProofBindingV1::new(
-                binding.content().clone(),
-                old_root,
-                "11".repeat(32),
-            )
-            .expect("shape-valid root");
+        let swapped = Rfc9942ConsistencyProofBindingV1::new(
+            binding.content().clone(),
+            old_root,
+            "11".repeat(32),
+        )
+        .expect("shape-valid root");
         assert!(matches!(
             swapped.verify_sha256(),
             Err(MerkleVdsError::ProofMismatch)
@@ -396,16 +373,12 @@ mod tests {
         )
         .expect("proof");
         let content = Rfc9942InclusionProofContentV1::new(5, proof).expect("content");
-        let binding =
-            Rfc9942InclusionProofBindingV1::new(content, root).expect("binding");
+        let binding = Rfc9942InclusionProofBindingV1::new(content, root).expect("binding");
 
         binding.verify_sha256().expect("bound root");
 
-        let wrong = Rfc9942InclusionProofBindingV1::new(
-            binding.content().clone(),
-            "22".repeat(32),
-        )
-        .expect("shape-valid root");
+        let wrong = Rfc9942InclusionProofBindingV1::new(binding.content().clone(), "22".repeat(32))
+            .expect("shape-valid root");
         assert!(matches!(
             wrong.verify_sha256(),
             Err(MerkleVdsError::ProofMismatch)
