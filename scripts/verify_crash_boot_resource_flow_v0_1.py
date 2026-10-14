@@ -77,12 +77,24 @@ def main() -> None:
         corpus["population_scale_probes"] == [1, 12, 100, 1000, 10000, 30000],
         "population scale probes changed without an explicit contract revision",
     )
+    scale = corpus["population_scaling_reference"]
+    scale_rate = q(scale["per_person_rate_u_per_person_day"])
+    scale_rows = scale["expected_person_component_u_per_day"]
+    require(
+        [int(row["population"]) for row in scale_rows] == corpus["population_scale_probes"],
+        "scale arithmetic rows must cover each declared population probe in order",
+    )
+    for row in scale_rows:
+        require(
+            int(row["population"]) * scale_rate == q(row["demand"]),
+            f"per-person scale arithmetic mismatch at population {row['population']}",
+        )
     require(
         corpus["units"]["abstract_resource_unit"] == "u",
         "fixture must use abstract units, not imply a real-world consumption rate",
     )
     cases = case_index(corpus)
-    require(len(cases) == 10, "unexpected reference-corpus cardinality")
+    require(len(cases) == 11, "unexpected reference-corpus cardinality")
 
     exact = cases["exact_demand_12"]
     exact_low, exact_high = demand_bounds(exact)
@@ -160,6 +172,76 @@ def main() -> None:
         and distribution["expected"]["all_groups_covered"] is False
         and distribution["expected"]["status"] == "FAIL_LOCAL_COVERAGE",
         "aggregate capacity must not override local coverage failure",
+    )
+
+    large = cases["thirty_thousand_multi_module_aggregate_masks_local_deficit"]
+    large_groups = large["groups"]
+    large_population = sum(int(group["population"]) for group in large_groups)
+    large_rate = q(large["per_person_demand_u_per_day"])
+    large_demand = sum(
+        (int(group["population"]) * large_rate for group in large_groups), Fraction(0)
+    )
+    large_rated = sum(
+        (q(group["rated_capacity_u_per_day"]) for group in large_groups), Fraction(0)
+    )
+    large_delivered = sum(
+        (q(group["delivered_capacity_u_per_day"]) for group in large_groups), Fraction(0)
+    )
+    require(large_population == large["population"] == 30000, "large-scale population conservation mismatch")
+    require(
+        large_demand == q(large["expected"]["total_demand_u_per_day"]) == 60000,
+        "30,000-person demand sum mismatch",
+    )
+    require(
+        large_rated == q(large["nominal_total_rated_capacity_u_per_day"])
+        == q(large["expected"]["total_rated_capacity_u_per_day"]) == 62000,
+        "large-scale rated-capacity sum mismatch",
+    )
+    require(
+        large_delivered == q(large["expected"]["total_delivered_capacity_u_per_day"])
+        == large_demand == 60000,
+        "large-scale aggregate delivered capacity must equal total demand in this fixture",
+    )
+    require(
+        (large_delivered >= large_demand)
+        is large["expected"]["aggregate_delivered_covers_total"],
+        "large-scale aggregate delivery oracle mismatch",
+    )
+    large_uncovered = [
+        group["id"]
+        for group in large_groups
+        if q(group["delivered_capacity_u_per_day"])
+        < int(group["population"]) * large_rate
+    ]
+    large_surplus = [
+        group["id"]
+        for group in large_groups
+        if q(group["delivered_capacity_u_per_day"])
+        > int(group["population"]) * large_rate
+    ]
+    require(
+        large_uncovered == large["expected"]["uncovered_groups"] == ["habitat-central"],
+        "30,000-person local shortfall mismatch",
+    )
+    require(
+        large_surplus == large["expected"]["surplus_groups"] == ["habitat-south"],
+        "30,000-person local surplus mismatch",
+    )
+    transfer = large["inter_group_transfer_paths"]
+    require(
+        any(
+            edge["from"] == "habitat-south"
+            and edge["to"] == "habitat-central"
+            and edge["available"] is False
+            and q(edge["capacity_u_per_day"]) == 0
+            for edge in transfer
+        ),
+        "fixture must explicitly disable transfer from surplus to underserved habitat",
+    )
+    require(
+        large["expected"]["all_groups_covered"] is False
+        and large["expected"]["status"] == "FAIL_LOCAL_COVERAGE",
+        "aggregate delivery equality must not conceal a local deficit",
     )
 
     environment = cases["unknown_atmosphere_blocks_habitability_claim"]
