@@ -87,9 +87,10 @@ jobs:
             crates/bridges/symtropy-robotics-bridge-core/src/world_contract.rs \
             crates/bridges/symtropy-robotics-bridge-core/src/world_frame_conventions.rs \
             crates/bridges/symtropy-robotics-bridge-core/src/world_manifest_commitment.rs; do
-            printf 'RUSTFMT_SNAPSHOT_BEGIN:%s\\n' "$source"
+            echo "RUSTFMT_SNAPSHOT_BEGIN:$source"
             base64 -w0 "$source"
-            printf '\\nRUSTFMT_SNAPSHOT_END:%s\\n' "$source"
+            echo
+            echo "RUSTFMT_SNAPSHOT_END:$source"
           done
 
       - name: Run robotics bridge library tests
