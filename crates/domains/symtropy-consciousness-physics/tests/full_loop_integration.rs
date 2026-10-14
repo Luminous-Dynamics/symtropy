@@ -1,20 +1,18 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Full consciousness-physics loop integration test.
+//! Integration test for the configured consciousness-physics simulation callbacks.
 //!
-//! Tests the COMPLETE feedback cycle:
-//! 1. Create world with conscious agent
-//! 2. Agent moves toward wall
-//! 3. Collision occurs (via GJK+EPA)
-//! 4. Consciousness field modulates impulse (sanctuary dampening)
-//! 5. Prediction error spikes from unexpected collision
-//! 6. Motor precision drops (reduced authority)
-//! 7. Prediction error decays over time (habituation)
-//! 8. Thermodynamic ledger records energy flow
+//! Exercises selected software-defined feedback paths:
+//! 1. Create a physics world with a simulated agent
+//! 2. Cause a collision
+//! 3. Apply the configured sanctuary/callback response
+//! 4. Observe prediction-error and motor-precision updates
+//! 5. Observe the thermodynamic ledger interface
 //!
-//! This is the proof that consciousness is a REAL physics force in this engine,
-//! not just a UI decoration.
+//! These tests demonstrate selected code paths and callback effects. They do not
+//! establish subjective consciousness, a fundamental harmony field, or empirical
+//! validity of the phenomenological coupling rules.
 
 use nalgebra::SVector;
 use symthaea_consciousness_equation::ConsciousnessInputs;

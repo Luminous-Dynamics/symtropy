@@ -103,7 +103,7 @@ Any metric (Phi, health, trust, wealth) couples to physics through 5 channels:
 | 1. Metric -> Force | Metric-gated motor authority (see note below) |
 | 2. Metric -> Energy | Metric-dependent energy budget (higher metric = higher maintenance cost) |
 | 3. Harmony -> Impulse | Sanctuary zones dampen collision impulses |
-| 4. Harmony -> Friction | 1/r^(D-1) spatial fields modulate friction coefficients |
+| 4. Harmony -> Friction | Dimension-dependent softened fields (p_D=max(D-1,1)) modulate friction; documented nonnegative inputs only reduce or preserve friction |
 | 5. Collision -> Metric | Prediction error from unexpected collisions reduces motor precision |
 
 See [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) for the mathematical details (written in terms of Phi).
