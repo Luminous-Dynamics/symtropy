@@ -122,7 +122,6 @@ impl Edge {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CargoModuleFamily {
     IsoSeries1Container,
@@ -505,10 +504,7 @@ pub struct CargoModuleInstance {
 }
 
 impl CargoModuleInstance {
-    pub fn validate_against(
-        &self,
-        profile: &CargoModuleProfile,
-    ) -> Result<u64, CargoError> {
+    pub fn validate_against(&self, profile: &CargoModuleProfile) -> Result<u64, CargoError> {
         profile.validate()?;
         if self.module_id.trim().is_empty()
             || self.profile_id != profile.profile_id
@@ -594,7 +590,10 @@ impl HandlingEquipmentProfile {
         if self.requires_verified_aircraft_uld
             && (self.mode != Mode::Air
                 || self.aircraft_type_code.as_deref().is_none_or(str::is_empty)
-                || self.aircraft_position_id.as_deref().is_none_or(str::is_empty)
+                || self
+                    .aircraft_position_id
+                    .as_deref()
+                    .is_none_or(str::is_empty)
                 || self.accepted_uld_type_codes.is_empty())
         {
             return Err(CargoError::InvalidEquipment(
@@ -631,11 +630,16 @@ pub fn check_module_compatibility(
             return Err(CargoError::AircraftUldNotVerified);
         };
         let aircraft_type_code = equipment.aircraft_type_code.as_deref().unwrap_or_default();
-        let aircraft_position_id = equipment.aircraft_position_id.as_deref().unwrap_or_default();
+        let aircraft_position_id = equipment
+            .aircraft_position_id
+            .as_deref()
+            .unwrap_or_default();
         if approval.aircraft_type_code != aircraft_type_code
             || approval.aircraft_position_id != aircraft_position_id
             || approval.max_gross_mass_grams < gross_mass
-            || !equipment.accepted_uld_type_codes.contains(&approval.uld_type_code)
+            || !equipment
+                .accepted_uld_type_codes
+                .contains(&approval.uld_type_code)
         {
             return Err(CargoError::AircraftUldIncompatible);
         }
@@ -683,7 +687,6 @@ pub fn check_module_compatibility(
     }
     Ok(())
 }
-
 
 /// Terminal transfer equipment is modeled independently from a vehicle position.
 /// A crane, conveyor, roller deck, or cross-dock station can support a mode pair
@@ -814,7 +817,10 @@ pub fn validate_cargo_transfer_capacity_plan(
         {
             return Err(CargoError::TransferCapacityPlanInvalid);
         }
-        let key = (budget.equipment_id.as_str(), budget.capacity_scope_id.as_str());
+        let key = (
+            budget.equipment_id.as_str(),
+            budget.capacity_scope_id.as_str(),
+        );
         if equipment_budgets.insert(key, budget).is_some() {
             return Err(CargoError::TransferCapacityBudgetDuplicate);
         }
@@ -999,11 +1005,13 @@ pub fn check_cargo_transfer_compatibility(
     if binding.capacity_units > edge.capacity {
         return Err(CargoError::TransferCapacityExceeded);
     }
-    if !equipment.supported_mode_pairs.contains(&(from_mode, to_mode)) {
+    if !equipment
+        .supported_mode_pairs
+        .contains(&(from_mode, to_mode))
+    {
         return Err(CargoError::TransferModePairUnsupported);
     }
-    if !profile.permitted_modes.contains(&from_mode)
-        || !profile.permitted_modes.contains(&to_mode)
+    if !profile.permitted_modes.contains(&from_mode) || !profile.permitted_modes.contains(&to_mode)
     {
         return Err(CargoError::ModeNotPermitted);
     }
@@ -1089,10 +1097,10 @@ impl CargoModuleInstance {
             / u128::from(profile.max_payload_mass_grams)) as u16;
         let volume_basis_points = (u128::from(self.occupied_volume_litres) * 10_000
             / u128::from(profile.usable_volume_litres)) as u16;
-        let mass_used = u128::from(self.payload_mass_grams)
-            * u128::from(profile.usable_volume_litres);
-        let volume_used = u128::from(self.occupied_volume_litres)
-            * u128::from(profile.max_payload_mass_grams);
+        let mass_used =
+            u128::from(self.payload_mass_grams) * u128::from(profile.usable_volume_litres);
+        let volume_used =
+            u128::from(self.occupied_volume_litres) * u128::from(profile.max_payload_mass_grams);
 
         let binding_constraint = match mass_used.cmp(&volume_used) {
             std::cmp::Ordering::Greater => BindingConstraint::Mass,
@@ -1170,7 +1178,10 @@ pub fn estimate_reusable_module_economics(
         ));
     }
     if input.currency_code.len() != 3
-        || !input.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+        || !input
+            .currency_code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase())
     {
         return Err(CargoEconomicsError::InvalidInput(
             "currency code must be three uppercase ASCII letters",
@@ -1189,7 +1200,9 @@ pub fn estimate_reusable_module_economics(
 
     let cycles = input.planned_delivery_cycles;
     let loss_numerator = u128::from(cycles)
-        .checked_mul(u128::from(input.expected_module_loss_rate_parts_per_million))
+        .checked_mul(u128::from(
+            input.expected_module_loss_rate_parts_per_million,
+        ))
         .ok_or(CargoEconomicsError::ArithmeticOverflow)?;
     let replacement_allowance_u128 = loss_numerator
         .checked_add(999_999)
@@ -1304,7 +1317,10 @@ impl fmt::Display for CargoError {
             Self::SealRequirementFailed => write!(f, "required module seal is not intact"),
             Self::ModuleNotServiceable => write!(f, "module is not currently serviceable"),
             Self::TemperatureEvidenceMissing => {
-                write!(f, "temperature-controlled module has no current temperature evidence")
+                write!(
+                    f,
+                    "temperature-controlled module has no current temperature evidence"
+                )
             }
             Self::TemperatureOutOfRange => {
                 write!(f, "observed cargo temperature is outside the required band")
@@ -1317,18 +1333,30 @@ impl fmt::Display for CargoError {
                 write!(f, "air transport requires a verified aircraft ULD profile")
             }
             Self::AircraftUldIncompatible => {
-                write!(f, "aircraft ULD evidence does not match the aircraft position")
+                write!(
+                    f,
+                    "aircraft ULD evidence does not match the aircraft position"
+                )
             }
             Self::OrientationNotSupported => {
-                write!(f, "module orientation is not supported by handling equipment")
+                write!(
+                    f,
+                    "module orientation is not supported by handling equipment"
+                )
             }
             Self::LoadSecuringEvidenceMissing => {
-                write!(f, "required load-securing evidence is missing or unverified")
+                write!(
+                    f,
+                    "required load-securing evidence is missing or unverified"
+                )
             }
             Self::LoadSecuringFailed => write!(f, "cargo load-securing inspection failed"),
             Self::FamilyNotSupported => write!(f, "equipment does not support this module family"),
             Self::HandlingInterfaceMismatch => {
-                write!(f, "module handling/locking interfaces do not match equipment")
+                write!(
+                    f,
+                    "module handling/locking interfaces do not match equipment"
+                )
             }
             Self::DimensionsExceeded => {
                 write!(f, "module envelope exceeds the equipment profile")
@@ -1338,49 +1366,88 @@ impl fmt::Display for CargoError {
             }
             Self::ModulePowerUnavailable => write!(f, "module power requirement cannot be met"),
             Self::TemperatureControlUnavailable => {
-                write!(f, "equipment cannot satisfy the module temperature requirement")
+                write!(
+                    f,
+                    "equipment cannot satisfy the module temperature requirement"
+                )
             }
             Self::TransferEdgeRequired => {
                 write!(f, "cargo transfer compatibility requires a transfer edge")
             }
             Self::TransferTerminalMismatch => {
-                write!(f, "transfer edge terminal does not match assigned transfer equipment")
+                write!(
+                    f,
+                    "transfer edge terminal does not match assigned transfer equipment"
+                )
             }
             Self::TransferModePairUnsupported => {
-                write!(f, "transfer equipment does not support this transport-mode pair")
+                write!(
+                    f,
+                    "transfer equipment does not support this transport-mode pair"
+                )
             }
             Self::TransferCapacityUnavailable => {
                 write!(f, "transfer edge has no declared positive capacity")
             }
             Self::TransferResourceBindingInvalid => {
-                write!(f, "transfer resource binding is incomplete or consumes zero capacity")
+                write!(
+                    f,
+                    "transfer resource binding is incomplete or consumes zero capacity"
+                )
             }
             Self::TransferResourceBindingMismatch => {
-                write!(f, "transfer resource binding does not match the selected module, profile, edge, equipment and terminal")
+                write!(
+                    f,
+                    "transfer resource binding does not match the selected module, profile, edge, equipment and terminal"
+                )
             }
             Self::TransferCapacityUnitMismatch => {
-                write!(f, "transfer resource binding capacity unit does not match the edge")
+                write!(
+                    f,
+                    "transfer resource binding capacity unit does not match the edge"
+                )
             }
             Self::TransferCapacityExceeded => {
-                write!(f, "proposed transfer consumes more capacity than the edge declares")
+                write!(
+                    f,
+                    "proposed transfer consumes more capacity than the edge declares"
+                )
             }
             Self::TransferAssignmentIdDuplicate => {
-                write!(f, "transfer assignment ID is duplicated in the planning batch")
+                write!(
+                    f,
+                    "transfer assignment ID is duplicated in the planning batch"
+                )
             }
             Self::TransferCapacityBudgetMissing => {
-                write!(f, "transfer equipment has no capacity budget for this planning scope")
+                write!(
+                    f,
+                    "transfer equipment has no capacity budget for this planning scope"
+                )
             }
             Self::TransferCapacityBudgetDuplicate => {
-                write!(f, "transfer equipment has duplicate capacity budgets for one planning scope")
+                write!(
+                    f,
+                    "transfer equipment has duplicate capacity budgets for one planning scope"
+                )
             }
             Self::TransferEquipmentCapacityExceeded => {
-                write!(f, "proposed transfers exceed shared equipment capacity in the planning scope")
+                write!(
+                    f,
+                    "proposed transfers exceed shared equipment capacity in the planning scope"
+                )
             }
             Self::TransferCapacityArithmeticOverflow => {
-                write!(f, "transfer capacity aggregation overflowed integer arithmetic")
+                write!(
+                    f,
+                    "transfer capacity aggregation overflowed integer arithmetic"
+                )
             }
             Self::TransferCapacityPlanInvalid => {
-                write!(f, "transfer capacity plan contains an invalid or duplicate resource definition")
+                write!(
+                    f,
+                    "transfer capacity plan contains an invalid or duplicate resource definition"
+                )
             }
         }
     }
@@ -1396,10 +1463,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn new<I, S>(
-        nodes: I,
-        currency_code: impl Into<String>,
-    ) -> Result<Self, ModelError>
+    pub fn new<I, S>(nodes: I, currency_code: impl Into<String>) -> Result<Self, ModelError>
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
@@ -1436,7 +1500,10 @@ impl Network {
             return Err(ModelError::InvalidNodeIdentity);
         }
         if self.currency_code.len() != 3
-            || !self.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+            || !self
+                .currency_code
+                .bytes()
+                .all(|byte| byte.is_ascii_uppercase())
         {
             return Err(ModelError::InvalidCurrencyCode);
         }
@@ -1603,10 +1670,7 @@ impl Route {
                 quantity,
             )?,
             energy_wh: multiply(self.metrics_per_unit.energy_wh_per_unit, quantity)?,
-            ghg_grams_co2e: multiply(
-                self.metrics_per_unit.ghg_grams_co2e_per_unit,
-                quantity,
-            )?,
+            ghg_grams_co2e: multiply(self.metrics_per_unit.ghg_grams_co2e_per_unit, quantity)?,
             safety_risk_micro_units: multiply(
                 self.metrics_per_unit.safety_risk_micro_units_per_unit,
                 quantity,
@@ -1773,10 +1837,12 @@ pub fn pareto_routes(
             // A nonnegative-cost route never needs to revisit its origin or an
             // already visited (node, mode) state. Explicitly reject such loops
             // so zero-cost cycles cannot pollute the Pareto frontier.
-            if edge.to == demand.origin || label.visited_states.contains(&StateKey {
-                node: edge.to.clone(),
-                current_mode: next_mode,
-            }) {
+            if edge.to == demand.origin
+                || label.visited_states.contains(&StateKey {
+                    node: edge.to.clone(),
+                    current_mode: next_mode,
+                })
+            {
                 continue;
             }
             let key = StateKey {
@@ -2043,12 +2109,8 @@ mod tests {
             EdgeMetrics::default(),
         ));
 
-        let routes = pareto_routes(
-            &network,
-            &passenger_demand(1),
-            SearchLimits::default(),
-        )
-        .unwrap();
+        let routes =
+            pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].edge_ids, vec!["z-direct".to_owned()]);
     }
@@ -2060,17 +2122,27 @@ mod tests {
             pareto_routes(&network, &passenger_demand(1), SearchLimits::default()).unwrap();
 
         assert_eq!(routes.len(), 2);
-        assert!(routes.iter().any(|route| route.edge_ids == vec!["air-direct".to_owned()]));
+        assert!(
+            routes
+                .iter()
+                .any(|route| route.edge_ids == vec!["air-direct".to_owned()])
+        );
         let intermodal = routes
             .iter()
-            .find(|route| route.edge_ids == vec![
-                "road-feeder".to_owned(),
-                "road-rail-transfer".to_owned(),
-                "rail-linehaul".to_owned(),
-            ])
+            .find(|route| {
+                route.edge_ids
+                    == vec![
+                        "road-feeder".to_owned(),
+                        "road-rail-transfer".to_owned(),
+                        "rail-linehaul".to_owned(),
+                    ]
+            })
             .unwrap();
         assert_eq!(intermodal.transfer_count, 1);
-        assert_eq!(intermodal.metrics_per_unit.operator_cost_minor_per_unit, 150);
+        assert_eq!(
+            intermodal.metrics_per_unit.operator_cost_minor_per_unit,
+            150
+        );
         assert_eq!(intermodal.metrics_per_unit.ghg_grams_co2e_per_unit, 255);
         assert_eq!(intermodal.metrics_per_unit.elapsed_seconds, 3_500);
     }
@@ -2145,9 +2217,11 @@ mod tests {
             QuantityUnit::Passengers,
             EdgeMetrics::default(),
         ));
-        assert!(pareto_routes(&network, &passenger_demand(1), SearchLimits::default())
-            .unwrap()
-            .is_empty());
+        assert!(
+            pareto_routes(&network, &passenger_demand(1), SearchLimits::default())
+                .unwrap()
+                .is_empty()
+        );
 
         network.add_edge(Edge::transfer(
             "explicit-transfer",
@@ -2177,9 +2251,11 @@ mod tests {
             QuantityUnit::Passengers,
             EdgeMetrics::default(),
         ));
-        assert!(pareto_routes(&network, &passenger_demand(3), SearchLimits::default())
-            .unwrap()
-            .is_empty());
+        assert!(
+            pareto_routes(&network, &passenger_demand(3), SearchLimits::default())
+                .unwrap()
+                .is_empty()
+        );
 
         let cargo = Demand {
             id: "ore".to_owned(),
@@ -2190,9 +2266,11 @@ mod tests {
             max_elapsed_seconds: None,
             max_transfers: None,
         };
-        assert!(pareto_routes(&network, &cargo, SearchLimits::default())
-            .unwrap()
-            .is_empty());
+        assert!(
+            pareto_routes(&network, &cargo, SearchLimits::default())
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -2209,7 +2287,6 @@ mod tests {
         let routes = pareto_routes(&network, &demand, SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].edge_ids, vec!["air-direct".to_owned()]);
-
     }
 
     #[test]
@@ -2250,7 +2327,10 @@ mod tests {
             QuantityUnit::Passengers,
             EdgeMetrics::default(),
         ));
-        assert_eq!(network.validate(), Err(ModelError::UnknownNode("C".to_owned())));
+        assert_eq!(
+            network.validate(),
+            Err(ModelError::UnknownNode("C".to_owned()))
+        );
     }
 
     #[test]
@@ -2306,7 +2386,6 @@ mod tests {
             Err(ModelError::InvalidSearchLimits)
         );
     }
-
 
     #[test]
     fn cargo_route_respects_tonne_capacity_and_reports_whole_shipment_totals() {
@@ -2375,14 +2454,15 @@ mod tests {
         oversize.quantity = 400;
         let routes = pareto_routes(&network, &oversize, SearchLimits::default()).unwrap();
         assert_eq!(routes.len(), 1);
-        assert_eq!(routes[0].edge_ids, vec![
-            "rail-to-port".to_owned(),
-            "rail-maritime-transfer".to_owned(),
-            "ship-linehaul".to_owned(),
-        ]);
+        assert_eq!(
+            routes[0].edge_ids,
+            vec![
+                "rail-to-port".to_owned(),
+                "rail-maritime-transfer".to_owned(),
+                "ship-linehaul".to_owned(),
+            ]
+        );
     }
-
-
 
     #[test]
     fn aggregate_cost_overflow_is_rejected() {
@@ -2396,8 +2476,6 @@ mod tests {
         };
         assert_eq!(route.aggregate(2), Err(ModelError::MetricOverflow));
     }
-
-
 
     fn iso_container_profile() -> CargoModuleProfile {
         CargoModuleProfile {
@@ -2754,9 +2832,7 @@ mod tests {
         let equipment_use = report
             .capacity_uses
             .iter()
-            .find(|usage| {
-                usage.resource_kind == CargoTransferCapacityResourceKind::Equipment
-            })
+            .find(|usage| usage.resource_kind == CargoTransferCapacityResourceKind::Equipment)
             .unwrap();
         assert_eq!(equipment_use.capacity_units_used, 2);
         assert_eq!(equipment_use.capacity_units_limit, 2);
@@ -2901,11 +2977,8 @@ mod tests {
             QuantityUnit::Shipments,
             metrics(10, 0, 120, 0, 2, 1, 0, 1, 1),
         );
-        let budget = equipment_capacity(
-            "hub-cross-dock-crane-3",
-            u64::MAX,
-            QuantityUnit::Shipments,
-        );
+        let budget =
+            equipment_capacity("hub-cross-dock-crane-3", u64::MAX, QuantityUnit::Shipments);
         assert_eq!(
             validate_cargo_transfer_capacity_plan(
                 &[first, second],
@@ -2943,7 +3016,10 @@ mod tests {
 
         instance.occupied_volume_litres = profile.usable_volume_litres / 2;
         let utilization = instance.utilization_against(&profile).unwrap();
-        assert_eq!(utilization.binding_constraint, BindingConstraint::MassAndVolume);
+        assert_eq!(
+            utilization.binding_constraint,
+            BindingConstraint::MassAndVolume
+        );
     }
 
     fn reusable_economics_fixture() -> ReusableModuleEconomics {
@@ -2965,8 +3041,7 @@ mod tests {
 
     #[test]
     fn reusable_module_economics_includes_empty_returns_and_replacement_allowance() {
-        let result =
-            estimate_reusable_module_economics(&reusable_economics_fixture()).unwrap();
+        let result = estimate_reusable_module_economics(&reusable_economics_fixture()).unwrap();
         assert_eq!(result.planned_delivery_cycles, 100);
         assert_eq!(result.replacement_allowance, 1);
         assert_eq!(result.lifecycle_reusable_cost_minor_units, 2_800);
@@ -3118,8 +3193,6 @@ mod tests {
             Err(CargoError::AircraftUldNotVerified)
         );
     }
-
-
 
     #[test]
     fn cargo_compatibility_uses_only_declared_safe_orientations() {
@@ -3343,5 +3416,4 @@ mod tests {
         });
         assert!(check_module_compatibility(&profile, &instance, &cold_equipment).is_ok());
     }
-
 }
