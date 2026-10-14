@@ -1,0 +1,194 @@
+name: PHYS-EVID-03A0 Independent Attestation-Core Oracle Qualification
+
+on:
+  push:
+    branches:
+      - ci/persistent-physics-attestation-core-oracle-v0.1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-independent-attestation-core-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUBJECT_SHA: 0b1636f2521136ca54302b632e465d9f8bc233f9
+      D1A_SHA: b729cd6edf058428eb26943a1edd592e5ce37061
+      D1A_VECTOR_BLOB: da098d1155f6d474c03225e3374368ae9c26891a
+      D1A_ORACLE_BLOB: 01cc3fb21781ec1b7a3322daeac926cae2db8a56
+      CONTRACT_BLOB: 34509db954351d9d74939b969ccd1e2345a05d9b
+      VECTOR_BLOB: 539986c087fd17cd10d413efd638cd8d583bdb76
+      ORACLE_BLOB: d21aad6bb1011a3bc5dd485e6e467e8a39b8e289
+
+    steps:
+      - name: Checkout exact 03A0 subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+
+      - name: Exact one-commit three-file scope gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD^)" = "$D1A_SHA"
+          test "$(git rev-list --count "$D1A_SHA..$SUBJECT_SHA")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "$D1A_SHA" "$SUBJECT_SHA" | sort)
+          expected=(
+            docs/release/evidence/PERSISTENT_PHYSICS_ATTESTATION_CORE_ORACLE_V01.md
+            tests/fixtures/persistent_physics_attestation_core_v1_vector.json
+            tests/verify_persistent_physics_attestation_core_v1.py
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "3"
+          diff -u <(printf '%s\n' "${expected_sorted[@]}") <(printf '%s\n' "${changed[@]}")
+
+          test "$(git ls-tree "$SUBJECT_SHA" tests/verify_persistent_physics_attestation_core_v1.py | awk '{print $1}')" = "100755"
+
+      - name: Freeze D1A input and 03A0 blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$D1A_SHA:tests/fixtures/semantic_digest_v1_vector.json")" = "$D1A_VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/semantic_digest_v1_vector.json")" = "$D1A_VECTOR_BLOB"
+          test "$(git rev-parse "$D1A_SHA:tests/verify_semantic_digest_v1.py")" = "$D1A_ORACLE_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_semantic_digest_v1.py")" = "$D1A_ORACLE_BLOB"
+
+          test "$(git rev-parse "$SUBJECT_SHA:docs/release/evidence/PERSISTENT_PHYSICS_ATTESTATION_CORE_ORACLE_V01.md")" = "$CONTRACT_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/fixtures/persistent_physics_attestation_core_v1_vector.json")" = "$VECTOR_BLOB"
+          test "$(git rev-parse "$SUBJECT_SHA:tests/verify_persistent_physics_attestation_core_v1.py")" = "$ORACLE_BLOB"
+
+      - name: Prove no Rust dependency or predecessor-vector mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$D1A_SHA:Cargo.toml")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.toml")"
+          test "$(git rev-parse "$D1A_SHA:Cargo.lock")" = "$(git rev-parse "$SUBJECT_SHA:Cargo.lock")"
+          test -z "$(git diff --name-only "$D1A_SHA" "$SUBJECT_SHA" -- Cargo.toml Cargo.lock src crates)"
+          test -z "$(git diff --name-only "$D1A_SHA" "$SUBJECT_SHA" -- tests/fixtures/semantic_digest_v1_vector.json tests/verify_semantic_digest_v1.py)"
+
+      - name: Static stdlib-only oracle independence audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('tests/verify_persistent_physics_attestation_core_v1.py')
+          text = path.read_text()
+          tree = ast.parse(text)
+
+          allowed = {'__future__', 'json', 'struct', 'pathlib'}
+          imported = set()
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  imported.update(alias.name.split('.')[0] for alias in node.names)
+              elif isinstance(node, ast.ImportFrom):
+                  imported.add((node.module or '').split('.')[0])
+          assert imported <= allowed, (imported, allowed)
+
+          required = [
+              'semantic_digest_v1_vector.json',
+              'persistent_physics_attestation_core_v1_vector.json',
+              'symtropy-physics-attestation-core\\0',
+              'persistent-physics-evidence-v1',
+              'struct.pack(">I", value)',
+              'digest_record_start',
+              'session_context_version_start',
+              'physical_authority_id_start',
+              'temporal_incarnation_id_start',
+          ]
+          for needle in required:
+              assert needle in text, needle
+
+          forbidden = [
+              'hashlib', 'sha256', 'blake', 'md5',
+              'subprocess', 'requests', 'urllib', 'socket', 'http://', 'https://',
+              'Cargo.toml', 'Cargo.lock', 'target/', '.rs', 'src/',
+              'rustc', 'cargo ', 'signature', 'public_key', 'private_key',
+          ]
+          for needle in forbidden:
+              assert needle not in text, needle
+
+          print('PHYS-EVID-03A0 stdlib-only independence audit: PASS')
+          PY
+
+      - name: Compile and execute parent and 03A0 independent oracles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tests/verify_semantic_digest_v1.py
+          python3 -m py_compile tests/verify_persistent_physics_attestation_core_v1.py
+          python3 tests/verify_semantic_digest_v1.py
+          python3 tests/verify_persistent_physics_attestation_core_v1.py
+
+      - name: Immutable-source postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf tests/__pycache__
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:tests/fixtures/semantic_digest_v1_vector.json)" = "$D1A_VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/fixtures/persistent_physics_attestation_core_v1_vector.json)" = "$VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/verify_persistent_physics_attestation_core_v1.py)" = "$ORACLE_BLOB"
+
+      - name: Emit qualification receipt outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          vector = json.loads(Path('tests/fixtures/persistent_physics_attestation_core_v1_vector.json').read_text())
+          receipt = {
+              'theorem': 'PHYS-EVID-03A0 independent persistent-physics attestation-core oracle preregistration v0.1',
+              'subject_sha': os.environ['SUBJECT_SHA'],
+              'd1a_parent_sha': os.environ['D1A_SHA'],
+              'd1a_vector_blob': os.environ['D1A_VECTOR_BLOB'],
+              'endpoint_core_len': vector['endpoint_sample']['core_len'],
+              'consecutive_core_len': vector['consecutive_presence']['core_len'],
+              'digest_record_prefix_offset': vector['prefix_len'],
+              'stdlib_only_oracle_audited': True,
+              'd1a_oracle_rerun_passed': True,
+              'attestation_core_oracle_passed': True,
+              'd1a_source_candidate_only': True,
+              'd1a_separate_qualification_pass_claimed': False,
+              'd1c_implementation_qualified': False,
+              'rust_03a_producer_present': False,
+              'authentication_claimed': False,
+              'signature_validity_claimed': False,
+              'issuer_authority_claimed': False,
+              'trusted_time_claimed': False,
+              'replay_or_action_authority_claimed': False,
+              'settlement_claimed': False,
+              'predecessor_pass_laundering': False,
+              'receipt_emitted_outside_checkout': True,
+          }
+          out = Path(os.environ['RUNNER_TEMP']) / 'phys-evid-03a0-receipt.json'
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print(out)
+          PY
+
+      - name: Final immutable checkout gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+          test "$(git rev-parse HEAD:tests/fixtures/semantic_digest_v1_vector.json)" = "$D1A_VECTOR_BLOB"
+          test "$(git rev-parse HEAD:tests/verify_persistent_physics_attestation_core_v1.py)" = "$ORACLE_BLOB"
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-evid-03a0-independent-attestation-core-oracle-receipt
+          path: ${{ runner.temp }}/phys-evid-03a0-receipt.json
+          if-no-files-found: error
