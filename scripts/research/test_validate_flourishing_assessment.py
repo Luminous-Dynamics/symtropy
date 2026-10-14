@@ -306,9 +306,13 @@ class FlourishingAssessmentTests(unittest.TestCase):
 
     def test_preregistration_artifact_must_precede_analysis(self) -> None:
         doc = add_evidence_and_known_values(assessment())
-        for artifact in doc["artifacts"]:
-            if artifact["artifact_id"] == "preregistration-artifact":
-                artifact["collected_at"] = "2026-10-13T12:00:00Z"
+        preregistration_id = doc["constraints"][0]["preregistration_artifact_id"]
+        matching_artifacts = [
+            artifact for artifact in doc["artifacts"]
+            if artifact["artifact_id"] == preregistration_id
+        ]
+        self.assertEqual(len(matching_artifacts), 1, "constraint must reference one pre-registration artifact")
+        matching_artifacts[0]["collected_at"] = "2026-10-13T12:00:00Z"
         errors, report = validate_assessment(doc)
         self.assertTrue(any("preregistration artifact must predate analysis" in error for error in errors))
         self.assertIsNone(report)
