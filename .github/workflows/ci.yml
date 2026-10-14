@@ -92,11 +92,3 @@ jobs:
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
 
-    # One-time bootstrap aid: let us capture Cargo's exact resolved graph even if a later gate fails.
-    # Remove this diagnostic step after committing the generated root Cargo.lock.
-    - name: Emit resolved Cargo.lock for one-time capture (Linux)
-      if: ${{ always() && runner.os == 'Linux' }}
-      run: |
-        printf '%s\n' 'BEGIN_RESOLVED_CARGO_LOCK'
-        cat Cargo.lock
-        printf '%s\n' 'END_RESOLVED_CARGO_LOCK'

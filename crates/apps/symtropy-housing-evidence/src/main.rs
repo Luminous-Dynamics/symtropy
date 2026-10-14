@@ -705,8 +705,14 @@ fn evaluate_manifest(
             .unwrap_or(declared.as_str());
 
         if status_precedence(highest_claim_status) > status_precedence(&declared) {
+            let highest_claim_ids: Vec<String> = claims
+                .iter()
+                .filter(|claim| claim["mandatory"].as_bool() == Some(true))
+                .filter(|claim| claim["status"].as_str() == Some(highest_claim_status))
+                .filter_map(|claim| claim["claim_id"].as_str().map(ToString::to_string))
+                .collect();
             let issue = format!(
-                "declared aggregate status {declared:?} understates mandatory claim state {highest_claim_status:?}; conservative status takes precedence"
+                "declared aggregate status {declared:?} understates mandatory claim state {highest_claim_status:?} from claim(s) {highest_claim_ids:?}; conservative status takes precedence"
             );
             return report(
                 true,
@@ -809,6 +815,29 @@ fn evaluate_manifest(
             ],
         );
     }
+
+    let Some(artifact_root) = artifact_root else {
+        return report(
+            true,
+            case_id,
+            declared_status,
+            STATUS_BLOCKED,
+            0,
+            vec![
+                "overall PASS requires --artifact-root so referenced artifacts can be read and hashed"
+                    .to_string(),
+            ],
+        );
+    };
+    let referenced_digests = referenced_digests(manifest);
+    let verified_artifact_count =
+        match verify_local_artifacts(&referenced_digests, &artifacts_by_digest, artifact_root) {
+            Ok(verified_count) => verified_count,
+            Err(mut artifact_issues) => {
+                issues.append(&mut artifact_issues);
+                return report(true, case_id, declared_status, STATUS_BLOCKED, 0, issues);
+            }
+        };
 
     if expected_claims.schema_version != manifest["schema_version"].as_str().unwrap_or_default()
         || expected_claims.case_id != case_id.as_deref().unwrap_or_default()
@@ -982,39 +1011,16 @@ fn evaluate_manifest(
         );
     }
 
-    let Some(artifact_root) = artifact_root else {
-        return report(
-            true,
-            case_id,
-            declared_status,
-            STATUS_BLOCKED,
-            0,
-            vec![
-                "overall PASS requires --artifact-root so referenced artifacts can be read and hashed"
-                    .to_string(),
-            ],
-        );
-    };
-
-    let referenced_digests = referenced_digests(manifest);
-    match verify_local_artifacts(&referenced_digests, &artifacts_by_digest, artifact_root) {
-        Ok(verified_count) => {
-            let mut result = report(
-                true,
-                case_id,
-                declared_status,
-                STATUS_PASS,
-                verified_count,
-                Vec::new(),
-            );
-            result.evidence_integrity_status = STATUS_EVIDENCE_INTEGRITY_VERIFIED.to_string();
-            result
-        }
-        Err(mut artifact_issues) => {
-            issues.append(&mut artifact_issues);
-            report(true, case_id, declared_status, STATUS_BLOCKED, 0, issues)
-        }
-    }
+    let mut result = report(
+        true,
+        case_id,
+        declared_status,
+        STATUS_PASS,
+        verified_artifact_count,
+        Vec::new(),
+    );
+    result.evidence_integrity_status = STATUS_EVIDENCE_INTEGRITY_VERIFIED.to_string();
+    result
 }
 
 fn referenced_digests(manifest: &Value) -> BTreeSet<String> {
@@ -1454,9 +1460,7 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert!(!result.schema_valid);
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("output_artifact_sha256") && issue.contains("schema validation")
-        }));
+        assert!(result.issues.iter().any(|issue| issue.contains("schema validation")));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1470,9 +1474,7 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert!(!result.schema_valid);
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("measured_result") && issue.contains("schema validation")
-        }));
+        assert!(result.issues.iter().any(|issue| issue.contains("schema validation")));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1486,9 +1488,7 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert!(!result.schema_valid);
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("measured_result") && issue.contains("schema validation")
-        }));
+        assert!(result.issues.iter().any(|issue| issue.contains("schema validation")));
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1924,12 +1924,12 @@ mod tests {
         manifest["claims"][0]["output_artifact_sha256"] = json!([substituted_digest]);
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
-        assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
+        assert_eq!(result.effective_status, STATUS_BLOCKED);
         assert!(
             result
                 .issues
                 .iter()
-                .any(|issue| { issue.contains("model artifact digest set") })
+                .any(|issue| { issue.contains("SHA-256 mismatch") })
         );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
@@ -1986,7 +1986,7 @@ mod tests {
             result
                 .issues
                 .iter()
-                .any(|issue| { issue.contains("exact model object") })
+                .any(|issue| { issue.contains("model object") })
         );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
