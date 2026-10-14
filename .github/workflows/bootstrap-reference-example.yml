@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: industrial-cell-reference-\${{ github.event.pull_request.number || github.ref }}
+  group: industrial-cell-reference-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
