@@ -89,6 +89,24 @@ class AdapterTests(unittest.TestCase):
             self.assertIn("refusing to overwrite captured source bytes", stderr.getvalue())
             self.assertEqual(source_path.read_bytes(), raw)
 
+    def test_cli_refuses_to_overwrite_a_hard_link_to_the_source_artifact(self):
+        raw = self.raw_source()
+        with tempfile.TemporaryDirectory() as temp:
+            source_path = Path(temp) / "simulator-output.json"
+            output_alias = Path(temp) / "output-alias.json"
+            source_path.write_bytes(raw)
+            try:
+                os.link(source_path, output_alias)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"hard-link creation is unavailable on this filesystem: {exc}")
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                status = main([str(source_path), "--output", str(output_alias)])
+            self.assertEqual(status, 2)
+            self.assertIn("refusing to overwrite captured source bytes", stderr.getvalue())
+            self.assertEqual(source_path.read_bytes(), raw)
+            self.assertEqual(output_alias.read_bytes(), raw)
+
     def test_reader_rejects_growth_after_metadata_check(self):
         fake_path = Path("simulated-artifact.json")
         with (
