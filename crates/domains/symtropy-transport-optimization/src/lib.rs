@@ -2683,12 +2683,14 @@ mod tests {
             3,
             QuantityUnit::Shipments,
         )];
-        assert!(validate_cargo_transfer_capacity_plan(
-            std::slice::from_ref(&binding),
-            std::slice::from_ref(&edge),
-            &budgets,
-        )
-        .is_ok());
+        assert!(
+            validate_cargo_transfer_capacity_plan(
+                std::slice::from_ref(&binding),
+                std::slice::from_ref(&edge),
+                &budgets,
+            )
+            .is_ok()
+        );
         let entries = [CargoTransferPlanEntry {
             profile: &profile,
             instance: &instance,
