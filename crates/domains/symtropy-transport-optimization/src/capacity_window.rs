@@ -274,7 +274,7 @@ fn validate_evidence(
     evidence: &ScheduledCapacityEvidenceV1,
     evaluation_time_epoch_seconds: u64,
     policy: &ScheduledCapacityPolicyV1,
-) -> Result<(u64, u64, u64), ScheduledCapacityPlanError> {
+) -> Result<(), ScheduledCapacityPlanError> {
     if !nonempty(&evidence.budget_id)
         || !nonempty(&evidence.resource_id)
         || !nonempty(&evidence.capacity_scope_id)
@@ -329,7 +329,7 @@ fn validate_evidence(
     {
         return Err(ScheduledCapacityPlanError::ObservationTooOld);
     }
-    Ok((observed, recorded, valid_from.min(valid_until)))
+    Ok(())
 }
 
 /// Validate a time-dependent capacity plan using only the supplied snapshot and
@@ -363,8 +363,7 @@ pub fn validate_scheduled_capacity_plan(
     let mut units_by_resource: BTreeMap<PhysicalResourceKey, QuantityUnit> = BTreeMap::new();
 
     for item in evidence {
-        let (observed, _recorded, _valid_from) =
-            validate_evidence(item, evaluation_time_epoch_seconds, policy)?;
+        validate_evidence(item, evaluation_time_epoch_seconds, policy)?;
         let valid_from = item
             .valid_from_epoch_seconds
             .ok_or(ScheduledCapacityPlanError::MissingValidityInterval)?;
@@ -394,10 +393,6 @@ pub fn validate_scheduled_capacity_plan(
             item.capacity_unit,
         ));
         evidence_by_id.insert(item.budget_id.clone(), item);
-
-        // Silence an otherwise tempting semantic mistake: source_event_time is
-        // not used as observed-at time. Freshness was already checked explicitly.
-        let _ = observed;
     }
 
     for intervals in evidence_intervals.values_mut() {
@@ -869,7 +864,10 @@ mod tests {
         );
         let report = plan(&[second, first], &[ev], 100, 100).expect("valid adjacent windows");
         assert_eq!(report.resources[0].maximum_concurrent_units, 5);
-        assert_eq!(report.resources[0].assignment_ids, vec!["transfer-a", "transfer-b"]);
+        assert_eq!(
+            report.resources[0].assignment_ids,
+            vec!["transfer-a".to_owned(), "transfer-b".to_owned()]
+        );
     }
 
     #[test]
