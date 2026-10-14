@@ -11,6 +11,7 @@ on:
       - "scripts/research/validate_flourishing_assessment.py"
       - "scripts/research/test_validate_flourishing_assessment.py"
       - ".github/workflows/flourishing-assessment-contract.yml"
+      - ".github/workflows/humanity-atlas-contract.yml"
   push:
     paths:
       - "docs/humanity-atlas/flourishing-assessment-v0.1.schema.json"
@@ -21,6 +22,7 @@ on:
       - "scripts/research/validate_flourishing_assessment.py"
       - "scripts/research/test_validate_flourishing_assessment.py"
       - ".github/workflows/flourishing-assessment-contract.yml"
+      - ".github/workflows/humanity-atlas-contract.yml"
   workflow_dispatch:
 
 permissions:

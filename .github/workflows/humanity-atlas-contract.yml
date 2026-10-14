@@ -23,14 +23,26 @@ jobs:
     name: Adapter tests + run-schema validation
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Assert exact revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          printf 'expected=%s\nactual=%s\n' "$EXPECTED_SHA" "$actual"
+          test "$actual" = "$EXPECTED_SHA"
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install JSON Schema validator
-        run: python -m pip install --disable-pip-version-check "jsonschema>=4.23,<5"
+        run: python -m pip install --disable-pip-version-check "jsonschema==4.26.0"
 
       - name: Run fail-closed adapter regressions (schema check required)
         working-directory: docs/ops/humanity_atlas_scenario_contract_v0_1
