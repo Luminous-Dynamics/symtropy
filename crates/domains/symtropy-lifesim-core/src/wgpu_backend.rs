@@ -36,14 +36,14 @@ fn idx(x: u32, y: u32) -> u32 {
 }
 
 fn sanitize_concentration(value: f32) -> f32 {
-    if !isFinite(value) {
+    if value * 0.0 != 0.0 {
         return 0.0;
     }
     return clamp(value, 0.0, params.max_value);
 }
 
 fn sanitize_source(value: f32) -> f32 {
-    if !isFinite(value) {
+    if value * 0.0 != 0.0 {
         return 0.0;
     }
     return max(value, 0.0);
@@ -138,9 +138,9 @@ async fn step_async_with_backends(
         )));
     }
 
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends,
-        ..Default::default()
+        ..wgpu::InstanceDescriptor::new_without_display_handle()
     });
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
@@ -389,9 +389,9 @@ impl PersistentWgslFieldRuntime {
     }
 
     async fn new_async(backends: wgpu::Backends) -> Result<Self, FieldStepError> {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends,
-            ..Default::default()
+            ..wgpu::InstanceDescriptor::new_without_display_handle()
         });
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
