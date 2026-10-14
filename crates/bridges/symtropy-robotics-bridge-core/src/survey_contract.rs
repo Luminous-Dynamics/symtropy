@@ -841,6 +841,7 @@ impl SurveyProcessingReceiptV1 {
                     ));
                 }
             }
+        }
         Ok(())
     }
 
