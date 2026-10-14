@@ -848,7 +848,7 @@ pub(crate) mod tests {
             let matrix = convention_conversion_matrix_v1(&from, &to).unwrap();
             for row in matrix {
                 assert_eq!(row.iter().filter(|value| **value != 0).count(), 1);
-                assert!(row.iter().all(|value| [-1, 0, 1].contains(value)));
+                assert!(row.iter().all(|value| (-1..=1).contains(value)));
             }
 
             let converted = convert_vector_v1(vector, &from, &to).unwrap();
