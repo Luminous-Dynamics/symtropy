@@ -210,6 +210,7 @@ pub struct ScheduledCapacityAssignmentReceiptV1 {
     pub evidence_id: String,
     pub resource_kind: CargoTransferCapacityResourceKind,
     pub resource_id: String,
+    pub terminal_id: Option<String>,
     pub capacity_scope_id: String,
     pub capacity_units: u64,
     pub capacity_unit: QuantityUnit,
@@ -219,7 +220,9 @@ pub struct ScheduledCapacityAssignmentReceiptV1 {
     pub source_record_id: String,
     pub source_schema_profile_id: String,
     pub source_record_digest: String,
+    pub source_event_time_epoch_seconds: Option<u64>,
     pub evidence_revision: u64,
+    pub supersedes_revision: Option<u64>,
     pub capacity_observed_at_epoch_seconds: u64,
     pub repository_recorded_at_epoch_seconds: u64,
     pub evidence_valid_from_epoch_seconds: u64,
@@ -235,6 +238,8 @@ pub struct ScheduledCapacityResourceSummaryV1 {
     pub capacity_limit_units: u64,
     pub capacity_unit: QuantityUnit,
     pub maximum_concurrent_units: u64,
+    pub peak_at_epoch_seconds: u64,
+    pub peak_assignment_ids: Vec<String>,
     pub first_planned_start_epoch_seconds: u64,
     pub last_planned_end_epoch_seconds: u64,
     pub assignment_ids: Vec<String>,
@@ -248,6 +253,8 @@ pub struct ScheduledCapacityReportV1 {
     pub evaluation_time_epoch_seconds: u64,
     pub policy_id: String,
     pub time_profile_id: String,
+    pub max_observation_age_seconds: u64,
+    pub allowed_future_clock_skew_seconds: u64,
     pub assignments: Vec<ScheduledCapacityAssignmentReceiptV1>,
     pub resources: Vec<ScheduledCapacityResourceSummaryV1>,
 }
@@ -266,6 +273,13 @@ struct CapacityEvent {
     evidence_id: String,
     units: u64,
     limit: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct PeakCapacityUsage {
+    units: u64,
+    at_epoch_seconds: u64,
+    assignment_ids: Vec<String>,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -510,6 +524,7 @@ pub fn validate_scheduled_capacity_plan(
             evidence_id: assignment.evidence_id.clone(),
             resource_kind: assignment.resource_kind,
             resource_id: assignment.resource_id.clone(),
+            terminal_id: assignment.terminal_id.clone(),
             capacity_scope_id: assignment.capacity_scope_id.clone(),
             capacity_units: assignment.capacity_units,
             capacity_unit: assignment.capacity_unit,
@@ -519,7 +534,9 @@ pub fn validate_scheduled_capacity_plan(
             source_record_id: item.source_record_id.clone(),
             source_schema_profile_id: item.source_schema_profile_id.clone(),
             source_record_digest: item.source_record_digest.clone(),
+            source_event_time_epoch_seconds: item.source_event_time_epoch_seconds,
             evidence_revision: item.revision,
+            supersedes_revision: item.supersedes_revision,
             capacity_observed_at_epoch_seconds: observed,
             repository_recorded_at_epoch_seconds: item
                 .repository_recorded_at_epoch_seconds
@@ -533,7 +550,7 @@ pub fn validate_scheduled_capacity_plan(
         return Err(ScheduledCapacityPlanError::UnreferencedEvidence);
     }
 
-    let mut maximum_by_evidence: BTreeMap<String, u64> = BTreeMap::new();
+    let mut maximum_by_evidence: BTreeMap<String, PeakCapacityUsage> = BTreeMap::new();
     for events in assignments_by_resource.values_mut() {
         // Half-open interval semantics: end (false) sorts before start (true).
         events.sort_by(|a, b| {
@@ -578,10 +595,17 @@ pub fn validate_scheduled_capacity_plan(
                 return Err(ScheduledCapacityPlanError::CapacityExceeded);
             }
             active.insert(event.assignment_id.clone(), event.units);
-            maximum_by_evidence
-                .entry(event.evidence_id.clone())
-                .and_modify(|maximum| *maximum = (*maximum).max(active_units))
-                .or_insert(active_units);
+            let current_peak = maximum_by_evidence.get(&event.evidence_id);
+            if current_peak.is_none_or(|peak| active_units > peak.units) {
+                maximum_by_evidence.insert(
+                    event.evidence_id.clone(),
+                    PeakCapacityUsage {
+                        units: active_units,
+                        at_epoch_seconds: event.time,
+                        assignment_ids: active.keys().cloned().collect(),
+                    },
+                );
+            }
         }
         if !active.is_empty() || active_units != 0 {
             return Err(ScheduledCapacityPlanError::CapacityArithmeticOverflow);
@@ -609,6 +633,9 @@ pub fn validate_scheduled_capacity_plan(
             .map(|a| a.window.planned_end_epoch_seconds)
             .max()
             .ok_or(ScheduledCapacityPlanError::InvalidCapacity)?;
+        let peak = maximum_by_evidence
+            .get(&evidence_id)
+            .ok_or(ScheduledCapacityPlanError::InvalidCapacity)?;
         resources.push(ScheduledCapacityResourceSummaryV1 {
             evidence_id: evidence_id.clone(),
             resource_kind: item.resource_kind,
@@ -616,7 +643,9 @@ pub fn validate_scheduled_capacity_plan(
             capacity_scope_id: item.capacity_scope_id.clone(),
             capacity_limit_units: item.capacity_units,
             capacity_unit: item.capacity_unit,
-            maximum_concurrent_units: maximum_by_evidence.get(&evidence_id).copied().unwrap_or(0),
+            maximum_concurrent_units: peak.units,
+            peak_at_epoch_seconds: peak.at_epoch_seconds,
+            peak_assignment_ids: peak.assignment_ids.clone(),
             first_planned_start_epoch_seconds: first_start,
             last_planned_end_epoch_seconds: last_end,
             assignment_ids: resource_assignments
@@ -634,6 +663,8 @@ pub fn validate_scheduled_capacity_plan(
         evaluation_time_epoch_seconds,
         policy_id: policy.policy_id.clone(),
         time_profile_id: policy.expected_time_profile_id.clone(),
+        max_observation_age_seconds: policy.max_observation_age_seconds,
+        allowed_future_clock_skew_seconds: policy.allowed_future_clock_skew_seconds,
         assignments: receipts,
         resources,
     })
@@ -960,6 +991,46 @@ mod tests {
         assert_eq!(report.resources[0].maximum_concurrent_units, 5);
         assert_eq!(
             report.resources[0].assignment_ids,
+            vec!["transfer-a".to_owned(), "transfer-b".to_owned()]
+        );
+    }
+
+    #[test]
+    fn report_identifies_peak_time_and_exact_contributing_assignments() {
+        let ev = evidence(
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            5,
+            80,
+            200,
+            90,
+        );
+        let first = assignment(
+            "transfer-a",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            2,
+            100,
+            120,
+        );
+        let second = assignment(
+            "transfer-b",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            3,
+            110,
+            130,
+        );
+        let report = plan(&[first, second], &[ev], 100, 100).expect("valid overlapping capacity");
+        let resource = &report.resources[0];
+
+        assert_eq!(resource.maximum_concurrent_units, 5);
+        assert_eq!(resource.peak_at_epoch_seconds, 110);
+        assert_eq!(
+            resource.peak_assignment_ids,
             vec!["transfer-a".to_owned(), "transfer-b".to_owned()]
         );
     }
