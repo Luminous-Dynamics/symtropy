@@ -3279,7 +3279,10 @@ mod tests {
             binding: &binding,
         }];
         let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
-        assert!(validate_cargo_transfer_plan(&entries, std::slice::from_ref(&edge), &[budget.clone()]).is_ok());
+        assert!(
+            validate_cargo_transfer_plan(&entries, std::slice::from_ref(&edge), std::slice::from_ref(&budget))
+                .is_ok()
+        );
 
         let stale_evidence = capacity_evidence(budget, Some(800));
         assert_eq!(
