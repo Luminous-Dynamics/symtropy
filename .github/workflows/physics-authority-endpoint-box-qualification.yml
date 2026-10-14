@@ -1,0 +1,254 @@
+name: PHYS-OBS-03 Authority Endpoint Box Observation Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-authority-endpoint-box-v0.1-r2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-authority-endpoint-box-r2-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: 7620d5a7cf03da7b10bb1413d028aa2c9f0490a3
+  PRODUCT_PARENT: 9daf3c4c55848dcbf58c7036d03803f434fc0063
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-03 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact product subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "7"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_ENDPOINT_BOX_OBSERVATION_V01.md"
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_ENDPOINT_MUTATION_PROVENANCE_BOUNDARY_V01.md"
+            "crates/core/symtropy-physics/src/authority_endpoint.rs"
+            "crates/core/symtropy-physics/src/authority_observation.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/authority_endpoint_box_v01.rs"
+            "crates/core/symtropy-physics/tests/authority_endpoint_mutation_boundary_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze endpoint-observation source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-math/src/hyperbox.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_observation.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/authority_endpoint_box_v01.rs \
+            crates/core/symtropy-physics/tests/authority_endpoint_mutation_boundary_v01.rs \
+            crates/core/symtropy-physics/tests/authority_pair_observation_v01.rs \
+            crates/core/symtropy-physics/tests/authority_observation_v01.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            crates/core/symtropy-physics/tests/replay_harness.rs \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_ENDPOINT_BOX_OBSERVATION_V01.md \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_ENDPOINT_MUTATION_PROVENANCE_BOUNDARY_V01.md \
+            > "${RUNNER_TEMP}/phys-obs03-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        id: check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run endpoint-box theorem
+        id: endpoint
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_box_v01
+
+      - name: Run mutation-provenance boundary theorem
+        id: mutation_boundary
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_mutation_boundary_v01
+
+      - name: Run pair-observation regression
+        id: pair
+        run: cargo test -p symtropy-physics --locked --test authority_pair_observation_v01
+
+      - name: Run selected-subject observation regression
+        id: selected
+        run: cargo test -p symtropy-physics --locked --test authority_observation_v01
+
+      - name: Run authority identity regression
+        id: authority
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run runtime replay regression
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Run strict physics Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit endpoint-observation claim boundary
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-physics/src/authority_endpoint.rs
+          authority_source=crates/core/symtropy-physics/src/identity_authority.rs
+          body_source=crates/core/symtropy-physics/src/authority_observation.rs
+          tests=crates/core/symtropy-physics/tests/authority_endpoint_box_v01.rs
+          mutation_tests=crates/core/symtropy-physics/tests/authority_endpoint_mutation_boundary_v01.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_ENDPOINT_BOX_OBSERVATION_V01.md
+          mutation_contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_ENDPOINT_MUTATION_PROVENANCE_BOUNDARY_V01.md
+
+          grep -Fq 'pub struct AuthorityEndpointBoxSpec' "${source}"
+          grep -Fq 'pub struct AuthorityEndpointBoxObservation' "${source}"
+          grep -Fq 'HyperBox::<D>::new(half_extents).contains_local' "${source}"
+          test "$(grep -Fc '.validate_subject(' "${source}")" = "2"
+          grep -Fq 'pub(crate) fn from_validated' "${body_source}"
+          ! grep -Fq '.transform.rotation' "${source}"
+          grep -Fq 'NonFiniteRegionCenter' "${source}"
+          grep -Fq 'NonFiniteOffsetFromCenter' "${source}"
+          grep -Fq 'NonPositiveHalfExtent' "${source}"
+          grep -Fq 'pub fn world_mut(&mut self) -> &mut PhysicsWorld<D>' "${authority_source}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('crates/core/symtropy-physics/src/authority_endpoint.rs').read_text()
+          for name in ('AuthorityEndpointBoxSpec', 'AuthorityEndpointBoxObservation'):
+              start = text.index(f'pub struct {name}')
+              end = text.index('\n}\n', start) + 2
+              block = text[start:end]
+              assert 'BodyHandle' not in block, block
+          body = Path('crates/core/symtropy-physics/src/authority_observation.rs').read_text()
+          assert 'pub(crate) fn from_validated' in body
+          assert 'pub fn from_validated' not in body
+          PY
+
+          grep -Fq 'equivalent_endpoint_observation_is_handle_independent' "${tests}"
+          grep -Fq 'boundary_is_closed_and_outside_is_distinct' "${tests}"
+          grep -Fq 'anchor_rotation_is_explicitly_ignored' "${tests}"
+          grep -Fq 'region_center_overflow_fails_closed' "${tests}"
+          grep -Fq 'subject_offset_overflow_fails_closed' "${tests}"
+          grep -Fq 'membership_is_body_origin_only_not_collider_containment' "${tests}"
+
+          grep -Fq 'raw_mechanics_mutation_changes_membership_without_proving_temporal_continuity' "${mutation_tests}"
+          grep -Fq '.world_mut()' "${mutation_tests}"
+          grep -Fq 'EndpointMembership::Outside' "${mutation_tests}"
+          grep -Fq 'EndpointMembership::Inside' "${mutation_tests}"
+          grep -Fq 'PHYS-OBS-04 / #1042' "${mutation_tests}"
+
+          grep -Fq 'world-axis-aligned' "${contract}"
+          grep -Fq 'body transform origin only' "${contract}"
+          grep -Fq 'HyperBox::contains_local' "${contract}"
+          grep -Fq 'PHYS-OBS-03R / #1035' "${contract}"
+          grep -Fq 'dwell' "${contract}"
+          grep -Fq 'arrival' "${contract}"
+          grep -Fq 'delivery' "${contract}"
+          grep -Fq 'whole-collider containment' "${contract}"
+
+          grep -Fq 'state observation, not mutation provenance' "${mutation_contract}"
+          grep -Fq 'PhysicsAuthorityWorld::world_mut()' "${mutation_contract}"
+          grep -Fq 'PHYS-OBS-04 / #1042' "${mutation_contract}"
+          grep -Fq 'mutation epoch' "${mutation_contract}"
+          grep -Fq 'authority-owned monotonic step index' "${mutation_contract}"
+          grep -Fq 'release escrow' "${mutation_contract}"
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          ENDPOINT: ${{ steps.endpoint.outcome }}
+          MUTATION_BOUNDARY: ${{ steps.mutation_boundary.outcome }}
+          PAIR: ${{ steps.pair.outcome }}
+          SELECTED: ${{ steps.selected.outcome }}
+          AUTHORITY: ${{ steps.authority.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-obs03-authority-endpoint-box-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = [
+              'SUBJECT', 'SOURCE', 'FMT', 'CHECK', 'ENDPOINT', 'MUTATION_BOUNDARY',
+              'PAIR', 'SELECTED', 'AUTHORITY', 'REPLAY', 'CLIPPY', 'AUDIT', 'POSTFLIGHT',
+          ]
+          outcomes = {k.lower(): os.environ.get(k, 'unknown') for k in keys}
+          receipt = {
+              'receipt_version': 1,
+              'qualification': 'PHYS-OBS-03-authority-endpoint-box-v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'helper_head': os.environ['HELPER_HEAD'],
+              'workflow_run_id': int(os.environ['RUN_ID']),
+              'workflow_run_attempt': int(os.environ['RUN_ATTEMPT']),
+              'step_outcomes': outcomes,
+              'overall': 'pass' if all(v == 'success' for v in outcomes.values()) else 'fail',
+              'claim_boundary': 'instantaneous closed-boundary world-axis endpoint-box membership of one validated target body origin relative to one validated translation anchor; current authority-wrapped state only, with explicit proof that raw mechanics mutation may change membership without step or temporal provenance; no dwell, hysteresis, route, arrival, delivery, collider-containment, oriented-frame, collision-provenance, or complete-world-integrity claim',
+          }
+          with open(os.environ['RECEIPT_PATH'], 'w', encoding='utf-8') as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write('\n')
+          PY
+          cp "${RUNNER_TEMP}/phys-obs03-source-sha256.txt" "${RUNNER_TEMP}/phys-obs03-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-obs03-authority-endpoint-box-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-obs03-authority-endpoint-box-v01.json
+            ${{ runner.temp }}/phys-obs03-authority-endpoint-box-v01.json.sha256
+            ${{ runner.temp }}/phys-obs03-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
