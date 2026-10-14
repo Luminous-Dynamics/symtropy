@@ -8,7 +8,7 @@ This tranche makes one part of [CRASH-BOOT-00](https://github.com/Luminous-Dynam
 
 A settlement planner for 1 to 30,000+ people must not get credit for multiplying one camp's average demand by a population count. It must separately track (a) resource inventory, (b) per-time demand and inflow, (c) installed versus functioning service capacity, (d) whether services can reach each group, and (e) whether the evidence and model are qualified for the question being asked.
 
-The public corpus is deliberately small and hand-inspectable:
+The public corpus is deliberately small and hand-inspectable. Its 30,000-person case is a topology test, not an extrapolation that assumes all services scale linearly:
 
 - machine-readable vectors: `docs/settlement-bootstrap/fixtures/resource_flow_reference_v0.1.json`;
 - independent standard-library oracle: `scripts/verify_crash_boot_resource_flow_v0_1.py`;
@@ -38,20 +38,21 @@ The 12-person interval example is **synthetic only**:
 - net depletion envelope: 16–43 units/day;
 - arithmetic runway envelope: 120/43 to 180/16 days (about 2.79–11.25).
 
-This is rectangular interval arithmetic, not a probability distribution, percentile, independent-random-variable assumption, or real survival estimate. It is only valid for the bounds stated in the fixture. Correlations, discrete events, changing populations, failures, and time-varying demand require a richer model and must not be hidden inside this example.
+This is rectangular interval arithmetic, not a probability distribution, percentile, independent-random-variable assumption, or real survival estimate. It is only valid for the bounds stated in the fixture. Correlations, discrete events, changing populations, failures, and time-varying demand require a richer model and must not be hidden inside this example. A separate scale probe checks only the synthetic per-person contribution at 1, 12, 100, 1,000, 10,000 and 30,000 people; it explicitly does not claim fixed loads, service capacity or network topology scale linearly.
 
 The reference capacity gate has 30 units/day available. The minimum supported demand is 24; the maximum is 43. Because the maximum exceeds the capacity, the result is **not certified for the full bound**—not an average-demand PASS.
 
 ## Failure modes the oracle freezes
 
-1. **Population and topology:** scale probes are 1, 12, 100, 1,000, 10,000 and 30,000. They are test inputs, not camp-size thresholds or performance results.
-2. **Local distribution:** 1,000 synthetic people need 2,000 units/day. Nominal total capacity is also 2,000, yet one disconnected 400-person habitat receives zero. Aggregate capacity must not mask local service failure.
-3. **Unknown environment:** unknown atmosphere and pressure remain UNKNOWN; Earth values are never silently inserted.
-4. **Qualification of stock:** quarantined, treatment-unqualified inventory remains visible as gross stock but contributes zero to currently allocatable stock until the necessary release evidence exists. This is an allocation rule, not a statement that the physical material has vanished.
-5. **Dimensions:** mass flow and volume flow are incompatible without explicit, qualified conversion evidence.
-6. **Common-mode failure:** three pumps sharing one failed power bus are three unavailable components, not three independent backups.
-7. **Inventory reconciliation:** a lost transfer acknowledgement cannot cause the same lot to be counted at both source and destination.
-8. **Evidence conflict:** stale and contradictory observations stay unresolved without separate adjudication evidence; last-write-wins is forbidden.
+1. **Population and topology:** scale probes are 1, 12, 100, 1,000, 10,000 and 30,000. The scale arithmetic covers only the synthetic per-person contribution, not total system demand, rated capacity, distribution or measured performance.
+2. **Local distribution at 1,000:** synthetic total demand and nominal capacity are both 2,000 units/day, yet one disconnected 400-person habitat receives zero. Aggregate capacity must not mask local service failure.
+3. **Local distribution at 30,000:** three habitats have total demand of 60,000 units/day and delivered capacity of 60,000. The central 10,000-person habitat is 2,000 units/day short while the south habitat has 2,000 units/day of surplus; its transfer path to the central habitat is unavailable. Therefore total delivery equality still does not establish subgroup coverage.
+4. **Unknown environment:** unknown atmosphere and pressure remain UNKNOWN; Earth values are never silently inserted.
+5. **Qualification of stock:** quarantined, treatment-unqualified inventory remains visible as gross stock but contributes zero to currently allocatable stock until the necessary release evidence exists. This is an allocation rule, not a statement that the physical material has vanished.
+6. **Dimensions:** mass flow and volume flow are incompatible without explicit, qualified conversion evidence.
+7. **Common-mode failure:** three pumps sharing one failed power bus are three unavailable components, not three independent backups.
+8. **Inventory reconciliation:** a lost transfer acknowledgement cannot cause the same lot to be counted at both source and destination.
+9. **Evidence conflict:** stale and contradictory observations stay unresolved without separate adjudication evidence; last-write-wins is forbidden.
 
 ## Research implications
 
