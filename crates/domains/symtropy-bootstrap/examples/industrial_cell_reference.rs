@@ -12,8 +12,8 @@ use std::collections::BTreeMap;
 
 use symtropy_bootstrap::{
     BootstrapCandidate, Capability, Dependency, DependencyClass, DependencyGraph, EnergyEvent,
-    EnergyEventKind, EnergyLedger, InventoryEvent, InventoryEventKind, InventoryLedger,
-    ProcessRun, ProductionProcess, pareto_frontier, verify_energy_conservation,
+    EnergyEventKind, EnergyLedger, InventoryEvent, InventoryEventKind, InventoryLedger, ProcessRun,
+    ProductionProcess, pareto_frontier, verify_energy_conservation,
 };
 
 fn main() {
@@ -212,14 +212,9 @@ fn run() -> Result<(), String> {
     )?;
     let energy_state_before_fault = fault_energy.state().clone();
     let energy_events_before_fault = fault_energy.events().to_vec();
-    let duplicate_energy_event = EnergyEvent::new(
-        2,
-        "fault-bus",
-        3,
-        EnergyEventKind::Consumed,
-    )
-    .with_event_id("fault-energy-event-001")
-    .with_provenance("fault-fixture-001");
+    let duplicate_energy_event = EnergyEvent::new(2, "fault-bus", 3, EnergyEventKind::Consumed)
+        .with_event_id("fault-energy-event-001")
+        .with_provenance("fault-fixture-001");
     if fault_energy.append(duplicate_energy_event).is_ok()
         || fault_energy.state() != &energy_state_before_fault
         || fault_energy.events() != energy_events_before_fault.as_slice()
@@ -228,14 +223,9 @@ fn run() -> Result<(), String> {
     }
 
     // A stale sequence must not append even when its event ID is new.
-    let stale_sequence_event = EnergyEvent::new(
-        1,
-        "fault-bus",
-        1,
-        EnergyEventKind::Consumed,
-    )
-    .with_event_id("fault-energy-event-stale-sequence")
-    .with_provenance("fault-fixture-001");
+    let stale_sequence_event = EnergyEvent::new(1, "fault-bus", 1, EnergyEventKind::Consumed)
+        .with_event_id("fault-energy-event-stale-sequence")
+        .with_provenance("fault-fixture-001");
     if fault_energy.append(stale_sequence_event).is_ok()
         || fault_energy.state() != &energy_state_before_fault
         || fault_energy.events() != energy_events_before_fault.as_slice()
@@ -248,14 +238,10 @@ fn run() -> Result<(), String> {
         .into_iter()
         .collect::<BTreeMap<_, _>>();
     let mut fault_inventory = InventoryLedger::new(initial_fault_inventory.clone());
-    let underfunded_inventory_event = InventoryEvent::new(
-        1,
-        "feedstock",
-        10,
-        InventoryEventKind::Consumed,
-    )
-    .with_event_id("fault-inventory-overdraw-001")
-    .with_provenance("fault-fixture-002");
+    let underfunded_inventory_event =
+        InventoryEvent::new(1, "feedstock", 10, InventoryEventKind::Consumed)
+            .with_event_id("fault-inventory-overdraw-001")
+            .with_provenance("fault-fixture-002");
     if fault_inventory.append(underfunded_inventory_event).is_ok()
         || fault_inventory.state() != &initial_fault_inventory
         || !fault_inventory.events().is_empty()
