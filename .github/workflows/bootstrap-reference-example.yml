@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "crates/domains/symtropy-bootstrap/**"
+      - "scripts/verify-industrial-cell-reference.sh"
+      - "docs/tech/industrial-cell-fault-corpus-v0.1.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
@@ -37,5 +39,5 @@ jobs:
       - name: Check repository Rust formatting
         run: cargo fmt --all -- --check
 
-      - name: Execute industrial-cell reference contracts
-        run: cargo run --locked -p symtropy-bootstrap --example industrial_cell_reference
+      - name: Execute reference and independently verify frozen fault corpus
+        run: bash scripts/verify-industrial-cell-reference.sh
