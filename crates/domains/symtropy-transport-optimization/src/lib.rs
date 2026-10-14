@@ -965,6 +965,136 @@ pub fn validate_cargo_transfer_capacity_evidence(
     Ok(())
 }
 
+/// A proposed terminal-equipment operation interval. Timestamps are Unix epoch
+/// seconds under an explicit profile; capacity_scope_id remains an opaque label.
+/// The interval is half-open: [planned_start, planned_end).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferOperationWindowV1 {
+    pub time_profile_id: String,
+    pub planned_start_epoch_seconds: u64,
+    pub planned_end_epoch_seconds: u64,
+}
+
+/// Failure to qualify one evidence snapshot for one proposed operation window.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CargoTransferCapacityWindowError {
+    Evidence(CargoTransferCapacityEvidenceError),
+    InvalidOperationWindow,
+    TimeProfileMismatch,
+    OperationWindowAlreadyStarted,
+    EvidenceValidityDoesNotCoverWindow,
+    ObservationTooOldAtOperationStart,
+    ObservationAfterOperationStart,
+}
+
+impl fmt::Display for CargoTransferCapacityWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Evidence(error) => write!(f, "capacity evidence failed qualification: {error}"),
+            Self::InvalidOperationWindow => {
+                write!(f, "capacity operation window must have positive duration")
+            }
+            Self::TimeProfileMismatch => {
+                write!(f, "capacity evidence, operation window and policy time profiles must match")
+            }
+            Self::OperationWindowAlreadyStarted => {
+                write!(f, "capacity operation window starts before the evaluation instant")
+            }
+            Self::EvidenceValidityDoesNotCoverWindow => {
+                write!(f, "capacity evidence validity does not cover the full operation window")
+            }
+            Self::ObservationTooOldAtOperationStart => {
+                write!(f, "capacity observation will be too old by operation start")
+            }
+            Self::ObservationAfterOperationStart => {
+                write!(f, "capacity observation is later than the operation start beyond allowed skew")
+            }
+        }
+    }
+}
+
+impl std::error::Error for CargoTransferCapacityWindowError {}
+
+/// Replayable result of qualifying one capacity snapshot for one planned window.
+/// This is not a resource reservation, overlap schedule, or dispatch authorization.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CargoTransferCapacityWindowQualificationV1 {
+    pub evidence: CargoTransferCapacityEvidenceV1,
+    pub operation_window: CargoTransferOperationWindowV1,
+    pub evaluation_time_epoch_seconds: u64,
+    pub freshness_policy: CargoTransferCapacityFreshnessPolicy,
+}
+
+/// Qualify capacity evidence both at the planning instant and at the beginning
+/// of its proposed operation window. Evidence validity must contain the complete
+/// half-open operation interval. The exclusive end may equal valid_until.
+///
+/// This function is a deterministic single-window gate. It does not account for
+/// overlapping assignments, authenticate evidence, or reserve the resource.
+pub fn validate_cargo_transfer_capacity_evidence_for_window(
+    evidence: &CargoTransferCapacityEvidenceV1,
+    evaluation_time_epoch_seconds: u64,
+    operation_window: &CargoTransferOperationWindowV1,
+    policy: CargoTransferCapacityFreshnessPolicy,
+) -> Result<CargoTransferCapacityWindowQualificationV1, CargoTransferCapacityWindowError> {
+    if operation_window.planned_start_epoch_seconds >= operation_window.planned_end_epoch_seconds {
+        return Err(CargoTransferCapacityWindowError::InvalidOperationWindow);
+    }
+    if operation_window.time_profile_id != policy.expected_time_profile_id
+        || operation_window.time_profile_id != evidence.time_profile_id
+    {
+        return Err(CargoTransferCapacityWindowError::TimeProfileMismatch);
+    }
+    if operation_window.planned_start_epoch_seconds < evaluation_time_epoch_seconds {
+        return Err(CargoTransferCapacityWindowError::OperationWindowAlreadyStarted);
+    }
+
+    validate_cargo_transfer_capacity_evidence(evidence, evaluation_time_epoch_seconds, policy)
+        .map_err(CargoTransferCapacityWindowError::Evidence)?;
+
+    let valid_from = evidence
+        .valid_from_epoch_seconds
+        .ok_or(CargoTransferCapacityWindowError::Evidence(
+            CargoTransferCapacityEvidenceError::MissingValidityInterval,
+        ))?;
+    let valid_until = evidence
+        .valid_until_epoch_seconds
+        .ok_or(CargoTransferCapacityWindowError::Evidence(
+            CargoTransferCapacityEvidenceError::MissingValidityInterval,
+        ))?;
+    if operation_window.planned_start_epoch_seconds < valid_from
+        || operation_window.planned_end_epoch_seconds > valid_until
+    {
+        return Err(CargoTransferCapacityWindowError::EvidenceValidityDoesNotCoverWindow);
+    }
+
+    let observation = evidence
+        .capacity_observed_at_epoch_seconds
+        .ok_or(CargoTransferCapacityWindowError::Evidence(
+            CargoTransferCapacityEvidenceError::MissingObservationTime,
+        ))?;
+    let latest_observation_time = operation_window
+        .planned_start_epoch_seconds
+        .saturating_add(policy.allowed_future_clock_skew_seconds);
+    if observation > latest_observation_time {
+        return Err(CargoTransferCapacityWindowError::ObservationAfterOperationStart);
+    }
+    if operation_window
+        .planned_start_epoch_seconds
+        .saturating_sub(observation)
+        > policy.max_observation_age_seconds
+    {
+        return Err(CargoTransferCapacityWindowError::ObservationTooOldAtOperationStart);
+    }
+
+    Ok(CargoTransferCapacityWindowQualificationV1 {
+        evidence: evidence.clone(),
+        operation_window: operation_window.clone(),
+        evaluation_time_epoch_seconds,
+        freshness_policy: policy,
+    })
+}
+
 /// Capacity use emitted by deterministic batch validation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoTransferCapacityUse {
@@ -3328,6 +3458,122 @@ mod tests {
                 capacity_freshness_policy(),
             ),
             Err(CargoTransferCapacityEvidenceError::InvalidValidityInterval)
+        );
+    }
+
+    #[test]
+    fn capacity_window_qualification_preserves_provenance_and_half_open_boundaries() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let mut evidence = capacity_evidence(budget, Some(980));
+        evidence.valid_from_epoch_seconds = Some(1_000);
+        evidence.valid_until_epoch_seconds = Some(1_100);
+        let window = CargoTransferOperationWindowV1 {
+            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
+            planned_start_epoch_seconds: 1_000,
+            planned_end_epoch_seconds: 1_100,
+        };
+
+        let report = validate_cargo_transfer_capacity_evidence_for_window(
+            &evidence,
+            1_000,
+            &window,
+            capacity_freshness_policy(),
+        )
+        .unwrap();
+
+        assert_eq!(report.evidence, evidence);
+        assert_eq!(report.operation_window, window);
+        assert_eq!(report.evaluation_time_epoch_seconds, 1_000);
+        assert_eq!(report.freshness_policy.max_observation_age_seconds, 100);
+        assert_eq!(report.operation_window.planned_end_epoch_seconds, 1_100);
+    }
+
+    #[test]
+    fn capacity_window_rejects_evidence_that_expires_before_operation_starts() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let mut evidence = capacity_evidence(budget, Some(980));
+        evidence.valid_until_epoch_seconds = Some(1_050);
+        let window = CargoTransferOperationWindowV1 {
+            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
+            planned_start_epoch_seconds: 1_060,
+            planned_end_epoch_seconds: 1_070,
+        };
+
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence_for_window(
+                &evidence,
+                1_000,
+                &window,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityWindowError::EvidenceValidityDoesNotCoverWindow)
+        );
+    }
+
+    #[test]
+    fn capacity_window_rejects_evidence_that_will_be_stale_at_operation_start() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget, Some(950));
+        let window = CargoTransferOperationWindowV1 {
+            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
+            planned_start_epoch_seconds: 1_060,
+            planned_end_epoch_seconds: 1_070,
+        };
+
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence_for_window(
+                &evidence,
+                1_000,
+                &window,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityWindowError::ObservationTooOldAtOperationStart)
+        );
+    }
+
+    #[test]
+    fn capacity_window_rejects_invalid_started_and_wrong_profile_windows() {
+        let budget = equipment_capacity("hub-cross-dock-crane-3", 3, QuantityUnit::Shipments);
+        let evidence = capacity_evidence(budget, Some(980));
+        let mut window = CargoTransferOperationWindowV1 {
+            time_profile_id: "unix-epoch-utc-seconds-v1".to_owned(),
+            planned_start_epoch_seconds: 1_000,
+            planned_end_epoch_seconds: 1_000,
+        };
+
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence_for_window(
+                &evidence,
+                1_000,
+                &window,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityWindowError::InvalidOperationWindow)
+        );
+
+        window.planned_start_epoch_seconds = 999;
+        window.planned_end_epoch_seconds = 1_010;
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence_for_window(
+                &evidence,
+                1_000,
+                &window,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityWindowError::OperationWindowAlreadyStarted)
+        );
+
+        window.planned_start_epoch_seconds = 1_000;
+        window.planned_end_epoch_seconds = 1_010;
+        window.time_profile_id = "other-time-profile".to_owned();
+        assert_eq!(
+            validate_cargo_transfer_capacity_evidence_for_window(
+                &evidence,
+                1_000,
+                &window,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferCapacityWindowError::TimeProfileMismatch)
         );
     }
 
