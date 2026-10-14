@@ -304,6 +304,10 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
         "model_sha256_scope: the model digest identifies the technology-tree definition, not the complete executable or source tree",
         "sha256_proves_byte_integrity_only: this envelope does not authenticate a publisher or establish scientific truth",
     ]
+    if not survived:
+        warnings.append(
+            "scenario_survival_failure: the source simulator reports that civilization did not survive the scenario horizon"
+        )
     if source_revision is None:
         warnings.append("source_revision_missing: package version is known, but the exact simulator build commit is not identified")
 
@@ -336,6 +340,7 @@ def adapt_source(raw: bytes, *, artifact_ref: str | None = None) -> dict[str, An
             {"metric_id": "final_cvs", "year": years, "time_basis": "scenario_relative_year", "unit": "CVS", "statistic": "value", "value": final_cvs, "sample_count": 1},
             {"metric_id": "final_population", "year": years, "time_basis": "scenario_relative_year", "unit": "persons", "statistic": "value", "value": float(final_population), "sample_count": 1},
             {"metric_id": "tech_milestones_achieved", "year": years, "time_basis": "scenario_relative_year", "unit": "milestones", "statistic": "value", "value": float(tech_milestones), "sample_count": 1},
+            {"metric_id": "civilization_survived", "year": years, "time_basis": "scenario_relative_year", "unit": "boolean indicator (0=false, 1=true)", "statistic": "value", "value": 1.0 if survived else 0.0, "sample_count": 1},
         ],
         "validation": {
             "status": "not_run",

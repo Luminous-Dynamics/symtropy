@@ -60,10 +60,26 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(run["artifacts"][0]["artifact_sha256"], hashlib.sha256(raw).hexdigest())
         self.assertEqual(run["artifacts"][0]["artifact_ref"], f"urn:sha256:{hashlib.sha256(raw).hexdigest()}")
         self.assertEqual(run["artifacts"][0]["json_pointer"], "/technology_tree")
-        self.assertEqual(len(run["outputs"]), 3)
+        self.assertEqual(len(run["outputs"]), 4)
+        self.assertEqual(
+            next(row for row in run["outputs"] if row["metric_id"] == "civilization_survived")["value"],
+            1.0,
+        )
         self.assertTrue(all(row["time_basis"] == "scenario_relative_year" for row in run["outputs"]))
         self.assertEqual(run["validation"]["evidence"], [])
 
+
+    def test_survival_failure_is_preserved_as_terminal_output_and_warning(self):
+        source = self.source()
+        source["survived"] = False
+        source["final_population"] = 0
+        raw = json.dumps(source, separators=(",", ":"), allow_nan=False).encode()
+        run = adapt_source(raw)
+        survival = next(row for row in run["outputs"] if row["metric_id"] == "civilization_survived")
+        self.assertEqual(survival["value"], 0.0)
+        self.assertEqual(survival["year"], source["years"])
+        self.assertEqual(run["run_status"], "completed")
+        self.assertTrue(any("scenario_survival_failure" in warning for warning in run["warnings"]))
 
     def test_generated_envelope_matches_run_schema_when_jsonschema_available(self):
         try:
