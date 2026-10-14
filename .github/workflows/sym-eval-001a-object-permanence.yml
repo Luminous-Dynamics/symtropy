@@ -1,0 +1,35 @@
+name: SYM-EVAL-001A Object Permanence Protocol
+
+on:
+  pull_request:
+    paths:
+      - 'crates/domains/symtropy-vision-eval/**'
+      - 'docs/research/SYM_EVAL_001_OBJECT_PERMANENCE.md'
+      - '.github/workflows/sym-eval-001a-object-permanence.yml'
+      - 'Cargo.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt,clippy
+          rustup override set 1.96.0
+      - name: Format evaluator
+        run: cargo fmt -p symtropy-vision-eval -- --check
+      - name: Check evaluator
+        run: cargo check -p symtropy-vision-eval --all-targets
+      - name: Test evaluator protocol
+        run: cargo test -p symtropy-vision-eval
+      - name: Strict Clippy evaluator
+        run: cargo clippy -p symtropy-vision-eval --all-targets -- -D warnings
+      - name: Workspace membership invariant
+        run: bash scripts/check-workspace.sh
+      - name: License invariant
+        run: bash scripts/check-licenses.sh
