@@ -31,6 +31,8 @@ jobs:
       ATLAS_QUALIFICATION_DIR: /tmp/humanity-atlas-real-artifact-evidence
       YEARS: "150"
       SEED: "42"
+      HUMANITY_ATLAS_PRODUCER_SHA: b59b99621cdb3699eda32aa39f152bd3b693a534
+      HUMANITY_ATLAS_CONSUMER_SHA: d29742028e6d8b5c9b54bac7ae53721ecee3ac13
     steps:
       - name: Preflight private simulator read access
         env:
@@ -74,7 +76,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: Luminous-Dynamics/luminous-dynamics
-          ref: b59b99621cdb3699eda32aa39f152bd3b693a534 # pinned producer revision
+          ref: ${{ env.HUMANITY_ATLAS_PRODUCER_SHA }}
           path: luminous-dynamics
           token: ${{ secrets.LUMINOUS_MONOREPO_READ_TOKEN }}
           persist-credentials: false
@@ -83,7 +85,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: Luminous-Dynamics/sol-atlas-leptos
-          ref: d29742028e6d8b5c9b54bac7ae53721ecee3ac13 # pinned standalone consumer revision
+          ref: ${{ env.HUMANITY_ATLAS_CONSUMER_SHA }}
           path: sol-atlas-leptos
           persist-credentials: false
 
@@ -98,13 +100,11 @@ jobs:
       - name: Assert exact integration source revisions
         env:
           EXPECTED_SYMTROPY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          EXPECTED_PRODUCER_SHA: b59b99621cdb3699eda32aa39f152bd3b693a534
-          EXPECTED_CONSUMER_SHA: d29742028e6d8b5c9b54bac7ae53721ecee3ac13
         run: |
           for entry in \
             "symtropy:$EXPECTED_SYMTROPY_SHA" \
-            "luminous-dynamics:$EXPECTED_PRODUCER_SHA" \
-            "sol-atlas-leptos:$EXPECTED_CONSUMER_SHA"; do
+            "luminous-dynamics:$HUMANITY_ATLAS_PRODUCER_SHA" \
+            "sol-atlas-leptos:$HUMANITY_ATLAS_CONSUMER_SHA"; do
             checkout="${entry%%:*}"
             expected="${entry#*:}"
             actual="$(git -C "$checkout" rev-parse HEAD)"
