@@ -1,0 +1,150 @@
+name: Physics transactional NetId + broadphase exact qualification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-netid-broadphase-transactional-r1-q
+  cancel-in-progress: false
+
+jobs:
+  exact-product:
+    if: github.event.pull_request.head.ref == 'ci/physics-netid-broadphase-transactional-r1-q'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PARENT_SHA: d56d6a6c1381dc131d493f0713b657f01c98cb80
+      PRODUCT_SHA: effd1f736b36881ba178554d2215c71992d812d0
+      PRODUCT_TREE: 43730885cc911b625752452d6961ccede60e0397
+      WORLD_FILE: crates/core/symtropy-physics/src/world.rs
+      WORLD_BLOB: 037a7faba8bd0a8e07bc1cc9ae7942f43e9f58e0
+      LIB_FILE: crates/core/symtropy-physics/src/lib.rs
+      LIB_BLOB: 852c993fffbabdb9f9c5c6705ec988c6f3d981cd
+      IDENTITY_FILE: crates/core/symtropy-physics/src/identity.rs
+      IDENTITY_BLOB: 0e7d749e7aa4e516dfbd64fb42dc3c93b1310227
+      NETID_TEST_FILE: crates/core/symtropy-physics/tests/net_id_invariants.rs
+      NETID_TEST_BLOB: 397d28de870f224185204f9422d1ca4bc04c5cca
+      BROADPHASE_TEST_FILE: crates/core/symtropy-physics/tests/static_broadphase_lifecycle.rs
+      BROADPHASE_TEST_BLOB: 5f80587a578d52a128233c9ee850d66f81360f81
+      CARGO_TARGET_DIR: /tmp/physics-netid-broadphase-product-q-target
+      REPORT: /tmp/physics-netid-broadphase-product-qualification.txt
+
+    steps:
+      - name: Checkout literal immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.PRODUCT_SHA }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Install exact Rust 1.96 qualification toolchain
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Execute exact transactional identity theorem
+        shell: bash
+        run: |
+          set -u -o pipefail
+          : > "$REPORT"
+          rm -rf -- "$CARGO_TARGET_DIR"
+          fail=0
+          subject_ok=1
+
+          note() { printf '%s\n' "$*" | tee -a "$REPORT"; }
+          gate() {
+            local name="$1"; shift
+            note "BEGIN $name"
+            if "$@"; then
+              note "PASS $name"
+            else
+              local rc=$?
+              note "FAIL $name rc=$rc"
+              fail=1
+            fi
+          }
+
+          note "product_sha=$PRODUCT_SHA"
+          note "product_tree=$PRODUCT_TREE"
+          note "parent_sha=$PARENT_SHA"
+          note "rustc=$(rustc --version)"
+          note "cargo=$(cargo --version)"
+          note "rustfmt=$(rustfmt --version)"
+          note "clippy=$(cargo clippy --version)"
+
+          expected_paths="$(printf '%s\n' "$WORLD_FILE" "$LIB_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE" | sort)"
+          actual_paths="$(git diff --name-only "$PARENT_SHA" "$PRODUCT_SHA" | sort 2>/dev/null || true)"
+
+          if test "$(git rev-parse HEAD)" = "$PRODUCT_SHA" \
+            && test "$(git rev-parse HEAD^)" = "$PARENT_SHA" \
+            && test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE" \
+            && test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1 \
+            && test "$actual_paths" = "$expected_paths" \
+            && test "$(git rev-parse HEAD:$WORLD_FILE)" = "$WORLD_BLOB" \
+            && test "$(git rev-parse HEAD:$LIB_FILE)" = "$LIB_BLOB" \
+            && test "$(git rev-parse HEAD:$IDENTITY_FILE)" = "$IDENTITY_BLOB" \
+            && test "$(git rev-parse HEAD:$NETID_TEST_FILE)" = "$NETID_TEST_BLOB" \
+            && test "$(git rev-parse HEAD:$BROADPHASE_TEST_FILE)" = "$BROADPHASE_TEST_BLOB" \
+            && test -z "$(git status --porcelain=v1 --untracked-files=all)" \
+            && test ! -e target; then
+            note "PASS exact_subject_identity"
+            note "PASS exact_five_path_theorem"
+            note "PASS build_output_isolation_preflight"
+          else
+            note "FAIL exact_subject_identity_or_surface"
+            git status --porcelain=v1 --untracked-files=all | tee -a "$REPORT" || true
+            subject_ok=0
+            fail=1
+          fi
+
+          if test "$subject_ok" -eq 1; then
+            gate exact_owned_file_format \
+              rustfmt +1.96.0 --edition 2024 --check "$WORLD_FILE" "$LIB_FILE" "$IDENTITY_FILE" "$NETID_TEST_FILE" "$BROADPHASE_TEST_FILE"
+            gate transactional_netid_regressions \
+              cargo test --locked -p symtropy-physics --test net_id_invariants
+            gate static_broadphase_regressions \
+              cargo test --locked -p symtropy-physics --test static_broadphase_lifecycle
+            gate full_physics_regression \
+              cargo test --locked -p symtropy-physics
+            gate strict_all_target_clippy \
+              cargo clippy --locked -p symtropy-physics --all-targets -- -D warnings
+            gate all_target_check \
+              cargo check --locked -p symtropy-physics --all-targets
+          else
+            note "SKIP semantic_gates subject_identity_failed"
+          fi
+
+          if test -z "$(git status --porcelain=v1 --untracked-files=all)" \
+            && test ! -e target \
+            && test -d "$CARGO_TARGET_DIR" \
+            && test "$(git rev-parse HEAD)" = "$PRODUCT_SHA" \
+            && test "$(git rev-parse HEAD^{tree})" = "$PRODUCT_TREE" \
+            && test "$(git rev-parse HEAD:$WORLD_FILE)" = "$WORLD_BLOB" \
+            && test "$(git rev-parse HEAD:$LIB_FILE)" = "$LIB_BLOB" \
+            && test "$(git rev-parse HEAD:$IDENTITY_FILE)" = "$IDENTITY_BLOB" \
+            && test "$(git rev-parse HEAD:$NETID_TEST_FILE)" = "$NETID_TEST_BLOB" \
+            && test "$(git rev-parse HEAD:$BROADPHASE_TEST_FILE)" = "$BROADPHASE_TEST_BLOB"; then
+            note "PASS immutable_postflight"
+            note "PASS build_outputs_confined_to_external_target"
+          else
+            note "FAIL immutable_postflight"
+            git status --porcelain=v1 --untracked-files=all | tee -a "$REPORT" || true
+            fail=1
+          fi
+
+          if test "$fail" -eq 0; then note "RESULT TheoremExecutedPass"; else note "RESULT TheoremExecutedFail"; fi
+          exit "$fail"
+
+      - name: Retain exact qualification receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: physics-netid-broadphase-product-${{ env.PRODUCT_SHA }}
+          path: /tmp/physics-netid-broadphase-product-qualification.txt
+          if-no-files-found: error
+          retention-days: 30
