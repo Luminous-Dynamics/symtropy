@@ -44,6 +44,76 @@ def case_index(corpus: dict[str, object]) -> dict[str, dict[str, object]]:
     return indexed
 
 
+def validate_dependency_graph(case: dict[str, object]) -> str:
+    nodes = case["nodes"]
+    assert isinstance(nodes, list)
+    by_id: dict[str, dict[str, object]] = {}
+    for node in nodes:
+        assert isinstance(node, dict)
+        node_id = str(node["id"])
+        if node_id in by_id:
+            return "REJECT_DUPLICATE_NODE"
+        by_id[node_id] = node
+    for node in nodes:
+        for dependency in node["required_dependencies"]:
+            if dependency not in by_id:
+                return "REJECT_UNKNOWN_DEPENDENCY"
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(node_id: str) -> bool:
+        if node_id in visiting:
+            return False
+        if node_id in visited:
+            return True
+        visiting.add(node_id)
+        for dependency in by_id[node_id]["required_dependencies"]:
+            if not visit(str(dependency)):
+                return False
+        visiting.remove(node_id)
+        visited.add(node_id)
+        return True
+
+    for node_id in by_id:
+        if not visit(node_id):
+            return "REJECT_CYCLE"
+    return "VALID"
+
+
+def unavailable_dependency_closure(case: dict[str, object]) -> set[str]:
+    nodes = case["nodes"]
+    assert isinstance(nodes, list)
+    by_id = {str(node["id"]): node for node in nodes}
+    unavailable = {
+        node_id
+        for node_id, node in by_id.items()
+        if node["state"] != "VERIFIED_AVAILABLE"
+    }
+    changed = True
+    while changed:
+        changed = False
+        for node_id, node in by_id.items():
+            if node_id in unavailable:
+                continue
+            if any(str(dep) in unavailable for dep in node["required_dependencies"]):
+                unavailable.add(node_id)
+                changed = True
+    return unavailable
+
+
+def surviving_alternative_groups(
+    case: dict[str, object], unavailable: set[str]
+) -> list[list[str]]:
+    groups = case.get("alternative_groups", [])
+    assert isinstance(groups, list)
+    result: list[list[str]] = []
+    for group in groups:
+        assert isinstance(group, list)
+        if all(str(node_id) not in unavailable for node_id in group):
+            result.append([str(node_id) for node_id in group])
+    return result
+
+
 def demand_bounds(case: dict[str, object]) -> tuple[Fraction, Fraction]:
     population = int(case["population"])
     require(population > 0, f"{case['id']}: population must be positive")
@@ -311,6 +381,137 @@ def main() -> None:
         and evidence["expected"]["last_write_wins"] is False
         and evidence["expected"]["status"] == "BLOCKED_CONFLICTING_EVIDENCE",
         "contradictory observations must remain unresolved without adjudication",
+    )
+
+    graph = corpus["dependency_graph_reference"]
+    require(
+        graph["contract_version"] == "0.1.0",
+        "unexpected dependency-graph contract version",
+    )
+    require(
+        "required dependencies" in graph["edge_semantics"]["required_dependencies"].lower()
+        and "alternative groups" in graph["edge_semantics"]["alternative_groups"].lower()
+        and "reject" in graph["edge_semantics"]["cycle_policy"].lower(),
+        "dependency-graph logic semantics must be explicit",
+    )
+    graph_cases = graph["cases"]
+    assert isinstance(graph_cases, list)
+    graph_by_id: dict[str, dict[str, object]] = {}
+    for graph_case in graph_cases:
+        assert isinstance(graph_case, dict)
+        graph_case_id = str(graph_case["id"])
+        require(
+            graph_case_id not in graph_by_id,
+            f"duplicate dependency graph case id: {graph_case_id}",
+        )
+        graph_by_id[graph_case_id] = graph_case
+    require(len(graph_by_id) == 6, "dependency graph reference case count changed")
+
+    for graph_case_id in (
+        "transitive_shared_bus_outage",
+        "two_nominal_pumps_share_one_failed_source",
+        "independent_manual_fallback_survives",
+        "reported_repair_does_not_restore_service",
+        "dependency_cycle_rejected",
+        "unknown_dependency_rejected",
+    ):
+        require(graph_case_id in graph_by_id, f"missing dependency case: {graph_case_id}")
+
+    cascade = graph_by_id["transitive_shared_bus_outage"]
+    cascade_graph_status = validate_dependency_graph(cascade)
+    cascade_unavailable = unavailable_dependency_closure(cascade)
+    cascade_direct_failed = sorted(
+        str(node["id"])
+        for node in cascade["nodes"]
+        if node["state"] in ("FAILED", "REPORTED_REPAIRED_UNVERIFIED")
+    )
+    cascade_dependents = sorted(cascade_unavailable - set(cascade_direct_failed))
+    require(cascade_graph_status == "VALID", "valid cascade graph rejected")
+    require(
+        cascade_direct_failed == cascade["expected"]["direct_failed"]
+        == ["main-power-bus"],
+        "cascade direct-fault source mismatch",
+    )
+    require(
+        cascade_dependents == cascade["expected"]["dependent_unavailable"]
+        == ["clinic-hygiene", "water-loop", "water-pump"],
+        "transitive outage closure mismatch",
+    )
+    require(
+        "clinic-hygiene" in cascade_unavailable
+        and cascade["expected"]["service_supported"] is False
+        and cascade["expected"]["status"] == "COMMON_MODE_CASCADE",
+        "critical downstream service must reflect shared-bus outage",
+    )
+
+    shared = graph_by_id["two_nominal_pumps_share_one_failed_source"]
+    shared_status = validate_dependency_graph(shared)
+    shared_unavailable = unavailable_dependency_closure(shared)
+    shared_alternatives = surviving_alternative_groups(shared, shared_unavailable)
+    require(shared_status == "VALID", "valid shared-source graph rejected")
+    require(
+        shared_alternatives == shared["expected"]["surviving_alternative_groups"] == [],
+        "nominal redundant pumps incorrectly survive common-source loss",
+    )
+    require(
+        shared["expected"]["service_supported"] is False
+        and shared["expected"]["independent_redundancy"] is False
+        and shared["expected"]["status"] == "NO_QUALIFIED_ALTERNATIVE",
+        "shared power source must invalidate independent-redundancy claim",
+    )
+
+    fallback = graph_by_id["independent_manual_fallback_survives"]
+    fallback_status = validate_dependency_graph(fallback)
+    fallback_unavailable = unavailable_dependency_closure(fallback)
+    fallback_alternatives = surviving_alternative_groups(fallback, fallback_unavailable)
+    require(fallback_status == "VALID", "valid fallback graph rejected")
+    require(
+        fallback_alternatives == fallback["expected"]["surviving_alternative_groups"]
+        == [["manual-pump"]],
+        "qualified independent manual fallback did not survive power loss",
+    )
+    require(
+        fallback["expected"]["service_supported"] is True
+        and fallback["expected"]["status"] == "VERIFIED_FALLBACK_AVAILABLE",
+        "verified fallback state mismatch",
+    )
+
+    repair = graph_by_id["reported_repair_does_not_restore_service"]
+    repair_status = validate_dependency_graph(repair)
+    repair_unavailable = unavailable_dependency_closure(repair)
+    repair_direct = sorted(
+        str(node["id"])
+        for node in repair["nodes"]
+        if node["state"] in ("FAILED", "REPORTED_REPAIRED_UNVERIFIED")
+    )
+    repair_dependents = sorted(repair_unavailable - set(repair_direct))
+    require(repair_status == "VALID", "valid repair-evidence graph rejected")
+    require(
+        repair_direct == repair["expected"]["direct_failed"] == ["controller"]
+        and repair_dependents == repair["expected"]["dependent_unavailable"]
+        == ["pump", "water-service"],
+        "reported but unverified repair incorrectly restored service",
+    )
+    require(
+        repair["expected"]["service_supported"] is False
+        and repair["expected"]["status"] == "REQUALIFICATION_REQUIRED",
+        "repair must remain unqualified until verification",
+    )
+
+    cycle = graph_by_id["dependency_cycle_rejected"]
+    require(
+        validate_dependency_graph(cycle) == cycle["expected"]["status"] == "REJECT_CYCLE",
+        "dependency cycle must be rejected",
+    )
+    unknown_dep = graph_by_id["unknown_dependency_rejected"]
+    require(
+        validate_dependency_graph(unknown_dep)
+        == unknown_dep["expected"]["status"] == "REJECT_UNKNOWN_DEPENDENCY",
+        "undeclared dependency must be rejected",
+    )
+    require(
+        unknown_dep["expected"]["dependency"] == "missing-controller",
+        "unknown dependency diagnostic must name the unresolved edge",
     )
 
     print(f"PASS: synthetic CRASH-BOOT reference corpus; {checks} contract/arithmetic assertions.")
