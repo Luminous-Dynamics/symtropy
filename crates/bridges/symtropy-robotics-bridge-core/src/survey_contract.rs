@@ -1099,8 +1099,8 @@ impl SurveyAdmissionPolicyV1 {
             return Err(SurveyContractErrorV1::InvalidPayload);
         }
         for value in [
-            self.max_horizontal_accuracy_95_m,
-            self.max_vertical_accuracy_95_m,
+            self.max_horizontal_rmse_m,
+            self.max_vertical_rmse_m,
             self.max_volume_standard_uncertainty_m3,
         ] {
             if !value.is_finite() || value < 0.0 {
@@ -1751,6 +1751,41 @@ mod tests {
                 &policy_artifact,
             ),
             Err(SurveyContractErrorV1::VolumeUncertaintyExceeded)
+        );
+    }
+
+    #[test]
+    fn candidate_rejects_horizontal_or_vertical_rmse_over_policy_limit() {
+        let earlier = artifact("earlier-survey");
+        let later = artifact("later-survey");
+        let admission_policy = policy();
+        let policy_artifact = serialized_artifact("policy-artifact", &admission_policy);
+        let mut receipt = qualified_receipt(&earlier, &later);
+        receipt
+            .accuracy_metrics
+            .as_mut()
+            .expect("metrics")
+            .horizontal_rmse_m = 0.06;
+        let receipt_artifact = serialized_artifact("receipt-artifact", &receipt);
+        let candidate = candidate(
+            &earlier,
+            &later,
+            &receipt_artifact,
+            &policy_artifact,
+        );
+
+        assert_eq!(
+            candidate.validate_for_admission(
+                7,
+                &artifact("geometry-before"),
+                "mine-local",
+                &receipt_artifact,
+                &receipt,
+                &evidence_for_admission(),
+                &admission_policy,
+                &policy_artifact,
+            ),
+            Err(SurveyContractErrorV1::AccuracyThresholdExceeded)
         );
     }
 
