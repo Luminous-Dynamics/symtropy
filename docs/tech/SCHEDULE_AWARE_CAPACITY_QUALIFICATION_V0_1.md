@@ -19,7 +19,7 @@ A capacity evidence record binds:
 - observation time, repository-recorded time, validity interval and time-profile ID;
 - source-reported lifecycle status.
 
-The validator checks identity/provenance completeness, revision ordering, status, unit consistency, clock-profile compatibility, future-clock tolerance, freshness at evaluation time, freshness by planned operation start, and complete validity-interval coverage. It preserves event time separately but does not use it as observation time. Repository-recorded time is bookkeeping, not observation time.
+The validator checks identity/provenance completeness, revision ordering, status, unit consistency, clock-profile compatibility, future-clock tolerance, freshness at evaluation time, that each operation window starts at or after evaluation time, freshness by planned operation start, and complete validity-interval coverage. It preserves event time separately but does not use it as observation time. Repository-recorded time is bookkeeping, not observation time.
 
 A validity interval is also half-open. Evidence `[100, 200)` covers an operation `[100, 200)`; it does not cover `[100, 201)`. Future schedules may be published before their `valid_from` time, but still must be fresh at evaluation and remain within the configured observation-age limit at planned start.
 
@@ -60,7 +60,7 @@ Before using real data, freeze a source manifest containing the exact publisher,
 
 ## Qualification gates
 
-- **H0 — deterministic contract:** tests cover invalid/empty windows, incompatible time profiles, future validity, expired evidence, evidence that goes stale before use, half-open endpoint behavior, duplicate/ambiguous evidence, adjacent/non-overlapping bookings, overlapping overcommitment, unit mismatch, conflicts, replay determinism and exact report lineage.
+- **H0 — deterministic contract:** tests cover invalid/empty/already-started windows, incompatible time profiles, future validity, expired evidence, evidence that goes stale before use, half-open endpoint behavior, duplicate/ambiguous evidence, adjacent/non-overlapping bookings, overlapping overcommitment, unit mismatch, conflicts, replay determinism and exact report lineage.
 - **H1 — frozen source snapshot:** acquire only rights-reviewed data; preserve exact source bytes and transformations. No operational capacity should be inferred from aggregate national throughput.
 - **H2 — offline corridor replay:** compare simulated schedules with a separately computed verifier and historical outcomes where compatible evidence exists. Preserve unknown/stale/conflicted states.
 - **H3 — operator and safety review:** infrastructure managers and qualified operators validate resource identities, capacity units, operating windows and constraints.
@@ -74,7 +74,7 @@ The Rust tests are synthetic and offline. They intentionally cover:
 - evidence expiring before the planned end;
 - evidence fresh at evaluation but stale at planned start;
 - equal half-open boundaries;
-- zero/reversed windows and incompatible time profiles;
+- zero/reversed/already-started windows and incompatible time profiles;
 - non-overlapping windows reusing capacity;
 - intersecting assignments exceeding capacity;
 - conflicting current evidence for the same resource;
