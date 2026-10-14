@@ -694,15 +694,18 @@ fn evaluate_manifest(
     // producer-declared aggregate. This is conservative aggregation, not a
     // re-evaluation of the underlying engineering claim.
     if declared_status.as_deref() != Some(STATUS_PASS) {
-        let declared = declared_status.as_deref().unwrap_or(STATUS_BLOCKED);
+        let declared = declared_status
+            .as_deref()
+            .unwrap_or(STATUS_BLOCKED)
+            .to_string();
         let highest_claim_status = claims
             .iter()
             .filter(|claim| claim["mandatory"].as_bool() == Some(true))
             .filter_map(|claim| claim["status"].as_str())
             .max_by_key(|status| status_precedence(status))
-            .unwrap_or(declared);
+            .unwrap_or(declared.as_str());
 
-        if status_precedence(highest_claim_status) > status_precedence(declared) {
+        if status_precedence(highest_claim_status) > status_precedence(&declared) {
             let issue = format!(
                 "declared aggregate status {declared:?} understates mandatory claim state {highest_claim_status:?}; conservative status takes precedence"
             );
@@ -716,7 +719,7 @@ fn evaluate_manifest(
             );
         }
 
-        return report(true, case_id, declared_status, declared, 0, Vec::new());
+        return report(true, case_id, declared_status, &declared, 0, Vec::new());
     }
 
     let Some(expected_claims) = expected_claims else {
@@ -1501,7 +1504,7 @@ mod tests {
 
     #[test]
     fn cli_pass_requires_pinned_requirements_and_emits_provenance_digests() {
-        let (schema, manifest, root, expected) = set_up_pass_manifest();
+        let (_schema, manifest, root, expected) = set_up_pass_manifest();
 
         let manifest_path = root.join("manifest.json");
         let manifest_bytes = serde_json::to_vec_pretty(&manifest).expect("serialize manifest");
