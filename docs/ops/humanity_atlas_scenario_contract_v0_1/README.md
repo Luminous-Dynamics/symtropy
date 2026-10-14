@@ -69,6 +69,14 @@ Do not collapse source reliability, causal-edge confidence, forecast probability
 
 The real-artifact workflow must check out `Luminous-Dynamics/luminous-dynamics`, which is a private repository. The `GITHUB_TOKEN` issued to this Symtropy workflow does not automatically grant cross-repository access.
 
+For reproducibility, the qualification currently pins these source revisions rather than resolving mutable branches at runtime:
+
+- Producer (`Luminous-Dynamics/luminous-dynamics`): `b59b99621cdb3699eda32aa39f152bd3b693a534` ([commit](https://github.com/Luminous-Dynamics/luminous-dynamics/commit/b59b99621cdb3699eda32aa39f152bd3b693a534)).
+- Consumer (`Luminous-Dynamics/sol-atlas-leptos`): `d29742028e6d8b5c9b54bac7ae53721ecee3ac13` ([commit](https://github.com/Luminous-Dynamics/sol-atlas-leptos/commit/d29742028e6d8b5c9b54bac7ae53721ecee3ac13)).
+- Adapter: the exact Symtropy PR head that triggered the run.
+
+The workflow asserts all three checked-out revisions before compilation, and the qualification packet records the repository heads. When either upstream branch advances, update its pin deliberately in the workflow and README together, then re-check the producer/consumer schema byte identity and the full qualification path. A green run against older pinned commits proves only that exact combination, not the latest upstream branch heads.
+
 Before the real-artifact qualification can run in GitHub Actions, configure the repository or organization Actions secret `LUMINOUS_MONOREPO_READ_TOKEN` as a narrowly scoped read-only credential (fine-grained personal access token or equivalent GitHub App token) with **Contents: read** access to `Luminous-Dynamics/luminous-dynamics`. Do not paste the token into a workflow file, issue, or pull-request comment. The workflow passes the secret only to the producer checkout and fails closed when it is missing or cannot read the private repository.
 
 When access is unavailable, the workflow records `qualification_state: not_passed` and a blocker reason. That outcome is **blocked/not qualified**, not a skipped-as-success or a pass. A successful checkout alone is also not qualification: the real simulator capture, schema validation, independent Sol-Atlas consumer, exact artifact digests and final evidence packet must all complete.

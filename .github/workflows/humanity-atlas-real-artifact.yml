@@ -74,7 +74,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: Luminous-Dynamics/luminous-dynamics
-          ref: feat/humanity-atlas-tech-tree-export-v0-1
+          ref: b59b99621cdb3699eda32aa39f152bd3b693a534 # pinned producer revision
           path: luminous-dynamics
           token: ${{ secrets.LUMINOUS_MONOREPO_READ_TOKEN }}
           persist-credentials: false
@@ -83,7 +83,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: Luminous-Dynamics/sol-atlas-leptos
-          ref: feat/humanity-atlas-run-consumer-v0-1
+          ref: d29742028e6d8b5c9b54bac7ae53721ecee3ac13 # pinned standalone consumer revision
           path: sol-atlas-leptos
           persist-credentials: false
 
@@ -95,13 +95,22 @@ jobs:
           path: symtropy
           persist-credentials: false
 
-      - name: Assert exact Symtropy adapter revision
+      - name: Assert exact integration source revisions
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SYMTROPY_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_PRODUCER_SHA: b59b99621cdb3699eda32aa39f152bd3b693a534
+          EXPECTED_CONSUMER_SHA: d29742028e6d8b5c9b54bac7ae53721ecee3ac13
         run: |
-          actual="$(git -C symtropy rev-parse HEAD)"
-          printf 'expected=%s\nactual=%s\n' "$EXPECTED_SHA" "$actual"
-          test "$actual" = "$EXPECTED_SHA"
+          for entry in \
+            "symtropy:$EXPECTED_SYMTROPY_SHA" \
+            "luminous-dynamics:$EXPECTED_PRODUCER_SHA" \
+            "sol-atlas-leptos:$EXPECTED_CONSUMER_SHA"; do
+            checkout="${entry%%:*}"
+            expected="${entry#*:}"
+            actual="$(git -C "$checkout" rev-parse HEAD)"
+            printf '%s expected=%s\n%s actual=%s\n' "$checkout" "$expected" "$checkout" "$actual"
+            test "$actual" = "$expected"
+          done
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@3fc1e40d4c4ce3007de028907c886bc3996ce2ea # 1.96.0
