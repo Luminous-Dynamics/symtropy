@@ -170,7 +170,8 @@ def add_evidence_and_known_values(doc: dict, values: dict[str, float] | None = N
         "artifact_id": "sample-artifact",
         "path": "sample.txt",
         "sha256": hashlib.sha256(raw).hexdigest(),
-        "purpose": "synthetic verifier test input",
+        "role": "outcome-evidence",
+        "purpose": "Synthetic verifier test input; contents are test-only.",
         "collected_at": "2026-10-13T10:30:00Z",
     }]
     for index, constraint in enumerate(doc["constraints"]):
@@ -182,7 +183,8 @@ def add_evidence_and_known_values(doc: dict, values: dict[str, float] | None = N
             "artifact_id": artifact_id,
             "path": artifact_path,
             "sha256": hashlib.sha256(preregistration_bytes).hexdigest(),
-            "purpose": "pre-registration",
+            "role": "pre-registration",
+            "purpose": "Constraint threshold pre-registration test fixture.",
             "collected_at": constraint["predeclared_at"],
         })
     values = values or {"outage_hours": 3.0, "critical_outage_hours": 0.5}
@@ -392,7 +394,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             materialize_artifact_files(doc, root)
             prereg_artifact = next(
                 artifact for artifact in doc["artifacts"]
-                if artifact["purpose"] == "pre-registration"
+                if artifact["role"] == "pre-registration"
             )
             prereg_path = root / prereg_artifact["path"]
             sample_artifact = next(
@@ -419,7 +421,7 @@ class FlourishingAssessmentTests(unittest.TestCase):
             materialize_artifact_files(doc, root)
             prereg_artifact = next(
                 artifact for artifact in doc["artifacts"]
-                if artifact["purpose"] == "pre-registration"
+                if artifact["role"] == "pre-registration"
             )
             sample_artifact = next(
                 artifact for artifact in doc["artifacts"]
@@ -658,6 +660,16 @@ class FlourishingAssessmentTests(unittest.TestCase):
         doc = add_evidence_and_known_values(assessment())
         uncertainty = doc["alternatives"][0]["outcomes"][0]["uncertainty"]
         uncertainty["interpretation"] = "coverage_interval"
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        validator = jsonschema.Draft202012Validator(
+            schema, format_checker=jsonschema.FormatChecker()
+        )
+        self.assertTrue(list(validator.iter_errors(doc)))
+
+    @unittest.skipIf(jsonschema is None, "jsonschema dependency is installed by the CI workflow")
+    def test_schema_rejects_unknown_artifact_role(self) -> None:
+        doc = add_evidence_and_known_values(assessment())
+        doc["artifacts"][0]["role"] = "trusted-source-ish"
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         validator = jsonschema.Draft202012Validator(
             schema, format_checker=jsonschema.FormatChecker()
