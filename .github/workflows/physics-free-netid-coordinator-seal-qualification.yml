@@ -1,0 +1,206 @@
+name: PHYS-ID-01B2B1 Free NetId Coordinator Seal Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-free-netid-coordinator-seal-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-free-netid-coordinator-seal-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: 1349e4357bee1149c8334748c507b8ae7357aafd
+  B2A_PARENT: 317b34d02b61e69c4904dba78c13ecf47fb8c669
+
+jobs:
+  qualify:
+    name: Frozen PHYS-ID-01B2B1 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact ancestry and delta
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${B2A_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${B2A_PARENT}..${PRODUCT_HEAD}")" = "4"
+          mapfile -t changed < <(git diff --name-only "${B2A_PARENT}..${PRODUCT_HEAD}" | sort)
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_FREE_NETID_COORDINATOR_SEAL_V01.md"
+            "crates/core/symtropy-physics/src/identity_mutation.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/net_identity_mutation_v01.rs"
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          for i in "${!changed[@]}"; do test "${changed[$i]}" = "${expected_sorted[$i]}"; done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/identity_mutation.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/tests/net_identity_mutation_v01.rs \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_FREE_NETID_COORDINATOR_SEAL_V01.md \
+            > "${RUNNER_TEMP}/phys-id01b2b1-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Compile entire workspace after public API seal
+        id: workspace_check
+        run: cargo check --workspace --locked --all-targets
+
+      - name: Run authority-owned identity corpus
+        id: authority
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run migrated mutation corpus
+        id: mutation
+        run: cargo test -p symtropy-physics --locked --test net_identity_mutation_v01
+
+      - name: Run complete physics library regression
+        id: physics
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run replay harness
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Run ECON carrier compatibility
+        id: econ
+        run: cargo test -p symtropy-core --locked --test econ_live_carrier_identity
+
+      - name: Run strict relevant Clippy
+        id: clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-physics --locked --all-targets --all-features -- -D warnings
+          cargo clippy -p symtropy-core --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit public NetId coordinator seal
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          lib=crates/core/symtropy-physics/src/lib.rs
+          mutation=crates/core/symtropy-physics/src/identity_mutation.rs
+          tests=crates/core/symtropy-physics/tests/net_identity_mutation_v01.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_FREE_NETID_COORDINATOR_SEAL_V01.md
+
+          grep -Fq 'mod identity_mutation;' "${lib}"
+          if grep -Fq 'pub mod identity_mutation;' "${lib}"; then
+            echo 'identity_mutation module remains public' >&2
+            exit 1
+          fi
+          grep -Fq 'pub use identity_mutation::NetIdentityMutationError;' "${lib}"
+          if grep -Eq 'pub use identity_mutation::.*assign_net_id_checked|pub use identity_mutation::.*add_bodies_deterministic_checked' "${lib}"; then
+            echo 'free coordinators remain publicly re-exported' >&2
+            exit 1
+          fi
+          grep -Fq 'pub(crate) fn assign_net_id_checked' "${mutation}"
+          grep -Fq 'pub(crate) fn add_bodies_deterministic_checked' "${mutation}"
+          if grep -Eq '^[[:space:]]*pub fn (assign_net_id_checked|add_bodies_deterministic_checked)' "${mutation}"; then
+            echo 'free coordinator remains public' >&2
+            exit 1
+          fi
+          if grep -Eq '\b(assign_net_id_checked|add_bodies_deterministic_checked)\b' "${tests}"; then
+            echo 'public integration corpus still calls low-level coordinator directly' >&2
+            exit 1
+          fi
+          grep -Fq 'PhysicsWorld::set_net_id' "${contract}"
+          grep -Fq 'PhysicsWorld::add_bodies_deterministic' "${contract}"
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          WORKSPACE_CHECK: ${{ steps.workspace_check.outcome }}
+          AUTHORITY: ${{ steps.authority.outcome }}
+          MUTATION: ${{ steps.mutation.outcome }}
+          PHYSICS: ${{ steps.physics.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          ECON: ${{ steps.econ.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-id01b2b1-free-netid-coordinator-seal-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = ["SUBJECT","SOURCE","FMT","WORKSPACE_CHECK","AUTHORITY","MUTATION","PHYSICS","REPLAY","ECON","CLIPPY","AUDIT","POSTFLIGHT"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "PHYS-ID-01B2B1-free-netid-coordinator-seal-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "b2a_parent": os.environ["B2A_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "free checked NetId coordinators are crate-internal and public regression behavior flows through PhysicsAuthorityWorld; raw PhysicsWorld identity mutators remain outside the claim",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          PY
+          cp "${RUNNER_TEMP}/phys-id01b2b1-source-sha256.txt" "${RUNNER_TEMP}/phys-id01b2b1-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-id01b2b1-free-netid-coordinator-seal-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-id01b2b1-free-netid-coordinator-seal-v01.json
+            ${{ runner.temp }}/phys-id01b2b1-free-netid-coordinator-seal-v01.json.sha256
+            ${{ runner.temp }}/phys-id01b2b1-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
