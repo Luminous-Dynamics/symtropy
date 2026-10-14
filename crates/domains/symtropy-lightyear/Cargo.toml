@@ -3,7 +3,7 @@ name = "symtropy-lightyear"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-description = "Lightyear integration for Symtropy — prediction, rollback, interpolation over Iroh QUIC"
+description = "Symtropy Lightyear multiplayer scaffold; live transport and replication are not yet qualified"
 
 [dependencies]
 # Lightyear netcode. Must stay >= 0.28 (first release supporting bevy 0.19,
