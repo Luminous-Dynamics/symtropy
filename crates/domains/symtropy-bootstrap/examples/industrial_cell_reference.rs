@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Deterministic reference campaign for an autonomous industrial cell.
 //!
 //! All quantities in this example are synthetic, dimensionless planning fixtures.
