@@ -109,7 +109,9 @@ fn analytical_cantilever_reference_matches_declared_oracle() {
     assert!(
         close_relative(
             computed.support_stress_pa,
-            expected["support_maximum_bending_stress_Pa"].as_f64().unwrap(),
+            expected["support_maximum_bending_stress_Pa"]
+                .as_f64()
+                .unwrap(),
             tolerance,
         ),
         "support bending stress mismatch: computed={}",

@@ -29,8 +29,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env,
-    fs,
+    env, fs,
     path::{Component, Path, PathBuf},
     process::ExitCode,
 };
@@ -241,7 +240,8 @@ fn usage() -> String {
 }
 
 fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String), String> {
-    let bytes = fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let bytes =
+        fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
     let expected: ExpectedClaimsFile = serde_json::from_slice(&bytes).map_err(|error| {
         format!(
             "{} is not a valid expected-claims contract: {error}",
@@ -284,14 +284,19 @@ fn read_expected_claims_file(path: &Path) -> Result<(ExpectedClaimsFile, String)
             return Err(format!("malformed expected model SHA-256: {digest}"));
         }
         if !model_digests.insert(digest) {
-            return Err(format!("duplicate expected model artifact SHA-256: {digest}"));
+            return Err(format!(
+                "duplicate expected model artifact SHA-256: {digest}"
+            ));
         }
     }
     if !expected.rule_pack.is_object() {
         return Err("expected-claims rule_pack must be an object".to_string());
     }
     if !expected.toolchain.is_array()
-        || expected.toolchain.as_array().is_some_and(|tools| tools.is_empty())
+        || expected
+            .toolchain
+            .as_array()
+            .is_some_and(|tools| tools.is_empty())
     {
         return Err("expected-claims toolchain must be a non-empty array".to_string());
     }
@@ -474,7 +479,10 @@ fn evaluate_manifest(
         if artifacts_by_id.insert(id, artifact).is_some() {
             issues.push(format!("duplicate artifact_id: {id}"));
         }
-        artifacts_by_digest.entry(digest).or_default().push(artifact);
+        artifacts_by_digest
+            .entry(digest)
+            .or_default()
+            .push(artifact);
     }
 
     let toolchain = manifest["toolchain"]
@@ -520,15 +528,18 @@ fn evaluate_manifest(
             issues.push(format!("duplicate claim_id: {id}"));
         }
 
-        if claim["status"].as_str().is_some_and(|status| {
-            status == STATUS_PASS || status == STATUS_FAIL
-        }) {
+        if claim["status"]
+            .as_str()
+            .is_some_and(|status| status == STATUS_PASS || status == STATUS_FAIL)
+        {
             let Some(tool_id) = claim["tool_id"].as_str() else {
                 issues.push(format!("evaluated claim {id} has no tool_id"));
                 continue;
             };
             let Some(tool) = tools_by_id.get(tool_id) else {
-                issues.push(format!("evaluated claim {id} references unknown tool_id: {tool_id}"));
+                issues.push(format!(
+                    "evaluated claim {id} references unknown tool_id: {tool_id}"
+                ));
                 continue;
             };
 
@@ -662,14 +673,7 @@ fn evaluate_manifest(
     }
 
     if !issues.is_empty() {
-        return report(
-            true,
-            case_id,
-            declared_status,
-            STATUS_BLOCKED,
-            0,
-            issues,
-        );
+        return report(true, case_id, declared_status, STATUS_BLOCKED, 0, issues);
     }
 
     // A stronger mandatory claim state must not be hidden by a weaker
@@ -698,14 +702,7 @@ fn evaluate_manifest(
             );
         }
 
-        return report(
-            true,
-            case_id,
-            declared_status,
-            declared,
-            0,
-            Vec::new(),
-        );
+        return report(true, case_id, declared_status, declared, 0, Vec::new());
     }
 
     let Some(expected_claims) = expected_claims else {
@@ -748,8 +745,11 @@ fn evaluate_manifest(
                 .map(ToString::to_string)
         })
         .collect();
-    let expected_model_artifact_digests: BTreeSet<String> =
-        expected_claims.model_artifact_sha256.iter().cloned().collect();
+    let expected_model_artifact_digests: BTreeSet<String> = expected_claims
+        .model_artifact_sha256
+        .iter()
+        .cloned()
+        .collect();
 
     let expected_schema_sha256 = sha256_hex(EMBEDDED_SCHEMA.as_bytes());
     if expected_claims.schema_sha256 != expected_schema_sha256
@@ -788,7 +788,8 @@ fn evaluate_manifest(
             STATUS_INSUFFICIENT_EVIDENCE,
             0,
             vec![
-                "verifier executable digest differs from the independently pinned contract".to_string(),
+                "verifier executable digest differs from the independently pinned contract"
+                    .to_string(),
             ],
         );
     }
@@ -935,9 +936,7 @@ fn evaluate_manifest(
                 expected.claim_id
             ));
         }
-        if actual["acceptance_criteria"].as_str()
-            != Some(expected.acceptance_criteria.as_str())
-        {
+        if actual["acceptance_criteria"].as_str() != Some(expected.acceptance_criteria.as_str()) {
             contract_issues.push(format!(
                 "mandatory claim {} differs from the pinned acceptance criteria",
                 expected.claim_id
@@ -992,20 +991,12 @@ fn evaluate_manifest(
                 verified_count,
                 Vec::new(),
             );
-            result.evidence_integrity_status =
-                STATUS_EVIDENCE_INTEGRITY_VERIFIED.to_string();
+            result.evidence_integrity_status = STATUS_EVIDENCE_INTEGRITY_VERIFIED.to_string();
             result
-        },
+        }
         Err(mut artifact_issues) => {
             issues.append(&mut artifact_issues);
-            report(
-                true,
-                case_id,
-                declared_status,
-                STATUS_BLOCKED,
-                0,
-                issues,
-            )
+            report(true, case_id, declared_status, STATUS_BLOCKED, 0, issues)
         }
     }
 }
@@ -1048,7 +1039,10 @@ fn referenced_digests(manifest: &Value) -> BTreeSet<String> {
     }
 
     for tool in manifest["toolchain"].as_array().into_iter().flatten() {
-        for field in ["executable_or_container_sha256", "configuration_artifact_sha256"] {
+        for field in [
+            "executable_or_container_sha256",
+            "configuration_artifact_sha256",
+        ] {
             if let Some(digest) = tool.get(field).and_then(Value::as_str) {
                 result.insert(digest.to_string());
             }
@@ -1057,7 +1051,12 @@ fn referenced_digests(manifest: &Value) -> BTreeSet<String> {
 
     for claim in manifest["claims"].as_array().into_iter().flatten() {
         for field in ["input_artifact_sha256", "output_artifact_sha256"] {
-            for digest in claim[field].as_array().into_iter().flatten().filter_map(Value::as_str) {
+            for digest in claim[field]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+            {
                 result.insert(digest.to_string());
             }
         }
@@ -1089,7 +1088,9 @@ fn verify_local_artifacts(
 
     for digest in digests {
         let Some(artifact_records) = artifacts_by_digest.get(digest.as_str()) else {
-            issues.push(format!("referenced digest has no artifact record: {digest}"));
+            issues.push(format!(
+                "referenced digest has no artifact record: {digest}"
+            ));
             continue;
         };
 
@@ -1160,14 +1161,13 @@ fn safe_local_artifact_path(root: &Path, uri: &str) -> Result<PathBuf, String> {
 
     let relative = Path::new(uri);
     if relative.is_absolute() {
-        return Err(format!(
-            "absolute artifact paths are forbidden: {uri:?}"
-        ));
+        return Err(format!("absolute artifact paths are forbidden: {uri:?}"));
     }
 
-    if relative.components().any(|component| {
-        !matches!(component, Component::Normal(_))
-    }) {
+    if relative
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
         return Err(format!(
             "artifact path traversal or non-normal component is forbidden: {uri:?}"
         ));
@@ -1296,14 +1296,17 @@ mod tests {
         manifest["rule_pack"]["status"] = json!("reviewed_for_use");
         manifest["evidence_artifacts"][0]["sha256"] = json!(digest);
         manifest["evidence_artifacts"][0]["uri"] = json!("model.bin");
-        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "tool-executable",
-            "media_type": "application/octet-stream",
-            "sha256": tool_digest,
-            "role": "other",
-            "uri": "tool.bin",
-            "retention_class": "test-only"
-        }));
+        manifest["evidence_artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "artifact_id": "tool-executable",
+                "media_type": "application/octet-stream",
+                "sha256": tool_digest,
+                "role": "other",
+                "uri": "tool.bin",
+                "retention_class": "test-only"
+            }));
         manifest["toolchain"] = json!([{
             "tool_id": "synthetic-tool",
             "name": "Synthetic Test Tool",
@@ -1341,10 +1344,16 @@ mod tests {
             mandatory_claims: vec![ExpectedClaimContract {
                 claim_id: "example-structural-claim".to_string(),
                 claim_type: "structural_analysis".to_string(),
-                statement: manifest["claims"][0]["statement"].as_str().unwrap().to_string(),
+                statement: manifest["claims"][0]["statement"]
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
                 subject_element_ids: Vec::new(),
                 requirement: Value::Null,
-                tool_id: manifest["claims"][0]["tool_id"].as_str().unwrap().to_string(),
+                tool_id: manifest["claims"][0]["tool_id"]
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
                 input_artifact_sha256: vec![
                     manifest["claims"][0]["input_artifact_sha256"][0]
                         .as_str()
@@ -1451,8 +1460,8 @@ mod tests {
         fs::write(&manifest_path, &manifest_bytes).expect("write manifest");
 
         let requirements_path = root.join("requirements.json");
-        let requirements_bytes = serde_json::to_vec_pretty(&expected)
-            .expect("serialize requirements");
+        let requirements_bytes =
+            serde_json::to_vec_pretty(&expected).expect("serialize requirements");
         fs::write(&requirements_path, &requirements_bytes).expect("write requirements");
         let expected_digest = sha256_hex(&requirements_bytes);
 
@@ -1484,8 +1493,14 @@ mod tests {
             Some(expected.verifier_binary_sha256.as_str())
         );
         let manifest_digest = sha256_hex(&manifest_bytes);
-        assert_eq!(report.manifest_sha256.as_deref(), Some(manifest_digest.as_str()));
-        assert_eq!(report.expected_claims_sha256.as_deref(), Some(expected_digest.as_str()));
+        assert_eq!(
+            report.manifest_sha256.as_deref(),
+            Some(manifest_digest.as_str())
+        );
+        assert_eq!(
+            report.expected_claims_sha256.as_deref(),
+            Some(expected_digest.as_str())
+        );
         assert!(report.expected_claims_digest_pinned);
         fs::remove_dir_all(root).expect("clean temp dir");
     }
@@ -1519,9 +1534,12 @@ mod tests {
             result.evidence_integrity_status,
             STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
         );
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("understates mandatory claim state")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("understates mandatory claim state") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1539,7 +1557,12 @@ mod tests {
         let (schema, manifest, root, expected) = set_up_pass_manifest();
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), false, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| issue.contains("--expected-claims-sha256")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("--expected-claims-sha256"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1564,17 +1587,30 @@ mod tests {
         manifest["claims"][0]["tool_id"] = json!("unregistered-tool");
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("unknown tool_id")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("unknown tool_id"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
     #[test]
     fn evaluated_claim_requires_tool_executable_digest() {
         let (schema, mut manifest, root, expected) = set_up_pass_manifest();
-        manifest["toolchain"][0].as_object_mut().unwrap().remove("executable_or_container_sha256");
+        manifest["toolchain"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("executable_or_container_sha256");
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("no executable/container digest")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("no executable/container digest"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1596,15 +1632,24 @@ mod tests {
 
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("no edition or effective_from date")
-        }));
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("no clause_or_location")
-        }));
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("unresolved or restricted rights status")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("no edition or effective_from date") })
+        );
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("no clause_or_location") })
+        );
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("unresolved or restricted rights status") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1625,14 +1670,17 @@ mod tests {
             json!("synthetic clause 1.1");
         manifest["rule_pack"]["source_references"][0]["rights_status"] = json!("public");
         manifest["rule_pack"]["source_references"][0]["source_sha256"] = json!(source_digest);
-        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "rule-source-snapshot",
-            "media_type": "application/octet-stream",
-            "sha256": source_digest,
-            "role": "other",
-            "uri": "rule-source.bin",
-            "retention_class": "test-only"
-        }));
+        manifest["evidence_artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "artifact_id": "rule-source-snapshot",
+                "media_type": "application/octet-stream",
+                "sha256": source_digest,
+                "role": "other",
+                "uri": "rule-source.bin",
+                "retention_class": "test-only"
+            }));
         manifest["claims"][0]["claim_type"] = json!("code_compliance");
         manifest["claims"][0]["requirement"] = json!({
             "requirement_id": "SYNTHETIC-CLAUSE-1.1",
@@ -1664,10 +1712,12 @@ mod tests {
         });
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result
-            .issues
-            .iter()
-            .any(|issue| issue.contains("source absent from the rule pack")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("source absent from the rule pack"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1682,17 +1732,22 @@ mod tests {
             requirement: Value::Null,
             tool_id: "synthetic-tool".to_string(),
             input_artifact_sha256: vec![
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             ],
             output_artifact_sha256: vec![
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             ],
             validity_domain: "test-only".to_string(),
             acceptance_criteria: "test-only".to_string(),
         });
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| issue.contains("mandatory claim set")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("mandatory claim set"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1707,7 +1762,12 @@ mod tests {
         });
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("has no source_sha256")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("has no source_sha256"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1718,14 +1778,17 @@ mod tests {
         fs::write(root.join("source.bin"), source_bytes).expect("write source fixture");
         let source_digest = sha256_hex(source_bytes);
         manifest["rule_pack"]["source_references"][0]["source_sha256"] = json!(source_digest);
-        manifest["evidence_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "rule-source-snapshot",
-            "media_type": "application/octet-stream",
-            "sha256": source_digest,
-            "role": "other",
-            "uri": "source.bin",
-            "retention_class": "test-only"
-        }));
+        manifest["evidence_artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "artifact_id": "rule-source-snapshot",
+                "media_type": "application/octet-stream",
+                "sha256": source_digest,
+                "role": "other",
+                "uri": "source.bin",
+                "retention_class": "test-only"
+            }));
         expected.rule_pack = manifest["rule_pack"].clone();
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
@@ -1754,9 +1817,12 @@ mod tests {
             result.evidence_integrity_status,
             STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
         );
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("pinned output artifact digests")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("pinned output artifact digests") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1767,9 +1833,12 @@ mod tests {
             json!("a weakened criterion that was never independently approved");
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("pinned acceptance criteria")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("pinned acceptance criteria") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1784,9 +1853,12 @@ mod tests {
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("pinned input artifact digests")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("pinned input artifact digests") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1803,9 +1875,12 @@ mod tests {
 
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("model artifact digest set")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("model artifact digest set") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1821,9 +1896,12 @@ mod tests {
             result.evidence_integrity_status,
             STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
         );
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("embedded schema digest")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("embedded schema digest") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1839,9 +1917,12 @@ mod tests {
             result.evidence_integrity_status,
             STATUS_EVIDENCE_INTEGRITY_NOT_VERIFIED
         );
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("verifier executable digest")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("verifier executable digest") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1851,9 +1932,12 @@ mod tests {
         manifest["model"]["revision_id"] = json!("substituted-model-revision");
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_INSUFFICIENT_EVIDENCE);
-        assert!(result.issues.iter().any(|issue| {
-            issue.contains("exact model object")
-        }));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| { issue.contains("exact model object") })
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1870,7 +1954,12 @@ mod tests {
         manifest["claims"][0]["output_artifact_sha256"] = json!([digest]);
         let result = evaluate_manifest(&schema, &manifest, Some(&expected), true, Some(&root));
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("SHA-256 mismatch")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("SHA-256 mismatch"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1890,8 +1979,7 @@ mod tests {
 
         let root = temp_dir("link-root");
         let target_root = temp_dir("link-target");
-        fs::write(target_root.join("target.bin"), b"fixture bytes")
-            .expect("write test target");
+        fs::write(target_root.join("target.bin"), b"fixture bytes").expect("write test target");
         symlink(target_root.join("target.bin"), root.join("alias.bin"))
             .expect("create test file link");
         let canonical_root = fs::canonicalize(&root).expect("canonical temp root");
