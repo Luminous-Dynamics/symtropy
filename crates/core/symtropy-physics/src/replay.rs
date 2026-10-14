@@ -119,6 +119,11 @@ pub struct BodySnapshot<const D: usize> {
     pub angular_velocity: [[u64; D]; D],
     pub sleeping: bool,
     pub sleep_counter: u32,
+    pub thermal_temperature_kelvin: Option<u64>,
+    pub thermal_mass_kg: Option<u64>,
+    pub thermal_specific_heat_capacity: Option<u64>,
+    pub thermal_conductivity: Option<u64>,
+    pub thermal_emissivity: Option<u64>,
 }
 
 impl<const D: usize> BodySnapshot<D> {
@@ -134,6 +139,24 @@ impl<const D: usize> BodySnapshot<D> {
         let angular_velocity =
             std::array::from_fn(|r| std::array::from_fn(|c| ang[(r, c)].to_bits()));
 
+        let (
+            thermal_temperature_kelvin,
+            thermal_mass_kg,
+            thermal_specific_heat_capacity,
+            thermal_conductivity,
+            thermal_emissivity,
+        ) = if let Some(thermal) = body.thermal {
+            (
+                Some(thermal.state.temperature_kelvin.to_bits()),
+                Some(thermal.thermal_mass_kg.to_bits()),
+                Some(thermal.material.specific_heat_capacity.to_bits()),
+                Some(thermal.material.thermal_conductivity.to_bits()),
+                Some(thermal.material.emissivity.to_bits()),
+            )
+        } else {
+            (None, None, None, None, None)
+        };
+
         Self {
             handle: body.handle,
             body_type: body.body_type,
@@ -143,6 +166,11 @@ impl<const D: usize> BodySnapshot<D> {
             angular_velocity,
             sleeping: body.sleeping,
             sleep_counter: body.sleep_counter,
+            thermal_temperature_kelvin,
+            thermal_mass_kg,
+            thermal_specific_heat_capacity,
+            thermal_conductivity,
+            thermal_emissivity,
         }
     }
 }
