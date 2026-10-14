@@ -2063,6 +2063,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn metrics(
         operator: u64,
         user_cash: u64,
@@ -2976,7 +2977,7 @@ mod tests {
             validate_cargo_transfer_capacity_plan(
                 &[first.clone(), second.clone()],
                 &[edge],
-                &[budget.clone()],
+                std::slice::from_ref(&budget),
             ),
             Err(CargoError::TransferCapacityExceeded)
         );
@@ -2997,7 +2998,7 @@ mod tests {
         let binding = cargo_transfer_resource_binding();
         assert_eq!(
             validate_cargo_transfer_capacity_plan(
-                &[binding.clone()],
+                std::slice::from_ref(&binding),
                 &[road_rail_transfer_edge()],
                 &[],
             ),
@@ -3022,9 +3023,9 @@ mod tests {
         let budget = equipment_capacity("hub-cross-dock-crane-3", 2, QuantityUnit::Shipments);
         assert_eq!(
             validate_cargo_transfer_capacity_plan(
-                &[binding.clone()],
+                std::slice::from_ref(&binding),
                 &[edge.clone(), edge.clone()],
-                &[budget.clone()],
+                std::slice::from_ref(&budget),
             ),
             Err(CargoError::TransferCapacityPlanInvalid)
         );
@@ -3034,8 +3035,8 @@ mod tests {
         assert_eq!(
             validate_cargo_transfer_capacity_plan(
                 &[missing_scope],
-                &[edge.clone()],
-                &[budget.clone()],
+                std::slice::from_ref(&edge),
+                std::slice::from_ref(&budget),
             ),
             Err(CargoError::TransferResourceBindingInvalid)
         );
