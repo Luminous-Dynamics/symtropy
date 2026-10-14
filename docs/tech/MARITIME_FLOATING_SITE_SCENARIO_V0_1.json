@@ -1,0 +1,226 @@
+{
+  "schema_id": "luminous.symtropy.maritime-floating-site-scenario",
+  "schema_version": "0.1.0",
+  "scenario_id": "MARITIME-FLOATING-SITE-SYNTH-001",
+  "scenario_revision": 1,
+  "status": {
+    "kind": "SpecificationOnly",
+    "execution_performed": false,
+    "engine_capability_admission": "NotAssessed",
+    "physical_validation": "None",
+    "external_approval": "None"
+  },
+  "provenance": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/1612",
+    "specification_path": "docs/tech/MARITIME_FLOATING_SITE_SCENARIO_V0_1.md",
+    "source_data_class": "SyntheticIllustrative",
+    "real_site_data_used": false,
+    "note": "All values are invented for contract and arithmetic checks; they are not a real vessel, port, grid, settlement, or nuclear supplier profile."
+  },
+  "execution_contract": {
+    "requested_profile": "EngineeringDeterministic",
+    "headless": true,
+    "fixed_timestep_required": true,
+    "seed_policy": "ExplicitAndFrozenBeforeExecution",
+    "stable_entity_ids_required": true,
+    "independent_oracle_required": true,
+    "canonical_output_required": true,
+    "postflight_immutability_required": true,
+    "profile_admission": "Must be checked against the exact current engine capability census and ENG-SYNTH-CRED gate.",
+    "unsupported_model_semantics": "UnsupportedOrUnknown; never silently approximate."
+  },
+  "entities": [
+    {
+      "id": "vessel.synthetic-cargo-01",
+      "kind": "AbstractVesselEnvelope",
+      "dimensions": {
+        "length": {"value": 80.0, "unit": "m"},
+        "width": {"value": 12.0, "unit": "m"},
+        "declared_draft": {"value": 2.5, "unit": "m"}
+      },
+      "evidence_class": "SyntheticAssumption"
+    },
+    {
+      "id": "berth.synthetic-01",
+      "kind": "AbstractBerthEnvelope",
+      "constraints": {
+        "maximum_length": {"value": 100.0, "unit": "m"},
+        "maximum_width": {"value": 18.0, "unit": "m"},
+        "maximum_declared_draft": {"value": 3.0, "unit": "m"}
+      },
+      "evidence_class": "SyntheticAssumption"
+    },
+    {
+      "id": "energy.shore-power-01",
+      "kind": "AbstractChargingResource",
+      "evidence_class": "SyntheticAssumption"
+    },
+    {
+      "id": "site.floating-essential-loads-01",
+      "kind": "AbstractEssentialLoadGroup",
+      "evidence_class": "SyntheticAssumption"
+    }
+  ],
+  "contracts": {
+    "berth_envelope": {
+      "model_scope": "ComponentWiseDeclaredEnvelopeComparisonOnly",
+      "required_vessel_dimensions": ["length", "width", "declared_draft"],
+      "excluded_semantics": [
+        "UnderKeelClearance",
+        "TidesAndWaterLevels",
+        "Maneuvering",
+        "MooringLoads",
+        "FenderLoads",
+        "Hydrodynamics",
+        "Seakeeping",
+        "StructuralQualification",
+        "LocalPortApproval"
+      ]
+    },
+    "battery_departure_energy": {
+      "route_energy": {"value": 4.0, "unit": "MWh"},
+      "protected_reserve": {"value": 1.5, "unit": "MWh"},
+      "minimum_departure_energy": {"value": 5.5, "unit": "MWh"},
+      "baseline_stored_energy": {"value": 6.0, "unit": "MWh"},
+      "arithmetic": "available_departure_energy >= route_energy + protected_reserve",
+      "excluded_semantics": [
+        "RealVesselPropulsionPower",
+        "HydrodynamicallyDerivedEnergyDemand",
+        "BatteryThermalBehavior",
+        "BatteryDegradationModel",
+        "PowerQuality",
+        "BatterySafetyQualification"
+      ]
+    },
+    "floating_site_essential_load": {
+      "synthetic_essential_load": {"value": 1.2, "unit": "MW"},
+      "synthetic_independent_backup": {"value": 0.5, "unit": "MW"},
+      "arithmetic": "reported_deficit = max(0, essential_load - independent_backup)",
+      "expected_instantaneous_deficit": {"value": 0.7, "unit": "MW"},
+      "excluded_semantics": [
+        "EnergyDuration",
+        "PowerSystemTransientStability",
+        "ProtectionCoordination",
+        "GridFormingControls",
+        "NuclearSafetyFunctions",
+        "EmergencyLifeSafetyQualification"
+      ]
+    }
+  },
+  "fixtures": [
+    {
+      "case_id": "baseline-declared-envelope-and-energy",
+      "revision": 1,
+      "inputs": {
+        "vessel_entity": "vessel.synthetic-cargo-01",
+        "berth_entity": "berth.synthetic-01",
+        "stored_departure_energy": {"value": 6.0, "unit": "MWh"}
+      },
+      "expected": {
+        "disposition": "PassDeclaredChecksOnly",
+        "berth_envelope": "FitsDeclaredSyntheticEnvelope",
+        "departure_energy": "SufficientByDeclaredArithmetic",
+        "physical_qualification": false,
+        "regulatory_approval": false
+      }
+    },
+    {
+      "case_id": "vessel-exceeds-berth-length",
+      "revision": 1,
+      "inputs": {
+        "vessel_dimensions": {
+          "length": {"value": 105.0, "unit": "m"},
+          "width": {"value": 12.0, "unit": "m"},
+          "declared_draft": {"value": 2.5, "unit": "m"}
+        },
+        "berth_entity": "berth.synthetic-01"
+      },
+      "expected": {
+        "disposition": "Infeasible",
+        "failed_constraint": "VesselLengthExceedsDeclaredBerthLength",
+        "silent_fallback_allowed": false
+      }
+    },
+    {
+      "case_id": "charging-interruption-energy-shortfall",
+      "revision": 1,
+      "inputs": {
+        "starting_stored_energy": {"value": 3.0, "unit": "MWh"},
+        "charging_power": {"value": 2.0, "unit": "MW"},
+        "charging_duration": {"value": 1.0, "unit": "h"},
+        "charging_efficiency": 0.9,
+        "route_energy": {"value": 4.0, "unit": "MWh"},
+        "protected_reserve": {"value": 1.5, "unit": "MWh"}
+      },
+      "expected": {
+        "charge_added_energy": {"value": 1.8, "unit": "MWh"},
+        "available_departure_energy": {"value": 4.8, "unit": "MWh"},
+        "minimum_departure_energy": {"value": 5.5, "unit": "MWh"},
+        "disposition": "Infeasible",
+        "failed_constraint": "DepartureEnergyBelowRoutePlusReserve"
+      }
+    },
+    {
+      "case_id": "stale-configuration-currentness",
+      "revision": 1,
+      "inputs": {
+        "run_configuration_revision": "config-001",
+        "current_asset_configuration_revision": "config-002"
+      },
+      "expected": {
+        "disposition": "Indeterminate",
+        "reason": "ConfigurationIdentityMismatch",
+        "prior_result_may_be_carried_forward": false
+      }
+    },
+    {
+      "case_id": "unsupported-nuclear-thermal-hydraulics-request",
+      "revision": 1,
+      "inputs": {
+        "requested_model": "NuclearThermalHydraulics",
+        "available_model_evidence": "None"
+      },
+      "expected": {
+        "disposition": "Unsupported",
+        "silent_rigid_body_approximation_allowed": false,
+        "nuclear_safety_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "floating-site-backup-deficit",
+      "revision": 1,
+      "inputs": {
+        "essential_load": {"value": 1.2, "unit": "MW"},
+        "independent_backup": {"value": 0.5, "unit": "MW"}
+      },
+      "expected": {
+        "disposition": "ServiceDeficit",
+        "instantaneous_unserved_load": {"value": 0.7, "unit": "MW"},
+        "duration_claim_allowed": false,
+        "power_quality_claim_allowed": false
+      }
+    }
+  ],
+  "global_invariants": [
+    "SyntheticScenarioResult != PhysicalObservation",
+    "DeterministicReplay != ModelValidity",
+    "RunCompleted != RequirementSatisfied",
+    "EngineeringFeasibility != ExternalApproval",
+    "PlatformServiceRestored != PhysicalPlantOrVesselRestored",
+    "AuthenticatedEvent != IndependentlyVerifiedPhysicalFact",
+    "UnavailableOrStaleCriticalEvidence != Healthy",
+    "UnsupportedPhysics != ApproximationByDefault"
+  ],
+  "security_and_privacy": {
+    "uses_real_facility_layout": false,
+    "contains_tactical_security_details": false,
+    "contains_credentials_or_personal_data": false,
+    "public_artifact_class": "SanitizedSyntheticSpecification",
+    "site_specific_security_plan_required_in_public_artifact": false
+  },
+  "claim_ceiling": [
+    "Contract and arithmetic behavior only, for exact fixture inputs.",
+    "No seaworthiness, dock safety, nuclear safety/security, cyber-resilience, grid stability, emergency-egress, commercial-performance, regulatory-approval, or physical-operation claim."
+  ]
+}
