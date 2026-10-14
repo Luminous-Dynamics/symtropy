@@ -7,7 +7,7 @@
 //! identities at the boundary. It does not implement physics and does not
 //! certify that any declared solver is physically accurate.
 
-use crate::material_profile::{MaterialEvidenceClassV1, MaterialQuantityV1, RockMaterialProfileV1};
+use crate::material_profile::RockMaterialProfileV1;
 use crate::platform::PlatformType;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -434,13 +434,13 @@ impl WorldManifestV1 {
         }
 
         for (index, sensor) in self.sensors.iter().enumerate() {
-            if let Some(solver_id) = sensor.model_solver_id.as_deref() {
-                if !solver_ids.contains(solver_id) {
-                    issues.push(WorldValidationIssue::new(
-                        WorldValidationCode::UnknownSolverReference,
-                        format!("sensors[{index}].model_solver_id"),
-                    ));
-                }
+            if let Some(solver_id) = sensor.model_solver_id.as_deref()
+                && !solver_ids.contains(solver_id)
+            {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::UnknownSolverReference,
+                    format!("sensors[{index}].model_solver_id"),
+                ));
             }
         }
 

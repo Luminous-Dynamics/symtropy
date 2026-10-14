@@ -760,10 +760,10 @@ impl SurveyProcessingReceiptV1 {
                 return Err(SurveyContractErrorV1::EmptyIdentity("source_frame_ids"));
             }
         }
-        if let Some(frame_id) = &self.output_frame_id {
-            if !identity_is_valid(frame_id) {
-                return Err(SurveyContractErrorV1::EmptyIdentity("output_frame_id"));
-            }
+        if let Some(frame_id) = &self.output_frame_id
+            && !identity_is_valid(frame_id)
+        {
+            return Err(SurveyContractErrorV1::EmptyIdentity("output_frame_id"));
         }
         ensure_unique(
             self.fitting_observation_ids.iter().map(String::as_str),
@@ -869,12 +869,12 @@ impl SurveyProcessingReceiptV1 {
                 ));
             }
         }
-        if let Some(frame_id) = &self.output_frame_id {
-            if !frames.iter().any(|frame| &frame.frame_id == frame_id) {
-                return Err(SurveyContractErrorV1::UnknownCoordinateFrame(
-                    frame_id.clone(),
-                ));
-            }
+        if let Some(frame_id) = &self.output_frame_id
+            && !frames.iter().any(|frame| &frame.frame_id == frame_id)
+        {
+            return Err(SurveyContractErrorV1::UnknownCoordinateFrame(
+                frame_id.clone(),
+            ));
         }
 
         for (ids, expected_role, field) in [
