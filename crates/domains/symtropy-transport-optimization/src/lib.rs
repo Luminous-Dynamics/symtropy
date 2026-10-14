@@ -779,8 +779,9 @@ pub enum CargoTransferCapacityResourceKind {
 }
 
 /// A reproducible capacity accounting summary for a proposed planning batch.
-/// This validates aggregate numeric capacity only; all module/edge/equipment
-/// compatibility checks and time-window scheduling remain separate.
+/// The numeric-only validator emits this after capacity checks; callers needing
+/// combined physical checks should use `validate_cargo_transfer_plan`. Time-window
+/// scheduling and live availability remain outside this report.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CargoTransferCapacityReport {
     pub assignment_count: usize,
