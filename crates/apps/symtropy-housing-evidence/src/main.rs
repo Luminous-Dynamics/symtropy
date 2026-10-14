@@ -403,12 +403,13 @@ fn is_sha256(value: &str) -> bool {
 fn reject_external_refs(value: &Value) -> Result<(), String> {
     match value {
         Value::Object(object) => {
-            if let Some(reference) = object.get("$ref").and_then(Value::as_str) {
-                if reference != "#" && !reference.starts_with("#/") {
-                    return Err(format!(
-                        "external JSON Schema reference is disabled: {reference}"
-                    ));
-                }
+            if let Some(reference) = object.get("$ref").and_then(Value::as_str)
+                && reference != "#"
+                && !reference.starts_with("#/")
+            {
+                return Err(format!(
+                    "external JSON Schema reference is disabled: {reference}"
+                ));
             }
             for child in object.values() {
                 reject_external_refs(child)?;
@@ -516,10 +517,10 @@ fn evaluate_manifest(
         .unwrap_or_default();
     let mut source_ids = BTreeSet::new();
     for source in &source_references {
-        if let Some(id) = source["source_id"].as_str() {
-            if !source_ids.insert(id.to_string()) {
-                issues.push(format!("duplicate source_id in rule pack: {id}"));
-            }
+        if let Some(id) = source["source_id"].as_str()
+            && !source_ids.insert(id.to_string())
+        {
+            issues.push(format!("duplicate source_id in rule pack: {id}"));
         }
     }
 
@@ -575,12 +576,11 @@ fn evaluate_manifest(
             if let Some(config_digest) = tool
                 .get("configuration_artifact_sha256")
                 .and_then(Value::as_str)
+                && !artifacts_by_digest.contains_key(config_digest)
             {
-                if !artifacts_by_digest.contains_key(config_digest) {
-                    issues.push(format!(
-                        "tool {tool_id} configuration digest is absent from evidence_artifacts: {config_digest}"
-                    ));
-                }
+                issues.push(format!(
+                    "tool {tool_id} configuration digest is absent from evidence_artifacts: {config_digest}"
+                ));
             }
         }
 
@@ -678,12 +678,11 @@ fn evaluate_manifest(
     if let Some(digest) = manifest["model"]
         .get("unit_mapping_artifact_sha256")
         .and_then(Value::as_str)
+        && !artifacts_by_digest.contains_key(digest)
     {
-        if !artifacts_by_digest.contains_key(digest) {
-            issues.push(format!(
-                "unit_mapping_artifact_sha256 is absent from evidence_artifacts: {digest}"
-            ));
-        }
+        issues.push(format!(
+            "unit_mapping_artifact_sha256 is absent from evidence_artifacts: {digest}"
+        ));
     }
 
     if !issues.is_empty() {
@@ -1419,7 +1418,7 @@ mod tests {
 
         for case in cases {
             let args = case.into_iter().map(ToString::to_string).collect();
-            let error = run(args).err().expect("duplicate option must be rejected");
+            let error = run(args).expect_err("duplicate option must be rejected");
             assert!(error.contains("may only be supplied once"), "{error}");
         }
     }
