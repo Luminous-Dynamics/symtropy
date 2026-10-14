@@ -4,6 +4,7 @@
 use crate::bivector::Bivector;
 use crate::point::Point;
 use nalgebra::{SMatrix, SVector};
+use std::fmt;
 
 /// A rotor — performs rotations in D dimensions.
 ///
@@ -17,6 +18,36 @@ use nalgebra::{SMatrix, SVector};
 pub struct Rotor<const D: usize> {
     mat: SMatrix<f64, D, D>,
 }
+
+/// Why a candidate matrix was rejected as a proper rotation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RotorMatrixError {
+    InvalidTolerance,
+    NonFiniteEntry,
+    NonOrthogonal { error: f64, tolerance: f64 },
+    ImproperDeterminant { determinant: f64, tolerance: f64 },
+}
+
+impl fmt::Display for RotorMatrixError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidTolerance => {
+                write!(f, "rotation tolerance must be finite and non-negative")
+            },
+            Self::NonFiniteEntry => write!(f, "rotation matrix contains a non-finite entry"),
+            Self::NonOrthogonal { error, tolerance } => write!(
+                f,
+                "rotation matrix orthogonality error {error} exceeds tolerance {tolerance}"
+            ),
+            Self::ImproperDeterminant { determinant, tolerance } => write!(
+                f,
+                "rotation matrix determinant {determinant} is not +1 within tolerance {tolerance}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RotorMatrixError {}
 
 impl<const D: usize> Rotor<D> {
     /// Identity rotor (no rotation).
@@ -149,7 +180,48 @@ impl<const D: usize> Rotor<D> {
         Self::from_plane_angle(&plane, dot.acos())
     }
 
-    /// Direct construction from a rotation matrix (must be orthogonal, det=+1).
+    /// Construct from a rotation matrix after checking finite values,
+    /// orthogonality, and proper orientation (determinant +1).
+    ///
+    /// The same absolute tolerance is applied to the maximum entry of
+    /// `RᵀR - I` and to `|det(R) - 1|`. Choose a tolerance
+    /// appropriate to the matrix's numerical provenance; this is validation,
+    /// not a polar-decomposition repair step.
+    pub fn try_from_matrix(
+        mat: SMatrix<f64, D, D>,
+        tolerance: f64,
+    ) -> Result<Self, RotorMatrixError> {
+        if !tolerance.is_finite() || tolerance < 0.0 {
+            return Err(RotorMatrixError::InvalidTolerance);
+        }
+        if mat.iter().any(|value| !value.is_finite()) {
+            return Err(RotorMatrixError::NonFiniteEntry);
+        }
+
+        let rotor = Self { mat };
+        let orthogonality_error = rotor.orthogonality_error();
+        if !orthogonality_error.is_finite() || orthogonality_error > tolerance {
+            return Err(RotorMatrixError::NonOrthogonal {
+                error: orthogonality_error,
+                tolerance,
+            });
+        }
+
+        let determinant = rotor.determinant();
+        if !determinant.is_finite() || (determinant - 1.0).abs() > tolerance {
+            return Err(RotorMatrixError::ImproperDeterminant {
+                determinant,
+                tolerance,
+            });
+        }
+        Ok(rotor)
+    }
+
+    /// Direct unchecked construction from a matrix.
+    ///
+    /// The caller must ensure the matrix is finite, orthogonal, and has
+    /// determinant +1. For externally supplied or computed matrices, prefer
+    /// `try_from_matrix` so invalid matrices cannot enter rotation math.
     pub fn from_matrix(mat: SMatrix<f64, D, D>) -> Self {
         Self { mat }
     }
@@ -292,6 +364,57 @@ mod tests {
 
     fn approx_vec<const N: usize>(a: &SVector<f64, N>, b: &SVector<f64, N>) -> bool {
         a.iter().zip(b.iter()).all(|(x, y)| (x - y).abs() < 1e-10)
+    }
+
+    #[test]
+    fn checked_matrix_constructor_accepts_a_proper_rotation() {
+        let expected = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.7);
+        let checked = Rotor::try_from_matrix(*expected.to_matrix(), 1e-12).unwrap();
+        assert!(checked.is_proper_rotation(1e-12));
+    }
+
+    #[test]
+    fn checked_matrix_constructor_rejects_non_orthogonal_matrix() {
+        let matrix = SMatrix::<f64, 3, 3>::identity() * 2.0;
+        assert!(matches!(
+            Rotor::try_from_matrix(matrix, 1e-12),
+            Err(RotorMatrixError::NonOrthogonal { .. })
+        ));
+    }
+
+    #[test]
+    fn checked_matrix_constructor_rejects_reflection() {
+        let matrix = SMatrix::<f64, 3, 3>::new(
+            -1.0, 0.0, 0.0,
+             0.0, 1.0, 0.0,
+             0.0, 0.0, 1.0,
+        );
+        assert!(matches!(
+            Rotor::try_from_matrix(matrix, 1e-12),
+            Err(RotorMatrixError::ImproperDeterminant { .. })
+        ));
+    }
+
+    #[test]
+    fn checked_matrix_constructor_rejects_non_finite_entries() {
+        let mut matrix = SMatrix::<f64, 3, 3>::identity();
+        matrix[(0, 1)] = f64::NAN;
+        assert!(matches!(
+            Rotor::try_from_matrix(matrix, 1e-12),
+            Err(RotorMatrixError::NonFiniteEntry)
+        ));
+    }
+
+    #[test]
+    fn checked_matrix_constructor_rejects_invalid_tolerance() {
+        assert!(matches!(
+            Rotor::try_from_matrix(SMatrix::<f64, 3, 3>::identity(), f64::NAN),
+            Err(RotorMatrixError::InvalidTolerance)
+        ));
+        assert!(matches!(
+            Rotor::try_from_matrix(SMatrix::<f64, 3, 3>::identity(), -1.0),
+            Err(RotorMatrixError::InvalidTolerance)
+        ));
     }
 
     #[test]
