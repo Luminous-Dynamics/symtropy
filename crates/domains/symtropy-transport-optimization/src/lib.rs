@@ -3462,13 +3462,30 @@ mod tests {
         assert_eq!(
             validate_cargo_transfer_plan_with_evidence(
                 &entries,
-                &[edge],
+                &[edge.clone()],
                 &[early],
                 1_000,
                 capacity_freshness_policy(),
             ),
             Err(CargoTransferPlanEvidenceError::Evidence(
                 CargoTransferCapacityEvidenceError::NotYetValid,
+            ))
+        );
+
+        let unrelated = capacity_evidence(
+            equipment_capacity("unreferenced-crane", 3, QuantityUnit::Shipments),
+            Some(980),
+        );
+        assert_eq!(
+            validate_cargo_transfer_plan_with_evidence(
+                &entries,
+                &[edge],
+                &[unrelated],
+                1_000,
+                capacity_freshness_policy(),
+            ),
+            Err(CargoTransferPlanEvidenceError::Evidence(
+                CargoTransferCapacityEvidenceError::UnreferencedBudgetEvidence,
             ))
         );
     }
