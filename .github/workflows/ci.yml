@@ -92,13 +92,11 @@ jobs:
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
 
-    # Temporary reproducibility aid for regenerating the checked-in workspace lockfile.
-    # Upload after resolution even if compilation/test steps fail; retain briefly.
-    - name: Export resolved Cargo.lock (Linux)
+    # One-time bootstrap aid: let us capture Cargo's exact resolved graph even if a later gate fails.
+    # Remove this diagnostic step after committing the generated root Cargo.lock.
+    - name: Emit resolved Cargo.lock for one-time capture (Linux)
       if: ${{ always() && runner.os == 'Linux' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: resolved-cargo-lock-${{ github.sha }}
-        path: Cargo.lock
-        if-no-files-found: error
-        retention-days: 1
+      run: |
+        printf '%s\n' 'BEGIN_RESOLVED_CARGO_LOCK'
+        cat Cargo.lock
+        printf '%s\n' 'END_RESOLVED_CARGO_LOCK'
