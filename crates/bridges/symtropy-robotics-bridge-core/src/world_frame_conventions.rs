@@ -843,7 +843,11 @@ pub(crate) mod tests {
             ),
         ];
 
-        let squared_norm = |v: [f64; 3]| v.iter().map(|component| component * component).sum::<f64>();
+        let squared_norm = |v: [f64; 3]| {
+            v.iter()
+                .map(|component| component * component)
+                .sum::<f64>()
+        };
         for (from, to) in pairs {
             let matrix = convention_conversion_matrix_v1(&from, &to).unwrap();
             for row in matrix {
