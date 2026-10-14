@@ -1,0 +1,152 @@
+name: Living World exact oracle qualification
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: living-world-exact-oracles-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Temporary never-merge exact-head qualifier. Product branches remain immutable
+# inputs; this workflow has no repository write authority.
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  AUTHORITY_SHARE_HEAD: 8b75025506aaff76210a5ba4c3a01a4d7cc468ee
+  SCARCITY_HEAD: 1611be02d422a804b598fe6bf7f9e99b59fd7e10
+  QUANTIZATION_HEAD: 663bd06340107f9e6c8c7ef24abc1862f3a8c29c
+
+jobs:
+  qualify-oracles:
+    name: Qualify exact Living World arithmetic oracles
+    if: >-
+      github.event.pull_request.head.ref == 'ci/living-world-exact-oracle-qualification' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out exact authority-share oracle head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.AUTHORITY_SHARE_HEAD }}
+        path: authority-share
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Check out exact scarcity oracle head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.SCARCITY_HEAD }}
+        path: scarcity
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Check out exact quantization oracle head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.QUANTIZATION_HEAD }}
+        path: quantization
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Qualify exact authority-share oracle
+      id: authority
+      continue-on-error: true
+      shell: bash
+      run: |
+        set -euo pipefail
+        export CARGO_TARGET_DIR=/tmp/living-world-authority-share-target
+        cd authority-share
+        test "$(git rev-parse HEAD)" = "$AUTHORITY_SHARE_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        initial_lock="$(git hash-object Cargo.lock)"
+        cargo fmt --package symtropy-lifesim-core -- --check
+        cargo test --locked -p symtropy-lifesim-core --test authority_share_contract
+        cargo clippy --locked -p symtropy-lifesim-core --test authority_share_contract -- -D warnings
+        cargo check --locked -p symtropy-lifesim-core --test authority_share_contract
+        test "$(git rev-parse HEAD)" = "$AUTHORITY_SHARE_HEAD"
+        test "$(git hash-object Cargo.lock)" = "$initial_lock"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        echo 'PASS: exact authority-share oracle'
+
+    - name: Qualify exact scarcity-arbitration oracle
+      id: scarcity
+      continue-on-error: true
+      shell: bash
+      run: |
+        set -euo pipefail
+        export CARGO_TARGET_DIR=/tmp/living-world-scarcity-target
+        cd scarcity
+        test "$(git rev-parse HEAD)" = "$SCARCITY_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        initial_lock="$(git hash-object Cargo.lock)"
+        cargo fmt --package symtropy-lifesim-core -- --check
+        cargo test --locked -p symtropy-lifesim-core --test scarcity_arbitration_contract
+        cargo clippy --locked -p symtropy-lifesim-core --test scarcity_arbitration_contract -- -D warnings
+        cargo check --locked -p symtropy-lifesim-core --test scarcity_arbitration_contract
+        test "$(git rev-parse HEAD)" = "$SCARCITY_HEAD"
+        test "$(git hash-object Cargo.lock)" = "$initial_lock"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        echo 'PASS: exact scarcity-arbitration oracle'
+
+    - name: Qualify exact quantization-residual oracle
+      id: quantization
+      continue-on-error: true
+      shell: bash
+      run: |
+        set -euo pipefail
+        export CARGO_TARGET_DIR=/tmp/living-world-quantization-target
+        cd quantization
+        test "$(git rev-parse HEAD)" = "$QUANTIZATION_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        initial_lock="$(git hash-object Cargo.lock)"
+        cargo fmt --package symtropy-lifesim-core -- --check
+        cargo test --locked -p symtropy-lifesim-core --test exact_quantization_residual_contract
+        cargo clippy --locked -p symtropy-lifesim-core --test exact_quantization_residual_contract -- -D warnings
+        cargo check --locked -p symtropy-lifesim-core --test exact_quantization_residual_contract
+        test "$(git rev-parse HEAD)" = "$QUANTIZATION_HEAD"
+        test "$(git hash-object Cargo.lock)" = "$initial_lock"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        echo 'PASS: exact quantization-residual oracle'
+
+    - name: Diagnose exact oracle checkouts
+      if: always()
+      shell: bash
+      run: |
+        set -u
+        for directory in authority-share scarcity quantization; do
+          echo "=== $directory HEAD ==="
+          git -C "$directory" rev-parse HEAD || true
+          echo "=== $directory STATUS ==="
+          git -C "$directory" status --porcelain=v1 --untracked-files=all || true
+          echo "=== $directory TRACKED DIFF ==="
+          git -C "$directory" diff -- || true
+          echo "=== $directory UNTRACKED ==="
+          git -C "$directory" ls-files --others --exclude-standard || true
+        done
+
+    - name: Require all exact oracle qualifications
+      if: always()
+      shell: bash
+      env:
+        AUTHORITY_OUTCOME: ${{ steps.authority.outcome }}
+        SCARCITY_OUTCOME: ${{ steps.scarcity.outcome }}
+        QUANTIZATION_OUTCOME: ${{ steps.quantization.outcome }}
+      run: |
+        set -euo pipefail
+        echo "authority-share=$AUTHORITY_OUTCOME"
+        echo "scarcity=$SCARCITY_OUTCOME"
+        echo "quantization=$QUANTIZATION_OUTCOME"
+        test "$AUTHORITY_OUTCOME" = success
+        test "$SCARCITY_OUTCOME" = success
+        test "$QUANTIZATION_OUTCOME" = success
+        echo 'PASS: all exact Living World arithmetic oracles'
