@@ -64,6 +64,14 @@ def external_spec_registry_bytes(uri: str, sha256_hex: str) -> bytes:
     return bytes(result)
 
 
+def determinant3(matrix: list[list[int]]) -> int:
+    return (
+        matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
+    )
+
+
 def apply_matrix(matrix: list[list[int]], vector: list[float]) -> list[float]:
     return [
         sum(matrix[row][column] * vector[column] for column in range(3))
@@ -112,6 +120,10 @@ def main() -> None:
 
     flu_from_frd = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]
     enu_from_ned = [[0, 1, 0], [1, 0, 0], [0, 0, -1]]
+    for matrix in (flu_from_frd, enu_from_ned):
+        assert all(sum(value != 0 for value in row) == 1 for row in matrix)
+        assert all(sum(matrix[row][column] != 0 for row in range(3)) == 1 for column in range(3))
+        assert determinant3(matrix) == 1  # Proper rotation, never a reflection.
     assert apply_matrix(flu_from_frd, [1.0, 2.0, 3.0]) == [1.0, -2.0, -3.0]
     assert apply_matrix(enu_from_ned, [1.0, 2.0, 3.0]) == [2.0, 1.0, -3.0]
 
@@ -125,7 +137,7 @@ def main() -> None:
     print("PASS: table permutation preserves identity")
     print("PASS: axis convention mutation changes registry identity")
     print("PASS: custom-spec SHA-256 hex case is normalized")
-    print("PASS: FLU/FRD and NED/ENU signed-permutation vectors")
+    print("PASS: FLU/FRD and NED/ENU proper-rotation signed-permutation vectors")
     print("PASS: FIPS SHA-256 abc canary")
 
 
