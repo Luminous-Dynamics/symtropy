@@ -240,6 +240,7 @@
           "artifact_id",
           "path",
           "sha256",
+          "role",
           "purpose",
           "collected_at"
         ],
@@ -263,6 +264,20 @@
           "collected_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "pre-registration",
+              "outcome-evidence",
+              "source-dataset",
+              "model-output",
+              "calibration-record",
+              "transformation-log",
+              "provenance-record",
+              "other"
+            ],
+            "description": "Machine-readable evidence role; purpose remains a human-readable description."
           }
         }
       }
