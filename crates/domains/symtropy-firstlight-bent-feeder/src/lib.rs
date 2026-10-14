@@ -137,7 +137,6 @@ pub enum BentFeederAction {
     AdvanceTicks(u64),
 }
 
-
 /// Why an action is currently unavailable to the player.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionBlockReason {
@@ -362,7 +361,6 @@ impl BentFeederOperation {
             events: EventChain::new(OPERATION_ID, seed),
         }
     }
-
 
     /// Previews an action without changing world state or appending an event.
     pub fn preview_action(&self, action: &BentFeederAction) -> ActionPreview {
@@ -593,7 +591,6 @@ impl BentFeederOperation {
         format!("advanced {ticks} ticks; physical and resident state persisted")
     }
 }
-
 
 fn feedback_cues_for_action(action: &BentFeederAction) -> Vec<FeedbackCue> {
     match action {
@@ -857,9 +854,6 @@ mod tests {
                 .minimum_channels()
                 .contains(&FeedbackChannel::Audio));
         }
-        assert!(FeedbackCue::SafetyIncidentAlarm
-            .minimum_channels()
-            .contains(&FeedbackChannel::Audio));
         assert!(FeedbackCue::SupportMovementConfirmed
             .optional_channels()
             .contains(&FeedbackChannel::Haptic));
