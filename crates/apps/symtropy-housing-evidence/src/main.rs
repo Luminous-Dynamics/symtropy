@@ -1460,7 +1460,12 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert!(!result.schema_valid);
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("schema validation")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("schema validation"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1474,7 +1479,12 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert!(!result.schema_valid);
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("schema validation")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("schema validation"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
@@ -1488,7 +1498,12 @@ mod tests {
         let result = evaluate_manifest(&schema, &manifest, None, false, Some(&root));
         assert!(!result.schema_valid);
         assert_eq!(result.effective_status, STATUS_BLOCKED);
-        assert!(result.issues.iter().any(|issue| issue.contains("schema validation")));
+        assert!(
+            result
+                .issues
+                .iter()
+                .any(|issue| issue.contains("schema validation"))
+        );
         fs::remove_dir_all(root).expect("clean temp dir");
     }
 
