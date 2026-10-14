@@ -290,3 +290,26 @@ Reject claims that:
 The highest-value path is **autonomous civil infrastructure first, resource extraction second, useful local manufacturing third, factory reproduction last**. Use modular robots and standardized interfaces; build with local bulk material only where product requirements permit it; keep critical parts imported until local production is independently qualified; and maintain explicit power, mass, thermal, maintenance and evidence ledgers throughout.
 
 This is a programme we can simulate and progressively validate. It is not yet a claim that lunar or Martian industry can build every part of itself.
+
+
+## Runnable synthetic reference example
+
+The companion Rust example is the file at:
+
+https://github.com/Luminous-Dynamics/symtropy/blob/feat/space-bootstrap-industrial-closure/crates/domains/symtropy-bootstrap/examples/industrial_cell_reference.rs
+
+Run it from the Symtropy workspace with:
+
+~~~~sh
+cargo run -p symtropy-bootstrap --example industrial_cell_reference
+~~~~
+
+It composes existing kernel primitives into a small, deterministic end-to-end reference:
+
+- a dependency graph where high local mass closure (850,000 ppm) coexists with unresolved imported metrology/control electronics and only 800,000 ppm critical closure;
+- one synthetic multi-output process that must conserve all feed mass across products and waste;
+- negative controls that must reject a 1 g mass imbalance and an underfunded energy request;
+- a causal energy-ledger consumption event with a conservation replay;
+- a Pareto frontier that excludes a dominated import-heavy option without collapsing all trade-offs into one score.
+
+All example quantities are synthetic fixture units, **not measured lunar material yields, kWh, factory performance or physical qualification evidence**. This is intended as a wiring/reference example for local Rust execution. It has been authored and source-inspected in this environment, but has **not** been compiled or run here; exact-head Cargo validation remains required. A passing example would verify only these bounded software contracts.
