@@ -13,6 +13,7 @@ pub mod rock_cutting_metrics;
 pub mod safety;
 pub mod sensor_model;
 pub mod survey_contract;
+pub mod survey_adjustment;
 pub mod world_contract;
 pub use sensor_model::{
     SensorModelError, SensorModelV1, SensorReadingV1, SensorSampleDispositionV1, SensorSampleV1,
@@ -41,6 +42,14 @@ pub use rock_cutting_metrics::{
     RockCuttingObservationV1,
 };
 pub use safety::JointSafetyAuthority;
+pub use survey_adjustment::{
+    FixedSurveyParameterV1, LinearizedSurveyAdjustmentV1, LinearizedSurveyObservationV1,
+    SurveyAdjustmentErrorV1, SurveyAdjustmentObservationRoleV1, SurveyAdjustmentProvenanceV1,
+    SurveyAdjustmentResidualV1, SurveyAdjustmentResultV1, SurveyParameterEstimateV1,
+    MAX_ADJUSTMENT_ID_LENGTH, MAX_ADJUSTMENT_OBSERVATIONS, MAX_ADJUSTMENT_PARAMETERS,
+    MAX_ADJUSTMENT_PAYLOAD_BYTES, MAX_ADJUSTMENT_SOURCE_ARTIFACTS,
+    SURVEY_ADJUSTMENT_SCHEMA_VERSION,
+};
 pub use survey_contract::{
     MAX_SURVEY_ARTIFACT_REFS, MAX_SURVEY_EVIDENCE_BYTES, MAX_SURVEY_FRAMES,
     MAX_SURVEY_OBSERVATIONS, MAX_SURVEY_RECEIPTS, MAX_SURVEY_SESSIONS, MAX_SURVEY_TRANSFORMS,
