@@ -1,0 +1,15 @@
+{
+  "schema_id": "luminous.verifier-release.v1",
+  "release_id": "qual-001b-verifier-v1-example",
+  "release_version": 1,
+  "verifier_repository": "Luminous-Dynamics/symtropy",
+  "verifier_commit_sha": "1111111111111111111111111111111111111111",
+  "verifier_tree_sha": "2222222222222222222222222222222222222222",
+  "verifier_profile_id": "qual-001b-authoritative-verifier-v1",
+  "verifier_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "contract_schema_id": "luminous.qualification-contract.v1",
+  "contract_schema_version": 1,
+  "suite_id": "rust-workspace-package-v1",
+  "suite_revision": "rust-workspace-package-v1/1",
+  "toolchain_id": "rust-1.96.0"
+}
