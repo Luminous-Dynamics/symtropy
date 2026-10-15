@@ -54,8 +54,7 @@ const OLD_WATERWORKS_ROOM: RoomScaleSpec = RoomScaleSpec {
 const INTERACTION_DISTANCE: f32 = OLD_WATERWORKS_ROOM.interaction_distance;
 
 /// Only solid prop meshes are collision obstacles; mounted pipes/signs/decals remain visual.
-const OLD_WATERWORKS_SOLID_PROP_LABELS: &[&str] =
-    &["valve wheel crossbar", "repair crate"];
+const OLD_WATERWORKS_SOLID_PROP_LABELS: &[&str] = &["valve wheel crossbar", "repair crate"];
 #[cfg(test)]
 const OLD_WATERWORKS_VISIBLE_PROP_COUNT: usize = OLD_WATERWORKS_PROP_SPECS.len();
 #[cfg(test)]
@@ -2559,7 +2558,11 @@ mod tests {
         assert!(collision.head_offset > 0.0);
         assert!(collision.skin_width > 0.0);
         assert!(collision.max_slide_iterations >= 2);
-        assert!(OLD_WATERWORKS_PROP_SPECS.iter().any(|spec| spec.label == "repair crate"));
+        assert!(
+            OLD_WATERWORKS_PROP_SPECS
+                .iter()
+                .any(|spec| spec.label == "repair crate")
+        );
         assert_eq!(
             OLD_WATERWORKS_SOLID_PROP_LABELS,
             &["valve wheel crossbar", "repair crate"]
