@@ -138,34 +138,30 @@ fn validate_values(
         ));
     };
 
-    let mut compare_binding = |receipt_value: Option<&str>, registry_value: Option<&str>, field: &str| {
-        compare_string(receipt_value, registry_value, field, &mut source_binding_matches, &mut issues)
-    };
-    compare_binding(receipt["source_binding"]["edition"].as_str(), record["edition"].as_str(), "source edition");
-    compare_binding(receipt["source_binding"]["clause_location"].as_str(), record["clause_location"].as_str(), "source clause_location");
-    compare_binding(
+    compare_string(receipt["source_binding"]["edition"].as_str(), record["edition"].as_str(), "source edition", &mut source_binding_matches, &mut issues);
+    compare_string(receipt["source_binding"]["clause_location"].as_str(), record["clause_location"].as_str(), "source clause_location", &mut source_binding_matches, &mut issues);
+    compare_string(
         receipt["source_binding"]["source_snapshot_sha256"].as_str(),
         record["source_snapshot"]["artifact"]["sha256"].as_str(),
-        "source snapshot digest",
+        "source snapshot digest", &mut source_binding_matches, &mut issues,
     );
-    compare_binding(receipt["source_binding"]["rule_id"].as_str(), record["rule_translation"]["rule_id"].as_str(), "rule_id");
-    compare_binding(receipt["source_binding"]["rule_version"].as_str(), record["rule_translation"]["version"].as_str(), "rule version");
-    compare_binding(
+    compare_string(receipt["source_binding"]["rule_id"].as_str(), record["rule_translation"]["rule_id"].as_str(), "rule_id", &mut source_binding_matches, &mut issues);
+    compare_string(receipt["source_binding"]["rule_version"].as_str(), record["rule_translation"]["version"].as_str(), "rule version", &mut source_binding_matches, &mut issues);
+    compare_string(
         receipt["source_binding"]["implementation_sha256"].as_str(),
         record["rule_translation"]["implementation_artifact"]["sha256"].as_str(),
-        "rule implementation digest",
+        "rule implementation digest", &mut source_binding_matches, &mut issues,
     );
-    compare_binding(
+    compare_string(
         receipt["source_binding"]["test_corpus_sha256"].as_str(),
         record["rule_translation"]["test_corpus_artifact"]["sha256"].as_str(),
-        "rule test corpus digest",
+        "rule test corpus digest", &mut source_binding_matches, &mut issues,
     );
-    compare_binding(
+    compare_string(
         receipt["source_binding"]["translation_review_sha256"].as_str(),
         record["rule_translation"]["translation_review"]["evidence_artifact"]["sha256"].as_str(),
-        "translation review digest",
+        "translation review digest", &mut source_binding_matches, &mut issues,
     );
-    drop(compare_binding);
 
     let mut artifact_issues = Vec::new();
     let project_verified = jurisdiction_registry::verify_artifact(
@@ -186,12 +182,12 @@ fn validate_values(
         &mut artifact_issues,
         "receipt output artifact",
     );
-    artifact_digests_verified += usize::from(project_verified)
-        + usize::from(evaluator_verified)
-        + usize::from(output_verified);
+    artifact_digests_verified += (if project_verified { 1 } else { 0 })
+        + (if evaluator_verified { 1 } else { 0 })
+        + (if output_verified { 1 } else { 0 });
     issues.extend(artifact_issues);
 
-    let mut digest_roles = vec![
+    let digest_roles = [
         ("registry", Some(actual_registry_sha256.as_str())),
         ("source snapshot", record["source_snapshot"]["artifact"]["sha256"].as_str()),
         ("applicability review", record["review_record"]["evidence_artifact"]["sha256"].as_str()),
@@ -203,7 +199,7 @@ fn validate_values(
         ("output artifact", receipt["output_artifact"]["sha256"].as_str()),
     ];
     let mut used_digests = BTreeSet::new();
-    for (role, digest) in digest_roles.drain(..) {
+    for (role, digest) in digest_roles {
         if let Some(digest) = digest
             && !used_digests.insert(digest)
         {
@@ -366,7 +362,7 @@ mod tests {
 
     fn positive_case(root: &Path) -> (Value, Value, PathBuf) {
         let fixture_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(
-            "../../../../docs/built-environment/fixtures/example-jurisdiction-evidence-registry.json",
+            "../../../docs/built-environment/fixtures/example-jurisdiction-evidence-registry.json",
         );
         let mut registry = serde_json::from_slice::<Value>(
             &fs::read(fixture_path).expect("registry fixture exists")
