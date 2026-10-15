@@ -2,7 +2,8 @@
 
 **Status:** design/research guide v0.1; not a site feasibility study or compliance determination.  
 **Profile manifest:** [regional-adaptation-profiles-v0.1.json](regional-adaptation-profiles-v0.1.json)  
-**Programme:** [GEO-DEST-001](https://github.com/Luminous-Dynamics/symtropy/issues/1658)
+**Programme:** [GEO-DEST-001](https://github.com/Luminous-Dynamics/symtropy/issues/1658)  
+**Decision protocol:** [portfolio-decision-protocol-v0.1.md](portfolio-decision-protocol-v0.1.md)
 
 ## Governing principle
 
