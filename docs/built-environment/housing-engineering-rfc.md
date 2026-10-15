@@ -133,6 +133,14 @@ For a South African pilot:
 
 A code clause that cannot be lawfully accessed, interpreted, or converted into a rigorously tested rule must be marked unavailable or requires-review. It must not be paraphrased from memory and passed off as an executable legal rule.
 
+### Jurisdiction evidence registry contract
+
+The experimental `jurisdiction-evidence-registry.schema.json`, its synthetic fixture, and `housing-evidence-verify --validate-jurisdiction-registry <registry.json>` implement a catalog-only first step. Each source record has a stable ID, instrument type, source locator, lifecycle state, effective window, applicability state, optional local source snapshot, review evidence, and optional versioned rule translation with hashed implementation/test artifacts. Schema validity does not make a record executable.
+
+Eligibility for a later rule evaluator is computed—not accepted from input—and requires a registry resolved to a named municipality; a source reported in force on the explicit `evaluation_date`; a coherent effective-date window; project-specific applicability confirmation; locally hash-verified source and review artifacts; a review decision for evaluation; public or appropriately licensed source access; and an independently reviewed translation plus test corpus whose artifacts hash correctly. Proposals, unknown lifecycle states, unverified snapshots, and unresolved applicability remain ineligible. Reviewer qualifications, signature authenticity, source authority, and legal interpretation still require independent review outside this CLI.
+
+The synthetic Gauteng registry deliberately leaves the municipality unresolved, snapshots absent, applicability unassessed, and both records ineligible. It records the official Act page as an unverified catalog entry and separates the South African Government's 13 October 2026 extension notice for the National Building Regulations and Building Standards Amendment Bill as a proposal with a 12 November 2026 comment deadline. It does not claim the Bill is in force, assert that it knows the current consolidated text, or encode a SANS clause as executable. These official pages provide discovery metadata, not an adopted rule pack ([Act reference](https://www.gov.za/documents/national-building-regulations-and-building-standards-act-16-apr-2015-1302), [comment-period extension notice](https://www.gov.za/documents/notices/national-building-regulations-and-building-standards-act-extension-submission)).
+
 ## 6. Evidence-backed code-improvement process
 
 Treat every proposed code change as a falsifiable research hypothesis.
@@ -188,6 +196,7 @@ No result is to be described as passed until evidence is produced for the exact 
 - **M0 — Contract and vocabulary:** stabilize this evidence schema, IDs, status semantics, artifact hashing, and clean-run manifest.
 - **M0.5 — Resident-owned brief:** capture spaces, priorities, accessibility goals, budget bounds, privacy scope, and non-negotiable conflict behavior before generating candidates; see [Home Design Brief V1](home-design-brief-v1.md), its schema/fixture, and schema regression tests and the `housing-evidence-verify --validate-brief <brief.json>` schema/cross-field validator.
 - **M0.75 — Candidate layout contract:** bind rectangular floor-plan candidates to exact brief bytes, check room coverage and basic bounds/overlap, and defer openings, circulation, structural checks, and code compliance; see [Home Layout Candidate V1](home-layout-candidate-v1.md).
+- **M0.8 — Jurisdiction source registry:** catalog source pointers separately from proposals, verify local snapshot/review/implementation/test artifact digests, and compute rule-evaluator readiness only when explicit jurisdiction, lifecycle, applicability, review and rights gates are satisfied.
 - **M1 — Model ingestion:** import/export a narrow IFC subset; validate units, IDs, and loss reports; add IDS validation.
 - **M2 — Verification harness:** define scenario files, solver-adapter contract, reference cases, negative controls, and exact-head reproducibility.
 - **M3 — First engineering domain:** choose one discipline and solver only after a documented comparison of candidates, licenses, and validation evidence.
@@ -201,6 +210,7 @@ No result is to be described as passed until evidence is produced for the exact 
 These are architectural starting points, not endorsements of a particular solver or declarations of code compliance:
 
 - [South African Government — National Building Regulations and Building Standards Act 103 of 1977](https://www.gov.za/documents/national-building-regulations-and-building-standards-act-16-apr-2015-1302)
+- [South African Government — extension of public comment on the 2026 National Building Regulations and Building Standards Amendment Bill (deadline 12 November 2026)](https://www.gov.za/documents/notices/national-building-regulations-and-building-standards-act-extension-submission)
 - [Agrément South Africa — Certification Process](https://agrement.co.za/certification-process/)
 - [buildingSMART — IFC 4.3.2.0 official specification](https://standards.buildingsmart.org/IFC/RELEASE/IFC4_3/)
 - [buildingSMART — Information Delivery Specification (IDS)](https://technical.buildingsmart.org/Projects/Information-Delivery-Specification-Ids/)

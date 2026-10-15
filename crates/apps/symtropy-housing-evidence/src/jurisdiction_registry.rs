@@ -1,0 +1,468 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+//! Catalogs jurisdiction source records without turning metadata into a legal verdict.
+//! Local snapshot, review, implementation, and test artifacts are hash-checked when
+//! present. Readiness is computed and never trusted from an input boolean.
+
+use jsonschema::draft202012;
+use serde::Serialize;
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use std::{
+    collections::BTreeSet,
+    fs,
+    path::{Component, Path},
+};
+
+const EMBEDDED_SCHEMA: &str =
+    include_str!("../../../../docs/built-environment/jurisdiction-evidence-registry.schema.json");
+
+#[derive(Debug, Serialize)]
+pub struct RecordReadiness {
+    pub record_id: String,
+    pub lifecycle_status: String,
+    pub applicability_status: String,
+    pub source_snapshot_digest_verified: bool,
+    pub review_evidence_digest_verified: bool,
+    pub rule_implementation_digest_verified: bool,
+    pub rule_test_corpus_digest_verified: bool,
+    pub ready_for_rule_evaluation: bool,
+    pub readiness_reasons: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RegistryValidationReport {
+    pub validator_version: String,
+    pub schema_sha256: String,
+    pub registry_id: Option<String>,
+    pub schema_valid: bool,
+    pub semantic_valid: bool,
+    pub registry_contract_status: String,
+    pub source_snapshot_digests_verified: usize,
+    pub review_evidence_digests_verified: usize,
+    pub rule_artifact_digests_verified: usize,
+    pub ready_for_rule_evaluation_count: usize,
+    pub schema_issues: Vec<String>,
+    pub semantic_issues: Vec<String>,
+    pub records: Vec<RecordReadiness>,
+    pub limitations: Vec<String>,
+}
+
+pub fn validate_path(path: &Path) -> Result<RegistryValidationReport, String> {
+    let bytes = fs::read(path)
+        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let registry: Value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))?;
+    validate_value(&registry, path.parent().unwrap_or_else(|| Path::new(".")))
+}
+
+pub fn validate_value(
+    registry: &Value,
+    artifact_root: &Path,
+) -> Result<RegistryValidationReport, String> {
+    let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA)
+        .map_err(|error| format!("embedded jurisdiction registry schema is invalid JSON: {error}"))?;
+    if !all_refs_are_local(&schema) {
+        return Err("jurisdiction registry schema contains an external reference".to_string());
+    }
+    draft202012::meta::validate(&schema).map_err(|error| {
+        format!("jurisdiction registry schema fails Draft 2020-12 meta-validation: {error}")
+    })?;
+    let validator = draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
+        .map_err(|error| format!("cannot compile jurisdiction registry schema: {error}"))?;
+    let schema_issues: Vec<String> = validator
+        .iter_errors(registry)
+        .map(|error| format!("schema validation: {error}"))
+        .collect();
+    let schema_valid = schema_issues.is_empty();
+    let mut semantic_issues = Vec::new();
+    let mut records = Vec::new();
+    let mut ids = BTreeSet::new();
+    let mut source_snapshot_digests_verified = 0;
+    let mut review_evidence_digests_verified = 0;
+    let mut rule_artifact_digests_verified = 0;
+
+    if schema_valid {
+        let evaluation_date = registry["evaluation_date"].as_str().unwrap_or_default();
+        let jurisdiction_confirmed =
+            registry["jurisdiction"]["resolution_status"].as_str() == Some("confirmed")
+                && registry["jurisdiction"]["country_code"].as_str().is_some()
+                && registry["jurisdiction"]["municipality"]
+                    .as_str()
+                    .is_some_and(|value| !value.trim().is_empty());
+
+        for (index, record) in registry["source_records"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            let record_id = record["record_id"].as_str().unwrap_or_default();
+            if !ids.insert(record_id.to_owned()) {
+                semantic_issues.push(format!(
+                    "source_records[{index}].record_id duplicates {record_id:?}"
+                ));
+            }
+            let lifecycle_status = record["lifecycle_status"].as_str().unwrap_or("unknown");
+            let applicability_status =
+                record["applicability_status"].as_str().unwrap_or("not_assessed");
+            let effective_from = record["effective_from"].as_str();
+            let effective_to = record["effective_to"].as_str();
+            let mut date_window_valid = true;
+
+            if let (Some(from), Some(to)) = (effective_from, effective_to)
+                && from > to
+            {
+                date_window_valid = false;
+                semantic_issues.push(format!(
+                    "source record {record_id:?} has effective_to before effective_from"
+                ));
+            }
+            if let Some(from) = effective_from
+                && from > evaluation_date
+            {
+                date_window_valid = false;
+                if lifecycle_status == "reported_in_force" {
+                    semantic_issues.push(format!(
+                        "source record {record_id:?} is reported in force before effective_from"
+                    ));
+                }
+            }
+            if let Some(to) = effective_to
+                && to < evaluation_date
+                && lifecycle_status == "reported_in_force"
+            {
+                date_window_valid = false;
+                semantic_issues.push(format!(
+                    "source record {record_id:?} is reported in force after effective_to"
+                ));
+            }
+            if lifecycle_status == "proposed"
+                && record["review_record"]["decision"].as_str()
+                    == Some("applicable_for_evaluation")
+            {
+                semantic_issues.push(format!(
+                    "proposed source record {record_id:?} cannot be marked applicable for rule evaluation"
+                ));
+            }
+
+            let mut readiness_reasons = Vec::new();
+            let snapshot_verified = verify_artifact(
+                record.get("source_snapshot").and_then(|value| value.get("artifact")),
+                artifact_root,
+                &mut semantic_issues,
+                &format!("source record {record_id:?} source snapshot"),
+            );
+            if snapshot_verified {
+                source_snapshot_digests_verified += 1;
+            }
+            let review_verified = verify_artifact(
+                record.get("review_record").and_then(|value| value.get("evidence_artifact")),
+                artifact_root,
+                &mut semantic_issues,
+                &format!("source record {record_id:?} review evidence"),
+            );
+            if review_verified {
+                review_evidence_digests_verified += 1;
+            }
+            let implementation_verified = verify_artifact(
+                record.get("rule_translation").and_then(|value| value.get("implementation_artifact")),
+                artifact_root,
+                &mut semantic_issues,
+                &format!("source record {record_id:?} rule implementation"),
+            );
+            let corpus_verified = verify_artifact(
+                record.get("rule_translation").and_then(|value| value.get("test_corpus_artifact")),
+                artifact_root,
+                &mut semantic_issues,
+                &format!("source record {record_id:?} rule test corpus"),
+            );
+            if implementation_verified {
+                rule_artifact_digests_verified += 1;
+            }
+            if corpus_verified {
+                rule_artifact_digests_verified += 1;
+            }
+
+            if lifecycle_status == "proposed" {
+                readiness_reasons.push("PROPOSED_INSTRUMENT_NOT_EXECUTABLE".to_string());
+            } else if lifecycle_status != "reported_in_force" {
+                readiness_reasons.push("CURRENT_LEGAL_STATUS_UNVERIFIED".to_string());
+            }
+            if !date_window_valid {
+                readiness_reasons.push("EFFECTIVE_WINDOW_INVALID".to_string());
+            }
+            if !jurisdiction_confirmed {
+                readiness_reasons.push("JURISDICTION_NOT_RESOLVED_TO_MUNICIPALITY".to_string());
+            }
+            if applicability_status != "confirmed_for_project" {
+                readiness_reasons.push("PROJECT_APPLICABILITY_NOT_CONFIRMED".to_string());
+            }
+            if !snapshot_verified {
+                readiness_reasons.push("SOURCE_SNAPSHOT_MISSING_OR_UNVERIFIED".to_string());
+            }
+            if !review_verified
+                || record["review_record"]["decision"].as_str()
+                    != Some("applicable_for_evaluation")
+            {
+                readiness_reasons
+                    .push("QUALIFIED_APPLICABILITY_REVIEW_NOT_EVIDENCED".to_string());
+            }
+            let access = record["source_snapshot"]["access_status"]
+                .as_str()
+                .unwrap_or("not_assessed");
+            if !matches!(access, "public" | "licensed") {
+                readiness_reasons.push("SOURCE_ACCESS_RIGHTS_NOT_CLEARED".to_string());
+            }
+            let translation_reviewed =
+                record["rule_translation"]["status"].as_str() == Some("independently_reviewed");
+            if !translation_reviewed {
+                readiness_reasons.push("RULE_TRANSLATION_NOT_INDEPENDENTLY_REVIEWED".to_string());
+            }
+            if !implementation_verified {
+                readiness_reasons.push("RULE_IMPLEMENTATION_DIGEST_NOT_VERIFIED".to_string());
+            }
+            if !corpus_verified {
+                readiness_reasons.push("RULE_TEST_CORPUS_DIGEST_NOT_VERIFIED".to_string());
+            }
+            if record["review_record"]["reviewed_at"]
+                .as_str()
+                .is_some_and(|value| value.get(..10).unwrap_or_default() > evaluation_date)
+            {
+                semantic_issues.push(format!(
+                    "source record {record_id:?} has a review after registry evaluation_date"
+                ));
+                readiness_reasons.push("REVIEW_POSTDATES_EVALUATION_DATE".to_string());
+            }
+
+            records.push(RecordReadiness {
+                record_id: record_id.to_owned(),
+                lifecycle_status: lifecycle_status.to_owned(),
+                applicability_status: applicability_status.to_owned(),
+                source_snapshot_digest_verified: snapshot_verified,
+                review_evidence_digest_verified: review_verified,
+                rule_implementation_digest_verified: implementation_verified,
+                rule_test_corpus_digest_verified: corpus_verified,
+                ready_for_rule_evaluation: readiness_reasons.is_empty(),
+                readiness_reasons,
+            });
+        }
+    }
+
+    let semantic_valid = semantic_issues.is_empty();
+    if !semantic_valid {
+        for record in &mut records {
+            record.ready_for_rule_evaluation = false;
+            if !record
+                .readiness_reasons
+                .contains(&"REGISTRY_SEMANTIC_VALIDATION_FAILED".to_string())
+            {
+                record
+                    .readiness_reasons
+                    .push("REGISTRY_SEMANTIC_VALIDATION_FAILED".to_string());
+            }
+        }
+    }
+    let registry_contract_status = if schema_valid && semantic_valid {
+        "REGISTRY_VALID"
+    } else {
+        "REGISTRY_INVALID"
+    };
+    let ready_for_rule_evaluation_count = records
+        .iter()
+        .filter(|record| record.ready_for_rule_evaluation)
+        .count();
+    let mut hasher = Sha256::new();
+    hasher.update(EMBEDDED_SCHEMA.as_bytes());
+    let schema_sha256 = format!("{:x}", hasher.finalize());
+
+    Ok(RegistryValidationReport {
+        validator_version: env!("CARGO_PKG_VERSION").to_string(),
+        schema_sha256,
+        registry_id: registry
+            .get("registry_id")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        schema_valid,
+        semantic_valid,
+        registry_contract_status: registry_contract_status.to_string(),
+        source_snapshot_digests_verified,
+        review_evidence_digests_verified,
+        rule_artifact_digests_verified,
+        ready_for_rule_evaluation_count,
+        schema_issues,
+        semantic_issues,
+        records,
+        limitations: vec![
+            "REGISTRY_VALID means only schema and implemented cross-field checks passed; it is not a legal opinion or code-compliance result.".to_string(),
+            "A record is ready only when local source, review, implementation, and test artifacts hash correctly and all declared lifecycle, jurisdiction, applicability, review and rights gates are satisfied.".to_string(),
+            "Reviewer qualifications, signature authenticity, source authority, legal interpretation, and project-specific applicability are not independently authenticated by this verifier.".to_string(),
+            "A ready record merely satisfies declared prerequisites for a separate deterministic rule evaluator; this command executes no building-code rule.".to_string(),
+            "Proposals, unknown lifecycle states, missing snapshots, unresolved municipalities, and unreviewed translations remain ineligible for rule execution.".to_string(),
+        ],
+    })
+}
+
+fn verify_artifact(
+    artifact: Option<&Value>,
+    artifact_root: &Path,
+    issues: &mut Vec<String>,
+    context: &str,
+) -> bool {
+    let Some(artifact) = artifact else {
+        return false;
+    };
+    let Some(relative_path) = artifact["relative_path"].as_str() else {
+        return false;
+    };
+    let Some(expected_digest) = artifact["sha256"].as_str() else {
+        return false;
+    };
+    let relative = Path::new(relative_path);
+    if relative.as_os_str().is_empty()
+        || relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        issues.push(format!(
+            "{context} uses an unsafe non-relative artifact path"
+        ));
+        return false;
+    }
+    let base = match artifact_root.canonicalize() {
+        Ok(path) => path,
+        Err(error) => {
+            issues.push(format!("{context}: cannot resolve artifact root: {error}"));
+            return false;
+        }
+    };
+    let path = match base.join(relative).canonicalize() {
+        Ok(path) => path,
+        Err(error) => {
+            issues.push(format!(
+                "{context}: cannot read artifact path {relative_path:?}: {error}"
+            ));
+            return false;
+        }
+    };
+    if !path.starts_with(&base) {
+        issues.push(format!("{context} resolves outside the artifact root"));
+        return false;
+    }
+    match fs::read(&path) {
+        Ok(bytes) => {
+            let mut hasher = Sha256::new();
+            hasher.update(&bytes);
+            let actual = format!("{:x}", hasher.finalize());
+            if actual == expected_digest {
+                true
+            } else {
+                issues.push(format!(
+                    "{context} SHA-256 mismatch: expected {expected_digest}, actual {actual}"
+                ));
+                false
+            }
+        }
+        Err(error) => {
+            issues.push(format!("{context}: cannot read local artifact: {error}"));
+            false
+        }
+    }
+}
+
+fn all_refs_are_local(value: &Value) -> bool {
+    match value {
+        Value::Object(map) => map.iter().all(|(key, child)| {
+            (key != "$ref"
+                || child
+                    .as_str()
+                    .is_some_and(|reference| reference.starts_with("#/")))
+                && all_refs_are_local(child)
+        }),
+        Value::Array(values) => values.iter().all(all_refs_are_local),
+        _ => true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture() -> Value {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../../docs/built-environment/fixtures/example-jurisdiction-evidence-registry.json",
+        );
+        serde_json::from_slice(&fs::read(path).expect("jurisdiction registry fixture exists"))
+            .expect("jurisdiction registry fixture parses")
+    }
+
+    #[test]
+    fn metadata_catalog_is_valid_but_has_no_rule_ready_records() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/built-environment/fixtures");
+        let report = validate_value(&fixture(), &root).expect("embedded registry schema compiles");
+        assert!(report.schema_valid, "{:?}", report.schema_issues);
+        assert!(report.semantic_valid, "{:?}", report.semantic_issues);
+        assert_eq!(report.registry_contract_status, "REGISTRY_VALID");
+        assert_eq!(report.records.len(), 2);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.records.iter().all(|record| !record.ready_for_rule_evaluation));
+        assert!(report.records.iter().any(|record| {
+            record
+                .readiness_reasons
+                .contains(&"PROPOSED_INSTRUMENT_NOT_EXECUTABLE".to_string())
+        }));
+    }
+
+    #[test]
+    fn schema_is_draft_2020_12_with_local_references_only() {
+        let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA).expect("schema parses");
+        assert!(draft202012::meta::validate(&schema).is_ok());
+        assert!(all_refs_are_local(&schema));
+    }
+
+    #[test]
+    fn proposal_cannot_be_recorded_as_in_force() {
+        let mut registry = fixture();
+        registry["source_records"][1]["lifecycle_status"] =
+            serde_json::json!("reported_in_force");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/built-environment/fixtures");
+        let report = validate_value(&registry, &root).expect("schema compiles");
+        assert!(!report.schema_valid, "proposal and lifecycle state must agree");
+    }
+
+    #[test]
+    fn duplicate_source_record_ids_are_rejected() {
+        let mut registry = fixture();
+        registry["source_records"][1]["record_id"] =
+            registry["source_records"][0]["record_id"].clone();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/built-environment/fixtures");
+        let report = validate_value(&registry, &root).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+    }
+
+    #[test]
+    fn reversed_effective_window_is_rejected() {
+        let mut registry = fixture();
+        registry["source_records"][0]["effective_from"] =
+            serde_json::json!("2030-01-01");
+        registry["source_records"][0]["effective_to"] =
+            serde_json::json!("2020-01-01");
+        registry["source_records"][0]["lifecycle_status"] =
+            serde_json::json!("reported_in_force");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/built-environment/fixtures");
+        let report = validate_value(&registry, &root).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("effective_to before effective_from")
+        }));
+    }
+}

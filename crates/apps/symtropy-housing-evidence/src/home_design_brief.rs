@@ -117,8 +117,8 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
             .filter_map(|space| space.get("space_id").and_then(Value::as_str))
             .collect();
         let mut adjacency_keys = BTreeSet::new();
+        let mut dimension_constraint_ids = BTreeSet::new();
         for (space_index, space) in spaces.iter().enumerate() {
-            let mut dimension_constraint_ids = BTreeSet::new();
             if let Some(constraints) = space
                 .get("dimension_constraints")
                 .and_then(Value::as_array)
@@ -289,6 +289,19 @@ mod tests {
                 .iter()
                 .any(|issue| { issue.contains("requirements[1].requirement_id") })
         );
+    }
+
+    #[test]
+    fn dimension_constraint_ids_are_unique_across_all_spaces() {
+        let mut brief = fixture();
+        brief["spaces"][1]["dimension_constraints"] =
+            brief["spaces"][0]["dimension_constraints"].clone();
+        let result = validate_value(&brief).expect("embedded schema must compile");
+        assert!(result.schema_valid, "{:?}", result.schema_issues);
+        assert!(!result.semantic_valid);
+        assert!(result.semantic_issues.iter().any(|issue| {
+            issue.contains("dimension_constraints") && issue.contains("duplicates")
+        }));
     }
 
     #[test]

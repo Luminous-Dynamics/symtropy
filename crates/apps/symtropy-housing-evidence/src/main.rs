@@ -24,6 +24,7 @@
 //! --artifact-root. Remote retrieval is intentionally not supported.
 
 mod home_design_brief;
+mod jurisdiction_registry;
 mod layout_candidate;
 
 use jsonschema::draft202012;
@@ -130,6 +131,34 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("home design brief validation failed: {error}");
+                ExitCode::from(2)
+            }
+        };
+    }
+
+    if args.first().map(String::as_str) == Some("--validate-jurisdiction-registry") {
+        if args.len() != 2 {
+            eprintln!("Usage: housing-evidence-verify --validate-jurisdiction-registry <registry.json>");
+            return ExitCode::from(2);
+        }
+
+        return match jurisdiction_registry::validate_path(Path::new(&args[1])) {
+            Ok(report) => {
+                match serde_json::to_string_pretty(&report) {
+                    Ok(output) => println!("{output}"),
+                    Err(error) => {
+                        eprintln!("failed to serialize jurisdiction registry report: {error}");
+                        return ExitCode::from(2);
+                    }
+                }
+                if report.registry_contract_status == "REGISTRY_VALID" {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(2)
+                }
+            }
+            Err(error) => {
+                eprintln!("jurisdiction registry validation failed: {error}");
                 ExitCode::from(2)
             }
         };
@@ -317,6 +346,7 @@ fn usage() -> String {
     [
         "Usage: housing-evidence-verify <manifest.json>",
         "       housing-evidence-verify --validate-brief <brief.json>",
+        "       housing-evidence-verify --validate-jurisdiction-registry <registry.json>",
         "       housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
