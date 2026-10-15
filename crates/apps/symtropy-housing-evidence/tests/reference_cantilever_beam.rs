@@ -47,12 +47,25 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
     let youngs_modulus = read_positive("elastic_modulus_Pa")?;
     let width = read_positive("section_width_m")?;
     let depth = read_positive("section_depth_m")?;
-    let inertia = read_positive("second_moment_area_m4")?;
+    let declared_inertia = read_positive("second_moment_area_m4")?;
     let c = read_positive("extreme_fiber_distance_m")?;
+    let tolerance = case["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
+    // Derive section inertia from geometric primitives, then independently
+    // check the fixture's declared value. Downstream equations use the derived
+    // value so a stale/incorrect declared inertia cannot drive both sides.
     let computed_inertia = width * depth.powi(3) / 12.0;
-    let computed_deflection = load * span.powi(3) / (3.0 * youngs_modulus * inertia);
-    let computed_stress = load * span * c / inertia;
+    if !close_relative(computed_inertia, declared_inertia, tolerance) {
+        return Err(format!(
+            "declared second moment of area {declared_inertia} disagrees with geometry-derived value {computed_inertia}"
+        ));
+    }
+
+    let computed_deflection = load * span.powi(3) / (3.0 * youngs_modulus * computed_inertia);
+    let computed_stress = load * span * c / computed_inertia;
 
     for (name, value) in [
         ("computed_inertia", computed_inertia),
@@ -137,4 +150,110 @@ fn analytical_reference_rejects_nonpositive_physical_inputs() {
         let result = evaluate_reference(&invalid);
         assert!(result.is_err(), "{name}={bad_value} should be rejected");
     }
+}
+
+#[test]
+fn analytical_reference_rejects_inconsistent_declared_inertia() {
+    let mut case: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let declared = case["inputs"]["second_moment_area_m4"]
+        .as_f64()
+        .expect("declared inertia");
+    case["inputs"]["second_moment_area_m4"] = serde_json::json!(declared * 1.1);
+
+    assert!(
+        evaluate_reference(&case).is_err(),
+        "a declared inertia that contradicts the section geometry must block evaluation"
+    );
+}
+
+#[test]
+fn analytical_reference_obeys_mechanical_scaling_invariants() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("reference case is valid");
+
+    let mut double_load = base.clone();
+    double_load["inputs"]["load_N"] = serde_json::json!(2000.0);
+    let load_result = evaluate_reference(&double_load).expect("positive doubled load is valid");
+    assert!(close_relative(
+        load_result.deflection_m,
+        reference.deflection_m * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        load_result.support_stress_pa,
+        reference.support_stress_pa * 2.0,
+        tolerance
+    ));
+
+    let mut double_span = base.clone();
+    double_span["inputs"]["span_m"] = serde_json::json!(4.0);
+    let span_result = evaluate_reference(&double_span).expect("positive doubled span is valid");
+    assert!(close_relative(
+        span_result.deflection_m,
+        reference.deflection_m * 8.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        span_result.support_stress_pa,
+        reference.support_stress_pa * 2.0,
+        tolerance
+    ));
+
+    let mut double_modulus = base.clone();
+    double_modulus["inputs"]["elastic_modulus_Pa"] = serde_json::json!(400_000_000_000.0);
+    let modulus_result = evaluate_reference(&double_modulus).expect("positive doubled modulus is valid");
+    assert!(close_relative(
+        modulus_result.deflection_m,
+        reference.deflection_m / 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        modulus_result.support_stress_pa,
+        reference.support_stress_pa,
+        tolerance
+    ));
+
+    let mut double_width = base.clone();
+    double_width["inputs"]["section_width_m"] = serde_json::json!(0.192);
+    double_width["inputs"]["second_moment_area_m4"] = serde_json::json!(0.000016);
+    let width_result = evaluate_reference(&double_width).expect("consistent doubled width is valid");
+    assert!(close_relative(
+        width_result.inertia_m4,
+        reference.inertia_m4 * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        width_result.deflection_m,
+        reference.deflection_m / 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        width_result.support_stress_pa,
+        reference.support_stress_pa / 2.0,
+        tolerance
+    ));
+
+    let mut double_depth = base;
+    double_depth["inputs"]["section_depth_m"] = serde_json::json!(0.2);
+    double_depth["inputs"]["second_moment_area_m4"] = serde_json::json!(0.000064);
+    double_depth["inputs"]["extreme_fiber_distance_m"] = serde_json::json!(0.1);
+    let depth_result = evaluate_reference(&double_depth).expect("consistent doubled depth is valid");
+    assert!(close_relative(
+        depth_result.inertia_m4,
+        reference.inertia_m4 * 8.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        depth_result.deflection_m,
+        reference.deflection_m / 8.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        depth_result.support_stress_pa,
+        reference.support_stress_pa / 4.0,
+        tolerance
+    ));
 }
