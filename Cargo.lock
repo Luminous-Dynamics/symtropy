@@ -9347,6 +9347,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-physics-diff-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-rapier3d-bridge"
 version = "0.1.0"
 dependencies = [
