@@ -570,7 +570,7 @@
         "records": [
           {
             "evidence_id": "synthetic-evidence-01",
-            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "artifact_digest": "sha256:65ba08d2fac6355c1ca730cb12f30e8d63498aa9d7cd4bdf686b55515251976a",
             "issuer_id": "synthetic-verifier-a",
             "asset_id": "water-pump-7",
             "asset_revision": 8,
@@ -587,7 +587,8 @@
             "measured_value": 1,
             "unit": "synthetic-index",
             "acceptance_min": 0.8,
-            "acceptance_max": 1.2
+            "acceptance_max": 1.2,
+            "artifact_payload_utf8": "{\"acceptance_criterion_id\":\"synthetic-pressure-band-v1\",\"acceptance_max\":1.2,\"acceptance_min\":0.8,\"asset_id\":\"water-pump-7\",\"asset_revision\":8,\"calibration_id\":\"synthetic-calibration-v3\",\"calibration_status\":\"VALID\",\"configuration_digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"evidence_id\":\"synthetic-evidence-01\",\"issuer_id\":\"synthetic-verifier-a\",\"lifecycle_state\":\"CURRENT\",\"measured_value\":1.0,\"method_id\":\"synthetic-test-method-v1\",\"method_qualification\":\"QUALIFIED\",\"observed_at\":\"2042-01-01T10:00:00Z\",\"scope_id\":\"habitat-central-water-loop\",\"unit\":\"synthetic-index\",\"valid_until\":\"2042-01-02T12:00:00Z\"}"
           }
         ],
         "expected_status": "VERIFIED_AVAILABLE_CANDIDATE"
@@ -1113,6 +1114,62 @@
           }
         ],
         "expected_status": "REJECT_SCOPE_MISMATCH"
+      },
+      {
+        "id": "measurement_mutated_without_rehashed_artifact",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:65ba08d2fac6355c1ca730cb12f30e8d63498aa9d7cd4bdf686b55515251976a",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1.1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2,
+            "artifact_payload_utf8": "{\"acceptance_criterion_id\":\"synthetic-pressure-band-v1\",\"acceptance_max\":1.2,\"acceptance_min\":0.8,\"asset_id\":\"water-pump-7\",\"asset_revision\":8,\"calibration_id\":\"synthetic-calibration-v3\",\"calibration_status\":\"VALID\",\"configuration_digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"evidence_id\":\"synthetic-evidence-01\",\"issuer_id\":\"synthetic-verifier-a\",\"lifecycle_state\":\"CURRENT\",\"measured_value\":1.0,\"method_id\":\"synthetic-test-method-v1\",\"method_qualification\":\"QUALIFIED\",\"observed_at\":\"2042-01-01T10:00:00Z\",\"scope_id\":\"habitat-central-water-loop\",\"unit\":\"synthetic-index\",\"valid_until\":\"2042-01-02T12:00:00Z\"}"
+          }
+        ],
+        "expected_status": "REJECT_ARTIFACT_CLAIM_MISMATCH"
+      },
+      {
+        "id": "artifact_payload_mutated_without_digest_update",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:65ba08d2fac6355c1ca730cb12f30e8d63498aa9d7cd4bdf686b55515251976a",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2,
+            "artifact_payload_utf8": "{\"acceptance_criterion_id\":\"synthetic-pressure-band-v1\",\"acceptance_max\":1.2,\"acceptance_min\":0.8,\"asset_id\":\"water-pump-7\",\"asset_revision\":8,\"calibration_id\":\"synthetic-calibration-v3\",\"calibration_status\":\"VALID\",\"configuration_digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"evidence_id\":\"synthetic-evidence-01\",\"issuer_id\":\"synthetic-verifier-a\",\"lifecycle_state\":\"CURRENT\",\"measured_value\":1.1,\"method_id\":\"synthetic-test-method-v1\",\"method_qualification\":\"QUALIFIED\",\"observed_at\":\"2042-01-01T10:00:00Z\",\"scope_id\":\"habitat-central-water-loop\",\"unit\":\"synthetic-index\",\"valid_until\":\"2042-01-02T12:00:00Z\"}"
+          }
+        ],
+        "expected_status": "REJECT_ARTIFACT_DIGEST_MISMATCH"
       }
     ],
     "repair_receipt_semantics": {
@@ -1126,6 +1183,30 @@
         "post_repair_tested_asset_revision"
       ],
       "rule": "A POST_REPAIR_TEST_PASSED status can only be a candidate when the receipt, repair attempt, repaired asset revision, configuration digest and test identity are present; the test must PASS against the exact current asset revision and configuration. These are synthetic field semantics only; source signatures, test bytes and physical measurements are not authenticated."
+    },
+    "artifact_binding_rule": {
+      "canonical_payload": "For the single content-bound fixture and its mutation controls, artifact_payload_utf8 is a canonical sorted-key compact JSON representation of the listed measurement claims, UTF-8 encoded exactly.",
+      "claims_bound": [
+        "evidence_id",
+        "issuer_id",
+        "asset_id",
+        "asset_revision",
+        "configuration_digest",
+        "scope_id",
+        "observed_at",
+        "valid_until",
+        "lifecycle_state",
+        "method_id",
+        "method_qualification",
+        "calibration_id",
+        "calibration_status",
+        "acceptance_criterion_id",
+        "measured_value",
+        "unit",
+        "acceptance_min",
+        "acceptance_max"
+      ],
+      "scope": "Only the named fixture record is content-bound in v0.1; other evidence cases still test field semantics with syntax-shaped digest fixtures. This does not authenticate issuer identity or establish physical truth."
     }
   },
   "artifact_integrity_reference": {
