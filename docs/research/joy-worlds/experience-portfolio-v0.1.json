@@ -1,0 +1,434 @@
+{
+  "schema_version": "0.1.0",
+  "id": "luminous-dynamics.symtropy.joy-worlds.portfolio",
+  "status": "design_hypotheses_not_validated",
+  "purpose": "Composable portfolio hypotheses for comparing hybrid leisure destinations without assuming a universal winner.",
+  "non_claims": [
+    "No candidate has been demonstrated to be profitable, safe, accessible, ecological, or preferred by guests.",
+    "Qualitative resource profiles are prompts for later site-specific models, not measurements.",
+    "A synthetic simulation result is not real-world forecast validation or safety certification."
+  ],
+  "experience_intents": [
+    "play_and_silliness",
+    "awe_and_wonder",
+    "discovery_and_learning",
+    "movement_and_challenge",
+    "mastery_and_creation",
+    "shared_adventure",
+    "imagination_and_story",
+    "sensory_delight",
+    "cultural_connection",
+    "calm_and_restoration",
+    "nature_connection",
+    "food_and_conviviality",
+    "friendly_competition",
+    "intergenerational_belonging",
+    "unstructured_autonomy"
+  ],
+  "constraint_policy": {
+    "hard_constraints": [
+      "applicable_law_and_permits",
+      "professional_safety_and_egress_requirements",
+      "aquatic_public_health_and_water_quality",
+      "adopted_accessibility_requirements",
+      "site_specific_water_and_energy_limits",
+      "habitat_and_seasonal_protection",
+      "qualified_staffing_and_maintenance",
+      "cultural_consent_and_rights"
+    ],
+    "soft_tradeoffs": [
+      "guest_experience_dimensions",
+      "capital_and_lifecycle_cost",
+      "operational_complexity",
+      "seasonal_robustness",
+      "local_value_retention",
+      "programming_diversity"
+    ],
+    "rule": "Do not trade hard constraints for higher revenue, throughput, engagement, or another soft objective."
+  },
+  "common_evidence_fields": [
+    "candidate_id",
+    "profile_version",
+    "scenario_manifest_digest",
+    "initial_state_digest",
+    "model_and_code_identity",
+    "assumptions_and_units",
+    "seed_or_ensemble_protocol",
+    "observation_window",
+    "outcome_vector_with_uncertainty",
+    "infeasibility_and_unknowns",
+    "independent_oracle_refs"
+  ],
+  "water_facility_boundary": {
+    "required_domains": [
+      "source_and_makeup_water",
+      "recirculation_filtration_backwash_and_wastewater",
+      "temperature_humidity_ventilation_and_corrosion_for_indoor_facilities",
+      "water_quality_monitoring_and_treatment",
+      "qualified_operator_and_lifeguard_staffing",
+      "closures_contamination_response_and_reopening",
+      "jurisdictional_review"
+    ],
+    "prohibition": "No optimizer or simulation result can authorize operation of a ride, aquatic feature, water-treatment system, or emergency response."
+  },
+  "candidates": [
+    {
+      "id": "H1",
+      "name": "Aqua Mythos",
+      "modules": [
+        "water_world",
+        "living_storyworld",
+        "family_imagination_village",
+        "night_spectacle",
+        "dry_adventure"
+      ],
+      "intents": [
+        "play_and_silliness",
+        "awe_and_wonder",
+        "imagination_and_story",
+        "shared_adventure",
+        "sensory_delight"
+      ],
+      "design_hypothesis": "A story-led water park with meaningful dry experiences may diversify activities across groups and weather windows.",
+      "dependencies": [
+        "aquatic_safety_review",
+        "water_budget",
+        "queue_and_flow_model",
+        "night_noise_and_light_review"
+      ],
+      "key_unknowns": [
+        "water_and_energy_demand",
+        "capital_cost",
+        "weather_sensitivity",
+        "queue_interference_between_wet_and_dry_zones"
+      ]
+    },
+    {
+      "id": "H2",
+      "name": "Blue Planet Commons",
+      "modules": [
+        "coast_or_river_discovery",
+        "surf_or_wave_experience",
+        "ocean_science",
+        "local_guides",
+        "habitat_stewardship"
+      ],
+      "intents": [
+        "discovery_and_learning",
+        "nature_connection",
+        "movement_and_challenge",
+        "cultural_connection"
+      ],
+      "design_hypothesis": "Water recreation paired with local knowledge and environmental learning may create a broader destination proposition.",
+      "dependencies": [
+        "site_hydrology_or_coastal_review",
+        "water_activity_safety",
+        "wildlife_and_habitat_constraints",
+        "community_partnership"
+      ],
+      "key_unknowns": [
+        "site_suitability",
+        "seasonal_closures",
+        "environmental_capacity",
+        "local_value_distribution"
+      ]
+    },
+    {
+      "id": "H3",
+      "name": "Aqua Forest Retreat",
+      "modules": [
+        "indoor_outdoor_water_zones",
+        "botanical_gardens",
+        "canopy_paths",
+        "lodging",
+        "quiet_wellness"
+      ],
+      "intents": [
+        "play_and_silliness",
+        "nature_connection",
+        "calm_and_restoration",
+        "intergenerational_belonging"
+      ],
+      "design_hypothesis": "A mixed-intensity water-and-nature stay may serve guests seeking both energetic activity and recovery.",
+      "dependencies": [
+        "indoor_humidity_and_energy_model",
+        "aquatic_safety_review",
+        "site_ecology",
+        "accessible_route_design"
+      ],
+      "key_unknowns": [
+        "humidity_and_corrosion_lifecycle",
+        "water_demand",
+        "quiet_zone_conflicts",
+        "habitat_fragmentation"
+      ]
+    },
+    {
+      "id": "H4",
+      "name": "All-Weather Wonder District",
+      "modules": [
+        "indoor_aqua_biome",
+        "immersive_theatre",
+        "maker_lab",
+        "food_hall",
+        "seasonal_gardens",
+        "lodging"
+      ],
+      "intents": [
+        "awe_and_wonder",
+        "discovery_and_learning",
+        "mastery_and_creation",
+        "food_and_conviviality",
+        "intergenerational_belonging"
+      ],
+      "design_hypothesis": "Indoor and outdoor experiences with distinct operating profiles may reduce reliance on a single weather-sensitive attraction category.",
+      "dependencies": [
+        "building_services_model",
+        "queue_and_flow_model",
+        "aquatic_safety_review_if_water_is_present",
+        "transport_and_staffing_model"
+      ],
+      "key_unknowns": [
+        "energy_and_dehumidification",
+        "capital_intensity",
+        "common_mode_outages",
+        "seasonal_demand"
+      ]
+    },
+    {
+      "id": "H5",
+      "name": "Wild Worlds Expedition",
+      "modules": [
+        "canopy_adventure",
+        "noninvasive_wildlife_observatory",
+        "geology_exploration",
+        "dark_sky_programming",
+        "basecamp_lodging"
+      ],
+      "intents": [
+        "shared_adventure",
+        "discovery_and_learning",
+        "nature_connection",
+        "awe_and_wonder",
+        "movement_and_challenge"
+      ],
+      "design_hypothesis": "A variety of low-impact expedition modes may broaden participation without requiring direct wildlife contact.",
+      "dependencies": [
+        "habitat_and_species_constraints",
+        "adventure_safety_review",
+        "dark_sky_and_noise_review",
+        "weather_and_rescue_plan"
+      ],
+      "key_unknowns": [
+        "site_capacity",
+        "seasonal_access",
+        "wildlife_disturbance",
+        "accessible_alternative_experiences"
+      ]
+    },
+    {
+      "id": "H6",
+      "name": "Play, Make & Move",
+      "modules": [
+        "makerland",
+        "sport_and_challenge_park",
+        "family_village",
+        "music_and_art",
+        "intergenerational_commons"
+      ],
+      "intents": [
+        "play_and_silliness",
+        "mastery_and_creation",
+        "friendly_competition",
+        "shared_adventure",
+        "intergenerational_belonging"
+      ],
+      "design_hypothesis": "Participatory activities with both competitive and non-competitive modes may support repeat visits and group variety.",
+      "dependencies": [
+        "activity_specific_safety_review",
+        "accessible_program_design",
+        "staffing_and_materials_plan",
+        "noise_and_rest_zones"
+      ],
+      "key_unknowns": [
+        "facilitator_staffing",
+        "material_throughput",
+        "noise_conflicts",
+        "repeat_visit_evidence"
+      ]
+    },
+    {
+      "id": "H7",
+      "name": "Living Cultures & Harvest",
+      "modules": [
+        "community_led_food",
+        "craft_and_performance",
+        "garden_or_farm",
+        "workshops",
+        "local_lodging_and_suppliers"
+      ],
+      "intents": [
+        "cultural_connection",
+        "food_and_conviviality",
+        "mastery_and_creation",
+        "discovery_and_learning",
+        "intergenerational_belonging"
+      ],
+      "design_hypothesis": "Community-led cultural and food experiences may keep more value local when consent, pay, attribution, and governance are real.",
+      "dependencies": [
+        "community_cultural_authority",
+        "food_safety",
+        "biosecurity_where_relevant",
+        "supplier_and_benefit_flow_evidence"
+      ],
+      "key_unknowns": [
+        "community_preferences",
+        "seasonal_supply",
+        "distribution_of_value",
+        "risk_of_cultural_commodification"
+      ]
+    },
+    {
+      "id": "H8",
+      "name": "Restorative Water Sanctuary",
+      "modules": [
+        "quiet_bathing_or_wellness",
+        "accessible_gardens",
+        "gentle_trails",
+        "sleep_oriented_lodging",
+        "optional_creative_activities"
+      ],
+      "intents": [
+        "calm_and_restoration",
+        "nature_connection",
+        "sensory_delight",
+        "unstructured_autonomy"
+      ],
+      "design_hypothesis": "A low-stimulation option alongside optional activities may serve guests whose preferred holiday is quiet and unhurried.",
+      "dependencies": [
+        "aquatic_or_wellness_review_if_applicable",
+        "noise_and_light_policy",
+        "accessible_design_review",
+        "nonmedical_claims_review"
+      ],
+      "key_unknowns": [
+        "target_guest_preferences",
+        "seasonal_demand",
+        "operating_cost",
+        "privacy_and_separation_needs"
+      ]
+    },
+    {
+      "id": "H9",
+      "name": "Four-Seasons Micro-Resort",
+      "modules": [
+        "compact_indoor_attractions",
+        "dry_adventure",
+        "seasonal_festival_garden",
+        "small_water_component_if_feasible",
+        "flexible_events",
+        "local_day_trips"
+      ],
+      "intents": [
+        "play_and_silliness",
+        "cultural_connection",
+        "shared_adventure",
+        "food_and_conviviality",
+        "unstructured_autonomy"
+      ],
+      "design_hypothesis": "A compact modular venue may support more use cases with less land than a single-purpose destination, depending on site and local demand.",
+      "dependencies": [
+        "local_transport_and_demand_model",
+        "event_noise_policy",
+        "water_budget_if_applicable",
+        "capacity_and_egress_review"
+      ],
+      "key_unknowns": [
+        "local_market_fit",
+        "event_conflicts",
+        "parking_and_transit_load",
+        "lifecycle_cost"
+      ]
+    },
+    {
+      "id": "H10",
+      "name": "Regenerative Destination Network",
+      "modules": [
+        "independently_governed_attractions",
+        "local_trails_and_stays",
+        "cultural_experiences",
+        "shared_accessibility_information",
+        "transport_links",
+        "community_evidence_interfaces"
+      ],
+      "intents": [
+        "nature_connection",
+        "cultural_connection",
+        "discovery_and_learning",
+        "intergenerational_belonging",
+        "unstructured_autonomy"
+      ],
+      "design_hypothesis": "A distributed destination can share discovery and access infrastructure while local operators retain autonomy and community rules.",
+      "dependencies": [
+        "interop_and_data_governance",
+        "community_agreements",
+        "transport_and_wayfinding",
+        "independent_supplier_evidence"
+      ],
+      "key_unknowns": [
+        "coordination_cost",
+        "uneven_benefit_distribution",
+        "transport_emissions",
+        "interoperability_adoption"
+      ]
+    }
+  ],
+  "evaluation_protocol": {
+    "initial_candidates": [
+      "H1",
+      "H4",
+      "H5"
+    ],
+    "scenario_factors": [
+      "arrival_demand",
+      "weather_profile",
+      "service_availability",
+      "staffing_profile",
+      "seasonality"
+    ],
+    "required_comparisons": [
+      "same_initial_state_different_portfolio",
+      "same_portfolio_different_demand",
+      "same_demand_baseline_vs_declared_intervention"
+    ],
+    "required_controls": [
+      "unchanged_disconnected_region",
+      "zero_arrival_case",
+      "demand_spike",
+      "closed_route",
+      "unavailable_service",
+      "missing_or_stale_observation",
+      "resource_limit_breach",
+      "model_version_mismatch"
+    ],
+    "outcomes_reported_separately": [
+      "wait_and_crowd_distribution",
+      "walking_and_schedule_burden",
+      "accessibility_gaps",
+      "staffing_and_maintenance_load",
+      "water_energy_and_material_flows",
+      "habitat_noise_and_light_impacts",
+      "local_value_distribution",
+      "lifecycle_cost_assumptions",
+      "uncertainty_model_disagreement_and_unknowns"
+    ],
+    "promotion_rule": "Synthetic reproducibility and oracle checks qualify only the declared synthetic fixture; field calibration and independent review are required for real-world claims."
+  },
+  "references": [
+    "https://iaapa.org/news-funworld/state-global-attractions-industry-q3-2025",
+    "https://iaapa.org/download/2025-iaapa-benchmark-series-water-parks",
+    "https://www.cdc.gov/model-aquatic-health-code/php/our-work/index.html",
+    "https://www.iso.org/standard/72126.html",
+    "https://www.gstc.org/wp-content/uploads/GSTC-Destination-Criteria-v2.0-2022.pdf"
+  ]
+}
