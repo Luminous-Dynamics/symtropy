@@ -566,7 +566,8 @@ fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
     assert_first_order_convergence("Rapier", &rapier_observations);
 }
 
- {
+#[test]
+fn native_and_rapier_keep_a_sphere_near_resting_contact() {
     let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
     for (backend, trace) in [
         ("native", run_native_scenario_3d(&scenario).unwrap()),
