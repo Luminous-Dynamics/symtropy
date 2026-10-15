@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use ::nalgebra::SVector;
-use bevy::prelude::*;
+use bevy::prelude::{Component, Resource};
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::contact::CollisionEvent;
@@ -252,7 +252,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             if original_force.iter().all(|value| *value == 0.0) {
                 continue;
             }
-            let body_handle = self.callback_body_handle(*handle)?;
+            let body_handle = self.callback_body_handle(handle)?;
             let force64 = SVector::<f64, 3>::new(
                 original_force.x as f64,
                 original_force.y as f64,
