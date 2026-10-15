@@ -160,6 +160,11 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         let mut force_changes = Vec::new();
         for (handle, body) in rigid_body_set.iter() {
             let original_force = body.user_force();
+            // Force modulation must not manufacture an input from a zero source. Skip
+            // empty accumulators before invoking the callback or touching sleeping bodies.
+            if original_force.iter().all(|value| *value == 0.0) {
+                continue;
+            }
             let body_handle = BodyHandle(handle.into_raw_parts().0 as usize);
             let force64 = SVector::<f64, 3>::new(
                 original_force.x as f64,
@@ -174,12 +179,6 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             ];
             if !modulated_force.iter().all(|value| value.is_finite()) {
                 return Err(RapierStepError::NonFiniteModulatedForce { body: body_handle });
-            }
-            // Avoid waking otherwise-idle bodies just to reset/re-add a zero force.
-            if original_force.iter().all(|value| *value == 0.0)
-                && modulated_force.iter().all(|value| *value == 0.0)
-            {
-                continue;
             }
             force_changes.push((handle, original_force, modulated_force));
         }
@@ -471,7 +470,9 @@ mod tests {
 
     #[test]
     fn zero_force_step_does_not_wake_an_idle_body() {
-        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        // A non-finite scale would reject any actual nonzero input, but zero source
+        // accumulators should not invoke a modulation callback at all.
+        let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(f64::NAN));
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
             RigidBodyBuilder::dynamic()
