@@ -48,7 +48,7 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
     let width = read_positive("section_width_m")?;
     let depth = read_positive("section_depth_m")?;
     let declared_inertia = read_positive("second_moment_area_m4")?;
-    let c = read_positive("extreme_fiber_distance_m")?;
+    let declared_extreme_fiber_distance = read_positive("extreme_fiber_distance_m")?;
     let tolerance = case["acceptance"]["relative_tolerance"]
         .as_f64()
         .filter(|value| value.is_finite() && *value >= 0.0)
@@ -58,6 +58,16 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
     // check the fixture's declared value. Downstream equations use the derived
     // value so a stale/incorrect declared inertia cannot drive both sides.
     let computed_inertia = width * depth.powi(3) / 12.0;
+    let computed_extreme_fiber_distance = depth / 2.0;
+    if !close_relative(
+        computed_extreme_fiber_distance,
+        declared_extreme_fiber_distance,
+        tolerance,
+    ) {
+        return Err(format!(
+            "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with geometry-derived value {computed_extreme_fiber_distance}"
+        ));
+    }
     if !close_relative(computed_inertia, declared_inertia, tolerance) {
         return Err(format!(
             "declared second moment of area {declared_inertia} disagrees with geometry-derived value {computed_inertia}"
@@ -65,7 +75,7 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
     }
 
     let computed_deflection = load * span.powi(3) / (3.0 * youngs_modulus * computed_inertia);
-    let computed_stress = load * span * c / computed_inertia;
+    let computed_stress = load * span * computed_extreme_fiber_distance / computed_inertia;
 
     for (name, value) in [
         ("computed_inertia", computed_inertia),
@@ -256,4 +266,19 @@ fn analytical_reference_obeys_mechanical_scaling_invariants() {
         reference.support_stress_pa / 4.0,
         tolerance
     ));
+}
+
+
+#[test]
+fn analytical_reference_rejects_inconsistent_extreme_fiber_distance() {
+    let mut case: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let declared = case["inputs"]["extreme_fiber_distance_m"]
+        .as_f64()
+        .expect("declared extreme-fiber distance");
+    case["inputs"]["extreme_fiber_distance_m"] = serde_json::json!(declared * 1.1);
+
+    assert!(
+        evaluate_reference(&case).is_err(),
+        "a declared extreme-fiber distance that contradicts the rectangular section geometry must block evaluation"
+    );
 }
