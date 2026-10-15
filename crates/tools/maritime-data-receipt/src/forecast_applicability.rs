@@ -168,9 +168,9 @@ fn validate_and_evaluate(
 
     let binding = super::field(profile, "receipt_binding", "forecast_profile")?;
     super::exact_keys(binding, BINDING_KEYS, BINDING_PATH)?;
-    let receipt_id = text_field(binding, "receipt_id", "forecast_profile.receipt_binding")?;
-    let declared_receipt_sha = text_field(binding, "receipt_sha256", "forecast_profile.receipt_binding")?;
-    let declared_artifact_sha = text_field(binding, "artifact_sha256", "forecast_profile.receipt_binding")?;
+    let receipt_id = text_field(binding, "receipt_id", BINDING_PATH)?;
+    let declared_receipt_sha = text_field(binding, "receipt_sha256", BINDING_PATH)?;
+    let declared_artifact_sha = text_field(binding, "artifact_sha256", BINDING_PATH)?;
     if !digest_is_lower_sha256(declared_receipt_sha)
         || !digest_is_lower_sha256(declared_artifact_sha)
     {
@@ -188,26 +188,26 @@ fn validate_and_evaluate(
 
     let forecast = super::field(profile, "forecast", "forecast_profile")?;
     super::exact_keys(forecast, FORECAST_KEYS, FORECAST_PATH)?;
-    let product_kind = text_field(forecast, "product_kind", "forecast_profile.forecast")?.to_owned();
-    let provider_product_id = text_field(forecast, "provider_product_id", "forecast_profile.forecast")?.to_owned();
-    let dataset_id = text_field(forecast, "dataset_id", "forecast_profile.forecast")?.to_owned();
-    let dataset_revision = text_field(forecast, "dataset_revision", "forecast_profile.forecast")?.to_owned();
-    let model_run_id = text_field(forecast, "model_run_id", "forecast_profile.forecast")?.to_owned();
-    let model_initialization_time = text_field(forecast, "model_initialization_time_utc", "forecast_profile.forecast")?.to_owned();
-    let issued_at = text_field(forecast, "issued_at_utc", "forecast_profile.forecast")?.to_owned();
-    let assessment_time = text_field(forecast, "assessment_time_utc", "forecast_profile.forecast")?.to_owned();
-    let target_time = text_field(forecast, "target_time_utc", "forecast_profile.forecast")?.to_owned();
-    let valid_from = text_field(forecast, "valid_from_utc", "forecast_profile.forecast")?.to_owned();
-    let valid_until = text_field(forecast, "valid_until_utc", "forecast_profile.forecast")?.to_owned();
+    let product_kind = text_field(forecast, "product_kind", FORECAST_PATH)?.to_owned();
+    let provider_product_id = text_field(forecast, "provider_product_id", FORECAST_PATH)?.to_owned();
+    let dataset_id = text_field(forecast, "dataset_id", FORECAST_PATH)?.to_owned();
+    let dataset_revision = text_field(forecast, "dataset_revision", FORECAST_PATH)?.to_owned();
+    let model_run_id = text_field(forecast, "model_run_id", FORECAST_PATH)?.to_owned();
+    let model_initialization_time = text_field(forecast, "model_initialization_time_utc", FORECAST_PATH)?.to_owned();
+    let issued_at = text_field(forecast, "issued_at_utc", FORECAST_PATH)?.to_owned();
+    let assessment_time = text_field(forecast, "assessment_time_utc", FORECAST_PATH)?.to_owned();
+    let target_time = text_field(forecast, "target_time_utc", FORECAST_PATH)?.to_owned();
+    let valid_from = text_field(forecast, "valid_from_utc", FORECAST_PATH)?.to_owned();
+    let valid_until = text_field(forecast, "valid_until_utc", FORECAST_PATH)?.to_owned();
     let max_issue_age = super::integer(
-        super::field(forecast, "max_issue_age_seconds", "forecast_profile.forecast")?,
+        super::field(forecast, "max_issue_age_seconds", FORECAST_PATH)?,
         "forecast_profile.forecast.max_issue_age_seconds",
     )?;
     let max_forecast_lead = super::integer(
-        super::field(forecast, "max_forecast_lead_seconds", "forecast_profile.forecast")?,
+        super::field(forecast, "max_forecast_lead_seconds", FORECAST_PATH)?,
         "forecast_profile.forecast.max_forecast_lead_seconds",
     )?;
-    let freshness_policy_id = text_field(forecast, "freshness_policy_id", "forecast_profile.forecast")?.to_owned();
+    let freshness_policy_id = text_field(forecast, "freshness_policy_id", FORECAST_PATH)?.to_owned();
 
     if product_kind != facts.product.as_str() {
         return Err(
@@ -231,8 +231,8 @@ fn validate_and_evaluate(
 
     let quality = super::field(profile, "quality", "forecast_profile")?;
     super::exact_keys(quality, QUALITY_KEYS, QUALITY_PATH)?;
-    let quality_status = text_field(quality, "status", "forecast_profile.quality")?;
-    let uncertainty_statement = text_field(quality, "uncertainty_statement", "forecast_profile.quality")?;
+    let quality_status = text_field(quality, "status", QUALITY_PATH)?;
+    let uncertainty_statement = text_field(quality, "uncertainty_statement", QUALITY_PATH)?;
     if !["prediction", "synthetic", "unknown"].contains(&quality_status) {
         return Err("forecast_profile.quality.status: unsupported value".to_owned());
     }
