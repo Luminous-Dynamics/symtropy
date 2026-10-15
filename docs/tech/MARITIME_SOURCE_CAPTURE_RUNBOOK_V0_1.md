@@ -13,6 +13,7 @@ Pin these semantics alongside the artifact:
 - Spatial level: port, not country, terminal, berth, vessel, or individual port call.
 - Temporal frequency: quarterly. The available observations are not complete for every port and period.
 - Indicator: `Index (average Q1 2023 = 100)`; it is an index, not a count, capacity, probability, or physical measurement.
+- Benchmark scope: 100 is the global-average port-connectivity benchmark for 2023-Q1, not a score assigned to any single port.
 - Methodology vintage: the series was rescaled in 2024 so that 100 represents the average port connectivity in Q1 2023. Do not silently compare this with the prior scale.
 - Source basis: shipping-line schedules and network components. It is suitable for comparative network baselines and labelled synthetic scenarios, not live berth availability, current vessel position, proof of an individual port call, cargo custody/delivery, route safety, or navigation advice.
 - Reuse terms: UNCTAD's [Data Hub terms](https://unctadstat.unctad.org/EN/About.html) and [FAQ](https://unctadstat.unctad.org/EN/FAQ.html) state CC BY 3.0 IGO and allow redistribution of data/metadata with source attribution. Preserve the exact terms page/file reviewed and its digest in the capture record. This does not constitute legal advice or override any dataset-specific notice.
@@ -67,7 +68,7 @@ Keep the manifest small and free of credentials. At minimum record:
 - exact receipt path/hash, verification command, tested source commit, and final status;
 - claim ceiling: `NotAdmitted`; comparative network context/synthetic-scenario input only. No navigation, berth availability, vessel movement, port-call, custody, delivery, safety or operational claims.
 
-The dedicated [PLSCI profile schema](./MARITIME_PLSCI_PROFILE_V0_1.schema.json) and Rust guard now enforce this series' semantics separately from the generic receipt: port-level, quarterly, index points, benchmark period `2023-Q1` with value `100`, methodology vintage `rescaled-2024-six-component`, and an explicit six-component definition. The generic receipt should use product/domain `other` with unit `dimensionless`; the profile gives the unit its index-specific meaning. A receipt-bound synthetic example and 20-case hostile corpus are in `crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json` and `plsci-profile-corpus-v0.1.json`. Verify them with:
+The dedicated [PLSCI profile schema](./MARITIME_PLSCI_PROFILE_V0_1.schema.json) and Rust guard now enforce this series' semantics separately from the generic receipt: port-level, quarterly, index points, benchmark period `2023-Q1` with value `100`, methodology vintage `rescaled-2024-six-component`, and an explicit six-component definition. The generic receipt should use product/domain `other` with unit `dimensionless`; the profile gives the unit its index-specific meaning. A receipt-bound synthetic example and 21-case hostile corpus are in `crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json` and `plsci-profile-corpus-v0.1.json`. Verify them with:
 
 ```sh
 cargo run --locked -p maritime-data-receipt -- \\
