@@ -801,10 +801,14 @@ pub fn assess_nutrient_target(
         NutrientTargetStatus::Blocked
     } else if !assessable {
         NutrientTargetStatus::NotAssessable
-    } else if supply_numerator >= target_numerator {
-        NutrientTargetStatus::MeetsDeclaredMinimum
     } else {
-        NutrientTargetStatus::ShortfallAgainstDeclaredMinimum
+        match (supply_numerator, target_numerator) {
+            (Some(supply), Some(minimum)) if supply >= minimum => {
+                NutrientTargetStatus::MeetsDeclaredMinimum
+            }
+            (Some(_), Some(_)) => NutrientTargetStatus::ShortfallAgainstDeclaredMinimum,
+            _ => NutrientTargetStatus::Blocked,
+        }
     };
 
     NutrientTargetAssessmentV1 {
@@ -1284,7 +1288,9 @@ mod tests {
         target.target_amount_scaled = u64::MAX;
         target.value_scale = composition.value_scale;
         let serialized = serde_json::to_string(&target).expect("target serializes");
-        assert!(serialized.contains("\"target_amount_scaled\":\"18446744073709551615\""));
+        assert!(serialized.contains(
+            "\"target_amount_scaled\":\"18446744073709551615\""
+        ));
         let decoded: NutrientSupplyTargetV1 =
             serde_json::from_str(&serialized).expect("target deserializes");
         assert_eq!(decoded, target);
