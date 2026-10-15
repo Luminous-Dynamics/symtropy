@@ -346,6 +346,13 @@ def main() -> None:
         recomputed_digest == expected_digest,
         "SHA-256 reference payload did not match pinned digest",
     )
+    expected_altered_payload = integrity["payload_utf8"].replace(
+        "measurement=1.0\\n", "measurement=1.1\\n"
+    )
+    require(
+        integrity["altered_payload_utf8"] == expected_altered_payload,
+        "evidence canary must change only the declared measurement field",
+    )
     altered_payload = integrity["altered_payload_utf8"].encode("utf-8")
     require(
         hashlib.sha256(altered_payload).hexdigest() != expected_digest,
@@ -357,6 +364,14 @@ def main() -> None:
     require(
         configuration_digest == integrity["expected_configuration_sha256"],
         "configuration bytes did not match pinned SHA-256 reference",
+    )
+    expected_altered_configuration_payload = integrity["configuration_payload_utf8"].replace(
+        "scope=habitat-central-water-loop\\n",
+        "scope=habitat-central-water-loop-mutated\\n",
+    )
+    require(
+        integrity["altered_configuration_payload_utf8"] == expected_altered_configuration_payload,
+        "configuration canary must change only the declared scope field",
     )
     altered_configuration_payload = integrity["altered_configuration_payload_utf8"].encode("utf-8")
     require(
