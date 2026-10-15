@@ -146,6 +146,66 @@
           "evidence_refs": []
         }
       ]
+    },
+    "ambiguous_candidates": {
+      "schema_id": "luminous.symtropy.maritime-port-crosswalk",
+      "schema_version": "0.1.0",
+      "crosswalk_id": "synthetic-ambiguous-candidates-crosswalk-v0",
+      "fixture_kind": "synthetic_fixture",
+      "source_snapshot": {
+        "source_system": "SYNTHETIC-TEST-ONLY",
+        "series_or_table_id": "synthetic-series-v0",
+        "source_revision": "synthetic-revision-v0",
+        "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "retrieved_at_utc": null,
+        "source_uri": null,
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "locode_registry": {
+        "release": "2025-1",
+        "release_kind": "production",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "mapping_policy": {
+        "policy_id": "maritime-port-identity-policy",
+        "version": "0.1.0",
+        "name_match_can_resolve": false,
+        "port_statistics_can_target_terminal": false,
+        "unresolved_is_zero": false
+      },
+      "records": [
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": "ZACPT",
+          "locode_function": "12345---",
+          "locode_status": "AF",
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "ambiguous",
+          "match_method": "manual_review",
+          "evidence_refs": [
+            "fixture-only:candidate-a-not-a-real-crosswalk"
+          ]
+        },
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": "ZADUR",
+          "locode_function": "12345---",
+          "locode_status": "AI",
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "ambiguous",
+          "match_method": "manual_review",
+          "evidence_refs": [
+            "fixture-only:candidate-b-not-a-real-crosswalk"
+          ]
+        }
+      ]
     }
   },
   "cases": [
@@ -402,6 +462,39 @@
         }
       ],
       "expected_code": "INVALID_SNAPSHOT_DIGEST"
+    },
+    {
+      "id": "valid_multiple_candidates_remain_ambiguous",
+      "base": "ambiguous_candidates",
+      "mutations": [],
+      "expected_code": "CROSSWALK_METADATA_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "multiple_candidates_cannot_resolve_one_of_the_candidates",
+      "base": "ambiguous_candidates",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.mapping_state",
+          "value": "resolved"
+        },
+        {
+          "op": "set",
+          "path": "records.0.target_feature_id",
+          "value": "synthetic-atlas-port-area-001"
+        },
+        {
+          "op": "set",
+          "path": "records.0.target_level",
+          "value": "port_area"
+        },
+        {
+          "op": "set",
+          "path": "records.0.relationship",
+          "value": "same_entity"
+        }
+      ],
+      "expected_code": "MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS"
     }
   ]
 }
