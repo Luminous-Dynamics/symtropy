@@ -328,6 +328,11 @@ pub struct NutrientContributionDecisionV1 {
     pub food_state_id: String,
     pub delivery_scope_ref: String,
     pub period_ref: String,
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub edible_delivered_grams: u64,
     pub nutrient_id: String,
     pub nutrient_definition_ref: String,
     pub unit: NutrientUnit,
@@ -508,6 +513,7 @@ pub fn evaluate_nutrient_contribution(
         food_state_id: composition.food_state_id.clone(),
         delivery_scope_ref: delivery.delivery_scope_ref.clone(),
         period_ref: delivery.period_ref.clone(),
+        edible_delivered_grams: delivery.edible_delivered_grams,
         nutrient_id: composition.nutrient_id.clone(),
         nutrient_definition_ref: composition.nutrient_definition_ref.clone(),
         unit: composition.unit,
@@ -656,6 +662,11 @@ pub struct NutrientTargetAssessmentV1 {
     pub unit: NutrientUnit,
     pub delivery_scope_ref: String,
     pub delivery_period_ref: String,
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub edible_delivered_grams: u64,
     pub target_scope_ref: String,
     pub period_ref: String,
     #[serde(
@@ -861,6 +872,7 @@ pub fn assess_nutrient_target(
         unit: target.unit,
         delivery_scope_ref: delivery.delivery_scope_ref.clone(),
         delivery_period_ref: delivery.period_ref.clone(),
+        edible_delivered_grams: delivery.edible_delivered_grams,
         target_scope_ref: target.target_scope_ref.clone(),
         period_ref: target.period_ref.clone(),
         value_scale: (target.value_scale != 0).then_some(target.value_scale),
@@ -1108,6 +1120,7 @@ mod tests {
         assert_eq!(decision.contribution_numerator, Some(18_750_000));
         assert_eq!(decision.contribution_denominator, Some(100_000));
         assert_eq!(decision.unit, NutrientUnit::Milligrams);
+        assert_eq!(decision.edible_delivered_grams, 75);
         assert_eq!(decision.composition_source_ref, "fixture:composition-001");
         assert_eq!(decision.delivery_source_ref, "fixture:delivered-edible-mass-001");
         // 18,750,000 / 100,000 = 187.5 mg; no float or rounding is used.
@@ -1250,6 +1263,7 @@ mod tests {
         assert_eq!(assessment.shortfall_numerator, Some(0));
         assert_eq!(assessment.delivery_scope_ref, "scope:community-001");
         assert_eq!(assessment.delivery_period_ref, "period:2026-11");
+        assert_eq!(assessment.edible_delivered_grams, 75);
         assert_eq!(assessment.target_scope_ref, "scope:community-001");
         assert_eq!(assessment.period_ref, "period:2026-11");
     }
