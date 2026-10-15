@@ -460,8 +460,8 @@ pub fn compare_traces_3d(
         left_non_finite_observations: 0,
         right_non_finite_observations: 0,
     };
-    let mut position_error_sq_sum = 0.0;
-    let mut velocity_error_sq_sum = 0.0;
+    let mut position_error_squares = StableSumSquares::default();
+    let mut velocity_error_squares = StableSumSquares::default();
     let mut max_position_error_m = 0.0_f64;
     let mut max_linear_velocity_error_mps = 0.0_f64;
     let mut finite_pairs = 0_u64;
@@ -540,29 +540,18 @@ pub fn compare_traces_3d(
             max_position_error_m = max_position_error_m.max(position_error);
             max_linear_velocity_error_mps =
                 max_linear_velocity_error_mps.max(velocity_error);
-            position_error_sq_sum += position_error * position_error;
-            velocity_error_sq_sum += velocity_error * velocity_error;
+            position_error_squares.add(position_error);
+            velocity_error_squares.add(velocity_error);
             finite_pairs += 1;
         }
     }
 
     metrics.finite_comparison_pairs = finite_pairs;
     if finite_pairs > 0 {
-        if !position_error_sq_sum.is_finite() {
-            return Err(TraceComparisonError::NonFiniteComputedMetric {
-                field: "rms_position_error_m",
-            });
-        }
-        if !velocity_error_sq_sum.is_finite() {
-            return Err(TraceComparisonError::NonFiniteComputedMetric {
-                field: "rms_linear_velocity_error_mps",
-            });
-        }
-        let denominator = finite_pairs as f64;
         metrics.max_position_error_m = Some(max_position_error_m);
-        metrics.rms_position_error_m = Some((position_error_sq_sum / denominator).sqrt());
+        metrics.rms_position_error_m = Some(position_error_squares.rms(finite_pairs));
         metrics.max_linear_velocity_error_mps = Some(max_linear_velocity_error_mps);
-        metrics.rms_linear_velocity_error_mps = Some((velocity_error_sq_sum / denominator).sqrt());
+        metrics.rms_linear_velocity_error_mps = Some(velocity_error_squares.rms(finite_pairs));
     }
 
     Ok(metrics)
@@ -922,15 +911,50 @@ fn all_finite<const N: usize>(values: &[f64; N]) -> bool {
     values.iter().all(|value| value.is_finite())
 }
 
+/// Scaled sum-of-squares accumulator for an RMS without avoidable intermediate
+/// overflow. This is the same numerical strategy used by stable norm algorithms:
+/// keep the largest magnitude separate and accumulate only ratios in [0, 1].
+#[derive(Clone, Copy, Debug, Default)]
+struct StableSumSquares {
+    scale: f64,
+    scaled_sum_squares: f64,
+}
+
+impl StableSumSquares {
+    fn add(&mut self, value: f64) {
+        let value = value.abs();
+        if value == 0.0 {
+            return;
+        }
+
+        if self.scale < value {
+            let ratio = if self.scale == 0.0 {
+                0.0
+            } else {
+                self.scale / value
+            };
+            self.scaled_sum_squares = 1.0 + self.scaled_sum_squares * ratio * ratio;
+            self.scale = value;
+        } else {
+            let ratio = value / self.scale;
+            self.scaled_sum_squares += ratio * ratio;
+        }
+    }
+
+    fn rms(self, count: u64) -> f64 {
+        if self.scale == 0.0 {
+            0.0
+        } else {
+            self.scale * (self.scaled_sum_squares / count as f64).sqrt()
+        }
+    }
+}
+
+/// Use hypot to avoid overflowing while squaring otherwise representable deltas.
 fn euclidean_error<const N: usize>(left: &[f64; N], right: &[f64; N]) -> f64 {
     left.iter()
         .zip(right)
-        .map(|(left, right)| {
-            let delta = left - right;
-            delta * delta
-        })
-        .sum::<f64>()
-        .sqrt()
+        .fold(0.0_f64, |norm, (left, right)| norm.hypot(left - right))
 }
 
 #[cfg(test)]
@@ -1239,7 +1263,7 @@ mod tests {
     }
 
     #[test]
-    fn aggregate_error_overflow_is_rejected_even_when_each_pair_is_finite() {
+    fn rms_avoids_intermediate_overflow_when_the_aggregate_is_representable() {
         let mut left = one_sample_trace();
         left.samples[0].bodies[0].position_m = [1.0e154, 0.0, 0.0];
         let mut second = left.samples[0].bodies[0].clone();
@@ -1251,12 +1275,11 @@ mod tests {
             body.position_m = [0.0, 0.0, 0.0];
         }
 
-        assert_eq!(
-            compare_traces_3d(&left, &right),
-            Err(TraceComparisonError::NonFiniteComputedMetric {
-                field: "rms_position_error_m",
-            })
-        );
+        let metrics = compare_traces_3d(&left, &right).unwrap();
+        assert_eq!(metrics.max_position_error_m, Some(1.0e154));
+        assert_eq!(metrics.rms_position_error_m, Some(1.0e154));
+        assert_eq!(metrics.finite_comparison_pairs, 2);
+        assert!(metrics.has_complete_finite_coverage());
     }
 
     fn test_acceptance_profile() -> DifferentialAcceptanceProfile3d {
