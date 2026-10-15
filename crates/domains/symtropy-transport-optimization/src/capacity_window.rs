@@ -175,58 +175,58 @@ impl fmt::Display for ScheduledCapacityPlanError {
             Self::InvalidPolicy => "capacity policy identity or time profile is incomplete",
             Self::InvalidIdentityOrProvenance => {
                 "capacity evidence identity or provenance is incomplete"
-            },
+            }
             Self::InvalidRevisionLineage => "capacity evidence revision lineage is invalid",
             Self::TimeProfileMismatch => {
                 "capacity evidence, operation window, and policy time profiles must match"
-            },
+            }
             Self::MissingObservationTime => "capacity evidence has no explicit observation time",
             Self::MissingRepositoryRecordTime => "capacity evidence has no repository record time",
             Self::MissingValidityInterval => "capacity evidence has no explicit validity interval",
             Self::InvalidValidityInterval => {
                 "capacity evidence validity interval is empty or reversed"
-            },
+            }
             Self::TimestampInFuture => {
                 "capacity evidence timestamp exceeds allowed future clock skew"
-            },
+            }
             Self::ObservationTooOld => {
                 "capacity observation exceeds the freshness limit at plan evaluation"
-            },
+            }
             Self::ObservationTooOldAtOperationStart => {
                 "capacity observation will be too old by planned operation start"
-            },
+            }
             Self::NotCurrent => "capacity evidence is superseded, revoked, or conflicted",
             Self::InvalidOperationWindow => {
                 "operation window has a blank time profile or empty/reversed interval"
-            },
+            }
             Self::OperationWindowAlreadyStarted => {
                 "operation window starts before the plan evaluation instant"
-            },
+            }
             Self::WindowNotCoveredByEvidence => {
                 "capacity evidence validity does not contain the full operation window"
-            },
+            }
             Self::DuplicateEvidenceIdentity => {
                 "capacity evidence repeats an evidence ID or has incompatible lineage"
-            },
+            }
             Self::AmbiguousCapacityEvidence => {
                 "overlapping current capacity evidence for the same physical resource is ambiguous"
-            },
+            }
             Self::DuplicateAssignmentIdentity => "capacity plan repeats an assignment ID",
             Self::UnknownEvidence => "capacity assignment references unknown evidence",
             Self::ResourceBindingMismatch => {
                 "capacity assignment does not match its referenced resource evidence"
-            },
+            }
             Self::CapacityUnitMismatch => {
                 "capacity assignments for one resource use incompatible units"
-            },
+            }
             Self::InvalidCapacity => "capacity or assigned quantity must be positive",
             Self::CapacityExceeded => {
                 "overlapping capacity assignments exceed the qualified resource limit"
-            },
+            }
             Self::CapacityArithmeticOverflow => "capacity accounting overflowed",
             Self::UnreferencedEvidence => {
                 "capacity evidence is not referenced by a proposed assignment"
-            },
+            }
         };
         f.write_str(message)
     }
