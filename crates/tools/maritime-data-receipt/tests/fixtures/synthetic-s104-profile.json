@@ -34,10 +34,10 @@
     "freshness_policy_id": "synthetic-fixture-point-window-only"
   },
   "quality": {
-    "uncertainty_state": "provided",
-    "uncertainty_ref": "synthetic-uncertainty-fixture-only",
-    "quality_metadata_ref": "synthetic-quality-fixture-only",
-    "statement": "Invented metadata solely to test receipt binding; not a sourced IHO product or physical observation."
+    "uncertainty_state": "not_applicable_synthetic",
+    "uncertainty_ref": null,
+    "quality_metadata_ref": null,
+    "statement": "Not applicable: this value is an invented test datum, not a physical observation."
   },
   "terms": {
     "review_status": "not_applicable_synthetic",
