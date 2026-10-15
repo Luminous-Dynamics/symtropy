@@ -60,7 +60,11 @@
         "reviewer": null,
         "reviewed_at_utc": null,
         "terms_sha256": null,
-        "attribution_statement": "Synthetic fixture only; not actual UNCTADstat data."
+        "attribution_statement": "Synthetic fixture only; not actual UNCTADstat data.",
+        "review_evidence_uri": null,
+        "snapshot_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt",
+        "snapshot_byte_length": 95,
+        "snapshot_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
       },
       "intended_use": {
         "analysis_scope": "comparative_network_analysis_and_synthetic_scenarios",
@@ -346,6 +350,42 @@
         }
       ],
       "expected_code": "DUPLICATE_COMPONENT"
+    },
+    {
+      "id": "terms-snapshot-path-traversal-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "terms.snapshot_relative_path",
+          "op": "set",
+          "value": "../private/terms.html"
+        }
+      ],
+      "expected_code": "UNSAFE_TERMS_SNAPSHOT_PATH"
+    },
+    {
+      "id": "malformed-terms-snapshot-digest-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "terms.snapshot_sha256",
+          "op": "set",
+          "value": "not-a-sha256"
+        }
+      ],
+      "expected_code": "INVALID_TERMS_SNAPSHOT_DIGEST"
+    },
+    {
+      "id": "terms-snapshot-byte-length-zero-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "terms.snapshot_byte_length",
+          "op": "set",
+          "value": 0
+        }
+      ],
+      "expected_code": "INVALID_TERMS_SNAPSHOT_LENGTH"
     }
   ]
 }
