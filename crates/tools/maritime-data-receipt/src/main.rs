@@ -732,10 +732,10 @@ fn run() -> Result<(), String> {
     }
     if first_arg.as_deref() == Some("--validate-macro-connectivity-profile") {
         let profile_path = args.next().ok_or_else(|| {
-            "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override] [terms-snapshot-path-override]".to_owned()
+            "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override] [terms-snapshot-path-override] [terms-snapshot-path-override]".to_owned()
         })?;
         let receipt_path = args.next().ok_or_else(|| {
-            "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+            "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override] [terms-snapshot-path-override]".to_owned()
         })?;
         let artifact_override = args.next();
         let terms_snapshot_override = args.next();
