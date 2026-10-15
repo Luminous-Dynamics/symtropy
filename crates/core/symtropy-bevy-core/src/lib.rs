@@ -240,10 +240,14 @@ pub fn resolve_first_person_motion(
                 || half_extents.y < 0.0
                 || half_extents.z < 0.0
             {
-                continue;
+                // Unknown obstacle geometry must not be silently treated as empty space.
+                return stopped();
             }
             let obstacle_min_y = center.y - half_extents.y;
             let obstacle_max_y = center.y + half_extents.y;
+            if !obstacle_min_y.is_finite() || !obstacle_max_y.is_finite() {
+                return stopped();
+            }
             if player_max_y <= obstacle_min_y || player_min_y >= obstacle_max_y {
                 continue;
             }
@@ -255,6 +259,9 @@ pub fn resolve_first_person_motion(
                 center.x + half_extents.x + collision.radius,
                 center.z + half_extents.z + collision.radius,
             );
+            if !min.is_finite() || !max.is_finite() {
+                return stopped();
+            }
             if let Some((toi, normal)) = sweep_point_aabb(origin, delta, min, max)
                 && earliest_hit.is_none_or(|(best, _)| toi < best)
             {
@@ -1333,6 +1340,35 @@ mod tests {
         );
         assert_eq!(result.displacement, Vec3::new(2.0, 0.0, 0.0));
         assert!(result.blocking_normals.is_empty());
+    }
+
+    #[test]
+    fn kinematic_sweep_fails_closed_on_invalid_obstacle_bounds() {
+        let invalid_obstacles = [
+            obstacle(
+                Vec3::new(f32::NAN, 1.0, 0.0),
+                Vec3::new(0.5, 1.0, 3.0),
+            ),
+            obstacle(
+                Vec3::new(1.0, 1.0, 0.0),
+                Vec3::new(-0.5, 1.0, 3.0),
+            ),
+            obstacle(Vec3::splat(f32::MAX), Vec3::splat(f32::MAX)),
+        ];
+
+        for invalid in invalid_obstacles {
+            let result = resolve_first_person_motion(
+                Vec3::ZERO,
+                Vec3::new(2.0, 0.0, 0.0),
+                FirstPersonCollision::default(),
+                &[invalid],
+            );
+            assert_eq!(
+                result.displacement,
+                Vec3::ZERO,
+                "invalid obstacle bounds must not be treated as empty space",
+            );
+        }
     }
 
     #[test]
