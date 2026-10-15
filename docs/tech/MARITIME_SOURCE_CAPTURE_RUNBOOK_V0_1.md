@@ -68,7 +68,7 @@ Keep the manifest small and free of credentials. At minimum record:
 - exact receipt path/hash, verification command, tested source commit, and final status;
 - claim ceiling: `NotAdmitted`; comparative network context/synthetic-scenario input only. No navigation, berth availability, vessel movement, port-call, custody, delivery, safety or operational claims.
 
-The dedicated [PLSCI profile schema](./MARITIME_PLSCI_PROFILE_V0_1.schema.json) and Rust guard now enforce this series' semantics separately from the generic receipt: port-level, quarterly, index points, benchmark period `2023-Q1` with value `100`, methodology vintage `rescaled-2024-six-component`, an explicit six-component definition, and the exact normalization formula (component/global component mean in Q1 2023, averaged across six components and multiplied by 100). The generic receipt should use product/domain `other` with unit `dimensionless`; the profile gives the unit its index-specific meaning. A receipt-bound synthetic example and 21-case hostile corpus are in `crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json` and `plsci-profile-corpus-v0.1.json`. Verify them with:
+The dedicated [PLSCI profile schema](./MARITIME_PLSCI_PROFILE_V0_1.schema.json) and Rust guard now enforce this series' semantics separately from the generic receipt: port-level, quarterly, index points, benchmark period `2023-Q1` with value `100`, methodology vintage `rescaled-2024-six-component`, an explicit six-component definition, and the exact normalization formula (component/global component mean in Q1 2023, averaged across six components and multiplied by 100). The generic receipt should use product/domain `other` with unit `dimensionless`; the profile gives the unit its index-specific meaning. A receipt-bound synthetic example and 22-case hostile corpus are in `crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json` and `plsci-profile-corpus-v0.1.json`. Verify them with:
 
 ```sh
 cargo run --locked -p maritime-data-receipt -- \\
@@ -77,7 +77,7 @@ cargo run --locked -p maritime-data-receipt -- \\
   crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json
 ```
 
-The sample is invented test data only. The current profile validates metadata and exact receipt/artifact bindings; it does **not** parse the source export, validate every row/value, authenticate the publisher, establish a location mapping, or admit operational use. Do not weaken the contract to fit a source file. If a future source release changes scale, methodology, spatial level, frequency, or estimate conventions, add a versioned profile and explicit migration rather than mutating the pinned vintage.
+The sample is invented test data only. The current profile validates pinned metadata semantics, exact profile/receipt/artifact digest bindings, and receipt terms/source-kind consistency; its report hashes the exact profile bytes and summarizes the selected scope. It does **not** parse the source export, validate every row/value, authenticate the publisher, establish a location mapping, or admit operational use. Do not weaken the contract to fit a source file. If a future source release changes scale, methodology, spatial level, frequency, or estimate conventions, add a versioned profile and explicit migration rather than mutating the pinned vintage.
 
 ## Acceptance gate
 
