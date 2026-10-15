@@ -409,7 +409,10 @@ mod tests {
 
     impl PhysicsCallback<3> for RecordingCallback {
         fn modulate_force(&self, body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
-            self.0.lock().expect("callback handle recorder poisoned").push(body);
+            self.0
+                .lock()
+                .expect("callback handle recorder poisoned")
+                .push(body);
             *force
         }
 
@@ -481,8 +484,11 @@ mod tests {
                 .build(),
         );
 
-        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
-        let state = bridge.post_step(&world.bodies)
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("valid fixed step");
+        let state = bridge
+            .post_step(&world.bodies)
             .into_iter()
             .find(|state| state.handle == handle)
             .expect("body state readback");
@@ -499,7 +505,9 @@ mod tests {
         let mut world = TestWorld::new();
         let collider_handle = world.colliders.insert(ColliderBuilder::ball(0.5).build());
 
-        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("valid fixed step");
         let ray = Ray::new(point![-2.0, 0.0, 0.0], vector![1.0, 0.0, 0.0]);
         let (hit_handle, toi) = bridge
             .query_pipeline()
@@ -522,13 +530,19 @@ mod tests {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
         let mut world = TestWorld::new();
         let actor_collider = world.colliders.insert(
-            ColliderBuilder::ball(0.5).translation(vector![0.0, 0.0, 0.0]).build(),
+            ColliderBuilder::ball(0.5)
+                .translation(vector![0.0, 0.0, 0.0])
+                .build(),
         );
         let obstacle_collider = world.colliders.insert(
-            ColliderBuilder::ball(0.5).translation(vector![3.0, 0.0, 0.0]).build(),
+            ColliderBuilder::ball(0.5)
+                .translation(vector![3.0, 0.0, 0.0])
+                .build(),
         );
 
-        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("valid fixed step");
         let shape = Ball::new(0.25);
         let start = Isometry::translation(-2.0, 0.0, 0.0);
         let velocity = vector![1.0, 0.0, 0.0];
@@ -648,7 +662,9 @@ mod tests {
                 .additional_mass(1.0)
                 .build(),
         );
-        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("valid fixed step");
         let state = bridge
             .post_step(&world.bodies)
             .into_iter()
@@ -695,15 +711,26 @@ mod tests {
                 .build(),
         );
 
-        assert!(world.bodies.get(handle).expect("body inserted").is_sleeping());
-        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        assert!(
+            world
+                .bodies
+                .get(handle)
+                .expect("body inserted")
+                .is_sleeping()
+        );
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("valid fixed step");
 
         let state = bridge
             .post_step(&world.bodies)
             .into_iter()
             .find(|state| state.handle == handle)
             .expect("body state readback");
-        assert!(state.is_sleeping, "zero-force bookkeeping must not wake idle bodies");
+        assert!(
+            state.is_sleeping,
+            "zero-force bookkeeping must not wake idle bodies"
+        );
         assert_eq!(state.linear_velocity, [0.0, 0.0, 0.0]);
     }
 
@@ -722,9 +749,14 @@ mod tests {
         body.add_force(vector![1.0, 0.0, 0.0], false);
         body.sleep();
 
-        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("valid fixed step");
         let body = world.bodies.get(handle).expect("body retained");
-        assert!(body.is_sleeping(), "a callback-suppressed force must not wake the body");
+        assert!(
+            body.is_sleeping(),
+            "a callback-suppressed force must not wake the body"
+        );
         assert_eq!(body.user_force(), vector![1.0, 0.0, 0.0]);
         assert_eq!(body.linvel(), &vector![0.0, 0.0, 0.0]);
     }
@@ -733,11 +765,9 @@ mod tests {
     fn non_finite_callback_output_fails_before_mutating_body_state() {
         let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(f64::NAN));
         let mut world = TestWorld::new();
-        let handle = world.bodies.insert(
-            RigidBodyBuilder::dynamic()
-                .additional_mass(1.0)
-                .build(),
-        );
+        let handle = world
+            .bodies
+            .insert(RigidBodyBuilder::dynamic().additional_mass(1.0).build());
         world
             .bodies
             .get_mut(handle)
@@ -768,7 +798,9 @@ mod tests {
             .get_mut(first)
             .expect("first body inserted")
             .add_force(vector![1.0, 0.0, 0.0], true);
-        world.step(&mut bridge, 1.0 / 60.0).expect("first body step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("first body step");
 
         world
             .bodies
@@ -789,15 +821,23 @@ mod tests {
         );
         let (first_slot, first_generation) = first.into_raw_parts();
         let (second_slot, second_generation) = second.into_raw_parts();
-        assert_eq!(first_slot, second_slot, "Rapier should recycle the removed slot");
-        assert_ne!(first_generation, second_generation, "generation must change on reuse");
+        assert_eq!(
+            first_slot, second_slot,
+            "Rapier should recycle the removed slot"
+        );
+        assert_ne!(
+            first_generation, second_generation,
+            "generation must change on reuse"
+        );
 
         world
             .bodies
             .get_mut(second)
             .expect("second body inserted")
             .add_force(vector![1.0, 0.0, 0.0], true);
-        world.step(&mut bridge, 1.0 / 60.0).expect("second body step");
+        world
+            .step(&mut bridge, 1.0 / 60.0)
+            .expect("second body step");
 
         let ids = bridge
             .callback
@@ -805,18 +845,19 @@ mod tests {
             .lock()
             .expect("callback handle recorder poisoned");
         assert_eq!(ids.len(), 2);
-        assert_ne!(ids[0], ids[1], "a recycled slot must not reuse callback identity");
+        assert_ne!(
+            ids[0], ids[1],
+            "a recycled slot must not reuse callback identity"
+        );
     }
 
     #[test]
     fn force_callback_does_not_compound_its_previous_output() {
         let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(2.0));
         let mut world = TestWorld::new();
-        let handle = world.bodies.insert(
-            RigidBodyBuilder::dynamic()
-                .additional_mass(1.0)
-                .build(),
-        );
+        let handle = world
+            .bodies
+            .insert(RigidBodyBuilder::dynamic().additional_mass(1.0).build());
         world
             .bodies
             .get_mut(handle)
