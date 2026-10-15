@@ -1026,6 +1026,27 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_error_overflow_is_rejected_even_when_each_pair_is_finite() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [1.0e154, 0.0, 0.0];
+        let mut second = left.samples[0].bodies[0].clone();
+        second.body_id = ValidationBodyId(2);
+        left.samples[0].bodies.push(second);
+
+        let mut right = left.clone();
+        for body in &mut right.samples[0].bodies {
+            body.position_m = [0.0, 0.0, 0.0];
+        }
+
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_position_error_m",
+            })
+        );
+    }
+
+    #[test]
     fn non_finite_observation_is_explicit_instead_of_poisoning_metrics() {
         let mut left = one_sample_trace();
         left.scenario_id = "nan".to_owned();
