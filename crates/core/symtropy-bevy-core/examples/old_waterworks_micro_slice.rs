@@ -969,7 +969,7 @@ fn setup(
         },
         Mesh3d(cube_mesh.clone()),
         MeshMaterial3d(console_mat.clone()),
-        Transform::from_xyz(8.0, 1.2, 0.0).with_scale(Vec3::new(0.5, 0.5, 0.75)),
+        Transform::from_xyz(8.0, 1.2, 0.0).with_scale(Vec3::new(0.5, 1.0, 1.5)),
         FirstPersonObstacle::new(Vec3::new(0.25, 0.5, 0.75)),
     ));
 
