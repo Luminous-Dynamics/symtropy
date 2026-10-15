@@ -150,7 +150,8 @@
         "relative_path": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 1024
+          "maxLength": 1024,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
         },
         "media_type": {
           "type": "string",
@@ -374,5 +375,231 @@
         "maxLength": 512
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "kind": {
+                "const": "synthetic_fixture"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "properties": {
+              "source_uri": {
+                "type": "null"
+              }
+            }
+          },
+          "retrieval": {
+            "properties": {
+              "method": {
+                "const": "local_fixture"
+              },
+              "retrieved_at_utc": {
+                "type": "null"
+              },
+              "request_uri": {
+                "type": "null"
+              },
+              "http_status": {
+                "type": "null"
+              }
+            }
+          },
+          "data_context": {
+            "properties": {
+              "verification_state": {
+                "const": "synthetic"
+              },
+              "freshness_policy": {
+                "const": "not_applicable_synthetic"
+              }
+            }
+          },
+          "terms": {
+            "properties": {
+              "review_status": {
+                "const": "not_applicable_synthetic"
+              },
+              "reviewer": {
+                "type": "null"
+              },
+              "reviewed_at_utc": {
+                "type": "null"
+              },
+              "terms_sha256": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "kind": {
+                "const": "public_dataset"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "properties": {
+              "source_uri": {
+                "type": "string",
+                "pattern": "^https://"
+              }
+            }
+          },
+          "retrieval": {
+            "properties": {
+              "method": {
+                "enum": [
+                  "http_get",
+                  "manual_download"
+                ]
+              },
+              "retrieved_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "request_uri": {
+                "type": "string",
+                "pattern": "^https://"
+              }
+            }
+          },
+          "data_context": {
+            "properties": {
+              "verification_state": {
+                "enum": [
+                  "preliminary",
+                  "verified",
+                  "prediction"
+                ]
+              },
+              "freshness_policy": {
+                "enum": [
+                  "policy_required",
+                  "historical_only",
+                  "policy_defined"
+                ]
+              }
+            }
+          },
+          "terms": {
+            "properties": {
+              "review_status": {
+                "const": "reviewed_permitted"
+              },
+              "license_uri": {
+                "type": "string",
+                "pattern": "^https://"
+              },
+              "reviewer": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reviewed_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "terms_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "water_level"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "vertical_datum": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "hydrography"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "coordinate_reference_system": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
