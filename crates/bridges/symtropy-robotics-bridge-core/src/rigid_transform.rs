@@ -366,9 +366,9 @@ mod tests {
     use super::*;
 
     fn close3(actual: [f64; 3], expected: [f64; 3]) {
-        for index in 0..3 {
+        for (actual, expected) in actual.into_iter().zip(expected) {
             assert!(
-                (actual[index] - expected[index]).abs() < 1.0e-12,
+                (actual - expected).abs() < 1.0e-12,
                 "actual {:?}, expected {:?}",
                 actual,
                 expected
