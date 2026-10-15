@@ -24,6 +24,7 @@ const ROOT_KEYS: &[&str] = &[
     "model_scope",
     "candidate_plans",
     "hard_constraints",
+    "evidence_requirements",
     "scenario_cases",
     "expected_global_properties",
     "execution",
@@ -65,6 +66,131 @@ struct DispositionReport {
     blockers: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct EvidenceRequirementSpec {
+    requirement_id: &'static str,
+    trigger_blocker: &'static str,
+    required_evidence_kind: &'static str,
+    minimum_fields: &'static [&'static str],
+    resolution_scope: &'static str,
+}
+
+const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
+    EvidenceRequirementSpec {
+        requirement_id: "terminal_window_confirmation",
+        trigger_blocker: "terminal_window_open",
+        required_evidence_kind: "authoritative_terminal_window_state",
+        minimum_fields: &[
+            "terminal_identity", "window_state", "window_start_utc", "window_end_utc",
+            "issuer_identity", "source_revision", "captured_at_utc", "artifact_sha256",
+        ],
+        resolution_scope: "Can resolve only the declared terminal-window evidence gap; it does not create a booking or authorize vessel movement.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "water_level_envelope_evidence",
+        trigger_blocker: "water_level_envelope_supported_and_satisfied",
+        required_evidence_kind: "supported_water_level_envelope",
+        minimum_fields: &[
+            "spatial_coverage", "time_coverage", "vertical_datum", "water_level_envelope",
+            "uncertainty_statement", "source_receipt_sha256", "supported_model_capability_id",
+        ],
+        resolution_scope: "Can establish whether an input envelope is available within a declared model path; it does not calculate or certify under-keel clearance.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "energy_reserve_assessment",
+        trigger_blocker: "energy_reserve_minimum_satisfied",
+        required_evidence_kind: "qualified_energy_reserve_assessment",
+        minimum_fields: &[
+            "declared_load_profile", "usable_energy", "reserve_policy_id",
+            "temperature_and_age_derating", "shore_power_state", "model_capability_id",
+            "validation_reference",
+        ],
+        resolution_scope: "Can support a bounded energy feasibility check only if the model path is admitted; no assumption may replace absent loads or derating.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "forecast_temporal_binding",
+        trigger_blocker: "forecast_temporal_applicability",
+        required_evidence_kind: "byte_bound_forecast_timing_evidence",
+        minimum_fields: &[
+            "receipt_sha256", "artifact_sha256", "product_id", "dataset_id", "dataset_revision",
+            "model_initialization_time_utc", "issued_at_utc", "valid_from_utc", "valid_until_utc",
+            "assessment_time_utc", "target_time_utc", "policy_id",
+        ],
+        resolution_scope: "Can resolve temporal applicability for the pinned revision only; it does not validate forecast skill or authorize navigation.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "waiting_resource_availability",
+        trigger_blocker: "designated_waiting_resource_declared_available",
+        required_evidence_kind: "waiting_resource_and_dependency_state",
+        minimum_fields: &[
+            "resource_identity", "available_capacity", "valid_from_utc", "valid_until_utc",
+            "shared_dependency_ids", "independence_evidence", "issuer_identity", "source_revision",
+        ],
+        resolution_scope: "Can resolve the declared waiting-resource state only; claimed redundancy is not presumed independent without evidence.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "alternate_terminal_capacity",
+        trigger_blocker: "alternate_capacity_confirmed",
+        required_evidence_kind: "authoritative_alternate_terminal_capacity_response",
+        minimum_fields: &[
+            "terminal_identity", "capacity_or_slot_state", "requested_window_utc",
+            "response_window_utc", "issuer_identity", "source_revision", "captured_at_utc",
+            "artifact_sha256",
+        ],
+        resolution_scope: "Can resolve capacity evidence for reassessment; it does not create a reservation, guarantee acceptance, or authorize execution.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "holding_energy_model_support",
+        trigger_blocker: "declared energy behaviour while holding is outside the model scope",
+        required_evidence_kind: "supported_holding_energy_model",
+        minimum_fields: &[
+            "holding_duration_envelope", "auxiliary_load_profile", "usable_energy",
+            "reserve_policy_id", "temperature_and_age_derating", "model_capability_id",
+            "validation_reference",
+        ],
+        resolution_scope: "Requires an explicitly supported energy model before comparing hold duration; until then the result remains unsupported.",
+    },
+    EvidenceRequirementSpec {
+        requirement_id: "alternate_terminal_model_support",
+        trigger_blocker: "alternate-terminal feasibility model not admitted",
+        required_evidence_kind: "admitted_alternate_terminal_feasibility_model",
+        minimum_fields: &[
+            "terminal_identity", "declared_constraint_set", "input_semantics_and_units",
+            "model_capability_id", "validation_reference", "model_revision", "source_data_receipts",
+        ],
+        resolution_scope: "Requires a separately admitted, validated model path; a capacity confirmation alone cannot establish alternative feasibility.",
+    },
+];
+
+fn evidence_requirement_for_blocker(blocker: &str) -> Option<&'static EvidenceRequirementSpec> {
+    EVIDENCE_REQUIREMENTS.iter().find(|requirement| requirement.trigger_blocker == blocker)
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct EvidenceGapReport {
+    case_id: String,
+    plan_id: String,
+    blocker_code: String,
+    requirement_id: String,
+    required_evidence_kind: String,
+    minimum_fields: Vec<String>,
+    resolution_scope: String,
+}
+
+fn evidence_gap(case_id: &str, plan_id: &str, blocker: &str) -> Result<EvidenceGapReport, String> {
+    let requirement = evidence_requirement_for_blocker(blocker)
+        .ok_or_else(|| format!("no evidence requirement registered for blocker {blocker:?}"))?;
+    Ok(EvidenceGapReport {
+        case_id: case_id.to_owned(),
+        plan_id: plan_id.to_owned(),
+        blocker_code: blocker.to_owned(),
+        requirement_id: requirement.requirement_id.to_owned(),
+        required_evidence_kind: requirement.required_evidence_kind.to_owned(),
+        minimum_fields: requirement.minimum_fields.iter().map(|field| (*field).to_owned()).collect(),
+        resolution_scope: requirement.resolution_scope.to_owned(),
+    })
+}
+
 #[derive(Debug, Serialize, PartialEq, Eq)]
 struct RehearsalReport {
     status: &'static str,
@@ -74,6 +200,7 @@ struct RehearsalReport {
     scenario_case_count: usize,
     candidate_plan_count: usize,
     dispositions: Vec<DispositionReport>,
+    evidence_gaps: Vec<EvidenceGapReport>,
     robustly_feasible_candidate_plans: Vec<String>,
     engineering_admission: &'static str,
     navigation_authorized: bool,
@@ -364,6 +491,61 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         "model_scope.missing_or_unsupported_is_never_zero",
     )? {
         return Err("missing_or_unsupported_is_never_zero must remain true".to_owned());
+    }
+
+    let evidence_requirements = super::array(
+        super::field(root, "evidence_requirements", "rehearsal")?,
+        "rehearsal.evidence_requirements",
+    )?;
+    if evidence_requirements.len() != EVIDENCE_REQUIREMENTS.len() {
+        return Err(format!(
+            "expected {} evidence requirements, found {}",
+            EVIDENCE_REQUIREMENTS.len(),
+            evidence_requirements.len()
+        ));
+    }
+    for (index, (value, expected)) in evidence_requirements
+        .iter()
+        .zip(EVIDENCE_REQUIREMENTS)
+        .enumerate()
+    {
+        let path = format!("rehearsal.evidence_requirements[{index}]");
+        super::exact_keys(
+            value,
+            &[
+                "requirement_id",
+                "trigger_blocker",
+                "required_evidence_kind",
+                "minimum_fields",
+                "resolution_scope",
+            ],
+            &path,
+        )?;
+        super::expect_text(
+            super::field(value, "requirement_id", &path)?,
+            &format!("{path}.requirement_id"),
+            expected.requirement_id,
+        )?;
+        super::expect_text(
+            super::field(value, "trigger_blocker", &path)?,
+            &format!("{path}.trigger_blocker"),
+            expected.trigger_blocker,
+        )?;
+        super::expect_text(
+            super::field(value, "required_evidence_kind", &path)?,
+            &format!("{path}.required_evidence_kind"),
+            expected.required_evidence_kind,
+        )?;
+        expect_text_array(
+            super::field(value, "minimum_fields", &path)?,
+            &format!("{path}.minimum_fields"),
+            expected.minimum_fields,
+        )?;
+        super::expect_text(
+            super::field(value, "resolution_scope", &path)?,
+            &format!("{path}.resolution_scope"),
+            expected.resolution_scope,
+        )?;
     }
 
     let constraints = super::array(
@@ -730,6 +912,7 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     }
 
     let mut dispositions = Vec::with_capacity(cases.len() * plans.len());
+    let mut evidence_gaps = Vec::new();
     let mut per_plan_all_required_feasible = vec![true; plans.len()];
     for (case_index, case) in cases.iter().enumerate() {
         let case_path = format!("rehearsal.scenario_cases[{case_index}]");
@@ -867,6 +1050,11 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             if status != "FEASIBLE_WITHIN_DECLARED_MODEL" {
                 per_plan_all_required_feasible[plan_index] = false;
             }
+            if status == "INDETERMINATE" || status == "UNSUPPORTED" {
+                for blocker in &blockers {
+                    evidence_gaps.push(evidence_gap(&case_id, plan_id, blocker)?);
+                }
+            }
             dispositions.push(DispositionReport {
                 case_id: case_id.clone(),
                 plan_id: (*plan_id).to_owned(),
@@ -896,6 +1084,7 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
         scenario_case_count: cases.len(),
         candidate_plan_count: plans.len(),
         dispositions,
+        evidence_gaps,
         robustly_feasible_candidate_plans,
         engineering_admission: "NotAdmitted",
         navigation_authorized: false,
@@ -992,6 +1181,20 @@ mod tests {
         }
     }
 
+    fn oracle_requirement_id(blocker: &str) -> &'static str {
+        match blocker {
+            "terminal_window_open" => "terminal_window_confirmation",
+            "water_level_envelope_supported_and_satisfied" => "water_level_envelope_evidence",
+            "energy_reserve_minimum_satisfied" => "energy_reserve_assessment",
+            "forecast_temporal_applicability" => "forecast_temporal_binding",
+            "designated_waiting_resource_declared_available" => "waiting_resource_availability",
+            "alternate_capacity_confirmed" => "alternate_terminal_capacity",
+            "declared energy behaviour while holding is outside the model scope" => "holding_energy_model_support",
+            "alternate-terminal feasibility model not admitted" => "alternate_terminal_model_support",
+            _ => "unknown",
+        }
+    }
+
     fn oracle_blockers(plan: &str, case: &Value) -> Vec<&'static str> {
         let input = &case["abstract_inputs"];
         let water = input["water_level_envelope_state"].as_str().unwrap();
@@ -1085,6 +1288,18 @@ mod tests {
         assert!(!report.reservation_or_custody_event_authorized);
         assert!(!report.physical_execution_authorized);
         assert!(!report.physical_simulation_performed);
+        let expected_gap_count = report.dispositions.iter()
+            .filter(|result| result.status == "INDETERMINATE" || result.status == "UNSUPPORTED")
+            .map(|result| {
+                let case = cases.iter().find(|case| case["case_id"].as_str() == Some(result.case_id.as_str())).unwrap();
+                oracle_blockers(&result.plan_id, case).len()
+            })
+            .sum::<usize>();
+        assert_eq!(report.evidence_gaps.len(), expected_gap_count);
+        for gap in &report.evidence_gaps {
+            assert_eq!(gap.requirement_id, oracle_requirement_id(&gap.blocker_code));
+            assert_ne!(gap.requirement_id, "unknown");
+        }
     }
 
     #[test]
@@ -1188,6 +1403,15 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["scenario_cases"][0]["abstract_inputs"]["water_level_envelope_state"] =
             Value::String("probably_ok".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").is_err());
+    }
+
+    #[test]
+    fn changed_evidence_requirement_is_rejected() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["evidence_requirements"][0]["resolution_scope"] =
+            Value::String("creates a confirmed booking".to_owned());
         let changed = serde_json::to_vec(&fixture).unwrap();
         assert!(evaluate_bytes(&changed, "test").is_err());
     }
