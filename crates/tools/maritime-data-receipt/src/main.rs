@@ -218,7 +218,7 @@ fn expect_text(value: &JsonValue, path: &str, expected: &str) -> Result<(), Stri
     }
 }
 
-fn require_nonempty_text(value: &JsonValue, path: &str) -> Result<&str, String> {
+fn require_nonempty_text<'a>(value: &'a JsonValue, path: &str) -> Result<&'a str, String> {
     let actual = text(value, path)?;
     if actual.trim().is_empty() {
         return Err(format!("{path}: empty strings are forbidden"));
@@ -235,7 +235,11 @@ fn optional_https_uri(value: &JsonValue, path: &str, required: bool) -> Result<(
     }
 }
 
-fn timestamp_utc(value: &JsonValue, path: &str, required: bool) -> Result<Option<&str>, String> {
+fn timestamp_utc<'a>(
+    value: &'a JsonValue,
+    path: &str,
+    required: bool,
+) -> Result<Option<&'a str>, String> {
     let actual = optional_text(value, path)?;
     match actual {
         Some(value)
@@ -312,6 +316,14 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         require_nonempty_text(field(source, key, "source")?, &format!("source.{key}"))?;
     }
     let product = text(field(source, "product", "source")?, "source.product")?;
+    let supported_products = ["water_level", "water_level_prediction", "currents", "hydrography", "port_facility", "other"];
+    if !supported_products.contains(&product) {
+        return Err(format!("source.product: unsupported value {product:?}"));
+    }
+    let revision = text(field(source, "dataset_revision", "source")?, "source.dataset_revision")?;
+    if ["latest", "unknown", "unspecified"].contains(&revision.to_ascii_lowercase().as_str()) {
+        return Err("source.dataset_revision must be pinned, not latest/unknown/unspecified".to_owned());
+    }
     let source_uri_required = kind == "public_dataset";
     optional_https_uri(field(source, "source_uri", "source")?, "source.source_uri", source_uri_required)?;
     if kind == "synthetic_fixture" && optional_text(field(source, "source_uri", "source")?, "source.source_uri")?.is_some() {
@@ -360,8 +372,12 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     expect_text(field(artifact, "bytes_scope", "artifact")?, "artifact.bytes_scope", "exact_file_bytes")?;
 
     let context = field(root, "data_context", "root")?;
-    exact_keys(context, &["domain", "coordinate_reference_system", "vertical_datum", "units", "time_coverage_start_utc", "time_coverage_end_utc", "survey_or_observation_time_utc", "verification_state", "uncertainty_statement", "freshness_policy"], "data_context")?;
+    exact_keys(context, &["domain", "coordinate_reference_system", "vertical_datum", "units", "time_coverage_start_utc", "time_coverage_end_utc", "survey_or_observation_time_utc", "verification_state", "uncertainty_statement", "freshness_policy", "freshness_policy_description"], "data_context")?;
     let domain = require_nonempty_text(field(context, "domain", "data_context")?, "data_context.domain")?;
+    let supported_domains = ["water_level", "water_level_prediction", "currents", "hydrography", "port_facility", "other"];
+    if !supported_domains.contains(&domain) {
+        return Err(format!("data_context.domain: unsupported value {domain:?}"));
+    }
     if domain != product {
         return Err("data_context.domain must match source.product in v0.1".to_owned());
     }
@@ -378,9 +394,18 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     if units.is_empty() {
         return Err("data_context.units must not be empty".to_owned());
     }
+    let allowed_units = [
+        "m", "cm", "mm", "ft", "in", "cm/s", "m/s", "kn", "knot", "knots",
+        "degrees", "degree", "deg", "degrees_east", "degrees_north", "count",
+        "dimensionless", "m^2", "m3/s", "kW", "MW", "kWh", "MWh", "seconds",
+        "minutes", "hours",
+    ];
     let mut unique_units = BTreeSet::new();
     for (index, unit) in units.iter().enumerate() {
         let unit = require_nonempty_text(unit, &format!("data_context.units[{index}]"))?;
+        if !allowed_units.contains(&unit) {
+            return Err(format!("data_context.units[{index}]: unit {unit:?} is not in the frozen v0.1 unit vocabulary"));
+        }
         if !unique_units.insert(unit) {
             return Err(format!("data_context.units: duplicate unit {unit:?}"));
         }
@@ -393,9 +418,25 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
             return Err("data_context time coverage start must not be after end".to_owned());
         }
     }
-    require_nonempty_text(field(context, "verification_state", "data_context")?, "data_context.verification_state")?;
+    let verification_state = require_nonempty_text(
+        field(context, "verification_state", "data_context")?,
+        "data_context.verification_state",
+    )?;
+    if !["preliminary", "verified", "prediction", "synthetic", "unknown"].contains(&verification_state) {
+        return Err(format!("data_context.verification_state: unsupported value {verification_state:?}"));
+    }
     require_nonempty_text(field(context, "uncertainty_statement", "data_context")?, "data_context.uncertainty_statement")?;
     let freshness = require_nonempty_text(field(context, "freshness_policy", "data_context")?, "data_context.freshness_policy")?;
+    if !["not_applicable_synthetic", "policy_required", "historical_only", "policy_defined"].contains(&freshness) {
+        return Err(format!("data_context.freshness_policy: unsupported value {freshness:?}"));
+    }
+    let freshness_description = require_nonempty_text(
+        field(context, "freshness_policy_description", "data_context")?,
+        "data_context.freshness_policy_description",
+    )?;
+    if freshness == "policy_defined" && freshness_description.to_ascii_lowercase().contains("not applicable") {
+        return Err("policy_defined freshness requires an actual policy description".to_owned());
+    }
     if kind == "synthetic_fixture" {
         expect_text(field(context, "verification_state", "data_context")?, "data_context.verification_state", "synthetic")?;
         expect_text(field(context, "freshness_policy", "data_context")?, "data_context.freshness_policy", "not_applicable_synthetic")?;
@@ -414,6 +455,9 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     let terms = field(root, "terms", "root")?;
     exact_keys(terms, &["review_status", "license_name", "license_uri", "reviewer", "reviewed_at_utc", "terms_sha256", "permitted_use_statement"], "terms")?;
     let review_status = require_nonempty_text(field(terms, "review_status", "terms")?, "terms.review_status")?;
+    if !["not_applicable_synthetic", "review_required", "reviewed_permitted"].contains(&review_status) {
+        return Err(format!("terms.review_status: unsupported value {review_status:?}"));
+    }
     require_nonempty_text(field(terms, "license_name", "terms")?, "terms.license_name")?;
     require_nonempty_text(field(terms, "permitted_use_statement", "terms")?, "terms.permitted_use_statement")?;
     if kind == "synthetic_fixture" {
@@ -438,7 +482,10 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
 
     let intended = field(root, "intended_use", "root")?;
     exact_keys(intended, &["scope", "navigation_use_authorized", "physical_truth_claim_authorized", "independent_review_required"], "intended_use")?;
-    require_nonempty_text(field(intended, "scope", "intended_use")?, "intended_use.scope")?;
+    let scope = require_nonempty_text(field(intended, "scope", "intended_use")?, "intended_use.scope")?;
+    if !["provenance_test_only", "offline_research", "planning_only"].contains(&scope) {
+        return Err(format!("intended_use.scope: unsupported value {scope:?}"));
+    }
     if bool_value(field(intended, "navigation_use_authorized", "intended_use")?, "intended_use.navigation_use_authorized")? {
         return Err("navigation_use_authorized must remain false".to_owned());
     }
@@ -549,6 +596,11 @@ fn run() -> Result<(), String> {
     let artifact_override = args.next();
     if args.next().is_some() {
         return Err("usage: maritime-data-receipt [receipt-json-path] [optional-artifact-path-override]".to_owned());
+    }
+    let receipt_metadata = fs::metadata(&receipt_path)
+        .map_err(|error| format!("cannot stat receipt {}: {error}", receipt_path))?;
+    if receipt_metadata.len() > MAX_RECEIPT_BYTES as u64 {
+        return Err(format!("receipt exceeds the {MAX_RECEIPT_BYTES}-byte size bound"));
     }
     let receipt_bytes = fs::read(&receipt_path)
         .map_err(|error| format!("cannot read receipt {}: {error}", receipt_path))?;
