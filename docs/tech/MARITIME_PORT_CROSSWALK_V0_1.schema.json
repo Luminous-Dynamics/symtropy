@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json",
+  "title": "Maritime port identity crosswalk v0.1",
+  "description": "Versioned metadata contract for connecting a source entity to a UN/LOCODE location and a map feature. It does not establish facility identity or operational authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "crosswalk_id", "fixture_kind", "source_snapshot", "locode_registry", "mapping_policy", "records"],
+  "properties": {
+    "schema_id": { "const": "luminous.symtropy.maritime-port-crosswalk" },
+    "schema_version": { "const": "0.1.0" },
+    "crosswalk_id": { "type": "string", "minLength": 1 },
+    "fixture_kind": { "enum": ["synthetic_fixture", "public_capture"] },
+    "source_snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_system", "series_or_table_id", "source_revision", "artifact_sha256", "retrieved_at_utc", "source_uri", "terms_review_status"],
+      "properties": {
+        "source_system": { "type": "string", "minLength": 1 },
+        "series_or_table_id": { "type": "string", "minLength": 1 },
+        "source_revision": { "type": "string", "minLength": 1 },
+        "artifact_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "retrieved_at_utc": { "type": ["string", "null"], "format": "date-time" },
+        "source_uri": { "type": ["string", "null"], "format": "uri" },
+        "terms_review_status": { "enum": ["reviewed_permitted", "review_required", "not_applicable_synthetic"] }
+      }
+    },
+    "locode_registry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["release", "release_kind", "artifact_sha256", "terms_review_status"],
+      "properties": {
+        "release": { "type": "string", "pattern": "^[0-9]{4}-[12]$" },
+        "release_kind": { "const": "production" },
+        "artifact_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "terms_review_status": { "enum": ["reviewed_permitted", "review_required", "not_applicable_synthetic"] }
+      }
+    },
+    "mapping_policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policy_id", "version", "name_match_can_resolve", "port_statistics_can_target_terminal", "unresolved_is_zero"],
+      "properties": {
+        "policy_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "name_match_can_resolve": { "const": false },
+        "port_statistics_can_target_terminal": { "const": false },
+        "unresolved_is_zero": { "const": false }
+      }
+    },
+    "records": {
+      "type": "array", "minItems": 1, "maxItems": 100000,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["source_entity_id", "source_level", "candidate_locode", "locode_function", "locode_status", "target_feature_id", "target_level", "relationship", "mapping_state", "match_method", "evidence_refs"],
+        "properties": {
+          "source_entity_id": { "type": "string", "minLength": 1 },
+          "source_level": { "enum": ["country", "port", "terminal", "unknown"] },
+          "candidate_locode": { "type": ["string", "null"], "pattern": "^[A-Z]{2}[A-Z2-9]{3}$" },
+          "locode_function": { "type": ["string", "null"], "pattern": "^[0-8A-]{8}$" },
+          "locode_status": { "type": ["string", "null"], "enum": ["AA", "AC", "AF", "AI", "AM", "AQ", "AS", "RL", "RN", "RQ", "RR", "QQ", "UR", "XX", null] },
+          "target_feature_id": { "type": ["string", "null"] },
+          "target_level": { "enum": ["country", "port_area", "terminal", "unknown"] },
+          "relationship": { "enum": ["same_entity", "parent_area", "none"] },
+          "mapping_state": { "enum": ["resolved", "ambiguous", "unresolved"] },
+          "match_method": { "enum": ["official_identifier", "manual_review", "name_similarity_only", "none"] },
+          "evidence_refs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+        }
+      }
+    }
+  }
+}
