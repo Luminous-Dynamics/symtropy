@@ -91,11 +91,18 @@ impl<'de> Visitor<'de> for StrictJsonVisitor {
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
         let mut values = BTreeMap::new();
         while let Some(key) = map.next_key::<String>()? {
-            if values.contains_key(&key) {
-                return Err(<A::Error as de::Error>::custom(format!("duplicate object key: {key}")));
-            }
             let value = map.next_value::<JsonValue>()?;
-            values.insert(key, value);
+            match values.entry(key) {
+                std::collections::btree_map::Entry::Vacant(entry) => {
+                    entry.insert(value);
+                }
+                std::collections::btree_map::Entry::Occupied(entry) => {
+                    return Err(<A::Error as de::Error>::custom(format!(
+                        "duplicate object key: {}",
+                        entry.key()
+                    )));
+                }
+            }
         }
         Ok(JsonValue::Object(values))
     }
