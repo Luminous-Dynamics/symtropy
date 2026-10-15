@@ -56,7 +56,7 @@ pub use biometrics::{
     BiometricHistory, BiometricNormParams, BiometricSample, ChannelNorm, neutral_inputs,
 };
 pub use coupling::{ConsciousnessField, EntityConsciousness};
-pub use energy::EnergyBudget;
+pub use energy::{EnergyBudget, EnergyBudgetError};
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
 pub use phase_transition::{
@@ -70,4 +70,4 @@ pub use proc_gen::{
 pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
-pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
+pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger, ThermodynamicLedgerError};
