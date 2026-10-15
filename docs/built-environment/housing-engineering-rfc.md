@@ -144,6 +144,12 @@ Eligibility for a later rule evaluator is computed—not accepted from input—a
 
 The synthetic Gauteng registry deliberately leaves the municipality unresolved, snapshots absent, applicability unassessed, and both records ineligible. It records the official Act page as an unverified catalog entry and separates the South African Government's 13 October 2026 extension notice for the National Building Regulations and Building Standards Amendment Bill as a proposal with a 12 November 2026 comment deadline. It does not claim the Bill is in force, assert that it knows the current consolidated text, or encode a SANS clause as executable. These official pages provide discovery metadata, not an adopted rule pack ([Act reference](https://www.gov.za/documents/national-building-regulations-and-building-standards-act-16-apr-2015-1302), [comment-period extension notice](https://www.gov.za/documents/notices/national-building-regulations-and-building-standards-act-extension-submission)).
 
+### Rule evaluation receipt contract
+
+`rule-evaluation-receipt.schema.json` and `housing-evidence-verify --validate-rule-evaluation-receipt <receipt.json> --registry <registry.json>` define the next boundary: a receipt binds the exact registry bytes and revision, evaluation date, confirmed jurisdiction, source record and edition/clause, source snapshot, rule/version, implementation, test corpus, translation-review receipt, project-input manifest, evaluator executable, and output artifact. Referenced artifacts are resolved only under the registry directory and checked against SHA-256 digests; record-level bindings must match the selected registry source record, and a not-ready source record cannot make a receipt eligible to evaluate.
+
+The receipt validator intentionally reports the producer's declared outcome separately from the verifier's result. Even when all receipt bindings and digests verify, its effective status is `NOT_REPRODUCED`: this command does not execute the rule, independently rerun the calculation, authenticate signatures/identities, or prove code compliance. A future evaluator must independently pin its binary, complete requirement set, inputs, and deterministic known-answer corpus before its result can be trusted.
+
 ## 6. Evidence-backed code-improvement process
 
 Treat every proposed code change as a falsifiable research hypothesis.

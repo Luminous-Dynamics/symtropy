@@ -406,7 +406,7 @@ pub fn validate_value(
     })
 }
 
-fn verify_artifact(
+pub(crate) fn verify_artifact(
     artifact: Option<&Value>,
     artifact_root: &Path,
     issues: &mut Vec<String>,
