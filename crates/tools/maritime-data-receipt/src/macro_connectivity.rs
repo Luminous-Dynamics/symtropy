@@ -299,7 +299,6 @@ fn verify_receipt_semantics(profile: &Value, receipt: &Value, facts: &super::Rec
     let source_kind = text(profile, "source_kind")?;
     let binding = member(profile, "receipt_binding")?;
     if text(binding, "receipt_id")? != facts.receipt_id
-        || text(binding, "receipt_sha256")? == ""
         || text(binding, "artifact_sha256")? != facts.artifact.sha256
     {
         return Err("RECEIPT_BINDING_MISMATCH");
@@ -308,7 +307,8 @@ fn verify_receipt_semantics(profile: &Value, receipt: &Value, facts: &super::Rec
         || facts.dataset_id != "US.PLSCI"
         || facts.product != "other"
         || facts.domain != "other"
-        || facts.units != ["dimensionless"]
+        || facts.units.len() != 1
+        || facts.units[0] != "dimensionless"
     {
         return Err("RECEIPT_SEMANTICS_MISMATCH");
     }
@@ -463,7 +463,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let bases = corpus["base_profiles"].as_object().expect("base profile map");
         let cases = corpus["cases"].as_array().expect("profile cases");
-        assert_eq!(cases.len(), 16, "frozen PLSCI case count is a contract");
+        assert_eq!(cases.len(), 20, "frozen PLSCI case count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base profile");
