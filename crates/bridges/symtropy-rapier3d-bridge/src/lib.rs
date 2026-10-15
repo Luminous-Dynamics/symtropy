@@ -176,8 +176,11 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
 
         for (handle, _, modulated_force) in &force_changes {
             if let Some(body) = rigid_body_set.get_mut(*handle) {
-                body.reset_forces(true);
-                body.add_force(*modulated_force, true);
+                // Clearing a source force is bookkeeping; only a nonzero transformed
+                // force should wake a sleeping body.
+                body.reset_forces(false);
+                let should_wake = modulated_force.iter().any(|value| *value != 0.0);
+                body.add_force(*modulated_force, should_wake);
             }
         }
 
@@ -428,6 +431,28 @@ mod tests {
             .expect("body state readback");
         assert!(state.is_sleeping, "zero-force bookkeeping must not wake idle bodies");
         assert_eq!(state.linear_velocity, [0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn zeroed_modulated_force_does_not_wake_a_sleeping_body() {
+        let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(0.0));
+        let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .sleeping(true)
+                .build(),
+        );
+        let body = world.bodies.get_mut(handle).expect("body inserted");
+        body.add_force(vector![1.0, 0.0, 0.0], false);
+        body.sleep();
+
+        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        let body = world.bodies.get(handle).expect("body retained");
+        assert!(body.is_sleeping(), "a callback-suppressed force must not wake the body");
+        assert_eq!(body.user_force(), vector![0.0, 0.0, 0.0]);
+        assert_eq!(body.linvel(), &vector![0.0, 0.0, 0.0]);
     }
 
     #[test]
