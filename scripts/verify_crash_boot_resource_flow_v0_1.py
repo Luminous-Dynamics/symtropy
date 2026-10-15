@@ -830,6 +830,55 @@ def main() -> None:
         == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
         "canonical claim bytes must be enforced even when the altered payload is correctly rehashed",
     )
+
+    duplicate_key_record = dict(bound_fresh["records"][0])
+    duplicate_key_payload = str(duplicate_key_record["artifact_payload_utf8"]).replace(
+        '"asset_id":"water-pump-7",',
+        '"asset_id":"water-pump-7","asset_id":"water-pump-7",',
+        1,
+    )
+    duplicate_key_record["artifact_payload_utf8"] = duplicate_key_payload
+    duplicate_key_record["artifact_digest"] = (
+        "sha256:" + hashlib.sha256(duplicate_key_payload.encode("utf-8")).hexdigest()
+    )
+    require(
+        evaluate_service_evidence_case({"records": [duplicate_key_record]}, target)
+        == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        "duplicate JSON property names must be rejected even when the payload is correctly re-hashed",
+    )
+
+    nonfinite_record = dict(bound_fresh["records"][0])
+    nonfinite_payload = str(nonfinite_record["artifact_payload_utf8"]).replace(
+        '"measured_value":1.0,',
+        '"measured_value":NaN,',
+        1,
+    )
+    nonfinite_record["artifact_payload_utf8"] = nonfinite_payload
+    nonfinite_record["artifact_digest"] = (
+        "sha256:" + hashlib.sha256(nonfinite_payload.encode("utf-8")).hexdigest()
+    )
+    require(
+        evaluate_service_evidence_case({"records": [nonfinite_record]}, target)
+        == "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        "non-finite JSON number tokens must be rejected even when their payload digest matches",
+    )
+
+    negative_zero_record = dict(bound_fresh["records"][0])
+    negative_zero_payload = str(negative_zero_record["artifact_payload_utf8"]).replace(
+        '"measured_value":1.0,',
+        '"measured_value":-0,',
+        1,
+    )
+    negative_zero_record["artifact_payload_utf8"] = negative_zero_payload
+    negative_zero_record["artifact_digest"] = (
+        "sha256:" + hashlib.sha256(negative_zero_payload.encode("utf-8")).hexdigest()
+    )
+    require(
+        evaluate_service_evidence_case({"records": [negative_zero_record]}, target)
+        == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        "negative-zero spelling must not silently normalize under the local canonical byte rule",
+    )
+
     mutated_claim = evidence_by_id["measurement_mutated_without_rehashed_artifact"]
     require(
         evaluate_service_evidence_case(mutated_claim, target) == "REJECT_ARTIFACT_CLAIM_MISMATCH",
