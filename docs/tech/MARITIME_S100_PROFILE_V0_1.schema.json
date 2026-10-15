@@ -60,12 +60,12 @@
         "s100_edition": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         },
         "specification_edition": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$"
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         },
         "producer_code": {
           "type": "string",
