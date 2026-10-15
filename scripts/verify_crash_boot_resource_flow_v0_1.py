@@ -161,8 +161,9 @@ def evaluate_service_evidence(
             return "REJECT_ARTIFACT_DIGEST_MISMATCH"
         try:
             payload_claims = json.loads(payload_utf8)
-        except json.JSONDecodeError:
-            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        except (ValueError, RecursionError):
+            # Malformed JSON, rejected numeric tokens/limits, and parser-depth exhaustion
+            # are invalid evidence, not uncaught verifier failures.
         if not isinstance(payload_claims, dict):
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
         try:
@@ -173,7 +174,7 @@ def evaluate_service_evidence(
                 ensure_ascii=False,
                 allow_nan=False,
             )
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, RecursionError):
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
         if canonical_payload != payload_utf8:
             return "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL"
@@ -848,6 +849,21 @@ def main() -> None:
             False,
             "REJECT_ARTIFACT_PAYLOAD_INVALID",
         ),
+        "invalid_json_syntax": (
+            "replace_open_brace_with_x",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "overflowing_number": (
+            "replace_measurement_with_overflow_exponent",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "excessive_nesting": (
+            "replace_payload_with_deeply_nested_array",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
     }
     canonicalization_controls = artifact_binding.get("canonicalization_negative_controls")
     require(
@@ -896,6 +912,16 @@ def main() -> None:
             )
         elif mutation == "set_payload_to_lone_surrogate":
             mutated_payload = "\ud800"
+        elif mutation == "replace_open_brace_with_x":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace("{", "x", 1)
+        elif mutation == "replace_measurement_with_overflow_exponent":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"measured_value":1.0,',
+                '"measured_value":1e9999,',
+                1,
+            )
+        elif mutation == "replace_payload_with_deeply_nested_array":
+            mutated_payload = "[" * 2000 + "0" + "]" * 2000
         else:
             require(False, f"{control_id}: unknown canonicalization mutation")
             continue
