@@ -134,6 +134,220 @@ impl FirstPersonMotion {
     }
 }
 
+
+/// Optional static-world collision profile for a kinematic first-person controller.
+/// Vertical offsets are measured from the controller Transform (the eye/reference point).
+#[derive(Component, Debug, Clone, Copy)]
+pub struct FirstPersonCollision {
+    /// Horizontal body radius in world units.
+    pub radius: f32,
+    /// Distance from Transform origin down to the player's feet.
+    pub feet_offset: f32,
+    /// Distance from Transform origin up to the player's head.
+    pub head_offset: f32,
+    /// Safety margin retained from obstacles.
+    pub skin_width: f32,
+    /// Maximum sweep/slide passes per requested displacement.
+    pub max_slide_iterations: u8,
+}
+impl Default for FirstPersonCollision {
+    fn default() -> Self {
+        Self {
+            radius: 0.35,
+            feet_offset: 1.35,
+            head_offset: 0.22,
+            skin_width: 0.025,
+            max_slide_iterations: 4,
+        }
+    }
+}
+
+/// Static axis-aligned obstacle. Half-extents are explicit world-space values;
+/// rendered mesh scale and entity rotation are deliberately not inferred.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct FirstPersonObstacle {
+    pub half_extents: Vec3,
+}
+impl FirstPersonObstacle {
+    pub const fn new(half_extents: Vec3) -> Self {
+        Self { half_extents }
+    }
+}
+
+/// Result of a swept kinematic movement request.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FirstPersonMoveResult {
+    pub displacement: Vec3,
+    pub blocking_normals: Vec<Vec2>,
+}
+
+/// Resolve horizontal movement against static axis-aligned obstacle bounds.
+///
+/// Each tuple is (world center, half-extents). Vertical filtering prevents overhead
+/// props/floor decals from becoming invisible walls. Expanding each AABB by the body
+/// radius is conservative near corners and approximates a round horizontal footprint.
+/// This is not a general-purpose shape cast or a replacement for dynamic physics.
+pub fn resolve_first_person_motion(
+    start: Vec3,
+    desired_displacement: Vec3,
+    collision: FirstPersonCollision,
+    obstacles: &[(Vec3, Vec3)],
+) -> FirstPersonMoveResult {
+    let stopped = || FirstPersonMoveResult {
+        displacement: Vec3::ZERO,
+        blocking_normals: Vec::new(),
+    };
+    if !start.is_finite() || !desired_displacement.is_finite() {
+        return stopped();
+    }
+    if !collision.radius.is_finite()
+        || collision.radius < 0.0
+        || !collision.feet_offset.is_finite()
+        || collision.feet_offset < 0.0
+        || !collision.head_offset.is_finite()
+        || collision.head_offset < 0.0
+        || !collision.skin_width.is_finite()
+        || collision.skin_width < 0.0
+    {
+        return stopped();
+    }
+
+    let mut applied = Vec3::ZERO;
+    let mut remaining = Vec3::new(desired_displacement.x, 0.0, desired_displacement.z);
+    let mut blocking_normals: Vec<Vec2> = Vec::new();
+    if remaining.length_squared() <= f32::EPSILON {
+        return FirstPersonMoveResult { displacement: Vec3::ZERO, blocking_normals };
+    }
+
+    for _ in 0..collision.max_slide_iterations.max(1) {
+        let distance = remaining.length();
+        if !distance.is_finite() || distance <= f32::EPSILON {
+            break;
+        }
+        let current = start + applied;
+        let player_min_y = current.y - collision.feet_offset;
+        let player_max_y = current.y + collision.head_offset;
+        let origin = Vec2::new(current.x, current.z);
+        let delta = Vec2::new(remaining.x, remaining.z);
+        let mut earliest_hit: Option<(f32, Vec2)> = None;
+
+        for (center, half_extents) in obstacles {
+            if !center.is_finite()
+                || !half_extents.is_finite()
+                || half_extents.x < 0.0
+                || half_extents.y < 0.0
+                || half_extents.z < 0.0
+            {
+                continue;
+            }
+            let obstacle_min_y = center.y - half_extents.y;
+            let obstacle_max_y = center.y + half_extents.y;
+            if player_max_y <= obstacle_min_y || player_min_y >= obstacle_max_y {
+                continue;
+            }
+            let min = Vec2::new(
+                center.x - half_extents.x - collision.radius,
+                center.z - half_extents.z - collision.radius,
+            );
+            let max = Vec2::new(
+                center.x + half_extents.x + collision.radius,
+                center.z + half_extents.z + collision.radius,
+            );
+            if let Some((toi, normal)) = sweep_point_aabb(origin, delta, min, max)
+                && earliest_hit.is_none_or(|(best, _)| toi < best)
+            {
+                earliest_hit = Some((toi, normal));
+            }
+        }
+
+        let Some((toi, normal)) = earliest_hit else {
+            applied += remaining;
+            break;
+        };
+        let safe_distance = (toi * distance - collision.skin_width).max(0.0);
+        let fraction = (safe_distance / distance).clamp(0.0, 1.0);
+        let step = remaining * fraction;
+        applied += step;
+        remaining -= step;
+
+        let normal3 = Vec3::new(normal.x, 0.0, normal.y);
+        let into_wall = remaining.dot(normal3);
+        if into_wall < 0.0 {
+            remaining -= normal3 * into_wall;
+            if !blocking_normals
+                .iter()
+                .any(|old| (*old - normal).length_squared() < 1.0e-6)
+            {
+                blocking_normals.push(normal);
+            }
+        } else {
+            break;
+        }
+    }
+    FirstPersonMoveResult { displacement: applied, blocking_normals }
+}
+
+fn sweep_point_aabb(origin: Vec2, delta: Vec2, min: Vec2, max: Vec2) -> Option<(f32, Vec2)> {
+    let inside = origin.x > min.x && origin.x < max.x && origin.y > min.y && origin.y < max.y;
+    if inside {
+        let distances = [
+            (origin.x - min.x, Vec2::new(-1.0, 0.0)),
+            (max.x - origin.x, Vec2::new(1.0, 0.0)),
+            (origin.y - min.y, Vec2::new(0.0, -1.0)),
+            (max.y - origin.y, Vec2::new(0.0, 1.0)),
+        ];
+        let normal = distances.into_iter().min_by(|a, b| a.0.total_cmp(&b.0))?.1;
+        return (delta.dot(normal) < 0.0).then_some((0.0, normal));
+    }
+
+    let mut entry = f32::NEG_INFINITY;
+    let mut exit = f32::INFINITY;
+    let mut entry_normal = Vec2::ZERO;
+    for axis in 0..2 {
+        let coordinate = if axis == 0 { origin.x } else { origin.y };
+        let movement = if axis == 0 { delta.x } else { delta.y };
+        let lower = if axis == 0 { min.x } else { min.y };
+        let upper = if axis == 0 { max.x } else { max.y };
+        if movement.abs() <= f32::EPSILON {
+            if coordinate < lower || coordinate > upper {
+                return None;
+            }
+            continue;
+        }
+        let first = (lower - coordinate) / movement;
+        let second = (upper - coordinate) / movement;
+        let near = first.min(second);
+        let far = first.max(second);
+        if near > entry {
+            entry = near;
+            entry_normal = if axis == 0 {
+                Vec2::new(if movement > 0.0 { -1.0 } else { 1.0 }, 0.0)
+            } else {
+                Vec2::new(0.0, if movement > 0.0 { -1.0 } else { 1.0 })
+            };
+        }
+        exit = exit.min(far);
+        if entry > exit {
+            return None;
+        }
+    }
+    if entry < 0.0 || entry > 1.0 || exit < 0.0 {
+        None
+    } else {
+        Some((entry, entry_normal))
+    }
+}
+
+fn remove_velocity_into_blocking_normals(velocity: &mut Vec3, normals: &[Vec2]) {
+    for normal in normals {
+        let normal3 = Vec3::new(normal.x, 0.0, normal.y);
+        let into_wall = velocity.dot(normal3);
+        if into_wall < 0.0 {
+            *velocity -= normal3 * into_wall;
+        }
+    }
+}
+
 /// Centralized keyboard bindings for the default first-person control scheme.
 #[derive(Resource, Debug, Clone)]
 pub struct InputBindings {
@@ -638,21 +852,33 @@ pub fn first_person_move_system(
     intents: Res<IntentFrame>,
     time: Res<Time>,
     controls: Res<ControlsState>,
-    mut query: Query<(
-        &mut Transform,
-        &FirstPersonController,
-        Option<&mut FirstPersonMotion>,
-    )>,
+    mut characters: Query<
+        (
+            &mut Transform,
+            &FirstPersonController,
+            Option<&mut FirstPersonMotion>,
+            Option<&FirstPersonCollision>,
+        ),
+        (With<FirstPersonController>, Without<FirstPersonObstacle>),
+    >,
+    obstacles: Query<
+        (&Transform, &FirstPersonObstacle),
+        (With<FirstPersonObstacle>, Without<FirstPersonController>),
+    >,
 ) {
-    for (mut transform, controller, motion) in &mut query {
+    let obstacle_bounds: Vec<(Vec3, Vec3)> = obstacles
+        .iter()
+        .map(|(transform, obstacle)| (transform.translation, obstacle.half_extents))
+        .collect();
+
+    for (mut transform, controller, mut motion, collision) in &mut characters {
         let base_speed = match controls.mode {
             ControlMode::FirstPerson => controller.walk_speed,
             ControlMode::FieldDeck => controller.field_deck_speed,
             ControlMode::Console | ControlMode::DevScenario | ControlMode::Pause => 0.0,
         };
-
         if base_speed == 0.0 {
-            if let Some(mut motion) = motion {
+            if let Some(motion) = motion.as_deref_mut() {
                 motion.stop();
             }
             continue;
@@ -665,7 +891,6 @@ pub fn first_person_move_system(
         if intents.pressed(InputIntent::Crouch) {
             speed *= controller.crouch_multiplier;
         }
-
         let mut direction =
             *transform.forward() * intents.movement.y + *transform.right() * intents.movement.x;
         direction.y = 0.0;
@@ -674,13 +899,31 @@ pub fn first_person_move_system(
         } else {
             Vec3::ZERO
         };
+        let dt = time.delta_secs();
+        let desired_displacement = if let Some(motion) = motion.as_deref_mut() {
+            motion.advance(desired_velocity, dt)
+        } else {
+            desired_velocity * dt
+        };
 
-        if let Some(mut motion) = motion {
-            transform.translation += motion.advance(desired_velocity, time.delta_secs());
-        } else if desired_velocity.length_squared() > 0.0 {
-            // Preserve legacy instant-response movement for existing controllers.
-            transform.translation += desired_velocity * time.delta_secs();
-        }
+        let actual_displacement = if let Some(collision) = collision {
+            let result = resolve_first_person_motion(
+                transform.translation,
+                desired_displacement,
+                *collision,
+                &obstacle_bounds,
+            );
+            if let Some(motion) = motion.as_deref_mut() {
+                remove_velocity_into_blocking_normals(
+                    &mut motion.horizontal_velocity,
+                    &result.blocking_normals,
+                );
+            }
+            result.displacement
+        } else {
+            desired_displacement
+        };
+        transform.translation += actual_displacement;
     }
 }
 
@@ -994,6 +1237,90 @@ mod tests {
         };
         assert_eq!(motion.advance(Vec3::ZERO, 1.0 / 60.0), Vec3::ZERO);
         assert_eq!(motion.horizontal_velocity, Vec3::ZERO);
+    }
+
+    fn obstacle(center: Vec3, half_extents: Vec3) -> (Vec3, Vec3) {
+        (center, half_extents)
+    }
+
+    #[test]
+    fn kinematic_sweep_stops_before_a_wall_without_tunneling() {
+        let wall = obstacle(Vec3::new(1.0, 1.0, 0.0), Vec3::new(0.5, 1.0, 3.0));
+        let result = resolve_first_person_motion(
+            Vec3::new(0.0, 1.45, 0.0),
+            Vec3::new(2.0, 0.0, 0.0),
+            FirstPersonCollision::default(),
+            &[wall],
+        );
+        let contact_center_x = 1.0 - 0.5 - FirstPersonCollision::default().radius;
+        assert!(result.displacement.x < contact_center_x);
+        assert!(result.displacement.x > contact_center_x - 0.1);
+        assert!(result.displacement.z.abs() < 1.0e-6);
+        assert!(result.blocking_normals.contains(&Vec2::new(-1.0, 0.0)));
+    }
+
+    #[test]
+    fn kinematic_sweep_slides_along_a_wall_and_cancels_inward_velocity() {
+        let wall = obstacle(Vec3::new(1.0, 1.0, 0.0), Vec3::new(0.5, 1.0, 4.0));
+        let result = resolve_first_person_motion(
+            Vec3::new(0.0, 1.45, 0.0),
+            Vec3::new(1.0, 0.0, 2.0),
+            FirstPersonCollision::default(),
+            &[wall],
+        );
+        let mut velocity = Vec3::new(3.0, 0.0, 3.0);
+        remove_velocity_into_blocking_normals(&mut velocity, &result.blocking_normals);
+        assert!(result.displacement.x < 0.15);
+        assert!(result.displacement.z > 1.9);
+        assert!(velocity.x.abs() < 1.0e-6, "wall-normal velocity must be removed");
+        assert!(velocity.z > 0.0, "tangential velocity must survive");
+    }
+
+    #[test]
+    fn kinematic_sweep_traverses_a_narrow_passage_without_sticking() {
+        let left = obstacle(Vec3::new(-0.6, 1.0, 0.0), Vec3::new(0.1, 1.0, 5.0));
+        let right = obstacle(Vec3::new(0.6, 1.0, 0.0), Vec3::new(0.1, 1.0, 5.0));
+        let result = resolve_first_person_motion(
+            Vec3::new(0.0, 1.45, -3.0),
+            Vec3::new(0.0, 0.0, 6.0),
+            FirstPersonCollision::default(),
+            &[left, right],
+        );
+        assert!(result.displacement.z > 5.9);
+        assert!(result.displacement.x.abs() < 1.0e-6);
+        assert!(result.blocking_normals.is_empty());
+    }
+
+    #[test]
+    fn kinematic_sweep_ignores_obstacles_above_the_player() {
+        let ceiling_pipe = obstacle(Vec3::new(1.0, 3.0, 0.0), Vec3::new(0.2, 0.1, 2.0));
+        let result = resolve_first_person_motion(
+            Vec3::new(0.0, 1.45, 0.0),
+            Vec3::new(2.0, 0.0, 0.0),
+            FirstPersonCollision::default(),
+            &[ceiling_pipe],
+        );
+        assert_eq!(result.displacement, Vec3::new(2.0, 0.0, 0.0));
+        assert!(result.blocking_normals.is_empty());
+    }
+
+    #[test]
+    fn kinematic_sweep_rejects_non_finite_requests_and_bad_collider_settings() {
+        let wall = obstacle(Vec3::new(1.0, 1.0, 0.0), Vec3::new(0.5, 1.0, 3.0));
+        let invalid_delta = resolve_first_person_motion(
+            Vec3::ZERO,
+            Vec3::splat(f32::NAN),
+            FirstPersonCollision::default(),
+            &[wall],
+        );
+        let invalid_collider = resolve_first_person_motion(
+            Vec3::ZERO,
+            Vec3::new(1.0, 0.0, 0.0),
+            FirstPersonCollision { radius: f32::NAN, ..default() },
+            &[wall],
+        );
+        assert_eq!(invalid_delta.displacement, Vec3::ZERO);
+        assert_eq!(invalid_collider.displacement, Vec3::ZERO);
     }
 
     #[test]
