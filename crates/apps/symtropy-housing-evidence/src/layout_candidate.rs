@@ -867,17 +867,23 @@ mod tests {
     fn must_satisfy_dimension_mismatch_invalidates_candidate() {
         let (mut layout, mut brief, _) = fixtures();
         brief["spaces"][0]["dimension_constraints"][0]["value_m"] = json!(6.5);
-        brief["spaces"][0]["dimension_constraints"][0]["enforcement"] = json!("must_satisfy");
+        brief["spaces"][0]["dimension_constraints"][0]["enforcement"] =
+            json!("must_satisfy");
         let bytes = serde_json::to_vec(&brief).expect("mutated brief serializes");
         layout["brief_ref"]["sha256"] = json!(sha256_hex(&bytes));
 
         let report = validate_values(&layout, &brief, &bytes).expect("schema compiles");
         assert_eq!(report.contract_status, "LAYOUT_CANDIDATE_CONTRACT_INVALID");
         assert!(!report.semantic_valid);
-        assert!(report.semantic_issues.iter().any(|issue| issue.contains("must-satisfy dimension constraint")));
+        assert!(
+            report
+                .semantic_issues
+                .iter()
+                .any(|issue| issue.contains("must-satisfy dimension constraint"))
+        );
     }
 
-#[test]
+    #[test]
     fn changed_brief_digest_is_rejected() {
         let (mut layout, brief, bytes) = fixtures();
         layout["brief_ref"]["sha256"] =
