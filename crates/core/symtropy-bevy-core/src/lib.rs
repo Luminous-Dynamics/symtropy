@@ -134,7 +134,6 @@ impl FirstPersonMotion {
     }
 }
 
-
 /// Optional static-world collision profile for a kinematic first-person controller.
 /// Vertical offsets are measured from the controller Transform (the eye/reference point).
 #[derive(Component, Debug, Clone, Copy)]
@@ -216,7 +215,10 @@ pub fn resolve_first_person_motion(
     let mut remaining = Vec3::new(desired_displacement.x, 0.0, desired_displacement.z);
     let mut blocking_normals: Vec<Vec2> = Vec::new();
     if remaining.length_squared() <= f32::EPSILON {
-        return FirstPersonMoveResult { displacement: Vec3::ZERO, blocking_normals };
+        return FirstPersonMoveResult {
+            displacement: Vec3::ZERO,
+            blocking_normals,
+        };
     }
 
     for _ in 0..collision.max_slide_iterations.max(1) {
@@ -284,7 +286,10 @@ pub fn resolve_first_person_motion(
             break;
         }
     }
-    FirstPersonMoveResult { displacement: applied, blocking_normals }
+    FirstPersonMoveResult {
+        displacement: applied,
+        blocking_normals,
+    }
 }
 
 fn sweep_point_aabb(origin: Vec2, delta: Vec2, min: Vec2, max: Vec2) -> Option<(f32, Vec2)> {
@@ -1272,7 +1277,10 @@ mod tests {
         remove_velocity_into_blocking_normals(&mut velocity, &result.blocking_normals);
         assert!(result.displacement.x < 0.15);
         assert!(result.displacement.z > 1.9);
-        assert!(velocity.x.abs() < 1.0e-6, "wall-normal velocity must be removed");
+        assert!(
+            velocity.x.abs() < 1.0e-6,
+            "wall-normal velocity must be removed"
+        );
         assert!(velocity.z > 0.0, "tangential velocity must survive");
     }
 
@@ -1316,7 +1324,10 @@ mod tests {
         let invalid_collider = resolve_first_person_motion(
             Vec3::ZERO,
             Vec3::new(1.0, 0.0, 0.0),
-            FirstPersonCollision { radius: f32::NAN, ..default() },
+            FirstPersonCollision {
+                radius: f32::NAN,
+                ..default()
+            },
             &[wall],
         );
         assert_eq!(invalid_delta.displacement, Vec3::ZERO);
