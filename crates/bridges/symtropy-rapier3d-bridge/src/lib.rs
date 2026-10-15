@@ -116,7 +116,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
     /// Step the persistent Rapier pipeline and apply the Symtropy force callback once.
     ///
     /// `dt` is authoritative for this call: the supplied integration parameters are
-    /// cloned and their timestep replaced, leaving the caller's settings unchanged.
+    /// copied and their timestep replaced, leaving the caller's settings unchanged.
     /// The raw user-force accumulator is restored after stepping so a non-idempotent
     /// callback cannot recursively modulate its own previous output on later frames.
     #[allow(clippy::too_many_arguments)]
@@ -201,8 +201,10 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         // accumulator so the same force is modulated from the same source each frame.
         for (handle, original_force, _) in force_changes {
             if let Some(body) = rigid_body_set.get_mut(handle) {
-                body.reset_forces(true);
-                body.add_force(original_force, true);
+                // Restoring the source accumulator is bookkeeping, not a new impulse;
+                // never wake a body solely because its prior force is being preserved.
+                body.reset_forces(false);
+                body.add_force(original_force, false);
             }
         }
 
