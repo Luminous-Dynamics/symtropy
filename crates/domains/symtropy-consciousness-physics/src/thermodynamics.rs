@@ -9,21 +9,29 @@
 //!
 //! # Key Quantities
 //!
-//! - **Landauer bound**: minimum energy per bit of information processing
-//!   (k_B * T * ln(2) ≈ 2.87 × 10⁻²¹ J at body temperature 310K)
+//! - **Landauer bound**: minimum work to erase one bit in an ideal isothermal
+//!   process, k_B * T * ln(2) ≈ 2.967 × 10⁻²¹ J at 310 K. This is a lower
+//!   bound for a specific logically irreversible operation, not a universal
+//!   energy cost for all information processing.
 //! - **Joules-per-Phi**: novel metric — how many Joules does it cost to
 //!   maintain a given Φ level? No one has published this.
 //! - **Conservation error**: measures violation of energy conservation law.
 //!   Should remain < 1% for a valid simulation.
 
-/// Landauer bound at body temperature (310K): k_B * T * ln(2).
-/// Minimum energy to erase one bit of information.
-/// Ref: Landauer (1961), "Irreversibility and Heat Generation"
-pub const LANDAUER_BOUND_310K: f64 = 2.87e-21; // Joules per bit
+/// Boltzmann constant in J/K; exact in the SI since the 2019 redefinition.
+pub const BOLTZMANN_CONSTANT_J_PER_K: f64 = 1.380_649e-23;
 
-/// Body (baseline) temperature for consciousness clarity calculations.
-/// At or below this temperature, no penalty applies.
+/// Natural logarithm of two, for the Landauer bound.
+pub const LN_2: f64 = 0.693_147_180_559_945_3;
+
+/// Body (baseline) temperature used by the model.
 pub const BODY_TEMPERATURE_K: f64 = 310.0;
+
+/// Landauer lower bound k_B T ln(2) at the model's 310 K reference temperature.
+/// This applies to ideal logically irreversible bit erasure; it is not a
+/// universal per-operation energy prediction.
+pub const LANDAUER_BOUND_310K: f64 =
+    BOLTZMANN_CONSTANT_J_PER_K * BODY_TEMPERATURE_K * LN_2;
 
 /// Sigmoid midpoint for temperature-consciousness coupling.
 /// Penalty reaches 0.55 at this temperature (halfway between baseline and max reduction).
