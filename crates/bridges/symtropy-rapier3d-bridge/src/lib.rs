@@ -422,6 +422,32 @@ mod tests {
     }
 
     #[test]
+    fn configured_gravity_changes_the_trajectory() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        bridge
+            .set_gravity(vector![0.0, 0.0, 0.0])
+            .expect("finite gravity is accepted");
+        assert_eq!(*bridge.gravity(), vector![0.0, 0.0, 0.0]);
+
+        let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
+        );
+        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        let state = bridge
+            .post_step(&world.bodies)
+            .into_iter()
+            .find(|state| state.handle == handle)
+            .expect("body state readback");
+
+        assert!((state.translation[1] - 10.0).abs() < 1.0e-6);
+        assert_eq!(state.linear_velocity, [0.0, 0.0, 0.0]);
+    }
+
+    #[test]
     fn invalid_delta_and_gravity_are_rejected_without_stepping() {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
         let mut world = TestWorld::new();
