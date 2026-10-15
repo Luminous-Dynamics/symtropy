@@ -15,9 +15,18 @@ const ROOT_KEYS: &[&str] = &[
 ];
 const BINDING_KEYS: &[&str] = &["receipt_id", "receipt_sha256", "artifact_sha256"];
 const SERIES_KEYS: &[&str] = &[
-    "provider", "table_id", "indicator_id", "spatial_level", "temporal_frequency",
-    "unit_semantics", "benchmark_period", "benchmark_scope", "benchmark_value", "methodology_vintage",
-    "source_basis", "components",
+    "provider",
+    "table_id",
+    "indicator_id",
+    "spatial_level",
+    "temporal_frequency",
+    "unit_semantics",
+    "benchmark_period",
+    "benchmark_scope",
+    "benchmark_value",
+    "methodology_vintage",
+    "source_basis",
+    "components",
 ];
 const SELECTION_KEYS: &[&str] = &[
     "geographic_scope", "period_start", "period_end", "source_port_ids",
