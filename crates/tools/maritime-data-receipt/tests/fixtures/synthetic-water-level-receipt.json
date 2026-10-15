@@ -28,7 +28,7 @@
   },
   "data_context": {
     "domain": "water_level",
-    "coordinate_reference_system": null,
+    "coordinate_reference_system": "EPSG:4326",
     "vertical_datum": "MLLW",
     "units": [
       "m"
