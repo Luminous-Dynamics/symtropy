@@ -6,5 +6,6 @@ license = "Apache-2.0 OR MIT"
 description = "Bounded accounting contract for garden infrastructure scenarios"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
 
 [workspace]
