@@ -654,6 +654,8 @@ pub struct NutrientTargetAssessmentV1 {
     pub nutrient_id: String,
     pub nutrient_definition_ref: String,
     pub unit: NutrientUnit,
+    pub delivery_scope_ref: String,
+    pub delivery_period_ref: String,
     pub target_scope_ref: String,
     pub period_ref: String,
     #[serde(
@@ -857,6 +859,8 @@ pub fn assess_nutrient_target(
         nutrient_id: target.nutrient_id.clone(),
         nutrient_definition_ref: target.nutrient_definition_ref.clone(),
         unit: target.unit,
+        delivery_scope_ref: delivery.delivery_scope_ref.clone(),
+        delivery_period_ref: delivery.period_ref.clone(),
         target_scope_ref: target.target_scope_ref.clone(),
         period_ref: target.period_ref.clone(),
         value_scale: (target.value_scale != 0).then_some(target.value_scale),
@@ -1244,6 +1248,8 @@ mod tests {
         assert_eq!(assessment.target_numerator, Some(18_000_000));
         assert_eq!(assessment.denominator, Some(100_000));
         assert_eq!(assessment.shortfall_numerator, Some(0));
+        assert_eq!(assessment.delivery_scope_ref, "scope:community-001");
+        assert_eq!(assessment.delivery_period_ref, "period:2026-11");
         assert_eq!(assessment.target_scope_ref, "scope:community-001");
         assert_eq!(assessment.period_ref, "period:2026-11");
     }
