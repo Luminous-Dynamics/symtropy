@@ -452,7 +452,7 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         "water_level" | "water_level_prediction" | "hydrography" => {
             &["m", "cm", "mm", "ft", "in"][..]
         }
-        "currents" => &["cm/s", "m/s", "kn", "knot", "knots"][..],
+        "currents" => &["cm/s", "m/s", "kn", "knot", "knots", "degrees", "degree", "deg"][..],
         "port_facility" => {
             &["m", "cm", "mm", "ft", "in", "degrees_east", "degrees_north", "count"][..]
         }
