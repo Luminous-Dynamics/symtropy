@@ -444,12 +444,18 @@ mod tests {
             .get_mut(handle)
             .expect("body inserted")
             .add_force(vector![1.0, 0.0, 0.0], true);
+        world
+            .bodies
+            .get_mut(handle)
+            .expect("body inserted")
+            .add_torque(vector![0.0, 0.0, 0.75], true);
 
         world.step(&mut bridge, 0.1).expect("first step");
         world.step(&mut bridge, 0.1).expect("second step");
 
         let body = world.bodies.get(handle).expect("body retained");
         assert!((body.user_force().x - 1.0).abs() < 1.0e-6);
+        assert!((body.user_torque().z - 0.75).abs() < 1.0e-6);
         assert!((body.linvel().x - 0.4).abs() < 0.04);
     }
 }
