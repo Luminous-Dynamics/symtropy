@@ -1204,6 +1204,25 @@ mod tests {
     }
 
     #[test]
+    fn gate_evidence_digest_cannot_be_reused_across_gates() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        let first_gate_artifact = receipt["evaluation_gate_evidence"][0]["artifact"].clone();
+        receipt["evaluation_gate_evidence"][1]["artifact"] = first_gate_artifact;
+
+        let receipt_path = root.path().join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
+
+        assert!(!report.scope_complete);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report
+            .issues
+            .iter()
+            .any(|issue| issue.contains("reuses SHA-256 digest")));
+    }
+
+    #[test]
     fn scope_profile_must_match_an_out_of_band_pin() {
         let root = TestRoot::new();
         let (_registry, receipt, registry_path) = positive_case(root.path());
