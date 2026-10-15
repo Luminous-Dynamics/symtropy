@@ -772,7 +772,11 @@ fn validate_claim_ceiling(root: &JsonValue) -> Result<(), String> {
 fn fixture_map<'a>(root: &'a JsonValue) -> Result<BTreeMap<String, &'a JsonValue>, String> {
     let values = array(field(root, "fixtures", "root")?, "fixtures")?;
     if values.len() != CASE_IDS.len() {
-        return Err(format!("fixtures: expected {} frozen cases, got {}", CASE_IDS.len(), values.len()));
+        return Err(format!(
+            "fixtures: expected {} frozen cases, got {}",
+            CASE_IDS.len(),
+            values.len()
+        ));
     }
     let mut result = BTreeMap::new();
     let mut observed_order = Vec::new();
@@ -787,7 +791,9 @@ fn fixture_map<'a>(root: &'a JsonValue) -> Result<BTreeMap<String, &'a JsonValue
         observed_order.push(case_id);
     }
     if observed_order.as_slice() != CASE_IDS {
-        return Err(format!("fixtures: ordered case-id list does not match frozen v0.1.0 corpus: {observed_order:?}"));
+        return Err(format!(
+            "fixtures: ordered case-id list does not match frozen v0.1.0 corpus: {observed_order:?}"
+        ));
     }
     Ok(result)
 }
@@ -816,7 +822,13 @@ fn verify_case(
             )?;
             exact_keys(
                 expected,
-                &["disposition", "berth_envelope", "departure_energy", "physical_qualification", "regulatory_approval"],
+                &[
+                "disposition",
+                "berth_envelope",
+                "departure_energy",
+                "physical_qualification",
+                "regulatory_approval",
+            ],
                 &format!("{path}.expected"),
             )?;
             expect_text(
@@ -866,15 +878,25 @@ fn verify_case(
                         "berth.maximum_declared_draft",
                     )?;
             let energy_ok = stored >= contract.minimum_departure_energy_mwh;
+            let envelope_result = if fits {
+                "FitsDeclaredSyntheticEnvelope"
+            } else {
+                "OutsideDeclaredSyntheticEnvelope"
+            };
+            let energy_result = if energy_ok {
+                "SufficientByDeclaredArithmetic"
+            } else {
+                "InsufficientByDeclaredArithmetic"
+            };
             expect_text(
                 field(expected, "berth_envelope", &path)?,
                 "baseline.expected.berth_envelope",
-                if fits { "FitsDeclaredSyntheticEnvelope" } else { "OutsideDeclaredSyntheticEnvelope" },
+                envelope_result,
             )?;
             expect_text(
                 field(expected, "departure_energy", &path)?,
                 "baseline.expected.departure_energy",
-                if energy_ok { "SufficientByDeclaredArithmetic" } else { "InsufficientByDeclaredArithmetic" },
+                energy_result,
             )?;
             expect_bool(
                 field(expected, "physical_qualification", &path)?,
@@ -954,12 +976,25 @@ fn verify_case(
         "charging-interruption-energy-shortfall" => {
             exact_keys(
                 inputs,
-                &["starting_stored_energy", "charging_power", "charging_duration", "charging_efficiency", "route_energy", "protected_reserve"],
+                &[
+                    "starting_stored_energy",
+                    "charging_power",
+                    "charging_duration",
+                    "charging_efficiency",
+                    "route_energy",
+                    "protected_reserve",
+                ],
                 &format!("{path}.inputs"),
             )?;
             exact_keys(
                 expected,
-                &["charge_added_energy", "available_departure_energy", "minimum_departure_energy", "disposition", "failed_constraint"],
+                &[
+                    "charge_added_energy",
+                    "available_departure_energy",
+                    "minimum_departure_energy",
+                    "disposition",
+                    "failed_constraint",
+                ],
                 &format!("{path}.expected"),
             )?;
             let start = frozen_quantity(
@@ -980,7 +1015,10 @@ fn verify_case(
                 1.0,
                 "charging.duration",
             )?;
-            let efficiency = number(field(inputs, "charging_efficiency", &path)?, "charging.efficiency")?;
+            let efficiency = number(
+                field(inputs, "charging_efficiency", &path)?,
+                "charging.efficiency",
+            )?;
             if !(0.0..=1.0).contains(&efficiency) {
                 return Err("charging.efficiency must be in the inclusive [0, 1] interval".to_owned());
             }
@@ -1041,8 +1079,14 @@ fn verify_case(
                 &["disposition", "reason", "prior_result_may_be_carried_forward"],
                 &format!("{path}.expected"),
             )?;
-            let run = text(field(inputs, "run_configuration_revision", &path)?, "stale.run_configuration_revision")?;
-            let current = text(field(inputs, "current_asset_configuration_revision", &path)?, "stale.current_asset_configuration_revision")?;
+            let run = text(
+                field(inputs, "run_configuration_revision", &path)?,
+                "stale.run_configuration_revision",
+            )?;
+            let current = text(
+                field(inputs, "current_asset_configuration_revision", &path)?,
+                "stale.current_asset_configuration_revision",
+            )?;
             if run != "config-001" || current != "config-002" || run == current {
                 return Err("stale configuration fixture identity changed or mismatch vanished".to_owned());
             }
@@ -1066,7 +1110,11 @@ fn verify_case(
             )?;
             exact_keys(
                 expected,
-                &["disposition", "silent_rigid_body_approximation_allowed", "nuclear_safety_claim_allowed"],
+                &[
+                    "disposition",
+                    "silent_rigid_body_approximation_allowed",
+                    "nuclear_safety_claim_allowed",
+                ],
                 &format!("{path}.expected"),
             )?;
             expect_text(
@@ -1099,7 +1147,12 @@ fn verify_case(
             )?;
             exact_keys(
                 expected,
-                &["disposition", "instantaneous_unserved_load", "duration_claim_allowed", "power_quality_claim_allowed"],
+                &[
+                    "disposition",
+                    "instantaneous_unserved_load",
+                    "duration_claim_allowed",
+                    "power_quality_claim_allowed",
+                ],
                 &format!("{path}.expected"),
             )?;
             let load = frozen_quantity(
@@ -1159,7 +1212,12 @@ fn expect_unit(value: &JsonValue, unit: &str, path: &str) -> Result<(), String> 
     expect_text(field(value, "unit", path)?, &format!("{path}.unit"), unit)
 }
 
-fn expect_quantity_value(value: &JsonValue, unit: &str, expected: f64, path: &str) -> Result<(), String> {
+fn expect_quantity_value(
+    value: &JsonValue,
+    unit: &str,
+    expected: f64,
+    path: &str,
+) -> Result<(), String> {
     let actual = quantity(value, unit, path)?;
     if actual == expected {
         Ok(())
@@ -1219,7 +1277,11 @@ fn validate_document(root: &JsonValue) -> Result<(String, String, Vec<CaseResult
     Ok((EXPECTED_SCHEMA_ID.to_owned(), EXPECTED_SCHEMA_VERSION.to_owned(), cases))
 }
 
-fn verify_bytes(raw: &[u8], source_path: &str, source_commit: &str) -> Result<VerificationReport, String> {
+fn verify_bytes(
+    raw: &[u8],
+    source_path: &str,
+    source_commit: &str,
+) -> Result<VerificationReport, String> {
     let root = parse_strict(raw)?;
     let (schema_id, schema_version, cases) = validate_document(&root)?;
     let digest = Sha256::digest(raw);
@@ -1253,14 +1315,18 @@ fn run() -> Result<(), String> {
         return Err("usage: maritime-fixture-verifier [scenario-json-path]".to_owned());
     }
     let file_path = Path::new(&path);
-    let metadata = fs::metadata(file_path).map_err(|error| format!("cannot stat {}: {error}", file_path.display()))?;
+    let metadata = fs::metadata(file_path)
+        .map_err(|error| format!("cannot stat {}: {error}", file_path.display()))?;
     if metadata.len() > MAX_INPUT_BYTES as u64 {
         return Err(format!("input exceeds the {}-byte safety bound", MAX_INPUT_BYTES));
     }
-    let raw = fs::read(file_path).map_err(|error| format!("cannot read {}: {error}", file_path.display()))?;
-    let source_commit = env::var("MARITIME_SOURCE_COMMIT").unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
+    let raw = fs::read(file_path)
+        .map_err(|error| format!("cannot read {}: {error}", file_path.display()))?;
+    let source_commit = env::var("MARITIME_SOURCE_COMMIT")
+        .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
     let report = verify_bytes(&raw, &path, &source_commit)?;
-    let output = serde_json::to_string(&report).map_err(|error| format!("cannot serialize verification report: {error}"))?;
+    let output = serde_json::to_string(&report)
+        .map_err(|error| format!("cannot serialize verification report: {error}"))?;
     println!("{output}");
     Ok(())
 }
@@ -1290,10 +1356,13 @@ mod tests {
     #[test]
     fn frozen_synthetic_fixture_corpus_matches_independent_derivations() {
         let raw = fixture_bytes();
-        let report = verify_bytes(&raw, "frozen-fixture.json", "unit-test").expect("frozen fixture should verify");
+        let report = verify_bytes(&raw, "frozen-fixture.json", "unit-test")
+            .expect("frozen fixture should verify");
         assert_eq!(report.fixtures_checked, 6);
         assert!(report.cases.iter().all(|case| case.expectation_matches));
-        assert!(report.cases.iter().all(|case| case.derived_disposition == case.expected_disposition));
+        assert!(report.cases.iter().all(|case| {
+            case.derived_disposition == case.expected_disposition
+        }));
         assert!(!report.execution_performed);
         assert_eq!(report.physical_validation, "None");
         assert_eq!(report.external_approval, "None");
@@ -1366,7 +1435,8 @@ mod tests {
     #[test]
     fn source_digest_is_bound_to_exact_raw_bytes() {
         let raw = fixture_bytes();
-        let report = verify_bytes(&raw, "frozen-fixture.json", "0123456789abcdef").expect("fixture should verify");
+        let report = verify_bytes(&raw, "frozen-fixture.json", "0123456789abcdef")
+            .expect("fixture should verify");
         let digest = Sha256::digest(&raw);
         let expected = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
         assert_eq!(report.source_sha256, expected);
