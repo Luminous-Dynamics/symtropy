@@ -27,7 +27,8 @@
       "largest_deployed_ship_teu",
       "directly_connected_ports"
     ],
-    "benchmark_scope": "global_average_port_connectivity"
+    "benchmark_scope": "global_average_port_connectivity",
+    "normalization_method": "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
   },
   "selection": {
     "geographic_scope": "synthetic-test-only",
