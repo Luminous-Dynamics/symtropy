@@ -1,0 +1,13 @@
+{
+  "data_class": "synthetic_illustration",
+  "dataset_id": "synthetic-water-level-example-v0",
+  "observations": [
+    {
+      "timestamp_utc": "2026-10-14T12:00:00Z",
+      "value": 1.23,
+      "unit": "m",
+      "vertical_datum": "MLLW",
+      "verification_state": "synthetic"
+    }
+  ]
+}
