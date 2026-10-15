@@ -667,6 +667,67 @@ mod tests {
     }
 
     #[test]
+    fn quaternion_norm_tolerance_accepts_small_error_and_rejects_boundary_overrun() {
+        let accepted = RigidTransformV1::new(
+            "A",
+            "B",
+            [0.0; 3],
+            [0.0, 0.0, 0.0, 1.0 + 5.0e-7],
+        )
+        .unwrap();
+        assert_eq!(accepted.rotation_target_source_xyzw(), [0.0, 0.0, 0.0, 1.0]);
+
+        assert!(matches!(
+            RigidTransformV1::new("A", "B", [0.0; 3], [0.0, 0.0, 0.0, 1.0 + 2.0e-6]),
+            Err(RigidTransformError::QuaternionNormOutOfTolerance)
+        ));
+    }
+
+    #[test]
+    fn deterministic_rotation_sweep_round_trips_points_and_preserves_directions() {
+        let axis = [0.4_f64, -0.7, 0.2];
+        let axis_norm = axis.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let axis = [axis[0] / axis_norm, axis[1] / axis_norm, axis[2] / axis_norm];
+        let direction = DirectionInFrameV1::new("sensor", [0.4, -0.9, 1.2]).unwrap();
+        let original_norm = direction
+            .components()
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>();
+
+        for step in 0..48 {
+            let angle = (step as f64 - 24.0) * 0.037;
+            let half_sine = (angle * 0.5).sin();
+            let quaternion = [
+                axis[0] * half_sine,
+                axis[1] * half_sine,
+                axis[2] * half_sine,
+                (angle * 0.5).cos(),
+            ];
+            let translation = [step as f64 * 0.01, -0.03 * step as f64, 0.2];
+            let transform =
+                RigidTransformV1::new("world", "sensor", translation, quaternion).unwrap();
+            let inverse = transform.inverse().unwrap();
+            let point = PointInFrameV1::new(
+                "sensor",
+                [0.1 * step as f64, -0.25, 1.5],
+            )
+            .unwrap();
+            let mapped = transform.transform_point(&point).unwrap();
+            let restored = inverse.transform_point(&mapped).unwrap();
+            close3(restored.coordinates_m(), point.coordinates_m());
+
+            let transformed_direction = transform.transform_direction(&direction).unwrap();
+            let transformed_norm = transformed_direction
+                .components()
+                .iter()
+                .map(|value| value * value)
+                .sum::<f64>();
+            assert!((transformed_norm - original_norm).abs() < 1.0e-10);
+        }
+    }
+
+    #[test]
     fn non_finite_invalid_and_near_zero_inputs_are_rejected() {
         assert!(matches!(
             RigidTransformV1::new("A", "B", [f64::INFINITY, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]),
