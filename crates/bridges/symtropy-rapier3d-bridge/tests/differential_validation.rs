@@ -320,8 +320,8 @@ fn contact_scenario(
     dt_s: f64,
     sample_every_steps: u64,
 ) -> PhysicsScenario3d {
-    let material = |id, body_type, shape, position_m, linear_velocity_mps, mass_kg| {
-        ScenarioBody3d {
+    let material =
+        |id, body_type, shape, position_m, linear_velocity_mps, mass_kg| ScenarioBody3d {
             id: ValidationBodyId(id),
             body_type,
             shape,
@@ -330,8 +330,7 @@ fn contact_scenario(
             mass_kg,
             friction,
             restitution,
-        }
-    };
+        };
     PhysicsScenario3d {
         schema_version: PHYSICS_SCENARIO_SCHEMA_VERSION,
         scenario_id: scenario_id.to_owned(),
@@ -372,11 +371,7 @@ fn final_body(trace: &PhysicsTrace3d, id: ValidationBodyId) -> &BodyObservation3
         .expect("trace contains the requested validation body")
 }
 
-fn post_contact_peak_y(
-    trace: &PhysicsTrace3d,
-    id: ValidationBodyId,
-    after_time_s: f64,
-) -> f64 {
+fn post_contact_peak_y(trace: &PhysicsTrace3d, id: ValidationBodyId, after_time_s: f64) -> f64 {
     trace
         .samples
         .iter()
@@ -499,16 +494,7 @@ fn analytical_free_fall_position_error_converges_for_both_engines() {
 
 #[test]
 fn native_and_rapier_keep_a_sphere_near_resting_contact() {
-    let scenario = contact_scenario(
-        "resting-sphere-v0",
-        0.55,
-        0.0,
-        0.8,
-        0.0,
-        800,
-        0.0025,
-        40,
-    );
+    let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
     for (backend, trace) in [
         ("native", run_native_scenario_3d(&scenario).unwrap()),
         ("Rapier", run_rapier_scenario_3d(&scenario).unwrap()),
@@ -529,26 +515,10 @@ fn native_and_rapier_keep_a_sphere_near_resting_contact() {
 
 #[test]
 fn native_and_rapier_restitution_changes_post_impact_trajectory() {
-    let inelastic_scenario = contact_scenario(
-        "inelastic-drop-v0",
-        2.0,
-        0.0,
-        0.5,
-        0.0,
-        560,
-        0.0025,
-        1,
-    );
-    let bouncy_scenario = contact_scenario(
-        "restitution-drop-v0",
-        2.0,
-        0.0,
-        0.5,
-        0.8,
-        560,
-        0.0025,
-        1,
-    );
+    let inelastic_scenario =
+        contact_scenario("inelastic-drop-v0", 2.0, 0.0, 0.5, 0.0, 560, 0.0025, 1);
+    let bouncy_scenario =
+        contact_scenario("restitution-drop-v0", 2.0, 0.0, 0.5, 0.8, 560, 0.0025, 1);
     let native_inelastic = run_native_scenario_3d(&inelastic_scenario).unwrap();
     let native_bouncy = run_native_scenario_3d(&bouncy_scenario).unwrap();
     assert_restitution_is_observable(&native_inelastic, &native_bouncy, "native");
@@ -593,16 +563,17 @@ fn native_and_rapier_friction_reduces_sliding_sphere_speed() {
         ),
     ] {
         let low_speed = final_body(&low_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
-        let high_speed =
-            final_body(&high_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
-        assert!(low_speed > 0.5, "{backend} zero-friction lane lost too much speed: {low_speed}");
+        let high_speed = final_body(&high_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
+        assert!(
+            low_speed > 0.5,
+            "{backend} zero-friction lane lost too much speed: {low_speed}"
+        );
         assert!(
             high_speed + 0.15 < low_speed,
             "{backend} high friction did not reduce slide speed: low={low_speed}, high={high_speed}"
         );
     }
 }
-
 
 fn box_stack_scenario(box_count: usize) -> PhysicsScenario3d {
     assert!(box_count >= 3 && box_count <= 5);
@@ -716,7 +687,6 @@ fn three_and_five_box_stacks_remain_finite_and_bounded_for_both_backends() {
         assert_stack_trace_is_bounded(&rapier, box_count, "Rapier");
     }
 }
-
 
 #[test]
 fn stack_trace_is_invariant_to_nonsemantic_body_insertion_order() {
