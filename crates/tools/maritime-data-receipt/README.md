@@ -36,6 +36,22 @@ This mode checks profile metadata, pinned numeric edition shape, product-specifi
 
 A valid profile report still returns `NotAdmitted`. This is not an S-100 payload decoder, IHO validation engine, publisher-authentication mechanism or navigation/engineering qualification result. All committed sample profiles/corpus values are synthetic.
 
+## Port identity crosswalk metadata mode
+
+The port identity profile schema is `docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json`, with 21 frozen adversarial cases in `crates/tools/maritime-data-receipt/tests/fixtures/port-crosswalk-corpus-v0.1.json`.
+
+Validate the structure and internal policy consistency of a crosswalk:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \
+  --validate-port-crosswalk \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
+```
+
+The metadata guard requires a production UN/LOCODE release identifier (for example, `2025-1`), source/release digest fields, and explicit source/release terms states. It rejects mutable release/revision aliases, malformed codes/function/status fields, duplicate source entities, unsupported name-only resolution, port-statistic-to-terminal joins, unresolved mappings with targets, missing evidence on resolved/ambiguous mappings, and policy changes that equate unknown with zero. The bundled crosswalk is **synthetic**; its shape-test code/candidate is not an assertion that a real source statistic maps to a specific real feature.
+
+The report's structural pass still returns `NotAdmitted`: this CLI validates the declared structure and hash syntax but does not fetch the UN/LOCODE package, check the digests against external bytes, validate whether a location really matches a port, or confer logistics/navigation authority. Capture and hash the exact published release and source series before using an actual crosswalk.
+
 ## Fail-closed metadata gates
 
 The verifier rejects duplicate JSON object keys; missing or unknown fields; schema/version drift; traversal or absolute artifact paths declared inside the receipt; byte length or SHA-256 mismatches; invalid source/retrieval semantics; public-dataset records without HTTPS source/request URIs, retrieval time, a recorded reviewed-permitted terms decision, reviewer, review timestamp and terms digest; water-level records without a vertical datum; hydrography records without a CRS; and invalid unit, temporal, status or claim-ceiling declarations.
