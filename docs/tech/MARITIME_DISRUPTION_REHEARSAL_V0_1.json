@@ -2,7 +2,7 @@
   "schema_id": "luminous.symtropy.maritime-disruption-rehearsal",
   "schema_version": "0.1.0",
   "fixture_id": "synthetic-abstract-terminal-disruption-v0.1",
-  "fixture_status": "design_fixture_not_yet_executable",
+  "fixture_status": "synthetic_contract_evaluable_physics_not_executed",
   "source_kind": "synthetic_fixture",
   "claim_ceiling": {
     "engineering_admission": "NotAdmitted",
@@ -298,10 +298,10 @@
   ],
   "execution": {
     "executed": false,
-    "rust_build_test_status": "not_run_for_this_design_fixture",
-    "independent_oracle_status": "not_implemented",
-    "canonical_replay_status": "not_run",
+    "rust_build_test_status": "not_yet_run_on_exact_branch_head",
+    "independent_oracle_status": "implemented_in_source_not_yet_run",
+    "canonical_replay_status": "test_implemented_not_yet_run",
     "real_source_capture_status": "still_open",
-    "expected_status": "design_only"
+    "expected_status": "contract_evaluable_no_physical_simulation"
   }
 }
