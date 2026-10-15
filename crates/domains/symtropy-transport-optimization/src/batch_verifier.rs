@@ -19,6 +19,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RecomputedEdgeUsage {
+    quantity_used: u64,
+    quantity_unit: QuantityUnit,
+    capacity_limit: u64,
+    demand_ids: Vec<String>,
+}
+
 pub enum BatchReportVerificationError {
     InvalidInput(&'static str),
     InvalidReport(&'static str),
@@ -116,12 +124,11 @@ pub fn verify_shared_capacity_batch_report(
         if let CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
             search_domain_id,
         } = &candidate_set.completeness
+            && search_domain_id.trim().is_empty()
         {
-            if search_domain_id.trim().is_empty() {
-                return Err(BatchReportVerificationError::InvalidInput(
-                    "an exhaustive candidate claim lacks a search-domain ID",
-                ));
-            }
+            return Err(BatchReportVerificationError::InvalidInput(
+                "an exhaustive candidate claim lacks a search-domain ID",
+            ));
         }
 
         let mut route_signatures = BTreeSet::new();
@@ -179,8 +186,7 @@ pub fn verify_shared_capacity_batch_report(
     }
 
     let mut total_metrics = zero_totals();
-    let mut edge_usage: BTreeMap<String, (u64, QuantityUnit, u64, Vec<String>)> =
-        BTreeMap::new();
+    let mut edge_usage: BTreeMap<String, RecomputedEdgeUsage> = BTreeMap::new();
     let mut seen_assignment_ids = BTreeSet::new();
 
     // The expected demand map is sorted; the result contract also requires
@@ -214,16 +220,24 @@ pub fn verify_shared_capacity_batch_report(
                     "selected route references an unknown edge",
                 ),
             )?;
-            let entry = edge_usage.entry(edge_id.clone()).or_insert_with(|| {
-                (0, edge.capacity_unit, edge.capacity, Vec::new())
-            });
-            if entry.1 != candidate_set.demand.unit || entry.1 != edge.capacity_unit {
+            let entry = edge_usage
+                .entry(edge_id.clone())
+                .or_insert_with(|| RecomputedEdgeUsage {
+                    quantity_used: 0,
+                    quantity_unit: edge.capacity_unit,
+                    capacity_limit: edge.capacity,
+                    demand_ids: Vec::new(),
+                });
+            if entry.quantity_unit != candidate_set.demand.unit
+                || entry.quantity_unit != edge.capacity_unit
+            {
                 return Err(BatchReportVerificationError::InvalidReport(
                     "shared edge usage combines incompatible capacity units",
                 ));
             }
-            entry.0 = checked_add(entry.0, candidate_set.demand.quantity)?;
-            entry.3.push(candidate_set.demand.id.clone());
+            entry.quantity_used =
+                checked_add(entry.quantity_used, candidate_set.demand.quantity)?;
+            entry.demand_ids.push(candidate_set.demand.id.clone());
         }
     }
 
@@ -240,18 +254,18 @@ pub fn verify_shared_capacity_batch_report(
     }
 
     let mut expected_capacity_uses = Vec::with_capacity(edge_usage.len());
-    for (edge_id, (quantity_used, quantity_unit, capacity_limit, demand_ids)) in edge_usage {
-        if quantity_used > capacity_limit {
+    for (edge_id, usage) in edge_usage {
+        if usage.quantity_used > usage.capacity_limit {
             return Err(BatchReportVerificationError::InvalidReport(
                 "selected routes exceed a shared edge's static capacity",
             ));
         }
         expected_capacity_uses.push(SharedEdgeCapacityUse {
             edge_id,
-            quantity_unit,
-            quantity_used,
-            capacity_limit,
-            demand_ids,
+            quantity_unit: usage.quantity_unit,
+            quantity_used: usage.quantity_used,
+            capacity_limit: usage.capacity_limit,
+            demand_ids: usage.demand_ids,
         });
     }
     if report.capacity_uses != expected_capacity_uses {
