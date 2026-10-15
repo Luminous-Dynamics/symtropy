@@ -150,6 +150,14 @@ The synthetic Gauteng registry deliberately leaves the municipality unresolved, 
 
 The receipt validator intentionally reports the producer's declared outcome separately from the verifier's result. Even when all receipt bindings and digests verify, its effective status is `NOT_REPRODUCED`: this command does not execute the rule, independently rerun the calculation, authenticate signatures/identities, or prove code compliance. A future evaluator must independently pin its binary, complete requirement set, inputs, and deterministic known-answer corpus before its result can be trusted.
 
+### Project input manifest contract (follow-up increment)
+
+The project-input manifest is no longer treated as an opaque hash-only file. `project-input-manifest.schema.json` defines a versioned manifest with a stable project ID/revision, confirmed jurisdiction, exact building-model artifact, resident design-brief artifact, declared building use/construction system/design stage, and a bounded list of additional input artifacts (such as site survey, geotechnical report, material schedule and load case). Every referenced artifact must resolve within the evidence root and match its declared SHA-256 digest. Reused digests across distinct roles, duplicate input IDs, missing required model/brief fields, unsafe paths, or content mutations block eligibility.
+
+Receipt V2 (`schema_version: 0.2.0`) separately declares the project ID and revision. The verifier cross-binds those values and the manifest jurisdiction to the receipt jurisdiction, which is already cross-bound to the selected jurisdiction registry. This closes a scope-confusion gap where a correctly hashed but semantically unvalidated manifest could describe a different project or municipality.
+
+The boundary remains intentionally limited: the manifest schema verifies declared structure and artifact identity, not IFC semantics, site-survey adequacy, geotechnical truth, the correctness of resident requirements, or legal applicability. It does not canonicalize different encodings into the same identity; it binds exact bytes. IFC/IDS validation, complete transitive dependency closure, signed/authenticated reviewer identities, and independent execution/reproduction remain separate gates.
+
 ## 6. Evidence-backed code-improvement process
 
 Treat every proposed code change as a falsifiable research hypothesis.
