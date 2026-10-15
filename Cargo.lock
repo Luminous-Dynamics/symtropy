@@ -9332,6 +9332,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-physics-diff-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-physics-gpu"
 version = "0.1.0"
 dependencies = [
@@ -9345,14 +9353,6 @@ dependencies = [
  "symtropy-bevy-core",
  "symtropy-math",
  "symtropy-physics",
-]
-
-[[package]]
-name = "symtropy-physics-diff-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]
