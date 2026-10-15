@@ -269,6 +269,12 @@ pub fn resolve_first_person_motion(
             if !min.is_finite() || !max.is_finite() {
                 return stopped();
             }
+            // Initial overlap is not an ordinary sweep hit: without depenetration,
+            // continuing could report a successful zero-displacement move and leave
+            // callers with stale movement state. Fail closed before resolving contacts.
+            if origin.x > min.x && origin.x < max.x && origin.y > min.y && origin.y < max.y {
+                return stopped();
+            }
             if let Some((toi, normal)) = sweep_point_aabb(origin, delta, min, max)
                 && earliest_hit.is_none_or(|(best, _)| toi < best)
             {
