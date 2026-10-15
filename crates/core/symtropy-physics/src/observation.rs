@@ -67,15 +67,14 @@ impl PhysicsWorld<3> {
         simulation_time_seconds: f64,
         semantic_body_ids: &HashMap<BodyHandle, String>,
     ) -> Result<ObservationFrame, NativeObservationError> {
-        let mut frame =
-            ObservationFrame::new(identity, step_index, simulation_time_seconds);
+        let mut frame = ObservationFrame::new(identity, step_index, simulation_time_seconds);
 
         for body in &self.bodies {
-            let semantic_body_id = semantic_body_ids
-                .get(&body.handle)
-                .ok_or(NativeObservationError::MissingSemanticBodyId {
+            let semantic_body_id = semantic_body_ids.get(&body.handle).ok_or(
+                NativeObservationError::MissingSemanticBodyId {
                     handle: body.handle,
-                })?;
+                },
+            )?;
 
             if !body.transform.rotation.is_proper_rotation(1.0e-6) {
                 return Err(NativeObservationError::InvalidRotation {
@@ -84,20 +83,15 @@ impl PhysicsWorld<3> {
             }
 
             let rotation_matrix = body.transform.rotation.to_matrix();
-            let rotation_matrix = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
-                rotation_matrix[(row, column)]
-            });
+            let rotation_matrix =
+                SMatrix::<f64, 3, 3>::from_fn(|row, column| rotation_matrix[(row, column)]);
             let rotation = UnitQuaternion::from_matrix(&rotation_matrix);
             let quaternion = rotation.quaternion();
             let angular = body.angular_velocity;
 
             // Rotor plane components are dual to conventional XYZ angular velocity:
             // (e12, -e02, e01). Keep this convention explicit at the adapter boundary.
-            let angular_velocity_radps = [
-                angular.get(1, 2),
-                -angular.get(0, 2),
-                angular.get(0, 1),
-            ];
+            let angular_velocity_radps = [angular.get(1, 2), -angular.get(0, 2), angular.get(0, 1)];
             let translation = body.transform.translation.0;
             let mut observation = BodyObservation::new(
                 semantic_body_id.clone(),
@@ -153,8 +147,7 @@ mod tests {
         body.angular_velocity.set(0, 1, 5.0);
         body.sleeping = true;
 
-        let semantic_body_ids =
-            HashMap::from([(handle, "scenario/ball-a".to_owned())]);
+        let semantic_body_ids = HashMap::from([(handle, "scenario/ball-a".to_owned())]);
         let frame = world
             .to_observation_frame(identity(), 7, 7.0 / 60.0, &semantic_body_ids)
             .expect("valid mapped frame");
@@ -191,9 +184,8 @@ mod tests {
         let mut world = PhysicsWorld::<3>::new(SVector::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
         let body = world.body_mut(handle).expect("body exists");
-        body.transform.rotation = Rotor::from_matrix(SMatrix::from_diagonal(&SVector::new(
-            1.0, 1.0, -1.0,
-        )));
+        body.transform.rotation =
+            Rotor::from_matrix(SMatrix::from_diagonal(&SVector::new(1.0, 1.0, -1.0)));
         let ids = HashMap::from([(handle, "scenario/ball-a".to_owned())]);
 
         assert_eq!(
