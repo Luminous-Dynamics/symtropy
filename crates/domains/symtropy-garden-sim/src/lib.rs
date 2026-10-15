@@ -8,7 +8,55 @@
 //! or manufacturing qualification tool. A consistent ledger means only that the
 //! supplied integer accounting closes within the declared tolerance and boundary.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+
+/// Serialize exact integers as decimal strings so JSON consumers that use
+/// IEEE-754 numbers (for example, JavaScript) do not silently round quantities.
+fn serialize_u64_as_string<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
+
+fn deserialize_u64_from_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw = String::deserialize(deserializer)?;
+    raw.parse::<u64>().map_err(serde::de::Error::custom)
+}
+
+fn serialize_i128_as_string<S>(value: &i128, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
+
+fn deserialize_i128_from_string<'de, D>(deserializer: D) -> Result<i128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw = String::deserialize(deserializer)?;
+    raw.parse::<i128>().map_err(serde::de::Error::custom)
+}
+
+fn serialize_u128_as_string<S>(value: &u128, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
+
+fn deserialize_u128_from_string<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw = String::deserialize(deserializer)?;
+    raw.parse::<u128>().map_err(serde::de::Error::custom)
+}
 
 pub const GARDEN_RESOURCE_SCHEMA_VERSION: u16 = 1;
 
@@ -42,11 +90,17 @@ pub struct ResourceBalanceInputV1 {
     pub schema_version: u16,
     pub scenario_id: String,
     pub resource_kind: ResourceKind,
+    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
     pub inflow: u64,
+    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
     pub generated_or_added: u64,
+    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
     pub outflow: u64,
+    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
     pub declared_loss: u64,
+    #[serde(serialize_with = "serialize_i128_as_string", deserialize_with = "deserialize_i128_from_string")]
     pub observed_storage_delta: i128,
+    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
     pub tolerance: u64,
     pub evidence_class: EvidenceClass,
     pub source_ref: String,
@@ -80,7 +134,9 @@ pub struct ResourceBalanceDecisionV1 {
     pub scenario_id: String,
     pub resource_kind: ResourceKind,
     pub disposition: BalanceDisposition,
+    #[serde(serialize_with = "serialize_i128_as_string", deserialize_with = "deserialize_i128_from_string")]
     pub expected_storage_delta: i128,
+    #[serde(serialize_with = "serialize_u128_as_string", deserialize_with = "deserialize_u128_from_string")]
     pub absolute_error: u128,
     pub blockers: Vec<BalanceBlocker>,
 }
@@ -305,4 +361,40 @@ mod tests {
             serde_json::from_str(&serialized).expect("decision deserializes");
         assert_eq!(decoded, decision);
     }
+
+    #[test]
+    fn wide_integer_wire_values_are_decimal_strings_and_roundtrip_exactly() {
+        let mut input = valid_water_input();
+        input.inflow = u64::MAX;
+        input.generated_or_added = u64::MAX;
+        input.outflow = 0;
+        input.declared_loss = 0;
+        input.observed_storage_delta = i128::MIN;
+        input.tolerance = 0;
+
+        let serialized = serde_json::to_string(&input).expect("input serializes");
+        assert!(serialized.contains("\"inflow\":\"18446744073709551615\""));
+        assert!(serialized.contains(
+            "\"observed_storage_delta\":\"-170141183460469231731687303715884105728\""
+        ));
+        let decoded: ResourceBalanceInputV1 =
+            serde_json::from_str(&serialized).expect("input deserializes");
+        assert_eq!(decoded, input);
+
+        let decision = evaluate_resource_balance(&input);
+        let serialized_decision =
+            serde_json::to_string(&decision).expect("decision serializes");
+        assert!(serialized_decision.contains(&format!(
+            "\"expected_storage_delta\":\"{}\"",
+            decision.expected_storage_delta
+        )));
+        assert!(serialized_decision.contains(&format!(
+            "\"absolute_error\":\"{}\"",
+            decision.absolute_error
+        )));
+        let decoded_decision: ResourceBalanceDecisionV1 =
+            serde_json::from_str(&serialized_decision).expect("decision deserializes");
+        assert_eq!(decoded_decision, decision);
+    }
+
 }
