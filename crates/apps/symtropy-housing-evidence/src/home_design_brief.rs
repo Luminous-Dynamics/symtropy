@@ -10,11 +10,7 @@ use jsonschema::draft202012;
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeSet, fs, path::Path};
 
 const EMBEDDED_SCHEMA: &str =
     include_str!("../../../../docs/built-environment/home-design-brief.schema.json");
@@ -33,8 +29,8 @@ pub struct BriefValidationReport {
 }
 
 pub fn validate_path(path: &Path) -> Result<BriefValidationReport, String> {
-    let bytes = fs::read(path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let bytes =
+        fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
     let brief: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))?;
     validate_value(&brief)
@@ -70,7 +66,10 @@ pub fn validate_value(brief: &Value) -> Result<BriefValidationReport, String> {
     } else {
         "BRIEF_INVALID"
     };
-    let brief_id = brief.get("brief_id").and_then(Value::as_str).map(str::to_owned);
+    let brief_id = brief
+        .get("brief_id")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let mut hasher = Sha256::new();
     hasher.update(EMBEDDED_SCHEMA.as_bytes());
     let schema_sha256 = format!("{:x}", hasher.finalize());
@@ -127,9 +126,7 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
                 continue;
             };
             for (adjacency_index, adjacency) in adjacencies.iter().enumerate() {
-                let Some(target_id) = adjacency
-                    .get("other_space_id")
-                    .and_then(Value::as_str)
+                let Some(target_id) = adjacency.get("other_space_id").and_then(Value::as_str)
                 else {
                     continue;
                 };
@@ -147,7 +144,11 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
                     .get("relationship")
                     .and_then(Value::as_str)
                     .unwrap_or_default();
-                let key = (source_id.to_owned(), target_id.to_owned(), relation.to_owned());
+                let key = (
+                    source_id.to_owned(),
+                    target_id.to_owned(),
+                    relation.to_owned(),
+                );
                 if !adjacency_keys.insert(key) {
                     issues.push(format!(
                         "duplicate adjacency relation from space {source_id:?} to {target_id:?} ({relation})"
@@ -207,7 +208,8 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
             .is_none_or(Vec::is_empty)
     {
         issues.push(
-            "site_context.readiness is survey_available but site_evidence_refs is empty".to_string(),
+            "site_context.readiness is survey_available but site_evidence_refs is empty"
+                .to_string(),
         );
     }
 
@@ -261,12 +263,18 @@ mod tests {
         let result = validate_value(&brief).expect("schema must compile");
         assert!(result.schema_valid, "{:?}", result.schema_issues);
         assert!(!result.semantic_valid);
-        assert!(result.semantic_issues.iter().any(|issue| {
-            issue.contains("spaces[1].space_id")
-        }));
-        assert!(result.semantic_issues.iter().any(|issue| {
-            issue.contains("requirements[1].requirement_id")
-        }));
+        assert!(
+            result
+                .semantic_issues
+                .iter()
+                .any(|issue| { issue.contains("spaces[1].space_id") })
+        );
+        assert!(
+            result
+                .semantic_issues
+                .iter()
+                .any(|issue| { issue.contains("requirements[1].requirement_id") })
+        );
     }
 
     #[test]
@@ -277,9 +285,12 @@ mod tests {
         let result = validate_value(&brief).expect("schema must compile");
         assert!(result.schema_valid, "{:?}", result.schema_issues);
         assert!(!result.semantic_valid);
-        assert!(result.semantic_issues.iter().any(|issue| {
-            issue.contains("unknown space_id")
-        }));
+        assert!(
+            result
+                .semantic_issues
+                .iter()
+                .any(|issue| { issue.contains("unknown space_id") })
+        );
     }
 
     #[test]
@@ -290,9 +301,12 @@ mod tests {
         let result = validate_value(&brief).expect("schema must compile");
         assert!(result.schema_valid, "{:?}", result.schema_issues);
         assert!(!result.semantic_valid);
-        assert!(result.semantic_issues.iter().any(|issue| {
-            issue.contains("repeats axis")
-        }));
+        assert!(
+            result
+                .semantic_issues
+                .iter()
+                .any(|issue| { issue.contains("repeats axis") })
+        );
     }
 
     #[test]
@@ -303,9 +317,12 @@ mod tests {
         let result = validate_value(&brief).expect("schema must compile");
         assert!(result.schema_valid, "{:?}", result.schema_issues);
         assert!(!result.semantic_valid);
-        assert!(result.semantic_issues.iter().any(|issue| {
-            issue.contains("must not exceed")
-        }));
+        assert!(
+            result
+                .semantic_issues
+                .iter()
+                .any(|issue| { issue.contains("must not exceed") })
+        );
     }
 
     #[test]
@@ -316,8 +333,11 @@ mod tests {
         let result = validate_value(&brief).expect("schema must compile");
         assert!(result.schema_valid, "{:?}", result.schema_issues);
         assert!(!result.semantic_valid);
-        assert!(result.semantic_issues.iter().any(|issue| {
-            issue.contains("site_evidence_refs is empty")
-        }));
+        assert!(
+            result
+                .semantic_issues
+                .iter()
+                .any(|issue| { issue.contains("site_evidence_refs is empty") })
+        );
     }
 }
