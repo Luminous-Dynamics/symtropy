@@ -1153,7 +1153,7 @@ mod tests {
             160,
             90,
         );
-        let second = evidence(
+        let mut second = evidence(
             "budget-2",
             CargoTransferCapacityResourceKind::Equipment,
             "crane-1",
@@ -1162,6 +1162,7 @@ mod tests {
             200,
             100,
         );
+        second.capacity_scope_id = "another-planning-scope".to_owned();
         let assignment = assignment(
             "transfer-1",
             "budget-1",
@@ -1261,6 +1262,165 @@ mod tests {
         changed.window.planned_start_epoch_seconds = 111;
         let changed_report = plan(&[changed], &[ev], 100, 100).expect("changed plan");
         assert_ne!(first, changed_report);
+    }
+
+    #[test]
+    fn capacity_plan_rejects_duplicate_unknown_unreferenced_and_mismatched_inputs() {
+        let ev = evidence(
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            5,
+            80,
+            200,
+            90,
+        );
+        let valid = assignment(
+            "transfer-1",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            1,
+            100,
+            110,
+        );
+
+        let unknown = assignment(
+            "transfer-unknown",
+            "missing-budget",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            1,
+            100,
+            110,
+        );
+        assert_eq!(
+            plan(&[unknown], std::slice::from_ref(&ev), 100, 100),
+            Err(ScheduledCapacityPlanError::UnknownEvidence)
+        );
+
+        assert_eq!(
+            plan(
+                &[valid.clone(), valid.clone()],
+                std::slice::from_ref(&ev),
+                100,
+                100,
+            ),
+            Err(ScheduledCapacityPlanError::DuplicateAssignmentIdentity)
+        );
+
+        let unused = evidence(
+            "budget-unused",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-2",
+            5,
+            80,
+            200,
+            90,
+        );
+        assert_eq!(
+            plan(&[valid.clone()], &[ev.clone(), unused], 100, 100),
+            Err(ScheduledCapacityPlanError::UnreferencedEvidence)
+        );
+
+        let mut wrong_terminal = valid.clone();
+        wrong_terminal.terminal_id = Some("another-terminal".to_owned());
+        assert_eq!(
+            plan(&[wrong_terminal], std::slice::from_ref(&ev), 100, 100),
+            Err(ScheduledCapacityPlanError::ResourceBindingMismatch)
+        );
+
+        let edge_budget = evidence(
+            "edge-budget-1",
+            CargoTransferCapacityResourceKind::TransferEdge,
+            "rail-leg-1",
+            5,
+            80,
+            120,
+            90,
+        );
+        let mut wrong_unit = evidence(
+            "edge-budget-2",
+            CargoTransferCapacityResourceKind::TransferEdge,
+            "rail-leg-1",
+            5,
+            120,
+            200,
+            90,
+        );
+        wrong_unit.capacity_unit = QuantityUnit::Teu;
+        let edge_assignment = assignment(
+            "edge-transfer",
+            "edge-budget-1",
+            CargoTransferCapacityResourceKind::TransferEdge,
+            "rail-leg-1",
+            1,
+            100,
+            110,
+        );
+        assert_eq!(
+            plan(&[edge_assignment], &[edge_budget, wrong_unit], 100, 100),
+            Err(ScheduledCapacityPlanError::CapacityUnitMismatch)
+        );
+
+        let mut invalid_policy = policy(100);
+        invalid_policy.policy_id.clear();
+        assert_eq!(
+            validate_scheduled_capacity_plan(&[valid], &[ev], 100, &invalid_policy),
+            Err(ScheduledCapacityPlanError::InvalidPolicy)
+        );
+    }
+
+    #[test]
+    fn distinct_physical_resources_can_be_used_concurrently() {
+        let first_evidence = evidence(
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            5,
+            80,
+            200,
+            90,
+        );
+        let second_evidence = evidence(
+            "budget-2",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-2",
+            5,
+            80,
+            200,
+            90,
+        );
+        let first_assignment = assignment(
+            "transfer-a",
+            "budget-1",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-1",
+            5,
+            100,
+            120,
+        );
+        let second_assignment = assignment(
+            "transfer-b",
+            "budget-2",
+            CargoTransferCapacityResourceKind::Equipment,
+            "crane-2",
+            5,
+            100,
+            120,
+        );
+
+        let report = plan(
+            &[first_assignment, second_assignment],
+            &[first_evidence, second_evidence],
+            100,
+            100,
+        )
+        .expect("separate equipment resources can be used concurrently");
+
+        assert_eq!(report.resources.len(), 2);
+        assert_eq!(report.resources[0].maximum_concurrent_units, 5);
+        assert_eq!(report.resources[1].maximum_concurrent_units, 5);
     }
 
     #[test]
