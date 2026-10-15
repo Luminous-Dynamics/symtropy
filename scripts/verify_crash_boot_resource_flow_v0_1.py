@@ -148,6 +148,40 @@ def evaluate_service_evidence(
         if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
             return "REJECT_INVALID_DIGEST"
 
+    payload_utf8 = record.get("artifact_payload_utf8")
+    if payload_utf8 is not None:
+        if not isinstance(payload_utf8, str):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if "sha256:" + hashlib.sha256(payload_utf8.encode("utf-8")).hexdigest() != digest:
+            return "REJECT_ARTIFACT_DIGEST_MISMATCH"
+        try:
+            payload_claims = json.loads(payload_utf8)
+        except json.JSONDecodeError:
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        bound_fields = (
+            "evidence_id",
+            "issuer_id",
+            "asset_id",
+            "asset_revision",
+            "configuration_digest",
+            "scope_id",
+            "observed_at",
+            "valid_until",
+            "lifecycle_state",
+            "method_id",
+            "method_qualification",
+            "calibration_id",
+            "calibration_status",
+            "acceptance_criterion_id",
+            "measured_value",
+            "unit",
+            "acceptance_min",
+            "acceptance_max",
+        )
+        expected_claims = {field: record.get(field) for field in bound_fields}
+        if not isinstance(payload_claims, dict) or payload_claims != expected_claims:
+            return "REJECT_ARTIFACT_CLAIM_MISMATCH"
+
     required = (
         "evidence_id",
         "issuer_id",
@@ -691,7 +725,7 @@ def main() -> None:
             f"duplicate service-evidence case id: {evidence_case_id}",
         )
         evidence_by_id[evidence_case_id] = evidence_case
-    require(len(evidence_by_id) == 19, "service-evidence case count changed")
+    require(len(evidence_by_id) == 21, "service-evidence case count changed")
 
     for evidence_case in evidence_cases:
         expected_status = str(evidence_case["expected_status"])
@@ -733,6 +767,51 @@ def main() -> None:
     require(
         evaluate_service_evidence_case(wrong_revision_repair, target) == "REJECT_SCOPE_MISMATCH",
         "repair and test receipts for an older revision must not qualify the current asset",
+    )
+
+    artifact_binding = evidence_contract["artifact_binding_rule"]
+    require(
+        tuple(artifact_binding["claims_bound"])
+        == (
+            "evidence_id",
+            "issuer_id",
+            "asset_id",
+            "asset_revision",
+            "configuration_digest",
+            "scope_id",
+            "observed_at",
+            "valid_until",
+            "lifecycle_state",
+            "method_id",
+            "method_qualification",
+            "calibration_id",
+            "calibration_status",
+            "acceptance_criterion_id",
+            "measured_value",
+            "unit",
+            "acceptance_min",
+            "acceptance_max",
+        ),
+        "content-bound claim field set changed without contract revision",
+    )
+    require(
+        "does not authenticate issuer identity" in artifact_binding["scope"].lower(),
+        "artifact binding must preserve authentication boundary",
+    )
+    bound_fresh = evidence_by_id["fresh_qualified_evidence"]
+    require(
+        evaluate_service_evidence_case(bound_fresh, target) == "VERIFIED_AVAILABLE_CANDIDATE",
+        "content-bound known-answer evidence record failed",
+    )
+    mutated_claim = evidence_by_id["measurement_mutated_without_rehashed_artifact"]
+    require(
+        evaluate_service_evidence_case(mutated_claim, target) == "REJECT_ARTIFACT_CLAIM_MISMATCH",
+        "mutated claim without changing artifact bytes must be rejected",
+    )
+    mutated_bytes = evidence_by_id["artifact_payload_mutated_without_digest_update"]
+    require(
+        evaluate_service_evidence_case(mutated_bytes, target) == "REJECT_ARTIFACT_DIGEST_MISMATCH",
+        "mutated artifact bytes without digest update must be rejected",
     )
 
     conflict_case = evidence_by_id["conflicting_current_observations"]
