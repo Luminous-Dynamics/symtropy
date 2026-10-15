@@ -126,6 +126,9 @@ fn valid_relative_path(value: &str) -> bool {
         && !value.starts_with('/')
         && !value.contains('\\')
         && !value.contains(':')
+        && value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'/')
+        })
         && value
             .split('/')
             .all(|part| !part.is_empty() && part != "." && part != "..")
