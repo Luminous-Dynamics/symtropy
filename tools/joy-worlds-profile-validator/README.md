@@ -10,7 +10,7 @@ From the repository root:
 cargo test --manifest-path tools/joy-worlds-profile-validator/Cargo.toml
 cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- \
   --portfolio docs/research/joy-worlds/experience-portfolio-v0.1.json \
-  --regional docs/research/joy-worlds/regional-adaptation-profiles-v0.1.json \\
+  --regional docs/research/joy-worlds/regional-adaptation-profiles-v0.1.json \
   --decision-contract docs/research/joy-worlds/destination-decision-contract-v0.1.json
 ```
 
