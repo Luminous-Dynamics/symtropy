@@ -430,6 +430,50 @@
         }
       ],
       "expected_code": "UNKNOWN_FIELD"
+    },
+    {
+      "id": "source_native_profile_cannot_claim_transform_metadata",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "transform.input_crs",
+          "value": "EPSG:4326"
+        },
+        {
+          "op": "set",
+          "path": "transform.output_crs",
+          "value": "EPSG:4326"
+        }
+      ],
+      "expected_code": "SOURCE_NATIVE_TRANSFORM_METADATA_FORBIDDEN"
+    },
+    {
+      "id": "derived_s104_requires_input_and_output_vertical_references",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "transform.kind",
+          "value": "derived"
+        },
+        {
+          "op": "set",
+          "path": "transform.transform_receipt_id",
+          "value": "synthetic-transform-receipt-v0"
+        },
+        {
+          "op": "set",
+          "path": "transform.input_crs",
+          "value": "EPSG:4326"
+        },
+        {
+          "op": "set",
+          "path": "transform.output_crs",
+          "value": "EPSG:4326"
+        }
+      ],
+      "expected_code": "TRANSFORM_VERTICAL_REFERENCE_MISSING"
     }
   ]
 }
