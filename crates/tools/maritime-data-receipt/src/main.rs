@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #![forbid(unsafe_code)]
 
-#[cfg(test)]
 mod s100_profile;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
@@ -675,7 +674,25 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
-    let receipt_path = args.next().unwrap_or_else(|| DEFAULT_RECEIPT_PATH.to_owned());
+    let first_arg = args.next();
+    if first_arg.as_deref() == Some("--validate-s100-profile") {
+        let profile_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+        })?;
+        let receipt_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+        })?;
+        let artifact_override = args.next();
+        if args.next().is_some() {
+            return Err("too many arguments for S-100 profile verification".to_owned());
+        }
+        return s100_profile::run_cli(
+            &profile_path,
+            &receipt_path,
+            artifact_override.as_deref(),
+        );
+    }
+    let receipt_path = first_arg.unwrap_or_else(|| DEFAULT_RECEIPT_PATH.to_owned());
     let artifact_override = args.next();
     if args.next().is_some() {
         return Err("usage: maritime-data-receipt [receipt-json-path] [optional-artifact-path-override]".to_owned());
