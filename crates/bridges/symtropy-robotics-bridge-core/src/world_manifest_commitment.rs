@@ -19,8 +19,7 @@ use sha2::{Digest, Sha256};
 use std::fmt;
 
 pub const WORLD_MANIFEST_CANONICAL_FORMAT_VERSION_V1: u16 = 1;
-pub const WORLD_MANIFEST_COMMITMENT_DOMAIN_V1: &[u8] =
-    b"symtropy.robotics.world-manifest.v1\0";
+pub const WORLD_MANIFEST_COMMITMENT_DOMAIN_V1: &[u8] = b"symtropy.robotics.world-manifest.v1\0";
 pub const MAX_CANONICAL_WORLD_MANIFEST_BYTES: usize = 64 * 1024 * 1024;
 
 /// A SHA-256 commitment to the canonical v1 bytes of one complete world
@@ -56,9 +55,7 @@ impl WorldManifestDigestV1 {
 #[derive(Debug)]
 pub enum WorldManifestCommitmentError {
     InvalidManifest(Vec<WorldValidationIssue>),
-    CanonicalBytesTooLarge {
-        limit_bytes: usize,
-    },
+    CanonicalBytesTooLarge { limit_bytes: usize },
 }
 
 impl fmt::Display for WorldManifestCommitmentError {
@@ -85,9 +82,7 @@ impl WorldManifestV1 {
     /// Floating-point values are encoded as their exact IEEE-754 binary64 bit
     /// patterns, big-endian. Non-finite values are rejected by validate().
     /// Consequently, +0.0 and -0.0 have distinct content identities in v1.
-    pub fn canonical_bytes_v1(
-        &self,
-    ) -> Result<Vec<u8>, WorldManifestCommitmentError> {
+    pub fn canonical_bytes_v1(&self) -> Result<Vec<u8>, WorldManifestCommitmentError> {
         self.validate()
             .map_err(WorldManifestCommitmentError::InvalidManifest)?;
 
@@ -148,9 +143,7 @@ impl WorldManifestV1 {
     ///
     /// The digest is a content identifier, not authorization, authentication,
     /// physical validation, or proof that the manifest was actually executed.
-    pub fn content_digest_v1(
-        &self,
-    ) -> Result<WorldManifestDigestV1, WorldManifestCommitmentError> {
+    pub fn content_digest_v1(&self) -> Result<WorldManifestDigestV1, WorldManifestCommitmentError> {
         let bytes = self.canonical_bytes_v1()?;
         let digest = Sha256::digest(bytes);
         let mut fixed = [0u8; 32];
@@ -429,8 +422,8 @@ mod tests {
     use super::*;
     use crate::world_contract::{
         ActuatorProfileV1, ArtifactRef, CoordinateFrameV1, FrameTransformV1, PhysicsDomain,
-        PhysicsFidelity, PlatformProfileV1, SensorModality, SensorProfileV1,
-        SolverDeclarationV1, WORLD_MANIFEST_SCHEMA_VERSION,
+        PhysicsFidelity, PlatformProfileV1, SensorModality, SensorProfileV1, SolverDeclarationV1,
+        WORLD_MANIFEST_SCHEMA_VERSION,
     };
 
     fn artifact(id: &str) -> ArtifactRef {
@@ -531,7 +524,10 @@ mod tests {
     fn sha256_primitive_matches_fips_abc_vector() {
         let digest = Sha256::digest(b"abc");
         assert_eq!(
-            digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>(),
+            digest
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
     }
