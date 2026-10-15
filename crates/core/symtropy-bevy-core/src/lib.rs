@@ -227,7 +227,10 @@ pub fn resolve_first_person_motion(
 
     for _ in 0..collision.max_slide_iterations.max(1) {
         let distance = remaining.length();
-        if !distance.is_finite() || distance <= f32::EPSILON {
+        if !distance.is_finite() {
+            return stopped();
+        }
+        if distance <= f32::EPSILON {
             break;
         }
         let current = start + applied;
@@ -1375,6 +1378,19 @@ mod tests {
             );
             assert!(result.fail_closed);
         }
+    }
+
+    #[test]
+    fn kinematic_sweep_fails_closed_when_finite_displacement_overflows_distance() {
+        let result = resolve_first_person_motion(
+            Vec3::ZERO,
+            Vec3::new(f32::MAX, 0.0, f32::MAX),
+            FirstPersonCollision::default(),
+            &[],
+        );
+
+        assert_eq!(result.displacement, Vec3::ZERO);
+        assert!(result.fail_closed);
     }
 
     #[test]
