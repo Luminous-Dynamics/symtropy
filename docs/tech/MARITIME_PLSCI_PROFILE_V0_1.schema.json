@@ -215,7 +215,11 @@
         "reviewer",
         "reviewed_at_utc",
         "terms_sha256",
-        "attribution_statement"
+        "attribution_statement",
+        "review_evidence_uri",
+        "snapshot_relative_path",
+        "snapshot_byte_length",
+        "snapshot_sha256"
       ],
       "properties": {
         "review_status": {
@@ -262,6 +266,25 @@
         "attribution_statement": {
           "type": "string",
           "minLength": 1
+        },
+        "review_evidence_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "snapshot_relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot_byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -349,6 +372,9 @@
               },
               "attribution_statement": {
                 "pattern": "United Nations Trade and Development Data Hub"
+              },
+              "review_evidence_uri": {
+                "const": "https://unctadstat.unctad.org/EN/About.html"
               }
             }
           }
