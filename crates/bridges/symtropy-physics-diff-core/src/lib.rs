@@ -1,6 +1,8 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use serde::{Deserialize, Serialize};
+
 //! Dependency-light records shared by independent physics backends.
 //!
 //! The schema deliberately has no engine dependencies. Semantic body IDs must be
@@ -15,7 +17,7 @@ pub const OBSERVATION_SCHEMA_VERSION: u16 = 1;
 ///
 /// The scenario and configuration digests should be computed from canonicalized
 /// scenario/configuration inputs, not from runtime handles, renderer state, or timing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunIdentity {
     pub schema_version: u16,
     pub scenario_id: String,
@@ -80,7 +82,7 @@ impl RunIdentity {
 ///
 /// Orientation uses a scalar-first quaternion `[w, x, y, z]`. Values are named
 /// with units to discourage accidental comparison of incompatible conventions.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BodyObservation {
     /// Stable scenario-level identity supplied by the caller, not an engine handle.
     pub semantic_body_id: String,
@@ -89,10 +91,13 @@ pub struct BodyObservation {
     pub linear_velocity_mps: [f64; 3],
     pub angular_velocity_radps: [f64; 3],
     /// Engine-local sleep/active information when semantics are comparable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sleeping: Option<bool>,
     /// Per-body contact count; `None` means the adapter does not report it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contact_count: Option<u64>,
     /// Maximum observed penetration depth for this body, if derivable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_penetration_m: Option<f64>,
 }
 
@@ -155,23 +160,28 @@ impl BodyObservation {
 }
 
 /// Contact metrics reported only when the source backend can measure them reliably.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ContactSummary {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manifold_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contact_point_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_penetration_m: Option<f64>,
 }
 
 /// Energy diagnostics for which the scenario and backend profile define a meaningful
 /// accounting convention. Potential energy may be negative because its zero is chosen.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct EnergySummary {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kinetic_energy_j: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub potential_energy_j: Option<f64>,
 }
 
 /// One timestamped observation from a single backend run.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ObservationFrame {
     pub identity: RunIdentity,
     pub step_index: u64,
@@ -356,6 +366,21 @@ mod tests {
         frame.energy.potential_energy_j = Some(-2.5);
 
         assert_eq!(frame.validate(), Ok(()));
+    }
+
+    #[test]
+    fn observation_frame_json_round_trip_preserves_unknown_measurements_as_absent() {
+        let frame = frame();
+        let encoded = serde_json::to_string(&frame).expect("serialize validated frame");
+        assert!(
+            !encoded.contains("\\"contact_count\\":null"),
+            "unavailable metrics should be omitted rather than encoded as fake zero/null values",
+        );
+
+        let decoded: ObservationFrame =
+            serde_json::from_str(&encoded).expect("deserialize observation frame");
+        assert_eq!(decoded, frame);
+        assert_eq!(decoded.validate(), Ok(()));
     }
 
     #[test]
