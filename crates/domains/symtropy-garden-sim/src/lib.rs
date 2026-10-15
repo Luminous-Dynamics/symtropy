@@ -553,6 +553,292 @@ where
         .transpose()
 }
 
+
+/// A minimum nutrient-supply target for a declared population/scope and period.
+/// This is a planning input, not an individual dietary reference or clinical target.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientSupplyTargetV1 {
+    pub schema_version: u16,
+    pub target_id: String,
+    pub nutrient_id: String,
+    pub nutrient_definition_ref: String,
+    pub unit: NutrientUnit,
+    /// Minimum nutrient amount over target_scope_ref and period_ref, expressed
+    /// as target_amount_scaled / value_scale in the declared NutrientUnit.
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub target_amount_scaled: u64,
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub value_scale: u64,
+    /// Opaque reference to an accountable community/population scope.
+    pub target_scope_ref: String,
+    /// Opaque reference to the period the target covers.
+    pub period_ref: String,
+    /// Source for the declared target; not authenticated here.
+    pub source_ref: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientTargetBlockerCode {
+    UnsupportedTargetSchema,
+    EmptyTargetId,
+    EmptyNutrientId,
+    EmptyNutrientDefinitionReference,
+    EmptyTargetScope,
+    EmptyTargetPeriod,
+    EmptyTargetSource,
+    ZeroTargetValue,
+    ZeroTargetScale,
+    NutrientMismatch,
+    NutrientDefinitionMismatch,
+    NutrientUnitMismatch,
+    NutrientScaleMismatch,
+    ContributionBlocked,
+}
+
+/// Stable blocker for a source-scoped nutrient-target comparison.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientTargetBlocker {
+    pub code: NutrientTargetBlockerCode,
+    pub detail: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientTargetStatus {
+    MeetsDeclaredMinimum,
+    ShortfallAgainstDeclaredMinimum,
+    NotAssessable,
+    Blocked,
+}
+
+/// Exact, source-scoped comparison of one food delivery with one minimum target.
+/// supply_numerator / denominator and target_numerator / denominator share a
+/// common denominator, so the comparison itself needs neither floats nor rounding.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientTargetAssessmentV1 {
+    pub target_id: String,
+    pub scenario_id: String,
+    pub nutrient_id: String,
+    pub nutrient_definition_ref: String,
+    pub unit: NutrientUnit,
+    pub target_scope_ref: String,
+    pub period_ref: String,
+    #[serde(
+        serialize_with = "serialize_option_u64_as_string",
+        deserialize_with = "deserialize_option_u64_from_string"
+    )]
+    pub value_scale: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub supply_numerator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub target_numerator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub denominator: Option<u128>,
+    /// The shortfall in the same numerator scale; zero when the declared target is met.
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub shortfall_numerator: Option<u128>,
+    pub composition_source_ref: String,
+    pub delivery_source_ref: String,
+    pub target_source_ref: String,
+    pub status: NutrientTargetStatus,
+    pub blockers: Vec<NutrientTargetBlocker>,
+}
+
+/// Compare a source-scoped nutrient contribution to an externally defined minimum.
+///
+/// All target and composition values must use the same nutrient definition, base
+/// unit and decimal scale. Population/life-stage reference requirements and target
+/// derivation are outside this calculator. Missing composition stays not assessable.
+pub fn assess_nutrient_target(
+    composition: &NutrientCompositionRecordV1,
+    delivery: &EdibleFoodDeliveryV1,
+    target: &NutrientSupplyTargetV1,
+) -> NutrientTargetAssessmentV1 {
+    let contribution = evaluate_nutrient_contribution(composition, delivery);
+    let mut blockers = Vec::new();
+
+    if target.schema_version != GARDEN_RESOURCE_SCHEMA_VERSION {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::UnsupportedTargetSchema,
+            "unsupported nutrient-target schema version",
+        );
+    }
+    if target.target_id.trim().is_empty() {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::EmptyTargetId,
+            "target identity is empty",
+        );
+    }
+    if target.nutrient_id.trim().is_empty() {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::EmptyNutrientId,
+            "target nutrient identity is empty",
+        );
+    }
+    if target.nutrient_definition_ref.trim().is_empty() {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::EmptyNutrientDefinitionReference,
+            "target nutrient-definition reference is empty",
+        );
+    }
+    if target.target_scope_ref.trim().is_empty() {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::EmptyTargetScope,
+            "population/community scope is required",
+        );
+    }
+    if target.period_ref.trim().is_empty() {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::EmptyTargetPeriod,
+            "target time-period reference is required",
+        );
+    }
+    if target.source_ref.trim().is_empty() {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::EmptyTargetSource,
+            "target source reference is required",
+        );
+    }
+    if target.target_amount_scaled == 0 {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::ZeroTargetValue,
+            "a positive minimum target is required by this contract",
+        );
+    }
+    if target.value_scale == 0 {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::ZeroTargetScale,
+            "target value scale must be greater than zero",
+        );
+    }
+    if target.nutrient_id != composition.nutrient_id {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::NutrientMismatch,
+            "target and composition refer to different nutrients",
+        );
+    }
+    if target.nutrient_definition_ref != composition.nutrient_definition_ref {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::NutrientDefinitionMismatch,
+            "target and composition use different nutrient definitions",
+        );
+    }
+    if target.unit != composition.unit {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::NutrientUnitMismatch,
+            "target and composition units differ",
+        );
+    }
+    if target.value_scale != composition.value_scale {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::NutrientScaleMismatch,
+            "target and composition decimal scales differ",
+        );
+    }
+    if contribution.disposition == NutrientContributionDisposition::Blocked {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::ContributionBlocked,
+            "source-scoped nutrient contribution is blocked",
+        );
+    }
+
+    let hard_blocked = !blockers.is_empty();
+    let assessable = contribution.disposition
+        == NutrientContributionDisposition::CalculatedForDeclaredDelivery;
+    let denominator = if !hard_blocked && assessable {
+        Some(100 * u128::from(target.value_scale))
+    } else {
+        None
+    };
+    let supply_numerator = if denominator.is_some() {
+        contribution.contribution_numerator
+    } else {
+        None
+    };
+    let target_numerator = if denominator.is_some() {
+        Some(100 * u128::from(target.target_amount_scaled))
+    } else {
+        None
+    };
+    let shortfall_numerator = match (supply_numerator, target_numerator) {
+        (Some(supply), Some(minimum)) => Some(minimum.saturating_sub(supply)),
+        _ => None,
+    };
+    let status = if hard_blocked {
+        NutrientTargetStatus::Blocked
+    } else if !assessable {
+        NutrientTargetStatus::NotAssessable
+    } else if supply_numerator >= target_numerator {
+        NutrientTargetStatus::MeetsDeclaredMinimum
+    } else {
+        NutrientTargetStatus::ShortfallAgainstDeclaredMinimum
+    };
+
+    NutrientTargetAssessmentV1 {
+        target_id: target.target_id.clone(),
+        scenario_id: delivery.scenario_id.clone(),
+        nutrient_id: target.nutrient_id.clone(),
+        nutrient_definition_ref: target.nutrient_definition_ref.clone(),
+        unit: target.unit,
+        target_scope_ref: target.target_scope_ref.clone(),
+        period_ref: target.period_ref.clone(),
+        value_scale: (target.value_scale != 0).then_some(target.value_scale),
+        supply_numerator,
+        target_numerator,
+        denominator,
+        shortfall_numerator,
+        composition_source_ref: composition.source_ref.clone(),
+        delivery_source_ref: delivery.delivery_source_ref.clone(),
+        target_source_ref: target.source_ref.clone(),
+        status,
+        blockers,
+    }
+}
+
+fn push_target_blocker(
+    blockers: &mut Vec<NutrientTargetBlocker>,
+    code: NutrientTargetBlockerCode,
+    detail: &str,
+) {
+    blockers.push(NutrientTargetBlocker {
+        code,
+        detail: detail.to_owned(),
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -885,6 +1171,129 @@ mod tests {
         assert!(decision.blockers.iter().any(|item| {
             item.code == NutrientContributionBlockerCode::MissingDeliverySource
         }));
+    }
+
+    fn valid_nutrient_target() -> NutrientSupplyTargetV1 {
+        NutrientSupplyTargetV1 {
+            schema_version: GARDEN_RESOURCE_SCHEMA_VERSION,
+            target_id: "TARGET-COMMUNITY-IRON-001".to_owned(),
+            nutrient_id: "iron".to_owned(),
+            nutrient_definition_ref: "nutrient-definition:iron-v1".to_owned(),
+            unit: NutrientUnit::Milligrams,
+            target_amount_scaled: 180_000,
+            value_scale: 1_000,
+            target_scope_ref: "scope:community-001".to_owned(),
+            period_ref: "period:2026-11".to_owned(),
+            source_ref: "fixture:reviewed-community-target-001".to_owned(),
+        }
+    }
+
+    #[test]
+    fn nutrient_target_meets_exact_minimum_without_rounding() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let target = valid_nutrient_target();
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(assessment.status, NutrientTargetStatus::MeetsDeclaredMinimum);
+        assert_eq!(assessment.supply_numerator, Some(18_750_000));
+        assert_eq!(assessment.target_numerator, Some(18_000_000));
+        assert_eq!(assessment.denominator, Some(100_000));
+        assert_eq!(assessment.shortfall_numerator, Some(0));
+        assert_eq!(assessment.target_scope_ref, "scope:community-001");
+        assert_eq!(assessment.period_ref, "period:2026-11");
+    }
+
+    #[test]
+    fn nutrient_target_reports_exact_shortfall() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.target_amount_scaled = 200_000;
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(
+            assessment.status,
+            NutrientTargetStatus::ShortfallAgainstDeclaredMinimum
+        );
+        assert_eq!(assessment.supply_numerator, Some(18_750_000));
+        assert_eq!(assessment.target_numerator, Some(20_000_000));
+        assert_eq!(assessment.shortfall_numerator, Some(1_250_000));
+        // 1,250,000 / 100,000 = 12.5 mg shortfall.
+    }
+
+    #[test]
+    fn nutrient_target_with_unknown_composition_is_not_assessable() {
+        let (mut composition, delivery) = valid_nutrient_fixture();
+        composition.amount_per_100g_scaled = None;
+        let assessment = assess_nutrient_target(
+            &composition,
+            &delivery,
+            &valid_nutrient_target(),
+        );
+        assert_eq!(assessment.status, NutrientTargetStatus::NotAssessable);
+        assert_eq!(assessment.supply_numerator, None);
+        assert_eq!(assessment.target_numerator, None);
+    }
+
+    #[test]
+    fn target_unit_mismatch_is_blocked() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.unit = NutrientUnit::Grams;
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::NutrientUnitMismatch
+        }));
+        assert_eq!(assessment.supply_numerator, None);
+    }
+
+    #[test]
+    fn target_scale_mismatch_is_blocked_even_if_unit_name_matches() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.value_scale = 100;
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::NutrientScaleMismatch
+        }));
+    }
+
+    #[test]
+    fn target_requires_scope_period_and_source_references() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.target_scope_ref.clear();
+        target.period_ref.clear();
+        target.source_ref.clear();
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::EmptyTargetScope
+        }));
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::EmptyTargetPeriod
+        }));
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::EmptyTargetSource
+        }));
+    }
+
+    #[test]
+    fn nutrient_target_json_preserves_wide_values() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.target_amount_scaled = u64::MAX;
+        target.value_scale = composition.value_scale;
+        let serialized = serde_json::to_string(&target).expect("target serializes");
+        assert!(serialized.contains("\"target_amount_scaled\":\"18446744073709551615\""));
+        let decoded: NutrientSupplyTargetV1 =
+            serde_json::from_str(&serialized).expect("target deserializes");
+        assert_eq!(decoded, target);
+
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        let result_json = serde_json::to_string(&assessment).expect("assessment serializes");
+        let decoded_assessment: NutrientTargetAssessmentV1 =
+            serde_json::from_str(&result_json).expect("assessment deserializes");
+        assert_eq!(decoded_assessment, assessment);
     }
 
 }
