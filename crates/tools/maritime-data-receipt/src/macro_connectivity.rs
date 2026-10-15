@@ -38,8 +38,17 @@ const MISSINGNESS_KEYS: &[&str] = &[
     "suppressed_policy", "forward_fill", "interpolation",
 ];
 const TERMS_KEYS: &[&str] = &[
-    "review_status", "license_name", "license_uri", "reviewer", "reviewed_at_utc",
-    "terms_sha256", "attribution_statement",
+    "review_status",
+    "license_name",
+    "license_uri",
+    "reviewer",
+    "reviewed_at_utc",
+    "terms_sha256",
+    "attribution_statement",
+    "review_evidence_uri",
+    "snapshot_relative_path",
+    "snapshot_byte_length",
+    "snapshot_sha256",
 ];
 const INTENDED_USE_KEYS: &[&str] = &[
     "analysis_scope", "scenario_only", "live_operational_feed", "navigation_authorized",
@@ -100,6 +109,35 @@ fn sha256(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn safe_relative_path(value: &str) -> bool {
+    !value.trim().is_empty()
+        && !value.starts_with('/')
+        && !value.contains('\\')
+        && !value.contains(':')
+        && value
+            .split('/')
+            .all(|part| !part.is_empty() && part != "." && part != "..")
+}
+
+fn verify_terms_snapshot(
+    path: &std::path::Path,
+    expected_byte_length: u64,
+    expected_sha256: &str,
+) -> Result<(u64, String), String> {
+    let (observed_length, observed_sha256) = super::sha256_file(path)?;
+    if observed_length != expected_byte_length {
+        return Err(format!(
+            "terms snapshot byte length mismatch: declared {expected_byte_length}, observed {observed_length}"
+        ));
+    }
+    if observed_sha256 != expected_sha256 {
+        return Err(format!(
+            "terms snapshot SHA-256 mismatch: declared {expected_sha256}, observed {observed_sha256}"
+        ));
+    }
+    Ok((observed_length, observed_sha256))
 }
 
 fn utc_timestamp(value: &str) -> bool {
@@ -269,6 +307,19 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     let reviewed_at = nullable_text(terms, "reviewed_at_utc")?;
     let terms_digest = nullable_text(terms, "terms_sha256")?;
     let attribution = text(terms, "attribution_statement")?;
+    let review_evidence_uri = nullable_text(terms, "review_evidence_uri")?;
+    let terms_snapshot_path = text(terms, "snapshot_relative_path")?;
+    if !safe_relative_path(terms_snapshot_path) {
+        return Err("UNSAFE_TERMS_SNAPSHOT_PATH");
+    }
+    let terms_snapshot_byte_length = member(terms, "snapshot_byte_length")?
+        .as_u64()
+        .filter(|length| *length > 0)
+        .ok_or("INVALID_TERMS_SNAPSHOT_LENGTH")?;
+    let terms_snapshot_sha256 = text(terms, "snapshot_sha256")?;
+    if !sha256(terms_snapshot_sha256) {
+        return Err("INVALID_TERMS_SNAPSHOT_DIGEST");
+    }
     match source_kind {
         "synthetic_fixture" => {
             if review_status != "not_applicable_synthetic"
@@ -277,6 +328,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
                 || reviewer.is_some()
                 || reviewed_at.is_some()
                 || terms_digest.is_some()
+                || review_evidence_uri.is_some()
                 || !attribution.to_ascii_lowercase().contains("synthetic")
             {
                 return Err("SYNTHETIC_TERMS_MISMATCH");
@@ -291,6 +343,9 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
                 || reviewer.is_none()
                 || !reviewed_at.is_some_and(utc_timestamp)
                 || !terms_digest.is_some_and(sha256)
+                || review_evidence_uri
+                    != Some("https://unctadstat.unctad.org/EN/About.html")
+                || terms_digest != Some(terms_snapshot_sha256)
                 || !attribution.contains("United Nations Trade and Development Data Hub")
             {
                 return Err("PUBLIC_TERMS_INCOMPLETE");
@@ -402,6 +457,9 @@ struct ProfileReport {
     suppressed_policy: String,
     terms_review_status: String,
     license_name: Option<String>,
+    terms_snapshot_sha256: String,
+    terms_snapshot_byte_length: u64,
+    terms_snapshot_bytes_verified: bool,
     receipt_id: String,
     receipt_sha256: String,
     artifact_sha256: String,
@@ -422,6 +480,7 @@ pub(crate) fn run_cli(
     profile_path: &str,
     receipt_path: &str,
     artifact_override: Option<&str>,
+    terms_snapshot_override: Option<&str>,
 ) -> Result<(), String> {
     use std::fs;
     use std::path::PathBuf;
@@ -448,7 +507,30 @@ pub(crate) fn run_cli(
     verify_receipt_semantics(&profile, &receipt_value, &receipt_bytes, &facts)
         .map_err(str::to_owned)?;
 
+    let terms = member(&profile, "terms").map_err(str::to_owned)?;
+    let terms_snapshot_path = terms_snapshot_override
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(
+                text(terms, "snapshot_relative_path")
+                    .expect("validated profile has terms snapshot path"),
+            )
+        });
+    let expected_terms_length = member(terms, "snapshot_byte_length")
+        .map_err(str::to_owned)?
+        .as_u64()
+        .ok_or_else(|| "terms snapshot byte length is not an integer".to_owned())?;
+    let expected_terms_sha256 =
+        text(terms, "snapshot_sha256").map_err(str::to_owned)?;
+    let (terms_snapshot_byte_length, terms_snapshot_sha256) = verify_terms_snapshot(
+        &terms_snapshot_path,
+        expected_terms_length,
+        expected_terms_sha256,
+    )?;
+
     let artifact_path = artifact_override
+        .filter(|path| !path.is_empty())
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(&facts.artifact.relative_path));
     let source_commit = std::env::var("MARITIME_SOURCE_COMMIT")
@@ -502,6 +584,9 @@ pub(crate) fn run_cli(
         license_name: nullable_text(terms, "license_name")
             .map_err(str::to_owned)?
             .map(str::to_owned),
+        terms_snapshot_sha256,
+        terms_snapshot_byte_length,
+        terms_snapshot_bytes_verified: true,
         receipt_id: receipt_report.receipt_id,
         receipt_sha256: receipt_report.receipt_sha256,
         artifact_sha256: receipt_report.artifact_sha256,
@@ -581,8 +666,9 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 #[cfg(test)]
 mod tests {
     use super::{
-        mutate_path, validate_profile, BINDING_KEYS, INTENDED_USE_KEYS, MISSINGNESS_KEYS,
-        ROOT_KEYS, SELECTION_KEYS, SERIES_KEYS, TERMS_KEYS, VALID,
+        mutate_path, safe_relative_path, validate_profile, verify_terms_snapshot, BINDING_KEYS,
+        INTENDED_USE_KEYS, MISSINGNESS_KEYS, ROOT_KEYS, SELECTION_KEYS, SERIES_KEYS, TERMS_KEYS,
+        VALID,
     };
     use serde_json::Value;
 
@@ -600,7 +686,7 @@ mod tests {
             .as_object()
             .expect("base profile map");
         let cases = corpus["cases"].as_array().expect("profile cases");
-        assert_eq!(cases.len(), 22, "frozen PLSCI case count is a contract");
+        assert_eq!(cases.len(), 25, "frozen PLSCI case count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base profile");
@@ -622,6 +708,35 @@ mod tests {
             };
             assert_eq!(case["expected_code"].as_str(), Some(actual), "{id}");
         }
+    }
+
+    #[test]
+    fn terms_snapshot_exact_bytes_match_and_mismatches_fail_closed() {
+        let path = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/synthetic-plsci-terms-snapshot.txt"
+        ));
+        let verified = verify_terms_snapshot(
+            path,
+            95,
+            "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5",
+        )
+        .expect("synthetic terms snapshot must match its declared bytes");
+        assert_eq!(verified.0, 95);
+        assert_eq!(
+            verified.1,
+            "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+        );
+        assert!(
+            verify_terms_snapshot(path, 95, &"0".repeat(64)).is_err(),
+            "wrong terms digest must fail closed"
+        );
+        assert!(!safe_relative_path("../outside/terms.html"));
+        assert!(!safe_relative_path("/etc/terms.html"));
+        assert!(!safe_relative_path("C:\\\\terms.html"));
+        assert!(safe_relative_path(
+            "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt"
+        ));
     }
 
     #[test]
