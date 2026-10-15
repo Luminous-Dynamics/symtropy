@@ -51,7 +51,7 @@ cargo run --locked -p maritime-data-receipt -- \\
 
 The frozen metadata-only hostile corpus is `crates/tools/maritime-data-receipt/tests/fixtures/plsci-profile-corpus-v0.1.json` (20 cases). The paired payload, receipt, profile, and corpus are invented synthetic test inputs—not captured UNCTAD rows and not a claim about any South African port. The profile CLI's success report remains `NotAdmitted` and explicitly says source authenticity, observed values, port identity, navigation and operational authority are not established.
 
-Research refs: [official PLSCI table metadata](https://unctadstat.unctad.org/datacentre/reportInfo/US.PLSCI), [UNCTAD Data Hub reuse terms](https://unctadstat.unctad.org/EN/About.html), and [source-capture runbook](../../docs/tech/MARITIME_SOURCE_CAPTURE_RUNBOOK_V0_1.md). The 2024 scale reset makes methodology vintage a mandatory field; 100 refers to the global average port-connectivity benchmark in 2023-Q1. Actual source export capture remains a separate open milestone.
+Research refs: [official PLSCI table metadata](https://unctadstat.unctad.org/datacentre/reportInfo/US.PLSCI), [UNCTAD Data Hub reuse terms](https://unctadstat.unctad.org/EN/About.html), and [source-capture runbook](../../../docs/tech/MARITIME_SOURCE_CAPTURE_RUNBOOK_V0_1.md). The 2024 scale reset makes methodology vintage a mandatory field; 100 refers to the global average port-connectivity benchmark in 2023-Q1. Actual source export capture remains a separate open milestone.
 
 ## Port identity crosswalk metadata mode
 
