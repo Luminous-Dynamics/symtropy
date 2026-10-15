@@ -541,18 +541,59 @@ impl QualifiedSolverRequestV2 {
     }
 }
 
+/// A solver-adapter result that echoes the qualified-world identity attached to
+/// the request it accepted. The echo is an integration invariant, not a
+/// cryptographic attestation that the solver actually consumed the request.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QualifiedSolverAdapterResultV2 {
+    envelope: SolverResultEnvelopeV1,
+    qualified_world_digest: QualifiedWorldDigestV2,
+}
+
+impl QualifiedSolverAdapterResultV2 {
+    /// Construct this value at the adapter boundary from the returned V1 result
+    /// and the qualified-world digest echoed for the execution.
+    pub fn from_echo(
+        envelope: SolverResultEnvelopeV1,
+        echoed_qualified_world_digest: QualifiedWorldDigestV2,
+    ) -> Self {
+        Self {
+            envelope,
+            qualified_world_digest: echoed_qualified_world_digest,
+        }
+    }
+}
+
+/// Result accepted for qualified admission. Fields are private so ordinary
+/// callers cannot accidentally replace the digest after result production.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QualifiedSolverResultEnvelopeV2 {
-    pub envelope: SolverResultEnvelopeV1,
-    pub qualified_world_digest: QualifiedWorldDigestV2,
+    envelope: SolverResultEnvelopeV1,
+    qualified_world_digest: QualifiedWorldDigestV2,
 }
 
 impl QualifiedSolverResultEnvelopeV2 {
-    pub fn bind(envelope: SolverResultEnvelopeV1, request: &QualifiedSolverRequestV2) -> Self {
-        Self {
-            envelope,
-            qualified_world_digest: request.qualified_world_digest,
+    /// Bind the adapter's explicit echo; never infer the result's world identity
+    /// from a request supplied after execution.
+    pub fn bind(
+        adapter_result: QualifiedSolverAdapterResultV2,
+        request: &QualifiedSolverRequestV2,
+    ) -> Result<Self, QualifiedWorldError> {
+        if adapter_result.qualified_world_digest != request.qualified_world_digest {
+            return Err(QualifiedWorldError::ResultQualifiedWorldDigestMismatch);
         }
+        Ok(Self {
+            envelope: adapter_result.envelope,
+            qualified_world_digest: adapter_result.qualified_world_digest,
+        })
+    }
+
+    pub fn envelope(&self) -> &SolverResultEnvelopeV1 {
+        &self.envelope
+    }
+
+    pub fn qualified_world_digest(&self) -> QualifiedWorldDigestV2 {
+        self.qualified_world_digest
     }
 }
 
@@ -1069,27 +1110,43 @@ pub(crate) mod tests {
         let world = qualified_world();
         let identity = solver_identity(&world.world);
         let request = QualifiedSolverRequestV2::bind(identity.clone(), &world).unwrap();
-        let result = QualifiedSolverResultEnvelopeV2::bind(solver_result(&identity), &request);
+        let adapter_result = QualifiedSolverAdapterResultV2::from_echo(
+            solver_result(&identity),
+            request.qualified_world_digest,
+        );
+        let result =
+            QualifiedSolverResultEnvelopeV2::bind(adapter_result.clone(), &request).unwrap();
         assert!(world.validate_solver_result(&request, &result).is_ok());
 
         let mut changed_world = world;
         changed_world.frame_conventions.frames[1].convention =
             FrameAxisConventionV1::FrdForwardRightDown;
+        let request_for_changed_world =
+            QualifiedSolverRequestV2::bind(identity, &changed_world).unwrap();
+
+        // The inner V1 identity and base world digest are unchanged. The result
+        // must still reject relabelling by using the new request's digest.
         assert!(matches!(
-            changed_world.validate_solver_result(&request, &result),
-            Err(QualifiedWorldError::RequestQualifiedWorldDigestMismatch)
+            QualifiedSolverResultEnvelopeV2::bind(adapter_result, &request_for_changed_world),
+            Err(QualifiedWorldError::ResultQualifiedWorldDigestMismatch)
+        ));
+        assert!(matches!(
+            changed_world.validate_solver_result(&request_for_changed_world, &result),
+            Err(QualifiedWorldError::ResultQualifiedWorldDigestMismatch)
         ));
     }
 
     #[test]
-    fn qualified_admission_rejects_a_result_with_wrong_world_digest() {
+    fn qualified_adapter_echo_with_wrong_world_digest_is_rejected() {
         let world = qualified_world();
         let identity = solver_identity(&world.world);
         let request = QualifiedSolverRequestV2::bind(identity.clone(), &world).unwrap();
-        let mut result = QualifiedSolverResultEnvelopeV2::bind(solver_result(&identity), &request);
-        result.qualified_world_digest = QualifiedWorldDigestV2::from_bytes([0u8; 32]);
+        let adapter_result = QualifiedSolverAdapterResultV2::from_echo(
+            solver_result(&identity),
+            QualifiedWorldDigestV2::from_bytes([0u8; 32]),
+        );
         assert!(matches!(
-            world.validate_solver_result(&request, &result),
+            QualifiedSolverResultEnvelopeV2::bind(adapter_result, &request),
             Err(QualifiedWorldError::ResultQualifiedWorldDigestMismatch)
         ));
     }
