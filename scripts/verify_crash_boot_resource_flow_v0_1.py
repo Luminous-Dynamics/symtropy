@@ -358,6 +358,15 @@ def main() -> None:
         configuration_digest == integrity["expected_configuration_sha256"],
         "configuration bytes did not match pinned SHA-256 reference",
     )
+    altered_configuration_payload = integrity["altered_configuration_payload_utf8"].encode("utf-8")
+    require(
+        hashlib.sha256(altered_configuration_payload).hexdigest() != configuration_digest,
+        "one-field configuration mutation must change the pinned SHA-256 digest",
+    )
+    require(
+        "scope bytes must change" in integrity["configuration_mutation_rule"].lower(),
+        "configuration mutation must remain an explicit negative control",
+    )
     require(
         "distinct from evidence records" in integrity["purpose"].lower(),
         "integrity canary must not imply evidence-record artifact binding",
@@ -747,6 +756,10 @@ def main() -> None:
     require(
         target.get("max_artifact_payload_bytes") == 65536,
         "claim-payload byte cap changed without explicit contract review",
+    )
+    require(
+        target.get("configuration_digest") == "sha256:" + configuration_digest,
+        "service-evidence target configuration digest must match the pinned configuration bytes",
     )
     evidence_cases = evidence_contract["cases"]
     assert isinstance(evidence_cases, list)
