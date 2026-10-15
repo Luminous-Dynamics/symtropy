@@ -47,6 +47,14 @@ The next step is not to invent a crop catalogue: add a licensed, versioned compo
 
 Supply, target and shortfall are expressed as exact integer rational numerators over the same denominator. No float percentage or rounded adequacy score is emitted. The delivery scope and period must exactly match the target scope and period; cross-scope or cross-period comparisons block. The target must be independently sourced for that scope and interval; this function does not derive dietary requirements or check whether the target is clinically appropriate for individuals.
 
+## Multi-food nutrient-supply aggregation
+
+`evaluate_nutrient_supply_scenario` aggregates multiple source-pinned edible-delivery lines against one declared nutrient target. Every line must use the same nutrient definition, unit, decimal scale, beneficiary scope and period. The evaluator rejects duplicate delivery-source references, scenario/scope/period mismatches and arithmetic overflow. If one required composition value is missing, it withholds the total rather than treating that line as zero.
+
+The portfolio receipt includes each food/preparation identity, delivered edible grams, source references and individual exact contribution alongside the aggregate total/shortfall. Repeated composition source refs are allowed when multiple food rows come from the same dataset artifact; delivery refs must not be repeated. This remains a nutrient-supply checker—not a crop chooser, full dietary optimizer or proof that individuals receive an adequate diet.
+
+
+
 ## Claim ceiling
 
 The checker independently recomputes a declared interval balance from supplied quantities. It does not simulate fluid flow, infer water quality, predict crop yield, identify plants, model medicine stability, or prove physical validity. Inputs can still be wrong or fabricated; source references are not fetched or authenticated. A consistent accounting result is not proof that the physical model or external observation is correct.
