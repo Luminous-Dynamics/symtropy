@@ -104,7 +104,7 @@ Symthaea consumes this bundle as analysis-only input. Mycelix may preserve a pro
 
 The fixture carries a versioned `evidence_requirements` catalog. Each `evidence_gap` in a contract-evaluation report binds:
 - the scenario case and candidate plan;
-- the exact blocker code;
+- a stable machine-readable blocker code, separate from the human-readable blocker reason;
 - a catalog requirement ID and required evidence kind;
 - minimum semantic fields to be present;
 - a resolution-scope statement which limits the conclusion that evidence may support.
