@@ -688,7 +688,7 @@ mod tests {
             .as_object()
             .expect("base profile map");
         let cases = corpus["cases"].as_array().expect("profile cases");
-        assert_eq!(cases.len(), 25, "frozen PLSCI case count is a contract");
+        assert_eq!(cases.len(), 26, "frozen PLSCI case count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base profile");
@@ -732,6 +732,15 @@ mod tests {
         assert!(
             verify_terms_snapshot(path, 95, &"0".repeat(64)).is_err(),
             "wrong terms digest must fail closed"
+        );
+        assert!(
+            verify_terms_snapshot(
+                path,
+                94,
+                "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5",
+            )
+            .is_err(),
+            "wrong terms byte length must fail closed"
         );
         assert!(!safe_relative_path("../outside/terms.html"));
         assert!(!safe_relative_path("/etc/terms.html"));
