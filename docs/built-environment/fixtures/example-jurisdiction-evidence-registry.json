@@ -1,0 +1,61 @@
+{
+  "schema_version": "0.1.0",
+  "registry_id": "example-only/sa-gauteng-jurisdiction-registry",
+  "revision": 1,
+  "created_at": "2026-10-15T10:45:00Z",
+  "evaluation_date": "2026-10-15",
+  "jurisdiction": {
+    "country_code": "ZA",
+    "region": "Gauteng",
+    "municipality": null,
+    "parcel_reference": null,
+    "resolution_status": "provisional"
+  },
+  "source_records": [
+    {
+      "record_id": "za-nbrbsa-act-103-1977-reference",
+      "instrument_type": "act",
+      "title": "National Building Regulations and Building Standards Act 103 of 1977",
+      "issuer": "Republic of South Africa",
+      "source_url": "https://www.gov.za/documents/national-building-regulations-and-building-standards-act-16-apr-2015-1302",
+      "publication_date": null,
+      "edition": null,
+      "clause_location": null,
+      "lifecycle_status": "unknown",
+      "effective_from": null,
+      "effective_to": null,
+      "comment_deadline": null,
+      "applicability_status": "not_assessed",
+      "source_snapshot": null,
+      "review_record": null,
+      "rule_translation": null,
+      "notes": "Catalog entry only. The official page identifies the Act, but this fixture does not establish the current consolidated text, project-specific application, incorporated SANS edition, municipal process, or any clause-level rule."
+    },
+    {
+      "record_id": "za-nbrbsa-amendment-bill-2026-proposal",
+      "instrument_type": "proposal",
+      "title": "National Building Regulations and Building Standards Amendment Bill, 2026 — extended public-comment period",
+      "issuer": "South African Government",
+      "source_url": "https://www.gov.za/documents/notices/national-building-regulations-and-building-standards-act-extension-submission",
+      "publication_date": "2026-10-13",
+      "edition": "Government Gazette 55540, General Notice 4195",
+      "clause_location": null,
+      "lifecycle_status": "proposed",
+      "effective_from": null,
+      "effective_to": null,
+      "comment_deadline": "2026-11-12",
+      "applicability_status": "not_assessed",
+      "source_snapshot": null,
+      "review_record": null,
+      "rule_translation": null,
+      "notes": "Official public-comment notice. Treat the Bill as a proposal, not as an enacted rule. The notice states an extended comment deadline of 12 November 2026. No provisions have been translated into executable rules by this fixture."
+    }
+  ],
+  "limitations": [
+    "This synthetic registry is a metadata catalog, not a current legal rule pack.",
+    "No source snapshots or review attestations are bundled; no record is ready for rule execution.",
+    "Source URLs, lifecycle declarations, review records and translation metadata are not authenticated by schema validation alone.",
+    "No municipality, parcel, building class, occupancy, construction system, approval pathway or incorporated standard edition has been established.",
+    "The example's budget/design fixture values remain illustrative and are not legal minima, construction prices or engineering findings."
+  ]
+}

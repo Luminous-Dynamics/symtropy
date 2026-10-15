@@ -1,0 +1,195 @@
+{
+  "schema_version": "0.1.0",
+  "candidate_id": "example-only/layout-001",
+  "candidate_revision": 1,
+  "created_at": "2026-10-15T05:00:00Z",
+  "brief_ref": {
+    "brief_id": "example-only/home-brief-001",
+    "revision": 1,
+    "sha256": "d2841a4271af6a43e794b4611edfc1ec469440a63236036b9652e8fdf149af8c"
+  },
+  "coordinate_frame": {
+    "kind": "local_cartesian_2d",
+    "units": "m",
+    "origin_description": "Synthetic local-plan origin at the lower-left of planning bounds; not georeferenced.",
+    "axis_convention": "x_right_y_up_on_plan"
+  },
+  "generator": {
+    "system": "synthetic_fixture",
+    "algorithm_id": "hand-authored-rectangles-v1",
+    "version": "0.1.0",
+    "seed": null,
+    "reproducibility_claim": "not_claimed"
+  },
+  "floors": [
+    {
+      "floor_id": "ground",
+      "level_index": 0,
+      "elevation_m": 0,
+      "planning_bounds_m": {
+        "x_min": 0,
+        "y_min": 0,
+        "x_max": 20,
+        "y_max": 12
+      }
+    }
+  ],
+  "zones": [
+    {
+      "zone_id": "living-1",
+      "space_id": "living",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 0,
+        "y_min": 0,
+        "x_max": 6,
+        "y_max": 4
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "kitchen-1",
+      "space_id": "kitchen",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 6,
+        "y_min": 0,
+        "x_max": 10,
+        "y_max": 3
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "bedroom-1",
+      "space_id": "bedrooms",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 0,
+        "y_min": 4,
+        "x_max": 4,
+        "y_max": 7
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "bedroom-2",
+      "space_id": "bedrooms",
+      "instance_index": 2,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 4,
+        "y_min": 4,
+        "x_max": 8,
+        "y_max": 7
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "flex-1",
+      "space_id": "flex",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 10,
+        "y_min": 0,
+        "x_max": 13,
+        "y_max": 3
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "bathroom-1",
+      "space_id": "bathroom",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 13,
+        "y_min": 0,
+        "x_max": 16,
+        "y_max": 3
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "laundry-1",
+      "space_id": "laundry",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 10,
+        "y_min": 3,
+        "x_max": 12,
+        "y_max": 5
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "storage-1",
+      "space_id": "storage",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "interior",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 12,
+        "y_min": 3,
+        "x_max": 14,
+        "y_max": 5
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "courtyard-1",
+      "space_id": "courtyard",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "open_external",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 8,
+        "y_min": 5,
+        "x_max": 14,
+        "y_max": 9
+      },
+      "notes": null
+    },
+    {
+      "zone_id": "garden-1",
+      "space_id": "garden",
+      "instance_index": 1,
+      "floor_id": "ground",
+      "zone_kind": "open_external",
+      "shape": "axis_aligned_rectangle_v1",
+      "bounds_m": {
+        "x_min": 14,
+        "y_min": 5,
+        "x_max": 20,
+        "y_max": 9
+      },
+      "notes": null
+    }
+  ],
+  "omissions": [],
+  "limitations": [
+    "Synthetic example only, not a real design.",
+    "Rectangles only; no walls, thickness, doors, windows, circulation widths, roof, or MEP systems.",
+    "No adjacency, line-of-sight, acoustics, daylight, thermal, structure, accessibility, cost, or buildability claim."
+  ]
+}
