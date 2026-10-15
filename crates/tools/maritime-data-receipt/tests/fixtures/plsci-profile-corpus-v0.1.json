@@ -54,15 +54,15 @@
         "interpolation": "forbidden"
       },
       "terms": {
-        "review_status": "not_applicable_synthetic",
-        "license_name": "not_applicable_synthetic_fixture",
-        "license_uri": null,
-        "reviewer": null,
-        "reviewed_at_utc": null,
-        "terms_sha256": null,
-        "attribution_statement": "Synthetic fixture only; not actual UNCTADstat data.",
-        "review_evidence_uri": null,
-        "snapshot_retrieved_at_utc": null,
+        "review_status": "reviewed_permitted",
+        "license_name": "CC BY 3.0 IGO",
+        "license_uri": "https://creativecommons.org/licenses/by/3.0/igo/",
+        "reviewer": "fixture-only-simulated-reviewer",
+        "reviewed_at_utc": "2026-02-30T16:00:00Z",
+        "terms_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5",
+        "attribution_statement": "United Nations Trade and Development Data Hub; simulated metadata regression only",
+        "review_evidence_uri": "https://unctadstat.unctad.org/EN/About.html",
+        "snapshot_retrieved_at_utc": "2026-10-15T15:59:00Z",
         "snapshot_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt",
         "snapshot_byte_length": 95,
         "snapshot_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
@@ -654,6 +654,11 @@
           "path": "terms.reviewed_at_utc",
           "op": "set",
           "value": "2026-02-30T16:00:00Z"
+        },
+        {
+          "path": "terms.snapshot_retrieved_at_utc",
+          "op": "set",
+          "value": "2026-10-15T15:59:00Z"
         }
       ],
       "expected_code": "PUBLIC_TERMS_INCOMPLETE"
