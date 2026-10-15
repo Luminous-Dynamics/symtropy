@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 mod s100_profile;
+mod port_identity;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -727,6 +728,15 @@ fn run() -> Result<(), String> {
             &receipt_path,
             artifact_override.as_deref(),
         );
+    }
+    if first_arg.as_deref() == Some("--validate-port-crosswalk") {
+        let crosswalk_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-port-crosswalk <crosswalk-json-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for port crosswalk verification".to_owned());
+        }
+        return port_identity::run_cli(&crosswalk_path);
     }
     let receipt_path = first_arg.unwrap_or_else(|| DEFAULT_RECEIPT_PATH.to_owned());
     let artifact_override = args.next();
