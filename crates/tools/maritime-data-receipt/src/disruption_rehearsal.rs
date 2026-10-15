@@ -104,7 +104,11 @@ fn text_field(value: &super::JsonValue, key: &str, path: &str) -> Result<String,
     .to_owned())
 }
 
-fn expect_text_array(value: &super::JsonValue, path: &str, expected: &[&str]) -> Result<(), String> {
+fn expect_text_array(
+    value: &super::JsonValue,
+    path: &str,
+    expected: &[&str],
+) -> Result<(), String> {
     let actual = super::array(value, path)?;
     if actual.len() != expected.len() {
         return Err(format!("{path}: expected {} entries, found {}", expected.len(), actual.len()));
@@ -147,14 +151,22 @@ fn canonical_utc_seconds(value: &str, path: &str) -> Result<i64, String> {
 
 fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     let assessment = super::field(root, "assessment", "rehearsal")?;
-    super::exact_keys(assessment, &["assessment_time_utc", "target_time_utc", "time_policy_id", "forecast_input"], "rehearsal.assessment")?;
+    super::exact_keys(
+        assessment,
+        &["assessment_time_utc", "target_time_utc", "time_policy_id", "forecast_input"],
+        "rehearsal.assessment",
+    )?;
     for key in ["assessment_time_utc", "target_time_utc"] {
         let value = text_field(assessment, key, "rehearsal.assessment")?;
         if !super::valid_utc_timestamp(&value) || value.len() != 20 {
-            return Err(format!("rehearsal.assessment.{key}: expected canonical whole-second UTC timestamp"));
+            return Err(format!(
+                "rehearsal.assessment.{key}: expected canonical whole-second UTC timestamp"
+            ));
         }
     }
-    if text_field(assessment, "time_policy_id", "rehearsal.assessment")? != "synthetic-policy-v0.1" {
+    if text_field(assessment, "time_policy_id", "rehearsal.assessment")?
+        != "synthetic-policy-v0.1"
+    {
         return Err("rehearsal.assessment.time_policy_id is not the pinned v0.1 policy".to_owned());
     }
     let forecast = super::field(assessment, "forecast_input", "rehearsal.assessment")?;
@@ -166,26 +178,59 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     ], "rehearsal.assessment.forecast_input")?;
     for key in ["source_artifact_sha256", "receipt_sha256"] {
         if !matches!(super::field(forecast, key, "forecast_input")?, super::JsonValue::Null) {
-            return Err(format!("forecast_input.{key} must remain null until exact real bytes are bound"));
+            return Err(format!(
+                "forecast_input.{key} must remain null until exact real bytes are bound"
+            ));
         }
     }
-    super::expect_text(super::field(forecast, "binding_state", "forecast_input")?, "forecast_input.binding_state", "not_bound_in_this_design_fixture")?;
-    super::expect_text(super::field(forecast, "execution_status", "forecast_input")?, "forecast_input.execution_status", "not_executed")?;
-    for key in ["issued_at_utc", "model_initialization_time_utc", "valid_from_utc", "valid_until_utc"] {
+    super::expect_text(
+        super::field(forecast, "binding_state", "forecast_input")?,
+        "forecast_input.binding_state",
+        "not_bound_in_this_design_fixture",
+    )?;
+    super::expect_text(
+        super::field(forecast, "execution_status", "forecast_input")?,
+        "forecast_input.execution_status",
+        "not_executed",
+    )?;
+    for key in [
+        "issued_at_utc",
+        "model_initialization_time_utc",
+        "valid_from_utc",
+        "valid_until_utc",
+    ] {
         let value = text_field(forecast, key, "forecast_input")?;
         if !super::valid_utc_timestamp(&value) || value.len() != 20 {
-            return Err(format!("forecast_input.{key}: expected canonical whole-second UTC timestamp"));
+            return Err(format!(
+                "forecast_input.{key}: expected canonical whole-second UTC timestamp"
+            ));
         }
     }
     for key in ["max_issue_age_seconds", "max_forecast_lead_seconds"] {
-        if super::integer(super::field(forecast, key, "forecast_input")?, &format!("forecast_input.{key}"))? == 0 {
+        if super::integer(
+            super::field(forecast, key, "forecast_input")?,
+            &format!("forecast_input.{key}"),
+        )? == 0
+        {
             return Err(format!("forecast_input.{key} must be positive"));
         }
     }
-    let arithmetic = super::field(forecast, "expected_temporal_arithmetic_for_test_design_only", "forecast_input")?;
-    super::exact_keys(arithmetic, &["issue_age_seconds", "forecast_lead_seconds"], "forecast_input.expected_temporal_arithmetic_for_test_design_only")?;
+    let arithmetic = super::field(
+        forecast,
+        "expected_temporal_arithmetic_for_test_design_only",
+        "forecast_input",
+    )?;
+    super::exact_keys(
+        arithmetic,
+        &["issue_age_seconds", "forecast_lead_seconds"],
+        "forecast_input.expected_temporal_arithmetic_for_test_design_only",
+    )?;
     for key in ["issue_age_seconds", "forecast_lead_seconds"] {
-        if super::integer(super::field(arithmetic, key, "forecast arithmetic")?, &format!("forecast arithmetic.{key}"))? == 0 {
+        if super::integer(
+            super::field(arithmetic, key, "forecast arithmetic")?,
+            &format!("forecast arithmetic.{key}"),
+        )? == 0
+        {
             return Err(format!("forecast arithmetic.{key} must be positive"));
         }
     }
@@ -213,8 +258,14 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         &text_field(forecast, "valid_until_utc", "forecast_input")?,
         "forecast_input.valid_until_utc",
     )?;
-    if initialized_seconds > issued_seconds || issued_seconds > assessment_seconds || assessment_seconds > target_seconds {
-        return Err("forecast chronology invalid: require initialization <= issue <= assessment <= target".to_owned());
+    if initialized_seconds > issued_seconds
+        || issued_seconds > assessment_seconds
+        || assessment_seconds > target_seconds
+    {
+        return Err(
+            "forecast chronology invalid: require initialization <= issue <= assessment <= target"
+                .to_owned(),
+        );
     }
     if valid_from_seconds > target_seconds || target_seconds > valid_until_seconds {
         return Err("forecast target time is outside the declared valid interval".to_owned());
@@ -243,24 +294,65 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         "forecast_input.max_forecast_lead_seconds",
     )?;
     if observed_issue_age > max_issue_age || observed_lead > max_lead {
-        return Err("forecast temporal arithmetic exceeds the declared synthetic policy bounds".to_owned());
+        return Err(
+            "forecast temporal arithmetic exceeds the declared synthetic policy bounds".to_owned(),
+        );
     }
 
     let scope = super::field(root, "model_scope", "rehearsal")?;
-    super::exact_keys(scope, &["execution_profile", "physics_claims", "abstract_inputs_only", "unsupported_if_requested", "missing_or_unsupported_is_never_zero"], "rehearsal.model_scope")?;
-    super::expect_text(super::field(scope, "execution_profile", "model_scope")?, "model_scope.execution_profile", "EngineeringDeterministic")?;
-    if !super::array(super::field(scope, "physics_claims", "model_scope")?, "model_scope.physics_claims")?.is_empty() {
-        return Err("model_scope.physics_claims must stay empty in this abstract evaluator".to_owned());
+    super::exact_keys(
+        scope,
+        &[
+            "execution_profile",
+            "physics_claims",
+            "abstract_inputs_only",
+            "unsupported_if_requested",
+            "missing_or_unsupported_is_never_zero",
+        ],
+        "rehearsal.model_scope",
+    )?;
+    super::expect_text(
+        super::field(scope, "execution_profile", "model_scope")?,
+        "model_scope.execution_profile",
+        "EngineeringDeterministic",
+    )?;
+    if !super::array(
+        super::field(scope, "physics_claims", "model_scope")?,
+        "model_scope.physics_claims",
+    )?
+    .is_empty()
+    {
+        return Err(
+            "model_scope.physics_claims must stay empty in this abstract evaluator".to_owned(),
+        );
     }
-    expect_text_array(super::field(scope, "abstract_inputs_only", "model_scope")?, "model_scope.abstract_inputs_only", INPUT_KEYS)?;
-    expect_text_array(super::field(scope, "unsupported_if_requested", "model_scope")?, "model_scope.unsupported_if_requested", &[
-        "hydrodynamics", "under_keel_clearance", "vessel maneuvering", "mooring loads", "shore-power electrical dynamics", "terminal capacity derived from real operations"
+    expect_text_array(
+        super::field(scope, "abstract_inputs_only", "model_scope")?,
+        "model_scope.abstract_inputs_only",
+        INPUT_KEYS,
+    )?;
+    expect_text_array(
+        super::field(scope, "unsupported_if_requested", "model_scope")?,
+        "model_scope.unsupported_if_requested",
+        &[
+            "hydrodynamics",
+            "under_keel_clearance",
+            "vessel maneuvering",
+            "mooring loads",
+            "shore-power electrical dynamics",
+            "terminal capacity derived from real operations",
     ])?;
-    if !super::bool_value(super::field(scope, "missing_or_unsupported_is_never_zero", "model_scope")?, "model_scope.missing_or_unsupported_is_never_zero")? {
+    if !super::bool_value(
+        super::field(scope, "missing_or_unsupported_is_never_zero", "model_scope")?,
+        "model_scope.missing_or_unsupported_is_never_zero",
+    )? {
         return Err("missing_or_unsupported_is_never_zero must remain true".to_owned());
     }
 
-    let constraints = super::array(super::field(root, "hard_constraints", "rehearsal")?, "rehearsal.hard_constraints")?;
+    let constraints = super::array(
+        super::field(root, "hard_constraints", "rehearsal")?,
+        "rehearsal.hard_constraints",
+    )?;
     const IDS: [&str; 6] = [
         "water_level_envelope_supported_and_satisfied", "energy_reserve_minimum_satisfied",
         "terminal_window_open", "forecast_temporal_applicability",
@@ -276,7 +368,9 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             return Err(format!("{path}.constraint_id: unexpected or reordered ID {actual_id:?}"));
         }
         let status_key = match id {
-            "water_level_envelope_supported_and_satisfied" | "terminal_window_open" | "designated_waiting_resource_declared_available" => "missing_state",
+            "water_level_envelope_supported_and_satisfied"
+            | "terminal_window_open"
+            | "designated_waiting_resource_declared_available" => "missing_state",
             "energy_reserve_minimum_satisfied" => "unsupported_state",
             "forecast_temporal_applicability" => "invalid_or_missing_state",
             "alternate_capacity_confirmed" => "default_state",
@@ -284,16 +378,36 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         };
         let keys: &[&str] = match status_key {
             "missing_state" => &["constraint_id", "kind", "unit", "source", "missing_state"],
-            "unsupported_state" => &["constraint_id", "kind", "unit", "source", "unsupported_state"],
-            "invalid_or_missing_state" => &["constraint_id", "kind", "unit", "source", "invalid_or_missing_state"],
+            "unsupported_state" => &[
+                "constraint_id", "kind", "unit", "source", "unsupported_state",
+            ],
+            "invalid_or_missing_state" => &[
+                "constraint_id", "kind", "unit", "source", "invalid_or_missing_state",
+            ],
             "default_state" => &["constraint_id", "kind", "unit", "source", "default_state"],
             _ => return Err(format!("{path}: unsupported constraint status field")),
         };
         super::exact_keys(constraint, keys, &path)?;
-        let expected_kind = if id == "forecast_temporal_applicability" { "evidence_gate" } else { "hard" };
-        super::expect_text(super::field(constraint, "kind", &path)?, &format!("{path}.kind"), expected_kind)?;
-        let expected_status = if id == "energy_reserve_minimum_satisfied" { "UNSUPPORTED" } else { "INDETERMINATE" };
-        super::expect_text(super::field(constraint, status_key, &path)?, &format!("{path}.{status_key}"), expected_status)?;
+        let expected_kind = if id == "forecast_temporal_applicability" {
+            "evidence_gate"
+        } else {
+            "hard"
+        };
+        super::expect_text(
+            super::field(constraint, "kind", &path)?,
+            &format!("{path}.kind"),
+            expected_kind,
+        )?;
+        let expected_status = if id == "energy_reserve_minimum_satisfied" {
+            "UNSUPPORTED"
+        } else {
+            "INDETERMINATE"
+        };
+        super::expect_text(
+            super::field(constraint, status_key, &path)?,
+            &format!("{path}.{status_key}"),
+            expected_status,
+        )?;
         let unit = super::field(constraint, "unit", &path)?;
         if id == "forecast_temporal_applicability" {
             super::expect_text(unit, &format!("{path}.unit"), "seconds")?;
@@ -319,7 +433,10 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_abstract_inputs(value: &super::JsonValue, path: &str) -> Result<AbstractInputs, String> {
+fn validate_abstract_inputs(
+    value: &super::JsonValue,
+    path: &str,
+) -> Result<AbstractInputs, String> {
     super::exact_keys(value, INPUT_KEYS, path)?;
     let input = AbstractInputs {
         water: text_field(value, "water_level_envelope_state", path)?,
@@ -345,7 +462,10 @@ fn validate_abstract_inputs(value: &super::JsonValue, path: &str) -> Result<Abst
     Ok(input)
 }
 
-fn disposition(plan_id: &str, input: &AbstractInputs) -> Result<(&'static str, Vec<&'static str>), String> {
+fn disposition(
+    plan_id: &str,
+    input: &AbstractInputs,
+) -> Result<(&'static str, Vec<&'static str>), String> {
     match plan_id {
         "continue_original_slot" => {
             // A known hard-constraint violation takes precedence over missing
@@ -503,7 +623,14 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     for (index, plan) in plans.iter().enumerate() {
         let path = format!("rehearsal.candidate_plans[{index}]");
         let expected_plan_keys: &[&str] = if index == 2 {
-            &["plan_id", "kind", "preconditions", "side_effects", "not_a_booking", "preparation_does_not_reserve_capacity"]
+            &[
+                "plan_id",
+                "kind",
+                "preconditions",
+                "side_effects",
+                "not_a_booking",
+                "preparation_does_not_reserve_capacity",
+            ]
         } else {
             &["plan_id", "kind", "preconditions", "side_effects", "not_a_booking"]
         };
@@ -546,7 +673,12 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             &format!("{path}.preconditions"),
             expected_preconditions,
         )?;
-        if index == 2 && !super::bool_value(super::field(plan, "preparation_does_not_reserve_capacity", &path)?, &format!("{path}.preparation_does_not_reserve_capacity"))? {
+        if index == 2
+            && !super::bool_value(
+                super::field(plan, "preparation_does_not_reserve_capacity", &path)?,
+                &format!("{path}.preparation_does_not_reserve_capacity"),
+            )?
+        {
             return Err("preparing an alternate terminal must not reserve capacity".to_owned());
         }
         if !super::array(
@@ -578,11 +710,34 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
         let case_id = text_field(case, "case_id", &case_path)?;
         let expected_case_keys: &[&str] = match case_id.as_str() {
             "baseline_declared_inputs" | "shore_power_unavailable" =>
-                &["case_id", "required", "disturbances", "abstract_inputs", "expected_plan_dispositions", "expected_blockers"],
+                &[
+                    "case_id",
+                    "required",
+                    "disturbances",
+                    "abstract_inputs",
+                    "expected_plan_dispositions",
+                    "expected_blockers",
+                ],
             "adverse_water_level_envelope" =>
-                &["case_id", "required", "disturbances", "abstract_inputs", "expected_plan_dispositions", "expected_blockers", "interpretation"],
+                &[
+                    "case_id",
+                    "required",
+                    "disturbances",
+                    "abstract_inputs",
+                    "expected_plan_dispositions",
+                    "expected_blockers",
+                    "interpretation",
+                ],
             "forecast_invalidated_before_decision" | "common_cause_terminal_and_power_disruption" =>
-                &["case_id", "required", "disturbances", "abstract_inputs", "expected_plan_dispositions", "expected_blockers", "metamorphic_property"],
+                &[
+                    "case_id",
+                    "required",
+                    "disturbances",
+                    "abstract_inputs",
+                    "expected_plan_dispositions",
+                    "expected_blockers",
+                    "metamorphic_property",
+                ],
             _ => return Err(format!("{case_path}.case_id: unknown case {case_id:?}")),
         };
         super::exact_keys(case, expected_case_keys, &case_path)?;
@@ -606,7 +761,10 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             &format!("{case_path}.disturbances"),
         )?;
         for (disturbance_index, disturbance) in disturbances.iter().enumerate() {
-            super::require_nonempty_text(disturbance, &format!("{case_path}.disturbances[{disturbance_index}]"))?;
+            super::require_nonempty_text(
+                disturbance,
+                &format!("{case_path}.disturbances[{disturbance_index}]"),
+            )?;
         }
         if case_id == "adverse_water_level_envelope" {
             super::expect_text(
@@ -615,7 +773,10 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
                 "This state is an abstract hostile control; no real water level or vessel clearance is represented.",
             )?;
         }
-        if matches!(case_id.as_str(), "forecast_invalidated_before_decision" | "common_cause_terminal_and_power_disruption") {
+        if matches!(
+            case_id.as_str(),
+            "forecast_invalidated_before_decision" | "common_cause_terminal_and_power_disruption"
+        ) {
             super::require_nonempty_text(
                 super::field(case, "metamorphic_property", &case_path)?,
                 &format!("{case_path}.metamorphic_property"),
@@ -625,8 +786,12 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             super::field(case, "expected_plan_dispositions", &case_path)?,
             &format!("{case_path}.expected_plan_dispositions"),
         )?;
-        if expected.len() != PLAN_IDS.len() || expected.keys().any(|key| !PLAN_IDS.contains(&key.as_str())) {
-            return Err(format!("{case_path}.expected_plan_dispositions must contain exactly the three known plan IDs"));
+        if expected.len() != PLAN_IDS.len()
+            || expected.keys().any(|key| !PLAN_IDS.contains(&key.as_str()))
+        {
+            return Err(format!(
+                "{case_path}.expected_plan_dispositions must contain exactly the three known plan IDs"
+            ));
         }
         let expected_blockers = super::object(
             super::field(case, "expected_blockers", &case_path)?,
@@ -649,16 +814,28 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             let expected_blocker_values = expected_blockers.get(*plan_id);
             if blockers.is_empty() {
                 if expected_blocker_values.is_some() {
-                    return Err(format!("{case_path}.expected_blockers.{plan_id} must be absent when no blockers exist"));
+                    return Err(format!(
+                        "{case_path}.expected_blockers.{plan_id} must be absent when no blockers exist"
+                    ));
                 }
             } else {
-                let declared = expected_blocker_values.ok_or_else(|| format!("{case_path}.expected_blockers is missing {plan_id}"))?;
-                let declared = super::array(declared, &format!("{case_path}.expected_blockers.{plan_id}"))?;
+                let declared = expected_blocker_values
+                    .ok_or_else(|| format!("{case_path}.expected_blockers is missing {plan_id}"))?;
+                let declared = super::array(
+                    declared,
+                    &format!("{case_path}.expected_blockers.{plan_id}"),
+                )?;
                 if declared.len() != blockers.len() {
                     return Err(format!("{case_path}.expected_blockers.{plan_id} count mismatch"));
                 }
-                for (blocker_index, (value, expected_blocker)) in declared.iter().zip(&blockers).enumerate() {
-                    super::expect_text(value, &format!("{case_path}.expected_blockers.{plan_id}[{blocker_index}]"), expected_blocker)?;
+                for (blocker_index, (value, expected_blocker)) in
+                    declared.iter().zip(&blockers).enumerate()
+                {
+                    super::expect_text(
+                        value,
+                        &format!("{case_path}.expected_blockers.{plan_id}[{blocker_index}]"),
+                        expected_blocker,
+                    )?;
                 }
             }
             if status != "FEASIBLE_WITHIN_DECLARED_MODEL" {
@@ -858,9 +1035,14 @@ mod tests {
                 );
                 let declared_blockers = case["expected_blockers"].get(plan);
                 if oracle_blockers.is_empty() {
-                    assert!(declared_blockers.is_none(), "unexpected declared blockers: {case_id} / {plan}");
+                    assert!(
+                        declared_blockers.is_none(),
+                        "unexpected declared blockers: {case_id} / {plan}"
+                    );
                 } else {
-                    let declared = declared_blockers.and_then(Value::as_array).expect("declared blocker array");
+                    let declared = declared_blockers
+                        .and_then(Value::as_array)
+                        .expect("declared blocker array");
                     assert_eq!(
                         declared.iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(),
                         oracle_blockers,
@@ -901,7 +1083,8 @@ mod tests {
         assert!(oracle_epoch_seconds(target) <= oracle_epoch_seconds(valid_until));
         assert!(issue_age as u64 <= forecast["max_issue_age_seconds"].as_u64().unwrap());
         assert!(forecast_lead as u64 <= forecast["max_forecast_lead_seconds"].as_u64().unwrap());
-        evaluate_bytes(FIXTURE, "time-oracle-test").expect("production evaluator agrees with fixture");
+        evaluate_bytes(FIXTURE, "time-oracle-test")
+            .expect("production evaluator agrees with fixture");
     }
 
     #[test]
@@ -1003,7 +1186,8 @@ mod tests {
     #[test]
     fn incorrect_forecast_arithmetic_is_rejected() {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
-        fixture["assessment"]["forecast_input"]["expected_temporal_arithmetic_for_test_design_only"]["issue_age_seconds"] =
+        fixture["assessment"]["forecast_input"]["expected_temporal_arithmetic_for_test_design_only"]
+            ["issue_age_seconds"] =
             Value::Number(serde_json::Number::from(7201));
         let changed = serde_json::to_vec(&fixture).unwrap();
         assert!(evaluate_bytes(&changed, "test").is_err());
