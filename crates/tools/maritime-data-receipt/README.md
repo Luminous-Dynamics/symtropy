@@ -73,6 +73,8 @@ This command **does not execute a physical simulation**. It validates the exact 
 
 The Rust test module contains a separate classifier and calendar oracle that does not call the production reducer or timestamp conversion. Mutation tests exercise stale-evidence monotonicity, hard-constraint precedence, unknown fields/states, blocker changes, policy arithmetic drift, look-ahead and authority boundaries. These tests must still pass through the exact-head workflow; source inspection and queued CI are not passes.
 
+The report includes an `evidence_gaps` array for every `INDETERMINATE` or `UNSUPPORTED` plan/case blocker. Each gap carries the case and plan IDs, blocker code, catalog requirement ID, required evidence kind, minimum semantic fields, and a resolution-scope statement. The catalog is frozen and cross-checked against the implementation so a changed evidence request fails closed. A gap is guidance for what must be substantiated next, not a claim that those fields are sufficient for actual safety or that obtaining them grants an approval.
+
 The report's contract-match status remains `NotAdmitted`, and all navigation, physical-truth, berth-inference, reservation/custody and physical-execution authorities remain false. The “feasible within declared model” disposition means only that the supplied **abstract states** satisfy this contract's rule; this is not vessel/port physics, engineering qualification, operational feasibility or project integration. All inputs are synthetic, and real-source capture remains a separate open gate.
 
 ## UNCTADstat PLSCI macro-connectivity profile
