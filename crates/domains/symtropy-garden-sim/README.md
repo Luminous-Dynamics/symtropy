@@ -27,7 +27,7 @@ cargo clippy --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all
 The crate also evaluates one nutrient contribution from a source-pinned food-composition row and an already-calculated edible-delivery mass:
 
 - Composition is scoped to an exact food record and food/preparation state, with a nutrient-definition reference, unit, source reference, evidence class and explicit decimal scale.
-- Delivery is expressed as grams of edible food actually delivered, not gross harvest biomass. The upstream system must already account for edible fraction, loss and allocation.
+- Delivery is expressed as grams of edible food actually delivered, not gross harvest biomass, and is bound to an explicit community/population scope and time period. The upstream system must already account for edible fraction, loss and allocation.
 - A missing composition value returns `NotAssessable`, not a zero contribution. A food identity, preparation-state, scale or provenance mismatch blocks calculation.
 - The output is an exact rational numerator/denominator in the stated nutrient unit. It avoids rounding and floating-point arithmetic; wide JSON integers are decimal strings.
 - This calculation does not authenticate evidence, choose crops, infer yields or requirements, aggregate a diet, or prove nutrient adequacy.
@@ -45,7 +45,7 @@ The next step is not to invent a crop catalogue: add a licensed, versioned compo
 - `NotAssessable` when composition is missing
 - `Blocked` for mismatched definitions/units/scales or missing target/provenance metadata
 
-Supply, target and shortfall are expressed as exact integer rational numerators over the same denominator. No float percentage or rounded adequacy score is emitted. The target must be independently sourced for the stated community and interval; this function does not derive dietary requirements or check whether the target is clinically appropriate for individuals.
+Supply, target and shortfall are expressed as exact integer rational numerators over the same denominator. No float percentage or rounded adequacy score is emitted. The delivery scope and period must exactly match the target scope and period; cross-scope or cross-period comparisons block. The target must be independently sourced for that scope and interval; this function does not derive dietary requirements or check whether the target is clinically appropriate for individuals.
 
 ## Claim ceiling
 
