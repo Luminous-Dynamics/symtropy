@@ -40,6 +40,9 @@ const FORECAST_KEYS: &[&str] = &[
     "freshness_policy_id",
 ];
 const QUALITY_KEYS: &[&str] = &["status", "uncertainty_statement"];
+const BINDING_PATH: &str = "forecast_profile.receipt_binding";
+const FORECAST_PATH: &str = "forecast_profile.forecast";
+const QUALITY_PATH: &str = "forecast_profile.quality";
 const USE_KEYS: &[&str] = &[
     "scenario_analysis_only",
     "navigation_authorized",
@@ -158,11 +161,13 @@ fn validate_and_evaluate(
         return Err("forecast_profile.source_kind does not match bound receipt".to_owned());
     }
     if facts.product != "water_level_prediction" || facts.domain != "water_level_prediction" {
-        return Err("forecast applicability profile requires a water_level_prediction receipt".to_owned());
+        return Err(
+            "forecast applicability profile requires a water_level_prediction receipt".to_owned(),
+        );
     }
 
     let binding = super::field(profile, "receipt_binding", "forecast_profile")?;
-    super::exact_keys(binding, BINDING_KEYS, "forecast_profile.receipt_binding")?;
+    super::exact_keys(binding, BINDING_KEYS, BINDING_PATH)?;
     let receipt_id = text_field(binding, "receipt_id", "forecast_profile.receipt_binding")?;
     let declared_receipt_sha = text_field(binding, "receipt_sha256", "forecast_profile.receipt_binding")?;
     let declared_artifact_sha = text_field(binding, "artifact_sha256", "forecast_profile.receipt_binding")?;
@@ -182,7 +187,7 @@ fn validate_and_evaluate(
     }
 
     let forecast = super::field(profile, "forecast", "forecast_profile")?;
-    super::exact_keys(forecast, FORECAST_KEYS, "forecast_profile.forecast")?;
+    super::exact_keys(forecast, FORECAST_KEYS, FORECAST_PATH)?;
     let product_kind = text_field(forecast, "product_kind", "forecast_profile.forecast")?.to_owned();
     let provider_product_id = text_field(forecast, "provider_product_id", "forecast_profile.forecast")?.to_owned();
     let dataset_id = text_field(forecast, "dataset_id", "forecast_profile.forecast")?.to_owned();
@@ -205,20 +210,27 @@ fn validate_and_evaluate(
     let freshness_policy_id = text_field(forecast, "freshness_policy_id", "forecast_profile.forecast")?.to_owned();
 
     if product_kind != facts.product.as_str() {
-        return Err("forecast_profile.forecast.product_kind does not match receipt product kind".to_owned());
+        return Err(
+            "forecast_profile.forecast.product_kind does not match receipt product kind".to_owned(),
+        );
     }
     if dataset_id != facts.dataset_id || dataset_revision != facts.dataset_revision {
         return Err("forecast profile dataset ID/revision does not match bound receipt".to_owned());
     }
-    if !pinned_identifier(&provider_product_id) || !pinned_identifier(&dataset_revision) || !pinned_identifier(&model_run_id) {
-        return Err("forecast profile requires pinned dataset revision and model-run identity".to_owned());
+    if !pinned_identifier(&provider_product_id)
+        || !pinned_identifier(&dataset_revision)
+        || !pinned_identifier(&model_run_id)
+    {
+        return Err(
+            "forecast profile requires pinned dataset revision and model-run identity".to_owned(),
+        );
     }
     if max_issue_age == 0 || max_forecast_lead == 0 {
         return Err("forecast policy bounds must be positive integers".to_owned());
     }
 
     let quality = super::field(profile, "quality", "forecast_profile")?;
-    super::exact_keys(quality, QUALITY_KEYS, "forecast_profile.quality")?;
+    super::exact_keys(quality, QUALITY_KEYS, QUALITY_PATH)?;
     let quality_status = text_field(quality, "status", "forecast_profile.quality")?;
     let uncertainty_statement = text_field(quality, "uncertainty_statement", "forecast_profile.quality")?;
     if !["prediction", "synthetic", "unknown"].contains(&quality_status) {
@@ -231,24 +243,44 @@ fn validate_and_evaluate(
         return Err("public dataset cannot claim synthetic quality status".to_owned());
     }
     if uncertainty_statement != facts.uncertainty_statement {
-        return Err("forecast profile uncertainty statement does not match bound receipt".to_owned());
+        return Err(
+            "forecast profile uncertainty statement does not match bound receipt".to_owned(),
+        );
     }
 
     let intended = super::field(profile, "intended_use", "forecast_profile")?;
     super::exact_keys(intended, USE_KEYS, "forecast_profile.intended_use")?;
-    if !super::bool_value(super::field(intended, "scenario_analysis_only", "intended_use")?, "intended_use.scenario_analysis_only")? {
+    let scenario_only = super::bool_value(
+        super::field(intended, "scenario_analysis_only", "intended_use")?,
+        "intended_use.scenario_analysis_only",
+    )?;
+    if !scenario_only {
         return Err("scenario_analysis_only must remain true".to_owned());
     }
-    for key in ["navigation_authorized", "physical_truth_claim_authorized", "berth_availability_inference_authorized"] {
-        if super::bool_value(super::field(intended, key, "intended_use")?, &format!("intended_use.{key}"))? {
+    for key in [
+        "navigation_authorized",
+        "physical_truth_claim_authorized",
+        "berth_availability_inference_authorized",
+    ] {
+        if super::bool_value(
+            super::field(intended, key, "intended_use")?,
+            &format!("intended_use.{key}"),
+        )? {
             return Err(format!("intended_use.{key} must remain false"));
         }
     }
-    if !super::bool_value(super::field(intended, "independent_review_required", "intended_use")?, "intended_use.independent_review_required")? {
+    let independent_review_required = super::bool_value(
+        super::field(intended, "independent_review_required", "intended_use")?,
+        "intended_use.independent_review_required",
+    )?;
+    if !independent_review_required {
         return Err("independent_review_required must remain true".to_owned());
     }
 
-    let init_seconds = timestamp_seconds(&model_initialization_time, "model_initialization_time_utc")?;
+    let init_seconds = timestamp_seconds(
+        &model_initialization_time,
+        "model_initialization_time_utc",
+    )?;
     let issue_seconds = timestamp_seconds(&issued_at, "issued_at_utc")?;
     let assessment_seconds = timestamp_seconds(&assessment_time, "assessment_time_utc")?;
     let target_seconds = timestamp_seconds(&target_time, "target_time_utc")?;
@@ -265,7 +297,9 @@ fn validate_and_evaluate(
     if facts.time_coverage_start_utc.as_deref() != Some(valid_from.as_str())
         || facts.time_coverage_end_utc.as_deref() != Some(valid_until.as_str())
     {
-        return Err("forecast valid interval does not match the receipt coverage interval".to_owned());
+        return Err(
+            "forecast valid interval does not match the receipt coverage interval".to_owned(),
+        );
     }
 
     let issue_age = (issue_seconds <= assessment_seconds)
@@ -516,8 +550,10 @@ mod tests {
             "62d4f04259b3beaf0c462038317a9863e7ebc3e79509a9d44f13c08326778fd2";
         const ARTIFACT_SHA256: &str =
             "45dbbb8cabb009dfaf17b697f24aec156b9baaae0a5dc29dcbce20023c02f714";
-        const UNCERTAINTY: &str =
-            "Invented forecast values for temporal applicability tests only; no observation or forecast skill claim.";
+        const UNCERTAINTY: &str = concat!(
+            "Invented forecast values for temporal applicability tests only; ",
+            "no observation or forecast skill claim."
+        );
 
         if oracle_text(profile, "schema_id")
             != Some("luminous.symtropy.maritime-forecast-applicability")
@@ -603,8 +639,10 @@ mod tests {
             || target < valid_from
             || target > valid_until
             || target < init
-            || assessment - issue > oracle_uint(profile, "forecast.max_issue_age_seconds").unwrap_or(0) as i64
-            || target - init > oracle_uint(profile, "forecast.max_forecast_lead_seconds").unwrap_or(0) as i64
+            || assessment - issue
+                > oracle_uint(profile, "forecast.max_issue_age_seconds").unwrap_or(0) as i64
+            || target - init
+                > oracle_uint(profile, "forecast.max_forecast_lead_seconds").unwrap_or(0) as i64
             || oracle_text(profile, "quality.status") == Some("unknown")
         {
             return "INDETERMINATE_NOT_ADMITTED";
@@ -721,7 +759,8 @@ mod tests {
     fn independent_oracle_recomputes_time_age_and_forecast_lead() {
         let profile = base_profile();
         let forecast = &profile["forecast"];
-        let init = oracle_epoch_seconds(forecast["model_initialization_time_utc"].as_str().unwrap());
+        let init =
+            oracle_epoch_seconds(forecast["model_initialization_time_utc"].as_str().unwrap());
         let issue = oracle_epoch_seconds(forecast["issued_at_utc"].as_str().unwrap());
         let assessment = oracle_epoch_seconds(forecast["assessment_time_utc"].as_str().unwrap());
         let target = oracle_epoch_seconds(forecast["target_time_utc"].as_str().unwrap());
