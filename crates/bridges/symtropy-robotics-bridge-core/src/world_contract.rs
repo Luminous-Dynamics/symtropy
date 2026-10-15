@@ -685,8 +685,7 @@ impl WorldManifestV1 {
                             provider_artifact_id,
                             ..
                         } = &frame.transform_to_parent
-                        && provider_artifact_id.as_str()
-                            != platform.kinematics.artifact_id.as_str()
+                        && provider_artifact_id.as_str() != platform.kinematics.artifact_id.as_str()
                     {
                         kinematic_providers_match = false;
                     }
