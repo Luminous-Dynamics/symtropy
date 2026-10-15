@@ -894,7 +894,7 @@ fn validate_claim_ceiling(root: &JsonValue) -> Result<(), String> {
     Ok(())
 }
 
-fn fixture_map<'a>(root: &'a JsonValue) -> Result<BTreeMap<String, &'a JsonValue>, String> {
+fn fixture_map(root: &JsonValue) -> Result<BTreeMap<String, &JsonValue>, String> {
     let values = array(field(root, "fixtures", "root")?, "fixtures")?;
     if values.len() != CASE_IDS.len() {
         return Err(format!(
@@ -950,9 +950,7 @@ fn verify_case(
     let path = format!("fixture.{case_id}");
     let inputs = field(fixture, "inputs", &path)?;
     let expected = field(fixture, "expected", &path)?;
-    let disposition;
-
-    match case_id {
+    let disposition = match case_id {
         "baseline-declared-envelope-and-energy" => {
             exact_keys(
                 inputs,
@@ -1053,11 +1051,11 @@ fn verify_case(
                 "baseline.expected.regulatory_approval",
                 false,
             )?;
-            disposition = if fits && energy_ok {
+            if fits && energy_ok {
                 "PassDeclaredChecksOnly"
             } else {
                 "Infeasible"
-            };
+            }
         }
         "vessel-exceeds-berth-length" => {
             exact_keys(
@@ -1130,7 +1128,7 @@ fn verify_case(
                 "oversize.expected.silent_fallback_allowed",
                 false,
             )?;
-            disposition = "Infeasible";
+            "Infeasible"
         }
         "charging-interruption-energy-shortfall" => {
             exact_keys(
@@ -1230,7 +1228,7 @@ fn verify_case(
                         .to_owned(),
                 );
             }
-            disposition = "Infeasible";
+            "Infeasible"
         }
         "stale-configuration-currentness" => {
             exact_keys(
@@ -1273,7 +1271,7 @@ fn verify_case(
                 "stale.expected.prior_result_may_be_carried_forward",
                 false,
             )?;
-            disposition = "Indeterminate";
+            "Indeterminate"
         }
         "unsupported-nuclear-thermal-hydraulics-request" => {
             exact_keys(
@@ -1310,7 +1308,7 @@ fn verify_case(
                 "unsupported.expected.nuclear_safety_claim_allowed",
                 false,
             )?;
-            disposition = "Unsupported";
+            "Unsupported"
         }
         "floating-site-backup-deficit" => {
             exact_keys(
@@ -1363,10 +1361,10 @@ fn verify_case(
                         .to_owned(),
                 );
             }
-            disposition = "ServiceDeficit";
+            "ServiceDeficit"
         }
         _ => return Err(format!("{path}: unknown case id")),
-    }
+    };
 
     let expected_value = expected_disposition(expected, &format!("{path}.expected"))?;
     if expected_value != disposition {
