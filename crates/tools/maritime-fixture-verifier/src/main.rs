@@ -753,7 +753,11 @@ fn validate_claim_ceiling(root: &JsonValue) -> Result<(), String> {
         "SanitizedSyntheticSpecification",
     )?;
     expect_bool(
-        field(security, "site_specific_security_plan_required_in_public_artifact", "security_and_privacy")?,
+        field(
+            security,
+            "site_specific_security_plan_required_in_public_artifact",
+            "security_and_privacy",
+        )?,
         "security_and_privacy.site_specific_security_plan_required_in_public_artifact",
         false,
     )?;
@@ -959,7 +963,9 @@ fn verify_case(
                 "berth.maximum_length",
             )?;
             if length <= max_length {
-                return Err("oversize fixture no longer exceeds its declared berth length".to_owned());
+                return Err(
+                    "oversize fixture no longer exceeds its declared berth length".to_owned(),
+                );
             }
             expect_text(
                 field(expected, "failed_constraint", &path)?,
@@ -1020,7 +1026,9 @@ fn verify_case(
                 "charging.efficiency",
             )?;
             if !(0.0..=1.0).contains(&efficiency) {
-                return Err("charging.efficiency must be in the inclusive [0, 1] interval".to_owned());
+                return Err(
+                    "charging.efficiency must be in the inclusive [0, 1] interval".to_owned(),
+                );
             }
             if efficiency != 0.9 {
                 return Err("charging.efficiency: frozen v0.1.0 value changed".to_owned());
@@ -1064,7 +1072,10 @@ fn verify_case(
                 "DepartureEnergyBelowRoutePlusReserve",
             )?;
             if available >= required {
-                return Err("charging fixture no longer demonstrates a reserve-inclusive energy shortfall".to_owned());
+                return Err(
+                    "charging fixture no longer demonstrates a reserve-inclusive energy shortfall"
+                        .to_owned(),
+                );
             }
             disposition = "Infeasible";
         }
@@ -1088,7 +1099,9 @@ fn verify_case(
                 "stale.current_asset_configuration_revision",
             )?;
             if run != "config-001" || current != "config-002" || run == current {
-                return Err("stale configuration fixture identity changed or mismatch vanished".to_owned());
+                return Err(
+                    "stale configuration fixture identity changed or mismatch vanished".to_owned(),
+                );
             }
             expect_text(
                 field(expected, "reason", &path)?,
@@ -1185,7 +1198,10 @@ fn verify_case(
                 false,
             )?;
             if deficit <= 0.0 {
-                return Err("floating-site fixture no longer represents an instantaneous service deficit".to_owned());
+                return Err(
+                    "floating-site fixture no longer represents an instantaneous service deficit"
+                        .to_owned(),
+                );
             }
             disposition = "ServiceDeficit";
         }
@@ -1231,7 +1247,8 @@ fn parse_strict(raw: &[u8]) -> Result<JsonValue, String> {
         return Err(format!("input exceeds the {}-byte safety bound", MAX_INPUT_BYTES));
     }
     let mut deserializer = serde_json::Deserializer::from_slice(raw);
-    let value = JsonValue::deserialize(&mut deserializer).map_err(|error| format!("invalid JSON: {error}"))?;
+    let value = JsonValue::deserialize(&mut deserializer)
+        .map_err(|error| format!("invalid JSON: {error}"))?;
     deserializer.end().map_err(|error| format!("trailing JSON data: {error}"))?;
     Ok(value)
 }
@@ -1387,7 +1404,13 @@ mod tests {
     #[test]
     fn duplicate_fixture_id_is_rejected() {
         expect_rejected(
-            |raw| raw.replacen("vessel-exceeds-berth-length", "baseline-declared-envelope-and-energy", 1),
+            |raw| {
+                raw.replacen(
+                    "vessel-exceeds-berth-length",
+                    "baseline-declared-envelope-and-energy",
+                    1,
+                )
+            },
             "duplicate fixture identifier",
         );
     }
