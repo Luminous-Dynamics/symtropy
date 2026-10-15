@@ -7,7 +7,9 @@
 //! It enumerates a bounded Pareto frontier for one demand at a time. A separate
 //! bounded batch selector can assign explicit per-demand route candidates while
 //! conserving shared static edge capacity, but it does not split demands or prove
-//! candidate-pool completeness. General multi-commodity flow, timetable capacity,
+//! candidate-pool completeness. A separate batch-report verifier recomputes route
+//! facts, aggregate metrics, shared-edge conservation, and scope consistency; it
+//! does not independently certify optimality. General multi-commodity flow, timetable capacity,
 //! capital planning, stochastic scenarios, and live data integration remain future
 //! work. Test costs are synthetic illustrations, not local tariffs or measurements.
 //!
@@ -21,6 +23,8 @@ use std::fmt;
 
 mod batch_allocation;
 pub use batch_allocation::*;
+mod batch_verifier;
+pub use batch_verifier::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
