@@ -4,6 +4,7 @@
 **Parent issue:** [MARITIME-SIM-001 #1612](https://github.com/Luminous-Dynamics/symtropy/issues/1612)  
 **Related engineering contract:** [ENG-SYNTH #1172](https://github.com/Luminous-Dynamics/symtropy/issues/1172), [ENG-SYNTH-CRED #1173](https://github.com/Luminous-Dynamics/symtropy/issues/1173), [ENG-SYNTH-TWIN #1467](https://github.com/Luminous-Dynamics/symtropy/issues/1467)
 **Independent oracle contract:** [MARITIME_FLOATING_SITE_ORACLE_V0_1.md](./MARITIME_FLOATING_SITE_ORACLE_V0_1.md)
+**Independent Rust verifier:** [`maritime-fixture-verifier`](../../crates/tools/maritime-fixture-verifier/README.md), which validates this frozen data contract only.
 
 ## Purpose
 
@@ -58,6 +59,12 @@ The companion machine-readable file includes:
 4. stale configuration/evidence must return indeterminate rather than inherit the baseline result;
 5. a request for nuclear thermal-hydraulic or other unsupported physics must return unsupported, not be approximated by rigid-body mechanics;
 6. floating-site supply interruption reveals the stated abstract essential-load deficit.
+
+## Independent data verifier
+
+A standalone Rust verifier now checks the frozen v0.1.0 artifact, independently derives the six expected dispositions, rejects duplicate JSON object keys and schema drift, and emits a report bound to the exact raw-input SHA-256 digest and supplied source commit. It has hostile/reference unit tests and a dedicated CI workflow.
+
+This verifier does not instantiate Symtropy's physics engine. A verifier success means contract/arithmetic consistency for this synthetic document only; it does not admit `EngineeringDeterministic`, qualify a physics model, or provide physical evidence.
 
 ## Execution and provenance gate
 
