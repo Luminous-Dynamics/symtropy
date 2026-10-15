@@ -504,21 +504,53 @@ mod tests {
         assert!(evaluate_value(&profile).is_err());
     }
 
+    // Independent test-only Gregorian conversion. It intentionally does not call
+    // the production timestamp parser or epoch conversion.
+    fn oracle_epoch_seconds(value: &str) -> i64 {
+        assert_eq!(value.len(), 20, "canonical UTC timestamp length");
+        assert_eq!(&value[19..20], "Z");
+        let year = value[0..4].parse::<i64>().unwrap();
+        let month = value[5..7].parse::<i64>().unwrap();
+        let day = value[8..10].parse::<i64>().unwrap();
+        let hour = value[11..13].parse::<i64>().unwrap();
+        let minute = value[14..16].parse::<i64>().unwrap();
+        let second = value[17..19].parse::<i64>().unwrap();
+        assert!(year >= 1970 && (1..=12).contains(&month) && (1..=31).contains(&day));
+        let leap = |y: i64| y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
+        let mut days = 0_i64;
+        for y in 1970..year {
+            days += if leap(y) { 366 } else { 365 };
+        }
+        for m in 1..month {
+            days += match m {
+                1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+                4 | 6 | 9 | 11 => 30,
+                2 if leap(year) => 29,
+                2 => 28,
+                _ => unreachable!(),
+            };
+        }
+        days += day - 1;
+        days * 86_400 + hour * 3_600 + minute * 60 + second
+    }
+
     #[test]
     fn independent_oracle_recomputes_time_age_and_forecast_lead() {
         let profile = base_profile();
         let forecast = &profile["forecast"];
-        let init = timestamp_seconds(forecast["model_initialization_time_utc"].as_str().unwrap(), "init").unwrap();
-        let issue = timestamp_seconds(forecast["issued_at_utc"].as_str().unwrap(), "issue").unwrap();
-        let assessment = timestamp_seconds(forecast["assessment_time_utc"].as_str().unwrap(), "assessment").unwrap();
-        let target = timestamp_seconds(forecast["target_time_utc"].as_str().unwrap(), "target").unwrap();
+        let init = oracle_epoch_seconds(forecast["model_initialization_time_utc"].as_str().unwrap());
+        let issue = oracle_epoch_seconds(forecast["issued_at_utc"].as_str().unwrap());
+        let assessment = oracle_epoch_seconds(forecast["assessment_time_utc"].as_str().unwrap());
+        let target = oracle_epoch_seconds(forecast["target_time_utc"].as_str().unwrap());
+        let valid_from = oracle_epoch_seconds(forecast["valid_from_utc"].as_str().unwrap());
+        let valid_until = oracle_epoch_seconds(forecast["valid_until_utc"].as_str().unwrap());
         let max_age = forecast["max_issue_age_seconds"].as_u64().unwrap();
         let max_lead = forecast["max_forecast_lead_seconds"].as_u64().unwrap();
         let oracle_pass = init <= issue
             && issue <= assessment
             && target >= assessment
-            && target >= timestamp_seconds(forecast["valid_from_utc"].as_str().unwrap(), "valid_from").unwrap()
-            && target <= timestamp_seconds(forecast["valid_until_utc"].as_str().unwrap(), "valid_until").unwrap()
+            && target >= valid_from
+            && target <= valid_until
             && (assessment - issue) as u64 <= max_age
             && (target - init) as u64 <= max_lead
             && profile["quality"]["status"] == "synthetic";
