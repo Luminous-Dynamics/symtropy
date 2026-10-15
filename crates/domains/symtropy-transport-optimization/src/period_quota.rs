@@ -170,8 +170,7 @@ fn validate_period_quota(
     if valid_from >= valid_until {
         return Err(PeriodCapacityError::InvalidValidityInterval);
     }
-    if valid_from > quota.period_start_epoch_seconds
-        || valid_until < quota.period_end_epoch_seconds
+    if valid_from > quota.period_start_epoch_seconds || valid_until < quota.period_end_epoch_seconds
     {
         return Err(PeriodCapacityError::PeriodNotCoveredByEvidence);
     }
@@ -181,9 +180,8 @@ fn validate_period_quota(
     if observed > latest_accepted_time || recorded > latest_accepted_time {
         return Err(PeriodCapacityError::TimestampInFuture);
     }
-    if evaluation_time_epoch_seconds.saturating_sub(observed)
-        > policy.max_observation_age_seconds
-    {
+    if evaluation_time_epoch_seconds.saturating_sub(observed) > policy.max_observation_age_seconds {
+
         return Err(PeriodCapacityError::ObservationTooOld);
     }
     if observed
@@ -193,9 +191,7 @@ fn validate_period_quota(
     {
         return Err(PeriodCapacityError::TimestampInFuture);
     }
-    if quota
-        .period_start_epoch_seconds
-        .saturating_sub(observed)
+    if quota.period_start_epoch_seconds.saturating_sub(observed)
         > policy.max_observation_age_seconds
     {
         return Err(PeriodCapacityError::ObservationTooOldAtPeriodStart);
@@ -228,10 +224,8 @@ pub fn validate_period_capacity_plan(
         (CargoTransferCapacityResourceKind, String),
         Vec<(u64, u64, String)>,
     > = BTreeMap::new();
-    let mut units_by_resource: BTreeMap<
-        (CargoTransferCapacityResourceKind, String),
-        QuantityUnit,
-    > = BTreeMap::new();
+    let mut units_by_resource: BTreeMap<(CargoTransferCapacityResourceKind, String), QuantityUnit> =
+        BTreeMap::new();
 
     for quota in quotas {
         validate_period_quota(quota, evaluation_time_epoch_seconds, policy)?;
@@ -247,21 +241,16 @@ pub fn validate_period_capacity_plan(
         {
             return Err(PeriodCapacityError::CapacityUnitMismatch);
         }
-        periods_by_resource
-            .entry(resource_key)
-            .or_default()
-            .push((
-                quota.period_start_epoch_seconds,
-                quota.period_end_epoch_seconds,
-                evidence.budget_id.clone(),
-            ));
+        periods_by_resource.entry(resource_key).or_default().push((
+            quota.period_start_epoch_seconds,
+            quota.period_end_epoch_seconds,
+            evidence.budget_id.clone(),
+        ));
         quotas_by_id.insert(evidence.budget_id.clone(), quota);
     }
 
     for periods in periods_by_resource.values_mut() {
-        periods.sort_by(|left, right| {
-            (left.0, left.1, &left.2).cmp(&(right.0, right.1, &right.2))
-        });
+        periods.sort_by(|left, right| (left.0, left.1, &left.2).cmp(&(right.0, right.1, &right.2)));
         for pair in periods.windows(2) {
             if pair[1].0 < pair[0].1 {
                 return Err(PeriodCapacityError::AmbiguousQuotaEvidence);
@@ -460,10 +449,7 @@ mod tests {
         assert_eq!(report.receipts[0].quota_id, "next-day");
         assert_eq!(report.receipts[0].capacity_units_used, 7);
         assert_eq!(report.receipts[0].capacity_units_limit, 10);
-        assert_eq!(
-            report.receipts[0].authority_id,
-            "infra-manager".to_owned()
-        );
+        assert_eq!(report.receipts[0].authority_id, "infra-manager".to_owned());
         assert_eq!(
             report.receipts[0].authority_profile_id,
             "rail-capacity-v1".to_owned()
@@ -541,7 +527,10 @@ mod tests {
             quota("period-a", "edge-a", "daily", 200, 300, 10),
             quota("period-b", "edge-a", "daily", 300, 400, 12),
         ];
-        let uses = vec![use_of("use-a", "period-a", 10), use_of("use-b", "period-b", 12)];
+        let uses = vec![
+            use_of("use-a", "period-a", 10),
+            use_of("use-b", "period-b", 12),
+        ];
         assert!(validate_period_capacity_plan(&uses, &quotas, 100, &policy()).is_ok());
     }
 
@@ -599,7 +588,10 @@ mod tests {
         );
         assert_eq!(
             validate_period_capacity_plan(
-                &[use_of("same-id", "quota-a", 1), use_of("same-id", "quota-a", 1)],
+                &[
+                    use_of("same-id", "quota-a", 1),
+                    use_of("same-id", "quota-a", 1)
+                ],
                 &[q.clone()],
                 100,
                 &policy(),
