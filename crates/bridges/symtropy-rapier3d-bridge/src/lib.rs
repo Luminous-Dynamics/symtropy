@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use ::nalgebra::SVector;
-use bevy::prelude::{Component, Resource};
+use bevy::prelude::{Component, Resource, Vec3};
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::contact::CollisionEvent;
