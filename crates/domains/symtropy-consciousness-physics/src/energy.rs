@@ -150,11 +150,19 @@ impl EnergyBudget {
             return 0.0;
         }
 
-        let actual = amount.min(self.available);
+        let requested = amount.min(self.available);
+        if requested <= 0.0 || !requested.is_finite() {
+            return 0.0;
+        }
+        let new_available = (self.available - requested).max(0.0);
+        // Account the representable state change, not the request. If the
+        // request is below the reservoir's ULP, subtraction may round back to
+        // the original available value; charging telemetry for that transfer
+        // would create energy from nowhere across repeated small operations.
+        let actual = self.available - new_available;
         if actual <= 0.0 || !actual.is_finite() {
             return 0.0;
         }
-        let new_available = (self.available - actual).max(0.0);
         let new_consumed_this_tick = self.consumed_this_tick + actual;
         let new_lifetime_consumed = self.lifetime_consumed + actual;
         let entropy_increment = actual / self.temperature;
@@ -245,16 +253,23 @@ impl EnergyBudget {
         }
 
         let headroom = self.max_energy - self.available;
-        let actual = amount.min(headroom);
-        if !actual.is_finite() || actual <= 0.0 {
+        let requested = amount.min(headroom);
+        if !requested.is_finite() || requested <= 0.0 {
             return;
         }
-        let new_available = self.available + actual;
-        let new_regenerated_this_tick = self.regenerated_this_tick + actual;
-        if !new_available.is_finite()
+        let new_available = self.available + requested;
+        // Mirror consumption: telemetry records only the amount represented in
+        // the new reservoir value, not a positive request rounded away by f64.
+        let actual = new_available - self.available;
+        if !actual.is_finite()
+            || actual <= 0.0
+            || !new_available.is_finite()
             || new_available > self.max_energy
-            || !new_regenerated_this_tick.is_finite()
         {
+            return;
+        }
+        let new_regenerated_this_tick = self.regenerated_this_tick + actual;
+        if !new_regenerated_this_tick.is_finite() {
             return;
         }
 
@@ -354,6 +369,19 @@ mod tests {
     }
 
     #[test]
+    fn sub_ulp_consumption_is_not_reported_when_reservoir_does_not_change() {
+        let mut budget = EnergyBudget::new(100.0);
+        let before = budget.available;
+        let tiny = f64::EPSILON / 4.0;
+
+        assert_eq!(budget.consume(tiny), 0.0);
+        assert_eq!(budget.available, before);
+        assert_eq!(budget.consumed_this_tick, 0.0);
+        assert_eq!(budget.lifetime_consumed, 0.0);
+        assert_eq!(budget.entropy, 0.0);
+    }
+
+    #[test]
     fn consume_fails_closed_if_public_state_has_become_invalid() {
         let mut budget = EnergyBudget::new(100.0);
         budget.available = f64::NAN;
@@ -403,6 +431,19 @@ mod tests {
         assert_eq!(budget.available, 100.0);
         assert_eq!(budget.regenerated_this_tick, 80.0);
         assert_eq!(budget.net_flow_this_tick(), 80.0);
+    }
+
+    #[test]
+    fn sub_ulp_regeneration_is_not_reported_when_reservoir_does_not_change() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.consume(1.0);
+        budget.tick_reset();
+        let before = budget.available;
+        let tiny = f64::EPSILON / 4.0;
+
+        budget.regenerate(tiny);
+        assert_eq!(budget.available, before);
+        assert_eq!(budget.regenerated_this_tick, 0.0);
     }
 
     #[test]
