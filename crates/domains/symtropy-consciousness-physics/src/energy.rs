@@ -16,6 +16,7 @@ pub enum EnergyBudgetError {
     InvalidCapacity,
     InvalidEnergyAmount,
     InvalidState,
+    UnrepresentableTransfer,
     NumericalOverflow,
 }
 
@@ -25,6 +26,9 @@ impl std::fmt::Display for EnergyBudgetError {
             Self::InvalidCapacity => write!(f, "energy capacity must be finite and nonnegative"),
             Self::InvalidEnergyAmount => write!(f, "energy input must be finite and positive"),
             Self::InvalidState => write!(f, "energy budget state is outside its valid domain"),
+            Self::UnrepresentableTransfer => {
+                write!(f, "energy transfer is too small to represent in the thermal state")
+            }
             Self::NumericalOverflow => write!(f, "energy transfer produced a non-finite result"),
         }
     }
@@ -220,6 +224,9 @@ impl EnergyBudget {
             || !new_entropy.is_finite()
         {
             return Err(EnergyBudgetError::NumericalOverflow);
+        }
+        if temperature_rise <= 0.0 || new_temperature <= self.temperature {
+            return Err(EnergyBudgetError::UnrepresentableTransfer);
         }
 
         self.temperature = new_temperature;
@@ -501,6 +508,20 @@ mod tests {
         assert!((budget.temperature - 311.0).abs() < 1e-12);
         let exact_entropy_change = heat_capacity * (budget.temperature / initial_temperature).ln();
         assert!((budget.entropy - exact_entropy_change).abs() < 1e-12);
+    }
+
+    #[test]
+    fn unrepresentable_heat_transfer_is_rejected_without_state_mutation() {
+        let mut budget = EnergyBudget::new(100.0);
+        let temperature = budget.temperature;
+        let entropy = budget.entropy;
+
+        assert_eq!(
+            budget.try_dissipate_heat(f64::MIN_POSITIVE),
+            Err(EnergyBudgetError::UnrepresentableTransfer)
+        );
+        assert_eq!(budget.temperature, temperature);
+        assert_eq!(budget.entropy, entropy);
     }
 
     #[test]
