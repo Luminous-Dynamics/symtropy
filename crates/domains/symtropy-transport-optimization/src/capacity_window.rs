@@ -37,10 +37,6 @@ impl OperationWindowV1 {
         Ok(())
     }
 
-    fn overlaps(&self, other: &Self) -> bool {
-        self.planned_start_epoch_seconds < other.planned_end_epoch_seconds
-            && other.planned_start_epoch_seconds < self.planned_end_epoch_seconds
-    }
 }
 
 /// Policy is explicit input: the validator does not read a system clock or
@@ -1319,7 +1315,7 @@ mod tests {
             90,
         );
         assert_eq!(
-            plan(&[valid.clone()], &[ev.clone(), unused], 100, 100),
+            plan(std::slice::from_ref(&valid), &[ev.clone(), unused], 100, 100),
             Err(ScheduledCapacityPlanError::UnreferencedEvidence)
         );
 
