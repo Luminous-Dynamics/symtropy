@@ -334,11 +334,19 @@ fn verify_receipt_semantics(
     let profile_units = member(coverage, "measurement_units")?
         .as_array()
         .ok_or("INVALID_FIELD_TYPE")?;
+    if profile_units.len() != facts.units.len() {
+        return Err("RECEIPT_UNITS_MISMATCH");
+    }
     for unit in profile_units {
         let unit = unit.as_str().ok_or("INVALID_FIELD_TYPE")?;
         if !facts.units.iter().any(|source_unit| source_unit == unit) {
             return Err("RECEIPT_UNITS_MISMATCH");
         }
+    }
+
+    let quality = member(profile, "quality")?;
+    if text(quality, "statement")? != facts.uncertainty_statement {
+        return Err("RECEIPT_QUALITY_STATEMENT_MISMATCH");
     }
 
     let temporal = member(profile, "temporal")?;
