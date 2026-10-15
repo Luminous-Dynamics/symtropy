@@ -514,8 +514,59 @@ fn analytical_free_fall_position_error_converges_for_both_engines() {
     );
 }
 
+fn assert_first_order_convergence(backend: &str, observations: &[(f64, f64)]) {
+    assert_eq!(observations.len(), 3);
+    for pair in observations.windows(2) {
+        let (coarse_dt, coarse_error) = pair[0];
+        let (fine_dt, fine_error) = pair[1];
+        assert!(
+            coarse_error.is_finite()
+                && fine_error.is_finite()
+                && coarse_error > 0.0
+                && fine_error > 0.0,
+            "{backend} produced an invalid analytical error pair: coarse={coarse_error}, fine={fine_error}"
+        );
+        let observed_order = (coarse_error / fine_error).ln() / (coarse_dt / fine_dt).ln();
+        assert!(
+            (observed_order - 1.0).abs() <= 0.2,
+            "{backend} free-fall error order deviated from the declared first-order expectation: dt {coarse_dt}->{fine_dt}, error {coarse_error}->{fine_error}, observed order={observed_order}"
+        );
+    }
+}
+
 #[test]
-fn native_and_rapier_keep_a_sphere_near_resting_contact() {
+fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
+    // The semi-implicit stepping path has first-order position error on this
+    // constant-acceleration fixture. Three timestep levels let us estimate the
+    // observed order instead of merely checking that one error is smaller.
+    let native_observations: Vec<_> = [0.04, 0.02, 0.01]
+        .into_iter()
+        .map(|dt_s| {
+            let scenario = free_fall_at_dt(dt_s);
+            let trace = run_native_scenario_3d(&scenario).unwrap();
+            (
+                dt_s,
+                analytical_free_fall_position_error(&scenario, &trace),
+            )
+        })
+        .collect();
+    assert_first_order_convergence("native", &native_observations);
+
+    let rapier_observations: Vec<_> = [0.04, 0.02, 0.01]
+        .into_iter()
+        .map(|dt_s| {
+            let scenario = free_fall_at_dt(dt_s);
+            let trace = run_rapier_scenario_3d(&scenario).unwrap();
+            (
+                dt_s,
+                analytical_free_fall_position_error(&scenario, &trace),
+            )
+        })
+        .collect();
+    assert_first_order_convergence("Rapier", &rapier_observations);
+}
+
+ {
     let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
     for (backend, trace) in [
         ("native", run_native_scenario_3d(&scenario).unwrap()),
