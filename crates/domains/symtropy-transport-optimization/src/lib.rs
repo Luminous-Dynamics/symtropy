@@ -4,11 +4,12 @@
 //! Deterministic, unit-checked reference model for multimodal route trade-offs.
 //!
 //! This is a planning/research primitive, not an autonomous dispatch controller.
-//! It enumerates a bounded Pareto frontier for one demand at a time. Edge
-//! capacity is checked for each request, but simultaneous multi-demand capacity
-//! allocation, timetables, capital planning, stochastic scenarios, and live data
-//! integration are intentionally future work. Test costs are synthetic illustrations, not local
-//! tariffs or operational measurements.
+//! It enumerates a bounded Pareto frontier for one demand at a time. A separate
+//! bounded batch selector can assign explicit per-demand route candidates while
+//! conserving shared static edge capacity, but it does not split demands or prove
+//! candidate-pool completeness. General multi-commodity flow, timetable capacity,
+//! capital planning, stochastic scenarios, and live data integration remain future
+//! work. Test costs are synthetic illustrations, not local tariffs or measurements.
 //!
 //! Every edge metric is non-negative and expressed per demand unit, except
 //! distance and elapsed time, which describe the route. Monetary fields use
