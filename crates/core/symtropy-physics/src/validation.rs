@@ -315,7 +315,10 @@ pub enum TraceComparisonError {
     ScenarioMismatch,
     SampleCountMismatch,
     EmptyTrace,
-    InvalidSampleSequence { backend: String, sample_index: usize },
+    InvalidSampleSequence {
+        backend: String,
+        sample_index: usize,
+    },
     SampleStepMismatch {
         left: u64,
         right: u64,
