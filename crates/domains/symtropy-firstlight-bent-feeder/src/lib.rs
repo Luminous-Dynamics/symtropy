@@ -162,19 +162,19 @@ impl ActionBlockReason {
     fn into_error(&self) -> BentFeederError {
         match self {
             Self::OperationComplete => BentFeederError::AlreadyComplete,
-            Self::WorkPerimeterRequired => BentFeederError::UnsafeSequence(
-                "establish the work perimeter before feeder work",
-            ),
+            Self::WorkPerimeterRequired => {
+                BentFeederError::UnsafeSequence("establish the work perimeter before feeder work")
+            }
             Self::IsolationRequired => {
                 BentFeederError::UnsafeSequence("isolate upstream before this action")
             }
-            Self::DeEnergizedVerificationRequired => BentFeederError::UnsafeSequence(
-                "verify the conductors de-energized before repair",
-            ),
+            Self::DeEnergizedVerificationRequired => {
+                BentFeederError::UnsafeSequence("verify the conductors de-energized before repair")
+            }
             Self::MissingPart(part) => BentFeederError::MissingPart(part.clone()),
-            Self::VerifiedIsolationRequired => BentFeederError::UnsafeSequence(
-                "test requires a verified isolation history",
-            ),
+            Self::VerifiedIsolationRequired => {
+                BentFeederError::UnsafeSequence("test requires a verified isolation history")
+            }
             Self::RepairOrBypassRequired => BentFeederError::UnsafeSequence(
                 "no complete repair or load-shed bypass configuration is ready for test",
             ),
@@ -388,8 +388,7 @@ impl BentFeederOperation {
             | BentFeederAction::UnsafeLiveShortcut
             | BentFeederAction::AdvanceTicks(_) => None,
             BentFeederAction::IsolateUpstream => {
-                (!self.perimeter_established)
-                    .then_some(ActionBlockReason::WorkPerimeterRequired)
+                (!self.perimeter_established).then_some(ActionBlockReason::WorkPerimeterRequired)
             }
             BentFeederAction::VerifyDeEnergized => {
                 if !self.feeder.isolated || self.feeder.energized {
@@ -434,9 +433,7 @@ impl BentFeederOperation {
         }
         let durable = self.feeder.support_braced && self.feeder.insulator_replaced;
         let bypass = self.feeder.temporary_bypass_installed && self.feeder.noncritical_load_shed;
-        if !durable
-            && self.feeder.temporary_bypass_installed
-            && !self.feeder.noncritical_load_shed
+        if !durable && self.feeder.temporary_bypass_installed && !self.feeder.noncritical_load_shed
         {
             return Some(ActionBlockReason::NoncriticalLoadMustBeShed);
         }
@@ -767,10 +764,15 @@ mod tests {
                 reason: ActionBlockReason::WorkPerimeterRequired,
             }
         );
-        assert!(preview
-            .feedback_cues
-            .contains(&FeedbackCue::SupportMovementConfirmed));
-        assert_eq!(operation, before, "preview must not mutate state or history");
+        assert!(
+            preview
+                .feedback_cues
+                .contains(&FeedbackCue::SupportMovementConfirmed)
+        );
+        assert_eq!(
+            operation, before,
+            "preview must not mutate state or history"
+        );
 
         operation
             .apply(BentFeederAction::EstablishPerimeter)
@@ -809,10 +811,11 @@ mod tests {
                 reason: ActionBlockReason::NoncriticalLoadMustBeShed,
             }
         );
-        assert!(operation
-            .apply(BentFeederAction::EnergizeForTest)
-            .is_err());
-        assert_eq!(operation, before, "blocked actions must not partially apply");
+        assert!(operation.apply(BentFeederAction::EnergizeForTest).is_err());
+        assert_eq!(
+            operation, before,
+            "blocked actions must not partially apply"
+        );
 
         operation
             .apply(BentFeederAction::ShedNoncriticalLoad)
@@ -847,16 +850,14 @@ mod tests {
                 cue.minimum_channels().len() >= 2,
                 "{cue:?} must not depend on one channel"
             );
-            assert!(cue
-                .minimum_channels()
-                .contains(&FeedbackChannel::Visual));
-            assert!(cue
-                .minimum_channels()
-                .contains(&FeedbackChannel::Audio));
+            assert!(cue.minimum_channels().contains(&FeedbackChannel::Visual));
+            assert!(cue.minimum_channels().contains(&FeedbackChannel::Audio));
         }
-        assert!(FeedbackCue::SupportMovementConfirmed
-            .optional_channels()
-            .contains(&FeedbackChannel::Haptic));
+        assert!(
+            FeedbackCue::SupportMovementConfirmed
+                .optional_channels()
+                .contains(&FeedbackChannel::Haptic)
+        );
     }
 
     #[test]
@@ -877,5 +878,4 @@ mod tests {
         );
         assert_eq!(operation, before);
     }
-
 }
