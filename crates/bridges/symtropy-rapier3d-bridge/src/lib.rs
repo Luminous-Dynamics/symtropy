@@ -142,7 +142,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             return Err(RapierStepError::InvalidGravity);
         }
 
-        let mut parameters = integration_parameters.clone();
+        let mut parameters = *integration_parameters;
         parameters.dt = dt;
 
         // Compute every modulated force before mutating any body. A bad callback output
@@ -307,7 +307,7 @@ mod tests {
 
     impl PhysicsCallback<3> for ScaleForceCallback {
         fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
-            force * self.0
+            *force * self.0
         }
 
         fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
