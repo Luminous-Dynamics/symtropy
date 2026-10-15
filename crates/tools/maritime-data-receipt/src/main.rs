@@ -768,4 +768,42 @@ mod tests {
         let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
         assert!(result.is_err());
     }
+
+    #[test]
+    fn unknown_units_are_rejected() {
+        let raw = String::from_utf8(receipt_bytes()).expect("receipt is UTF-8");
+        let mutated = raw.replacen(
+            "\"units\": [\n      \"m\"",
+            "\"units\": [\n      \"furlong\"",
+            1,
+        );
+        let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn mutable_dataset_revision_is_rejected() {
+        let raw = String::from_utf8(receipt_bytes()).expect("receipt is UTF-8");
+        let mutated = raw.replacen(
+            "\"dataset_revision\": \"v0.1.0\"",
+            "\"dataset_revision\": \"latest\"",
+            1,
+        );
+        let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn receipt_schema_is_valid_json_with_expected_identity() {
+        let schema = include_str!("../../../../docs/tech/MARITIME_DATA_RECEIPT_V0_1.schema.json");
+        let value: serde_json::Value = serde_json::from_str(schema).expect("schema must be valid JSON");
+        assert_eq!(
+            value["properties"]["schema_id"]["const"],
+            serde_json::Value::String(SCHEMA_ID.to_owned())
+        );
+        assert_eq!(
+            value["properties"]["schema_version"]["const"],
+            serde_json::Value::String(SCHEMA_VERSION.to_owned())
+        );
+    }
 }
