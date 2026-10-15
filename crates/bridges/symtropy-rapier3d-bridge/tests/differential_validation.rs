@@ -422,13 +422,35 @@ fn native_and_rapier_share_identity_schedule_and_finite_metrics() {
     assert_eq!(metrics.compared_bodies, 3);
     assert_eq!(metrics.left_non_finite_observations, 0);
     assert_eq!(metrics.right_non_finite_observations, 0);
-    assert!(metrics.max_position_error_m.is_finite());
-    assert!(metrics.max_linear_velocity_error_mps.is_finite());
+    assert_eq!(metrics.finite_comparison_pairs, metrics.compared_bodies);
+    assert!(metrics.has_complete_finite_coverage());
+    assert!(
+        metrics
+            .max_position_error_m
+            .expect("finite comparison coverage")
+            .is_finite()
+    );
+    assert!(
+        metrics
+            .max_linear_velocity_error_mps
+            .expect("finite comparison coverage")
+            .is_finite()
+    );
 
     // Broad sanity envelope only. This is deliberately not promoted as a
     // physical-accuracy threshold or solver qualification result.
-    assert!(metrics.max_position_error_m < 0.01);
-    assert!(metrics.max_linear_velocity_error_mps < 0.01);
+    assert!(
+        metrics
+            .max_position_error_m
+            .expect("finite comparison coverage")
+            < 0.01
+    );
+    assert!(
+        metrics
+            .max_linear_velocity_error_mps
+            .expect("finite comparison coverage")
+            < 0.01
+    );
 }
 
 #[test]
