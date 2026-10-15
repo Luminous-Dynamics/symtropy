@@ -108,7 +108,7 @@ Compare later with a supervised physical water/energy monitoring experiment befo
 
 ## 8. Nutrition-sensitive local food production
 
-The first executable slice should extend the existing resource accounting boundary into nutrition-aware supply accounting only after source and semantic contracts are agreed. It must distinguish gross biomass, harvested mass, edible mass, post-harvest loss, food delivered, and the nutrient contribution calculated from a matching food-composition record.
+The first executable slice now lives in [PR #1637](https://github.com/Luminous-Dynamics/symtropy/pull/1637). In addition to exact resource-balance arithmetic, its standalone Rust crate includes a bounded nutrient-contribution calculator that pairs one source-attributed composition row with a separately supplied edible-delivery mass. It returns an exact rational amount without floating-point arithmetic or silent rounding. The caller must already account for gross biomass, harvested mass, edible fraction, post-harvest loss and allocation before asserting edible food delivered; this function does not infer those values.
 
 - A food record and composition record must match exact identity, cultivar/taxon scope where known, preparation state and source edition. No silent fallback to a generic food record.
 - Nutrient values require explicit nutrient identity, unit, denominator (initial profile: per 100 g of the declared food state), source reference and missingness/evidence state. Missing is not zero. All unit conversion is explicit and independently testable.
@@ -118,7 +118,7 @@ The first executable slice should extend the existing resource accounting bounda
 - Composition inputs must be sourced, versioned, license-reviewed and traceable. The South African SAFOODS 2024 tables are a candidate source but a paid product; public fixtures must not rehost their contents without permission. FAO/INFOODS tables and data-quality/food-matching guidance are the initial public source registry.
 - Food safety, botanical identity, soil/water risk, land permission and knowledge rights remain independent gates. A nutrition score must never clear a blocked or unknown safety/rights record.
 
-Symthaea's research/interface contract is tracked in [Symthaea PR #7476](https://github.com/Luminous-Dynamics/symthaea/pull/7476). This scenario document proposes no new production runtime or local crop-yield facts. The initial implementation should be a deterministic, offline calculator over source-pinned inputs, with an independent checker and synthetic positive/negative cases before any optimizer is trusted.
+Symthaea's research/interface contract is tracked in [Symthaea PR #7476](https://github.com/Luminous-Dynamics/symthaea/pull/7476). The current executable slice is a deterministic, offline calculator over caller-provided source-pinned inputs and synthetic fixtures; it is not a crop portfolio optimizer. Exact-head CI and independent checking must verify it before relying on the implementation. A future optimizer requires licensed composition data, declared dietary targets, seasonal local yield evidence, independent nutrient-balance verification and additional negative controls.
 
 ## 9. Acceptance criteria
 
@@ -131,7 +131,7 @@ Symthaea's research/interface contract is tracked in [Symthaea PR #7476](https:/
 - No medicine efficacy, equivalence, stability, authorization or release conclusions from simulation.
 - No promotion of physical/manufacturing maturity solely from software execution.
 
-## 9. References
+## 10. References
 
 - [NIST Digital Twins for Advanced Manufacturing](https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing): trustworthy twins need validation and quantified uncertainty.
 - [Symtropy health-supply resilience scenario](https://github.com/Luminous-Dynamics/symtropy/pull/1620).
