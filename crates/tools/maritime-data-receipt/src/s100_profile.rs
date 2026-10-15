@@ -294,6 +294,71 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
+fn verify_receipt_semantics(
+    profile: &Value,
+    facts: &super::ReceiptFacts,
+) -> Result<(), &'static str> {
+    let source_kind = text(profile, "source_kind")?;
+    if source_kind != facts.source_kind {
+        return Err("RECEIPT_SOURCE_KIND_MISMATCH");
+    }
+
+    let product = member(profile, "product")?;
+    let product_code = text(product, "code")?;
+    if text(product, "dataset_id")? != facts.dataset_id
+        || text(product, "revision")? != facts.dataset_revision
+    {
+        return Err("RECEIPT_DATASET_IDENTITY_MISMATCH");
+    }
+
+    let expected = match product_code {
+        "S-102" => ("hydrography", "hydrography"),
+        "S-104" if facts.product == "water_level" => ("water_level", "water_level"),
+        "S-104" if facts.product == "water_level_prediction" => {
+            ("water_level_prediction", "water_level_prediction")
+        }
+        "S-111" => ("currents", "currents"),
+        _ => return Err("RECEIPT_PRODUCT_MISMATCH"),
+    };
+    if facts.product != expected.0 || facts.domain != expected.1 {
+        return Err("RECEIPT_PRODUCT_MISMATCH");
+    }
+
+    let coverage = member(profile, "coverage")?;
+    if text(coverage, "horizontal_crs")? != facts.coordinate_reference_system.as_deref().unwrap_or("") {
+        return Err("RECEIPT_SPATIAL_REFERENCE_MISMATCH");
+    }
+    if nullable_text(coverage, "vertical_reference")? != facts.vertical_datum.as_deref() {
+        return Err("RECEIPT_SPATIAL_REFERENCE_MISMATCH");
+    }
+    let profile_units = member(coverage, "measurement_units")?
+        .as_array()
+        .ok_or("INVALID_FIELD_TYPE")?;
+    for unit in profile_units {
+        let unit = unit.as_str().ok_or("INVALID_FIELD_TYPE")?;
+        if !facts.units.iter().any(|source_unit| source_unit == unit) {
+            return Err("RECEIPT_UNITS_MISMATCH");
+        }
+    }
+
+    let temporal = member(profile, "temporal")?;
+    if facts.time_coverage_start_utc.as_deref() != Some(text(temporal, "data_epoch_start_utc")?)
+        || facts.time_coverage_end_utc.as_deref() != Some(text(temporal, "data_epoch_end_utc")?)
+    {
+        return Err("RECEIPT_TIME_COVERAGE_MISMATCH");
+    }
+    if let Some(observed_at) = facts.survey_or_observation_time_utc.as_deref() {
+        if observed_at < text(temporal, "data_epoch_start_utc")?
+            || observed_at > text(temporal, "data_epoch_end_utc")?
+        {
+            return Err("RECEIPT_TIME_COVERAGE_MISMATCH");
+        }
+    } else if source_kind == "public_dataset" {
+        return Err("RECEIPT_OBSERVATION_TIME_MISSING");
+    }
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 struct S100ProfileReport {
     status: &'static str,
@@ -339,6 +404,7 @@ pub(crate) fn run_cli(
     }
     let receipt_value = super::parse_strict(&receipt_bytes)?;
     let facts = super::validate_receipt(&receipt_value)?;
+    verify_receipt_semantics(&profile, &facts).map_err(str::to_owned)?;
 
     let binding = member(&profile, "receipt_binding").map_err(str::to_owned)?;
     let expected_receipt_id = text(binding, "receipt_id").map_err(str::to_owned)?;
