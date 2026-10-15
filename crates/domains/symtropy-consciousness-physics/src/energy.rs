@@ -225,7 +225,11 @@ impl EnergyBudget {
         {
             return Err(EnergyBudgetError::NumericalOverflow);
         }
-        if temperature_rise <= 0.0 || new_temperature <= self.temperature {
+        if temperature_rise <= 0.0
+            || new_temperature <= self.temperature
+            || entropy_increment <= 0.0
+            || new_entropy <= self.entropy
+        {
             return Err(EnergyBudgetError::UnrepresentableTransfer);
         }
 
@@ -518,6 +522,21 @@ mod tests {
 
         assert_eq!(
             budget.try_dissipate_heat(f64::MIN_POSITIVE),
+            Err(EnergyBudgetError::UnrepresentableTransfer)
+        );
+        assert_eq!(budget.temperature, temperature);
+        assert_eq!(budget.entropy, entropy);
+    }
+
+    #[test]
+    fn heat_transfer_rejects_entropy_change_below_accumulator_resolution() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.entropy = 1.0e300;
+        let temperature = budget.temperature;
+        let entropy = budget.entropy;
+
+        assert_eq!(
+            budget.try_dissipate_heat(100.0),
             Err(EnergyBudgetError::UnrepresentableTransfer)
         );
         assert_eq!(budget.temperature, temperature);
