@@ -67,9 +67,12 @@ pub fn smooth_temperature_penalty(temperature_k: f64) -> f64 {
     (TEMP_CLARITY_FLOOR + (1.0 - TEMP_CLARITY_FLOOR) * sigmoid).clamp(TEMP_CLARITY_FLOOR, 1.0)
 }
 
-/// Default energy per cognitive operation (empirical estimate).
-/// Cortical synapses operate at ~16.6× Landauer limit.
-/// Ref: Laughlin & Sejnowski (2003)
+/// Legacy model parameter scaled to 16.6 times the idealized Landauer bit-erasure
+/// bound at 310 K. This is **not** an empirical neural/synaptic energy estimate,
+/// and "cognitive operation" is not physically defined by this constant. It is
+/// retained for API compatibility; do not use it to predict biological or
+/// hardware energy costs without an independently specified operation and
+/// measured/calibrated energy model.
 pub const ENERGY_PER_COGNITIVE_OP: f64 = LANDAUER_BOUND_310K * 16.6;
 
 /// Tunable thermodynamic constants for the enforcement layer.
@@ -712,13 +715,13 @@ mod tests {
     }
 
     #[test]
-    fn energy_per_cognitive_op() {
-        // Verify the constant is physically reasonable
-        // Brain uses ~20W for ~10^11 synapses at ~10Hz = 10^12 ops/sec
-        // 20W / 10^12 = 2×10^-11 J/op
-        // Our constant: ~4.8×10^-20 J/op (much lower — Landauer-based, not metabolic)
-        const { assert!(ENERGY_PER_COGNITIVE_OP > 0.0) };
-        const { assert!(ENERGY_PER_COGNITIVE_OP < 1e-15) }; // Not absurdly large
+    fn landauer_scaled_legacy_parameter_is_positive_and_finite() {
+        // This test verifies only the arithmetic of a dimensionless scaling
+        // against the idealized bit-erasure bound. It is not a biological
+        // calibration or a claim about joules per neural/cognitive operation.
+        assert!(ENERGY_PER_COGNITIVE_OP.is_finite());
+        assert!(ENERGY_PER_COGNITIVE_OP > LANDAUER_BOUND_310K);
+        assert_eq!(ENERGY_PER_COGNITIVE_OP, LANDAUER_BOUND_310K * 16.6);
     }
 
     // ── smooth_temperature_penalty ────────────────────────────────────────────
