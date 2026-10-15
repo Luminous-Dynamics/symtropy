@@ -156,7 +156,7 @@ The project-input manifest is no longer treated as an opaque hash-only file. `pr
 
 Receipt V2 (`schema_version: 0.2.0`) separately declares the project ID and revision. The verifier cross-binds those values and the manifest jurisdiction to the receipt jurisdiction, which is already cross-bound to the selected jurisdiction registry. This closes a scope-confusion gap where a correctly hashed but semantically unvalidated manifest could describe a different project or municipality.
 
-The boundary remains intentionally limited: the manifest schema verifies declared structure and artifact identity, not IFC semantics, site-survey adequacy, geotechnical truth, the correctness of resident requirements, or legal applicability. It does not canonicalize different encodings into the same identity; it binds exact bytes. IFC/IDS validation, complete transitive dependency closure, signed/authenticated reviewer identities, and independent execution/reproduction remain separate gates.
+The boundary remains intentionally limited: the manifest schema verifies declared structure and artifact identity, not IFC semantics, site-survey adequacy, geotechnical truth, the correctness of resident requirements, or legal applicability. The producer-declared additional-input list is not proof that the list is complete; the next gate must independently pin a scope profile that states which input roles are mandatory for each rule/evaluation class. It does not canonicalize different encodings into the same identity; it binds exact bytes. IFC/IDS validation, complete transitive dependency closure, signed/authenticated reviewer identities, and independent execution/reproduction remain separate gates.
 
 ## 6. Evidence-backed code-improvement process
 

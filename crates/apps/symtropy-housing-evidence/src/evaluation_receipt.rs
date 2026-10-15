@@ -327,7 +327,7 @@ fn validate_values(
                             &mut artifact_issues,
                             &role,
                         );
-                        project_input_artifacts_verified += if verified { 1 } else { 0 };
+                        project_input_artifacts_verified += usize::from(u8::from(verified));
                         if !verified {
                             manifest_artifacts_valid = false;
                         }
@@ -920,6 +920,64 @@ mod tests {
         assert!(!report.project_manifest_valid);
         assert!(!report.eligible_to_evaluate);
         assert_ne!(report.receipt_integrity_status, VERIFIED);
+    }
+
+    #[test]
+    fn duplicate_project_input_ids_block_manifest_integrity() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        let manifest_path = root.path().join(
+            receipt["project_input_manifest"]["relative_path"].as_str().unwrap(),
+        );
+        let mut manifest: Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        let site_survey = write_artifact(root.path(), "site-survey.txt", b"site survey evidence\n");
+        let geotechnical = write_artifact(
+            root.path(),
+            "geotechnical.txt",
+            b"geotechnical evidence\n",
+        );
+        manifest["additional_inputs"] = json!([
+            {"input_id":"duplicate-input","role":"site_survey","artifact":site_survey},
+            {"input_id":"duplicate-input","role":"geotechnical_report","artifact":geotechnical}
+        ]);
+        let bytes = serde_json::to_vec_pretty(&manifest).unwrap();
+        fs::write(&manifest_path, &bytes).unwrap();
+        receipt["project_input_manifest"]["sha256"] = json!(sha256_hex(&bytes));
+
+        let receipt_path = root.path().join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+
+        assert!(!report.project_manifest_valid);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report.issues.iter().any(|issue| issue.contains("duplicates input_id")));
+    }
+
+    #[test]
+    fn project_input_digest_cannot_be_reused_for_another_role() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        let manifest_path = root.path().join(
+            receipt["project_input_manifest"]["relative_path"].as_str().unwrap(),
+        );
+        let mut manifest: Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        let building_model = manifest["building_model"].clone();
+        manifest["additional_inputs"] = json!([
+            {"input_id":"site-survey-1","role":"site_survey","artifact":building_model}
+        ]);
+        let bytes = serde_json::to_vec_pretty(&manifest).unwrap();
+        fs::write(&manifest_path, &bytes).unwrap();
+        receipt["project_input_manifest"]["sha256"] = json!(sha256_hex(&bytes));
+
+        let receipt_path = root.path().join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+
+        assert!(!report.project_manifest_valid);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report.issues.iter().any(|issue| issue.contains("reuses SHA-256")));
     }
 
     #[test]
