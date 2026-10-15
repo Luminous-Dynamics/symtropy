@@ -787,6 +787,57 @@ mod tests {
     }
 
     #[test]
+    fn public_terms_capture_time_is_required_and_separate_from_review_time() {
+        // This only exercises the metadata validator branch. The profile starts
+        // from a synthetic fixture and does not represent captured public data.
+        let mut profile: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/synthetic-plsci-profile.json"
+        ))
+        .expect("synthetic PLSCI profile fixture");
+        let snapshot_digest = profile["terms"]["snapshot_sha256"]
+            .as_str()
+            .expect("fixture snapshot digest")
+            .to_owned();
+
+        profile["source_kind"] = Value::String("public_dataset".to_owned());
+        profile["terms"]["review_status"] = Value::String("reviewed_permitted".to_owned());
+        profile["terms"]["license_name"] = Value::String("CC BY 3.0 IGO".to_owned());
+        profile["terms"]["license_uri"] =
+            Value::String("https://creativecommons.org/licenses/by/3.0/igo/".to_owned());
+        profile["terms"]["reviewer"] =
+            Value::String("fixture-only-simulated-reviewer".to_owned());
+        profile["terms"]["reviewed_at_utc"] =
+            Value::String("2026-10-15T16:00:00Z".to_owned());
+        profile["terms"]["terms_sha256"] = Value::String(snapshot_digest);
+        profile["terms"]["attribution_statement"] = Value::String(
+            "United Nations Trade and Development Data Hub; simulated metadata test only"
+                .to_owned(),
+        );
+        profile["terms"]["review_evidence_uri"] =
+            Value::String("https://unctadstat.unctad.org/EN/About.html".to_owned());
+        profile["terms"]["snapshot_retrieved_at_utc"] = Value::Null;
+
+        assert_eq!(
+            validate_profile(&profile),
+            Err("PUBLIC_TERMS_INCOMPLETE"),
+            "public terms metadata must not substitute review time for capture time",
+        );
+
+        profile["terms"]["snapshot_retrieved_at_utc"] =
+            Value::String("2026-10-15T15:59:00Z".to_owned());
+        assert_eq!(
+            validate_profile(&profile),
+            Ok(()),
+            "a separately declared, valid UTC capture time satisfies this metadata rule",
+        );
+        assert_ne!(
+            profile["terms"]["snapshot_retrieved_at_utc"],
+            profile["terms"]["reviewed_at_utc"],
+            "capture and review timestamps are distinct fields",
+        );
+    }
+
+    #[test]
     fn profile_schema_is_valid_json_and_pins_the_same_identity() {
         let schema_text = include_str!(
             "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
