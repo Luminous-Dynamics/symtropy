@@ -158,6 +158,16 @@ Receipt V2 (`schema_version: 0.2.0`) separately declares the project ID and revi
 
 The boundary remains intentionally limited: the manifest schema verifies declared structure and artifact identity, not IFC semantics, site-survey adequacy, geotechnical truth, the correctness of resident requirements, or legal applicability. The producer-declared additional-input list is not proof that the list is complete; the next gate must independently pin a scope profile that states which input roles are mandatory for each rule/evaluation class. It does not canonicalize different encodings into the same identity; it binds exact bytes. IFC/IDS validation, complete transitive dependency closure, signed/authenticated reviewer identities, and independent execution/reproduction remain separate gates.
 
+### Independently pinned evaluation-scope profiles
+
+The next scope-completeness contract is defined in `evaluation-scope-profile.schema.json` (Draft 2020-12). A profile declares its evaluation class and risk tier, permitted building-use/construction-system/design-stage combinations, required additional input roles, and required evidence gates with purposes and acceptance criteria. The receipt verifier must receive the profile's exact SHA-256 from outside the receipt/package; the receipt cannot choose a weaker profile simply by changing an in-package field.
+
+The planned verifier checks that the project scope matches the pinned profile, every required input role is present, and each required gate has a distinct, locally hash-verified evidence artifact. Reused gate IDs/digests and missing role/gate evidence block eligibility. This makes scope completeness explicit and auditable rather than letting each evidence producer decide which prerequisites to mention.
+
+This is a completeness contract, not an automated declaration of engineering adequacy. The verifier can confirm that the pinned profile's declared requirements are represented; it cannot establish that the profile author selected a complete or appropriate requirement set, that an artifact records a genuinely successful test, or that the evidence represents physical truth. Profile authority and the external digest pin must be approved by an independent responsible party. Synthetic regression profiles make no real-world engineering claims.
+
+The risk-informed shape is motivated by established model-and-simulation assurance practice. NASA-STD-7009B describes project-approved acceptance criteria for modeling/simulation use and credibility factors such as input pedigree, validation and uncertainty; the current NASA-HDBK-7009B provides implementation guidance. A NIST report published 5 October 2026 discusses harmonizing uncertainty quantification with metrology and scaling credibility effort to decision risk. Symtropy borrows these as design principles, not as a claim of compliance with those standards.
+
 ## 6. Evidence-backed code-improvement process
 
 Treat every proposed code change as a falsifiable research hypothesis.
