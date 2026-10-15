@@ -536,7 +536,7 @@ mod tests {
             .as_object()
             .expect("base profile map");
         let cases = corpus["cases"].as_array().expect("profile cases");
-        assert_eq!(cases.len(), 21, "frozen PLSCI case count is a contract");
+        assert_eq!(cases.len(), 22, "frozen PLSCI case count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base profile");
@@ -587,6 +587,10 @@ mod tests {
         assert_eq!(
             schema["properties"]["series"]["properties"]["benchmark_scope"]["const"],
             "global_average_port_connectivity"
+        );
+        assert_eq!(
+            schema["properties"]["series"]["properties"]["normalization_method"]["const"],
+            "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
         );
     }
 
