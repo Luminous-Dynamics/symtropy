@@ -296,11 +296,16 @@ pub struct DifferentialMetrics3d {
     pub compared_samples: u64,
     pub compared_bodies: u64,
     /// Absent when no body pair had finite position and velocity on both sides.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_position_error_m: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rms_position_error_m: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_linear_velocity_error_mps: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rms_linear_velocity_error_mps: Option<f64>,
     /// Number of (sample, body) pairs included in the numerical error metrics.
+    #[serde(default)]
     pub finite_comparison_pairs: u64,
     pub sleeping_mismatches: u64,
     pub left_non_finite_observations: u64,
