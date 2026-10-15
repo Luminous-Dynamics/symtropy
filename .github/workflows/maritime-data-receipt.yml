@@ -45,6 +45,9 @@ jobs:
       - name: Verify synthetic receipt and exact payload bytes
         run: cargo run --locked -p maritime-data-receipt -- crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-receipt.json
 
+      - name: Verify synthetic S-100 profile against receipt and exact artifact bytes
+        run: cargo run --locked -p maritime-data-receipt -- --validate-s100-profile crates/tools/maritime-data-receipt/tests/fixtures/synthetic-s104-profile.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-receipt.json
+
       - name: Clippy receipt verifier
         run: cargo clippy --locked -p maritime-data-receipt --all-targets -- -D warnings
 
