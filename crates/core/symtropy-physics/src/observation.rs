@@ -135,13 +135,13 @@ mod tests {
 
     #[test]
     fn native_adapter_preserves_semantic_identity_pose_and_angular_convention() {
-        let mut world = PhysicsWorld::<3>::new(SVector::new(0.0, -9.81, 0.0));
+        let mut world = PhysicsWorld::<3>::new(SVector::<f64, 3>::new(0.0, -9.81, 0.0));
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
         let body = world.body_mut(handle).expect("body exists");
         body.transform.translation = Point::new([1.0, 2.0, 3.0]);
         body.transform.rotation =
             Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), FRAC_PI_2);
-        body.linear_velocity = SVector::new(1.0, -2.0, 0.5);
+        body.linear_velocity = SVector::<f64, 3>::new(1.0, -2.0, 0.5);
         body.angular_velocity.set(1, 2, 3.0);
         body.angular_velocity.set(0, 2, 4.0);
         body.angular_velocity.set(0, 1, 5.0);
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn native_adapter_rejects_missing_semantic_identity() {
-        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let mut world = PhysicsWorld::<3>::new(SVector::<f64, 3>::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
         let error = world
             .to_observation_frame(identity(), 0, 0.0, &HashMap::new())
@@ -181,11 +181,11 @@ mod tests {
 
     #[test]
     fn native_adapter_rejects_improper_rotation_matrices() {
-        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let mut world = PhysicsWorld::<3>::new(SVector::<f64, 3>::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
         let body = world.body_mut(handle).expect("body exists");
         body.transform.rotation =
-            Rotor::from_matrix(SMatrix::from_diagonal(&SVector::new(1.0, 1.0, -1.0)));
+            Rotor::from_matrix(SMatrix::<f64, 3, 3>::from_diagonal(&SVector::<f64, 3>::new(1.0, 1.0, -1.0)));
         let ids = HashMap::from([(handle, "scenario/ball-a".to_owned())]);
 
         assert_eq!(
