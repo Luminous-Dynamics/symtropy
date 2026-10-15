@@ -159,6 +159,20 @@ def evaluate_service_evidence(
             payload_claims = json.loads(payload_utf8)
         except json.JSONDecodeError:
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if not isinstance(payload_claims, dict):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        try:
+            canonical_payload = json.dumps(
+                payload_claims,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            )
+        except (TypeError, ValueError):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if canonical_payload != payload_utf8:
+            return "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL"
         bound_fields = (
             "evidence_id",
             "issuer_id",
@@ -803,6 +817,18 @@ def main() -> None:
     require(
         evaluate_service_evidence_case(bound_fresh, target) == "VERIFIED_AVAILABLE_CANDIDATE",
         "content-bound known-answer evidence record failed",
+    )
+    noncanonical_record = dict(bound_fresh["records"][0])
+    noncanonical_payload_utf8 = str(noncanonical_record["artifact_payload_utf8"]).replace("{", "{ ", 1)
+    noncanonical_record["artifact_payload_utf8"] = noncanonical_payload_utf8
+    noncanonical_record["artifact_digest"] = (
+        "sha256:" + hashlib.sha256(noncanonical_payload_utf8.encode("utf-8")).hexdigest()
+    )
+    noncanonical_case = {"records": [noncanonical_record]}
+    require(
+        evaluate_service_evidence_case(noncanonical_case, target)
+        == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        "canonical claim bytes must be enforced even when the altered payload is correctly rehashed",
     )
     mutated_claim = evidence_by_id["measurement_mutated_without_rehashed_artifact"]
     require(
