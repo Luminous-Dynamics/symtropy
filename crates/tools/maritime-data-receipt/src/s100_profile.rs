@@ -65,10 +65,18 @@ fn nullable_text<'a>(value: &'a Value, key: &str) -> Result<Option<&'a str>, &'s
     }
 }
 
-fn pinned_version(value: &str) -> bool {
+fn pinned_revision(value: &str) -> bool {
     let lower = value.trim().to_ascii_lowercase();
     !value.trim().is_empty()
         && !["latest", "current", "head", "unknown", "unversioned"].contains(&lower.as_str())
+}
+
+fn numeric_edition(value: &str) -> bool {
+    let parts: Vec<&str> = value.split('.').collect();
+    parts.len() == 3
+        && parts.iter().all(|part| {
+            !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit())
+        })
 }
 
 fn sha256(value: &str) -> bool {
@@ -151,14 +159,17 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     if !["S-102", "S-104", "S-111"].contains(&code) {
         return Err("UNSUPPORTED_PRODUCT");
     }
-    text(product, "s100_edition")?;
+    let s100_edition = text(product, "s100_edition")?;
     let specification_edition = text(product, "specification_edition")?;
-    if !pinned_version(specification_edition) || !pinned_version(text(product, "s100_edition")?) {
+    if !pinned_revision(s100_edition) || !pinned_revision(specification_edition) {
         return Err("MUTABLE_PRODUCT_EDITION");
+    }
+    if !numeric_edition(s100_edition) || !numeric_edition(specification_edition) {
+        return Err("INVALID_PRODUCT_EDITION");
     }
     text(product, "producer_code")?;
     text(product, "dataset_id")?;
-    if !pinned_version(text(product, "revision")?) {
+    if !pinned_revision(text(product, "revision")?) {
         return Err("MUTABLE_REVISION");
     }
     text(product, "native_encoding")?;
@@ -511,7 +522,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let profiles = corpus["base_profiles"].as_object().expect("base profiles object");
         let cases = corpus["cases"].as_array().expect("case array");
-        assert_eq!(cases.len(), 20, "the frozen corpus count is part of the test contract");
+        assert_eq!(cases.len(), 21, "the frozen corpus count is part of the test contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base_name = case["base"].as_str().expect("base profile");
