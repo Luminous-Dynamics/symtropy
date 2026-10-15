@@ -421,6 +421,33 @@
           "value": "0000-01-01T00:00:00Z"
         }
       ]
+    },
+    {
+      "id": "claim-target-cannot-be-upstream-dependency",
+      "base": "valid_synthetic",
+      "expected_code": "CLAIM_TARGET_NOT_TERMINAL",
+      "mutations": [
+        {
+          "path": "nodes.1.parents",
+          "op": "set",
+          "value": [
+            "source-plsci",
+            "scenario-output"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dot-segment-in-model-config-path-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNSAFE_PATH",
+      "mutations": [
+        {
+          "path": "model.config_relative_path",
+          "op": "set",
+          "value": "configs/./model.json"
+        }
+      ]
     }
   ]
 }
