@@ -161,7 +161,9 @@ pub fn validate(
         for gate in required_gates {
             let gate_id = gate.get("gate_id").and_then(Value::as_str).unwrap_or_default();
             if !required_gate_ids.insert(gate_id.to_owned()) {
-                profile_issues.push(format!("scope profile duplicates required gate ID {gate_id:?}"));
+                profile_issues.push(format!(
+                    "scope profile duplicates required gate ID {gate_id:?}"
+                ));
             }
         }
     }
@@ -174,7 +176,10 @@ pub fn validate(
         profile["profile_id"] == profile_binding["profile_id"]
             && profile["profile_version"] == profile_binding["profile_version"];
     if !profile_identity_matches {
-        issues.push("receipt scope-profile identity/version does not match pinned profile bytes".to_string());
+        issues.push(
+            "receipt scope-profile identity/version does not match pinned profile bytes"
+                .to_string(),
+        );
         return Ok(result);
     }
     result.profile_valid = true;
@@ -219,7 +224,10 @@ pub fn validate(
             }
         }
     } else {
-        issues.push("cannot check scope-profile requirements without a valid project input manifest".to_string());
+        issues.push(
+            "cannot check scope-profile requirements without a valid project input manifest"
+                .to_string(),
+        );
     }
 
     let missing_gates: Vec<String> = required_gate_ids

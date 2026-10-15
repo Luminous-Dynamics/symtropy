@@ -811,7 +811,11 @@ mod tests {
             "design-brief.json",
             b"controlled resident design brief\n",
         );
-        let site_survey = write_artifact(root, "site-survey.txt", b"synthetic site survey evidence\n");
+        let site_survey = write_artifact(
+            root,
+            "site-survey.txt",
+            b"synthetic site survey evidence\n",
+        );
         let geotechnical_report = write_artifact(
             root,
             "geotechnical-report.txt",
@@ -846,8 +850,16 @@ mod tests {
             },
             "additional_inputs": [
                 {"input_id":"site-survey-1","role":"site_survey","artifact":site_survey},
-                {"input_id":"geotechnical-1","role":"geotechnical_report","artifact":geotechnical_report},
-                {"input_id":"materials-1","role":"materials_schedule","artifact":materials_schedule},
+                {
+                    "input_id": "geotechnical-1",
+                    "role": "geotechnical_report",
+                    "artifact": geotechnical_report
+                },
+                {
+                    "input_id": "materials-1",
+                    "role": "materials_schedule",
+                    "artifact": materials_schedule
+                },
                 {"input_id":"load-case-1","role":"load_case","artifact":load_case}
             ]
         });
@@ -875,26 +887,39 @@ mod tests {
                 {
                     "gate_id":"units-and-coordinates",
                     "evidence_purpose":"Check unit declarations and coordinate frames",
-                    "acceptance_criterion":"All required unit and frame checks have recorded evidence"
+                    "acceptance_criterion": "All required unit and frame checks have recorded evidence"
                 },
                 {
                     "gate_id":"analytical-reference-case",
                     "evidence_purpose":"Run a controlled analytical known-answer case",
-                    "acceptance_criterion":"The declared result and tolerance comparison are recorded"
+                    "acceptance_criterion": "The declared result and tolerance comparison are recorded"
                 },
                 {
                     "gate_id":"independent-method-comparison",
-                    "evidence_purpose":"Record a comparison against an independently implemented method",
-                    "acceptance_criterion":"The comparison method, difference metric and predeclared tolerance are recorded"
+                    "evidence_purpose": "Record a comparison against an independently implemented method",
+                    "acceptance_criterion": "The comparison method, difference metric and predeclared tolerance are recorded"
                 }
             ]
         });
-        let profile_bytes = serde_json::to_vec_pretty(&scope_profile).expect("scope profile serializes");
+        let profile_bytes =
+            serde_json::to_vec_pretty(&scope_profile).expect("scope profile serializes");
         let scope_profile_artifact =
             write_artifact(root, "scope-profile.json", &profile_bytes);
-        let gate_units = write_artifact(root, "gate-units.txt", b"synthetic gate evidence: units\n");
-        let gate_oracle = write_artifact(root, "gate-oracle.txt", b"synthetic gate evidence: analytical reference\n");
-        let gate_independent = write_artifact(root, "gate-independent.txt", b"synthetic gate evidence: independent method\n");
+        let gate_units = write_artifact(
+            root,
+            "gate-units.txt",
+            b"synthetic gate evidence: units\n",
+        );
+        let gate_oracle = write_artifact(
+            root,
+            "gate-oracle.txt",
+            b"synthetic gate evidence: analytical reference\n",
+        );
+        let gate_independent = write_artifact(
+            root,
+            "gate-independent.txt",
+            b"synthetic gate evidence: independent method\n",
+        );
 
         let receipt = json!({
             "schema_version": "0.3.0",
@@ -1117,7 +1142,7 @@ mod tests {
     fn missing_profile_required_input_role_blocks_scope() {
         let root = TestRoot::new();
         let (_registry, mut receipt, registry_path) = positive_case(root.path());
-        let manifest_path = root.join(
+        let manifest_path = root.path().join(
             receipt["project_input_manifest"]["relative_path"].as_str().unwrap(),
         );
         let mut manifest: Value =
@@ -1131,13 +1156,16 @@ mod tests {
         fs::write(&manifest_path, &bytes).unwrap();
         receipt["project_input_manifest"]["sha256"] = json!(sha256_hex(&bytes));
 
-        let receipt_path = root.join("receipt.json");
+        let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
         let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(!report.scope_complete);
         assert!(!report.eligible_to_evaluate);
-        assert!(report.issues.iter().any(|issue| issue.contains("omits profile-required input role")));
+        assert!(report
+            .issues
+            .iter()
+            .any(|issue| issue.contains("omits profile-required input role")));
     }
 
     #[test]
@@ -1148,21 +1176,24 @@ mod tests {
             receipt["evaluation_gate_evidence"][0].clone(),
             receipt["evaluation_gate_evidence"][1].clone()
         ]);
-        let receipt_path = root.join("receipt.json");
+        let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
 
         let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(!report.scope_complete);
         assert!(!report.eligible_to_evaluate);
-        assert!(report.issues.iter().any(|issue| issue.contains("omits profile-required evaluation gate")));
+        assert!(report
+            .issues
+            .iter()
+            .any(|issue| issue.contains("omits profile-required evaluation gate")));
     }
 
     #[test]
     fn scope_profile_must_match_an_out_of_band_pin() {
         let root = TestRoot::new();
         let (_registry, receipt, registry_path) = positive_case(root.path());
-        let receipt_path = root.join("receipt.json");
+        let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
         let wrong_pin = "f".repeat(64);
         let report = validate_test_paths(&receipt_path, &registry_path, Some(&wrong_pin));

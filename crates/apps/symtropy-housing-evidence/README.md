@@ -13,7 +13,8 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 - requires mandatory code-compliance claims to cite a legislation/standard/regulation/technical-guidance source with an edition or effective date, clause/location, public/licensed rights status, and a source digest resolving to locally verifiable artifact bytes;
 - tests both rejection of incomplete code-source metadata and acceptance of a complete synthetic source snapshot (not real law);
 - requires local artifact bytes under an explicit root, verifies their SHA-256 digests for every referenced artifact in a candidate `PASS`, and rejects traversal or linked files that resolve outside the root;
-- emits a machine-readable report with separate producer-declared `declared_status`, conservative `effective_status`, and `evidence_integrity_status` fields, plus the actual verifier-binary and schema SHA-256 values.
+- emits a machine-readable report with separate producer-declared `declared_status`, conservative `effective_status`, and `evidence_integrity_status` fields, plus the actual verifier-binary and schema SHA-256 values;
+- validates the project-input manifest against an independently pinned scope profile specifying allowed project scope, mandatory input roles, and required evidence gates.
 
 It does **not** parse or interpret legislation/SANS clauses, independently recompute structural/building-physics results, determine whether a measured result satisfies an engineering criterion, establish physical truth, verify a person's professional registration, or issue approvals. A successful package check sets `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED`; it does not replace the declared or effective engineering status. `effective_status` stays `PASS` only if the manifest declared PASS and all integrity checks succeed. The manifest's declared engineering status remains an assertion from the evidence producer.
 
@@ -135,6 +136,18 @@ See [solver-adapter-evaluation.md](../../../docs/built-environment/solver-adapte
 The repository also includes [`cantilever-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json) and an integration test in `tests/reference_cantilever_beam.rs`. It checks the elementary Euler-Bernoulli formulas for rectangular-section second moment of area, cantilever tip deflection, and support bending stress, and rejects non-positive input values.
 
 This is an analytical oracle and unit/verification plumbing test only. It does **not** run or validate a finite-element solver, and the beam case is not a proxy for a real building element's full load combinations, buckling, connections, support behaviour, fire performance, or code compliance. The next structural milestone is to compare a suitable external solver against this oracle, then against reference FEM cases and qualified engineering review.
+
+## Independently pinned evaluation-scope profile
+
+Rule-evaluation receipt schema `0.3.0` requires an evaluation-scope profile whose SHA-256 is supplied independently of the receipt/package:
+
+```text
+housing-evidence-verify --validate-receipt receipt.json --registry registry.json --scope-profile-sha256 <trusted-sha256-pin>
+```
+
+The profile restricts building use, construction system and design stage; lists mandatory additional-input roles; and declares required evidence gates with purposes and acceptance criteria. The validator blocks eligibility if the external pin differs, the project is outside the profile, any required input role is absent, or required gate evidence is missing, duplicated or unverified. The external pin must come from a controlled channel and an independent authority/reviewer. The synthetic profile used by Rust regression tests is not a real-world engineering profile.
+
+Gate artifacts are evidence pointers, not proof that a test genuinely ran or passed. This contract verifies coverage against a profile; it cannot prove the profile's own requirement set is adequate or complete. `effective_status` remains `NOT_REPRODUCED` because this command does not execute or independently reproduce the engineering calculation.
 
 ## Trust boundaries
 
