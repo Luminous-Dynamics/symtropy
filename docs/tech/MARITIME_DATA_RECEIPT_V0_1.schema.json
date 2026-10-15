@@ -443,6 +443,9 @@
               },
               "terms_sha256": {
                 "type": "null"
+              },
+              "license_uri": {
+                "type": "null"
               }
             }
           }
@@ -631,6 +634,353 @@
                 "format": "date-time"
               },
               "time_coverage_end_utc": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "water_level"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "m",
+                    "cm",
+                    "mm",
+                    "ft",
+                    "in"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "water_level_prediction"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "m",
+                    "cm",
+                    "mm",
+                    "ft",
+                    "in"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "hydrography"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "m",
+                    "cm",
+                    "mm",
+                    "ft",
+                    "in",
+                    "degrees_east",
+                    "degrees_north"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "currents"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "cm/s",
+                    "m/s",
+                    "kn",
+                    "knot",
+                    "knots",
+                    "degrees",
+                    "degree",
+                    "deg"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "port_facility"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "m",
+                    "cm",
+                    "mm",
+                    "ft",
+                    "in",
+                    "degrees_east",
+                    "degrees_north",
+                    "count"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "other"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "m",
+                    "cm",
+                    "mm",
+                    "ft",
+                    "in",
+                    "cm/s",
+                    "m/s",
+                    "kn",
+                    "knot",
+                    "knots",
+                    "degrees",
+                    "degree",
+                    "deg",
+                    "degrees_east",
+                    "degrees_north",
+                    "count",
+                    "dimensionless",
+                    "m^2",
+                    "m3/s",
+                    "kW",
+                    "MW",
+                    "kWh",
+                    "MWh",
+                    "seconds",
+                    "minutes",
+                    "hours"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "retrieval": {
+            "properties": {
+              "method": {
+                "const": "http_get"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "retrieval"
+        ]
+      },
+      "then": {
+        "properties": {
+          "retrieval": {
+            "properties": {
+              "http_status": {
+                "type": "integer",
+                "minimum": 200,
+                "maximum": 299
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "kind": {
+                "const": "public_dataset"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "data_context": {
+            "properties": {
+              "domain": {
+                "enum": [
+                  "water_level",
+                  "currents",
+                  "hydrography"
+                ]
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "survey_or_observation_time_utc": {
                 "type": "string",
                 "format": "date-time"
               }
