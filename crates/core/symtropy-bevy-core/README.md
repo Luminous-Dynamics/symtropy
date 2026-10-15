@@ -41,6 +41,14 @@ fn spawn_ball(
 }
 ```
 
+## First-person input and movement response
+
+`FirstPersonInputPlugin` converts raw inputs into a named `IntentFrame` and moves entities with `FirstPersonController`.
+
+Controllers keep the existing instant-response movement unless you also attach `FirstPersonMotion::default()`. That opt-in profile ramps horizontal velocity up and brakes after input release; its `acceleration` and `deceleration` fields are expressed in world units per second squared. The Old Waterworks micro-slice demonstrates this profile.
+
+`FirstPersonMotion` is deliberately **kinematic**: it updates the entity's `Transform` and does not resolve collisions or connect the entity to `PhysicsWorld`. Use a fixed-step, collision-aware controller when the actor needs physical contact with the world. The response profile includes deterministic unit tests for 30/60/144 Hz movement, braking, reversals, early-in-frame stopping, and invalid values.
+
 ## Bring your own coupling
 
 If you want to couple a custom per-body metric (health, trust, skill, wealth, …) to physics, implement `PhysicsCallback<D>` on your own Resource type:
