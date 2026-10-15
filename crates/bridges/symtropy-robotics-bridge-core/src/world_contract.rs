@@ -1683,7 +1683,9 @@ mod tests {
         let mut manifest = valid_manifest();
         // Give the world and platform references one shared artifact identity,
         // then change only the platform digest to exercise the conflict check.
-        manifest.world_assets.push(manifest.platforms[0].geometry.clone());
+        manifest
+            .world_assets
+            .push(manifest.platforms[0].geometry.clone());
         manifest.platforms[0].geometry.sha256 = "00".repeat(32);
         let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| {
