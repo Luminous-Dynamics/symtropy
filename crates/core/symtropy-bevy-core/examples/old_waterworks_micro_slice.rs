@@ -34,8 +34,8 @@ use std::{
 };
 use symtropy_basin::{BasinIntervention, OldWaterworksScenario};
 use symtropy_bevy_core::{
-    ControlMode, ControlsState, FirstPersonController, FirstPersonInputPlugin,
-    FirstPersonMotion, InputIntent, IntentFrame, ScanMode,
+    ControlMode, ControlsState, FirstPersonController, FirstPersonInputPlugin, FirstPersonMotion,
+    InputIntent, IntentFrame, ScanMode,
 };
 use symtropy_bevy_scene::{SymtropyScenePlugin, fixed_camera};
 
