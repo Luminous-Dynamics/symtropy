@@ -266,6 +266,18 @@
       "expected_code": "MUTABLE_PRODUCT_EDITION"
     },
     {
+      "id": "malformed_product_edition_is_rejected",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "product.specification_edition",
+          "value": "v2.0"
+        }
+      ],
+      "expected_code": "INVALID_PRODUCT_EDITION"
+    },
+    {
       "id": "public_data_terms_need_review",
       "base": "s111",
       "mutations": [
