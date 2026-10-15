@@ -1025,7 +1025,10 @@ pub(crate) mod tests {
         let digest = registry.content_digest_v1().unwrap();
         let mut reordered = registry;
         reordered.frames.reverse();
-        assert_eq!(estimated_size, reordered.preflight_canonical_size_v1().unwrap());
+        assert_eq!(
+            estimated_size,
+            reordered.preflight_canonical_size_v1().unwrap()
+        );
         assert_eq!(bytes, reordered.canonical_bytes_v1().unwrap());
         assert_eq!(digest, reordered.content_digest_v1().unwrap());
     }
