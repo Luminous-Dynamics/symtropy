@@ -144,15 +144,16 @@ def evaluate_service_evidence(
         return "REJECT_UNKNOWN_LIFECYCLE"
 
     for field in ("artifact_digest", "configuration_digest"):
-        digest = record.get(field)
-        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        field_digest = record.get(field)
+        if not isinstance(field_digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", field_digest):
             return "REJECT_INVALID_DIGEST"
 
     payload_utf8 = record.get("artifact_payload_utf8")
     if payload_utf8 is not None:
         if not isinstance(payload_utf8, str):
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
-        if "sha256:" + hashlib.sha256(payload_utf8.encode("utf-8")).hexdigest() != digest:
+        # The payload hashes to artifact_digest, never to configuration_digest.
+        if "sha256:" + hashlib.sha256(payload_utf8.encode("utf-8")).hexdigest() != record.get("artifact_digest"):
             return "REJECT_ARTIFACT_DIGEST_MISMATCH"
         try:
             payload_claims = json.loads(payload_utf8)
