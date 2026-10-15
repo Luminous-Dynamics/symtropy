@@ -123,10 +123,13 @@ pub fn validate_portfolio_json(raw: &str) -> Result<(), Vec<String>> {
         &mut errors,
     );
 
-    let contract = document.get("constraint_policy").unwrap_or(&Value::Null);
-    required_strings(contract, "hard_constraints", "$.constraint_policy", 1, &mut errors);
-    required_strings(contract, "soft_tradeoffs", "$.constraint_policy", 1, &mut errors);
-    required_text(contract, "rule", "$.constraint_policy", &mut errors);
+    if let Some(contract) = document.get("constraint_policy") {
+        required_strings(contract, "hard_constraints", "$.constraint_policy", 1, &mut errors);
+        required_strings(contract, "soft_tradeoffs", "$.constraint_policy", 1, &mut errors);
+        required_text(contract, "rule", "$.constraint_policy", &mut errors);
+    } else {
+        errors.push("$.constraint_policy: required object".to_owned());
+    }
     required_strings(&document, "common_evidence_fields", "$", 1, &mut errors);
 
     let mut candidate_ids = HashSet::new();
@@ -192,16 +195,19 @@ pub fn validate_regional_profiles_json(raw: &str) -> Result<(), Vec<String>> {
     }
     required_strings(&document, "non_claims", "$", 1, &mut errors);
 
-    let shared = document.get("shared_contract").unwrap_or(&Value::Null);
-    for key in [
-        "site_identity",
-        "climate_and_hazards",
-        "resource_systems",
-        "place_and_people",
-        "operations",
-        "assessment",
-    ] {
-        required_strings(shared, key, "$.shared_contract", 1, &mut errors);
+    if let Some(shared) = document.get("shared_contract") {
+        for key in [
+            "site_identity",
+            "climate_and_hazards",
+            "resource_systems",
+            "place_and_people",
+            "operations",
+            "assessment",
+        ] {
+            required_strings(shared, key, "$.shared_contract", 1, &mut errors);
+        }
+    } else {
+        errors.push("$.shared_contract: required object".to_owned());
     }
 
     let mut profile_ids = HashSet::new();
