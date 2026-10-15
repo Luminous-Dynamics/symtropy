@@ -281,6 +281,14 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
             if input_vertical != output_vertical && (input_vertical.is_some() || output_vertical.is_some()) {
                 return Err("SILENT_TRANSFORM");
             }
+            if receipt.is_some()
+                || input_crs.is_some()
+                || output_crs.is_some()
+                || input_vertical.is_some()
+                || output_vertical.is_some()
+            {
+                return Err("SOURCE_NATIVE_TRANSFORM_METADATA_FORBIDDEN");
+            }
         }
         "derived" => {
             if receipt.is_none() {
@@ -288,6 +296,11 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
             }
             if input_crs.is_none() || output_crs.is_none() {
                 return Err("TRANSFORM_DETAILS_MISSING");
+            }
+            if ["S-102", "S-104"].contains(&code)
+                && (input_vertical.is_none() || output_vertical.is_none())
+            {
+                return Err("TRANSFORM_VERTICAL_REFERENCE_MISSING");
             }
         }
         _ => return Err("INVALID_TRANSFORM_KIND"),
