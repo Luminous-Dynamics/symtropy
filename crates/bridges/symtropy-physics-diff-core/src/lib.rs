@@ -129,7 +129,10 @@ impl BodyObservation {
             ("position_m", self.position_m.as_slice()),
             ("orientation_wxyz", self.orientation_wxyz.as_slice()),
             ("linear_velocity_mps", self.linear_velocity_mps.as_slice()),
-            ("angular_velocity_radps", self.angular_velocity_radps.as_slice()),
+            (
+                "angular_velocity_radps",
+                self.angular_velocity_radps.as_slice(),
+            ),
         ] {
             if !values.iter().all(|value| value.is_finite()) {
                 return Err(ObservationError::NonFiniteBodyValue {
@@ -143,18 +146,12 @@ impl BodyObservation {
             .iter()
             .map(|value| value * value)
             .sum::<f64>();
-        if !quaternion_norm_squared.is_finite()
-            || (quaternion_norm_squared - 1.0).abs() > 1.0e-3
-        {
+        if !quaternion_norm_squared.is_finite() || (quaternion_norm_squared - 1.0).abs() > 1.0e-3 {
             return Err(ObservationError::InvalidQuaternion {
                 semantic_body_id: self.semantic_body_id.clone(),
             });
         }
-        validate_nonnegative(
-            self.max_penetration_m,
-            "body",
-            "max_penetration_m",
-        )?;
+        validate_nonnegative(self.max_penetration_m, "body", "max_penetration_m")?;
         Ok(())
     }
 }
@@ -192,11 +189,7 @@ pub struct ObservationFrame {
 }
 
 impl ObservationFrame {
-    pub fn new(
-        identity: RunIdentity,
-        step_index: u64,
-        simulation_time_seconds: f64,
-    ) -> Self {
+    pub fn new(identity: RunIdentity, step_index: u64, simulation_time_seconds: f64) -> Self {
         Self {
             identity,
             step_index,
@@ -232,11 +225,7 @@ impl ObservationFrame {
             "contact_summary",
             "max_penetration_m",
         )?;
-        validate_nonnegative(
-            self.energy.kinetic_energy_j,
-            "energy",
-            "kinetic_energy_j",
-        )?;
+        validate_nonnegative(self.energy.kinetic_energy_j, "energy", "kinetic_energy_j")?;
         validate_finite_optional(
             self.energy.potential_energy_j,
             "energy",
@@ -248,7 +237,9 @@ impl ObservationFrame {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ObservationError {
-    UnsupportedSchemaVersion { found: u16 },
+    UnsupportedSchemaVersion {
+        found: u16,
+    },
     EmptyIdentityField(&'static str),
     InvalidTimestep,
     InvalidSimulationTime,
@@ -258,7 +249,9 @@ pub enum ObservationError {
         semantic_body_id: String,
         field: &'static str,
     },
-    InvalidQuaternion { semantic_body_id: String },
+    InvalidQuaternion {
+        semantic_body_id: String,
+    },
     NonFiniteOptionalValue {
         subject: &'static str,
         field: &'static str,
@@ -420,7 +413,10 @@ mod tests {
     fn invalid_provenance_and_physical_summaries_are_rejected() {
         let mut invalid_dt = frame();
         invalid_dt.identity.timestep_seconds = 0.0;
-        assert_eq!(invalid_dt.validate(), Err(ObservationError::InvalidTimestep));
+        assert_eq!(
+            invalid_dt.validate(),
+            Err(ObservationError::InvalidTimestep)
+        );
 
         let mut invalid_penetration = frame();
         invalid_penetration.contacts.max_penetration_m = Some(-0.01);
