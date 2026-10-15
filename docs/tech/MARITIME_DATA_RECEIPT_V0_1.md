@@ -44,7 +44,7 @@ The normative structure is [`MARITIME_DATA_RECEIPT_V0_1.schema.json`](./MARITIME
 - **Artifact identity:** repository-relative raw file path, media type, exact byte length, hash algorithm and SHA-256.
 - **Meaning and quality:** data domain, CRS, vertical datum when relevant, versioned unit vocabulary, time coverage, observation/survey time, source verification state, uncertainty statement.
 - **Freshness:** a named policy state and a required policy description. This schema records the policy; it does not calculate whether a datum is fresh enough for a particular decision.
-- **Terms:** licence name/URI, review status, reviewer, review time, and hash of the exact terms text reviewed. This is a review record, not an automatic legal determination.
+- **Terms:** licence name/URI, review status, reviewer, review time, and a declared SHA-256 for the terms text reviewed. In v0.1 the verifier checks digest syntax only; it does not read or verify a separate terms-document artifact. This is a review record, not an automatic legal determination.
 - **Claim ceiling:** explicit prohibition on treating byte-integrity verification as physical truth, engineering qualification, navigation clearance, or approval to operate.
 
 ## Fail-closed rules in v0.1
@@ -60,7 +60,7 @@ The Rust verifier rejects:
 - public-dataset records marked synthetic/unknown or water-level-prediction records not labelled as predictions;
 - any receipt that claims navigation authorization or authority to assert physical truth.
 
-A SHA-256 match proves only that the artifact bytes equal the digest recorded in the receipt. It does not prove that the dataset publisher is authentic, that the data are accurate/current, that the licence review is legally correct, or that an analysis is safe. A receipt verifier always reports **NotAdmitted**.
+A SHA-256 match proves only that the checked data-artifact bytes equal the digest recorded in the receipt. The `terms_sha256` is a declared metadata digest whose syntax is checked but whose source bytes are not independently verified by this tool. Neither digest proves that the dataset publisher is authentic, that the data are accurate/current, that the licence review is legally correct, or that an analysis is safe. A receipt verifier always reports **NotAdmitted**.
 
 ## Synthetic sample
 
