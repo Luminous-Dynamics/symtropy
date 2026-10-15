@@ -714,7 +714,6 @@ mod tests {
         assert!(mismatch.contains("SHA-256 mismatch"));
     }
 
-
     #[test]
     fn registry_snapshot_mismatch_fails_closed_independently() {
         let registry = concat!(
@@ -735,7 +734,8 @@ mod tests {
     fn one_byte_source_snapshot_drift_is_detected_against_actual_file_bytes() {
         use std::fs;
 
-        let mut changed = include_bytes!("../tests/fixtures/synthetic-source-snapshot.json").to_vec();
+        let mut changed =
+            include_bytes!("../tests/fixtures/synthetic-source-snapshot.json").to_vec();
         changed.push(b' ');
         let path = std::env::temp_dir().join(format!(
             "symtropy-maritime-source-drift-{}.json",
