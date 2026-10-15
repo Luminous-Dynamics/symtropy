@@ -137,7 +137,10 @@ fn parents(value: &Value) -> Result<Vec<String>, &'static str> {
     let mut unique = BTreeSet::new();
     let mut result = Vec::with_capacity(items.len());
     for item in items {
-        let id = item.as_str().filter(|value| !value.trim().is_empty()).ok_or("INVALID_FIELD_TYPE")?;
+        let id = item
+            .as_str()
+            .filter(|value| !value.trim().is_empty())
+            .ok_or("INVALID_FIELD_TYPE")?;
         if !unique.insert(id) {
             return Err("DUPLICATE_PARENT");
         }
@@ -597,10 +600,11 @@ fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usi
             return Err(format!("scenario/receipt data-time scope mismatch: {receipt_relative}"));
         }
 
+        let receipt_path_display = receipt_path.to_string_lossy().into_owned();
         let report = super::verify(
             &receipt_bytes,
             &artifact_path,
-            &receipt_path.to_string_lossy(),
+            &receipt_path_display,
             "SCENARIO_MANIFEST_VALIDATOR",
         )?;
         if report.source_kind != node["source_kind"].as_str().unwrap_or_default() {
@@ -659,7 +663,8 @@ pub(crate) fn run_cli(manifest_path: &str) -> Result<(), String> {
         .map_err(|error| format!("invalid scenario manifest {}: {error}", path.display()))?;
     let manifest: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("invalid scenario manifest JSON: {error}"))?;
-    let facts = validate_manifest(&manifest).map_err(|code| format!("scenario manifest rejected: {code}"))?;
+    let facts = validate_manifest(&manifest)
+        .map_err(|code| format!("scenario manifest rejected: {code}"))?;
     let workspace_root = std::env::current_dir()
         .map_err(|error| format!("cannot determine workspace root: {error}"))?;
     let checked = verify_source_receipts(&manifest, &workspace_root)?;
@@ -878,7 +883,10 @@ mod tests {
                 .iter()
                 .map(|item| item.as_str().expect("required key string").to_owned())
                 .collect::<Vec<_>>();
-            let mut expected = expected_keys.iter().map(|key| (*key).to_owned()).collect::<Vec<_>>();
+            let mut expected = expected_keys
+                .iter()
+                .map(|key| (*key).to_owned())
+                .collect::<Vec<_>>();
             property_names.sort();
             required_names.sort();
             expected.sort();
@@ -912,6 +920,38 @@ mod tests {
         assert_eq!(facts.unbounded_temporal_scope_source_count, 1);
 
         let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-        assert_eq!(verify_source_receipts(&manifest, &workspace).expect("exact source byte checks"), 1);
+        assert_eq!(
+            verify_source_receipts(&manifest, &workspace).expect("exact source byte checks"),
+            1
+        );
+    }
+
+    #[test]
+    fn scenario_manifest_rejects_receipt_and_artifact_binding_drift() {
+        let fixture = include_bytes!("../tests/fixtures/synthetic-scenario-manifest.json");
+        let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
+        let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
+
+        manifest["nodes"][0]["receipt_sha256"] =
+            Value::String("0".repeat(64));
+        let error = verify_source_receipts(&manifest, &workspace)
+            .expect_err("a changed receipt digest must fail");
+        assert!(error.contains("receipt SHA-256 mismatch"));
+
+        let fixture = include_bytes!("../tests/fixtures/synthetic-scenario-manifest.json");
+        let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
+        manifest["nodes"][0]["artifact_sha256"] =
+            Value::String("0".repeat(64));
+        let error = verify_source_receipts(&manifest, &workspace)
+            .expect_err("a changed manifest artifact digest must fail");
+        assert!(error.contains("artifact SHA-256 mismatch"));
+
+        let fixture = include_bytes!("../tests/fixtures/synthetic-scenario-manifest.json");
+        let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
+        manifest["nodes"][0]["data_time_start_utc"] =
+            Value::String("2026-01-01T00:00:00Z".to_owned());
+        let error = verify_source_receipts(&manifest, &workspace)
+            .expect_err("invented manifest coverage must not be detached from the receipt");
+        assert!(error.contains("data-time scope mismatch"));
     }
 }
