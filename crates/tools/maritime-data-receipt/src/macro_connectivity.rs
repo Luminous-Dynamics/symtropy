@@ -510,7 +510,10 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{mutate_path, validate_profile, VALID};
+    use super::{
+        mutate_path, validate_profile, BINDING_KEYS, INTENDED_USE_KEYS, MISSINGNESS_KEYS,
+        ROOT_KEYS, SELECTION_KEYS, SERIES_KEYS, TERMS_KEYS, VALID,
+    };
     use serde_json::Value;
 
     #[test]
@@ -578,6 +581,52 @@ mod tests {
         assert_eq!(
             schema["properties"]["series"]["properties"]["benchmark_scope"]["const"],
             "global_average_port_connectivity"
+        );
+    }
+
+    #[test]
+    fn schema_required_keys_match_the_rust_exact_key_contracts() {
+        let schema_text = include_str!(
+            "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
+        );
+        let schema: Value =
+            serde_json::from_str(schema_text).expect("PLSCI profile schema must be valid JSON");
+        let contracts = [
+            (&schema["required"], ROOT_KEYS),
+            (&schema["properties"]["receipt_binding"]["required"], BINDING_KEYS),
+            (&schema["properties"]["series"]["required"], SERIES_KEYS),
+            (&schema["properties"]["selection"]["required"], SELECTION_KEYS),
+            (&schema["properties"]["missingness"]["required"], MISSINGNESS_KEYS),
+            (&schema["properties"]["terms"]["required"], TERMS_KEYS),
+            (&schema["properties"]["intended_use"]["required"], INTENDED_USE_KEYS),
+        ];
+        for (actual_value, expected_keys) in contracts {
+            let mut actual = actual_value
+                .as_array()
+                .expect("schema required list")
+                .iter()
+                .map(|item| item.as_str().expect("required field string").to_owned())
+                .collect::<Vec<_>>();
+            let mut expected = expected_keys
+                .iter()
+                .map(|key| (*key).to_owned())
+                .collect::<Vec<_>>();
+            actual.sort();
+            expected.sort();
+            assert_eq!(actual, expected, "schema/Rust required-field drift");
+        }
+
+        assert_eq!(
+            schema["properties"]["missingness"]["properties"]["missing_is_zero"]["const"],
+            false
+        );
+        assert_eq!(
+            schema["properties"]["missingness"]["properties"]["forward_fill"]["const"],
+            "forbidden"
+        );
+        assert_eq!(
+            schema["properties"]["intended_use"]["properties"]["navigation_authorized"]["const"],
+            false
         );
     }
 
