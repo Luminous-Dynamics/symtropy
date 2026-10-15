@@ -1,0 +1,57 @@
+name: Maritime Synthetic Fixture Verification
+
+on:
+  pull_request:
+    paths:
+      - 'crates/tools/maritime-fixture-verifier/**'
+      - 'docs/tech/MARITIME_FLOATING_SITE_SCENARIO_V0_1.json'
+      - 'docs/tech/MARITIME_FLOATING_SITE_SCENARIO_V0_1.md'
+      - 'docs/tech/MARITIME_FLOATING_SITE_ORACLE_V0_1.md'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/maritime-fixture-verifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  MARITIME_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  verify:
+    name: Verify frozen synthetic fixture contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run verifier hostile/reference tests
+        run: cargo test --locked -p maritime-fixture-verifier
+
+      - name: Verify exact frozen fixture artifact
+        run: cargo run --locked -p maritime-fixture-verifier -- docs/tech/MARITIME_FLOATING_SITE_SCENARIO_V0_1.json
+
+      - name: Clippy verifier
+        run: cargo clippy --locked -p maritime-fixture-verifier --all-targets -- -D warnings
+
+      - name: Clean postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
