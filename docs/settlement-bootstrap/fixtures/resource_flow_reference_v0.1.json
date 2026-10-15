@@ -1236,6 +1236,24 @@
           "mutation": "set_payload_to_lone_surrogate",
           "recompute_artifact_digest": false,
           "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        },
+        {
+          "id": "invalid_json_syntax",
+          "mutation": "replace_open_brace_with_x",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        },
+        {
+          "id": "overflowing_number",
+          "mutation": "replace_measurement_with_overflow_exponent",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        },
+        {
+          "id": "excessive_nesting",
+          "mutation": "replace_payload_with_deeply_nested_array",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
         }
       ],
       "scope": "Only the named fixture record is content-bound in v0.1; other evidence cases still test field semantics with syntax-shaped digest fixtures. This does not authenticate issuer identity or establish physical truth."
