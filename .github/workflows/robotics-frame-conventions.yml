@@ -18,7 +18,8 @@ on:
       - 'crates/core/symtropy-physics/**'
       - 'crates/domains/symtropy-consciousness-physics/**'
       - 'scripts/verify_frame_convention_registry_v1.py'
-  # Once the stacked change targets main, keep this check available on PRs too.
+  # Keep head-specific qualification enabled across the stacked robotics follow-ups.
+# Once the stacked change targets main, keep this check available on PRs too.
   pull_request:
     branches:
       - main
