@@ -6,6 +6,8 @@ This is test tooling only. It is not a production planner or a life-support mode
 from __future__ import annotations
 
 import json
+import re
+from datetime import datetime, timezone
 from fractions import Fraction
 from pathlib import Path
 
@@ -112,6 +114,107 @@ def surviving_alternative_groups(
         if all(str(node_id) not in unavailable for node_id in group):
             result.append([str(node_id) for node_id in group])
     return result
+
+
+
+def parse_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def evaluate_service_evidence(
+    record: dict[str, object], target: dict[str, object]
+) -> str:
+    lifecycle = record.get("lifecycle_state")
+    if lifecycle == "REVOKED":
+        return "REJECT_REVOKED"
+    if lifecycle == "SUPERSEDED":
+        return "REJECT_SUPERSEDED"
+    if lifecycle == "REPORTED_REPAIRED_UNVERIFIED":
+        return "REQUALIFICATION_REQUIRED"
+    if lifecycle not in ("CURRENT", "POST_REPAIR_TEST_PASSED"):
+        return "REJECT_UNKNOWN_LIFECYCLE"
+
+    digest = record.get("artifact_digest")
+    if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        return "REJECT_INVALID_DIGEST"
+
+    required = (
+        "evidence_id",
+        "issuer_id",
+        "asset_id",
+        "asset_revision",
+        "configuration_digest",
+        "scope_id",
+        "observed_at",
+        "valid_until",
+        "method_id",
+        "method_qualification",
+        "calibration_id",
+        "calibration_status",
+        "acceptance_criterion_id",
+        "measured_value",
+        "unit",
+        "acceptance_min",
+        "acceptance_max",
+    )
+    if any(record.get(key) is None or record.get(key) == "" for key in required):
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+
+    for field in ("asset_id", "asset_revision", "configuration_digest", "scope_id"):
+        if record[field] != target[field]:
+            return "REJECT_SCOPE_MISMATCH"
+
+    evaluated_at = parse_timestamp(target.get("evaluation_time"))
+    observed_at = parse_timestamp(record.get("observed_at"))
+    valid_until = parse_timestamp(record.get("valid_until"))
+    if evaluated_at is None or observed_at is None or valid_until is None:
+        return "REJECT_INVALID_TIME"
+    if observed_at > evaluated_at:
+        return "REJECT_FUTURE_OBSERVATION"
+    if (evaluated_at - observed_at).total_seconds() > float(target["max_age_seconds"]) or valid_until <= evaluated_at:
+        return "NOT_AVAILABLE_STALE"
+
+    if record["method_qualification"] != "QUALIFIED":
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+    if record["calibration_status"] != "VALID":
+        return "REJECT_CALIBRATION_EXPIRED"
+    if record["unit"] != target["unit"] or record["unit"] != record.get("measurement_unit", record["unit"]):
+        return "REJECT_UNIT_MISMATCH"
+    if record["acceptance_criterion_id"] != target["acceptance_criterion_id"]:
+        return "REJECT_SCOPE_MISMATCH"
+
+    try:
+        lower = q(record["acceptance_min"])
+        upper = q(record["acceptance_max"])
+        measured = q(record["measured_value"])
+    except (ValueError, ZeroDivisionError, TypeError):
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+    if lower > upper:
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+    if measured < lower or measured > upper:
+        return "FAIL_ACCEPTANCE"
+    return "VERIFIED_AVAILABLE_CANDIDATE"
+
+
+def evaluate_service_evidence_case(
+    case: dict[str, object], target: dict[str, object]
+) -> str:
+    records = case["records"]
+    assert isinstance(records, list) and records
+    results = [evaluate_service_evidence(record, target) for record in records]
+    if len(records) > 1:
+        measurements = {str(record.get("measured_value")) for record in records}
+        if len(measurements) > 1 or len(set(results)) > 1:
+            return "UNKNOWN_CONFLICTED"
+    return results[0]
 
 
 def demand_bounds(case: dict[str, object]) -> tuple[Fraction, Fraction]:
@@ -512,6 +615,52 @@ def main() -> None:
     require(
         unknown_dep["expected"]["dependency"] == "missing-controller",
         "unknown dependency diagnostic must name the unresolved edge",
+    )
+
+    evidence_contract = corpus["service_evidence_reference"]
+    require(
+        evidence_contract["contract_version"] == "0.1.0"
+        and evidence_contract["authority"] == "NON_AUTHORITATIVE_SYNTHETIC_REFERENCE",
+        "service evidence contract must retain synthetic/non-authoritative scope",
+    )
+    target = evidence_contract["target"]
+    evidence_cases = evidence_contract["cases"]
+    assert isinstance(evidence_cases, list)
+    evidence_by_id: dict[str, dict[str, object]] = {}
+    for evidence_case in evidence_cases:
+        assert isinstance(evidence_case, dict)
+        evidence_case_id = str(evidence_case["id"])
+        require(
+            evidence_case_id not in evidence_by_id,
+            f"duplicate service-evidence case id: {evidence_case_id}",
+        )
+        evidence_by_id[evidence_case_id] = evidence_case
+    require(len(evidence_by_id) == 15, "service-evidence case count changed")
+
+    for evidence_case in evidence_cases:
+        expected_status = str(evidence_case["expected_status"])
+        observed_status = evaluate_service_evidence_case(evidence_case, target)
+        require(
+            observed_status == expected_status,
+            f"{evidence_case['id']}: expected {expected_status}, got {observed_status}",
+        )
+
+    conflict_case = evidence_by_id["conflicting_current_observations"]
+    conflict_status = evaluate_service_evidence_case(conflict_case, target)
+    reverse_case = dict(conflict_case)
+    reverse_case["records"] = list(reversed(conflict_case["records"]))
+    reverse_status = evaluate_service_evidence_case(reverse_case, target)
+    require(
+        conflict_status == reverse_status == "UNKNOWN_CONFLICTED",
+        "conflicting-source conclusion must be order-invariant and not last-write-wins",
+    )
+    require(
+        "digest strings are syntax fixtures" in evidence_contract["digest_semantics"].lower(),
+        "digest-format test must not claim artifact-byte verification",
+    )
+    require(
+        "not physical availability proof" in evidence_contract["availability_rule"].lower(),
+        "service evidence candidate must not be represented as physical truth",
     )
 
     print(f"PASS: synthetic CRASH-BOOT reference corpus; {checks} contract/arithmetic assertions.")
