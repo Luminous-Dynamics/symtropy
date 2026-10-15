@@ -123,6 +123,38 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         &self.query_pipeline
     }
 
+    /// Sweep a shape through the current Rapier scene query data.
+    ///
+    /// The query reads the supplied, current body/collider sets. Provide the actor's own
+    /// collider handle in `exclude_collider` to prevent self-hits during character casts.
+    /// The query pipeline is refreshed by successful calls to `step`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn cast_shape(
+        &self,
+        bodies: &RigidBodySet,
+        colliders: &ColliderSet,
+        shape_position: &Isometry<Real>,
+        shape_velocity: &Vector<Real>,
+        shape: &dyn Shape,
+        max_toi: Real,
+        stop_at_penetration: bool,
+        exclude_collider: Option<ColliderHandle>,
+    ) -> Option<(ColliderHandle, TOI)> {
+        let filter = exclude_collider.map_or_else(QueryFilter::default, |handle| {
+            QueryFilter::default().exclude_collider(handle)
+        });
+        self.query_pipeline.cast_shape(
+            bodies,
+            colliders,
+            shape_position,
+            shape_velocity,
+            shape,
+            max_toi,
+            stop_at_penetration,
+            filter,
+        )
+    }
+
     /// Step the persistent Rapier pipeline and apply the Symtropy force callback once.
     ///
     /// `dt` is authoritative for this call: the supplied integration parameters are
@@ -405,6 +437,38 @@ mod tests {
 
         assert_eq!(hit_handle, collider_handle);
         assert!((toi - 1.5).abs() < 1.0e-3);
+    }
+
+    #[test]
+    fn shape_cast_excludes_the_actor_collider_and_hits_the_obstacle() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut world = TestWorld::new();
+        let actor_collider = world.colliders.insert(
+            ColliderBuilder::ball(0.5).translation(vector![0.0, 0.0, 0.0]).build(),
+        );
+        let obstacle_collider = world.colliders.insert(
+            ColliderBuilder::ball(0.5).translation(vector![3.0, 0.0, 0.0]).build(),
+        );
+
+        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        let shape = Ball::new(0.25);
+        let start = Isometry::translation(-2.0, 0.0, 0.0);
+        let velocity = vector![1.0, 0.0, 0.0];
+        let (hit_handle, toi) = bridge
+            .cast_shape(
+                &world.bodies,
+                &world.colliders,
+                &start,
+                &velocity,
+                &shape,
+                10.0,
+                true,
+                Some(actor_collider),
+            )
+            .expect("shape sweep must find the obstacle after excluding the actor");
+
+        assert_eq!(hit_handle, obstacle_collider);
+        assert!((toi.toi - 4.25).abs() < 1.0e-2);
     }
 
     #[test]
