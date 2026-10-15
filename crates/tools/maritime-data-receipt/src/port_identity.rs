@@ -344,6 +344,9 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
 
         match state {
             "resolved" => {
+                if status == Some("XX") {
+                    return Err("LOCode_STATUS_NOT_RESOLVABLE");
+                }
                 if candidate.is_none()
                     || target.is_none()
                     || relationship == "none"
@@ -373,6 +376,9 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
                 }
             }
             "ambiguous" => {
+                if candidate.is_none() {
+                    return Err("AMBIGUOUS_CANDIDATE_MISSING");
+                }
                 if target.is_some() || relationship != "none" || evidence.is_empty() || method == "none" {
                     return Err("AMBIGUOUS_MAPPING_INCOMPLETE");
                 }
