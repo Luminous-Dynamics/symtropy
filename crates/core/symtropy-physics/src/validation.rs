@@ -295,13 +295,29 @@ pub struct DifferentialMetrics3d {
     pub right_backend: PhysicsBackendDescriptor,
     pub compared_samples: u64,
     pub compared_bodies: u64,
-    pub max_position_error_m: f64,
-    pub rms_position_error_m: f64,
-    pub max_linear_velocity_error_mps: f64,
-    pub rms_linear_velocity_error_mps: f64,
+    /// Absent when no body pair had finite position and velocity on both sides.
+    pub max_position_error_m: Option<f64>,
+    pub rms_position_error_m: Option<f64>,
+    pub max_linear_velocity_error_mps: Option<f64>,
+    pub rms_linear_velocity_error_mps: Option<f64>,
+    /// Number of (sample, body) pairs included in the numerical error metrics.
+    pub finite_comparison_pairs: u64,
     pub sleeping_mismatches: u64,
     pub left_non_finite_observations: u64,
     pub right_non_finite_observations: u64,
+}
+
+impl DifferentialMetrics3d {
+    /// Whether every compared body sample pair had finite position and velocity.
+    ///
+    /// A caller making a qualification decision should normally require complete
+    /// coverage. Partial metrics are useful diagnostically but do not prove that
+    /// the entire trace met its tolerances.
+    pub fn has_complete_finite_coverage(&self) -> bool {
+        self.finite_comparison_pairs == self.compared_bodies
+            && self.left_non_finite_observations == 0
+            && self.right_non_finite_observations == 0
+    }
 }
 
 /// Structural mismatch that makes two traces unsafe to compare numerically.
@@ -416,16 +432,19 @@ pub fn compare_traces_3d(
         right_backend: right.backend.clone(),
         compared_samples: 0,
         compared_bodies: 0,
-        max_position_error_m: 0.0,
-        rms_position_error_m: 0.0,
-        max_linear_velocity_error_mps: 0.0,
-        rms_linear_velocity_error_mps: 0.0,
+        max_position_error_m: None,
+        rms_position_error_m: None,
+        max_linear_velocity_error_mps: None,
+        rms_linear_velocity_error_mps: None,
+        finite_comparison_pairs: 0,
         sleeping_mismatches: 0,
         left_non_finite_observations: 0,
         right_non_finite_observations: 0,
     };
     let mut position_error_sq_sum = 0.0;
     let mut velocity_error_sq_sum = 0.0;
+    let mut max_position_error_m = 0.0_f64;
+    let mut max_linear_velocity_error_mps = 0.0_f64;
     let mut finite_pairs = 0_u64;
 
     for (left_sample, right_sample) in left.samples.iter().zip(&right.samples) {
@@ -484,19 +503,22 @@ pub fn compare_traces_3d(
                 &left_body.linear_velocity_mps,
                 &right_body.linear_velocity_mps,
             );
-            metrics.max_position_error_m = metrics.max_position_error_m.max(position_error);
-            metrics.max_linear_velocity_error_mps =
-                metrics.max_linear_velocity_error_mps.max(velocity_error);
+            max_position_error_m = max_position_error_m.max(position_error);
+            max_linear_velocity_error_mps =
+                max_linear_velocity_error_mps.max(velocity_error);
             position_error_sq_sum += position_error * position_error;
             velocity_error_sq_sum += velocity_error * velocity_error;
             finite_pairs += 1;
         }
     }
 
+    metrics.finite_comparison_pairs = finite_pairs;
     if finite_pairs > 0 {
         let denominator = finite_pairs as f64;
-        metrics.rms_position_error_m = (position_error_sq_sum / denominator).sqrt();
-        metrics.rms_linear_velocity_error_mps = (velocity_error_sq_sum / denominator).sqrt();
+        metrics.max_position_error_m = Some(max_position_error_m);
+        metrics.rms_position_error_m = Some((position_error_sq_sum / denominator).sqrt());
+        metrics.max_linear_velocity_error_mps = Some(max_linear_velocity_error_mps);
+        metrics.rms_linear_velocity_error_mps = Some((velocity_error_sq_sum / denominator).sqrt());
     }
 
     Ok(metrics)
@@ -856,8 +878,10 @@ mod tests {
 
         let metrics = compare_traces_3d(&left, &right).unwrap();
         assert_eq!(metrics.compared_bodies, 2);
-        assert_eq!(metrics.max_position_error_m, 0.0);
-        assert_eq!(metrics.max_linear_velocity_error_mps, 0.0);
+        assert_eq!(metrics.finite_comparison_pairs, 2);
+        assert!(metrics.has_complete_finite_coverage());
+        assert_eq!(metrics.max_position_error_m, Some(0.0));
+        assert_eq!(metrics.max_linear_velocity_error_mps, Some(0.0));
         assert_eq!(metrics.sleeping_mismatches, 0);
     }
 
@@ -944,7 +968,11 @@ mod tests {
         let metrics = compare_traces_3d(&left, &right).unwrap();
         assert_eq!(metrics.left_non_finite_observations, 1);
         assert_eq!(metrics.right_non_finite_observations, 0);
-        assert_eq!(metrics.max_position_error_m, 0.0);
-        assert!(metrics.rms_position_error_m.is_finite());
+        assert_eq!(metrics.finite_comparison_pairs, 0);
+        assert!(!metrics.has_complete_finite_coverage());
+        assert_eq!(metrics.max_position_error_m, None);
+        assert_eq!(metrics.rms_position_error_m, None);
+        assert_eq!(metrics.max_linear_velocity_error_mps, None);
+        assert_eq!(metrics.rms_linear_velocity_error_mps, None);
     }
 }
