@@ -9,6 +9,62 @@
       "changes": []
     },
     {
+      "id": "target-at-valid-interval-start",
+      "expected": "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.model_initialization_time_utc",
+          "value": "2026-10-15T00:00:00Z"
+        },
+        {
+          "path": "forecast.issued_at_utc",
+          "value": "2026-10-15T00:00:00Z"
+        },
+        {
+          "path": "forecast.assessment_time_utc",
+          "value": "2026-10-15T00:00:00Z"
+        },
+        {
+          "path": "forecast.target_time_utc",
+          "value": "2026-10-15T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "target-at-valid-interval-end",
+      "expected": "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.target_time_utc",
+          "value": "2026-10-15T06:00:00Z"
+        },
+        {
+          "path": "forecast.max_forecast_lead_seconds",
+          "value": 21600
+        }
+      ]
+    },
+    {
+      "id": "impossible-calendar-date",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.issued_at_utc",
+          "value": "2026-02-31T00:15:00Z"
+        }
+      ]
+    },
+    {
+      "id": "provider-product-sentinel",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.provider_product_id",
+          "value": "latest"
+        }
+      ]
+    },
+    {
       "id": "issue-age-exactly-at-policy-boundary",
       "expected": "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
       "changes": [
