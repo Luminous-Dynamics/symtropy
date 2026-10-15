@@ -335,16 +335,14 @@ impl FrameConventionRegistryV1 {
                 specification_uri,
                 specification_sha256,
             } = &binding.convention
-            {
-                if *handedness != FrameHandednessV1::RightHanded
+                && (*handedness != FrameHandednessV1::RightHanded
                     || specification_uri.trim().is_empty()
-                    || !is_sha256_hex(specification_sha256)
-                {
-                    issues.push(FrameConventionIssue::new(
-                        FrameConventionIssueCode::InvalidExternalSpecification,
-                        format!("{path}.convention"),
-                    ));
-                }
+                    || !is_sha256_hex(specification_sha256))
+            {
+                issues.push(FrameConventionIssue::new(
+                    FrameConventionIssueCode::InvalidExternalSpecification,
+                    format!("{path}.convention"),
+                ));
             }
         }
 

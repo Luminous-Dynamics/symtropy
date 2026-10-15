@@ -371,13 +371,13 @@ impl WorldManifestV1 {
         }
 
         for (index, sensor) in self.sensors.iter().enumerate() {
-            if let Some(solver_id) = sensor.model_solver_id.as_deref() {
-                if !solver_ids.contains(solver_id) {
-                    issues.push(WorldValidationIssue::new(
-                        WorldValidationCode::UnknownSolverReference,
-                        format!("sensors[{index}].model_solver_id"),
-                    ));
-                }
+            if let Some(solver_id) = sensor.model_solver_id.as_deref()
+                && !solver_ids.contains(solver_id)
+            {
+                issues.push(WorldValidationIssue::new(
+                    WorldValidationCode::UnknownSolverReference,
+                    format!("sensors[{index}].model_solver_id"),
+                ));
             }
         }
 
@@ -680,18 +680,15 @@ impl WorldManifestV1 {
                     // kinematics artifact. Merely referencing *some* declared
                     // robot's artifact can otherwise create a plausible but
                     // physically unrelated transform chain.
-                    if let Some(frame) = frame_by_id.get(frame_id) {
-                        if let FrameTransformV1::Kinematic {
+                    if let Some(frame) = frame_by_id.get(frame_id)
+                        && let FrameTransformV1::Kinematic {
                             provider_artifact_id,
                             ..
                         } = &frame.transform_to_parent
-                        {
-                            if provider_artifact_id.as_str()
-                                != platform.kinematics.artifact_id.as_str()
-                            {
-                                kinematic_providers_match = false;
-                            }
-                        }
+                        && provider_artifact_id.as_str()
+                            != platform.kinematics.artifact_id.as_str()
+                    {
+                        kinematic_providers_match = false;
                     }
 
                     if frame_id == platform.base_frame_id.as_str() {
@@ -1685,7 +1682,9 @@ mod tests {
     #[test]
     fn artifact_identity_cannot_name_conflicting_content_digests() {
         let mut manifest = valid_manifest();
-        // `robot-cad` already appears in world_assets with a different digest.
+        // Give the world and platform references one shared artifact identity,
+        // then change only the platform digest to exercise the conflict check.
+        manifest.world_assets.push(manifest.platforms[0].geometry.clone());
         manifest.platforms[0].geometry.sha256 = "00".repeat(32);
         let issues = manifest.validate().unwrap_err();
         assert!(issues.iter().any(|issue| {
