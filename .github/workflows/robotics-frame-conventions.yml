@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - feat/robotics-qualified-frame-conventions
+      - feat/robotics-qualified-execution-identity
     paths:
       - '.github/workflows/robotics-frame-conventions.yml'
       - 'Cargo.toml'
