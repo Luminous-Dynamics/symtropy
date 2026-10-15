@@ -1922,6 +1922,24 @@ mod tests {
     }
 
     #[test]
+    fn portfolio_rejects_cross_period_delivery_rows() {
+        let mut scenario = valid_supply_scenario();
+        let mut second = scenario.lines[0].clone();
+        second.composition.food_record_id = "FOOD-002".to_owned();
+        second.delivery.food_record_id = "FOOD-002".to_owned();
+        second.delivery.delivery_source_ref = "fixture:delivery-002".to_owned();
+        second.delivery.period_ref = "period:2026-12".to_owned();
+        scenario.lines.push(second);
+        let assessment =
+            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientPortfolioBlockerCode::PeriodMismatch
+        }));
+        assert_eq!(assessment.supply_numerator, None);
+    }
+
+    #[test]
     fn portfolio_rejects_arithmetic_overflow() {
         let mut scenario = valid_supply_scenario();
         scenario.lines[0].composition.amount_per_100g_scaled = Some(u64::MAX);
