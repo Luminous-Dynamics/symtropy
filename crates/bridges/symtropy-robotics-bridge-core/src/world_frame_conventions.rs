@@ -393,16 +393,57 @@ impl FrameConventionRegistryV1 {
         }
     }
 
+    /// Estimate the exact V1 encoding length before validation and sorting allocate.
+    ///
+    /// The estimate accounts for all prefixes/tags and the fixed 32-byte external
+    /// digest. Invalid external digests are rejected by validation after the
+    /// preflight; only valid registries can be encoded.
+    fn preflight_canonical_size_v1(&self) -> Result<usize, QualifiedWorldError> {
+        if u64::try_from(self.frames.len()).is_err() {
+            return Err(QualifiedWorldError::FrameConventionBytesTooLarge {
+                limit_bytes: MAX_FRAME_CONVENTION_BYTES,
+            });
+        }
+
+        let mut size = FRAME_CONVENTION_DOMAIN_V1.len();
+        size = checked_registry_size_add(size, 2 + 2 + 8)?;
+
+        for binding in &self.frames {
+            // UTF-8 byte length prefix, exact frame-ID bytes, and convention tag.
+            size = checked_registry_size_add(size, 8)?;
+            size = checked_registry_size_add(size, binding.frame_id.len())?;
+            size = checked_registry_size_add(size, 1)?;
+
+            if let FrameAxisConventionV1::ExternalSpec {
+                specification_uri, ..
+            } = &binding.convention
+            {
+                // Handedness tag, URI length prefix + UTF-8 bytes, raw SHA-256.
+                size = checked_registry_size_add(size, 1)?;
+                size = checked_registry_size_add(size, 8)?;
+                size = checked_registry_size_add(size, specification_uri.len())?;
+                size = checked_registry_size_add(size, 32)?;
+            }
+        }
+
+        Ok(size)
+    }
+
     /// Canonical registry bytes, independent of JSON/Serde and input table order.
     pub fn canonical_bytes_v1(&self) -> Result<Vec<u8>, QualifiedWorldError> {
+        // This must precede validate() and the temporary sorted vector: the size
+        // cap should bound additional canonicalization work as well as output.
+        let estimated_size = self.preflight_canonical_size_v1()?;
         self.validate()
             .map_err(QualifiedWorldError::InvalidFrameConventionRegistry)?;
-        let mut encoder = RegistryEncoder::new();
+
+        let mut frames: Vec<&FrameConventionBindingV1> = self.frames.iter().collect();
+        frames.sort_by(|a, b| a.frame_id.cmp(&b.frame_id));
+
+        let mut encoder = RegistryEncoder::with_capacity(estimated_size);
         encoder.raw(FRAME_CONVENTION_DOMAIN_V1);
         encoder.u16(FRAME_CONVENTION_FORMAT_VERSION_V1);
         encoder.u16(self.schema_version);
-        let mut frames: Vec<&FrameConventionBindingV1> = self.frames.iter().collect();
-        frames.sort_by(|a, b| a.frame_id.cmp(&b.frame_id));
         encoder.count(frames.len());
         for binding in frames {
             encoder.string(&binding.frame_id);
@@ -603,15 +644,32 @@ fn hex_nibble(byte: u8) -> Option<u8> {
     }
 }
 
+fn checked_registry_size_add(
+    current: usize,
+    additional: usize,
+) -> Result<usize, QualifiedWorldError> {
+    let next = current.checked_add(additional).ok_or(
+        QualifiedWorldError::FrameConventionBytesTooLarge {
+            limit_bytes: MAX_FRAME_CONVENTION_BYTES,
+        },
+    )?;
+    if next > MAX_FRAME_CONVENTION_BYTES {
+        return Err(QualifiedWorldError::FrameConventionBytesTooLarge {
+            limit_bytes: MAX_FRAME_CONVENTION_BYTES,
+        });
+    }
+    Ok(next)
+}
+
 struct RegistryEncoder {
     bytes: Vec<u8>,
     too_large: bool,
 }
 
 impl RegistryEncoder {
-    fn new() -> Self {
+    fn with_capacity(capacity: usize) -> Self {
         Self {
-            bytes: Vec::new(),
+            bytes: Vec::with_capacity(capacity),
             too_large: false,
         }
     }
@@ -786,6 +844,16 @@ pub(crate) mod tests {
         }
     }
 
+    fn single_binding_registry(frame_id: String, convention: FrameAxisConventionV1) -> FrameConventionRegistryV1 {
+        FrameConventionRegistryV1 {
+            schema_version: FRAME_CONVENTION_REGISTRY_SCHEMA_VERSION_V1,
+            frames: vec![FrameConventionBindingV1 {
+                frame_id,
+                convention,
+            }],
+        }
+    }
+
     fn qualified_world() -> QualifiedWorldManifestV2 {
         let world = sample_world();
         QualifiedWorldManifestV2 {
@@ -929,6 +997,7 @@ pub(crate) mod tests {
         let registry = registry_for(&sample_world());
         let bytes = registry.canonical_bytes_v1().unwrap();
         assert_eq!(bytes.len(), 107);
+        assert_eq!(registry.preflight_canonical_size_v1().unwrap(), bytes.len());
         assert_eq!(
             registry.content_digest_v1().unwrap().to_hex(),
             "2ff85b064397f5e636b8b7510c7f7322581300d9d0d35c8a348dce6d50c7c0d2"
@@ -947,10 +1016,71 @@ pub(crate) mod tests {
     fn registry_digest_is_independent_of_entry_order() {
         let world = sample_world();
         let registry = registry_for(&world);
+        let bytes = registry.canonical_bytes_v1().unwrap();
+        let estimated_size = registry.preflight_canonical_size_v1().unwrap();
+        assert_eq!(estimated_size, bytes.len());
         let digest = registry.content_digest_v1().unwrap();
         let mut reordered = registry;
         reordered.frames.reverse();
+        assert_eq!(estimated_size, reordered.preflight_canonical_size_v1().unwrap());
+        assert_eq!(bytes, reordered.canonical_bytes_v1().unwrap());
         assert_eq!(digest, reordered.content_digest_v1().unwrap());
+    }
+
+    #[test]
+    fn registry_preflight_accepts_exact_limit_and_rejects_one_byte_over() {
+        // Header + count + one length-prefixed frame ID + one convention tag.
+        let fixed_overhead = FRAME_CONVENTION_DOMAIN_V1.len() + 2 + 2 + 8 + 8 + 1;
+        let exact_id_len = MAX_FRAME_CONVENTION_BYTES - fixed_overhead;
+        let exact = single_binding_registry(
+            "x".repeat(exact_id_len),
+            FrameAxisConventionV1::BodyForwardLeftUp,
+        );
+        assert_eq!(
+            exact.preflight_canonical_size_v1().unwrap(),
+            MAX_FRAME_CONVENTION_BYTES
+        );
+        let encoded = exact.canonical_bytes_v1().unwrap();
+        assert_eq!(encoded.len(), MAX_FRAME_CONVENTION_BYTES);
+        drop(encoded);
+        drop(exact);
+
+        let oversized = single_binding_registry(
+            "x".repeat(exact_id_len + 1),
+            FrameAxisConventionV1::BodyForwardLeftUp,
+        );
+        assert!(matches!(
+            oversized.canonical_bytes_v1(),
+            Err(QualifiedWorldError::FrameConventionBytesTooLarge {
+                limit_bytes: MAX_FRAME_CONVENTION_BYTES
+            })
+        ));
+    }
+
+    #[test]
+    fn registry_size_preflight_counts_external_spec_utf8_and_digest_bytes() {
+        let registry = single_binding_registry(
+            "custom".to_owned(),
+            FrameAxisConventionV1::ExternalSpec {
+                handedness: FrameHandednessV1::RightHanded,
+                specification_uri: "urn:example:coordinate-spec:β".to_owned(),
+                specification_sha256: "ab".repeat(32),
+            },
+        );
+        assert_eq!(
+            registry.preflight_canonical_size_v1().unwrap(),
+            registry.canonical_bytes_v1().unwrap().len()
+        );
+    }
+
+    #[test]
+    fn registry_size_preflight_overflow_fails_closed() {
+        assert!(matches!(
+            checked_registry_size_add(usize::MAX, 1),
+            Err(QualifiedWorldError::FrameConventionBytesTooLarge {
+                limit_bytes: MAX_FRAME_CONVENTION_BYTES
+            })
+        ));
     }
 
     #[test]

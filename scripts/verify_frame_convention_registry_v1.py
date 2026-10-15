@@ -22,6 +22,7 @@ EXPECTED_REGISTRY_DIGEST = (
 EXPECTED_QUALIFIED_DIGEST = (
     "962c4a535296a60b34905d73393e820c193d1eac7c87b1f53d2702b2e1f9f38b"
 )
+MAX_REGISTRY_BYTES = 4 * 1024 * 1024
 
 
 def u16(value: int) -> bytes:
@@ -35,6 +36,19 @@ def u64(value: int) -> bytes:
 def text(value: str) -> bytes:
     encoded = value.encode("utf-8")
     return u64(len(encoded)) + encoded
+
+
+def ordinary_registry_size(frame_ids: list[str]) -> int:
+    """Independent size formula for rows with one-byte non-external tags."""
+    size = len(REGISTRY_DOMAIN) + 2 + 2 + 8
+    for frame_id in frame_ids:
+        size += 8 + len(frame_id.encode("utf-8")) + 1
+    return size
+
+
+def external_spec_registry_size(frame_id: str, uri: str) -> int:
+    """Size for one ExternalSpec row, including handedness, URI and SHA-256."""
+    return ordinary_registry_size([frame_id]) + 1 + 8 + len(uri.encode("utf-8")) + 32
 
 
 def registry_bytes(rows: list[tuple[str, int]]) -> bytes:
@@ -97,6 +111,7 @@ def main() -> None:
     ]
     encoded = registry_bytes(rows)
     assert len(encoded) == EXPECTED_REGISTRY_SIZE, len(encoded)
+    assert ordinary_registry_size([row[0] for row in rows]) == len(encoded)
     registry_digest = hashlib.sha256(encoded).digest()
     assert registry_digest.hex() == EXPECTED_REGISTRY_DIGEST
 
@@ -110,10 +125,18 @@ def main() -> None:
         "79ab768e881a534fee13f1f2529de2e6e5dbb5583664cca8a5fc716fa45d7900"
     )
 
+    custom_uri = "urn:example:coordinate-spec:β"
     custom_lower = external_spec_registry_bytes("urn:example:coordinate-spec:1", "ab" * 32)
     custom_upper = external_spec_registry_bytes("urn:example:coordinate-spec:1", ("ab" * 32).upper())
     assert custom_lower == custom_upper
     assert len(custom_lower) == 136
+    custom_unicode = external_spec_registry_bytes(custom_uri, "ab" * 32)
+    assert external_spec_registry_size("custom", custom_uri) == len(custom_unicode)
+
+    empty_id_size = ordinary_registry_size([""])
+    exact_id_length = MAX_REGISTRY_BYTES - empty_id_size
+    assert ordinary_registry_size(["x" * exact_id_length]) == MAX_REGISTRY_BYTES
+    assert ordinary_registry_size(["x" * (exact_id_length + 1)]) == MAX_REGISTRY_BYTES + 1
     assert hashlib.sha256(custom_lower).hexdigest() == (
         "ba0cb450887c424f642868ef8356bcc3e0e9ea33469e40799db2c2a95531bb36"
     )
@@ -133,6 +156,8 @@ def main() -> None:
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     )
     print(f"PASS: registry bytes={len(encoded)} sha256={registry_digest.hex()}")
+    print("PASS: exact 4 MiB size boundary; one-byte-over estimate exceeds the cap")
+    print("PASS: external-spec UTF-8 URI, handedness and fixed digest sizing")
     print(f"PASS: qualified-world sha256={qualified}")
     print("PASS: table permutation preserves identity")
     print("PASS: axis convention mutation changes registry identity")
