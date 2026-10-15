@@ -305,13 +305,21 @@ fn validate_status(root: &JsonValue) -> Result<(), String> {
         "status",
     )?;
     expect_text(field(status, "kind", "status")?, "status.kind", "SpecificationOnly")?;
-    expect_bool(field(status, "execution_performed", "status")?, "status.execution_performed", false)?;
+    expect_bool(
+        field(status, "execution_performed", "status")?,
+        "status.execution_performed",
+        false,
+    )?;
     expect_text(
         field(status, "engine_capability_admission", "status")?,
         "status.engine_capability_admission",
         "NotAssessed",
     )?;
-    expect_text(field(status, "physical_validation", "status")?, "status.physical_validation", "None")?;
+    expect_text(
+        field(status, "physical_validation", "status")?,
+        "status.physical_validation",
+        "None",
+    )?;
     expect_text(field(status, "external_approval", "status")?, "status.external_approval", "None")?;
     Ok(())
 }
@@ -390,7 +398,11 @@ fn validate_execution_contract(root: &JsonValue) -> Result<(), String> {
         ),
         ("unsupported_model_semantics", "UnsupportedOrUnknown; never silently approximate."),
     ] {
-        expect_text(field(contract, key, "execution_contract")?, &format!("execution_contract.{key}"), value)?;
+        expect_text(
+            field(contract, key, "execution_contract")?,
+            &format!("execution_contract.{key}"),
+            value,
+        )?;
     }
     for key in [
         "headless",
@@ -425,37 +437,93 @@ fn validate_entities(root: &JsonValue) -> Result<Vec<JsonValue>, String> {
         match id {
             "vessel.synthetic-cargo-01" => {
                 exact_keys(entity, &["id", "kind", "dimensions", "evidence_class"], &path)?;
-                expect_text(field(entity, "kind", &path)?, &format!("{path}.kind"), "AbstractVesselEnvelope")?;
-                expect_text(field(entity, "evidence_class", &path)?, &format!("{path}.evidence_class"), "SyntheticAssumption")?;
+                expect_text(
+                    field(entity, "kind", &path)?,
+                    &format!("{path}.kind"),
+                    "AbstractVesselEnvelope",
+                )?;
+                expect_text(
+                    field(entity, "evidence_class", &path)?,
+                    &format!("{path}.evidence_class"),
+                    "SyntheticAssumption",
+                )?;
                 let dimensions = field(entity, "dimensions", &path)?;
-                exact_keys(dimensions, &["length", "width", "declared_draft"], &format!("{path}.dimensions"))?;
+                exact_keys(
+                    dimensions,
+                    &["length", "width", "declared_draft"],
+                    &format!("{path}.dimensions"),
+                )?;
                 frozen_quantity(field(dimensions, "length", &path)?, "m", 80.0, "vessel.length")?;
                 frozen_quantity(field(dimensions, "width", &path)?, "m", 12.0, "vessel.width")?;
-                frozen_quantity(field(dimensions, "declared_draft", &path)?, "m", 2.5, "vessel.declared_draft")?;
+                frozen_quantity(
+                    field(dimensions, "declared_draft", &path)?,
+                    "m",
+                    2.5,
+                    "vessel.declared_draft",
+                )?;
             }
             "berth.synthetic-01" => {
                 exact_keys(entity, &["id", "kind", "constraints", "evidence_class"], &path)?;
-                expect_text(field(entity, "kind", &path)?, &format!("{path}.kind"), "AbstractBerthEnvelope")?;
-                expect_text(field(entity, "evidence_class", &path)?, &format!("{path}.evidence_class"), "SyntheticAssumption")?;
+                expect_text(
+                    field(entity, "kind", &path)?,
+                    &format!("{path}.kind"),
+                    "AbstractBerthEnvelope",
+                )?;
+                expect_text(
+                    field(entity, "evidence_class", &path)?,
+                    &format!("{path}.evidence_class"),
+                    "SyntheticAssumption",
+                )?;
                 let constraints = field(entity, "constraints", &path)?;
                 exact_keys(
                     constraints,
                     &["maximum_length", "maximum_width", "maximum_declared_draft"],
                     &format!("{path}.constraints"),
                 )?;
-                frozen_quantity(field(constraints, "maximum_length", &path)?, "m", 100.0, "berth.maximum_length")?;
-                frozen_quantity(field(constraints, "maximum_width", &path)?, "m", 18.0, "berth.maximum_width")?;
-                frozen_quantity(field(constraints, "maximum_declared_draft", &path)?, "m", 3.0, "berth.maximum_declared_draft")?;
+                frozen_quantity(
+                    field(constraints, "maximum_length", &path)?,
+                    "m",
+                    100.0,
+                    "berth.maximum_length",
+                )?;
+                frozen_quantity(
+                    field(constraints, "maximum_width", &path)?,
+                    "m",
+                    18.0,
+                    "berth.maximum_width",
+                )?;
+                frozen_quantity(
+                    field(constraints, "maximum_declared_draft", &path)?,
+                    "m",
+                    3.0,
+                    "berth.maximum_declared_draft",
+                )?;
             }
             "energy.shore-power-01" => {
                 exact_keys(entity, &["id", "kind", "evidence_class"], &path)?;
-                expect_text(field(entity, "kind", &path)?, &format!("{path}.kind"), "AbstractChargingResource")?;
-                expect_text(field(entity, "evidence_class", &path)?, &format!("{path}.evidence_class"), "SyntheticAssumption")?;
+                expect_text(
+                    field(entity, "kind", &path)?,
+                    &format!("{path}.kind"),
+                    "AbstractChargingResource",
+                )?;
+                expect_text(
+                    field(entity, "evidence_class", &path)?,
+                    &format!("{path}.evidence_class"),
+                    "SyntheticAssumption",
+                )?;
             }
             "site.floating-essential-loads-01" => {
                 exact_keys(entity, &["id", "kind", "evidence_class"], &path)?;
-                expect_text(field(entity, "kind", &path)?, &format!("{path}.kind"), "AbstractEssentialLoadGroup")?;
-                expect_text(field(entity, "evidence_class", &path)?, &format!("{path}.evidence_class"), "SyntheticAssumption")?;
+                expect_text(
+                    field(entity, "kind", &path)?,
+                    &format!("{path}.kind"),
+                    "AbstractEssentialLoadGroup",
+                )?;
+                expect_text(
+                    field(entity, "evidence_class", &path)?,
+                    &format!("{path}.evidence_class"),
+                    "SyntheticAssumption",
+                )?;
             }
             _ => return Err(format!("{path}: unknown entity id {id:?} in frozen v0.1.0 fixture")),
         }
@@ -485,7 +553,11 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
     )?;
 
     let berth = field(contracts, "berth_envelope", "contracts")?;
-    exact_keys(berth, &["model_scope", "required_vessel_dimensions", "excluded_semantics"], "contracts.berth_envelope")?;
+    exact_keys(
+        berth,
+        &["model_scope", "required_vessel_dimensions", "excluded_semantics"],
+        "contracts.berth_envelope",
+    )?;
     expect_text(
         field(berth, "model_scope", "contracts.berth_envelope")?,
         "contracts.berth_envelope.model_scope",
@@ -525,15 +597,33 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         ],
         "contracts.battery_departure_energy",
     )?;
-    let route_energy_mwh = frozen_quantity(field(energy, "route_energy", "contracts.battery_departure_energy")?, "MWh", 4.0, "contracts.route_energy")?;
-    let reserve_mwh = frozen_quantity(field(energy, "protected_reserve", "contracts.battery_departure_energy")?, "MWh", 1.5, "contracts.protected_reserve")?;
-    let minimum_departure_energy_mwh = frozen_quantity(field(energy, "minimum_departure_energy", "contracts.battery_departure_energy")?, "MWh", 5.5, "contracts.minimum_departure_energy")?;
-    let baseline_stored_energy_mwh = frozen_quantity(field(energy, "baseline_stored_energy", "contracts.battery_departure_energy")?, "MWh", 6.0, "contracts.baseline_stored_energy")?;
-    expect_number(
-        &JsonValue::Number(Number::from_f64(route_energy_mwh + reserve_mwh).ok_or("invalid route/reserve sum")?),
-        "contracts.route_plus_reserve",
-        minimum_departure_energy_mwh,
+    let route_energy_mwh = frozen_quantity(
+        field(energy, "route_energy", "contracts.battery_departure_energy")?,
+        "MWh",
+        4.0,
+        "contracts.route_energy",
     )?;
+    let reserve_mwh = frozen_quantity(
+        field(energy, "protected_reserve", "contracts.battery_departure_energy")?,
+        "MWh",
+        1.5,
+        "contracts.protected_reserve",
+    )?;
+    let minimum_departure_energy_mwh = frozen_quantity(
+        field(energy, "minimum_departure_energy", "contracts.battery_departure_energy")?,
+        "MWh",
+        5.5,
+        "contracts.minimum_departure_energy",
+    )?;
+    let baseline_stored_energy_mwh = frozen_quantity(
+        field(energy, "baseline_stored_energy", "contracts.battery_departure_energy")?,
+        "MWh",
+        6.0,
+        "contracts.baseline_stored_energy",
+    )?;
+    if route_energy_mwh + reserve_mwh != minimum_departure_energy_mwh {
+        return Err("route energy plus reserve does not equal the frozen minimum".to_owned());
+    }
     expect_text(
         field(energy, "arithmetic", "contracts.battery_departure_energy")?,
         "contracts.battery_departure_energy.arithmetic",
@@ -564,14 +654,27 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         ],
         "contracts.floating_site_essential_load",
     )?;
-    let essential_load_mw = frozen_quantity(field(site, "synthetic_essential_load", "contracts.floating_site_essential_load")?, "MW", 1.2, "contracts.synthetic_essential_load")?;
-    let independent_backup_mw = frozen_quantity(field(site, "synthetic_independent_backup", "contracts.floating_site_essential_load")?, "MW", 0.5, "contracts.synthetic_independent_backup")?;
-    frozen_quantity(field(site, "expected_instantaneous_deficit", "contracts.floating_site_essential_load")?, "MW", 0.7, "contracts.expected_instantaneous_deficit")?;
-    expect_number(
-        &JsonValue::Number(Number::from_f64((essential_load_mw - independent_backup_mw).max(0.0)).ok_or("invalid site deficit")?),
-        "contracts.derived_instantaneous_deficit",
-        0.7,
+    let essential_load_mw = frozen_quantity(
+        field(site, "synthetic_essential_load", "contracts.floating_site_essential_load")?,
+        "MW",
+        1.2,
+        "contracts.synthetic_essential_load",
     )?;
+    let independent_backup_mw = frozen_quantity(
+        field(site, "synthetic_independent_backup", "contracts.floating_site_essential_load")?,
+        "MW",
+        0.5,
+        "contracts.synthetic_independent_backup",
+    )?;
+    frozen_quantity(
+        field(site, "expected_instantaneous_deficit", "contracts.floating_site_essential_load")?,
+        "MW",
+        0.7,
+        "contracts.expected_instantaneous_deficit",
+    )?;
+    if (essential_load_mw - independent_backup_mw).max(0.0) != 0.7 {
+        return Err("derived instantaneous site deficit does not equal the frozen value".to_owned());
+    }
     expect_text(
         field(site, "arithmetic", "contracts.floating_site_essential_load")?,
         "contracts.floating_site_essential_load.arithmetic",
@@ -629,11 +732,31 @@ fn validate_claim_ceiling(root: &JsonValue) -> Result<(), String> {
         ],
         "security_and_privacy",
     )?;
-    expect_bool(field(security, "uses_real_facility_layout", "security_and_privacy")?, "security_and_privacy.uses_real_facility_layout", false)?;
-    expect_bool(field(security, "contains_tactical_security_details", "security_and_privacy")?, "security_and_privacy.contains_tactical_security_details", false)?;
-    expect_bool(field(security, "contains_credentials_or_personal_data", "security_and_privacy")?, "security_and_privacy.contains_credentials_or_personal_data", false)?;
-    expect_text(field(security, "public_artifact_class", "security_and_privacy")?, "security_and_privacy.public_artifact_class", "SanitizedSyntheticSpecification")?;
-    expect_bool(field(security, "site_specific_security_plan_required_in_public_artifact", "security_and_privacy")?, "security_and_privacy.site_specific_security_plan_required_in_public_artifact", false)?;
+    expect_bool(
+        field(security, "uses_real_facility_layout", "security_and_privacy")?,
+        "security_and_privacy.uses_real_facility_layout",
+        false,
+    )?;
+    expect_bool(
+        field(security, "contains_tactical_security_details", "security_and_privacy")?,
+        "security_and_privacy.contains_tactical_security_details",
+        false,
+    )?;
+    expect_bool(
+        field(security, "contains_credentials_or_personal_data", "security_and_privacy")?,
+        "security_and_privacy.contains_credentials_or_personal_data",
+        false,
+    )?;
+    expect_text(
+        field(security, "public_artifact_class", "security_and_privacy")?,
+        "security_and_privacy.public_artifact_class",
+        "SanitizedSyntheticSpecification",
+    )?;
+    expect_bool(
+        field(security, "site_specific_security_plan_required_in_public_artifact", "security_and_privacy")?,
+        "security_and_privacy.site_specific_security_plan_required_in_public_artifact",
+        false,
+    )?;
 
     expect_string_set(
         field(root, "claim_ceiling", "root")?,
@@ -686,54 +809,177 @@ fn verify_case(
 
     match case_id {
         "baseline-declared-envelope-and-energy" => {
-            exact_keys(inputs, &["vessel_entity", "berth_entity", "stored_departure_energy"], &format!("{path}.inputs"))?;
-            exact_keys(expected, &["disposition", "berth_envelope", "departure_energy", "physical_qualification", "regulatory_approval"], &format!("{path}.expected"))?;
-            expect_text(field(inputs, "vessel_entity", &path)?, "baseline.inputs.vessel_entity", "vessel.synthetic-cargo-01")?;
-            expect_text(field(inputs, "berth_entity", &path)?, "baseline.inputs.berth_entity", "berth.synthetic-01")?;
-            let stored = frozen_quantity(field(inputs, "stored_departure_energy", &path)?, "MWh", contract.baseline_stored_energy_mwh, "baseline.stored_departure_energy")?;
+            exact_keys(
+                inputs,
+                &["vessel_entity", "berth_entity", "stored_departure_energy"],
+                &format!("{path}.inputs"),
+            )?;
+            exact_keys(
+                expected,
+                &["disposition", "berth_envelope", "departure_energy", "physical_qualification", "regulatory_approval"],
+                &format!("{path}.expected"),
+            )?;
+            expect_text(
+                field(inputs, "vessel_entity", &path)?,
+                "baseline.inputs.vessel_entity",
+                "vessel.synthetic-cargo-01",
+            )?;
+            expect_text(
+                field(inputs, "berth_entity", &path)?,
+                "baseline.inputs.berth_entity",
+                "berth.synthetic-01",
+            )?;
+            let stored = frozen_quantity(
+                field(inputs, "stored_departure_energy", &path)?,
+                "MWh",
+                contract.baseline_stored_energy_mwh,
+                "baseline.stored_departure_energy",
+            )?;
             let vessel = lookup_entity(entities, "vessel.synthetic-cargo-01")?;
             let berth = lookup_entity(entities, "berth.synthetic-01")?;
             let dimensions = field(vessel, "dimensions", "vessel")?;
             let constraints = field(berth, "constraints", "berth")?;
-            let fits = quantity(field(dimensions, "length", "vessel.dimensions")?, "m", "vessel.length")?
-                <= quantity(field(constraints, "maximum_length", "berth.constraints")?, "m", "berth.maximum_length")?
+            let fits = quantity(
+                field(dimensions, "length", "vessel.dimensions")?,
+                "m",
+                "vessel.length",
+            )?
+                <= quantity(
+                    field(constraints, "maximum_length", "berth.constraints")?,
+                    "m",
+                    "berth.maximum_length",
+                )?
                 && quantity(field(dimensions, "width", "vessel.dimensions")?, "m", "vessel.width")?
-                    <= quantity(field(constraints, "maximum_width", "berth.constraints")?, "m", "berth.maximum_width")?
-                && quantity(field(dimensions, "declared_draft", "vessel.dimensions")?, "m", "vessel.declared_draft")?
-                    <= quantity(field(constraints, "maximum_declared_draft", "berth.constraints")?, "m", "berth.maximum_declared_draft")?;
+                    <= quantity(
+                        field(constraints, "maximum_width", "berth.constraints")?,
+                        "m",
+                        "berth.maximum_width",
+                    )?
+                && quantity(
+                    field(dimensions, "declared_draft", "vessel.dimensions")?,
+                    "m",
+                    "vessel.declared_draft",
+                )?
+                    <= quantity(
+                        field(constraints, "maximum_declared_draft", "berth.constraints")?,
+                        "m",
+                        "berth.maximum_declared_draft",
+                    )?;
             let energy_ok = stored >= contract.minimum_departure_energy_mwh;
-            expect_text(field(expected, "berth_envelope", &path)?, "baseline.expected.berth_envelope", if fits { "FitsDeclaredSyntheticEnvelope" } else { "OutsideDeclaredSyntheticEnvelope" })?;
-            expect_text(field(expected, "departure_energy", &path)?, "baseline.expected.departure_energy", if energy_ok { "SufficientByDeclaredArithmetic" } else { "InsufficientByDeclaredArithmetic" })?;
-            expect_bool(field(expected, "physical_qualification", &path)?, "baseline.expected.physical_qualification", false)?;
-            expect_bool(field(expected, "regulatory_approval", &path)?, "baseline.expected.regulatory_approval", false)?;
+            expect_text(
+                field(expected, "berth_envelope", &path)?,
+                "baseline.expected.berth_envelope",
+                if fits { "FitsDeclaredSyntheticEnvelope" } else { "OutsideDeclaredSyntheticEnvelope" },
+            )?;
+            expect_text(
+                field(expected, "departure_energy", &path)?,
+                "baseline.expected.departure_energy",
+                if energy_ok { "SufficientByDeclaredArithmetic" } else { "InsufficientByDeclaredArithmetic" },
+            )?;
+            expect_bool(
+                field(expected, "physical_qualification", &path)?,
+                "baseline.expected.physical_qualification",
+                false,
+            )?;
+            expect_bool(
+                field(expected, "regulatory_approval", &path)?,
+                "baseline.expected.regulatory_approval",
+                false,
+            )?;
             disposition = if fits && energy_ok { "PassDeclaredChecksOnly" } else { "Infeasible" };
         }
         "vessel-exceeds-berth-length" => {
             exact_keys(inputs, &["vessel_dimensions", "berth_entity"], &format!("{path}.inputs"))?;
-            exact_keys(expected, &["disposition", "failed_constraint", "silent_fallback_allowed"], &format!("{path}.expected"))?;
-            expect_text(field(inputs, "berth_entity", &path)?, "oversize.inputs.berth_entity", "berth.synthetic-01")?;
+            exact_keys(
+                expected,
+                &["disposition", "failed_constraint", "silent_fallback_allowed"],
+                &format!("{path}.expected"),
+            )?;
+            expect_text(
+                field(inputs, "berth_entity", &path)?,
+                "oversize.inputs.berth_entity",
+                "berth.synthetic-01",
+            )?;
             let vessel_dims = field(inputs, "vessel_dimensions", &path)?;
-            exact_keys(vessel_dims, &["length", "width", "declared_draft"], "oversize.inputs.vessel_dimensions")?;
-            frozen_quantity(field(vessel_dims, "length", &path)?, "m", 105.0, "oversize.vessel.length")?;
-            frozen_quantity(field(vessel_dims, "width", &path)?, "m", 12.0, "oversize.vessel.width")?;
-            frozen_quantity(field(vessel_dims, "declared_draft", &path)?, "m", 2.5, "oversize.vessel.declared_draft")?;
+            exact_keys(
+                vessel_dims,
+                &["length", "width", "declared_draft"],
+                "oversize.inputs.vessel_dimensions",
+            )?;
+            frozen_quantity(
+                field(vessel_dims, "length", &path)?,
+                "m",
+                105.0,
+                "oversize.vessel.length",
+            )?;
+            frozen_quantity(
+                field(vessel_dims, "width", &path)?,
+                "m",
+                12.0,
+                "oversize.vessel.width",
+            )?;
+            frozen_quantity(
+                field(vessel_dims, "declared_draft", &path)?,
+                "m",
+                2.5,
+                "oversize.vessel.declared_draft",
+            )?;
             let berth = lookup_entity(entities, "berth.synthetic-01")?;
             let constraints = field(berth, "constraints", "berth")?;
-            let length = quantity(field(vessel_dims, "length", &path)?, "m", "oversize.vessel.length")?;
-            let max_length = quantity(field(constraints, "maximum_length", "berth.constraints")?, "m", "berth.maximum_length")?;
+            let length = quantity(
+                field(vessel_dims, "length", &path)?,
+                "m",
+                "oversize.vessel.length",
+            )?;
+            let max_length = quantity(
+                field(constraints, "maximum_length", "berth.constraints")?,
+                "m",
+                "berth.maximum_length",
+            )?;
             if length <= max_length {
                 return Err("oversize fixture no longer exceeds its declared berth length".to_owned());
             }
-            expect_text(field(expected, "failed_constraint", &path)?, "oversize.expected.failed_constraint", "VesselLengthExceedsDeclaredBerthLength")?;
-            expect_bool(field(expected, "silent_fallback_allowed", &path)?, "oversize.expected.silent_fallback_allowed", false)?;
+            expect_text(
+                field(expected, "failed_constraint", &path)?,
+                "oversize.expected.failed_constraint",
+                "VesselLengthExceedsDeclaredBerthLength",
+            )?;
+            expect_bool(
+                field(expected, "silent_fallback_allowed", &path)?,
+                "oversize.expected.silent_fallback_allowed",
+                false,
+            )?;
             disposition = "Infeasible";
         }
         "charging-interruption-energy-shortfall" => {
-            exact_keys(inputs, &["starting_stored_energy", "charging_power", "charging_duration", "charging_efficiency", "route_energy", "protected_reserve"], &format!("{path}.inputs"))?;
-            exact_keys(expected, &["charge_added_energy", "available_departure_energy", "minimum_departure_energy", "disposition", "failed_constraint"], &format!("{path}.expected"))?;
-            let start = frozen_quantity(field(inputs, "starting_stored_energy", &path)?, "MWh", 3.0, "charging.start")?;
-            let power = frozen_quantity(field(inputs, "charging_power", &path)?, "MW", 2.0, "charging.power")?;
-            let duration = frozen_quantity(field(inputs, "charging_duration", &path)?, "h", 1.0, "charging.duration")?;
+            exact_keys(
+                inputs,
+                &["starting_stored_energy", "charging_power", "charging_duration", "charging_efficiency", "route_energy", "protected_reserve"],
+                &format!("{path}.inputs"),
+            )?;
+            exact_keys(
+                expected,
+                &["charge_added_energy", "available_departure_energy", "minimum_departure_energy", "disposition", "failed_constraint"],
+                &format!("{path}.expected"),
+            )?;
+            let start = frozen_quantity(
+                field(inputs, "starting_stored_energy", &path)?,
+                "MWh",
+                3.0,
+                "charging.start",
+            )?;
+            let power = frozen_quantity(
+                field(inputs, "charging_power", &path)?,
+                "MW",
+                2.0,
+                "charging.power",
+            )?;
+            let duration = frozen_quantity(
+                field(inputs, "charging_duration", &path)?,
+                "h",
+                1.0,
+                "charging.duration",
+            )?;
             let efficiency = number(field(inputs, "charging_efficiency", &path)?, "charging.efficiency")?;
             if !(0.0..=1.0).contains(&efficiency) {
                 return Err("charging.efficiency must be in the inclusive [0, 1] interval".to_owned());
@@ -741,8 +987,18 @@ fn verify_case(
             if efficiency != 0.9 {
                 return Err("charging.efficiency: frozen v0.1.0 value changed".to_owned());
             }
-            let route = frozen_quantity(field(inputs, "route_energy", &path)?, "MWh", contract.route_energy_mwh, "charging.route_energy")?;
-            let reserve = frozen_quantity(field(inputs, "protected_reserve", &path)?, "MWh", contract.reserve_mwh, "charging.reserve")?;
+            let route = frozen_quantity(
+                field(inputs, "route_energy", &path)?,
+                "MWh",
+                contract.route_energy_mwh,
+                "charging.route_energy",
+            )?;
+            let reserve = frozen_quantity(
+                field(inputs, "protected_reserve", &path)?,
+                "MWh",
+                contract.reserve_mwh,
+                "charging.reserve",
+            )?;
             let added = power * duration * efficiency;
             let available = start + added;
             let required = route + reserve;
@@ -764,42 +1020,117 @@ fn verify_case(
                 required,
                 "charging.expected.minimum_departure_energy",
             )?;
-            expect_text(field(expected, "failed_constraint", &path)?, "charging.expected.failed_constraint", "DepartureEnergyBelowRoutePlusReserve")?;
+            expect_text(
+                field(expected, "failed_constraint", &path)?,
+                "charging.expected.failed_constraint",
+                "DepartureEnergyBelowRoutePlusReserve",
+            )?;
             if available >= required {
                 return Err("charging fixture no longer demonstrates a reserve-inclusive energy shortfall".to_owned());
             }
             disposition = "Infeasible";
         }
         "stale-configuration-currentness" => {
-            exact_keys(inputs, &["run_configuration_revision", "current_asset_configuration_revision"], &format!("{path}.inputs"))?;
-            exact_keys(expected, &["disposition", "reason", "prior_result_may_be_carried_forward"], &format!("{path}.expected"))?;
+            exact_keys(
+                inputs,
+                &["run_configuration_revision", "current_asset_configuration_revision"],
+                &format!("{path}.inputs"),
+            )?;
+            exact_keys(
+                expected,
+                &["disposition", "reason", "prior_result_may_be_carried_forward"],
+                &format!("{path}.expected"),
+            )?;
             let run = text(field(inputs, "run_configuration_revision", &path)?, "stale.run_configuration_revision")?;
             let current = text(field(inputs, "current_asset_configuration_revision", &path)?, "stale.current_asset_configuration_revision")?;
             if run != "config-001" || current != "config-002" || run == current {
                 return Err("stale configuration fixture identity changed or mismatch vanished".to_owned());
             }
-            expect_text(field(expected, "reason", &path)?, "stale.expected.reason", "ConfigurationIdentityMismatch")?;
-            expect_bool(field(expected, "prior_result_may_be_carried_forward", &path)?, "stale.expected.prior_result_may_be_carried_forward", false)?;
+            expect_text(
+                field(expected, "reason", &path)?,
+                "stale.expected.reason",
+                "ConfigurationIdentityMismatch",
+            )?;
+            expect_bool(
+                field(expected, "prior_result_may_be_carried_forward", &path)?,
+                "stale.expected.prior_result_may_be_carried_forward",
+                false,
+            )?;
             disposition = "Indeterminate";
         }
         "unsupported-nuclear-thermal-hydraulics-request" => {
-            exact_keys(inputs, &["requested_model", "available_model_evidence"], &format!("{path}.inputs"))?;
-            exact_keys(expected, &["disposition", "silent_rigid_body_approximation_allowed", "nuclear_safety_claim_allowed"], &format!("{path}.expected"))?;
-            expect_text(field(inputs, "requested_model", &path)?, "unsupported.requested_model", "NuclearThermalHydraulics")?;
-            expect_text(field(inputs, "available_model_evidence", &path)?, "unsupported.available_model_evidence", "None")?;
-            expect_bool(field(expected, "silent_rigid_body_approximation_allowed", &path)?, "unsupported.expected.silent_rigid_body_approximation_allowed", false)?;
-            expect_bool(field(expected, "nuclear_safety_claim_allowed", &path)?, "unsupported.expected.nuclear_safety_claim_allowed", false)?;
+            exact_keys(
+                inputs,
+                &["requested_model", "available_model_evidence"],
+                &format!("{path}.inputs"),
+            )?;
+            exact_keys(
+                expected,
+                &["disposition", "silent_rigid_body_approximation_allowed", "nuclear_safety_claim_allowed"],
+                &format!("{path}.expected"),
+            )?;
+            expect_text(
+                field(inputs, "requested_model", &path)?,
+                "unsupported.requested_model",
+                "NuclearThermalHydraulics",
+            )?;
+            expect_text(
+                field(inputs, "available_model_evidence", &path)?,
+                "unsupported.available_model_evidence",
+                "None",
+            )?;
+            expect_bool(
+                field(expected, "silent_rigid_body_approximation_allowed", &path)?,
+                "unsupported.expected.silent_rigid_body_approximation_allowed",
+                false,
+            )?;
+            expect_bool(
+                field(expected, "nuclear_safety_claim_allowed", &path)?,
+                "unsupported.expected.nuclear_safety_claim_allowed",
+                false,
+            )?;
             disposition = "Unsupported";
         }
         "floating-site-backup-deficit" => {
-            exact_keys(inputs, &["essential_load", "independent_backup"], &format!("{path}.inputs"))?;
-            exact_keys(expected, &["disposition", "instantaneous_unserved_load", "duration_claim_allowed", "power_quality_claim_allowed"], &format!("{path}.expected"))?;
-            let load = frozen_quantity(field(inputs, "essential_load", &path)?, "MW", contract.essential_load_mw, "site.essential_load")?;
-            let backup = frozen_quantity(field(inputs, "independent_backup", &path)?, "MW", contract.independent_backup_mw, "site.independent_backup")?;
+            exact_keys(
+                inputs,
+                &["essential_load", "independent_backup"],
+                &format!("{path}.inputs"),
+            )?;
+            exact_keys(
+                expected,
+                &["disposition", "instantaneous_unserved_load", "duration_claim_allowed", "power_quality_claim_allowed"],
+                &format!("{path}.expected"),
+            )?;
+            let load = frozen_quantity(
+                field(inputs, "essential_load", &path)?,
+                "MW",
+                contract.essential_load_mw,
+                "site.essential_load",
+            )?;
+            let backup = frozen_quantity(
+                field(inputs, "independent_backup", &path)?,
+                "MW",
+                contract.independent_backup_mw,
+                "site.independent_backup",
+            )?;
             let deficit = (load - backup).max(0.0);
-            expect_quantity_value(field(expected, "instantaneous_unserved_load", &path)?, "MW", deficit, "site.expected.instantaneous_unserved_load")?;
-            expect_bool(field(expected, "duration_claim_allowed", &path)?, "site.expected.duration_claim_allowed", false)?;
-            expect_bool(field(expected, "power_quality_claim_allowed", &path)?, "site.expected.power_quality_claim_allowed", false)?;
+            expect_quantity_value(
+                field(expected, "instantaneous_unserved_load", &path)?,
+                "MW",
+                deficit,
+                "site.expected.instantaneous_unserved_load",
+            )?;
+            expect_bool(
+                field(expected, "duration_claim_allowed", &path)?,
+                "site.expected.duration_claim_allowed",
+                false,
+            )?;
+            expect_bool(
+                field(expected, "power_quality_claim_allowed", &path)?,
+                "site.expected.power_quality_claim_allowed",
+                false,
+            )?;
             if deficit <= 0.0 {
                 return Err("floating-site fixture no longer represents an instantaneous service deficit".to_owned());
             }
