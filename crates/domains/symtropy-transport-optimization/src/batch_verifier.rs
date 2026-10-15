@@ -19,7 +19,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[derive(Clone, Debug, PartialEq, Eq)]
 struct RecomputedEdgeUsage {
     quantity_used: u64,
     quantity_unit: QuantityUnit,
@@ -27,6 +26,7 @@ struct RecomputedEdgeUsage {
     demand_ids: Vec<String>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BatchReportVerificationError {
     InvalidInput(&'static str),
     InvalidReport(&'static str),
@@ -121,14 +121,15 @@ pub fn verify_shared_capacity_batch_report(
                 "a demand has no candidate routes",
             ));
         }
-        if let CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
-            search_domain_id,
-        } = &candidate_set.completeness
-            && search_domain_id.trim().is_empty()
-        {
-            return Err(BatchReportVerificationError::InvalidInput(
-                "an exhaustive candidate claim lacks a search-domain ID",
-            ));
+        match &candidate_set.completeness {
+            CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
+                search_domain_id,
+            } if search_domain_id.trim().is_empty() => {
+                return Err(BatchReportVerificationError::InvalidInput(
+                    "an exhaustive candidate claim lacks a search-domain ID",
+                ));
+            }
+            _ => {}
         }
 
         let mut route_signatures = BTreeSet::new();
