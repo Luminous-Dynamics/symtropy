@@ -463,7 +463,10 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
             );
         }
         "insert" => {
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
+            object.insert(
+                leaf.to_owned(),
+                mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
+            );
         }
         "remove" => {
             if object.remove(leaf).is_none() { return Err("INVALID_CORPUS_MUTATION"); }
@@ -565,10 +568,16 @@ mod tests {
 
     #[test]
     fn profile_is_only_a_metadata_claim() {
-        let profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-plsci-profile.json"))
+        let profile: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/synthetic-plsci-profile.json"
+        ))
             .expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
         assert!(!profile["intended_use"]["navigation_authorized"].as_bool().expect("boolean"));
-        assert!(!profile["intended_use"]["physical_truth_claim_authorized"].as_bool().expect("boolean"));
+        assert!(
+            !profile["intended_use"]["physical_truth_claim_authorized"]
+                .as_bool()
+                .expect("boolean")
+        );
     }
 }
