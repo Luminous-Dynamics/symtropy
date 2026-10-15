@@ -568,6 +568,194 @@ pub fn compare_traces_3d(
     Ok(metrics)
 }
 
+
+/// Explicit acceptance thresholds for a differential comparison.
+///
+/// Thresholds are caller-owned and unit-specific; no universal epsilon is
+/// implied. At least one metric must be selected. Unselected metrics are not
+/// part of this profile's acceptance claim.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DifferentialAcceptanceProfile3d {
+    pub profile_id: String,
+    pub max_position_error_m: Option<f64>,
+    pub rms_position_error_m: Option<f64>,
+    pub max_linear_velocity_error_mps: Option<f64>,
+    pub rms_linear_velocity_error_mps: Option<f64>,
+}
+
+impl DifferentialAcceptanceProfile3d {
+    fn validate(&self) -> Result<(), AcceptanceProfileError> {
+        if self.profile_id.trim().is_empty() {
+            return Err(AcceptanceProfileError::EmptyProfileId);
+        }
+        let criteria = [
+            ("max_position_error_m", self.max_position_error_m),
+            ("rms_position_error_m", self.rms_position_error_m),
+            (
+                "max_linear_velocity_error_mps",
+                self.max_linear_velocity_error_mps,
+            ),
+            (
+                "rms_linear_velocity_error_mps",
+                self.rms_linear_velocity_error_mps,
+            ),
+        ];
+        let mut selected = 0;
+        for (field, tolerance) in criteria {
+            if let Some(tolerance) = tolerance {
+                selected += 1;
+                if !tolerance.is_finite() || tolerance < 0.0 {
+                    return Err(AcceptanceProfileError::InvalidTolerance { field });
+                }
+            }
+        }
+        if selected == 0 {
+            return Err(AcceptanceProfileError::NoCriteria);
+        }
+        Ok(())
+    }
+}
+
+/// Invalid acceptance-profile configuration.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AcceptanceProfileError {
+    EmptyProfileId,
+    NoCriteria,
+    InvalidTolerance { field: &'static str },
+}
+
+impl fmt::Display for AcceptanceProfileError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyProfileId => write!(f, "acceptance profile ID must not be empty"),
+            Self::NoCriteria => write!(f, "acceptance profile must select at least one metric"),
+            Self::InvalidTolerance { field } => {
+                write!(f, "acceptance tolerance {field} must be finite and nonnegative")
+            }
+        }
+    }
+}
+
+impl std::error::Error for AcceptanceProfileError {}
+
+/// Disposition of a differential physics comparison.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QualificationDecision3d {
+    /// All selected thresholds were met with complete finite observation coverage.
+    Pass,
+    /// At least one measured selected metric exceeded its declared threshold.
+    Fail,
+    /// Some numeric evidence exists, but coverage or a required metric is incomplete.
+    Inconclusive,
+    /// The traces cannot be compared under the shared structural contract.
+    NotComparable,
+}
+
+/// Decision record keeping the acceptance policy separate from raw metrics.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct QualificationReport3d {
+    pub left_scenario_id: String,
+    pub right_scenario_id: String,
+    pub profile_id: String,
+    pub decision: QualificationDecision3d,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<DifferentialMetrics3d>,
+    pub reasons: Vec<String>,
+}
+
+/// Compare traces and evaluate them against explicit, unit-specific thresholds.
+///
+/// A structural comparison error becomes `not_comparable`. A threshold violation
+/// is a failure even when other observations are missing; otherwise incomplete
+/// finite coverage yields `inconclusive`, never a pass.
+pub fn qualify_traces_3d(
+    left: &PhysicsTrace3d,
+    right: &PhysicsTrace3d,
+    profile: &DifferentialAcceptanceProfile3d,
+) -> Result<QualificationReport3d, AcceptanceProfileError> {
+    profile.validate()?;
+    let mut report = QualificationReport3d {
+        left_scenario_id: left.scenario_id.clone(),
+        right_scenario_id: right.scenario_id.clone(),
+        profile_id: profile.profile_id.clone(),
+        decision: QualificationDecision3d::NotComparable,
+        metrics: None,
+        reasons: Vec::new(),
+    };
+
+    let metrics = match compare_traces_3d(left, right) {
+        Ok(metrics) => metrics,
+        Err(error) => {
+            report.reasons.push(error.to_string());
+            return Ok(report);
+        }
+    };
+
+    let criteria = [
+        (
+            "max_position_error_m",
+            profile.max_position_error_m,
+            metrics.max_position_error_m,
+        ),
+        (
+            "rms_position_error_m",
+            profile.rms_position_error_m,
+            metrics.rms_position_error_m,
+        ),
+        (
+            "max_linear_velocity_error_mps",
+            profile.max_linear_velocity_error_mps,
+            metrics.max_linear_velocity_error_mps,
+        ),
+        (
+            "rms_linear_velocity_error_mps",
+            profile.rms_linear_velocity_error_mps,
+            metrics.rms_linear_velocity_error_mps,
+        ),
+    ];
+    let mut failed = false;
+    let mut missing_required_metric = false;
+    for (field, tolerance, measured) in criteria {
+        let Some(tolerance) = tolerance else {
+            continue;
+        };
+        match measured {
+            Some(measured) if measured > tolerance => {
+                failed = true;
+                report.reasons.push(format!(
+                    "{field} exceeds tolerance: measured {measured}, allowed {tolerance}"
+                ));
+            }
+            Some(_) => {}
+            None => {
+                missing_required_metric = true;
+                report
+                    .reasons
+                    .push(format!("required metric {field} is unavailable"));
+            }
+        }
+    }
+
+    if failed {
+        report.decision = QualificationDecision3d::Fail;
+    } else if missing_required_metric || !metrics.has_complete_finite_coverage() {
+        report.decision = QualificationDecision3d::Inconclusive;
+        if !metrics.has_complete_finite_coverage() {
+            report
+                .reasons
+                .push("observation coverage is not completely finite".to_owned());
+        }
+    } else {
+        report.decision = QualificationDecision3d::Pass;
+        report
+            .reasons
+            .push("all selected thresholds met with complete finite coverage".to_owned());
+    }
+    report.metrics = Some(metrics);
+    Ok(report)
+}
+
 /// Execute a validated v0.1 scenario with the native Symtropy 3D solver.
 pub fn run_native_scenario_3d(
     scenario: &PhysicsScenario3d,
@@ -1067,6 +1255,84 @@ mod tests {
             compare_traces_3d(&left, &right),
             Err(TraceComparisonError::NonFiniteComputedMetric {
                 field: "rms_position_error_m",
+            })
+        );
+    }
+
+    fn test_acceptance_profile() -> DifferentialAcceptanceProfile3d {
+        DifferentialAcceptanceProfile3d {
+            profile_id: "test-profile-v1".to_owned(),
+            max_position_error_m: Some(0.1),
+            rms_position_error_m: Some(0.1),
+            max_linear_velocity_error_mps: Some(0.1),
+            rms_linear_velocity_error_mps: Some(0.1),
+        }
+    }
+
+    #[test]
+    fn qualification_passes_only_with_selected_thresholds_and_full_coverage() {
+        let trace = one_sample_trace();
+        let report = qualify_traces_3d(&trace, &trace, &test_acceptance_profile()).unwrap();
+
+        assert_eq!(report.decision, QualificationDecision3d::Pass);
+        assert!(report.metrics.as_ref().unwrap().has_complete_finite_coverage());
+    }
+
+    #[test]
+    fn qualification_fails_when_a_measured_metric_exceeds_its_threshold() {
+        let left = one_sample_trace();
+        let mut right = left.clone();
+        right.samples[0].bodies[0].position_m = [2.0, 0.0, 0.0];
+
+        let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
+        assert_eq!(report.decision, QualificationDecision3d::Fail);
+        assert!(report.reasons.iter().any(|reason| reason.contains("max_position_error_m")));
+    }
+
+    #[test]
+    fn qualification_is_inconclusive_when_finite_coverage_is_partial() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
+        let right = one_sample_trace();
+
+        let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
+        assert_eq!(report.decision, QualificationDecision3d::Inconclusive);
+        assert!(
+            !report
+                .metrics
+                .as_ref()
+                .unwrap()
+                .has_complete_finite_coverage()
+        );
+    }
+
+    #[test]
+    fn qualification_reports_structurally_invalid_traces_as_not_comparable() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies.clear();
+        let right = left.clone();
+
+        let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
+        assert_eq!(report.decision, QualificationDecision3d::NotComparable);
+        assert!(report.metrics.is_none());
+        assert!(!report.reasons.is_empty());
+    }
+
+    #[test]
+    fn acceptance_profiles_reject_empty_or_invalid_thresholds() {
+        let mut profile = test_acceptance_profile();
+        profile.profile_id = " ".to_owned();
+        assert_eq!(
+            qualify_traces_3d(&one_sample_trace(), &one_sample_trace(), &profile),
+            Err(AcceptanceProfileError::EmptyProfileId)
+        );
+
+        let mut profile = test_acceptance_profile();
+        profile.max_position_error_m = Some(f64::INFINITY);
+        assert_eq!(
+            qualify_traces_3d(&one_sample_trace(), &one_sample_trace(), &profile),
+            Err(AcceptanceProfileError::InvalidTolerance {
+                field: "max_position_error_m",
             })
         );
     }
