@@ -289,7 +289,7 @@ impl EnergyBudget {
     /// Whether this entity has collapsed (zero energy).
     #[inline]
     pub fn is_collapsed(&self) -> bool {
-        self.collapsed || !self.available.is_finite() || self.available <= 0.0
+        self.collapsed || !self.state_is_valid() || self.available <= 0.0
     }
 
     /// Fraction of energy remaining [0.0, 1.0].
@@ -387,6 +387,16 @@ mod tests {
         budget.available = f64::NAN;
         assert_eq!(budget.consume(10.0), 0.0);
         assert!(budget.available.is_nan());
+    }
+
+    #[test]
+    fn corrupted_thermal_state_is_not_reported_as_live_energy() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.temperature = f64::NAN;
+
+        assert!(!budget.has_energy());
+        assert!(budget.is_collapsed());
+        assert_eq!(budget.fraction_remaining(), 0.0);
     }
 
     #[test]
