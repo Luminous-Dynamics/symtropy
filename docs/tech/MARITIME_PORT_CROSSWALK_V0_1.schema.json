@@ -363,6 +363,44 @@
                 }
               }
             }
+          },
+          {
+            "if": {
+              "properties": {
+                "candidate_locode": {
+                  "type": "null"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "locode_function": {
+                  "type": "null"
+                },
+                "locode_status": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "candidate_locode": {
+                  "type": "string"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "locode_function": {
+                  "type": "string"
+                },
+                "locode_status": {
+                  "type": "string"
+                }
+              }
+            }
           }
         ]
       }
