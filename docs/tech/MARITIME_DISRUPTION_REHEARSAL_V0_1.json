@@ -137,6 +137,136 @@
       "default_state": "INDETERMINATE"
     }
   ],
+  "evidence_requirements": [
+    {
+      "requirement_id": "terminal_window_confirmation",
+      "trigger_blocker": "terminal_window_open",
+      "required_evidence_kind": "authoritative_terminal_window_state",
+      "minimum_fields": [
+        "terminal_identity",
+        "window_state",
+        "window_start_utc",
+        "window_end_utc",
+        "issuer_identity",
+        "source_revision",
+        "captured_at_utc",
+        "artifact_sha256"
+      ],
+      "resolution_scope": "Can resolve only the declared terminal-window evidence gap; it does not create a booking or authorize vessel movement."
+    },
+    {
+      "requirement_id": "water_level_envelope_evidence",
+      "trigger_blocker": "water_level_envelope_supported_and_satisfied",
+      "required_evidence_kind": "supported_water_level_envelope",
+      "minimum_fields": [
+        "spatial_coverage",
+        "time_coverage",
+        "vertical_datum",
+        "water_level_envelope",
+        "uncertainty_statement",
+        "source_receipt_sha256",
+        "supported_model_capability_id"
+      ],
+      "resolution_scope": "Can establish whether an input envelope is available within a declared model path; it does not calculate or certify under-keel clearance."
+    },
+    {
+      "requirement_id": "energy_reserve_assessment",
+      "trigger_blocker": "energy_reserve_minimum_satisfied",
+      "required_evidence_kind": "qualified_energy_reserve_assessment",
+      "minimum_fields": [
+        "declared_load_profile",
+        "usable_energy",
+        "reserve_policy_id",
+        "temperature_and_age_derating",
+        "shore_power_state",
+        "model_capability_id",
+        "validation_reference"
+      ],
+      "resolution_scope": "Can support a bounded energy feasibility check only if the model path is admitted; no assumption may replace absent loads or derating."
+    },
+    {
+      "requirement_id": "forecast_temporal_binding",
+      "trigger_blocker": "forecast_temporal_applicability",
+      "required_evidence_kind": "byte_bound_forecast_timing_evidence",
+      "minimum_fields": [
+        "receipt_sha256",
+        "artifact_sha256",
+        "product_id",
+        "dataset_id",
+        "dataset_revision",
+        "model_initialization_time_utc",
+        "issued_at_utc",
+        "valid_from_utc",
+        "valid_until_utc",
+        "assessment_time_utc",
+        "target_time_utc",
+        "policy_id"
+      ],
+      "resolution_scope": "Can resolve temporal applicability for the pinned revision only; it does not validate forecast skill or authorize navigation."
+    },
+    {
+      "requirement_id": "waiting_resource_availability",
+      "trigger_blocker": "designated_waiting_resource_declared_available",
+      "required_evidence_kind": "waiting_resource_and_dependency_state",
+      "minimum_fields": [
+        "resource_identity",
+        "available_capacity",
+        "valid_from_utc",
+        "valid_until_utc",
+        "shared_dependency_ids",
+        "independence_evidence",
+        "issuer_identity",
+        "source_revision"
+      ],
+      "resolution_scope": "Can resolve the declared waiting-resource state only; claimed redundancy is not presumed independent without evidence."
+    },
+    {
+      "requirement_id": "alternate_terminal_capacity",
+      "trigger_blocker": "alternate_capacity_confirmed",
+      "required_evidence_kind": "authoritative_alternate_terminal_capacity_response",
+      "minimum_fields": [
+        "terminal_identity",
+        "capacity_or_slot_state",
+        "requested_window_utc",
+        "response_window_utc",
+        "issuer_identity",
+        "source_revision",
+        "captured_at_utc",
+        "artifact_sha256"
+      ],
+      "resolution_scope": "Can resolve capacity evidence for reassessment; it does not create a reservation, guarantee acceptance, or authorize execution."
+    },
+    {
+      "requirement_id": "holding_energy_model_support",
+      "trigger_blocker": "declared energy behaviour while holding is outside the model scope",
+      "required_evidence_kind": "supported_holding_energy_model",
+      "minimum_fields": [
+        "holding_duration_envelope",
+        "auxiliary_load_profile",
+        "usable_energy",
+        "reserve_policy_id",
+        "temperature_and_age_derating",
+        "model_capability_id",
+        "validation_reference"
+      ],
+      "resolution_scope": "Requires an explicitly supported energy model before comparing hold duration; until then the result remains unsupported."
+    },
+    {
+      "requirement_id": "alternate_terminal_model_support",
+      "trigger_blocker": "alternate-terminal feasibility model not admitted",
+      "required_evidence_kind": "admitted_alternate_terminal_feasibility_model",
+      "minimum_fields": [
+        "terminal_identity",
+        "declared_constraint_set",
+        "input_semantics_and_units",
+        "model_capability_id",
+        "validation_reference",
+        "model_revision",
+        "source_data_receipts"
+      ],
+      "resolution_scope": "Requires a separately admitted, validated model path; a capacity confirmation alone cannot establish alternative feasibility."
+    }
+  ],
   "scenario_cases": [
     {
       "case_id": "baseline_declared_inputs",
