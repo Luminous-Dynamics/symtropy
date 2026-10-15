@@ -764,18 +764,37 @@ mod tests {
 
     #[test]
     fn matching_snapshot_hashes_never_admit_port_identity_or_operation() {
-        let corpus: Value =
-            serde_json::from_str(include_str!("../tests/fixtures/port-crosswalk-corpus-v0.1.json"))
-                .expect("frozen crosswalk corpus");
-        let crosswalk = &corpus["base_crosswalks"]["valid_resolved"];
-        let bytes = serde_json::to_vec(crosswalk).expect("serialize crosswalk");
-        let record_count = validate_crosswalk(crosswalk).expect("metadata is valid");
-        let report = super::build_crosswalk_report(
-            crosswalk,
-            &bytes,
+        use super::{build_crosswalk_report, member, text};
+
+        let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
+        let crosswalk: Value =
+            serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
+        let record_count = validate_crosswalk(&crosswalk).expect("metadata is valid");
+        let source = member(&crosswalk, "source_snapshot").expect("source snapshot");
+        let registry = member(&crosswalk, "locode_registry").expect("registry snapshot");
+        let source_digest = text(source, "artifact_sha256").expect("source digest");
+        let registry_digest = text(registry, "artifact_sha256").expect("registry digest");
+        let source_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/synthetic-source-snapshot.json"
+        );
+        let registry_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/synthetic-locode-registry-snapshot.json"
+        );
+
+        // Actually recompute both digests before constructing a positive report.
+        verify_snapshot_digest(source_path, source_digest, "source snapshot")
+            .expect("source snapshot bytes match the declaration");
+        verify_snapshot_digest(registry_path, registry_digest, "UN/LOCODE registry")
+            .expect("registry bytes match the declaration");
+
+        let report = build_crosswalk_report(
+            &crosswalk,
+            bytes,
             record_count,
-            Some("source-snapshot.json".to_owned()),
-            Some("locode-registry.json".to_owned()),
+            Some(source_path.to_owned()),
+            Some(registry_path.to_owned()),
             true,
             "test-commit".to_owned(),
         )
@@ -787,9 +806,10 @@ mod tests {
         assert!(!report.source_authenticity_established);
         assert!(!report.port_identity_established);
         assert!(!report.operational_authority);
-        assert!(report.claim_ceiling.iter().any(|claim| {
-            claim.contains("does not establish publisher authenticity")
-        }));
+        assert!(report
+            .claim_ceiling
+            .iter()
+            .any(|claim| claim.contains("does not establish publisher authenticity")));
     }
 
     #[test]
