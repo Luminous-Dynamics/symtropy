@@ -43,7 +43,6 @@ impl Default for FirstPersonController {
     }
 }
 
-
 /// Optional kinematic response profile for first-person movement.
 ///
 /// Attach this component alongside FirstPersonController to opt into acceleration
@@ -950,12 +949,21 @@ mod tests {
             ..default()
         };
         let first_step = motion.advance(Vec3::new(0.0, 0.0, 3.6), 1.0 / 60.0);
-        assert!(first_step.z < 0.0, "first displacement should retain prior momentum");
-        assert!(motion.horizontal_velocity.z < 0.0, "velocity should not reverse instantly");
+        assert!(
+            first_step.z < 0.0,
+            "first displacement should retain prior momentum"
+        );
+        assert!(
+            motion.horizontal_velocity.z < 0.0,
+            "velocity should not reverse instantly"
+        );
         for _ in 0..30 {
             motion.advance(Vec3::new(0.0, 0.0, 3.6), 1.0 / 60.0);
         }
-        assert!(motion.horizontal_velocity.z > 0.0, "the velocity should eventually reverse");
+        assert!(
+            motion.horizontal_velocity.z > 0.0,
+            "the velocity should eventually reverse"
+        );
     }
 
     #[test]
