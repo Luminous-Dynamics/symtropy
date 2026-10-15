@@ -1,0 +1,264 @@
+{
+  "schema_id": "luminous.symtropy.maritime-adaptive-resilience",
+  "schema_version": "0.1.0",
+  "fixture_kind": "synthetic_contract_example",
+  "claim_ceiling": "CONTRACT_SHAPE_ONLY_NOT_PHYSICAL_SIMULATION",
+  "model_admission": "NotAdmitted",
+  "authority": {
+    "navigation_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "berth_or_slot_authorized": false,
+    "engineering_admission": false,
+    "physical_execution_authorized": false,
+    "external_approval_claim_authorized": false
+  },
+  "time_axis": {
+    "unit": "hours_from_t0",
+    "period_semantics": "Each series value is the mean rate over [hour_offset, hour_offset + duration_hours).",
+    "duration_hours": 1,
+    "horizon_hours": 6,
+    "time_offsets": [0, 1, 2, 3, 4, 5]
+  },
+  "metrics_policy": {
+    "probability_weights_used": false,
+    "aggregate_score_used": false,
+    "service_ratio": "served_rate / planned_demand_rate when planned_demand_rate > 0; otherwise NOT_DEFINED",
+    "integrated_service_loss": "sum(max(planned_demand_rate - served_rate, 0) * duration_hours) per service class",
+    "recovery_rule": {
+      "minimum_service_ratio": 0.8,
+      "consecutive_intervals_required": 2,
+      "rule": "A service class recovers only after the declared floor is met for the configured number of consecutive, fully observed intervals.",
+      "when_not_observed": "NOT_OBSERVED_WITHIN_HORIZON"
+    }
+  },
+  "service_classes": [
+    {
+      "service_id": "essential_supplies",
+      "unit": "normalized_service_units_per_hour",
+      "planned_demand_rate": 100,
+      "minimum_service_ratio": 0.8,
+      "priority_label": "illustrative_separate_service_class"
+    },
+    {
+      "service_id": "general_cargo",
+      "unit": "normalized_service_units_per_hour",
+      "planned_demand_rate": 100,
+      "minimum_service_ratio": 0.8,
+      "priority_label": "illustrative_separate_service_class"
+    }
+  ],
+  "dependency_nodes": [
+    {
+      "node_id": "utility_power",
+      "node_kind": "energy_supply",
+      "status_semantics": "synthetic_declared_state_only"
+    },
+    {
+      "node_id": "terminal_alpha",
+      "node_kind": "terminal",
+      "status_semantics": "synthetic_declared_state_only"
+    },
+    {
+      "node_id": "port_data_exchange",
+      "node_kind": "information_exchange",
+      "status_semantics": "synthetic_declared_state_only"
+    },
+    {
+      "node_id": "marine_access",
+      "node_kind": "marine_access",
+      "status_semantics": "synthetic_declared_state_only"
+    },
+    {
+      "node_id": "alternate_terminal_beta",
+      "node_kind": "terminal",
+      "status_semantics": "synthetic_declared_state_only"
+    }
+  ],
+  "dependency_edges": [
+    {
+      "edge_id": "power-supports-terminal",
+      "from_node": "utility_power",
+      "to_node": "terminal_alpha",
+      "relation": "supports",
+      "dependency_kind": "energy_availability",
+      "propagation_model": "not_declared",
+      "evidence_status": "synthetic"
+    },
+    {
+      "edge_id": "data-supports-coordination",
+      "from_node": "port_data_exchange",
+      "to_node": "terminal_alpha",
+      "relation": "supports",
+      "dependency_kind": "operational_coordination",
+      "propagation_model": "not_declared",
+      "evidence_status": "synthetic"
+    },
+    {
+      "edge_id": "access-enables-vessel-interface",
+      "from_node": "marine_access",
+      "to_node": "terminal_alpha",
+      "relation": "enables",
+      "dependency_kind": "marine_access",
+      "propagation_model": "not_declared",
+      "evidence_status": "synthetic"
+    }
+  ],
+  "scenario_cases": [
+    {
+      "case_id": "terminal_power_loss",
+      "required_case": true,
+      "probability": null,
+      "probability_status": "not_assigned",
+      "common_cause_group": null,
+      "perturbations": [
+        {
+          "node_id": "utility_power",
+          "start_hour_inclusive": 1,
+          "end_hour_exclusive": 3,
+          "declared_state": "unavailable",
+          "state_basis": "synthetic"
+        }
+      ]
+    },
+    {
+      "case_id": "shared_power_and_data_loss",
+      "required_case": true,
+      "probability": null,
+      "probability_status": "not_assigned",
+      "common_cause_group": "synthetic_common_cause_01",
+      "perturbations": [
+        {
+          "node_id": "utility_power",
+          "start_hour_inclusive": 1,
+          "end_hour_exclusive": 3,
+          "declared_state": "unavailable",
+          "state_basis": "synthetic"
+        },
+        {
+          "node_id": "port_data_exchange",
+          "start_hour_inclusive": 1,
+          "end_hour_exclusive": 3,
+          "declared_state": "unavailable",
+          "state_basis": "synthetic"
+        }
+      ]
+    },
+    {
+      "case_id": "marine_access_evidence_unknown",
+      "required_case": true,
+      "probability": null,
+      "probability_status": "not_assigned",
+      "common_cause_group": null,
+      "perturbations": [
+        {
+          "node_id": "marine_access",
+          "start_hour_inclusive": 0,
+          "end_hour_exclusive": 6,
+          "declared_state": "unknown",
+          "state_basis": "synthetic"
+        }
+      ]
+    }
+  ],
+  "conditional_policies": [
+    {
+      "policy_id": "evidence_first_rehearsal",
+      "policy_kind": "bounded_simulation_only",
+      "rules": [
+        {
+          "rule_id": "unknown-or-conflicted-evidence",
+          "observation": "required_evidence_state",
+          "matches_any": ["unknown", "stale", "conflicting", "missing"],
+          "simulated_action": "request_authoritative_evidence",
+          "next_rehearsal_state": "evidence_pending",
+          "required_claims": ["result_remains_indeterminate", "no_operational_side_effect"],
+          "forbidden_effects": ["create_reservation", "dispatch_vessel", "claim_navigation_authority"]
+        },
+        {
+          "rule_id": "known-degraded-dependency",
+          "observation": "dependency_state",
+          "matches_any": ["degraded", "unavailable"],
+          "simulated_action": "recompute_candidate_consequences",
+          "next_rehearsal_state": "reassessment_required",
+          "required_claims": ["report_direct_and_propagated_effects_separately", "preserve_unknowns"],
+          "forbidden_effects": ["create_reservation", "dispatch_vessel", "claim_navigation_authority"]
+        },
+        {
+          "rule_id": "alternate-resource-unconfirmed",
+          "observation": "alternate_capacity_evidence",
+          "matches_any": ["unknown", "stale", "conflicting", "missing"],
+          "simulated_action": "retain_alternate_as_unconfirmed_option",
+          "next_rehearsal_state": "evidence_pending",
+          "required_claims": ["alternate_capacity_not_established", "no_operational_side_effect"],
+          "forbidden_effects": ["create_reservation", "claim_capacity_confirmed"]
+        }
+      ]
+    }
+  ],
+  "synthetic_reference_traces": [
+    {
+      "trace_id": "power-loss-essential-supplies",
+      "case_id": "terminal_power_loss",
+      "service_id": "essential_supplies",
+      "trace_status": "illustrative_not_simulator_output",
+      "served_rate": [100, 90, 80, 85, 90, 95],
+      "expected_contract_metrics": {
+        "integrated_service_loss_units": 60,
+        "recovery_time_hours": 4,
+        "recovery_status": "RECOVERED_WITHIN_DECLARED_HORIZON"
+      }
+    },
+    {
+      "trace_id": "power-loss-general-cargo",
+      "case_id": "terminal_power_loss",
+      "service_id": "general_cargo",
+      "trace_status": "illustrative_not_simulator_output",
+      "served_rate": [100, 60, 40, 60, 90, 100],
+      "expected_contract_metrics": {
+        "integrated_service_loss_units": 150,
+        "recovery_time_hours": 6,
+        "recovery_status": "RECOVERED_WITHIN_DECLARED_HORIZON"
+      }
+    },
+    {
+      "trace_id": "shared-loss-essential-supplies",
+      "case_id": "shared_power_and_data_loss",
+      "service_id": "essential_supplies",
+      "trace_status": "illustrative_not_simulator_output",
+      "served_rate": [100, 85, 75, 70, 75, 80],
+      "expected_contract_metrics": {
+        "integrated_service_loss_units": 115,
+        "recovery_time_hours": null,
+        "recovery_status": "NOT_OBSERVED_WITHIN_HORIZON"
+      }
+    },
+    {
+      "trace_id": "shared-loss-general-cargo",
+      "case_id": "shared_power_and_data_loss",
+      "service_id": "general_cargo",
+      "trace_status": "illustrative_not_simulator_output",
+      "served_rate": [100, 70, 30, 25, 30, 35],
+      "expected_contract_metrics": {
+        "integrated_service_loss_units": 310,
+        "recovery_time_hours": null,
+        "recovery_status": "NOT_OBSERVED_WITHIN_HORIZON"
+      }
+    }
+  ],
+  "unquantified_cases": [
+    {
+      "case_id": "marine_access_evidence_unknown",
+      "status": "INDETERMINATE",
+      "reason_code": "REQUIRED_DEPENDENCY_STATE_UNKNOWN",
+      "quantitative_service_projection": "NOT_PRODUCED",
+      "reason": "Unknown access state must not be replaced by an invented service trajectory or a zero-effect assumption."
+    }
+  ],
+  "fixture_warnings": [
+    "Every numeric service value is invented solely to test metric semantics.",
+    "The fixture contains no real port, vessel, berth, route, booking, physical parameters, source forecast, or calibrated probability.",
+    "A common_cause_group declares coupling for scenario coverage; it is not a probability distribution or a fitted causal model.",
+    "Dependency edges name relationships only. No propagation model is admitted, so quantitative spillover is unsupported unless a separately versioned model is supplied.",
+    "Reference metrics are examples for future independent-oracle tests and are not outputs from the current PR #1654 evaluator."
+  ]
+}
