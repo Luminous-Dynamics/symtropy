@@ -117,7 +117,7 @@ fn is_lower_hex(value: &str, length: usize) -> bool {
 }
 
 fn valid_timestamp(value: &str) -> bool {
-    value.len() == 20 && super::valid_utc_timestamp(value)
+    value.len() == 20 && !value.starts_with("0000") && super::valid_utc_timestamp(value)
 }
 
 fn valid_relative_path(value: &str) -> bool {
