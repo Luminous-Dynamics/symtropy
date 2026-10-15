@@ -189,11 +189,13 @@ fn validate_and_evaluate(
     let forecast = super::field(profile, "forecast", "forecast_profile")?;
     super::exact_keys(forecast, FORECAST_KEYS, FORECAST_PATH)?;
     let product_kind = text_field(forecast, "product_kind", FORECAST_PATH)?.to_owned();
-    let provider_product_id = text_field(forecast, "provider_product_id", FORECAST_PATH)?.to_owned();
+    let provider_product_id =
+        text_field(forecast, "provider_product_id", FORECAST_PATH)?.to_owned();
     let dataset_id = text_field(forecast, "dataset_id", FORECAST_PATH)?.to_owned();
     let dataset_revision = text_field(forecast, "dataset_revision", FORECAST_PATH)?.to_owned();
     let model_run_id = text_field(forecast, "model_run_id", FORECAST_PATH)?.to_owned();
-    let model_initialization_time = text_field(forecast, "model_initialization_time_utc", FORECAST_PATH)?.to_owned();
+    let model_initialization_time =
+        text_field(forecast, "model_initialization_time_utc", FORECAST_PATH)?.to_owned();
     let issued_at = text_field(forecast, "issued_at_utc", FORECAST_PATH)?.to_owned();
     let assessment_time = text_field(forecast, "assessment_time_utc", FORECAST_PATH)?.to_owned();
     let target_time = text_field(forecast, "target_time_utc", FORECAST_PATH)?.to_owned();
@@ -207,7 +209,8 @@ fn validate_and_evaluate(
         super::field(forecast, "max_forecast_lead_seconds", FORECAST_PATH)?,
         "forecast_profile.forecast.max_forecast_lead_seconds",
     )?;
-    let freshness_policy_id = text_field(forecast, "freshness_policy_id", FORECAST_PATH)?.to_owned();
+    let freshness_policy_id =
+        text_field(forecast, "freshness_policy_id", FORECAST_PATH)?.to_owned();
 
     if product_kind != facts.product.as_str() {
         return Err(
