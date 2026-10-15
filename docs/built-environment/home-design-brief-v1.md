@@ -102,3 +102,11 @@ The shareable brief intentionally has no coordinate fields, street-address field
 ## 7. Deliberate non-goals
 
 This contract is not a floor-plan generator, architectural drafting system, price database, building-code engine, finite-element solver, climate-data source, legal approval, or a claim of housing affordability. It does not choose the resident's values, infer a diagnosis, publish a household's precise location, or turn a render into a construction document.
+
+## Dimension constraints and provenance
+
+A space may declare optional dimension constraints against its local-plan X or Y rectangle extent. Each constraint has a stable ID, minimum/maximum bound, numeric value in metres, declared origin, and an explicit enforcement mode. Resident preferences can be advisory; a constraint changes candidate contract validity only when explicitly marked `must_satisfy`. An unmet must-satisfy constraint is surfaced as a semantic issue rather than silently relaxing the brief.
+
+Professional- or authority-origin constraints require a source locator, edition/effective date or version, and clause/page/section location. These fields are declarations only: the verifier does not authenticate the source, establish that it applies to the particular parcel/project, or interpret a standard. Do not populate such a constraint from an unverified assumption; keep it unresolved until a qualified source review establishes the required value and applicability.
+
+The v1 comparator measures axis-aligned rectangle extents, not wall-face clear dimensions, door clearances, net usable area, turning/circulation space, fire egress, or accessibility. X/Y axes depend on the stated candidate coordinate frame and are not automatically equivalent to architectural width/depth. Constraint diagnostics expose each zone instance and its source metadata; they are not a building-code determination.

@@ -6,7 +6,7 @@
   "brief_ref": {
     "brief_id": "example-only/home-brief-001",
     "revision": 1,
-    "sha256": "d95b28c890753227a8e3ad2ff7661244f4ed37364dc8114af1962ecb01945bce"
+    "sha256": "d2841a4271af6a43e794b4611edfc1ec469440a63236036b9652e8fdf149af8c"
   },
   "coordinate_frame": {
     "kind": "local_cartesian_2d",

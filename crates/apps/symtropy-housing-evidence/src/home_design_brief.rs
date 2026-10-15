@@ -118,6 +118,22 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
             .collect();
         let mut adjacency_keys = BTreeSet::new();
         for (space_index, space) in spaces.iter().enumerate() {
+            let mut dimension_constraint_ids = BTreeSet::new();
+            if let Some(constraints) = space
+                .get("dimension_constraints")
+                .and_then(Value::as_array)
+            {
+                for (constraint_index, constraint) in constraints.iter().enumerate() {
+                    if let Some(constraint_id) =
+                        constraint.get("constraint_id").and_then(Value::as_str)
+                        && !dimension_constraint_ids.insert(constraint_id.to_owned())
+                    {
+                        issues.push(format!(
+                            "spaces[{space_index}].dimension_constraints[{constraint_index}].constraint_id duplicates {constraint_id:?}"
+                        ));
+                    }
+                }
+            }
             let Some(source_id) = space.get("space_id").and_then(Value::as_str) else {
                 continue;
             };

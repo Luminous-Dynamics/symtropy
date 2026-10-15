@@ -53,3 +53,11 @@ Those require separate versioned checks with declared methods and evidence. Symt
 ## Test corpus
 
 Rust unit tests include a synthetic valid rectangle plan and negative controls for brief digest mismatch, overlapping rectangles (including a small-area corner intersection), zones outside floor bounds, removal of a must-have space, and unrequested space IDs. The fixture also asserts numeric dimension/area metrics and confirms that a difference from the resident's target area is informational, not an automatic failure. This example is synthetic and makes no construction or compliance assertion.
+
+## Provenance-bearing dimension constraints
+
+Each optional `spaces[].dimension_constraints[]` entry specifies `constraint_id`, `axis` (`x_extent` or `y_extent`), `bound` (`minimum` or `maximum`), `value_m`, `origin`, and `enforcement`. The origin states where the requirement is said to come from; the enforcement value independently states whether this project contract treats it as advisory or must-satisfy. Only explicit `must_satisfy` constraints affect semantic validity. Diagnostics identify each room instance and the declared source metadata.
+
+Professional or authority references must provide `source_reference`, `source_edition`, and `source_location`; this prevents an unsupported regulatory value from masquerading as a sourced input. It does not authenticate a link, verify the edition or clause, decide whether a rule applies, or establish legal compliance. The synthetic fixture's resident targets are examples only.
+
+A reported extent is derived from the candidate's axis-aligned rectangle bounds. It is not a wall-face measurement, net usable room size, accessible clear width, nor an assessment of local building regulation. Keep the constraint unresolved or advisory until the underlying reference and applicability have been checked by a qualified reviewer.

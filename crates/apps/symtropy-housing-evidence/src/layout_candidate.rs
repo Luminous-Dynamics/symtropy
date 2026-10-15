@@ -71,10 +71,31 @@ pub struct ZoneAreaMetric {
     pub delta_from_target_m2: Option<f64>,
 }
 
+/// Per-zone comparison against a provenance-bearing project dimension constraint.
+#[derive(Debug, Serialize)]
+pub struct DimensionConstraintDiagnostic {
+    pub constraint_id: String,
+    pub space_id: String,
+    pub zone_id: Option<String>,
+    pub instance_index: Option<u64>,
+    pub axis: String,
+    pub bound: String,
+    pub required_extent_m: f64,
+    pub measured_extent_m: Option<f64>,
+    pub origin: String,
+    pub enforcement: String,
+    pub source_reference: Option<String>,
+    pub source_edition: Option<String>,
+    pub source_location: Option<String>,
+    pub status: String,
+    pub explanation: String,
+}
+
 #[derive(Clone, Debug)]
 struct ZonePlacement {
     zone_id: String,
     space_id: String,
+    instance_index: u64,
     floor_id: String,
     bounds: Bounds,
 }
@@ -118,6 +139,7 @@ pub struct LayoutValidationReport {
     pub semantic_issues: Vec<String>,
     pub geometry_issues: Vec<String>,
     pub zone_area_metrics: Vec<ZoneAreaMetric>,
+    pub dimension_constraint_diagnostics: Vec<DimensionConstraintDiagnostic>,
     pub adjacency_preference_diagnostics: Vec<AdjacencyPreferenceDiagnostic>,
     pub limitations: Vec<String>,
 }
@@ -193,6 +215,7 @@ pub fn validate_values(
     let mut semantic_issues = Vec::new();
     let mut geometry_issues = Vec::new();
     let mut zone_area_metrics = Vec::new();
+    let mut dimension_constraint_diagnostics = Vec::new();
     let mut adjacency_preference_diagnostics = Vec::new();
     if schema_valid {
         check_semantics(
@@ -201,6 +224,7 @@ pub fn validate_values(
             &mut semantic_issues,
             &mut geometry_issues,
             &mut zone_area_metrics,
+            &mut dimension_constraint_diagnostics,
             &mut adjacency_preference_diagnostics,
         );
     }
@@ -234,12 +258,16 @@ pub fn validate_values(
         semantic_issues,
         geometry_issues,
         zone_area_metrics,
+        dimension_constraint_diagnostics,
         adjacency_preference_diagnostics,
         limitations: vec![
             "Connected-preference results only identify shared rectangle boundaries; they do not prove a doorway, opening, or usable circulation.".to_string(),
             "Near, separate, quiet, visual-connection, and outdoor-access preferences are not assessed by rectangle geometry.".to_string(),
             "Zone rectangle areas are geometric bounding-rectangle areas, not net usable floor areas.".to_string(),
             "Area differences from resident targets are informational; targets are not code minima and do not invalidate a candidate.".to_string(),
+            "Dimension constraints compare axis-aligned rectangle X/Y extents, not wall-face clear dimensions or usable room dimensions.".to_string(),
+            "Dimension-constraint origin and source fields are declared by the brief author; sources are not authenticated and authority applicability is not determined.".to_string(),
+            "Only constraints explicitly marked must_satisfy affect contract validity; advisory mismatches are diagnostics only.".to_string(),
             "Valid means only contract shape, exact brief linkage, space accounting, and simple rectangle geometry passed.".to_string(),
             "No openings, circulation, visibility, acoustics, daylight, thermal behavior, structure, accessibility compliance, cost, planning rules, permits, or code compliance are evaluated.".to_string(),
             "All same-floor zones must be disjoint; shared/multi-use zones require a future explicit relationship contract.".to_string(),
@@ -274,6 +302,7 @@ fn check_semantics(
     semantic: &mut Vec<String>,
     geometry: &mut Vec<String>,
     area_metrics: &mut Vec<ZoneAreaMetric>,
+    dimension_diagnostics: &mut Vec<DimensionConstraintDiagnostic>,
     adjacency_diagnostics: &mut Vec<AdjacencyPreferenceDiagnostic>,
 ) {
     let mut floors = BTreeMap::<String, Bounds>::new();
@@ -410,6 +439,7 @@ fn check_semantics(
         positioned.push(ZonePlacement {
             zone_id: id.to_owned(),
             space_id: space_id.to_owned(),
+            instance_index: instance,
             floor_id: floor_id.to_owned(),
             bounds,
         });
@@ -478,9 +508,148 @@ fn check_semantics(
         }
     }
 
+    check_dimension_constraints(brief, &positioned, semantic, dimension_diagnostics);
     check_adjacency_preferences(brief, &positioned, adjacency_diagnostics);
 }
 
+
+
+fn check_dimension_constraints(
+    brief: &Value,
+    positions: &[ZonePlacement],
+    semantic_issues: &mut Vec<String>,
+    diagnostics: &mut Vec<DimensionConstraintDiagnostic>,
+) {
+    for space in brief["spaces"].as_array().into_iter().flatten() {
+        let Some(space_id) = space["space_id"].as_str() else {
+            continue;
+        };
+        for constraint in space["dimension_constraints"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            let (
+                Some(constraint_id),
+                Some(axis),
+                Some(bound),
+                Some(required_extent_m),
+                Some(origin),
+                Some(enforcement),
+            ) = (
+                constraint["constraint_id"].as_str(),
+                constraint["axis"].as_str(),
+                constraint["bound"].as_str(),
+                constraint["value_m"].as_f64(),
+                constraint["origin"].as_str(),
+                constraint["enforcement"].as_str(),
+            )
+            else {
+                continue;
+            };
+            if !matches!(axis, "x_extent" | "y_extent")
+                || !matches!(bound, "minimum" | "maximum")
+            {
+                continue;
+            }
+            let source_reference = constraint["source_reference"]
+                .as_str()
+                .map(str::to_owned);
+            let source_edition = constraint["source_edition"]
+                .as_str()
+                .map(str::to_owned);
+            let source_location = constraint["source_location"]
+                .as_str()
+                .map(str::to_owned);
+            let matching: Vec<&ZonePlacement> = positions
+                .iter()
+                .filter(|position| position.space_id == space_id)
+                .collect();
+
+            if matching.is_empty() {
+                let status = "SPACE_INSTANCE_MISSING";
+                let explanation =
+                    "No zone instance exists for this space, so the declared dimension bound cannot be compared.";
+                if enforcement == "must_satisfy" {
+                    semantic_issues.push(format!(
+                        "must-satisfy dimension constraint {constraint_id:?} for space {space_id:?} cannot be evaluated because no zone instance exists"
+                    ));
+                }
+                diagnostics.push(DimensionConstraintDiagnostic {
+                    constraint_id: constraint_id.to_owned(),
+                    space_id: space_id.to_owned(),
+                    zone_id: None,
+                    instance_index: None,
+                    axis: axis.to_owned(),
+                    bound: bound.to_owned(),
+                    required_extent_m,
+                    measured_extent_m: None,
+                    origin: origin.to_owned(),
+                    enforcement: enforcement.to_owned(),
+                    source_reference: source_reference.clone(),
+                    source_edition: source_edition.clone(),
+                    source_location: source_location.clone(),
+                    status: status.to_owned(),
+                    explanation: explanation.to_owned(),
+                });
+                continue;
+            }
+
+            for position in matching {
+                let measured_extent_m = match axis {
+                    "x_extent" => position.bounds.x_max - position.bounds.x_min,
+                    "y_extent" => position.bounds.y_max - position.bounds.y_min,
+                    _ => continue,
+                };
+                let status = if !measured_extent_m.is_finite()
+                    || measured_extent_m <= GEOMETRY_TOLERANCE_M
+                {
+                    "INVALID_GEOMETRY"
+                } else if bound == "minimum"
+                    && measured_extent_m + GEOMETRY_TOLERANCE_M < required_extent_m
+                {
+                    "BELOW_MINIMUM"
+                } else if bound == "maximum"
+                    && measured_extent_m - GEOMETRY_TOLERANCE_M > required_extent_m
+                {
+                    "ABOVE_MAXIMUM"
+                } else {
+                    "WITHIN_LIMIT"
+                };
+                let explanation = match status {
+                    "WITHIN_LIMIT" => "The rectangle extent meets this declared bound within the numeric comparison tolerance; this is not a code or usability finding.",
+                    "BELOW_MINIMUM" => "The measured rectangle extent is below the declared minimum; check room orientation, usable dimensions, and constraint applicability.",
+                    "ABOVE_MAXIMUM" => "The measured rectangle extent is above the declared maximum; confirm that this is intentional.",
+                    "INVALID_GEOMETRY" => "This rectangle extent is not positive and finite, so a meaningful dimension comparison is unavailable.",
+                    _ => "Dimension comparison was not assessed.",
+                };
+                if status != "WITHIN_LIMIT" && enforcement == "must_satisfy" {
+                    semantic_issues.push(format!(
+                        "must-satisfy dimension constraint {constraint_id:?} for space {space_id:?}, zone {:?}, is {status}: required {required_extent_m} m on {axis}, measured {measured_extent_m} m",
+                        position.zone_id
+                    ));
+                }
+                diagnostics.push(DimensionConstraintDiagnostic {
+                    constraint_id: constraint_id.to_owned(),
+                    space_id: space_id.to_owned(),
+                    zone_id: Some(position.zone_id.clone()),
+                    instance_index: Some(position.instance_index),
+                    axis: axis.to_owned(),
+                    bound: bound.to_owned(),
+                    required_extent_m,
+                    measured_extent_m: Some(measured_extent_m),
+                    origin: origin.to_owned(),
+                    enforcement: enforcement.to_owned(),
+                    source_reference: source_reference.clone(),
+                    source_edition: source_edition.clone(),
+                    source_location: source_location.clone(),
+                    status: status.to_owned(),
+                    explanation: explanation.to_owned(),
+                });
+            }
+        }
+    }
+}
 
 fn check_adjacency_preferences(
     brief: &Value,
@@ -640,6 +809,16 @@ mod tests {
         assert_eq!(living.rectangle_area_m2, 24.0);
         assert_eq!(living.target_area_m2, Some(28.0));
         assert_eq!(living.delta_from_target_m2, Some(-4.0));
+        assert_eq!(report.dimension_constraint_diagnostics.len(), 2);
+        let x_extent = report
+            .dimension_constraint_diagnostics
+            .iter()
+            .find(|item| item.constraint_id == "living-x-min-resident")
+            .expect("resident x-extent constraint is reported");
+        assert_eq!(x_extent.status, "WITHIN_LIMIT");
+        assert_eq!(x_extent.measured_extent_m, Some(6.0));
+        assert_eq!(x_extent.origin, "resident_preference");
+        assert_eq!(x_extent.enforcement, "advisory");
         let connected = report
             .adjacency_preference_diagnostics
             .iter()
@@ -667,6 +846,38 @@ mod tests {
     }
 
     #[test]
+    fn advisory_dimension_mismatch_is_reported_without_invalidating_candidate() {
+        let (mut layout, mut brief, _) = fixtures();
+        brief["spaces"][0]["dimension_constraints"][0]["value_m"] = json!(6.5);
+        let bytes = serde_json::to_vec(&brief).expect("mutated brief serializes");
+        layout["brief_ref"]["sha256"] = json!(sha256_hex(&bytes));
+
+        let report = validate_values(&layout, &brief, &bytes).expect("schema compiles");
+        assert_eq!(report.contract_status, "LAYOUT_CANDIDATE_CONTRACT_VALID");
+        let diagnostic = report
+            .dimension_constraint_diagnostics
+            .iter()
+            .find(|item| item.constraint_id == "living-x-min-resident")
+            .expect("dimension mismatch is reported");
+        assert_eq!(diagnostic.status, "BELOW_MINIMUM");
+        assert_eq!(diagnostic.measured_extent_m, Some(6.0));
+    }
+
+    #[test]
+    fn must_satisfy_dimension_mismatch_invalidates_candidate() {
+        let (mut layout, mut brief, _) = fixtures();
+        brief["spaces"][0]["dimension_constraints"][0]["value_m"] = json!(6.5);
+        brief["spaces"][0]["dimension_constraints"][0]["enforcement"] = json!("must_satisfy");
+        let bytes = serde_json::to_vec(&brief).expect("mutated brief serializes");
+        layout["brief_ref"]["sha256"] = json!(sha256_hex(&bytes));
+
+        let report = validate_values(&layout, &brief, &bytes).expect("schema compiles");
+        assert_eq!(report.contract_status, "LAYOUT_CANDIDATE_CONTRACT_INVALID");
+        assert!(!report.semantic_valid);
+        assert!(report.semantic_issues.iter().any(|issue| issue.contains("must-satisfy dimension constraint")));
+    }
+
+#[test]
     fn changed_brief_digest_is_rejected() {
         let (mut layout, brief, bytes) = fixtures();
         layout["brief_ref"]["sha256"] =

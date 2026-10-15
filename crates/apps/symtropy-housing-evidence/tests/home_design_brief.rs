@@ -96,6 +96,28 @@ fn unknown_properties_and_attempted_safety_override_are_rejected() {
 }
 
 #[test]
+fn referenced_dimension_constraint_requires_specific_source_metadata() {
+    let (schema, mut example) = schema_and_example();
+    let constraint = &mut example["spaces"][0]["dimension_constraints"][0];
+    constraint["origin"] = json!("authority_reference");
+    constraint["source_reference"] = Value::Null;
+    constraint["source_edition"] = Value::Null;
+    constraint["source_location"] = Value::Null;
+    assert!(
+        !validation_errors(&schema, &example).is_empty(),
+        "authority-origin dimension constraints need a reference, edition, and location"
+    );
+
+    constraint["source_reference"] = json!("https://example.invalid/fixture-source");
+    constraint["source_edition"] = json!("fixture-edition-1");
+    constraint["source_location"] = json!("fixture-location-1");
+    assert!(
+        validation_errors(&schema, &example).is_empty(),
+        "explicit fixture metadata should satisfy the schema without authenticating the source"
+    );
+}
+
+#[test]
 fn out_of_range_priority_is_rejected() {
     let (schema, mut example) = schema_and_example();
     example["priorities"][0]["importance"] = json!(6);

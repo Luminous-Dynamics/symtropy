@@ -382,6 +382,135 @@
               "null"
             ],
             "maxLength": 1000
+          },
+          "dimension_constraints": {
+            "type": "array",
+            "maxItems": 20,
+            "description": "Optional provenance-bearing local-plan X/Y extent constraints. These are project inputs, not automatically applicable law or proof of usable room dimensions.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "constraint_id",
+                "axis",
+                "bound",
+                "value_m",
+                "origin",
+                "enforcement",
+                "source_reference",
+                "source_edition",
+                "source_location"
+              ],
+              "properties": {
+                "constraint_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                },
+                "axis": {
+                  "enum": [
+                    "x_extent",
+                    "y_extent"
+                  ],
+                  "description": "Extent in the candidate's local plan coordinate frame; not a named architectural width/depth."
+                },
+                "bound": {
+                  "enum": [
+                    "minimum",
+                    "maximum"
+                  ]
+                },
+                "value_m": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 100,
+                  "description": "Declared target bound, not a code minimum unless separately established by qualified review."
+                },
+                "origin": {
+                  "enum": [
+                    "resident_preference",
+                    "resident_non_negotiable",
+                    "professional_reference",
+                    "authority_reference"
+                  ]
+                },
+                "enforcement": {
+                  "enum": [
+                    "advisory",
+                    "must_satisfy"
+                  ],
+                  "description": "Explicit project policy; origin alone never implies enforcement."
+                },
+                "source_reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Opaque source locator; not fetched or authenticated by this validator."
+                },
+                "source_edition": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "description": "Version, edition, or effective date where applicable."
+                },
+                "source_location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1,
+                  "maxLength": 240,
+                  "description": "Clause, page, section, drawing, or other precise location where applicable."
+                },
+                "notes": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 1000
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "origin": {
+                        "enum": [
+                          "professional_reference",
+                          "authority_reference"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "origin"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "source_reference": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_edition": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_location": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              ]
+            }
           }
         }
       }

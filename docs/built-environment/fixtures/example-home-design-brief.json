@@ -74,7 +74,33 @@
           "relationship": "visual_connection_to"
         }
       ],
-      "notes": "Area is a resident exploration target only."
+      "notes": "Area is a resident exploration target only.",
+      "dimension_constraints": [
+        {
+          "constraint_id": "living-x-min-resident",
+          "axis": "x_extent",
+          "bound": "minimum",
+          "value_m": 5,
+          "origin": "resident_preference",
+          "enforcement": "advisory",
+          "source_reference": null,
+          "source_edition": null,
+          "source_location": null,
+          "notes": "Synthetic exploration target; not a legal or accessibility minimum."
+        },
+        {
+          "constraint_id": "living-y-min-resident",
+          "axis": "y_extent",
+          "bound": "minimum",
+          "value_m": 3.5,
+          "origin": "resident_preference",
+          "enforcement": "advisory",
+          "source_reference": null,
+          "source_edition": null,
+          "source_location": null,
+          "notes": "Synthetic exploration target; local-plan axis convention only."
+        }
+      ]
     },
     {
       "space_id": "kitchen",
