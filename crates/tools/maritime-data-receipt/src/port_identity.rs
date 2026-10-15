@@ -471,8 +471,12 @@ fn build_crosswalk_report(
 ) -> Result<CrosswalkReport, String> {
     let source_checked = source_snapshot_path_checked.is_some();
     let registry_checked = locode_registry_path_checked.is_some();
-    if source_checked != registry_checked || snapshots_match != (source_checked && registry_checked) {
-        return Err("snapshot verification flag and checked-path evidence are inconsistent".to_owned());
+    if source_checked != registry_checked
+        || snapshots_match != (source_checked && registry_checked)
+    {
+        return Err(
+            "snapshot verification flag and checked-path evidence are inconsistent".to_owned(),
+        );
     }
 
     let source = member(value, "source_snapshot").map_err(str::to_owned)?;
