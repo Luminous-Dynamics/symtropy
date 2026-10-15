@@ -80,6 +80,9 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    - name: Run Physics Differential Schema Regression Tests
+      run: cargo test -p symtropy-physics-diff-core --lib
+
     - name: Run Rapier Reference Bridge Regression Tests
       run: cargo test -p symtropy-rapier3d-bridge --lib
 
