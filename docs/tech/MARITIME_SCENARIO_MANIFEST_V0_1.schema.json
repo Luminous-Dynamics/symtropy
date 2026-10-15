@@ -82,7 +82,7 @@
         },
         "revision": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-f0-9]{40}$"
         },
         "config_sha256": {
           "type": "string",
@@ -198,7 +198,7 @@
           "$ref": "#/$defs/assumptionNode"
         },
         {
-          "$ref": "#/$defs/scenarioOutputNode"
+          "$ref": "#/$defs/claimTargetNode"
         }
       ],
       "description": "Typed source, transform, assumption or output node. Parent references form a directed acyclic graph."
@@ -352,9 +352,7 @@
         "parents",
         "algorithm_id",
         "algorithm_revision",
-        "config_sha256",
-        "output_artifact_relative_path",
-        "output_artifact_sha256"
+        "config_sha256"
       ],
       "properties": {
         "node_id": {
@@ -380,18 +378,9 @@
         },
         "algorithm_revision": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-f0-9]{40}$"
         },
         "config_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
-        },
-        "output_artifact_relative_path": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
-        },
-        "output_artifact_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         }
@@ -444,7 +433,7 @@
         }
       }
     },
-    "scenarioOutputNode": {
+    "claimTargetNode": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -469,7 +458,7 @@
           }
         },
         "node_kind": {
-          "const": "scenario_output"
+          "const": "claim_target"
         },
         "output_claim": {
           "enum": [
