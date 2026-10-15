@@ -36,7 +36,6 @@ impl OperationWindowV1 {
         }
         Ok(())
     }
-
 }
 
 /// Policy is explicit input: the validator does not read a system clock or
@@ -1315,7 +1314,12 @@ mod tests {
             90,
         );
         assert_eq!(
-            plan(std::slice::from_ref(&valid), &[ev.clone(), unused], 100, 100),
+            plan(
+                std::slice::from_ref(&valid),
+                &[ev.clone(), unused],
+                100,
+                100
+            ),
             Err(ScheduledCapacityPlanError::UnreferencedEvidence)
         );
 
