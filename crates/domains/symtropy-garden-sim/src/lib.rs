@@ -10,7 +10,6 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-
 /// Serialize exact integers as decimal strings so JSON consumers that use
 /// IEEE-754 numbers (for example, JavaScript) do not silently round quantities.
 fn serialize_u64_as_string<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
@@ -226,17 +225,12 @@ pub fn evaluate_resource_balance(input: &ResourceBalanceInputV1) -> ResourceBala
     }
 }
 
-fn push_blocker(
-    blockers: &mut Vec<BalanceBlocker>,
-    code: BalanceBlockerCode,
-    detail: &str,
-) {
+fn push_blocker(blockers: &mut Vec<BalanceBlocker>, code: BalanceBlockerCode, detail: &str) {
     blockers.push(BalanceBlocker {
         code,
         detail: detail.to_owned(),
     });
 }
-
 
 /// Nutrient contribution preserves the exact food state and its source lineage.
 /// Units name the base nutrient unit; value_scale provides decimal precision.
@@ -514,22 +508,20 @@ pub fn evaluate_nutrient_contribution(
         NutrientContributionDisposition::CalculatedForDeclaredDelivery
     };
 
-    let contribution_numerator = if disposition
-        == NutrientContributionDisposition::CalculatedForDeclaredDelivery
-    {
-        composition.amount_per_100g_scaled.map(|amount| {
-            u128::from(amount) * u128::from(delivery.edible_delivered_grams)
-        })
-    } else {
-        None
-    };
-    let contribution_denominator = if disposition
-        == NutrientContributionDisposition::CalculatedForDeclaredDelivery
-    {
-        Some(100 * u128::from(composition.value_scale))
-    } else {
-        None
-    };
+    let contribution_numerator =
+        if disposition == NutrientContributionDisposition::CalculatedForDeclaredDelivery {
+            composition
+                .amount_per_100g_scaled
+                .map(|amount| u128::from(amount) * u128::from(delivery.edible_delivered_grams))
+        } else {
+            None
+        };
+    let contribution_denominator =
+        if disposition == NutrientContributionDisposition::CalculatedForDeclaredDelivery {
+            Some(100 * u128::from(composition.value_scale))
+        } else {
+            None
+        };
 
     NutrientContributionDecisionV1 {
         scenario_id: delivery.scenario_id.clone(),
@@ -572,9 +564,7 @@ where
     }
 }
 
-fn deserialize_option_u64_from_string<'de, D>(
-    deserializer: D,
-) -> Result<Option<u64>, D::Error>
+fn deserialize_option_u64_from_string<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -596,9 +586,7 @@ where
     }
 }
 
-fn deserialize_option_u128_from_string<'de, D>(
-    deserializer: D,
-) -> Result<Option<u128>, D::Error>
+fn deserialize_option_u128_from_string<'de, D>(deserializer: D) -> Result<Option<u128>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -606,7 +594,6 @@ where
         .map(|raw| raw.parse::<u128>().map_err(serde::de::Error::custom))
         .transpose()
 }
-
 
 /// A minimum nutrient-supply target for a declared population/scope and period.
 /// This is a planning input, not an individual dietary reference or clinical target.
@@ -853,8 +840,8 @@ pub fn assess_nutrient_target(
     }
 
     let hard_blocked = !blockers.is_empty();
-    let assessable = contribution.disposition
-        == NutrientContributionDisposition::CalculatedForDeclaredDelivery;
+    let assessable =
+        contribution.disposition == NutrientContributionDisposition::CalculatedForDeclaredDelivery;
     let denominator = if !hard_blocked && assessable {
         Some(100 * u128::from(target.value_scale))
     } else {
@@ -922,7 +909,6 @@ fn push_target_blocker(
         detail: detail.to_owned(),
     });
 }
-
 
 /// One source-pinned food-composition record paired with one delivered edible mass.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -1190,10 +1176,7 @@ pub fn evaluate_nutrient_supply_scenario(
             }
         }
 
-        add_unique_source(
-            &mut composition_refs,
-            &line.composition.source_ref,
-        );
+        add_unique_source(&mut composition_refs, &line.composition.source_ref);
         add_unique_source(&mut delivery_refs, &line.delivery.delivery_source_ref);
 
         if single.status == NutrientTargetStatus::Blocked {
@@ -1275,10 +1258,8 @@ pub fn evaluate_nutrient_supply_scenario(
         );
     }
     let has_lines = !scenario.lines.is_empty();
-    let fully_assessable = has_lines
-        && !has_missing_composition
-        && !has_quantity_overflow
-        && !hard_blocked;
+    let fully_assessable =
+        has_lines && !has_missing_composition && !has_quantity_overflow && !hard_blocked;
     let denominator = if fully_assessable {
         Some(100 * u128::from(target.value_scale))
     } else {
@@ -1516,16 +1497,17 @@ mod tests {
 
         let serialized = serde_json::to_string(&input).expect("input serializes");
         assert!(serialized.contains("\"inflow\":\"18446744073709551615\""));
-        assert!(serialized.contains(
-            "\"observed_storage_delta\":\"-170141183460469231731687303715884105728\""
-        ));
+        assert!(
+            serialized.contains(
+                "\"observed_storage_delta\":\"-170141183460469231731687303715884105728\""
+            )
+        );
         let decoded: ResourceBalanceInputV1 =
             serde_json::from_str(&serialized).expect("input deserializes");
         assert_eq!(decoded, input);
 
         let decision = evaluate_resource_balance(&input);
-        let serialized_decision =
-            serde_json::to_string(&decision).expect("decision serializes");
+        let serialized_decision = serde_json::to_string(&decision).expect("decision serializes");
         assert!(serialized_decision.contains(&format!(
             "\"expected_storage_delta\":\"{}\"",
             decision.expected_storage_delta
@@ -1578,7 +1560,10 @@ mod tests {
         assert_eq!(decision.unit, NutrientUnit::Milligrams);
         assert_eq!(decision.edible_delivered_grams, 75);
         assert_eq!(decision.composition_source_ref, "fixture:composition-001");
-        assert_eq!(decision.delivery_source_ref, "fixture:delivered-edible-mass-001");
+        assert_eq!(
+            decision.delivery_source_ref,
+            "fixture:delivered-edible-mass-001"
+        );
         // 18,750,000 / 100,000 = 187.5 mg; no float or rounding is used.
     }
 
@@ -1587,10 +1572,16 @@ mod tests {
         let (composition, mut delivery) = valid_nutrient_fixture();
         delivery.food_record_id = "FOOD-OTHER".to_owned();
         let decision = evaluate_nutrient_contribution(&composition, &delivery);
-        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
-        assert!(decision.blockers.iter().any(|item| {
-            item.code == NutrientContributionBlockerCode::FoodRecordMismatch
-        }));
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::Blocked
+        );
+        assert!(
+            decision
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientContributionBlockerCode::FoodRecordMismatch })
+        );
         assert_eq!(decision.contribution_numerator, None);
     }
 
@@ -1599,10 +1590,16 @@ mod tests {
         let (composition, mut delivery) = valid_nutrient_fixture();
         delivery.food_state_id = "raw_edible".to_owned();
         let decision = evaluate_nutrient_contribution(&composition, &delivery);
-        assert!(decision.blockers.iter().any(|item| {
-            item.code == NutrientContributionBlockerCode::FoodStateMismatch
-        }));
-        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+        assert!(
+            decision
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientContributionBlockerCode::FoodStateMismatch })
+        );
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::Blocked
+        );
     }
 
     #[test]
@@ -1610,12 +1607,17 @@ mod tests {
         let (mut composition, delivery) = valid_nutrient_fixture();
         composition.amount_per_100g_scaled = None;
         let decision = evaluate_nutrient_contribution(&composition, &delivery);
-        assert_eq!(decision.disposition, NutrientContributionDisposition::NotAssessable);
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::NotAssessable
+        );
         assert_eq!(decision.contribution_numerator, None);
         assert_eq!(decision.contribution_denominator, None);
-        assert!(decision.blockers.iter().any(|item| {
-            item.code == NutrientContributionBlockerCode::MissingCompositionValue
-        }));
+        assert!(
+            decision.blockers.iter().any(|item| {
+                item.code == NutrientContributionBlockerCode::MissingCompositionValue
+            })
+        );
     }
 
     #[test]
@@ -1623,11 +1625,17 @@ mod tests {
         let (mut composition, delivery) = valid_nutrient_fixture();
         composition.value_scale = 0;
         let decision = evaluate_nutrient_contribution(&composition, &delivery);
-        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::Blocked
+        );
         assert_eq!(decision.contribution_numerator, None);
-        assert!(decision.blockers.iter().any(|item| {
-            item.code == NutrientContributionBlockerCode::ZeroValueScale
-        }));
+        assert!(
+            decision
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientContributionBlockerCode::ZeroValueScale })
+        );
     }
 
     #[test]
@@ -1658,9 +1666,7 @@ mod tests {
         composition.value_scale = u64::MAX;
         delivery.edible_delivered_grams = u64::MAX;
         let serialized_input = serde_json::to_string(&composition).expect("input serializes");
-        assert!(serialized_input.contains(
-            "\"amount_per_100g_scaled\":\"18446744073709551615\""
-        ));
+        assert!(serialized_input.contains("\"amount_per_100g_scaled\":\"18446744073709551615\""));
         let decoded_input: NutrientCompositionRecordV1 =
             serde_json::from_str(&serialized_input).expect("input deserializes");
         assert_eq!(decoded_input, composition);
@@ -1682,14 +1688,19 @@ mod tests {
         composition.source_ref.clear();
         delivery.delivery_source_ref.clear();
         let decision = evaluate_nutrient_contribution(&composition, &delivery);
-        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::Blocked
+        );
         assert_eq!(decision.contribution_numerator, None);
         assert!(decision.blockers.iter().any(|item| {
             item.code == NutrientContributionBlockerCode::MissingCompositionSource
         }));
-        assert!(decision.blockers.iter().any(|item| {
-            item.code == NutrientContributionBlockerCode::MissingDeliverySource
-        }));
+        assert!(
+            decision.blockers.iter().any(|item| {
+                item.code == NutrientContributionBlockerCode::MissingDeliverySource
+            })
+        );
     }
 
     fn valid_nutrient_target() -> NutrientSupplyTargetV1 {
@@ -1712,7 +1723,10 @@ mod tests {
         let (composition, delivery) = valid_nutrient_fixture();
         let target = valid_nutrient_target();
         let assessment = assess_nutrient_target(&composition, &delivery, &target);
-        assert_eq!(assessment.status, NutrientTargetStatus::MeetsDeclaredMinimum);
+        assert_eq!(
+            assessment.status,
+            NutrientTargetStatus::MeetsDeclaredMinimum
+        );
         assert_eq!(assessment.supply_numerator, Some(18_750_000));
         assert_eq!(assessment.target_numerator, Some(18_000_000));
         assert_eq!(assessment.denominator, Some(100_000));
@@ -1744,11 +1758,7 @@ mod tests {
     fn nutrient_target_with_unknown_composition_is_not_assessable() {
         let (mut composition, delivery) = valid_nutrient_fixture();
         composition.amount_per_100g_scaled = None;
-        let assessment = assess_nutrient_target(
-            &composition,
-            &delivery,
-            &valid_nutrient_target(),
-        );
+        let assessment = assess_nutrient_target(&composition, &delivery, &valid_nutrient_target());
         assert_eq!(assessment.status, NutrientTargetStatus::NotAssessable);
         assert_eq!(assessment.supply_numerator, None);
         assert_eq!(assessment.target_numerator, None);
@@ -1761,9 +1771,12 @@ mod tests {
         target.unit = NutrientUnit::Grams;
         let assessment = assess_nutrient_target(&composition, &delivery, &target);
         assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::NutrientUnitMismatch
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::NutrientUnitMismatch })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1774,9 +1787,12 @@ mod tests {
         target.value_scale = 100;
         let assessment = assess_nutrient_target(&composition, &delivery, &target);
         assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::NutrientScaleMismatch
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::NutrientScaleMismatch })
+        );
     }
 
     #[test]
@@ -1788,15 +1804,24 @@ mod tests {
         target.source_ref.clear();
         let assessment = assess_nutrient_target(&composition, &delivery, &target);
         assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::EmptyTargetScope
-        }));
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::EmptyTargetPeriod
-        }));
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::EmptyTargetSource
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::EmptyTargetScope })
+        );
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::EmptyTargetPeriod })
+        );
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::EmptyTargetSource })
+        );
     }
 
     #[test]
@@ -1806,9 +1831,7 @@ mod tests {
         target.target_amount_scaled = u64::MAX;
         target.value_scale = composition.value_scale;
         let serialized = serde_json::to_string(&target).expect("target serializes");
-        assert!(serialized.contains(
-            "\"target_amount_scaled\":\"18446744073709551615\""
-        ));
+        assert!(serialized.contains("\"target_amount_scaled\":\"18446744073709551615\""));
         let decoded: NutrientSupplyTargetV1 =
             serde_json::from_str(&serialized).expect("target deserializes");
         assert_eq!(decoded, target);
@@ -1827,9 +1850,12 @@ mod tests {
         target.target_scope_ref = "scope:regional-001".to_owned();
         let assessment = assess_nutrient_target(&composition, &delivery, &target);
         assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::TargetScopeMismatch
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::TargetScopeMismatch })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1840,9 +1866,12 @@ mod tests {
         target.period_ref = "period:2026-12".to_owned();
         let assessment = assess_nutrient_target(&composition, &delivery, &target);
         assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientTargetBlockerCode::TargetPeriodMismatch
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientTargetBlockerCode::TargetPeriodMismatch })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1875,7 +1904,10 @@ mod tests {
         let mut target = valid_nutrient_target();
         target.target_amount_scaled = 250_000;
         let assessment = evaluate_nutrient_supply_scenario(&scenario, &target);
-        assert_eq!(assessment.status, NutrientPortfolioStatus::MeetsDeclaredMinimum);
+        assert_eq!(
+            assessment.status,
+            NutrientPortfolioStatus::MeetsDeclaredMinimum
+        );
         assert_eq!(assessment.total_edible_delivered_grams, Some(175));
         assert_eq!(assessment.supply_numerator, Some(28_750_000));
         assert_eq!(assessment.target_numerator, Some(25_000_000));
@@ -1904,14 +1936,16 @@ mod tests {
         second.delivery.delivery_source_ref = "fixture:delivered-edible-mass-002".to_owned();
         scenario.lines.push(second);
 
-        let assessment =
-            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
         assert_eq!(assessment.status, NutrientPortfolioStatus::NotAssessable);
         assert_eq!(assessment.supply_numerator, None);
         assert_eq!(assessment.total_edible_delivered_grams, None);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientPortfolioBlockerCode::MissingCompositionValue
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientPortfolioBlockerCode::MissingCompositionValue })
+        );
     }
 
     #[test]
@@ -1922,12 +1956,14 @@ mod tests {
         second.delivery.food_record_id = "FOOD-002".to_owned();
         // Reusing the first line's receipt must not double-count its delivery.
         scenario.lines.push(second);
-        let assessment =
-            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
         assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientPortfolioBlockerCode::DuplicateDeliverySource
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientPortfolioBlockerCode::DuplicateDeliverySource })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1940,12 +1976,14 @@ mod tests {
         second.delivery.delivery_source_ref = "fixture:delivery-002".to_owned();
         second.delivery.delivery_scope_ref = "scope:other-community".to_owned();
         scenario.lines.push(second);
-        let assessment =
-            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
         assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientPortfolioBlockerCode::ScopeMismatch
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientPortfolioBlockerCode::ScopeMismatch })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1958,12 +1996,14 @@ mod tests {
         second.delivery.delivery_source_ref = "fixture:delivery-002".to_owned();
         second.delivery.period_ref = "period:2026-12".to_owned();
         scenario.lines.push(second);
-        let assessment =
-            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
         assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientPortfolioBlockerCode::PeriodMismatch
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientPortfolioBlockerCode::PeriodMismatch })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1982,9 +2022,12 @@ mod tests {
         target.value_scale = u64::MAX;
         let assessment = evaluate_nutrient_supply_scenario(&scenario, &target);
         assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientPortfolioBlockerCode::QuantityOverflow
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientPortfolioBlockerCode::QuantityOverflow })
+        );
         assert_eq!(assessment.supply_numerator, None);
     }
 
@@ -1992,13 +2035,14 @@ mod tests {
     fn empty_portfolio_is_not_assumed_to_be_zero_supply() {
         let mut scenario = valid_supply_scenario();
         scenario.lines.clear();
-        let assessment =
-            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
         assert_eq!(assessment.status, NutrientPortfolioStatus::NotAssessable);
         assert_eq!(assessment.supply_numerator, None);
-        assert!(assessment.blockers.iter().any(|item| {
-            item.code == NutrientPortfolioBlockerCode::NoSupplyLines
-        }));
+        assert!(
+            assessment
+                .blockers
+                .iter()
+                .any(|item| { item.code == NutrientPortfolioBlockerCode::NoSupplyLines })
+        );
     }
-
 }
