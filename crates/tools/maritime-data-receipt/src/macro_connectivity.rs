@@ -339,7 +339,17 @@ fn verify_receipt_semantics(
         "public_dataset" => "UNCTADstat",
         _ => return Err("UNSUPPORTED_SOURCE_KIND"),
     };
-    if text(receipt_source, "publisher")? != expected_publisher
+    let declared_source_uri = nullable_text(receipt_source, "source_uri")?;
+    let source_uri_matches_kind = match source_kind {
+        "synthetic_fixture" => declared_source_uri.is_none(),
+        "public_dataset" => {
+            declared_source_uri
+                == Some("https://unctadstat.unctad.org/datacentre/reportInfo/US.PLSCI")
+        }
+        _ => false,
+    };
+    if !source_uri_matches_kind
+        || text(receipt_source, "publisher")? != expected_publisher
         || source_kind != facts.source_kind
         || facts.dataset_id != "US.PLSCI"
         || facts.product != "other"
@@ -764,6 +774,14 @@ mod tests {
         changed_receipt["source"]["publisher"] = Value::String("UNCTADstat".to_owned());
         assert_eq!(
             super::verify_receipt_semantics(&profile, &changed_receipt, receipt_bytes, &facts),
+            Err("RECEIPT_SEMANTICS_MISMATCH")
+        );
+
+        let mut wrong_source_uri = receipt.clone();
+        wrong_source_uri["source"]["source_uri"] =
+            Value::String("https://example.invalid/US.PLSCI".to_owned());
+        assert_eq!(
+            super::verify_receipt_semantics(&profile, &wrong_source_uri, receipt_bytes, &facts),
             Err("RECEIPT_SEMANTICS_MISMATCH")
         );
     }
