@@ -229,31 +229,23 @@ impl SearchContext<'_> {
             return Ok(());
         }
 
-        let candidates = self.candidates;
-        let candidate_set = &candidates[index];
-        for (route_index, route) in candidate_set.routes.iter().enumerate() {
+        // Clone the local candidate list so recursive mutable search does not
+        // hold an immutable borrow into self across the next search level.
+        let demand_id = self.candidates[index].demand.id.clone();
+        let quantity = self.candidates[index].demand.quantity;
+        let routes = self.candidates[index].routes.clone();
+        for (route_index, route) in routes.iter().enumerate() {
             self.tick()?;
-            if !self.route_fits(
-                &candidate_set.demand.id,
-                route_index,
-                route,
-                candidate_set.demand.quantity,
-                used,
-            )? {
+            if !self.route_fits(&demand_id, route_index, route, quantity, used)? {
                 continue;
             }
 
             let route_metrics = route
-                .aggregate(candidate_set.demand.quantity)
+                .aggregate(quantity)
                 .map_err(|_| BatchAllocationError::ArithmeticOverflow)?;
             let next_totals = add_aggregate_metrics(&totals, &route_metrics)?;
-            let previous = self.reserve_route(
-                &candidate_set.demand.id,
-                route_index,
-                route,
-                candidate_set.demand.quantity,
-                used,
-            )?;
+            let previous =
+                self.reserve_route(&demand_id, route_index, route, quantity, used)?;
             chosen.push(route.clone());
             let result = self.visit(index + 1, used, chosen, next_totals);
             chosen.pop();
