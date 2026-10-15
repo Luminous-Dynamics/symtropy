@@ -71,17 +71,19 @@ This is a deliberately small graph-logic oracle, not a complete reliability mode
 
 ## Service evidence and repair qualification reference
 
-The `service_evidence_reference` section of the JSON corpus adds fifteen synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
+The `service_evidence_reference` section of the JSON corpus adds nineteen synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
 
 - fresh, in-scope evidence with an eligible method, valid calibration, compatible unit and an in-range measurement;
 - stale evidence, a future observation timestamp, revoked/superseded evidence and malformed digest syntax;
 - mismatched asset revision or configuration, missing method/calibration context, expired calibration, incompatible units and an out-of-criterion result;
-- a reported repair without a post-repair test and a passing-looking post-repair record bound to the wrong asset revision;
+- a reported repair without a post-repair test; a passing-looking post-repair record bound to the wrong asset revision; a current-revision post-repair receipt that qualifies under the local fixture rule; and a malformed configuration digest;
 - multiple current observations that disagree, including reversal of record order to establish that the verdict is not last-write-wins.
 
 The result `VERIFIED_AVAILABLE_CANDIDATE` is intentionally named as a *candidate*. It means only that the fixture's local rule checks accepted the record fields. The test does not authenticate its issuer, fetch or hash the referenced artifact, prove calibration status, validate the acceptance criterion, or confirm a physical device. The digest is syntax-shaped synthetic data. A production contract needs independent trust roots, exact artifact-byte verification, issuer authorization/revocation, source chronology, schema/toolchain pins, context-of-use criteria and protected evidence storage.
 
 Timestamp handling is explicit: an observation in the future is rejected, age is measured against the declared evaluation time, and expired validity intervals are not considered current. These fixtures do not define the freshness windows appropriate for a real pressure vessel, water treatment system, crew medical record or other asset; those policies must be justified per evidence type and hazard.
+
+A `POST_REPAIR_TEST_PASSED` record must include a repair receipt ID, repair-attempt ID, repaired asset revision, repair configuration digest, post-repair test ID and result, and the asset revision tested. All revision/configuration bindings must match the currently evaluated target, and the test result must be `PASS`. A status flag alone does not restore service. The fixture's “current-revision receipt passes” outcome is a syntactic contract result only: no repair work, test instrument, signature, source artifact or physical measurement is verified here.
 
 For conflicting sources, the synthetic contract returns `UNKNOWN_CONFLICTED` rather than resolving by arrival order. This is intentionally conservative; real evidence reconciliation requires source-specific trust, independence and measurement uncertainty policies and must not be inferred from this small checker.
 
