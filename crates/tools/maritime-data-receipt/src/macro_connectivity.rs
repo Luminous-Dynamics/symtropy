@@ -370,11 +370,28 @@ fn verify_receipt_semantics(
 struct ProfileReport {
     status: &'static str,
     profile_id: String,
+    profile_sha256: String,
+    profile_byte_length: u64,
+    source_kind: String,
     table_id: String,
     indicator_id: String,
     spatial_level: String,
     temporal_frequency: String,
+    unit_semantics: String,
+    benchmark_period: String,
+    benchmark_scope: String,
+    benchmark_value: f64,
     methodology_vintage: String,
+    normalization_method: String,
+    selected_geographic_scope: String,
+    selected_period_start: String,
+    selected_period_end: String,
+    selected_source_port_count: usize,
+    missing_value_policy: String,
+    estimate_policy: String,
+    suppressed_policy: String,
+    terms_review_status: String,
+    license_name: Option<String>,
     receipt_id: String,
     receipt_sha256: String,
     artifact_sha256: String,
@@ -430,14 +447,49 @@ pub(crate) fn run_cli(
         super::verify(&receipt_bytes, &artifact_path, receipt_path, &source_commit)?;
 
     let series = member(&profile, "series").map_err(str::to_owned)?;
+    let selection = member(&profile, "selection").map_err(str::to_owned)?;
+    let selected_port_ids = member(selection, "source_port_ids")
+        .map_err(str::to_owned)?
+        .as_array()
+        .ok_or_else(|| "selected source_port_ids must be an array".to_owned())?;
+    let missingness = member(&profile, "missingness").map_err(str::to_owned)?;
+    let terms = member(&profile, "terms").map_err(str::to_owned)?;
     let report = ProfileReport {
         status: "PLSCI_PROFILE_AND_BOUND_BYTES_MATCH_NOT_ADMITTED",
         profile_id: text(&profile, "profile_id").map_err(str::to_owned)?.to_owned(),
+        profile_sha256: super::sha256_bytes(&profile_bytes),
+        profile_byte_length: profile_bytes.len() as u64,
+        source_kind: text(&profile, "source_kind").map_err(str::to_owned)?.to_owned(),
         table_id: text(series, "table_id").map_err(str::to_owned)?.to_owned(),
         indicator_id: text(series, "indicator_id").map_err(str::to_owned)?.to_owned(),
         spatial_level: text(series, "spatial_level").map_err(str::to_owned)?.to_owned(),
         temporal_frequency: text(series, "temporal_frequency").map_err(str::to_owned)?.to_owned(),
+        unit_semantics: text(series, "unit_semantics").map_err(str::to_owned)?.to_owned(),
+        benchmark_period: text(series, "benchmark_period").map_err(str::to_owned)?.to_owned(),
+        benchmark_scope: text(series, "benchmark_scope").map_err(str::to_owned)?.to_owned(),
+        benchmark_value: member(series, "benchmark_value")
+            .map_err(str::to_owned)?
+            .as_f64()
+            .ok_or_else(|| "benchmark_value must be numeric".to_owned())?,
         methodology_vintage: text(series, "methodology_vintage").map_err(str::to_owned)?.to_owned(),
+        normalization_method: text(series, "normalization_method").map_err(str::to_owned)?.to_owned(),
+        selected_geographic_scope: text(selection, "geographic_scope")
+            .map_err(str::to_owned)?.to_owned(),
+        selected_period_start: text(selection, "period_start")
+            .map_err(str::to_owned)?.to_owned(),
+        selected_period_end: text(selection, "period_end")
+            .map_err(str::to_owned)?.to_owned(),
+        selected_source_port_count: selected_port_ids.len(),
+        missing_value_policy: text(missingness, "missing_value_policy")
+            .map_err(str::to_owned)?.to_owned(),
+        estimate_policy: text(missingness, "estimate_policy")
+            .map_err(str::to_owned)?.to_owned(),
+        suppressed_policy: text(missingness, "suppressed_policy")
+            .map_err(str::to_owned)?.to_owned(),
+        terms_review_status: text(terms, "review_status").map_err(str::to_owned)?.to_owned(),
+        license_name: nullable_text(terms, "license_name")
+            .map_err(str::to_owned)?
+            .map(str::to_owned),
         receipt_id: receipt_report.receipt_id,
         receipt_sha256: receipt_report.receipt_sha256,
         artifact_sha256: receipt_report.artifact_sha256,
