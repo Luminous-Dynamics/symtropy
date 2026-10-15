@@ -592,16 +592,46 @@ mod tests {
         let schema: Value =
             serde_json::from_str(schema_text).expect("PLSCI profile schema must be valid JSON");
         let contracts = [
-            (&schema["required"], ROOT_KEYS),
-            (&schema["properties"]["receipt_binding"]["required"], BINDING_KEYS),
-            (&schema["properties"]["series"]["required"], SERIES_KEYS),
-            (&schema["properties"]["selection"]["required"], SELECTION_KEYS),
-            (&schema["properties"]["missingness"]["required"], MISSINGNESS_KEYS),
-            (&schema["properties"]["terms"]["required"], TERMS_KEYS),
-            (&schema["properties"]["intended_use"]["required"], INTENDED_USE_KEYS),
+            (&schema["properties"], &schema["required"], ROOT_KEYS),
+            (
+                &schema["properties"]["receipt_binding"]["properties"],
+                &schema["properties"]["receipt_binding"]["required"],
+                BINDING_KEYS,
+            ),
+            (
+                &schema["properties"]["series"]["properties"],
+                &schema["properties"]["series"]["required"],
+                SERIES_KEYS,
+            ),
+            (
+                &schema["properties"]["selection"]["properties"],
+                &schema["properties"]["selection"]["required"],
+                SELECTION_KEYS,
+            ),
+            (
+                &schema["properties"]["missingness"]["properties"],
+                &schema["properties"]["missingness"]["required"],
+                MISSINGNESS_KEYS,
+            ),
+            (
+                &schema["properties"]["terms"]["properties"],
+                &schema["properties"]["terms"]["required"],
+                TERMS_KEYS,
+            ),
+            (
+                &schema["properties"]["intended_use"]["properties"],
+                &schema["properties"]["intended_use"]["required"],
+                INTENDED_USE_KEYS,
+            ),
         ];
-        for (actual_value, expected_keys) in contracts {
-            let mut actual = actual_value
+        for (property_value, required_value, expected_keys) in contracts {
+            let mut properties = property_value
+                .as_object()
+                .expect("schema properties object")
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut required = required_value
                 .as_array()
                 .expect("schema required list")
                 .iter()
@@ -611,9 +641,11 @@ mod tests {
                 .iter()
                 .map(|key| (*key).to_owned())
                 .collect::<Vec<_>>();
-            actual.sort();
+            properties.sort();
+            required.sort();
             expected.sort();
-            assert_eq!(actual, expected, "schema/Rust required-field drift");
+            assert_eq!(properties, expected, "schema/Rust known-field drift");
+            assert_eq!(required, expected, "schema/Rust required-field drift");
         }
 
         assert_eq!(
