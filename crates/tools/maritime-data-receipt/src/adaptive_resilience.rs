@@ -936,7 +936,7 @@ mod tests {
         fixture["synthetic_reference_traces"][0]["served_rate"] =
             serde_json::json!([100, 70, 60, 80, 80, 95]);
         fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
-            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(90));
+            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(115));
         fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
             ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
         let changed = serde_json::to_vec(&fixture).unwrap();
