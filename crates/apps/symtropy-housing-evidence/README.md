@@ -139,15 +139,15 @@ This is an analytical oracle and unit/verification plumbing test only. It does *
 
 ## Independently pinned evaluation-scope profile
 
-Rule-evaluation receipt schema `0.3.0` requires an evaluation-scope profile whose SHA-256 is supplied independently of the receipt/package:
+Rule-evaluation receipt schema `0.4.0` requires an evaluation-scope profile whose SHA-256 is supplied independently of the receipt/package:
 
 ```text
 housing-evidence-verify --validate-receipt receipt.json --registry registry.json --scope-profile-sha256 <trusted-sha256-pin>
 ```
 
-The profile restricts building use, construction system and design stage; lists mandatory additional-input roles; and declares required evidence gates with purposes and acceptance criteria. The validator blocks eligibility if the external pin differs, the project is outside the profile, any required input role is absent, or required gate evidence is missing, duplicated or unverified. The external pin must come from a controlled channel and an independent authority/reviewer. The synthetic profile used by Rust regression tests is not a real-world engineering profile.
+The profile restricts building use, construction system and design stage; lists mandatory additional-input roles; and declares required evidence gates with purposes and acceptance criteria. Each gate evidence entry also declares `CLAIMED_PASS`, `CLAIMED_FAIL`, `BLOCKED`, `NOT_EVALUATED`, or `INSUFFICIENT_EVIDENCE`. A required gate only satisfies the profile when it declares `CLAIMED_PASS`; failed, blocked, unevaluated or insufficient-evidence gates block eligibility. The validator blocks eligibility if the external pin differs, the project is outside the profile, any required input role is absent, or required gate evidence is missing, duplicated or unverified. The external pin must come from a controlled channel and an independent authority/reviewer. The synthetic profile used by Rust regression tests is not a real-world engineering profile.
 
-Gate artifacts are evidence pointers, not proof that a test genuinely ran or passed. This contract verifies coverage against a profile; it cannot prove the profile's own requirement set is adequate or complete. `effective_status` remains `NOT_REPRODUCED` because this command does not execute or independently reproduce the engineering calculation.
+Gate outcomes are producer-declared statuses, not independently established facts. A `CLAIMED_PASS` plus a matching artifact digest still does not prove the test executed, the stated criterion was met, or the engineering claim is true. An independent runner/attestation and result checker remain future gates. This contract verifies coverage against a profile; it cannot prove the profile's own requirement set is adequate or complete. `effective_status` remains `NOT_REPRODUCED` because this command does not execute or independently reproduce the engineering calculation.
 
 ## Trust boundaries
 

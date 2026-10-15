@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Component, Path},
 };
@@ -68,13 +68,23 @@ pub fn validate(
     ));
 
     let mut gate_ids = BTreeSet::new();
+    let mut gate_statuses: BTreeMap<String, String> = BTreeMap::new();
     let mut gate_artifacts_valid = true;
     if let Some(gates) = receipt.get("evaluation_gate_evidence").and_then(Value::as_array) {
         for gate in gates {
             let gate_id = gate.get("gate_id").and_then(Value::as_str).unwrap_or_default();
+            let declared_status = gate
+                .get("declared_result_status")
+                .and_then(Value::as_str)
+                .unwrap_or("NOT_EVALUATED")
+                .to_owned();
             if !gate_ids.insert(gate_id.to_owned()) {
                 gate_artifacts_valid = false;
-                issues.push(format!("receipt duplicates evaluation gate evidence {gate_id:?}"));
+                issues.push(format!(
+                    "receipt duplicates evaluation gate evidence {gate_id:?}"
+                ));
+            } else {
+                gate_statuses.insert(gate_id.to_owned(), declared_status);
             }
             let artifact = gate.get("artifact");
             let verified = jurisdiction_registry::verify_artifact(
@@ -235,8 +245,22 @@ pub fn validate(
         .cloned()
         .collect();
     if !missing_gates.is_empty() {
-        for missing in missing_gates {
+        for missing in &missing_gates {
             issues.push(format!("receipt omits profile-required evaluation gate {missing:?}"));
+        }
+    }
+
+    let mut required_gate_statuses_pass = true;
+    for required_gate_id in &required_gate_ids {
+        match gate_statuses.get(required_gate_id).map(String::as_str) {
+            Some("CLAIMED_PASS") => {}
+            Some(status) => {
+                required_gate_statuses_pass = false;
+                issues.push(format!(
+                    "required evaluation gate {required_gate_id:?} declares {status}, not CLAIMED_PASS"
+                ));
+            }
+            None => required_gate_statuses_pass = false,
         }
     }
 
@@ -245,6 +269,7 @@ pub fn validate(
         && project_scope_matches
         && required_roles_present
         && missing_gates.is_empty()
+        && required_gate_statuses_pass
         && gate_artifacts_valid;
     Ok(result)
 }

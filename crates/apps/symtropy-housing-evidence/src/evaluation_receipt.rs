@@ -922,7 +922,7 @@ mod tests {
         );
 
         let receipt = json!({
-            "schema_version": "0.3.0",
+            "schema_version": "0.4.0",
             "receipt_id": "test/receipt-1",
             "evaluated_at": "2026-10-15T14:00:00Z",
             "evaluation_date": "2026-10-15",
@@ -964,9 +964,9 @@ mod tests {
                 "artifact": scope_profile_artifact
             },
             "evaluation_gate_evidence": [
-                {"gate_id":"units-and-coordinates","artifact":gate_units},
-                {"gate_id":"analytical-reference-case","artifact":gate_oracle},
-                {"gate_id":"independent-method-comparison","artifact":gate_independent}
+                {"gate_id":"units-and-coordinates","declared_result_status":"CLAIMED_PASS","artifact":gate_units},
+                {"gate_id":"analytical-reference-case","declared_result_status":"CLAIMED_PASS","artifact":gate_oracle},
+                {"gate_id":"independent-method-comparison","declared_result_status":"CLAIMED_PASS","artifact":gate_independent}
             ],
             "evaluator": {
                 "id": "controlled-test-evaluator",
@@ -1220,6 +1220,42 @@ mod tests {
             .issues
             .iter()
             .any(|issue| issue.contains("reuses SHA-256 digest")));
+    }
+
+    #[test]
+    fn required_gate_declared_failure_blocks_scope() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        receipt["evaluation_gate_evidence"][0]["declared_result_status"] =
+            json!("CLAIMED_FAIL");
+
+        let receipt_path = root.path().join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
+
+        assert!(!report.scope_complete);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report.issues.iter().any(|issue| {
+            issue.contains("declares CLAIMED_FAIL, not CLAIMED_PASS")
+        }));
+    }
+
+    #[test]
+    fn required_gate_not_evaluated_blocks_scope() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        receipt["evaluation_gate_evidence"][0]["declared_result_status"] =
+            json!("NOT_EVALUATED");
+
+        let receipt_path = root.path().join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
+
+        assert!(!report.scope_complete);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report.issues.iter().any(|issue| {
+            issue.contains("declares NOT_EVALUATED, not CLAIMED_PASS")
+        }));
     }
 
     #[test]

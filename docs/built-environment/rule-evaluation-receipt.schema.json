@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:luminous-dynamics:schemas:rule-evaluation-receipt:0.3.0",
-  "title": "Rule Evaluation Receipt V3",
-  "description": "Binds a producer-declared rule-evaluation result to exact registry, jurisdiction, project, source, implementation, corpus, validated project-input manifest, independently pinned evaluation scope profile, required gate evidence, evaluator and output artifacts. Receipt integrity does not reproduce or endorse the declared result.",
+  "$id": "urn:luminous-dynamics:schemas:rule-evaluation-receipt:0.4.0",
+  "title": "Rule Evaluation Receipt V4",
+  "description": "Binds a producer-declared rule-evaluation result to exact registry, jurisdiction, project, source, implementation, corpus, validated project-input manifest, independently pinned evaluation scope profile, declared gate outcomes and evidence artifacts, evaluator and output artifacts. Receipt integrity does not reproduce or endorse the declared result.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,7 +23,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "0.3.0"
+      "const": "0.4.0"
     },
     "receipt_id": {
       "type": "string",
@@ -244,7 +244,8 @@
         "additionalProperties": false,
         "required": [
           "gate_id",
-          "artifact"
+          "artifact",
+          "declared_result_status"
         ],
         "properties": {
           "gate_id": {
@@ -255,6 +256,16 @@
           },
           "artifact": {
             "$ref": "#/$defs/artifact"
+          },
+          "declared_result_status": {
+            "type": "string",
+            "enum": [
+              "CLAIMED_PASS",
+              "CLAIMED_FAIL",
+              "BLOCKED",
+              "NOT_EVALUATED",
+              "INSUFFICIENT_EVIDENCE"
+            ]
           }
         }
       }
