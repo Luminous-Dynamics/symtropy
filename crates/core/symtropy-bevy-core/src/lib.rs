@@ -1345,14 +1345,8 @@ mod tests {
     #[test]
     fn kinematic_sweep_fails_closed_on_invalid_obstacle_bounds() {
         let invalid_obstacles = [
-            obstacle(
-                Vec3::new(f32::NAN, 1.0, 0.0),
-                Vec3::new(0.5, 1.0, 3.0),
-            ),
-            obstacle(
-                Vec3::new(1.0, 1.0, 0.0),
-                Vec3::new(-0.5, 1.0, 3.0),
-            ),
+            obstacle(Vec3::new(f32::NAN, 1.0, 0.0), Vec3::new(0.5, 1.0, 3.0)),
+            obstacle(Vec3::new(1.0, 1.0, 0.0), Vec3::new(-0.5, 1.0, 3.0)),
             obstacle(Vec3::splat(f32::MAX), Vec3::splat(f32::MAX)),
         ];
 
