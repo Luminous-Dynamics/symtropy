@@ -959,6 +959,34 @@ pub enum NutrientPortfolioStatus {
 /// presented as complete. Duplicate delivery source refs and arithmetic overflow
 /// block the scenario. Composition source refs may repeat because multiple rows can
 /// legitimately come from one licensed table artifact.
+/// Per-delivery receipt keeps exact food identity, delivered mass, source refs
+/// and the individual nutrient contribution available for independent audit.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientSupplyLineReceiptV1 {
+    pub line_index: usize,
+    pub food_record_id: String,
+    pub food_state_id: String,
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub edible_delivered_grams: u64,
+    pub composition_source_ref: String,
+    pub delivery_source_ref: String,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub contribution_numerator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub contribution_denominator: Option<u128>,
+    pub target_status: NutrientTargetStatus,
+    pub target_blockers: Vec<NutrientTargetBlocker>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NutrientPortfolioAssessmentV1 {
     pub scenario_id: String,
@@ -1001,6 +1029,7 @@ pub struct NutrientPortfolioAssessmentV1 {
     pub shortfall_numerator: Option<u128>,
     pub composition_source_refs: Vec<String>,
     pub delivery_source_refs: Vec<String>,
+    pub line_receipts: Vec<NutrientSupplyLineReceiptV1>,
     pub target_source_ref: String,
     pub status: NutrientPortfolioStatus,
     pub blockers: Vec<NutrientPortfolioBlockerV1>,
@@ -1017,6 +1046,7 @@ pub fn evaluate_nutrient_supply_scenario(
     let mut seen_delivery_refs: Vec<String> = Vec::new();
     let mut composition_refs: Vec<String> = Vec::new();
     let mut delivery_refs: Vec<String> = Vec::new();
+    let mut line_receipts: Vec<NutrientSupplyLineReceiptV1> = Vec::new();
     let mut supply_numerator = 0_u128;
     let mut total_edible_grams = 0_u128;
     let mut has_missing_composition = false;
@@ -1082,6 +1112,18 @@ pub fn evaluate_nutrient_supply_scenario(
 
     for (line_index, line) in scenario.lines.iter().enumerate() {
         let single = assess_nutrient_target(&line.composition, &line.delivery, target);
+        line_receipts.push(NutrientSupplyLineReceiptV1 {
+            line_index,
+            food_record_id: line.composition.food_record_id.clone(),
+            food_state_id: line.composition.food_state_id.clone(),
+            edible_delivered_grams: line.delivery.edible_delivered_grams,
+            composition_source_ref: line.composition.source_ref.clone(),
+            delivery_source_ref: line.delivery.delivery_source_ref.clone(),
+            contribution_numerator: single.supply_numerator,
+            contribution_denominator: single.denominator,
+            target_status: single.status,
+            target_blockers: single.blockers.clone(),
+        });
         if line.delivery.scenario_id != scenario.scenario_id {
             push_portfolio_blocker(
                 &mut blockers,
@@ -1259,6 +1301,7 @@ pub fn evaluate_nutrient_supply_scenario(
         shortfall_numerator,
         composition_source_refs: composition_refs,
         delivery_source_refs: delivery_refs,
+        line_receipts,
         target_source_ref: target.source_ref.clone(),
         status,
         blockers,
@@ -1812,6 +1855,15 @@ mod tests {
         assert_eq!(assessment.shortfall_numerator, Some(0));
         assert_eq!(assessment.composition_source_refs.len(), 2);
         assert_eq!(assessment.delivery_source_refs.len(), 2);
+        assert_eq!(assessment.line_receipts.len(), 2);
+        assert_eq!(assessment.line_receipts[0].edible_delivered_grams, 75);
+        assert_eq!(assessment.line_receipts[1].food_record_id, "FOOD-002");
+
+        let serialized = serde_json::to_string(&assessment).expect("portfolio serializes");
+        let decoded: NutrientPortfolioAssessmentV1 =
+            serde_json::from_str(&serialized).expect("portfolio deserializes");
+        assert_eq!(decoded, assessment);
+        assert!(serialized.contains("\"supply_numerator\":\"28750000\""));
     }
 
     #[test]
