@@ -222,6 +222,14 @@ pub fn validate_value(
             if !translation_reviewed {
                 readiness_reasons.push("RULE_TRANSLATION_NOT_INDEPENDENTLY_REVIEWED".to_string());
             }
+            if record["rule_translation"].is_object() {
+                if record["edition"].as_str().is_none_or(str::is_empty) {
+                    readiness_reasons.push("SOURCE_EDITION_MISSING".to_string());
+                }
+                if record["clause_location"].as_str().is_none_or(str::is_empty) {
+                    readiness_reasons.push("SOURCE_CLAUSE_LOCATION_MISSING".to_string());
+                }
+            }
             if !implementation_verified {
                 readiness_reasons.push("RULE_IMPLEMENTATION_DIGEST_NOT_VERIFIED".to_string());
             }
@@ -391,6 +399,94 @@ fn all_refs_are_local(value: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use std::{
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+    };
+
+    static NEXT_TEST_DIR: AtomicU64 = AtomicU64::new(0);
+
+    struct TestRoot(PathBuf);
+
+    impl TestRoot {
+        fn new() -> Self {
+            loop {
+                let id = NEXT_TEST_DIR.fetch_add(1, Ordering::Relaxed);
+                let path = std::env::temp_dir().join(format!(
+                    "symtropy-jurisdiction-registry-{}-{id}",
+                    std::process::id()
+                ));
+                match fs::create_dir(&path) {
+                    Ok(()) => return Self(path),
+                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                    Err(error) => panic!("cannot create test directory: {error}"),
+                }
+            }
+        }
+
+        fn path(&self) -> &Path {
+            &self.0
+        }
+    }
+
+    impl Drop for TestRoot {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn write_hashed_artifact(root: &Path, relative_path: &str, bytes: &[u8]) -> Value {
+        let destination = root.join(relative_path);
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent).expect("artifact parent directory exists");
+        }
+        fs::write(&destination, bytes).expect("test artifact writes");
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        json!({
+            "relative_path": relative_path,
+            "sha256": format!("{:x}", hasher.finalize())
+        })
+    }
+
+    fn ready_candidate_registry(root: &Path) -> Value {
+        let mut registry = fixture();
+        registry["jurisdiction"]["municipality"] = json!("Johannesburg");
+        registry["jurisdiction"]["resolution_status"] = json!("confirmed");
+        let record = &mut registry["source_records"][0];
+        record["lifecycle_status"] = json!("reported_in_force");
+        record["effective_from"] = json!("2020-01-01");
+        record["effective_to"] = Value::Null;
+        record["edition"] = json!("controlled-test-edition-1");
+        record["clause_location"] = json!("controlled-test-section-4");
+        record["applicability_status"] = json!("confirmed_for_project");
+        record["source_snapshot"] = json!({
+            "artifact": write_hashed_artifact(root, "source.txt", b"controlled source snapshot\n"),
+            "captured_at": "2026-10-14T12:00:00Z",
+            "media_type": "text/plain",
+            "access_status": "public"
+        });
+        record["review_record"] = json!({
+            "review_id": "controlled-test-review-1",
+            "reviewer_role": "qualified_professional",
+            "reviewed_at": "2026-10-14T12:30:00Z",
+            "decision": "applicable_for_evaluation",
+            "evidence_artifact": write_hashed_artifact(root, "review.txt", b"controlled review evidence\n")
+        });
+        record["rule_translation"] = json!({
+            "rule_id": "controlled-test-rule-1",
+            "version": "1.0.0",
+            "status": "independently_reviewed",
+            "validity_domain": "test only; no legal meaning",
+            "acceptance_criteria": "controlled known-answer fixture",
+            "implementation_artifact": write_hashed_artifact(root, "rule.rs", b"fn controlled_rule() -> bool { true }\n"),
+            "test_corpus_artifact": write_hashed_artifact(root, "corpus.json", b"{\"cases\":[{\"expected\":true}]}\n")
+        });
+        registry
+    }
+
+
 
     fn fixture() -> Value {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(
@@ -398,6 +494,80 @@ mod tests {
         );
         serde_json::from_slice(&fs::read(path).expect("jurisdiction registry fixture exists"))
             .expect("jurisdiction registry fixture parses")
+    }
+
+    #[test]
+    fn verified_prerequisites_can_make_a_controlled_record_evaluation_ready() {
+        let root = TestRoot::new();
+        let registry = ready_candidate_registry(root.path());
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+
+        assert!(report.schema_valid, "{:?}", report.schema_issues);
+        assert!(report.semantic_valid, "{:?}", report.semantic_issues);
+        assert_eq!(report.registry_contract_status, "REGISTRY_VALID");
+        assert_eq!(report.ready_for_rule_evaluation_count, 1);
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.ready_for_rule_evaluation, "{:?}", record.readiness_reasons);
+        assert!(record.source_snapshot_digest_verified);
+        assert!(record.review_evidence_digest_verified);
+        assert!(record.rule_implementation_digest_verified);
+        assert!(record.rule_test_corpus_digest_verified);
+    }
+
+    #[test]
+    fn modified_source_snapshot_fails_digest_and_blocks_readiness() {
+        let root = TestRoot::new();
+        let registry = ready_candidate_registry(root.path());
+        fs::write(root.path().join("source.txt"), b"modified after its digest was pinned\n")
+            .expect("tampered test artifact writes");
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| issue.contains("SHA-256 mismatch")));
+        assert!(report.records.iter().all(|record| !record.ready_for_rule_evaluation));
+    }
+
+    #[test]
+    fn parent_directory_artifact_path_is_rejected() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["source_snapshot"]["artifact"]["relative_path"] =
+            json!("../outside.txt");
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| issue.contains("unsafe non-relative artifact path")));
+    }
+
+    #[test]
+    fn translated_rule_needs_an_edition_and_precise_clause_location() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["edition"] = Value::Null;
+        registry["source_records"][0]["clause_location"] = Value::Null;
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.readiness_reasons.contains(&"SOURCE_EDITION_MISSING".to_string()));
+        assert!(record.readiness_reasons.contains(&"SOURCE_CLAUSE_LOCATION_MISSING".to_string()));
+    }
+
+    #[test]
+    fn input_cannot_inject_derived_readiness_flag() {
+        let mut registry = fixture();
+        registry["source_records"][0]["ready_for_rule_evaluation"] = json!(true);
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/built-environment/fixtures");
+        let report = validate_value(&registry, &root).expect("schema compiles");
+        assert!(!report.schema_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
     }
 
     #[test]

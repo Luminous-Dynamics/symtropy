@@ -135,6 +135,9 @@ A code clause that cannot be lawfully accessed, interpreted, or converted into a
 
 ### Jurisdiction evidence registry contract
 
+The controlled regression suite now checks both sides of the readiness gate: a synthetic record with locally hashed source, review, implementation and test artifacts can satisfy the prerequisites, while source-byte mutation and parent-directory traversal must block it. A translated rule without an edition or exact clause/location remains ineligible even when its other test artifacts are present. These controls qualify the verifier logic only; they do not establish any real legal source's applicability.
+
+
 The experimental `jurisdiction-evidence-registry.schema.json`, its synthetic fixture, and `housing-evidence-verify --validate-jurisdiction-registry <registry.json>` implement a catalog-only first step. Each source record has a stable ID, instrument type, source locator, lifecycle state, effective window, applicability state, optional local source snapshot, review evidence, and optional versioned rule translation with hashed implementation/test artifacts. Schema validity does not make a record executable.
 
 Eligibility for a later rule evaluator is computed—not accepted from input—and requires a registry resolved to a named municipality; a source reported in force on the explicit `evaluation_date`; a coherent effective-date window; project-specific applicability confirmation; locally hash-verified source and review artifacts; a review decision for evaluation; public or appropriately licensed source access; and an independently reviewed translation plus test corpus whose artifacts hash correctly. Proposals, unknown lifecycle states, unverified snapshots, and unresolved applicability remain ineligible. Reviewer qualifications, signature authenticity, source authority, and legal interpretation still require independent review outside this CLI.
