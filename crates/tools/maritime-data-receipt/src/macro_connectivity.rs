@@ -507,8 +507,8 @@ mod tests {
     #[test]
     fn frozen_plsci_profile_corpus_matches_expected_dispositions() {
         let corpus_text = include_str!("../tests/fixtures/plsci-profile-corpus-v0.1.json");
-        let corpus: Value =
-            serde_json::from_str(corpus_text).expect("frozen PLSCI profile corpus must be valid JSON");
+        let corpus: Value = serde_json::from_str(corpus_text)
+            .expect("frozen PLSCI profile corpus must be valid JSON");
         assert_eq!(
             corpus["corpus_id"],
             "luminous.symtropy.maritime-plsci-profile-corpus"
@@ -544,7 +544,9 @@ mod tests {
 
     #[test]
     fn profile_schema_is_valid_json_and_pins_the_same_identity() {
-        let schema_text = include_str!("../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json");
+        let schema_text = include_str!(
+            "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
+        );
         let schema: Value =
             serde_json::from_str(schema_text).expect("PLSCI profile schema must be valid JSON");
         assert_eq!(
