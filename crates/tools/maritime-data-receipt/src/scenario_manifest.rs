@@ -28,7 +28,7 @@ const ROOT_KEYS: &[&str] = &[
     "intended_use",
 ];
 const ANALYSIS_KEYS: &[&str] = &["start_utc", "end_utc", "geographic_scope"];
-const MODEL_KEYS: &[&str] = &["model_id", "revision", "config_sha256"];
+const MODEL_KEYS: &[&str] = &["model_id", "revision", "config_relative_path", "config_sha256"];
 const POLICY_KEYS: &[&str] = &[
     "missing_value_policy",
     "zero_fill_allowed",
@@ -65,6 +65,7 @@ const TRANSFORM_KEYS: &[&str] = &[
     "parents",
     "algorithm_id",
     "algorithm_revision",
+    "config_relative_path",
     "config_sha256",
 ];
 const ASSUMPTION_KEYS: &[&str] = &[
@@ -271,6 +272,9 @@ fn validate_node(value: &Value) -> Result<NodeFacts, &'static str> {
             if !is_lower_hex(revision, 40) {
                 return Err("UNPINNED_ALGORITHM_REVISION");
             }
+            if !valid_relative_path(text(value, "config_relative_path")?) {
+                return Err("UNSAFE_PATH");
+            }
             if !is_lower_hex(text(value, "config_sha256")?, 64) {
                 return Err("INVALID_DIGEST");
             }
@@ -363,6 +367,9 @@ fn validate_manifest(value: &Value) -> Result<ManifestFacts, &'static str> {
     let model_revision = text(model, "revision")?;
     if !is_lower_hex(model_revision, 40) {
         return Err("UNPINNED_MODEL_REVISION");
+    }
+    if !valid_relative_path(text(model, "config_relative_path")?) {
+        return Err("UNSAFE_PATH");
     }
     if !is_lower_hex(text(model, "config_sha256")?, 64) {
         return Err("INVALID_DIGEST");
@@ -554,6 +561,56 @@ fn checked_workspace_path(root: &Path, relative: &str) -> Result<PathBuf, String
     Ok(resolved)
 }
 
+fn verify_configuration_file(
+    relative_path: &str,
+    expected_sha256: &str,
+    workspace_root: &Path,
+) -> Result<(), String> {
+    let path = checked_workspace_path(workspace_root, relative_path)?;
+    let metadata = fs::metadata(&path)
+        .map_err(|error| format!("cannot stat configuration {relative_path}: {error}"))?;
+    if metadata.len() > super::MAX_RECEIPT_BYTES as u64 {
+        return Err(format!("configuration exceeds bounded size: {relative_path}"));
+    }
+    let bytes = fs::read(&path)
+        .map_err(|error| format!("cannot read configuration {relative_path}: {error}"))?;
+    let actual_sha256 = super::sha256_bytes(&bytes);
+    if actual_sha256 != expected_sha256 {
+        return Err(format!("scenario configuration SHA-256 mismatch: {relative_path}"));
+    }
+    Ok(())
+}
+
+fn verify_configuration_files(manifest: &Value, workspace_root: &Path) -> Result<usize, String> {
+    let model = &manifest["model"];
+    verify_configuration_file(
+        model["config_relative_path"]
+            .as_str()
+            .ok_or_else(|| "model configuration path is missing".to_owned())?,
+        model["config_sha256"]
+            .as_str()
+            .ok_or_else(|| "model configuration digest is missing".to_owned())?,
+        workspace_root,
+    )?;
+    let mut checked = 1_usize;
+    for node in manifest["nodes"].as_array().into_iter().flatten() {
+        if node["node_kind"] != "transformation" {
+            continue;
+        }
+        verify_configuration_file(
+            node["config_relative_path"]
+                .as_str()
+                .ok_or_else(|| "transformation configuration path is missing".to_owned())?,
+            node["config_sha256"]
+                .as_str()
+                .ok_or_else(|| "transformation configuration digest is missing".to_owned())?,
+            workspace_root,
+        )?;
+        checked += 1;
+    }
+    Ok(checked)
+}
+
 fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usize, String> {
     let nodes = manifest["nodes"]
         .as_array()
@@ -638,6 +695,7 @@ struct ManifestReport {
     synthetic_source_count: usize,
     non_observed_source_count: usize,
     source_receipts_and_artifact_bytes_verified: usize,
+    model_and_transform_config_bytes_verified: usize,
     source_authenticity_established: bool,
     data_rows_semantically_validated: bool,
     freshness_decision_performed: bool,
@@ -668,8 +726,9 @@ pub(crate) fn run_cli(manifest_path: &str) -> Result<(), String> {
     let workspace_root = std::env::current_dir()
         .map_err(|error| format!("cannot determine workspace root: {error}"))?;
     let checked = verify_source_receipts(&manifest, &workspace_root)?;
+    let configs_checked = verify_configuration_files(&manifest, &workspace_root)?;
 
-    if checked != facts.source_count {
+    if checked != facts.source_count || configs_checked != facts.transformation_count + 1 {
         return Err("not every source receipt/artifact pair was checked".to_owned());
     }
     let report = ManifestReport {
@@ -688,6 +747,7 @@ pub(crate) fn run_cli(manifest_path: &str) -> Result<(), String> {
         synthetic_source_count: facts.synthetic_source_count,
         non_observed_source_count: facts.non_observed_source_count,
         source_receipts_and_artifact_bytes_verified: checked,
+        model_and_transform_config_bytes_verified: configs_checked,
         source_authenticity_established: false,
         data_rows_semantically_validated: false,
         freshness_decision_performed: false,
@@ -701,6 +761,7 @@ pub(crate) fn run_cli(manifest_path: &str) -> Result<(), String> {
             "Manifest graph and declared metadata contract only; transformations are pinned declarations, not executed code.",
             "Receipt and artifact checks establish exact local byte agreement with their receipts, not publisher authenticity or semantic correctness.",
             "Evidence state, time scope, and sensitivity status are declared metadata; this command does not independently attest them.",
+            "Configuration files are byte-checked; declared model/algorithm revision hashes are not fetched or authenticated as source code.",
             "Unknown or absent source time coverage remains explicitly unbounded; no freshness determination is performed.",
             "No scenario result, operational decision, navigation, physical-truth, engineering-safety, custody or delivery authority is granted.",
         ],
@@ -800,7 +861,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let bases = corpus["base_manifests"].as_object().expect("base manifest map");
         let cases = corpus["cases"].as_array().expect("corpus cases");
-        assert_eq!(cases.len(), 24, "scenario-manifest corpus count is a contract");
+        assert_eq!(cases.len(), 26, "scenario-manifest corpus count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base manifest id");
@@ -924,6 +985,29 @@ mod tests {
             verify_source_receipts(&manifest, &workspace).expect("exact source byte checks"),
             1
         );
+        assert_eq!(
+            verify_configuration_files(&manifest, &workspace).expect("config bytes"),
+            2
+        );
+    }
+
+    #[test]
+    fn scenario_manifest_rejects_model_and_transform_config_byte_drift() {
+        let fixture = include_bytes!("../tests/fixtures/synthetic-scenario-manifest.json");
+        let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
+        let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
+
+        manifest["model"]["config_sha256"] = Value::String("0".repeat(64));
+        let error = verify_configuration_files(&manifest, &workspace)
+            .expect_err("changed model config digest must fail");
+        assert!(error.contains("configuration SHA-256 mismatch"));
+
+        let fixture = include_bytes!("../tests/fixtures/synthetic-scenario-manifest.json");
+        let mut manifest: Value = serde_json::from_slice(fixture).expect("manifest fixture JSON");
+        manifest["nodes"][1]["config_sha256"] = Value::String("0".repeat(64));
+        let error = verify_configuration_files(&manifest, &workspace)
+            .expect_err("changed transform config digest must fail");
+        assert!(error.contains("configuration SHA-256 mismatch"));
     }
 
     #[test]
