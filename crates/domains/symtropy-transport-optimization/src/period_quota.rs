@@ -463,8 +463,16 @@ mod tests {
     fn input_order_does_not_change_the_report() {
         let quota_a = quota("quota-a", "edge-a", "daily", 200, 300, 10);
         let quota_b = quota("quota-b", "edge-b", "daily", 200, 300, 10);
-        let uses_a = vec![use_of("use-z", "quota-a", 2), use_of("use-a", "quota-a", 3)];
-        let uses_b = vec![use_of("use-a", "quota-a", 3), use_of("use-z", "quota-a", 2)];
+        let uses_a = vec![
+            use_of("use-z", "quota-a", 2),
+            use_of("use-a", "quota-a", 3),
+            use_of("use-b", "quota-b", 1),
+        ];
+        let uses_b = vec![
+            use_of("use-b", "quota-b", 1),
+            use_of("use-a", "quota-a", 3),
+            use_of("use-z", "quota-a", 2),
+        ];
         let quotas_a = vec![quota_b.clone(), quota_a.clone()];
         let quotas_b = vec![quota_a, quota_b];
         assert_eq!(
