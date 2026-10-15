@@ -67,7 +67,7 @@ struct ForecastApplicabilityReport {
     target_time_utc: String,
     valid_from_utc: String,
     valid_until_utc: String,
-    source_age_seconds: Option<u64>,
+    issue_age_seconds: Option<u64>,
     forecast_lead_seconds: Option<u64>,
     max_issue_age_seconds: u64,
     max_forecast_lead_seconds: u64,
@@ -268,7 +268,7 @@ fn validate_and_evaluate(
         return Err("forecast valid interval does not match the receipt coverage interval".to_owned());
     }
 
-    let source_age = (issue_seconds <= assessment_seconds)
+    let issue_age = (issue_seconds <= assessment_seconds)
         .then(|| (assessment_seconds - issue_seconds) as u64);
     let forecast_lead = (target_seconds >= init_seconds)
         .then(|| (target_seconds - init_seconds) as u64);
@@ -287,7 +287,7 @@ fn validate_and_evaluate(
         applicable = false;
         findings.push("TARGET_OUTSIDE_VALID_INTERVAL");
     }
-    if source_age.is_some_and(|age| age > max_issue_age) {
+    if issue_age.is_some_and(|age| age > max_issue_age) {
         applicable = false;
         findings.push("FORECAST_ISSUE_TOO_OLD");
     }
@@ -325,7 +325,7 @@ fn validate_and_evaluate(
         target_time_utc: target_time,
         valid_from_utc: valid_from,
         valid_until_utc: valid_until,
-        source_age_seconds: source_age,
+        issue_age_seconds: issue_age,
         forecast_lead_seconds: forecast_lead,
         max_issue_age_seconds: max_issue_age,
         max_forecast_lead_seconds: max_forecast_lead,
@@ -556,7 +556,7 @@ mod tests {
             && profile["quality"]["status"] == "synthetic";
         let result = evaluate_value(&profile).expect("base fixture metadata should be valid");
         assert_eq!(result.status == "TEMPORALLY_APPLICABLE_NOT_ADMITTED", oracle_pass);
-        assert_eq!(result.source_age_seconds, Some((assessment - issue) as u64));
+        assert_eq!(result.issue_age_seconds, Some((assessment - issue) as u64));
         assert_eq!(result.forecast_lead_seconds, Some((target - init) as u64));
         assert_eq!(result.engineering_admission, "NotAdmitted");
         assert!(!result.navigation_authorized);
