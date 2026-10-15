@@ -36,6 +36,17 @@ The synthetic test fixture declares 250 mg per 100 g at scale 1,000 and 75 g of 
 
 The next step is not to invent a crop catalogue: add a licensed, versioned composition source registry, explicit population targets and a seasonal production portfolio contract before implementing any optimizer.
 
+## Declared nutrient target comparison
+
+`assess_nutrient_target` compares that exact contribution with an explicit minimum target bound to a community/population scope and time-period reference. It requires the same canonical nutrient definition, base unit and decimal scale. Its result is one of:
+
+- `MeetsDeclaredMinimum`
+- `ShortfallAgainstDeclaredMinimum`
+- `NotAssessable` when composition is missing
+- `Blocked` for mismatched definitions/units/scales or missing target/provenance metadata
+
+Supply, target and shortfall are expressed as exact integer rational numerators over the same denominator. No float percentage or rounded adequacy score is emitted. The target must be independently sourced for the stated community and interval; this function does not derive dietary requirements or check whether the target is clinically appropriate for individuals.
+
 ## Claim ceiling
 
 The checker independently recomputes a declared interval balance from supplied quantities. It does not simulate fluid flow, infer water quality, predict crop yield, identify plants, model medicine stability, or prove physical validity. Inputs can still be wrong or fabricated; source references are not fetched or authenticated. A consistent accounting result is not proof that the physical model or external observation is correct.
