@@ -446,7 +446,7 @@ impl Default for ThermodynamicLedger {
 }
 
 /// Result of a single tick's energy balance.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TickBalance {
     /// Total energy consumed this tick.
     pub energy_in: f64,
