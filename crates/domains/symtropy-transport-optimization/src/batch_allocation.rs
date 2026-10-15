@@ -1076,13 +1076,13 @@ mod tests {
     #[test]
     fn exhaustive_domain_scope_is_explicitly_caller_asserted() {
         let network = network(10);
-        let (shared, _) = routes_for(&network);
+        let (shared, alternate) = routes_for(&network);
         let report = select_shared_capacity_batch(
             &network,
             &[candidate_with_completeness(
                 "d1",
                 1,
-                vec![shared],
+                vec![shared, alternate],
                 CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
                     search_domain_id: "synthetic-network-v1-simple-paths".to_owned(),
                 },
