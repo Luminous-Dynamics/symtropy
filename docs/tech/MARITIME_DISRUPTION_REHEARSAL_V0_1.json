@@ -1,0 +1,307 @@
+{
+  "schema_id": "luminous.symtropy.maritime-disruption-rehearsal",
+  "schema_version": "0.1.0",
+  "fixture_id": "synthetic-abstract-terminal-disruption-v0.1",
+  "fixture_status": "design_fixture_not_yet_executable",
+  "source_kind": "synthetic_fixture",
+  "claim_ceiling": {
+    "engineering_admission": "NotAdmitted",
+    "navigation_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "berth_availability_inference_authorized": false,
+    "reservation_or_custody_event_authorized": false,
+    "physical_execution_authorized": false
+  },
+  "description": "Invented abstract terminal/corridor for designing decision-rehearsal contracts. It is not a real route, port, vessel, forecast, reservation, or physical model.",
+  "assessment": {
+    "assessment_time_utc": "2026-10-15T12:00:00Z",
+    "target_time_utc": "2026-10-15T15:00:00Z",
+    "time_policy_id": "synthetic-policy-v0.1",
+    "forecast_input": {
+      "fixture_reference": "synthetic-water-level-forecast-profile-v0.1",
+      "source_artifact_sha256": null,
+      "receipt_sha256": null,
+      "binding_state": "not_bound_in_this_design_fixture",
+      "issued_at_utc": "2026-10-15T10:00:00Z",
+      "model_initialization_time_utc": "2026-10-15T06:00:00Z",
+      "valid_from_utc": "2026-10-15T12:00:00Z",
+      "valid_until_utc": "2026-10-15T18:00:00Z",
+      "max_issue_age_seconds": 10800,
+      "max_forecast_lead_seconds": 43200,
+      "expected_temporal_arithmetic_for_test_design_only": {
+        "issue_age_seconds": 7200,
+        "forecast_lead_seconds": 32400
+      },
+      "execution_status": "not_executed",
+      "interpretation": "The timestamps and arithmetic are invented test values. No byte-bound source receipt, forecast row or model skill is provided by this fixture."
+    }
+  },
+  "model_scope": {
+    "execution_profile": "EngineeringDeterministic",
+    "physics_claims": [],
+    "abstract_inputs_only": [
+      "declared_water_level_envelope_state",
+      "energy_reserve_constraint_state",
+      "terminal_window_state",
+      "forecast_evidence_state",
+      "waiting_resource_availability_state",
+      "alternate_capacity_confirmation_state"
+    ],
+    "unsupported_if_requested": [
+      "hydrodynamics",
+      "under_keel_clearance",
+      "vessel maneuvering",
+      "mooring loads",
+      "shore-power electrical dynamics",
+      "terminal capacity derived from real operations"
+    ],
+    "missing_or_unsupported_is_never_zero": true
+  },
+  "candidate_plans": [
+    {
+      "plan_id": "continue_original_slot",
+      "kind": "simulated_intent",
+      "preconditions": [
+        "forecast_temporally_applicable",
+        "water_level_envelope_supported_and_satisfied",
+        "energy_reserve_minimum_satisfied",
+        "terminal_window_open"
+      ],
+      "side_effects": [],
+      "not_a_booking": true
+    },
+    {
+      "plan_id": "hold_and_reassess",
+      "kind": "simulated_intent",
+      "preconditions": [
+        "designated_waiting_resource_declared_available",
+        "reassessment_time_and_policy_declared"
+      ],
+      "side_effects": [],
+      "not_a_booking": true
+    },
+    {
+      "plan_id": "prepare_alternate_terminal",
+      "kind": "simulated_intent",
+      "preconditions": [
+        "alternate_terminal_identity_resolved",
+        "alternate_capacity_confirmed",
+        "alternate_constraints_supported"
+      ],
+      "side_effects": [],
+      "not_a_booking": true,
+      "preparation_does_not_reserve_capacity": true
+    }
+  ],
+  "hard_constraints": [
+    {
+      "constraint_id": "water_level_envelope_supported_and_satisfied",
+      "kind": "hard",
+      "unit": null,
+      "source": "synthetic abstract state",
+      "missing_state": "INDETERMINATE"
+    },
+    {
+      "constraint_id": "energy_reserve_minimum_satisfied",
+      "kind": "hard",
+      "unit": null,
+      "source": "synthetic abstract state",
+      "unsupported_state": "UNSUPPORTED"
+    },
+    {
+      "constraint_id": "terminal_window_open",
+      "kind": "hard",
+      "unit": null,
+      "source": "synthetic abstract state",
+      "missing_state": "INDETERMINATE"
+    },
+    {
+      "constraint_id": "forecast_temporal_applicability",
+      "kind": "evidence_gate",
+      "unit": "seconds",
+      "source": "synthetic timestamps only; not receipt-bound",
+      "invalid_or_missing_state": "INDETERMINATE"
+    },
+    {
+      "constraint_id": "designated_waiting_resource_declared_available",
+      "kind": "hard",
+      "unit": null,
+      "source": "synthetic abstract state",
+      "missing_state": "INDETERMINATE"
+    },
+    {
+      "constraint_id": "alternate_capacity_confirmed",
+      "kind": "hard",
+      "unit": null,
+      "source": "no actual terminal response is included",
+      "default_state": "INDETERMINATE"
+    }
+  ],
+  "scenario_cases": [
+    {
+      "case_id": "baseline_declared_inputs",
+      "required": true,
+      "disturbances": [],
+      "abstract_inputs": {
+        "water_level_envelope_state": "within_declared_limit",
+        "energy_reserve_state": "adequate",
+        "terminal_window_state": "open",
+        "forecast_evidence_state": "temporally_applicable_not_admitted",
+        "waiting_resource_state": "declared_available",
+        "alternate_capacity_state": "unconfirmed"
+      },
+      "expected_plan_dispositions": {
+        "continue_original_slot": "FEASIBLE_WITHIN_DECLARED_MODEL",
+        "hold_and_reassess": "FEASIBLE_WITHIN_DECLARED_MODEL",
+        "prepare_alternate_terminal": "INDETERMINATE"
+      },
+      "expected_blockers": {
+        "prepare_alternate_terminal": [
+          "alternate_capacity_confirmed"
+        ]
+      }
+    },
+    {
+      "case_id": "adverse_water_level_envelope",
+      "required": true,
+      "disturbances": [
+        "declared water-level envelope changes outside the original plan's constraint"
+      ],
+      "abstract_inputs": {
+        "water_level_envelope_state": "outside_declared_limit",
+        "energy_reserve_state": "adequate",
+        "terminal_window_state": "open",
+        "forecast_evidence_state": "temporally_applicable_not_admitted",
+        "waiting_resource_state": "declared_available",
+        "alternate_capacity_state": "unconfirmed"
+      },
+      "expected_plan_dispositions": {
+        "continue_original_slot": "INFEASIBLE",
+        "hold_and_reassess": "FEASIBLE_WITHIN_DECLARED_MODEL",
+        "prepare_alternate_terminal": "INDETERMINATE"
+      },
+      "expected_blockers": {
+        "continue_original_slot": [
+          "water_level_envelope_supported_and_satisfied"
+        ],
+        "prepare_alternate_terminal": [
+          "alternate_capacity_confirmed"
+        ]
+      },
+      "interpretation": "This state is an abstract hostile control; no real water level or vessel clearance is represented."
+    },
+    {
+      "case_id": "shore_power_unavailable",
+      "required": true,
+      "disturbances": [
+        "declared shore-power availability changes to unavailable"
+      ],
+      "abstract_inputs": {
+        "water_level_envelope_state": "within_declared_limit",
+        "energy_reserve_state": "inadequate_for_declared_plan",
+        "terminal_window_state": "open",
+        "forecast_evidence_state": "temporally_applicable_not_admitted",
+        "waiting_resource_state": "declared_available",
+        "alternate_capacity_state": "unconfirmed"
+      },
+      "expected_plan_dispositions": {
+        "continue_original_slot": "INFEASIBLE",
+        "hold_and_reassess": "UNSUPPORTED",
+        "prepare_alternate_terminal": "INDETERMINATE"
+      },
+      "expected_blockers": {
+        "continue_original_slot": [
+          "energy_reserve_minimum_satisfied"
+        ],
+        "hold_and_reassess": [
+          "declared energy behaviour while holding is outside the model scope"
+        ],
+        "prepare_alternate_terminal": [
+          "alternate_capacity_confirmed"
+        ]
+      }
+    },
+    {
+      "case_id": "forecast_invalidated_before_decision",
+      "required": true,
+      "disturbances": [
+        "forecast revision is withdrawn, conflicts with the pinned input or fails applicability"
+      ],
+      "abstract_inputs": {
+        "water_level_envelope_state": "unknown",
+        "energy_reserve_state": "adequate",
+        "terminal_window_state": "open",
+        "forecast_evidence_state": "invalidated",
+        "waiting_resource_state": "declared_available",
+        "alternate_capacity_state": "unconfirmed"
+      },
+      "expected_plan_dispositions": {
+        "continue_original_slot": "INDETERMINATE",
+        "hold_and_reassess": "FEASIBLE_WITHIN_DECLARED_MODEL",
+        "prepare_alternate_terminal": "INDETERMINATE"
+      },
+      "expected_blockers": {
+        "continue_original_slot": [
+          "forecast_temporal_applicability",
+          "water_level_envelope_supported_and_satisfied"
+        ],
+        "prepare_alternate_terminal": [
+          "alternate_capacity_confirmed"
+        ]
+      },
+      "metamorphic_property": "Invalidating required forecast evidence must never improve a plan's disposition."
+    },
+    {
+      "case_id": "common_cause_terminal_and_power_disruption",
+      "required": true,
+      "disturbances": [
+        "shore power unavailable",
+        "original terminal window closed",
+        "forecast evidence invalidated",
+        "waiting resource independence not established"
+      ],
+      "abstract_inputs": {
+        "water_level_envelope_state": "unknown",
+        "energy_reserve_state": "inadequate_for_declared_plan",
+        "terminal_window_state": "closed",
+        "forecast_evidence_state": "invalidated",
+        "waiting_resource_state": "unknown_due_to_shared_dependency",
+        "alternate_capacity_state": "unconfirmed"
+      },
+      "expected_plan_dispositions": {
+        "continue_original_slot": "INFEASIBLE",
+        "hold_and_reassess": "INDETERMINATE",
+        "prepare_alternate_terminal": "INDETERMINATE"
+      },
+      "expected_blockers": {
+        "continue_original_slot": [
+          "terminal_window_open"
+        ],
+        "hold_and_reassess": [
+          "designated_waiting_resource_declared_available"
+        ],
+        "prepare_alternate_terminal": [
+          "alternate_capacity_confirmed"
+        ]
+      },
+      "metamorphic_property": "Do not presume independence when fallback resources share a declared dependency."
+    }
+  ],
+  "expected_global_properties": [
+    "No hard constraint can be compensated by a lower delay or cost metric.",
+    "A missing, stale, conflicting or invalidated input cannot improve a dependent result.",
+    "Adding a required adverse case cannot enlarge the robustly-feasible candidate set.",
+    "Duplicating correlated evidence cannot be counted as independent corroboration.",
+    "An alternate-terminal preparation never creates a reservation or capacity-confirmation event.",
+    "Every result remains NotAdmitted for navigation, physical truth, berth availability and physical execution.",
+    "No numerical value in this fixture represents a real physical quantity or real-world estimate."
+  ],
+  "execution": {
+    "executed": false,
+    "rust_build_test_status": "not_run_for_this_design_fixture",
+    "independent_oracle_status": "not_implemented",
+    "canonical_replay_status": "not_run",
+    "real_source_capture_status": "still_open",
+    "expected_status": "design_only"
+  }
+}
