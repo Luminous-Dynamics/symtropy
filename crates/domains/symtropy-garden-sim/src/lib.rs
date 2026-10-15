@@ -272,6 +272,10 @@ pub struct EdibleFoodDeliveryV1 {
     pub scenario_id: String,
     pub food_record_id: String,
     pub food_state_id: String,
+    /// Exact beneficiary/community scope for this delivered amount.
+    pub delivery_scope_ref: String,
+    /// Period covered by the amount; must match the target comparison period.
+    pub period_ref: String,
     #[serde(
         serialize_with = "serialize_u64_as_string",
         deserialize_with = "deserialize_u64_from_string"
@@ -288,6 +292,8 @@ pub enum NutrientContributionBlockerCode {
     EmptyScenarioId,
     EmptyFoodRecordId,
     EmptyFoodStateId,
+    EmptyDeliveryScope,
+    EmptyDeliveryPeriod,
     EmptyNutrientId,
     EmptyNutrientDefinitionReference,
     FoodRecordMismatch,
@@ -320,6 +326,8 @@ pub struct NutrientContributionDecisionV1 {
     pub scenario_id: String,
     pub food_record_id: String,
     pub food_state_id: String,
+    pub delivery_scope_ref: String,
+    pub period_ref: String,
     pub nutrient_id: String,
     pub nutrient_definition_ref: String,
     pub unit: NutrientUnit,
@@ -392,6 +400,20 @@ pub fn evaluate_nutrient_contribution(
             &mut blockers,
             NutrientContributionBlockerCode::EmptyFoodStateId,
             "food/preparation state identity is empty",
+        );
+    }
+    if delivery.delivery_scope_ref.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyDeliveryScope,
+            "delivery scope reference is empty",
+        );
+    }
+    if delivery.period_ref.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyDeliveryPeriod,
+            "delivery period reference is empty",
         );
     }
     if composition.nutrient_id.trim().is_empty() {
@@ -484,6 +506,8 @@ pub fn evaluate_nutrient_contribution(
         scenario_id: delivery.scenario_id.clone(),
         food_record_id: composition.food_record_id.clone(),
         food_state_id: composition.food_state_id.clone(),
+        delivery_scope_ref: delivery.delivery_scope_ref.clone(),
+        period_ref: delivery.period_ref.clone(),
         nutrient_id: composition.nutrient_id.clone(),
         nutrient_definition_ref: composition.nutrient_definition_ref.clone(),
         unit: composition.unit,
@@ -599,6 +623,8 @@ pub enum NutrientTargetBlockerCode {
     NutrientDefinitionMismatch,
     NutrientUnitMismatch,
     NutrientScaleMismatch,
+    TargetScopeMismatch,
+    TargetPeriodMismatch,
     ContributionBlocked,
 }
 
@@ -765,6 +791,20 @@ pub fn assess_nutrient_target(
             &mut blockers,
             NutrientTargetBlockerCode::NutrientScaleMismatch,
             "target and composition decimal scales differ",
+        );
+    }
+    if target.target_scope_ref != delivery.delivery_scope_ref {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::TargetScopeMismatch,
+            "nutrient target and delivered food use different population/community scopes",
+        );
+    }
+    if target.period_ref != delivery.period_ref {
+        push_target_blocker(
+            &mut blockers,
+            NutrientTargetBlockerCode::TargetPeriodMismatch,
+            "nutrient target and delivered food cover different periods",
         );
     }
     if contribution.disposition == NutrientContributionDisposition::Blocked {
@@ -1045,6 +1085,8 @@ mod tests {
             scenario_id: "SYNTH-FOOD-001".to_owned(),
             food_record_id: "FOOD-001".to_owned(),
             food_state_id: "boiled_edible".to_owned(),
+            delivery_scope_ref: "scope:community-001".to_owned(),
+            period_ref: "period:2026-11".to_owned(),
             edible_delivered_grams: 75,
             delivery_source_ref: "fixture:delivered-edible-mass-001".to_owned(),
         };
@@ -1300,6 +1342,32 @@ mod tests {
         let decoded_assessment: NutrientTargetAssessmentV1 =
             serde_json::from_str(&result_json).expect("assessment deserializes");
         assert_eq!(decoded_assessment, assessment);
+    }
+
+    #[test]
+    fn target_scope_mismatch_is_blocked() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.target_scope_ref = "scope:regional-001".to_owned();
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::TargetScopeMismatch
+        }));
+        assert_eq!(assessment.supply_numerator, None);
+    }
+
+    #[test]
+    fn target_period_mismatch_is_blocked() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let mut target = valid_nutrient_target();
+        target.period_ref = "period:2026-12".to_owned();
+        let assessment = assess_nutrient_target(&composition, &delivery, &target);
+        assert_eq!(assessment.status, NutrientTargetStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientTargetBlockerCode::TargetPeriodMismatch
+        }));
+        assert_eq!(assessment.supply_numerator, None);
     }
 
 }
