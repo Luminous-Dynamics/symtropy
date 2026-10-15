@@ -599,13 +599,19 @@ mod tests {
     }
 
     #[test]
-    fn landauer_bound() {
+    fn landauer_bound_uses_the_310k_si_reference_value() {
         let floor = ThermodynamicLedger::landauer_floor(1.0);
-        assert!((floor - LANDAUER_BOUND_310K).abs() < 1e-30);
+        let independently_evaluated_reference = 2.966_678_181_248_014_7e-21;
+        assert!(
+            (floor - independently_evaluated_reference).abs() < 1e-32,
+            "310 K Landauer reference should be {independently_evaluated_reference:e}, got {floor:e}"
+        );
+        assert_eq!(floor, LANDAUER_BOUND_310K);
 
-        // 1 billion bits
+        // 1 billion logically irreversible bit erasures at the idealized bound.
         let floor_1g = ThermodynamicLedger::landauer_floor(1e9);
-        assert!(floor_1g > 1e-12); // ~2.87e-12 J for 1 Gbit
+        assert!(floor_1g > 2.9e-12);
+        assert!(floor_1g < 3.0e-12);
     }
 
     #[test]
