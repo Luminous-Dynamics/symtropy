@@ -295,10 +295,11 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn verify_receipt_semantics(profile: &Value, receipt: &Value, facts: &super::ReceiptFacts) -> Result<(), &'static str> {
+fn verify_receipt_semantics(profile: &Value, receipt: &Value, receipt_bytes: &[u8], facts: &super::ReceiptFacts) -> Result<(), &'static str> {
     let source_kind = text(profile, "source_kind")?;
     let binding = member(profile, "receipt_binding")?;
     if text(binding, "receipt_id")? != facts.receipt_id
+        || text(binding, "receipt_sha256")? != super::sha256_bytes(receipt_bytes)
         || text(binding, "artifact_sha256")? != facts.artifact.sha256
     {
         return Err("RECEIPT_BINDING_MISMATCH");
@@ -370,14 +371,7 @@ pub(crate) fn run_cli(profile_path: &str, receipt_path: &str, artifact_override:
     let facts = super::validate_receipt(&receipt_strict)?;
     let receipt_value: Value = serde_json::from_slice(&receipt_bytes)
         .map_err(|error| format!("invalid receipt JSON: {error}"))?;
-    verify_receipt_semantics(&profile, &receipt_value, &facts).map_err(str::to_owned)?;
-
-    let binding = member(&profile, "receipt_binding").map_err(str::to_owned)?;
-    if text(binding, "receipt_sha256").map_err(str::to_owned)? != super::sha256_bytes(&receipt_bytes)
-        || text(binding, "artifact_sha256").map_err(str::to_owned)? != facts.artifact.sha256
-    {
-        return Err("PLSCI_PROFILE_REJECTED:RECEIPT_BINDING_MISMATCH".to_owned());
-    }
+    verify_receipt_semantics(&profile, &receipt_value, &receipt_bytes, &facts).map_err(str::to_owned)?;
 
     let artifact_path = artifact_override
         .map(PathBuf::from)
@@ -487,6 +481,25 @@ mod tests {
         assert!(validate_profile(&profile).is_ok());
         assert_eq!(profile["selection"]["source_port_ids"][0], "SYNTH-001");
         assert!(profile["selection"].get("candidate_locode").is_none());
+    }
+
+    #[test]
+    fn receipt_binding_uses_exact_receipt_and_artifact_digests() {
+        let profile_bytes = include_bytes!("../tests/fixtures/synthetic-plsci-profile.json");
+        let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-plsci-receipt.json");
+        let profile: Value = serde_json::from_slice(profile_bytes).expect("profile JSON");
+        let strict_receipt = super::super::parse_strict(receipt_bytes).expect("strict receipt");
+        let facts = super::super::validate_receipt(&strict_receipt).expect("receipt contract");
+        let receipt: Value = serde_json::from_slice(receipt_bytes).expect("receipt JSON");
+        assert!(super::verify_receipt_semantics(&profile, &receipt, receipt_bytes, &facts).is_ok());
+
+        let mut changed = profile.clone();
+        changed["receipt_binding"]["receipt_sha256"] =
+            Value::String("0000000000000000000000000000000000000000000000000000000000000000".to_owned());
+        assert_eq!(
+            super::verify_receipt_semantics(&changed, &receipt, receipt_bytes, &facts),
+            Err("RECEIPT_BINDING_MISMATCH")
+        );
     }
 
     #[test]
