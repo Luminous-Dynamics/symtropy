@@ -409,6 +409,18 @@
           "value": "../../private/model.json"
         }
       ]
+    },
+    {
+      "id": "year-zero-decision-time-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_DECISION_TIME",
+      "mutations": [
+        {
+          "path": "decision_time_utc",
+          "op": "set",
+          "value": "0000-01-01T00:00:00Z"
+        }
+      ]
     }
   ]
 }
