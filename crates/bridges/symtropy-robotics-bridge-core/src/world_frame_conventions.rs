@@ -844,7 +844,10 @@ pub(crate) mod tests {
         }
     }
 
-    fn single_binding_registry(frame_id: String, convention: FrameAxisConventionV1) -> FrameConventionRegistryV1 {
+    fn single_binding_registry(
+        frame_id: String,
+        convention: FrameAxisConventionV1,
+    ) -> FrameConventionRegistryV1 {
         FrameConventionRegistryV1 {
             schema_version: FRAME_CONVENTION_REGISTRY_SCHEMA_VERSION_V1,
             frames: vec![FrameConventionBindingV1 {
