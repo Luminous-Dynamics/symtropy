@@ -628,6 +628,17 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
         node_ids.insert(id.to_owned());
     }
     let (node_count, edge_count) = validate_dependency_contract(&root)?;
+    let declared_cases = super::array(
+        super::field(&root, "scenario_cases", "fixture")?,
+        "fixture.scenario_cases",
+    )?;
+    let mut case_ids = BTreeSet::new();
+    for (index, case) in declared_cases.iter().enumerate() {
+        let id = field_text(case, "case_id", &format!("fixture.scenario_cases[{index}]"))?;
+        if !case_ids.insert(id.to_owned()) {
+            return Err(format!("fixture.scenario_cases[{index}].case_id: duplicate scenario case"));
+        }
+    }
     let case_count = validate_scenario_cases(&root, horizon, &node_ids)?;
     let rule_count = validate_policy_contract(&root)?;
 
@@ -652,6 +663,9 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
             return Err(format!("{path}.trace_id: empty or duplicate trace ID"));
         }
         let case_id = field_text(trace, "case_id", &path)?.to_owned();
+        if !case_ids.contains(&case_id) {
+            return Err(format!("{path}.case_id: unknown scenario case"));
+        }
         let service_id = field_text(trace, "service_id", &path)?.to_owned();
         if !service_classes.contains_key(&service_id) {
             return Err(format!("{path}.service_id: unknown service class"));
@@ -711,6 +725,13 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienc
     for (index, case) in unknown_cases.iter().enumerate() {
         let path = format!("fixture.unquantified_cases[{index}]");
         super::exact_keys(case, &["case_id", "status", "reason_code", "quantitative_service_projection", "reason"], &path)?;
+        let case_id = field_text(case, "case_id", &path)?;
+        if !case_ids.contains(case_id) {
+            return Err(format!("{path}.case_id: unknown scenario case"));
+        }
+        if metrics.iter().any(|metric| metric.case_id == case_id) {
+            return Err(format!("{path}: an unquantified case must not have a numeric trajectory"));
+        }
         super::expect_text(super::field(case, "status", &path)?, &format!("{path}.status"), "INDETERMINATE")?;
         super::expect_text(
             super::field(case, "quantitative_service_projection", &path)?,
