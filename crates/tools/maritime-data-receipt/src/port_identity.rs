@@ -469,6 +469,12 @@ fn build_crosswalk_report(
     snapshots_match: bool,
     source_commit: String,
 ) -> Result<CrosswalkReport, String> {
+    let source_checked = source_snapshot_path_checked.is_some();
+    let registry_checked = locode_registry_path_checked.is_some();
+    if source_checked != registry_checked || snapshots_match != (source_checked && registry_checked) {
+        return Err("snapshot verification flag and checked-path evidence are inconsistent".to_owned());
+    }
+
     let source = member(value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(value, "locode_registry").map_err(str::to_owned)?;
     let mut resolved_count = 0usize;
@@ -810,6 +816,45 @@ mod tests {
             .claim_ceiling
             .iter()
             .any(|claim| claim.contains("does not establish publisher authenticity")));
+    }
+
+    #[test]
+    fn report_builder_rejects_unbacked_snapshot_match_claim() {
+        use super::{build_crosswalk_report, member, text};
+
+        let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
+        let crosswalk: Value =
+            serde_json::from_slice(bytes).expect("synthetic crosswalk fixture");
+        let record_count = validate_crosswalk(&crosswalk).expect("metadata is valid");
+
+        let result = build_crosswalk_report(
+            &crosswalk,
+            bytes,
+            record_count,
+            None,
+            None,
+            true,
+            "test-commit".to_owned(),
+        );
+        match result {
+            Err(error) => assert!(error.contains("verification flag and checked-path evidence")),
+            Ok(_) => panic!("report must reject a byte-match claim without checked paths"),
+        }
+
+        // The helper must also reject a half-present path pair, even when the
+        // match flag is false, so malformed report states cannot be serialized.
+        let _source = member(&crosswalk, "source_snapshot").expect("source snapshot");
+        let _digest = text(_source, "artifact_sha256").expect("source digest");
+        let partial = build_crosswalk_report(
+            &crosswalk,
+            bytes,
+            record_count,
+            Some("source-snapshot.json".to_owned()),
+            None,
+            false,
+            "test-commit".to_owned(),
+        );
+        assert!(partial.is_err());
     }
 
     #[test]
