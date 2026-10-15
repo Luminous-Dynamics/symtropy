@@ -115,6 +115,36 @@ fn expect_text_array(value: &super::JsonValue, path: &str, expected: &[&str]) ->
     Ok(())
 }
 
+
+fn canonical_utc_seconds(value: &str, path: &str) -> Result<i64, String> {
+    if value.len() != 20 || !super::valid_utc_timestamp(value) {
+        return Err(format!("{path}: expected canonical YYYY-MM-DDTHH:MM:SSZ"));
+    }
+    let parse = |start: usize, end: usize| -> Result<i64, String> {
+        value.get(start..end)
+            .ok_or_else(|| format!("{path}: truncated timestamp"))?
+            .parse::<i64>()
+            .map_err(|_| format!("{path}: invalid timestamp digits"))
+    };
+    let year = parse(0, 4)?;
+    let month = parse(5, 7)?;
+    let day = parse(8, 10)?;
+    let hour = parse(11, 13)?;
+    let minute = parse(14, 16)?;
+    let second = parse(17, 19)?;
+    if year == 0 {
+        return Err(format!("{path}: year zero is invalid"));
+    }
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
+    let era = adjusted_year.div_euclid(400);
+    let year_of_era = adjusted_year - era * 400;
+    let adjusted_month = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days_since_epoch = era * 146_097 + day_of_era - 719_468;
+    Ok(days_since_epoch * 86_400 + hour * 3_600 + minute * 60 + second)
+}
+
 fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     let assessment = super::field(root, "assessment", "rehearsal")?;
     super::exact_keys(assessment, &["assessment_time_utc", "target_time_utc", "time_policy_id", "forecast_input"], "rehearsal.assessment")?;
@@ -159,6 +189,62 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             return Err(format!("forecast arithmetic.{key} must be positive"));
         }
     }
+    let assessment_seconds = canonical_utc_seconds(
+        &text_field(assessment, "assessment_time_utc", "rehearsal.assessment")?,
+        "rehearsal.assessment.assessment_time_utc",
+    )?;
+    let target_seconds = canonical_utc_seconds(
+        &text_field(assessment, "target_time_utc", "rehearsal.assessment")?,
+        "rehearsal.assessment.target_time_utc",
+    )?;
+    let issued_seconds = canonical_utc_seconds(
+        &text_field(forecast, "issued_at_utc", "forecast_input")?,
+        "forecast_input.issued_at_utc",
+    )?;
+    let initialized_seconds = canonical_utc_seconds(
+        &text_field(forecast, "model_initialization_time_utc", "forecast_input")?,
+        "forecast_input.model_initialization_time_utc",
+    )?;
+    let valid_from_seconds = canonical_utc_seconds(
+        &text_field(forecast, "valid_from_utc", "forecast_input")?,
+        "forecast_input.valid_from_utc",
+    )?;
+    let valid_until_seconds = canonical_utc_seconds(
+        &text_field(forecast, "valid_until_utc", "forecast_input")?,
+        "forecast_input.valid_until_utc",
+    )?;
+    if initialized_seconds > issued_seconds || issued_seconds > assessment_seconds || assessment_seconds > target_seconds {
+        return Err("forecast chronology invalid: require initialization <= issue <= assessment <= target".to_owned());
+    }
+    if valid_from_seconds > target_seconds || target_seconds > valid_until_seconds {
+        return Err("forecast target time is outside the declared valid interval".to_owned());
+    }
+    let observed_issue_age = (assessment_seconds - issued_seconds) as u64;
+    let observed_lead = (target_seconds - initialized_seconds) as u64;
+    let declared_issue_age = super::integer(
+        super::field(arithmetic, "issue_age_seconds", "forecast arithmetic")?,
+        "forecast arithmetic.issue_age_seconds",
+    )?;
+    let declared_lead = super::integer(
+        super::field(arithmetic, "forecast_lead_seconds", "forecast arithmetic")?,
+        "forecast arithmetic.forecast_lead_seconds",
+    )?;
+    if observed_issue_age != declared_issue_age || observed_lead != declared_lead {
+        return Err(format!(
+            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} declared={declared_issue_age}; lead observed={observed_lead} declared={declared_lead}"
+        ));
+    }
+    let max_issue_age = super::integer(
+        super::field(forecast, "max_issue_age_seconds", "forecast_input")?,
+        "forecast_input.max_issue_age_seconds",
+    )?;
+    let max_lead = super::integer(
+        super::field(forecast, "max_forecast_lead_seconds", "forecast_input")?,
+        "forecast_input.max_forecast_lead_seconds",
+    )?;
+    if observed_issue_age > max_issue_age || observed_lead > max_lead {
+        return Err("forecast temporal arithmetic exceeds the declared synthetic policy bounds".to_owned());
+    }
 
     let scope = super::field(root, "model_scope", "rehearsal")?;
     super::exact_keys(scope, &["execution_profile", "physics_claims", "abstract_inputs_only", "unsupported_if_requested", "missing_or_unsupported_is_never_zero"], "rehearsal.model_scope")?;
@@ -196,7 +282,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             "alternate_capacity_confirmed" => "default_state",
             _ => unreachable!(),
         };
-        let mut keys = vec!["constraint_id", "kind", "unit", "source", status_key];
+        let keys = vec!["constraint_id", "kind", "unit", "source", status_key];
         super::exact_keys(constraint, &keys, &path)?;
         let expected_kind = if id == "forecast_temporal_applicability" { "evidence_gate" } else { "hard" };
         super::expect_text(super::field(constraint, "kind", &path)?, &format!("{path}.kind"), expected_kind)?;
@@ -672,6 +758,41 @@ mod tests {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
         fixture["scenario_cases"][0]["abstract_inputs"]["water_level_envelope_state"] =
             Value::String("probably_ok".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").is_err());
+    }
+
+    #[test]
+    fn changed_declared_blocker_is_rejected() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["scenario_cases"][1]["expected_blockers"]["continue_original_slot"][0] =
+            Value::String("invented_reason".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").is_err());
+    }
+
+    #[test]
+    fn changed_constraint_semantics_are_rejected() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["hard_constraints"][0]["missing_state"] = Value::String("PASS".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").is_err());
+    }
+
+    #[test]
+    fn incorrect_forecast_arithmetic_is_rejected() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["assessment"]["forecast_input"]["expected_temporal_arithmetic_for_test_design_only"]["issue_age_seconds"] =
+            Value::Number(serde_json::Number::from(7201));
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").is_err());
+    }
+
+    #[test]
+    fn future_issued_forecast_is_rejected() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["assessment"]["forecast_input"]["issued_at_utc"] =
+            Value::String("2026-10-15T13:00:00Z".to_owned());
         let changed = serde_json::to_vec(&fixture).unwrap();
         assert!(evaluate_bytes(&changed, "test").is_err());
     }
