@@ -226,17 +226,17 @@ fn check_semantics(
         if !floor_ids.insert(id.to_owned()) {
             semantic.push(format!("floors[{index}].floor_id duplicates {id:?}"));
         }
-        if let Some(level) = floor["level_index"].as_u64() {
-            if !level_indices.insert(level) {
-                semantic.push(format!("floors[{index}].level_index duplicates {level}"));
-            }
+        if let Some(level) = floor["level_index"].as_u64()
+            && !level_indices.insert(level)
+        {
+            semantic.push(format!("floors[{index}].level_index duplicates {level}"));
         }
-        if let Some(elevation) = floor["elevation_m"].as_f64() {
-            if !elevations.insert(elevation.to_bits()) {
-                semantic.push(format!(
-                    "floors[{index}].elevation_m duplicates another level"
-                ));
-            }
+        if let Some(elevation) = floor["elevation_m"].as_f64()
+            && !elevations.insert(elevation.to_bits())
+        {
+            semantic.push(format!(
+                "floors[{index}].elevation_m duplicates another level"
+            ));
         }
         if let Some(bounds) = Bounds::from_value(&floor["planning_bounds_m"]) {
             if !bounds.has_positive_area() {

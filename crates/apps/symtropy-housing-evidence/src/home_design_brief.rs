@@ -162,12 +162,12 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
     if let Some(priorities) = priorities {
         let mut axes = BTreeSet::new();
         for (index, priority) in priorities.iter().enumerate() {
-            if let Some(axis) = priority.get("axis").and_then(Value::as_str) {
-                if !axes.insert(axis) {
-                    issues.push(format!(
-                        "priorities[{index}] repeats axis {axis:?}; use one explicit importance per axis"
-                    ));
-                }
+            if let Some(axis) = priority.get("axis").and_then(Value::as_str)
+                && !axes.insert(axis)
+            {
+                issues.push(format!(
+                    "priorities[{index}] repeats axis {axis:?}; use one explicit importance per axis"
+                ));
             }
         }
     }
@@ -184,17 +184,15 @@ fn semantic_issues(brief: &Value) -> Vec<String> {
         .get("project")
         .and_then(|project| project.get("target_budget"))
         .filter(|budget| !budget.is_null())
-    {
-        if let (Some(minimum), Some(maximum)) = (
+        && let (Some(minimum), Some(maximum)) = (
             budget.get("minimum_total").and_then(Value::as_f64),
             budget.get("maximum_total").and_then(Value::as_f64),
-        ) {
-            if minimum > maximum {
-                issues.push(
-                    "project.target_budget.minimum_total must not exceed maximum_total".to_string(),
-                );
-            }
-        }
+        )
+        && minimum > maximum
+    {
+        issues.push(
+            "project.target_budget.minimum_total must not exceed maximum_total".to_string(),
+        );
     }
 
     let site = brief.get("site_context");
@@ -225,10 +223,10 @@ fn check_unique_ids(
     let mut seen = BTreeSet::new();
     if let Some(items) = items {
         for (index, item) in items.iter().enumerate() {
-            if let Some(id) = item.get(key).and_then(Value::as_str) {
-                if !seen.insert(id.to_owned()) {
-                    issues.push(format!("{collection}[{index}].{key} duplicates {id:?}"));
-                }
+            if let Some(id) = item.get(key).and_then(Value::as_str)
+                && !seen.insert(id.to_owned())
+            {
+                issues.push(format!("{collection}[{index}].{key} duplicates {id:?}"));
             }
         }
     }
