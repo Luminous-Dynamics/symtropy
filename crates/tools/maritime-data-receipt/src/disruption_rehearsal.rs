@@ -365,7 +365,8 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     let robustly_feasible_candidate_plans = PLAN_IDS
         .iter()
         .zip(per_plan_all_required_feasible)
-        .filter_map(|(plan_id, is_feasible)| is_feasible.then(|| (*plan_id).to_owned()))
+        .filter(|(_, is_feasible)| **is_feasible)
+        .map(|(plan_id, _)| (*plan_id).to_owned())
         .collect();
 
     Ok(RehearsalReport {
