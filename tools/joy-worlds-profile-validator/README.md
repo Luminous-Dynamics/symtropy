@@ -7,7 +7,6 @@ A small standalone Rust tool for structural checks on the Joy Worlds portfolio a
 From the repository root:
 
 ```sh
-cargo fmt --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- --check
 cargo test --manifest-path tools/joy-worlds-profile-validator/Cargo.toml
 cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- \
   --portfolio docs/research/joy-worlds/experience-portfolio-v0.1.json \
