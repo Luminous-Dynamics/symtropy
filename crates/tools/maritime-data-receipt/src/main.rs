@@ -5,6 +5,7 @@
 mod s100_profile;
 mod port_identity;
 mod macro_connectivity;
+mod scenario_manifest;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -748,6 +749,15 @@ fn run() -> Result<(), String> {
             artifact_override.as_deref(),
             terms_snapshot_override.as_deref(),
         );
+    }
+    if first_arg.as_deref() == Some("--validate-scenario-manifest") {
+        let manifest_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-scenario-manifest <manifest-json-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for scenario manifest validation".to_owned());
+        }
+        return scenario_manifest::run_cli(&manifest_path);
     }
     if first_arg.as_deref() == Some("--verify-port-crosswalk-snapshots") {
         let crosswalk_path = args.next().ok_or_else(|| {
