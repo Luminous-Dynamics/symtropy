@@ -69,6 +69,12 @@ The six graph cases freeze the following behaviors:
 
 This is a deliberately small graph-logic oracle, not a complete reliability model, fault-tree analysis, probabilistic risk assessment or diagnosis engine. It assumes the graph and qualification states have already been supplied by an authoritative evidence process; this code does not authenticate physical sensors, prove that a manual fallback exists, estimate failure rates, validate redundancy independence, or direct repairs. A future implementation needs typed node/edge identities, evidence lineage and freshness, units/capacity, time-dependent transitions, cycle detection, common-cause groups, and explicit repair/requalification receipts.
 
+## Local artifact-digest verification canary
+
+The fixture now includes an independent SHA-256 known-answer canary with literal UTF-8 payload bytes and a pinned expected digest, plus a one-measurement mutation that must not retain the original digest. A second payload pins a synthetic configuration digest. This checks the local hashing implementation and a tamper-detection negative control.
+
+**This canary is separate from the service-evidence records.** The evidence case digests remain syntax-shaped claims except where a case explicitly states otherwise; the verifier does not fetch or authenticate evidence artifacts, validate issuer signatures, or prove the evidence describes a physical asset. Passing the canary proves only that the verifier hashes the specific local test bytes correctly and that a one-field byte change changes the digest. It is not a production trust root or a signature/authentication scheme.
+
 ## Service evidence and repair qualification reference
 
 The `service_evidence_reference` section of the JSON corpus adds nineteen synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
