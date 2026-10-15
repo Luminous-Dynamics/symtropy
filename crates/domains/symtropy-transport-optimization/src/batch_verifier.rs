@@ -461,7 +461,7 @@ fn objective_value(objective: BatchObjective, totals: &AggregateMetrics) -> u64 
 mod tests {
     use super::*;
     use crate::{
-        select_shared_capacity_batch, BatchAllocationError, EdgeMetrics as NetworkEdgeMetrics,
+        select_shared_capacity_batch, EdgeMetrics as NetworkEdgeMetrics,
     };
 
     fn metrics(cost: u64) -> NetworkEdgeMetrics {
@@ -735,6 +735,5 @@ mod tests {
                 "selected routes exceed a shared edge's static capacity"
             ))
         ));
-        let _ = BatchAllocationError::EmptyBatch;
     }
 }
