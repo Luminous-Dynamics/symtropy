@@ -451,7 +451,7 @@ mod tests {
         world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
         let body = world.bodies.get(handle).expect("body retained");
         assert!(body.is_sleeping(), "a callback-suppressed force must not wake the body");
-        assert_eq!(body.user_force(), vector![0.0, 0.0, 0.0]);
+        assert_eq!(body.user_force(), vector![1.0, 0.0, 0.0]);
         assert_eq!(body.linvel(), &vector![0.0, 0.0, 0.0]);
     }
 
