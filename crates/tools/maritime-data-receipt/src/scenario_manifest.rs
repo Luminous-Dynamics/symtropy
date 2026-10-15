@@ -155,14 +155,8 @@ struct NodeFacts {
     id: String,
     kind: String,
     parents: Vec<String>,
-    source_kind: Option<String>,
     evidence_state: Option<String>,
-    receipt_relative_path: Option<String>,
-    receipt_sha256: Option<String>,
-    artifact_relative_path: Option<String>,
-    artifact_sha256: Option<String>,
     data_time_start_utc: Option<String>,
-    data_time_end_utc: Option<String>,
     output_claim: Option<String>,
 }
 
@@ -182,14 +176,8 @@ fn validate_node(value: &Value) -> Result<NodeFacts, &'static str> {
         id,
         kind: kind.clone(),
         parents,
-        source_kind: None,
         evidence_state: None,
-        receipt_relative_path: None,
-        receipt_sha256: None,
-        artifact_relative_path: None,
-        artifact_sha256: None,
         data_time_start_utc: None,
-        data_time_end_utc: None,
         output_claim: None,
     };
 
@@ -254,14 +242,8 @@ fn validate_node(value: &Value) -> Result<NodeFacts, &'static str> {
             {
                 return Err("INVALID_VALIDITY_INTERVAL");
             }
-            facts.source_kind = Some(source_kind.to_owned());
             facts.evidence_state = Some(state.to_owned());
-            facts.receipt_relative_path = Some(receipt_path.to_owned());
-            facts.receipt_sha256 = Some(receipt_digest.to_owned());
-            facts.artifact_relative_path = Some(artifact_path.to_owned());
-            facts.artifact_sha256 = Some(artifact_digest.to_owned());
             facts.data_time_start_utc = start.map(str::to_owned);
-            facts.data_time_end_utc = end.map(str::to_owned);
         }
         "transformation" => {
             if facts.parents.is_empty() {
@@ -861,7 +843,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let bases = corpus["base_manifests"].as_object().expect("base manifest map");
         let cases = corpus["cases"].as_array().expect("corpus cases");
-        assert_eq!(cases.len(), 26, "scenario-manifest corpus count is a contract");
+        assert_eq!(cases.len(), 27, "scenario-manifest corpus count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base manifest id");
