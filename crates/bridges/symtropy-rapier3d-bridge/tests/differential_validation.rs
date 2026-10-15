@@ -747,7 +747,8 @@ fn free_fall_trajectory_is_invariant_to_uniform_translation() {
             body.position_m[axis] += offset;
         }
     }
-    assert_eq!(scenario.scenario_id, translated.scenario_id);
+    translated.scenario_id = format!("{}-translated", scenario.scenario_id);
+    assert_ne!(scenario.scenario_id, translated.scenario_id);
 
     let native = run_native_scenario_3d(&scenario).unwrap();
     let native_translated = run_native_scenario_3d(&translated).unwrap();
