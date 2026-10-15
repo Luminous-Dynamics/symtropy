@@ -38,7 +38,7 @@ A valid profile report still returns `NotAdmitted`. This is not an S-100 payload
 
 ## Port identity crosswalk metadata mode
 
-The port identity profile schema is `docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json`, with 23 frozen adversarial cases in `crates/tools/maritime-data-receipt/tests/fixtures/port-crosswalk-corpus-v0.1.json`.
+The port identity profile schema is `docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json`, with 25 frozen adversarial cases in `crates/tools/maritime-data-receipt/tests/fixtures/port-crosswalk-corpus-v0.1.json`.
 
 Validate the structure and internal policy consistency of a crosswalk:
 
