@@ -173,30 +173,60 @@ impl fmt::Display for ScheduledCapacityPlanError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let message = match self {
             Self::InvalidPolicy => "capacity policy identity or time profile is incomplete",
-            Self::InvalidIdentityOrProvenance => "capacity evidence identity or provenance is incomplete",
+            Self::InvalidIdentityOrProvenance => {
+                "capacity evidence identity or provenance is incomplete"
+            },
             Self::InvalidRevisionLineage => "capacity evidence revision lineage is invalid",
-            Self::TimeProfileMismatch => "capacity evidence, operation window, and policy time profiles must match",
+            Self::TimeProfileMismatch => {
+                "capacity evidence, operation window, and policy time profiles must match"
+            },
             Self::MissingObservationTime => "capacity evidence has no explicit observation time",
             Self::MissingRepositoryRecordTime => "capacity evidence has no repository record time",
             Self::MissingValidityInterval => "capacity evidence has no explicit validity interval",
-            Self::InvalidValidityInterval => "capacity evidence validity interval is empty or reversed",
-            Self::TimestampInFuture => "capacity evidence timestamp exceeds allowed future clock skew",
-            Self::ObservationTooOld => "capacity observation exceeds the freshness limit at plan evaluation",
-            Self::ObservationTooOldAtOperationStart => "capacity observation will be too old by planned operation start",
+            Self::InvalidValidityInterval => {
+                "capacity evidence validity interval is empty or reversed"
+            },
+            Self::TimestampInFuture => {
+                "capacity evidence timestamp exceeds allowed future clock skew"
+            },
+            Self::ObservationTooOld => {
+                "capacity observation exceeds the freshness limit at plan evaluation"
+            },
+            Self::ObservationTooOldAtOperationStart => {
+                "capacity observation will be too old by planned operation start"
+            },
             Self::NotCurrent => "capacity evidence is superseded, revoked, or conflicted",
-            Self::InvalidOperationWindow => "operation window has a blank time profile or empty/reversed interval",
-            Self::OperationWindowAlreadyStarted => "operation window starts before the plan evaluation instant",
-            Self::WindowNotCoveredByEvidence => "capacity evidence validity does not contain the full operation window",
-            Self::DuplicateEvidenceIdentity => "capacity evidence repeats an evidence ID or has incompatible lineage",
-            Self::AmbiguousCapacityEvidence => "overlapping current capacity evidence for the same physical resource is ambiguous",
+            Self::InvalidOperationWindow => {
+                "operation window has a blank time profile or empty/reversed interval"
+            },
+            Self::OperationWindowAlreadyStarted => {
+                "operation window starts before the plan evaluation instant"
+            },
+            Self::WindowNotCoveredByEvidence => {
+                "capacity evidence validity does not contain the full operation window"
+            },
+            Self::DuplicateEvidenceIdentity => {
+                "capacity evidence repeats an evidence ID or has incompatible lineage"
+            },
+            Self::AmbiguousCapacityEvidence => {
+                "overlapping current capacity evidence for the same physical resource is ambiguous"
+            },
             Self::DuplicateAssignmentIdentity => "capacity plan repeats an assignment ID",
             Self::UnknownEvidence => "capacity assignment references unknown evidence",
-            Self::ResourceBindingMismatch => "capacity assignment does not match its referenced resource evidence",
-            Self::CapacityUnitMismatch => "capacity assignments for one resource use incompatible units",
+            Self::ResourceBindingMismatch => {
+                "capacity assignment does not match its referenced resource evidence"
+            },
+            Self::CapacityUnitMismatch => {
+                "capacity assignments for one resource use incompatible units"
+            },
             Self::InvalidCapacity => "capacity or assigned quantity must be positive",
-            Self::CapacityExceeded => "overlapping capacity assignments exceed the qualified resource limit",
+            Self::CapacityExceeded => {
+                "overlapping capacity assignments exceed the qualified resource limit"
+            },
             Self::CapacityArithmeticOverflow => "capacity accounting overflowed",
-            Self::UnreferencedEvidence => "capacity evidence is not referenced by a proposed assignment",
+            Self::UnreferencedEvidence => {
+                "capacity evidence is not referenced by a proposed assignment"
+            },
         };
         f.write_str(message)
     }
@@ -300,7 +330,10 @@ fn validate_evidence(
         || !nonempty(&evidence.source_schema_profile_id)
         || !nonempty(&evidence.source_record_digest)
         || !nonempty(&evidence.time_profile_id)
-        || evidence.terminal_id.as_deref().is_some_and(|id| !nonempty(id))
+        || evidence
+            .terminal_id
+            .as_deref()
+            .is_some_and(|id| !nonempty(id))
         || (evidence.resource_kind == CargoTransferCapacityResourceKind::Equipment
             && evidence.terminal_id.is_none())
         || evidence.capacity_units == 0
@@ -337,14 +370,12 @@ fn validate_evidence(
         return Err(ScheduledCapacityPlanError::InvalidValidityInterval);
     }
 
-    let latest_accepted_time = evaluation_time_epoch_seconds
-        .saturating_add(policy.allowed_future_clock_skew_seconds);
+    let latest_accepted_time =
+        evaluation_time_epoch_seconds.saturating_add(policy.allowed_future_clock_skew_seconds);
     if observed > latest_accepted_time || recorded > latest_accepted_time {
         return Err(ScheduledCapacityPlanError::TimestampInFuture);
     }
-    if evaluation_time_epoch_seconds.saturating_sub(observed)
-        > policy.max_observation_age_seconds
-    {
+    if evaluation_time_epoch_seconds.saturating_sub(observed) > policy.max_observation_age_seconds {
         return Err(ScheduledCapacityPlanError::ObservationTooOld);
     }
     Ok(())
@@ -376,8 +407,10 @@ pub fn validate_scheduled_capacity_plan(
 
     let mut evidence_by_id = BTreeMap::new();
     let mut referenced_evidence = BTreeSet::new();
-    let mut evidence_intervals: BTreeMap<PhysicalResourceKey, Vec<(u64, u64, String, QuantityUnit)>> =
-        BTreeMap::new();
+    let mut evidence_intervals: BTreeMap<
+        PhysicalResourceKey,
+        Vec<(u64, u64, String, QuantityUnit)>,
+    > = BTreeMap::new();
     let mut units_by_resource: BTreeMap<PhysicalResourceKey, QuantityUnit> = BTreeMap::new();
 
     for item in evidence {
@@ -655,8 +688,11 @@ pub fn validate_scheduled_capacity_plan(
         });
     }
     resources.sort_by(|a, b| {
-        (a.resource_kind, &a.resource_id, &a.evidence_id)
-            .cmp(&(b.resource_kind, &b.resource_id, &b.evidence_id))
+        (a.resource_kind, &a.resource_id, &a.evidence_id).cmp(&(
+            b.resource_kind,
+            &b.resource_id,
+            &b.evidence_id,
+        ))
     });
 
     Ok(ScheduledCapacityReportV1 {
@@ -778,7 +814,10 @@ mod tests {
         );
         let report = plan(&[assignment], &[ev], 100, 100).expect("future-published schedule");
 
-        assert_eq!(report.assignments[0].window.planned_start_epoch_seconds, 120);
+        assert_eq!(
+            report.assignments[0].window.planned_start_epoch_seconds,
+            120
+        );
         assert_eq!(report.resources[0].capacity_limit_units, 5);
     }
 
@@ -1163,11 +1202,23 @@ mod tests {
         assert_eq!(report.policy_id, "terminal-capacity-policy-v1");
         assert_eq!(report.time_profile_id, TIME_PROFILE);
         assert_eq!(report.assignments[0].capacity_observed_at_epoch_seconds, 90);
-        assert_eq!(report.assignments[0].repository_recorded_at_epoch_seconds, 91);
+        assert_eq!(
+            report.assignments[0].repository_recorded_at_epoch_seconds,
+            91
+        );
         assert_eq!(report.assignments[0].evidence_valid_from_epoch_seconds, 80);
-        assert_eq!(report.assignments[0].evidence_valid_until_epoch_seconds, 200);
-        assert_eq!(report.assignments[0].window.planned_start_epoch_seconds, 110);
-        assert_eq!(report.assignments[0].source_record_digest, "sha256-budget-1");
+        assert_eq!(
+            report.assignments[0].evidence_valid_until_epoch_seconds,
+            200
+        );
+        assert_eq!(
+            report.assignments[0].window.planned_start_epoch_seconds,
+            110
+        );
+        assert_eq!(
+            report.assignments[0].source_record_digest,
+            "sha256-budget-1"
+        );
     }
 
     #[test]
@@ -1190,10 +1241,20 @@ mod tests {
             110,
             120,
         );
-        let first = plan(std::slice::from_ref(&initial), std::slice::from_ref(&ev), 100, 100)
-            .expect("initial plan");
-        let replay = plan(std::slice::from_ref(&initial), std::slice::from_ref(&ev), 100, 100)
-            .expect("replayed plan");
+        let first = plan(
+            std::slice::from_ref(&initial),
+            std::slice::from_ref(&ev),
+            100,
+            100,
+        )
+        .expect("initial plan");
+        let replay = plan(
+            std::slice::from_ref(&initial),
+            std::slice::from_ref(&ev),
+            100,
+            100,
+        )
+        .expect("replayed plan");
         assert_eq!(first, replay);
 
         let mut changed = initial;
