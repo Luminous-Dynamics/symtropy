@@ -663,7 +663,7 @@ fn fixture_map<'a>(root: &'a JsonValue) -> Result<BTreeMap<String, &'a JsonValue
         expect_number(field(fixture, "revision", &path)?, &format!("{path}.revision"), 1.0)?;
         observed_order.push(case_id);
     }
-    if observed_order != CASE_IDS {
+    if observed_order.as_slice() != CASE_IDS {
         return Err(format!("fixtures: ordered case-id list does not match frozen v0.1.0 corpus: {observed_order:?}"));
     }
     Ok(result)
@@ -701,7 +701,7 @@ fn verify_case(
                     <= quantity(field(constraints, "maximum_width", "berth.constraints")?, "m", "berth.maximum_width")?
                 && quantity(field(dimensions, "declared_draft", "vessel.dimensions")?, "m", "vessel.declared_draft")?
                     <= quantity(field(constraints, "maximum_declared_draft", "berth.constraints")?, "m", "berth.maximum_declared_draft")?;
-            let energy_ok = stored >= contract.route_energy_mwh + contract.reserve_mwh;
+            let energy_ok = stored >= contract.minimum_departure_energy_mwh;
             expect_text(field(expected, "berth_envelope", &path)?, "baseline.expected.berth_envelope", if fits { "FitsDeclaredSyntheticEnvelope" } else { "OutsideDeclaredSyntheticEnvelope" })?;
             expect_text(field(expected, "departure_energy", &path)?, "baseline.expected.departure_energy", if energy_ok { "SufficientByDeclaredArithmetic" } else { "InsufficientByDeclaredArithmetic" })?;
             expect_bool(field(expected, "physical_qualification", &path)?, "baseline.expected.physical_qualification", false)?;
@@ -746,12 +746,24 @@ fn verify_case(
             let added = power * duration * efficiency;
             let available = start + added;
             let required = route + reserve;
-            expect_number(field(expected, "charge_added_energy", &path)?.pipe_value("value", &format!("{path}.expected.charge_added_energy"))?, "charging.expected.charge_added_energy", added)?;
-            expect_unit(field(expected, "charge_added_energy", &path)?, "MWh", "charging.expected.charge_added_energy")?;
-            expect_number(field(expected, "available_departure_energy", &path)?.pipe_value("value", &format!("{path}.expected.available_departure_energy"))?, "charging.expected.available_departure_energy", available)?;
-            expect_unit(field(expected, "available_departure_energy", &path)?, "MWh", "charging.expected.available_departure_energy")?;
-            expect_number(field(expected, "minimum_departure_energy", &path)?.pipe_value("value", &format!("{path}.expected.minimum_departure_energy"))?, "charging.expected.minimum_departure_energy", required)?;
-            expect_unit(field(expected, "minimum_departure_energy", &path)?, "MWh", "charging.expected.minimum_departure_energy")?;
+            expect_quantity_value(
+                field(expected, "charge_added_energy", &path)?,
+                "MWh",
+                added,
+                "charging.expected.charge_added_energy",
+            )?;
+            expect_quantity_value(
+                field(expected, "available_departure_energy", &path)?,
+                "MWh",
+                available,
+                "charging.expected.available_departure_energy",
+            )?;
+            expect_quantity_value(
+                field(expected, "minimum_departure_energy", &path)?,
+                "MWh",
+                required,
+                "charging.expected.minimum_departure_energy",
+            )?;
             expect_text(field(expected, "failed_constraint", &path)?, "charging.expected.failed_constraint", "DepartureEnergyBelowRoutePlusReserve")?;
             if available >= required {
                 return Err("charging fixture no longer demonstrates a reserve-inclusive energy shortfall".to_owned());
@@ -809,15 +821,6 @@ fn verify_case(
         expected_disposition: expected_value.to_owned(),
         expectation_matches: true,
     })
-}
-
-trait ValueField {
-    fn pipe_value(&self, key: &str, path: &str) -> Result<&JsonValue, String>;
-}
-impl ValueField for JsonValue {
-    fn pipe_value(&self, key: &str, path: &str) -> Result<&JsonValue, String> {
-        field(self, key, path)
-    }
 }
 
 fn expect_unit(value: &JsonValue, unit: &str, path: &str) -> Result<(), String> {
