@@ -35,7 +35,7 @@ A `must_have` space cannot be omitted or silently demoted. If the candidate cann
 - Coordinates are local-plan Cartesian metres, X right and Y up on the plan view; they are not georeferenced.
 - Every floor declares a planning rectangle. Every zone must have positive width and depth and lie inside that rectangle.
 - V1 supports only `axis_aligned_rectangle_v1`; it does not encode walls, thickness, doors/windows, openings or circulation widths.
-- Same-floor zones may not overlap by more than (10^{-6}\,m^2). The tolerance is numeric comparison only, not a construction tolerance.
+- Same-floor zone intersections are rejected when both intersection width and depth exceed 1e-9 m. This is a floating-point comparison tolerance only, not a construction tolerance or permission to overlap. A sliver no wider or deeper than that numeric tolerance may be treated as touching boundaries.
 - Floor IDs and level indices must be unique, and zone-to-floor and zone-to-space references must resolve.
 
 ## What a valid result does not mean
