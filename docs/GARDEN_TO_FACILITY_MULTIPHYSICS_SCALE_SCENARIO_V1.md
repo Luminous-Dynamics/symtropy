@@ -64,6 +64,12 @@ Models must declare scope and simplifications. Independently recompute at least:
 
 Tolerances must be explicit and domain-appropriate. A conservation mismatch is a violation unless a bounded numerical tolerance explains it. Passing a ledger proves accounting consistency only—not physical validity or model adequacy.
 
+### Exact quantity representation for the first executable checker
+
+The first standalone checker in [PR #1637](https://github.com/Luminous-Dynamics/symtropy/pull/1637) fixes resource units per record: water in integer millilitres, electrical energy in integer watt-hours and material in integer grams. It performs no implicit unit conversion. Flows, additions, losses and tolerance are non-negative integer quantities; the storage delta may be signed. The evaluator recomputes the balance with wide integer arithmetic.
+
+For JSON interchange, `u64`, `i128` and `u128` quantities are encoded as **decimal strings**, not JSON numbers, so clients using IEEE-754 numbers cannot silently round large values. Consumers must preserve and parse these strings with integer-safe handling. The schema version remains an integer. This is a wire-contract decision for the v1 checker, not a claim that physical inputs are calibrated or source evidence is authenticated.
+
 Use an evidence hierarchy: analytically checked baseline → verified numerical solver → comparison against an independent solver/reference → calibration against a named physical article → held-out validation in a declared envelope. Do not claim a maturity level higher than the weakest required model or input.
 
 On scale changes, document which terms remain invariant and which must be reidentified. Reynolds/Peclet/Biot similarity, for example, is mechanism-specific, not a universal badge. Unknown necessary parameters produce `Unresolved` or `OutOfDomain`, not an invented value.
