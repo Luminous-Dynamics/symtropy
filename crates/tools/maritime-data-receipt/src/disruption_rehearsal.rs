@@ -905,6 +905,58 @@ mod tests {
     }
 
     #[test]
+    fn invalidating_required_forecast_never_improves_original_plan() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        let baseline = fixture["scenario_cases"][0]["abstract_inputs"].clone();
+        let mut invalidated = baseline.clone();
+        invalidated["forecast_evidence_state"] = Value::String("invalidated".to_owned());
+        invalidated["water_level_envelope_state"] = Value::String("unknown".to_owned());
+
+        let (baseline_status, _) = disposition(
+            "continue_original_slot",
+            &validate_abstract_inputs(&baseline, "baseline").unwrap(),
+        )
+        .unwrap();
+        let (invalidated_status, _) = disposition(
+            "continue_original_slot",
+            &validate_abstract_inputs(&invalidated, "invalidated").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(baseline_status, "FEASIBLE_WITHIN_DECLARED_MODEL");
+        assert_eq!(invalidated_status, "INDETERMINATE");
+    }
+
+    #[test]
+    fn confirmed_alternate_capacity_does_not_imply_feasibility() {
+        let inputs = AbstractInputs {
+            water: "within_declared_limit".to_owned(),
+            energy: "adequate".to_owned(),
+            terminal: "open".to_owned(),
+            forecast: "temporally_applicable_not_admitted".to_owned(),
+            waiting: "declared_available".to_owned(),
+            alternate_capacity: "confirmed".to_owned(),
+        };
+        let (status, blockers) = disposition("prepare_alternate_terminal", &inputs).unwrap();
+        assert_eq!(status, "UNSUPPORTED");
+        assert_eq!(blockers, vec!["alternate-terminal feasibility model not admitted"]);
+    }
+
+    #[test]
+    fn known_constraint_violation_is_not_hidden_by_missing_forecast() {
+        let inputs = AbstractInputs {
+            water: "unknown".to_owned(),
+            energy: "adequate".to_owned(),
+            terminal: "closed".to_owned(),
+            forecast: "invalidated".to_owned(),
+            waiting: "declared_available".to_owned(),
+            alternate_capacity: "unconfirmed".to_owned(),
+        };
+        let (status, blockers) = disposition("continue_original_slot", &inputs).unwrap();
+        assert_eq!(status, "INFEASIBLE");
+        assert_eq!(blockers, vec!["terminal_window_open"]);
+    }
+
+    #[test]
     fn identical_inputs_produce_identical_report_bytes() {
         let first = evaluate_bytes(FIXTURE, "fixed-test-source").unwrap();
         let second = evaluate_bytes(FIXTURE, "fixed-test-source").unwrap();
