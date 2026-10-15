@@ -99,13 +99,13 @@ fn locode_release(value: &str) -> bool {
 
 fn utc_timestamp(value: &str) -> bool {
     let bytes = value.as_bytes();
-    if bytes.len() != 20
+    if bytes.len() < 20
         || bytes[4] != b'-'
         || bytes[7] != b'-'
         || bytes[10] != b'T'
         || bytes[13] != b':'
         || bytes[16] != b':'
-        || bytes[19] != b'Z'
+        || bytes.last() != Some(&b'Z')
     {
         return false;
     }
@@ -113,6 +113,19 @@ fn utc_timestamp(value: &str) -> bool {
         if !bytes[start..end].iter().all(u8::is_ascii_digit) {
             return false;
         }
+    }
+    let fractional_seconds_valid = match bytes.get(19) {
+        Some(b'Z') => bytes.len() == 20,
+        Some(b'.') => {
+            bytes.len() >= 22
+                && bytes[20..bytes.len() - 1]
+                    .iter()
+                    .all(u8::is_ascii_digit)
+        }
+        _ => false,
+    };
+    if !fractional_seconds_valid {
+        return false;
     }
     let number = |start, end| value[start..end].parse::<u32>().ok();
     let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
@@ -410,6 +423,16 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
     Ok(records.len())
 }
 
+fn verify_snapshot_digest(path: &str, expected: &str, label: &str) -> Result<(), String> {
+    let (_, observed) = super::sha256_file(std::path::Path::new(path))?;
+    if observed != expected {
+        return Err(format!(
+            "{label} SHA-256 mismatch: crosswalk declares {expected}, observed {observed}"
+        ));
+    }
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 struct CrosswalkReport {
     status: &'static str,
@@ -422,6 +445,9 @@ struct CrosswalkReport {
     source_snapshot_sha256: String,
     locode_release: String,
     locode_registry_sha256: String,
+    source_snapshot_path_checked: Option<String>,
+    locode_registry_path_checked: Option<String>,
+    declared_snapshot_hashes_match_local_bytes: bool,
     record_count: usize,
     resolved_count: usize,
     ambiguous_count: usize,
@@ -435,6 +461,24 @@ struct CrosswalkReport {
 }
 
 pub(crate) fn run_cli(path: &str) -> Result<(), String> {
+    run_cli_inner(path, None)
+}
+
+pub(crate) fn run_cli_with_snapshots(
+    crosswalk_path: &str,
+    source_snapshot_path: &str,
+    locode_registry_path: &str,
+) -> Result<(), String> {
+    run_cli_inner(
+        crosswalk_path,
+        Some((source_snapshot_path, locode_registry_path)),
+    )
+}
+
+fn run_cli_inner(
+    path: &str,
+    snapshot_paths: Option<(&str, &str)>,
+) -> Result<(), String> {
     use std::fs;
 
     let bytes = fs::read(path).map_err(|error| format!("cannot read crosswalk {path}: {error}"))?;
@@ -445,6 +489,26 @@ pub(crate) fn run_cli(path: &str) -> Result<(), String> {
     let count = validate_crosswalk(&value).map_err(str::to_owned)?;
     let source = member(&value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(&value, "locode_registry").map_err(str::to_owned)?;
+    let (source_snapshot_path_checked, locode_registry_path_checked, snapshots_match) =
+        if let Some((source_path, registry_path)) = snapshot_paths {
+            verify_snapshot_digest(
+                source_path,
+                text(source, "artifact_sha256").map_err(str::to_owned)?,
+                "source snapshot",
+            )?;
+            verify_snapshot_digest(
+                registry_path,
+                text(registry, "artifact_sha256").map_err(str::to_owned)?,
+                "UN/LOCODE registry",
+            )?;
+            (
+                Some(source_path.to_owned()),
+                Some(registry_path.to_owned()),
+                true,
+            )
+        } else {
+            (None, None, false)
+        };
     let mut resolved_count = 0usize;
     let mut ambiguous_count = 0usize;
     let mut unresolved_count = 0usize;
@@ -472,6 +536,9 @@ pub(crate) fn run_cli(path: &str) -> Result<(), String> {
         source_snapshot_sha256: text(source, "artifact_sha256").map_err(str::to_owned)?.to_owned(),
         locode_release: text(registry, "release").map_err(str::to_owned)?.to_owned(),
         locode_registry_sha256: text(registry, "artifact_sha256").map_err(str::to_owned)?.to_owned(),
+        source_snapshot_path_checked,
+        locode_registry_path_checked,
+        declared_snapshot_hashes_match_local_bytes: snapshots_match,
         record_count: count,
         resolved_count,
         ambiguous_count,
@@ -482,8 +549,16 @@ pub(crate) fn run_cli(path: &str) -> Result<(), String> {
         port_identity_established: false,
         operational_authority: false,
         claim_ceiling: vec![
-            "Crosswalk structure, declared release pins and internal mapping-policy consistency only.",
-            "Snapshot digests are checked for syntax here, not against downloaded source artifacts.",
+            if snapshots_match {
+                "Crosswalk structure, declared release pins, local snapshot-byte equality, and internal mapping-policy consistency only."
+            } else {
+                "Crosswalk structure, declared release pins and internal mapping-policy consistency only."
+            },
+            if snapshots_match {
+                "Declared digests match the supplied local bytes; this does not establish publisher authenticity, licence permission, semantic correctness or freshness."
+            } else {
+                "Snapshot digests are checked for syntax here, not against local source artifacts."
+            },
             "No real port identity, terminal association, source authenticity, inventory, custody, delivery, port availability, safety or navigation authority is established.",
         ],
     };
@@ -546,7 +621,7 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{mutate_path, validate_crosswalk, VALID};
+    use super::{mutate_path, utc_timestamp, validate_crosswalk, verify_snapshot_digest, VALID};
     use serde_json::Value;
 
     #[test]
@@ -596,4 +671,40 @@ mod tests {
         assert!(validate_crosswalk(valid).is_ok());
         assert_eq!(valid["fixture_kind"], "synthetic_fixture");
     }
+    #[test]
+    fn fractional_utc_timestamps_follow_rfc3339_utc_shape() {
+        assert!(utc_timestamp("2026-10-15T14:28:00.123456Z"));
+        assert!(utc_timestamp("2024-02-29T23:59:59.1Z"));
+        assert!(!utc_timestamp("2026-10-15T14:28:00.Z"));
+        assert!(!utc_timestamp("2026-10-15T14:28:00+00:00"));
+        assert!(!utc_timestamp("2026-02-31T14:28:00.1Z"));
+    }
+
+    #[test]
+    fn local_snapshot_hashes_must_match_exact_bytes() {
+        let source = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/synthetic-source-snapshot.json"
+        );
+        let registry = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/synthetic-locode-registry-snapshot.json"
+        );
+        assert!(verify_snapshot_digest(
+            source,
+            "853e9639988bd96dead635195dc37390fd4d48b30ec29b062a7b1dfe43dbf73c",
+            "source snapshot"
+        ).is_ok());
+        assert!(verify_snapshot_digest(
+            registry,
+            "06432a56a5d354570bb431215af2e8637cb2d18fb05b93ccda26b09c7b8d79de",
+            "UN/LOCODE registry"
+        ).is_ok());
+        assert!(verify_snapshot_digest(
+            source,
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            "source snapshot"
+        ).unwrap_err().contains("SHA-256 mismatch"));
+    }
+
 }

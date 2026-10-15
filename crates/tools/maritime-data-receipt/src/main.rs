@@ -729,6 +729,25 @@ fn run() -> Result<(), String> {
             artifact_override.as_deref(),
         );
     }
+    if first_arg.as_deref() == Some("--verify-port-crosswalk-snapshots") {
+        let crosswalk_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --verify-port-crosswalk-snapshots <crosswalk-json-path> <source-snapshot-path> <locode-registry-path>".to_owned()
+        })?;
+        let source_snapshot_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --verify-port-crosswalk-snapshots <crosswalk-json-path> <source-snapshot-path> <locode-registry-path>".to_owned()
+        })?;
+        let locode_registry_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --verify-port-crosswalk-snapshots <crosswalk-json-path> <source-snapshot-path> <locode-registry-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for port crosswalk snapshot verification".to_owned());
+        }
+        return port_identity::run_cli_with_snapshots(
+            &crosswalk_path,
+            &source_snapshot_path,
+            &locode_registry_path,
+        );
+    }
     if first_arg.as_deref() == Some("--validate-port-crosswalk") {
         let crosswalk_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-port-crosswalk <crosswalk-json-path>".to_owned()

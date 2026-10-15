@@ -7,7 +7,7 @@
     "source_system": "SYNTHETIC-TEST-ONLY",
     "series_or_table_id": "synthetic-series-v0",
     "source_revision": "synthetic-revision-v0",
-    "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "artifact_sha256": "853e9639988bd96dead635195dc37390fd4d48b30ec29b062a7b1dfe43dbf73c",
     "retrieved_at_utc": null,
     "source_uri": null,
     "terms_review_status": "not_applicable_synthetic"
@@ -15,7 +15,7 @@
   "locode_registry": {
     "release": "2025-1",
     "release_kind": "production",
-    "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "artifact_sha256": "06432a56a5d354570bb431215af2e8637cb2d18fb05b93ccda26b09c7b8d79de",
     "terms_review_status": "not_applicable_synthetic"
   },
   "mapping_policy": {

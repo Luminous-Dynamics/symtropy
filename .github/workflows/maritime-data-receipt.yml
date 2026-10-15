@@ -53,6 +53,9 @@ jobs:
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
 
+      - name: Verify crosswalk snapshot digests against exact synthetic fixture bytes
+        run: cargo run --locked -p maritime-data-receipt -- --verify-port-crosswalk-snapshots crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-source-snapshot.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-locode-registry-snapshot.json
+
       - name: Clippy receipt verifier
         run: cargo clippy --locked -p maritime-data-receipt --all-targets -- -D warnings
 
