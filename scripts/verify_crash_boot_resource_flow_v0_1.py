@@ -347,7 +347,7 @@ def main() -> None:
         "SHA-256 reference payload did not match pinned digest",
     )
     expected_altered_payload = integrity["payload_utf8"].replace(
-        "measurement=1.0\\n", "measurement=1.1\\n"
+        "measurement=1.0\n", "measurement=1.1\n"
     )
     require(
         integrity["altered_payload_utf8"] == expected_altered_payload,
@@ -366,8 +366,8 @@ def main() -> None:
         "configuration bytes did not match pinned SHA-256 reference",
     )
     expected_altered_configuration_payload = integrity["configuration_payload_utf8"].replace(
-        "scope=habitat-central-water-loop\\n",
-        "scope=habitat-central-water-loop-mutated\\n",
+        "scope=habitat-central-water-loop\n",
+        "scope=habitat-central-water-loop-mutated\n",
     )
     require(
         integrity["altered_configuration_payload_utf8"] == expected_altered_configuration_payload,
