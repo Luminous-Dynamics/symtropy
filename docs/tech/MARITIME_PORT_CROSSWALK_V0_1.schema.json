@@ -258,7 +258,113 @@
             },
             "uniqueItems": true
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mapping_state": {
+                  "const": "resolved"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "candidate_locode": {
+                  "type": "string"
+                },
+                "locode_function": {
+                  "type": "string"
+                },
+                "locode_status": {
+                  "type": "string"
+                },
+                "target_feature_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "target_level": {
+                  "enum": [
+                    "country",
+                    "port_area",
+                    "terminal"
+                  ]
+                },
+                "relationship": {
+                  "enum": [
+                    "same_entity",
+                    "parent_area"
+                  ]
+                },
+                "match_method": {
+                  "enum": [
+                    "official_identifier",
+                    "manual_review"
+                  ]
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mapping_state": {
+                  "const": "ambiguous"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "target_feature_id": {
+                  "type": "null"
+                },
+                "target_level": {
+                  "const": "unknown"
+                },
+                "relationship": {
+                  "const": "none"
+                },
+                "match_method": {
+                  "enum": [
+                    "official_identifier",
+                    "manual_review",
+                    "name_similarity_only"
+                  ]
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mapping_state": {
+                  "const": "unresolved"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "target_feature_id": {
+                  "type": "null"
+                },
+                "relationship": {
+                  "const": "none"
+                },
+                "match_method": {
+                  "const": "none"
+                }
+              }
+            }
+          }
+        ]
       }
     }
   },
@@ -326,146 +432,6 @@
             "properties": {
               "terms_review_status": {
                 "const": "reviewed_permitted"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "records": {
-            "items": {
-              "properties": {
-                "mapping_state": {
-                  "const": "resolved"
-                }
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "records": {
-            "items": {
-              "properties": {
-                "candidate_locode": {
-                  "type": "string"
-                },
-                "locode_function": {
-                  "type": "string"
-                },
-                "locode_status": {
-                  "type": "string"
-                },
-                "target_feature_id": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "target_level": {
-                  "enum": [
-                    "country",
-                    "port_area",
-                    "terminal"
-                  ]
-                },
-                "relationship": {
-                  "enum": [
-                    "same_entity",
-                    "parent_area"
-                  ]
-                },
-                "match_method": {
-                  "enum": [
-                    "official_identifier",
-                    "manual_review"
-                  ]
-                },
-                "evidence_refs": {
-                  "type": "array",
-                  "minItems": 1
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "records": {
-            "items": {
-              "properties": {
-                "mapping_state": {
-                  "const": "ambiguous"
-                }
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "records": {
-            "items": {
-              "properties": {
-                "target_feature_id": {
-                  "type": "null"
-                },
-                "target_level": {
-                  "const": "unknown"
-                },
-                "relationship": {
-                  "const": "none"
-                },
-                "match_method": {
-                  "enum": [
-                    "official_identifier",
-                    "manual_review",
-                    "name_similarity_only"
-                  ]
-                },
-                "evidence_refs": {
-                  "type": "array",
-                  "minItems": 1
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "records": {
-            "items": {
-              "properties": {
-                "mapping_state": {
-                  "const": "unresolved"
-                }
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "records": {
-            "items": {
-              "properties": {
-                "target_feature_id": {
-                  "type": "null"
-                },
-                "relationship": {
-                  "const": "none"
-                },
-                "match_method": {
-                  "const": "none"
-                }
               }
             }
           }
