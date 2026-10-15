@@ -77,6 +77,14 @@ One service-evidence record is also **content-bound**: its `artifact_payload_utf
 
 Neither the canary nor the content-bound vector authenticates issuer identity, validates a digital signature, fetches an external artifact, establishes trusted time, proves calibration status, or shows that the evidence describes a physical asset. There is no production trust root or complete signature/authentication scheme.
 
+## Canonical JSON boundary and interoperability gate
+
+The content-bound example currently enforces a deliberately narrow, fixture-local serialization rule: parse the payload as one JSON object, serialize it with this Python oracle's compact sorted-key representation, and require exact byte-for-byte equality before comparing bound claims. Regression assertions reject whitespace changes even after re-hashing, duplicate property names, non-finite numeric tokens, and negative-zero spelling. These checks harden this one ASCII-key fixture; **they do not implement or claim conformance to RFC 8785 (JCS)**.
+
+[RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html) also specifies ECMAScript-compatible primitive serialization and sorts object member names by UTF-16 code units, not simply the host language's default string ordering. It constrains input to the I-JSON subset, including no duplicate member names and IEEE-754-compatible numbers, and forbids NaN/Infinity. Equivalent key/value objects may otherwise serialize differently between languages and produce different signature/hash bytes. See [Section 3.1](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.1), [Sections 3.2.2–3.2.3](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2.2), and the [verified errata on negative zero](https://www.rfc-editor.org/errata/rfc8785).
+
+Before evidence payloads are exchanged or signed across Rust/Python/JavaScript implementations, adopt a separately reviewed canonicalization profile and run interoperable known-answer vectors—including numeric edge cases, escaped strings, Unicode property ordering, duplicate members, non-finite numbers and negative zero—using an implementation tested against the profile's conformance corpus. Do not promote this fixture helper into a production trust component by renaming it or by relying on this narrow regression set.
+
 ## Service evidence and repair qualification reference
 
 The `service_evidence_reference` section of the JSON corpus adds twenty-one synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
