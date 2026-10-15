@@ -27,6 +27,7 @@ mod home_design_brief;
 mod jurisdiction_registry;
 mod layout_candidate;
 mod evaluation_receipt;
+mod evaluation_scope_profile;
 
 use jsonschema::draft202012;
 use serde::{Deserialize, Serialize};
@@ -166,13 +167,26 @@ fn main() -> ExitCode {
     }
 
     if args.first().map(String::as_str) == Some("--validate-receipt") {
-        if args.len() != 4 || args.get(2).map(String::as_str) != Some("--registry") {
+        if args.len() != 6
+            || args.get(2).map(String::as_str) != Some("--registry")
+            || args.get(4).map(String::as_str) != Some("--scope-profile-sha256")
+            || !args.get(5).is_some_and(|value| {
+                value.len() == 64
+                    && value.bytes().all(|byte| {
+                        byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+                    })
+            })
+        {
             eprintln!(
-                "Usage: housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json>"
+                "Usage: housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json> --scope-profile-sha256 <trusted-sha256-pin>"
             );
             return ExitCode::from(2);
         }
-        return match evaluation_receipt::validate_paths(Path::new(&args[1]), Path::new(&args[3])) {
+        return match evaluation_receipt::validate_paths(
+            Path::new(&args[1]),
+            Path::new(&args[3]),
+            &args[5],
+        ) {
             Ok(report) => {
                 match serde_json::to_string_pretty(&report) {
                     Ok(output) => println!("{output}"),
@@ -377,7 +391,7 @@ fn usage() -> String {
         "Usage: housing-evidence-verify <manifest.json>",
         "       housing-evidence-verify --validate-brief <brief.json>",
         "       housing-evidence-verify --validate-jurisdiction-registry <registry.json>",
-        "       housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json>",
+        "       housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json> --scope-profile-sha256 <trusted-sha256-pin>",
         "       housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",

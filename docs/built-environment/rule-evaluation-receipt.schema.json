@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:luminous-dynamics:schemas:rule-evaluation-receipt:0.2.0",
-  "title": "Rule Evaluation Receipt V2",
-  "description": "Binds a producer-declared rule-evaluation result to an exact registry, jurisdiction, project identity and revision, source, implementation, corpus, validated project-input manifest, evaluator and output artifacts. Receipt integrity does not reproduce or endorse the declared result.",
+  "$id": "urn:luminous-dynamics:schemas:rule-evaluation-receipt:0.3.0",
+  "title": "Rule Evaluation Receipt V3",
+  "description": "Binds a producer-declared rule-evaluation result to exact registry, jurisdiction, project, source, implementation, corpus, validated project-input manifest, independently pinned evaluation scope profile, required gate evidence, evaluator and output artifacts. Receipt integrity does not reproduce or endorse the declared result.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,11 +17,13 @@
     "source_binding",
     "project_input_manifest",
     "evaluator",
-    "output_artifact"
+    "output_artifact",
+    "scope_profile",
+    "evaluation_gate_evidence"
   ],
   "properties": {
     "schema_version": {
-      "const": "0.2.0"
+      "const": "0.3.0"
     },
     "receipt_id": {
       "type": "string",
@@ -206,6 +208,54 @@
         "project_revision": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "scope_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_version",
+        "artifact"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "artifact": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "evaluation_gate_evidence": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_id",
+          "artifact"
+        ],
+        "properties": {
+          "gate_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+          },
+          "artifact": {
+            "$ref": "#/$defs/artifact"
+          }
         }
       }
     }

@@ -4,7 +4,7 @@
 //! Verifies producer-declared rule-evaluation receipt bindings.
 //! It verifies provenance and artifact identity; it never executes a building rule.
 
-use crate::jurisdiction_registry;
+use crate::{evaluation_scope_profile, jurisdiction_registry};
 use jsonschema::draft202012;
 use serde::Serialize;
 use serde_json::Value;
@@ -34,6 +34,9 @@ pub struct ReceiptValidationReport {
     pub source_binding_matches: bool,
     pub project_manifest_valid: bool,
     pub project_scope_matches: bool,
+    pub scope_profile_digest_pinned: bool,
+    pub scope_profile_valid: bool,
+    pub scope_complete: bool,
     pub eligible_to_evaluate: bool,
     pub producer_declared_status: Option<String>,
     pub receipt_integrity_status: String,
@@ -45,6 +48,7 @@ pub struct ReceiptValidationReport {
 pub fn validate_paths(
     receipt_path: &Path,
     registry_path: &Path,
+    expected_scope_profile_sha256: &str,
 ) -> Result<ReceiptValidationReport, String> {
     let receipt_bytes = fs::read(receipt_path)
         .map_err(|error| format!("cannot read {}: {error}", receipt_path.display()))?;
@@ -63,6 +67,7 @@ pub fn validate_paths(
         &receipt_bytes,
         &registry_bytes,
         artifact_root,
+        expected_scope_profile_sha256,
     )
 }
 
@@ -72,6 +77,7 @@ fn validate_values(
     receipt_bytes: &[u8],
     registry_bytes: &[u8],
     artifact_root: &Path,
+    expected_scope_profile_sha256: &str,
 ) -> Result<ReceiptValidationReport, String> {
     let schema: Value = serde_json::from_str(EMBEDDED_SCHEMA)
         .map_err(|error| format!("embedded receipt schema is invalid JSON: {error}"))?;
@@ -165,6 +171,9 @@ fn validate_values(
             &registry_report,
             registry_digest_matches,
             source_binding_matches,
+            false,
+            false,
+            false,
             false,
             false,
             false,
@@ -348,6 +357,15 @@ fn validate_values(
         source_binding_matches = false;
     }
 
+    let scope_validation = evaluation_scope_profile::validate(
+        receipt,
+        project_manifest_value.as_ref(),
+        artifact_root,
+        expected_scope_profile_sha256,
+        &mut artifact_issues,
+        &mut issues,
+    )?;
+
     artifact_digests_verified += [
         project_verified,
         evaluator_verified,
@@ -356,7 +374,8 @@ fn validate_values(
     .into_iter()
     .filter(|verified| *verified)
     .count();
-    artifact_digests_verified += project_input_artifacts_verified;
+    artifact_digests_verified +=
+        project_input_artifacts_verified + scope_validation.artifact_digests_verified;
     issues.extend(artifact_issues);
 
     let mut digest_roles: Vec<(String, Option<String>)> = vec![
@@ -410,6 +429,7 @@ fn validate_values(
                 .map(str::to_owned),
         ),
     ];
+    digest_roles.extend(scope_validation.digest_roles.iter().cloned());
     if let Some(manifest) = project_manifest_value.as_ref() {
         digest_roles.push((
             "project building model".to_string(),
@@ -469,6 +489,10 @@ fn validate_values(
         && project_verified
         && project_manifest_valid
         && project_scope_matches
+        && scope_validation.artifact_verified
+        && scope_validation.digest_pinned
+        && scope_validation.profile_valid
+        && scope_validation.scope_complete
         && evaluator_verified
         && output_verified;
     let receipt_integrity_verified = schema_valid
@@ -477,6 +501,10 @@ fn validate_values(
         && project_verified
         && project_manifest_valid
         && project_scope_matches
+        && scope_validation.artifact_verified
+        && scope_validation.digest_pinned
+        && scope_validation.profile_valid
+        && scope_validation.scope_complete
         && evaluator_verified
         && output_verified
         && issues.is_empty();
@@ -491,6 +519,9 @@ fn validate_values(
         source_binding_matches,
         project_manifest_valid,
         project_scope_matches,
+        scope_validation.digest_pinned,
+        scope_validation.profile_valid,
+        scope_validation.scope_complete,
         eligible_to_evaluate,
         artifact_digests_verified,
         issues,
@@ -565,6 +596,9 @@ fn build_report(
     source_binding_matches: bool,
     project_manifest_valid: bool,
     project_scope_matches: bool,
+    scope_profile_digest_pinned: bool,
+    scope_profile_valid: bool,
+    scope_complete: bool,
     eligible_to_evaluate: bool,
     artifact_digests_verified: usize,
     issues: Vec<String>,
@@ -580,6 +614,9 @@ fn build_report(
         source_binding_matches,
         project_manifest_valid,
         project_scope_matches,
+        scope_profile_digest_pinned,
+        scope_profile_valid,
+        scope_complete,
         eligible_to_evaluate,
         producer_declared_status: receipt
             .get("producer_declared_status")
@@ -673,7 +710,30 @@ mod tests {
         json!({"relative_path": name, "sha256": sha256_hex(bytes)})
     }
 
-    fn positive_case(root: &Path) -> (Value, Value, PathBuf) {
+    fn validate_test_paths(
+        receipt_path: &Path,
+        registry_path: &Path,
+        pin_override: Option<&str>,
+    ) -> ReceiptValidationReport {
+        let receipt: Value =
+            serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
+        let root = registry_path.parent().unwrap();
+        let profile_path = root.join(
+            receipt["scope_profile"]["artifact"]["relative_path"]
+                .as_str()
+                .unwrap(),
+        );
+        let profile_bytes = fs::read(profile_path).unwrap();
+        let actual_pin = sha256_hex(&profile_bytes);
+        validate_paths(
+            receipt_path,
+            registry_path,
+            pin_override.unwrap_or(&actual_pin),
+        )
+        .expect("receipt validation completes")
+    }
+
+    fn positive_case(root: &Path) -> (Value, Value, PathBuf)
         let fixture_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(
             "../../../docs/built-environment/fixtures/example-jurisdiction-evidence-registry.json",
         );
@@ -751,6 +811,22 @@ mod tests {
             "design-brief.json",
             b"controlled resident design brief\n",
         );
+        let site_survey = write_artifact(root, "site-survey.txt", b"synthetic site survey evidence\n");
+        let geotechnical_report = write_artifact(
+            root,
+            "geotechnical-report.txt",
+            b"synthetic geotechnical evidence\n",
+        );
+        let materials_schedule = write_artifact(
+            root,
+            "materials-schedule.json",
+            b"{\"materials\":[{\"id\":\"material-1\"}]}\n",
+        );
+        let load_case = write_artifact(
+            root,
+            "load-case.json",
+            b"{\"load_case_id\":\"controlled-load-1\"}\n",
+        );
         let project_manifest_value = json!({
             "schema_version": "1.0.0",
             "project_id": "controlled-project",
@@ -768,7 +844,12 @@ mod tests {
                 "construction_system": "controlled-test masonry",
                 "design_stage": "concept"
             },
-            "additional_inputs": []
+            "additional_inputs": [
+                {"input_id":"site-survey-1","role":"site_survey","artifact":site_survey},
+                {"input_id":"geotechnical-1","role":"geotechnical_report","artifact":geotechnical_report},
+                {"input_id":"materials-1","role":"materials_schedule","artifact":materials_schedule},
+                {"input_id":"load-case-1","role":"load_case","artifact":load_case}
+            ]
         });
         let project_manifest_bytes =
             serde_json::to_vec_pretty(&project_manifest_value).expect("manifest serializes");
@@ -776,8 +857,47 @@ mod tests {
         let evaluator = write_artifact(root, "evaluator.bin", b"synthetic evaluator executable\n");
         let output = write_artifact(root, "claimed-output.json", b"{\"declared\":\"pass\"}\n");
 
+        let scope_profile = json!({
+            "schema_version": "1.0.0",
+            "profile_id": "controlled-structural-static",
+            "profile_version": "1.0.0",
+            "evaluation_class": "structural_linear_static_reference",
+            "risk_tier": "high",
+            "allowed_project_scope": {
+                "building_uses": ["residential_dwelling"],
+                "construction_systems": ["controlled-test masonry"],
+                "design_stages": ["concept"]
+            },
+            "required_input_roles": [
+                "site_survey","geotechnical_report","materials_schedule","load_case"
+            ],
+            "required_gates": [
+                {
+                    "gate_id":"units-and-coordinates",
+                    "evidence_purpose":"Check unit declarations and coordinate frames",
+                    "acceptance_criterion":"All required unit and frame checks have recorded evidence"
+                },
+                {
+                    "gate_id":"analytical-reference-case",
+                    "evidence_purpose":"Run a controlled analytical known-answer case",
+                    "acceptance_criterion":"The declared result and tolerance comparison are recorded"
+                },
+                {
+                    "gate_id":"independent-method-comparison",
+                    "evidence_purpose":"Record a comparison against an independently implemented method",
+                    "acceptance_criterion":"The comparison method, difference metric and predeclared tolerance are recorded"
+                }
+            ]
+        });
+        let profile_bytes = serde_json::to_vec_pretty(&scope_profile).expect("scope profile serializes");
+        let scope_profile_artifact =
+            write_artifact(root, "scope-profile.json", &profile_bytes);
+        let gate_units = write_artifact(root, "gate-units.txt", b"synthetic gate evidence: units\n");
+        let gate_oracle = write_artifact(root, "gate-oracle.txt", b"synthetic gate evidence: analytical reference\n");
+        let gate_independent = write_artifact(root, "gate-independent.txt", b"synthetic gate evidence: independent method\n");
+
         let receipt = json!({
-            "schema_version": "0.2.0",
+            "schema_version": "0.3.0",
             "receipt_id": "test/receipt-1",
             "evaluated_at": "2026-10-15T14:00:00Z",
             "evaluation_date": "2026-10-15",
@@ -813,6 +933,16 @@ mod tests {
                     ["rule_translation"]["translation_review"]["evidence_artifact"]["sha256"]
             },
             "project_input_manifest": input,
+            "scope_profile": {
+                "profile_id": scope_profile["profile_id"],
+                "profile_version": scope_profile["profile_version"],
+                "artifact": scope_profile_artifact
+            },
+            "evaluation_gate_evidence": [
+                {"gate_id":"units-and-coordinates","artifact":gate_units},
+                {"gate_id":"analytical-reference-case","artifact":gate_oracle},
+                {"gate_id":"independent-method-comparison","artifact":gate_independent}
+            ],
             "evaluator": {
                 "id": "controlled-test-evaluator",
                 "version": "0.0.0-test",
@@ -833,15 +963,18 @@ mod tests {
         fs::write(&receipt_path, &receipt_bytes).expect("receipt writes");
 
         let report =
-            validate_paths(&receipt_path, &registry_path).expect("receipt schema compiles");
+            validate_test_paths(&receipt_path, &registry_path, None);
         assert!(report.schema_valid, "{:?}", report.issues);
         assert!(report.registry_digest_matches, "{:?}", report.issues);
         assert!(report.source_binding_matches, "{:?}", report.issues);
         assert!(report.project_manifest_valid, "{:?}", report.issues);
         assert!(report.project_scope_matches, "{:?}", report.issues);
+        assert!(report.scope_profile_digest_pinned, "{:?}", report.issues);
+        assert!(report.scope_profile_valid, "{:?}", report.issues);
+        assert!(report.scope_complete, "{:?}", report.issues);
         assert!(report.eligible_to_evaluate, "{:?}", report.issues);
         assert_eq!(report.receipt_integrity_status, VERIFIED, "{:?}", report.issues);
-        assert_eq!(report.artifact_digests_verified, 10);
+        assert_eq!(report.artifact_digests_verified, 18);
         assert_eq!(report.producer_declared_status.as_deref(), Some("CLAIMED_PASS"));
         assert_eq!(report.effective_status, "NOT_REPRODUCED");
     }
@@ -854,7 +987,7 @@ mod tests {
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
         fs::write(&registry_path, b"{\"tampered\":true}\n").expect("registry tamper writes");
 
-        let report = validate_paths(&receipt_path, &registry_path).expect("both files readable");
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
         assert!(!report.registry_digest_matches);
         assert_ne!(report.receipt_integrity_status, VERIFIED);
         assert!(!report.eligible_to_evaluate);
@@ -869,7 +1002,7 @@ mod tests {
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
 
         let report =
-            validate_paths(&receipt_path, &registry_path).expect("receipt schema compiles");
+            validate_test_paths(&receipt_path, &registry_path, None);
         assert!(!report.source_binding_matches);
         assert_ne!(report.receipt_integrity_status, VERIFIED);
         assert!(!report.eligible_to_evaluate);
@@ -891,7 +1024,7 @@ mod tests {
 
         let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
-        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(report.project_manifest_valid, "{:?}", report.issues);
         assert!(!report.project_scope_matches, "{:?}", report.issues);
@@ -915,7 +1048,7 @@ mod tests {
 
         let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
-        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(!report.project_manifest_valid);
         assert!(!report.eligible_to_evaluate);
@@ -947,7 +1080,7 @@ mod tests {
 
         let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
-        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(!report.project_manifest_valid);
         assert!(!report.eligible_to_evaluate);
@@ -973,11 +1106,71 @@ mod tests {
 
         let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
-        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(!report.project_manifest_valid);
         assert!(!report.eligible_to_evaluate);
         assert!(report.issues.iter().any(|issue| issue.contains("reuses SHA-256")));
+    }
+
+    #[test]
+    fn missing_profile_required_input_role_blocks_scope() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        let manifest_path = root.join(
+            receipt["project_input_manifest"]["relative_path"].as_str().unwrap(),
+        );
+        let mut manifest: Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        manifest["additional_inputs"] = json!([
+            manifest["additional_inputs"][0].clone(),
+            manifest["additional_inputs"][1].clone(),
+            manifest["additional_inputs"][2].clone()
+        ]);
+        let bytes = serde_json::to_vec_pretty(&manifest).unwrap();
+        fs::write(&manifest_path, &bytes).unwrap();
+        receipt["project_input_manifest"]["sha256"] = json!(sha256_hex(&bytes));
+
+        let receipt_path = root.join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
+
+        assert!(!report.scope_complete);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report.issues.iter().any(|issue| issue.contains("omits profile-required input role")));
+    }
+
+    #[test]
+    fn missing_profile_required_gate_blocks_scope() {
+        let root = TestRoot::new();
+        let (_registry, mut receipt, registry_path) = positive_case(root.path());
+        receipt["evaluation_gate_evidence"] = json!([
+            receipt["evaluation_gate_evidence"][0].clone(),
+            receipt["evaluation_gate_evidence"][1].clone()
+        ]);
+        let receipt_path = root.join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
+
+        assert!(!report.scope_complete);
+        assert!(!report.eligible_to_evaluate);
+        assert!(report.issues.iter().any(|issue| issue.contains("omits profile-required evaluation gate")));
+    }
+
+    #[test]
+    fn scope_profile_must_match_an_out_of_band_pin() {
+        let root = TestRoot::new();
+        let (_registry, receipt, registry_path) = positive_case(root.path());
+        let receipt_path = root.join("receipt.json");
+        fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+        let wrong_pin = "f".repeat(64);
+        let report = validate_test_paths(&receipt_path, &registry_path, Some(&wrong_pin));
+
+        assert!(!report.scope_profile_digest_pinned);
+        assert!(!report.scope_complete);
+        assert!(!report.eligible_to_evaluate);
+        assert_ne!(report.receipt_integrity_status, VERIFIED);
     }
 
     #[test]
@@ -996,7 +1189,7 @@ mod tests {
 
         let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
-        let report = validate_paths(&receipt_path, &registry_path).unwrap();
+        let report = validate_test_paths(&receipt_path, &registry_path, None);
 
         assert!(!report.project_manifest_valid);
         assert!(!report.eligible_to_evaluate);
@@ -1017,7 +1210,7 @@ mod tests {
         .expect("output tamper writes");
 
         let report =
-            validate_paths(&receipt_path, &registry_path).expect("receipt schema compiles");
+            validate_test_paths(&receipt_path, &registry_path, None);
         assert_ne!(report.receipt_integrity_status, VERIFIED);
         assert!(!report.eligible_to_evaluate);
     }
@@ -1032,7 +1225,7 @@ mod tests {
             .expect("receipt writes");
 
         let report =
-            validate_paths(&receipt_path, &registry_path).expect("receipt schema compiles");
+            validate_test_paths(&receipt_path, &registry_path, None);
         assert_ne!(report.receipt_integrity_status, VERIFIED);
         assert!(!report.eligible_to_evaluate);
         assert!(report
