@@ -92,7 +92,7 @@ impl<'de> Visitor<'de> for StrictJsonVisitor {
         let mut values = BTreeMap::new();
         while let Some(key) = map.next_key::<String>()? {
             if values.contains_key(&key) {
-                return Err(A::Error::custom(format!("duplicate object key: {key}")));
+                return Err(<A::Error as de::Error>::custom(format!("duplicate object key: {key}")));
             }
             let value = map.next_value::<JsonValue>()?;
             values.insert(key, value);
@@ -1221,11 +1221,6 @@ fn verify_case(
         expected_disposition: expected_value.to_owned(),
         expectation_matches: true,
     })
-}
-
-fn expect_unit(value: &JsonValue, unit: &str, path: &str) -> Result<(), String> {
-    exact_keys(value, &["unit", "value"], path)?;
-    expect_text(field(value, "unit", path)?, &format!("{path}.unit"), unit)
 }
 
 fn expect_quantity_value(
