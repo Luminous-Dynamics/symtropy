@@ -10,6 +10,8 @@ on:
       - 'docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json'
       - 'docs/tech/MARITIME_SOURCE_CAPTURE_RUNBOOK_V0_1.md'
       - 'docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json'
+      - 'docs/tech/MARITIME_SCENARIO_MANIFEST_V0_1.schema.json'
+      - 'docs/tech/MARITIME_EVIDENCE_GATED_RESILIENCE_V0_1.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.gitignore'
@@ -54,6 +56,9 @@ jobs:
 
       - name: Verify synthetic PLSCI metadata profile against receipt and exact artifact bytes
         run: cargo run --locked -p maritime-data-receipt -- --validate-macro-connectivity-profile crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json
+
+      - name: Verify source-bound synthetic scenario manifest and exact source bytes
+        run: cargo run --locked -p maritime-data-receipt -- --validate-scenario-manifest crates/tools/maritime-data-receipt/tests/fixtures/synthetic-scenario-manifest.json
 
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
