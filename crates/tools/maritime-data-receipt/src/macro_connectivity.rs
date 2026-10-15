@@ -26,6 +26,7 @@ const SERIES_KEYS: &[&str] = &[
     "benchmark_value",
     "methodology_vintage",
     "source_basis",
+    "normalization_method",
     "components",
 ];
 const SELECTION_KEYS: &[&str] = &[
@@ -196,6 +197,11 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     }
     if text(series, "source_basis")? != "published-container-liner-shipping-schedules" {
         return Err("UNSUPPORTED_SOURCE_BASIS");
+    }
+    if text(series, "normalization_method")?
+        != "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
+    {
+        return Err("UNSUPPORTED_NORMALIZATION_METHOD");
     }
     let components = member(series, "components")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
     let component_set: BTreeSet<&str> = components
