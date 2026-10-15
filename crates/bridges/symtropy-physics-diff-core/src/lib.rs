@@ -1,14 +1,14 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use serde::{Deserialize, Serialize};
-
 //! Dependency-light records shared by independent physics backends.
 //!
 //! The schema deliberately has no engine dependencies. Semantic body IDs must be
 //! supplied by a declared scenario mapping; adapters must never infer cross-engine
 //! identity from insertion order or a physics engine's arena handle. Measurements
 //! that are unavailable or not comparable are represented as `None`, not as zero.
+
+use serde::{Deserialize, Serialize};
 
 /// Current version of the common observation record schema.
 pub const OBSERVATION_SCHEMA_VERSION: u16 = 1;
