@@ -32,7 +32,7 @@ The time policy uses an explicit assessment time rather than the machine clock s
 - `INDETERMINATE_NOT_ADMITTED`: a well-formed profile cannot establish temporal applicability—for example the run was not yet issued, the target is out of window, the issue is too old, the requested lead is too long, or quality is unknown.
 - Invalid metadata or any receipt/profile/artifact binding mismatch is a hard error (exit status 2), not an indeterminate pass.
 
-The source-age calculation is assessment time minus issue time. Forecast lead is target time minus model initialization time. Model initialization must not follow issue time; the valid interval must be ordered. Valid interval must match the time-coverage interval in the receipt.
+The issue-age calculation is assessment time minus issue time. Forecast lead is target time minus model initialization time. Model initialization must not follow issue time; the valid interval must be ordered. Valid interval must match the time-coverage interval in the receipt.
 
 All outcomes preserve:
 - engineering admission: `NotAdmitted`;
