@@ -840,13 +840,58 @@ mod tests {
     #[test]
     fn missing_license_review_for_public_dataset_fails_closed() {
         let raw = String::from_utf8(receipt_bytes()).expect("receipt is UTF-8");
-        let mutated = raw.replacen(
-            "\"kind\": \"synthetic_fixture\"",
-            "\"kind\": \"public_dataset\"",
-            1,
-        );
+        let mut mutated = raw;
+        for (from, to) in [
+            (
+                "\"kind\": \"synthetic_fixture\"",
+                "\"kind\": \"public_dataset\"",
+            ),
+            (
+                "\"source_uri\": null",
+                "\"source_uri\": \"https://example.invalid/dataset/v1\"",
+            ),
+            (
+                "\"method\": \"local_fixture\"",
+                "\"method\": \"manual_download\"",
+            ),
+            (
+                "\"retrieved_at_utc\": null",
+                "\"retrieved_at_utc\": \"2026-10-15T06:00:00Z\"",
+            ),
+            (
+                "\"request_uri\": null",
+                "\"request_uri\": \"https://example.invalid/dataset/v1\"",
+            ),
+            (
+                "\"verification_state\": \"synthetic\"",
+                "\"verification_state\": \"verified\"",
+            ),
+            (
+                "\"freshness_policy\": \"not_applicable_synthetic\"",
+                "\"freshness_policy\": \"historical_only\"",
+            ),
+            (
+                "\"freshness_policy_description\": \"Not applicable to an invented fixture; public datasets require an explicit policy statement and source-specific age limits.\"",
+                "\"freshness_policy_description\": \"Historical-only test fixture; age policy still requires independent review.\"",
+            ),
+            (
+                "\"publisher\": \"Luminous Dynamics\"",
+                "\"publisher\": \"Test Issuer\"",
+            ),
+            (
+                "\"dataset_id\": \"synthetic-water-level-example-v0\"",
+                "\"dataset_id\": \"public-dataset-test-only\"",
+            ),
+        ] {
+            assert!(mutated.contains(from), "test mutation anchor missing: {from}");
+            mutated = mutated.replacen(from, to, 1);
+        }
         let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
-        assert!(result.is_err());
+        assert!(
+            result
+                .expect_err("unreviewed public dataset must fail closed")
+                .contains("terms must have a recorded reviewed_permitted decision")
+        );
     }
 
     #[test]
