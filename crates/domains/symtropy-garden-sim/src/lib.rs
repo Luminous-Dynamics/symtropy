@@ -90,17 +90,35 @@ pub struct ResourceBalanceInputV1 {
     pub schema_version: u16,
     pub scenario_id: String,
     pub resource_kind: ResourceKind,
-    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
     pub inflow: u64,
-    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
     pub generated_or_added: u64,
-    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
     pub outflow: u64,
-    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
     pub declared_loss: u64,
-    #[serde(serialize_with = "serialize_i128_as_string", deserialize_with = "deserialize_i128_from_string")]
+    #[serde(
+        serialize_with = "serialize_i128_as_string",
+        deserialize_with = "deserialize_i128_from_string"
+    )]
     pub observed_storage_delta: i128,
-    #[serde(serialize_with = "serialize_u64_as_string", deserialize_with = "deserialize_u64_from_string")]
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
     pub tolerance: u64,
     pub evidence_class: EvidenceClass,
     pub source_ref: String,
@@ -134,9 +152,15 @@ pub struct ResourceBalanceDecisionV1 {
     pub scenario_id: String,
     pub resource_kind: ResourceKind,
     pub disposition: BalanceDisposition,
-    #[serde(serialize_with = "serialize_i128_as_string", deserialize_with = "deserialize_i128_from_string")]
+    #[serde(
+        serialize_with = "serialize_i128_as_string",
+        deserialize_with = "deserialize_i128_from_string"
+    )]
     pub expected_storage_delta: i128,
-    #[serde(serialize_with = "serialize_u128_as_string", deserialize_with = "deserialize_u128_from_string")]
+    #[serde(
+        serialize_with = "serialize_u128_as_string",
+        deserialize_with = "deserialize_u128_from_string"
+    )]
     pub absolute_error: u128,
     pub blockers: Vec<BalanceBlocker>,
 }
