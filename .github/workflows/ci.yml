@@ -89,6 +89,12 @@ jobs:
         cargo run -q -p symtropy-housing-evidence -- docs/built-environment/fixtures/example-not-evidence.json > /tmp/housing-evidence-report.json
         python3 -c 'import json; r=json.load(open("/tmp/housing-evidence-report.json")); assert r["schema_valid"] is True, r; assert r["effective_status"] == "NOT_EVALUATED", r; assert r["declared_status"] == "NOT_EVALUATED", r'
 
+    - name: Smoke Test Home Layout Candidate (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cargo run -q -p symtropy-housing-evidence -- --validate-layout docs/built-environment/fixtures/example-home-layout-candidate.json --brief docs/built-environment/fixtures/example-home-design-brief.json > /tmp/home-layout-report.json
+        python3 -c 'import json; r=json.load(open("/tmp/home-layout-report.json")); assert r["contract_status"] == "LAYOUT_CANDIDATE_CONTRACT_VALID", r; assert r["reference_valid"] is True, r; assert r["geometry_valid"] is True, r'
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
 
