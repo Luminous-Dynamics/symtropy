@@ -744,7 +744,7 @@ fn free_fall_trajectory_is_invariant_to_uniform_translation() {
     let mut translated = scenario.clone();
     for body in &mut translated.bodies {
         for (axis, offset) in translation.iter().enumerate() {
-            body.position_m[axis] += offset;
+            body.position_m[axis] += *offset;
         }
     }
     translated.scenario_id = format!("{}-translated", scenario.scenario_id);
@@ -780,7 +780,7 @@ fn free_fall_trajectory_is_invariant_to_uniform_translation() {
                     let observed_translation =
                         shifted_body.position_m[axis] - reference_body.position_m[axis];
                     assert!(
-                        (observed_translation - offset).abs() < 2.0e-4,
+                        (observed_translation - *offset).abs() < 2.0e-4,
                         "{backend} translation drift on axis {axis} at step {}: observed={observed_translation}, expected={offset}",
                         reference_sample.step
                     );
