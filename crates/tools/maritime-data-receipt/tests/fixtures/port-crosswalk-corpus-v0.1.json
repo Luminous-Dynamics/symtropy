@@ -381,7 +381,7 @@
       "id": "duplicate_source_entity_rejected",
       "base": "duplicate_records",
       "mutations": [],
-      "expected_code": "DUPLICATE_SOURCE_ENTITY"
+      "expected_code": "DUPLICATE_SOURCE_ENTITY_CANDIDATE"
     },
     {
       "id": "public_source_terms_must_be_reviewed",
