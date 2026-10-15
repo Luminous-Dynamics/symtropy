@@ -159,7 +159,7 @@ pub enum ActionBlockReason {
 }
 
 impl ActionBlockReason {
-    fn into_error(&self) -> BentFeederError {
+    fn to_error(&self) -> BentFeederError {
         match self {
             Self::OperationComplete => BentFeederError::AlreadyComplete,
             Self::WorkPerimeterRequired => {
@@ -446,7 +446,7 @@ impl BentFeederOperation {
     /// Applies one action and records the resulting causal event.
     pub fn apply(&mut self, action: BentFeederAction) -> Result<String, BentFeederError> {
         if let Some(reason) = self.action_block_reason(&action) {
-            return Err(reason.into_error());
+            return Err(reason.to_error());
         }
         let result = match action.clone() {
             BentFeederAction::Inspect => {
@@ -540,7 +540,6 @@ impl BentFeederOperation {
 
     fn energize_for_test(&mut self) -> Result<String, BentFeederError> {
         let durable = self.feeder.support_braced && self.feeder.insulator_replaced;
-        let bypass = self.feeder.temporary_bypass_installed && self.feeder.noncritical_load_shed;
         self.phase = OperationPhase::Test;
         self.feeder.isolated = false;
         self.feeder.energized = true;
