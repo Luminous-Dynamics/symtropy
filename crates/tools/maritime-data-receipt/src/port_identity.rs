@@ -345,7 +345,7 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
         match state {
             "resolved" => {
                 if status == Some("XX") {
-                    return Err("LOCode_STATUS_NOT_RESOLVABLE");
+                    return Err("UNKNOWN_LOCODE_STATUS_NOT_RESOLVABLE");
                 }
                 if candidate.is_none()
                     || target.is_none()
