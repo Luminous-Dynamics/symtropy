@@ -5,7 +5,10 @@ This is test tooling only. It is not a production planner or a life-support mode
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import re
+from datetime import datetime, timezone
 from fractions import Fraction
 from pathlib import Path
 
@@ -114,6 +117,198 @@ def surviving_alternative_groups(
     return result
 
 
+
+def parse_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def evaluate_service_evidence(
+    record: dict[str, object], target: dict[str, object]
+) -> str:
+    lifecycle = record.get("lifecycle_state")
+    if lifecycle == "REVOKED":
+        return "REJECT_REVOKED"
+    if lifecycle == "SUPERSEDED":
+        return "REJECT_SUPERSEDED"
+    if lifecycle == "REPORTED_REPAIRED_UNVERIFIED":
+        return "REQUALIFICATION_REQUIRED"
+    if lifecycle not in ("CURRENT", "POST_REPAIR_TEST_PASSED"):
+        return "REJECT_UNKNOWN_LIFECYCLE"
+
+    for field in ("artifact_digest", "configuration_digest"):
+        field_digest = record.get(field)
+        if not isinstance(field_digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", field_digest):
+            return "REJECT_INVALID_DIGEST"
+
+    payload_utf8 = record.get("artifact_payload_utf8")
+    if payload_utf8 is not None:
+        if not isinstance(payload_utf8, str):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        # The payload hashes to artifact_digest, never to configuration_digest.
+        try:
+            payload_bytes = payload_utf8.encode("utf-8")
+        except UnicodeEncodeError:
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        max_payload_bytes = target.get("max_artifact_payload_bytes")
+        if (
+            not isinstance(max_payload_bytes, int)
+            or isinstance(max_payload_bytes, bool)
+            or max_payload_bytes <= 0
+        ):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if len(payload_bytes) > max_payload_bytes:
+            return "REJECT_ARTIFACT_PAYLOAD_TOO_LARGE"
+        if "sha256:" + hashlib.sha256(payload_bytes).hexdigest() != record.get("artifact_digest"):
+            return "REJECT_ARTIFACT_DIGEST_MISMATCH"
+        try:
+            payload_claims = json.loads(payload_utf8)
+        except (ValueError, RecursionError):
+            # Malformed JSON, rejected numeric tokens/limits, and parser-depth exhaustion
+            # are invalid evidence, not uncaught verifier failures.
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if not isinstance(payload_claims, dict):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        try:
+            canonical_payload = json.dumps(
+                payload_claims,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            )
+        except (TypeError, ValueError, RecursionError):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if canonical_payload != payload_utf8:
+            return "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL"
+        bound_fields = (
+            "evidence_id",
+            "issuer_id",
+            "asset_id",
+            "asset_revision",
+            "configuration_digest",
+            "scope_id",
+            "observed_at",
+            "valid_until",
+            "lifecycle_state",
+            "method_id",
+            "method_qualification",
+            "calibration_id",
+            "calibration_status",
+            "acceptance_criterion_id",
+            "measured_value",
+            "unit",
+            "acceptance_min",
+            "acceptance_max",
+        )
+        expected_claims = {field: record.get(field) for field in bound_fields}
+        if not isinstance(payload_claims, dict) or payload_claims != expected_claims:
+            return "REJECT_ARTIFACT_CLAIM_MISMATCH"
+
+    required = (
+        "evidence_id",
+        "issuer_id",
+        "asset_id",
+        "asset_revision",
+        "configuration_digest",
+        "scope_id",
+        "observed_at",
+        "valid_until",
+        "method_id",
+        "method_qualification",
+        "calibration_id",
+        "calibration_status",
+        "acceptance_criterion_id",
+        "measured_value",
+        "unit",
+        "acceptance_min",
+        "acceptance_max",
+    )
+    if any(record.get(key) is None or record.get(key) == "" for key in required):
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+
+    for field in ("asset_id", "asset_revision", "configuration_digest", "scope_id"):
+        if record[field] != target[field]:
+            return "REJECT_SCOPE_MISMATCH"
+
+    if lifecycle == "POST_REPAIR_TEST_PASSED":
+        repair_required = (
+            "repair_receipt_id",
+            "repair_attempt_id",
+            "repaired_asset_revision",
+            "repair_configuration_digest",
+            "post_repair_test_id",
+            "post_repair_test_status",
+            "post_repair_tested_asset_revision",
+        )
+        if any(record.get(key) is None or record.get(key) == "" for key in repair_required):
+            return "REQUALIFICATION_REQUIRED"
+        repair_digest = record["repair_configuration_digest"]
+        if not isinstance(repair_digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", repair_digest):
+            return "REJECT_INVALID_DIGEST"
+        if (
+            record["repaired_asset_revision"] != target["asset_revision"]
+            or record["post_repair_tested_asset_revision"] != target["asset_revision"]
+            or repair_digest != target["configuration_digest"]
+        ):
+            return "REJECT_SCOPE_MISMATCH"
+        if record["post_repair_test_status"] != "PASS":
+            return "REQUALIFICATION_REQUIRED"
+
+    evaluated_at = parse_timestamp(target.get("evaluation_time"))
+    observed_at = parse_timestamp(record.get("observed_at"))
+    valid_until = parse_timestamp(record.get("valid_until"))
+    if evaluated_at is None or observed_at is None or valid_until is None:
+        return "REJECT_INVALID_TIME"
+    if observed_at > evaluated_at:
+        return "REJECT_FUTURE_OBSERVATION"
+    if (
+        (evaluated_at - observed_at).total_seconds() > float(target["max_age_seconds"])
+        or valid_until <= evaluated_at
+    ):
+        return "NOT_AVAILABLE_STALE"
+
+    if record["method_qualification"] != "QUALIFIED":
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+    if record["calibration_status"] != "VALID":
+        return "REJECT_CALIBRATION_EXPIRED"
+    if record["unit"] != target["unit"]:
+        return "REJECT_UNIT_MISMATCH"
+    if record["acceptance_criterion_id"] != target["acceptance_criterion_id"]:
+        return "REJECT_SCOPE_MISMATCH"
+
+    try:
+        lower = q(record["acceptance_min"])
+        upper = q(record["acceptance_max"])
+        measured = q(record["measured_value"])
+    except (ValueError, ZeroDivisionError, TypeError):
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+    if lower > upper:
+        return "REJECT_INCOMPLETE_QUALIFICATION"
+    if measured < lower or measured > upper:
+        return "FAIL_ACCEPTANCE"
+    return "VERIFIED_AVAILABLE_CANDIDATE"
+
+def evaluate_service_evidence_case(
+    case: dict[str, object], target: dict[str, object]
+) -> str:
+    records = case["records"]
+    assert isinstance(records, list) and records
+    results = [evaluate_service_evidence(record, target) for record in records]
+    if len(records) > 1:
+        measurements = {str(record.get("measured_value")) for record in records}
+        if len(measurements) > 1 or len(set(results)) > 1:
+            return "UNKNOWN_CONFLICTED"
+    return results[0]
+
+
 def demand_bounds(case: dict[str, object]) -> tuple[Fraction, Fraction]:
     population = int(case["population"])
     require(population > 0, f"{case['id']}: population must be positive")
@@ -139,6 +334,58 @@ def demand_bounds(case: dict[str, object]) -> tuple[Fraction, Fraction]:
 def main() -> None:
     corpus = json.loads(FIXTURE.read_text(encoding="utf-8"))
     require(corpus["contract_version"] == "0.1.0", "unexpected contract version")
+    integrity = corpus["artifact_integrity_reference"]
+    require(
+        integrity["contract_version"] == "0.1.0",
+        "unexpected artifact-integrity reference version",
+    )
+    payload = integrity["payload_utf8"].encode("utf-8")
+    expected_digest = str(integrity["expected_sha256"])
+    recomputed_digest = hashlib.sha256(payload).hexdigest()
+    require(
+        recomputed_digest == expected_digest,
+        "SHA-256 reference payload did not match pinned digest",
+    )
+    expected_altered_payload = integrity["payload_utf8"].replace(
+        "measurement=1.0\n", "measurement=1.1\n"
+    )
+    require(
+        integrity["altered_payload_utf8"] == expected_altered_payload,
+        "evidence canary must change only the declared measurement field",
+    )
+    altered_payload = integrity["altered_payload_utf8"].encode("utf-8")
+    require(
+        hashlib.sha256(altered_payload).hexdigest() != expected_digest,
+        "one-field payload mutation must change the SHA-256 digest",
+    )
+    configuration_digest = hashlib.sha256(
+        integrity["configuration_payload_utf8"].encode("utf-8")
+    ).hexdigest()
+    require(
+        configuration_digest == integrity["expected_configuration_sha256"],
+        "configuration bytes did not match pinned SHA-256 reference",
+    )
+    expected_altered_configuration_payload = integrity["configuration_payload_utf8"].replace(
+        "scope=habitat-central-water-loop\n",
+        "scope=habitat-central-water-loop-mutated\n",
+    )
+    require(
+        integrity["altered_configuration_payload_utf8"] == expected_altered_configuration_payload,
+        "configuration canary must change only the declared scope field",
+    )
+    altered_configuration_payload = integrity["altered_configuration_payload_utf8"].encode("utf-8")
+    require(
+        hashlib.sha256(altered_configuration_payload).hexdigest() != configuration_digest,
+        "one-field configuration mutation must change the pinned SHA-256 digest",
+    )
+    require(
+        "scope bytes must change" in integrity["configuration_mutation_rule"].lower(),
+        "configuration mutation must remain an explicit negative control",
+    )
+    require(
+        "distinct from evidence records" in integrity["purpose"].lower(),
+        "integrity canary must not imply evidence-record artifact binding",
+    )
     require(
         corpus["authority"] == "NON_AUTHORITATIVE_SYNTHETIC_REFERENCE",
         "fixture must remain explicitly non-authoritative",
@@ -512,6 +759,267 @@ def main() -> None:
     require(
         unknown_dep["expected"]["dependency"] == "missing-controller",
         "unknown dependency diagnostic must name the unresolved edge",
+    )
+
+    evidence_contract = corpus["service_evidence_reference"]
+    require(
+        evidence_contract["contract_version"] == "0.1.0"
+        and evidence_contract["authority"] == "NON_AUTHORITATIVE_SYNTHETIC_REFERENCE",
+        "service evidence contract must retain synthetic/non-authoritative scope",
+    )
+    target = evidence_contract["target"]
+    require(
+        target.get("max_artifact_payload_bytes") == 65536,
+        "claim-payload byte cap changed without explicit contract review",
+    )
+    require(
+        target.get("configuration_digest") == "sha256:" + configuration_digest,
+        "service-evidence target configuration digest must match the pinned configuration bytes",
+    )
+    evidence_cases = evidence_contract["cases"]
+    assert isinstance(evidence_cases, list)
+    evidence_by_id: dict[str, dict[str, object]] = {}
+    for evidence_case in evidence_cases:
+        assert isinstance(evidence_case, dict)
+        evidence_case_id = str(evidence_case["id"])
+        require(
+            evidence_case_id not in evidence_by_id,
+            f"duplicate service-evidence case id: {evidence_case_id}",
+        )
+        evidence_by_id[evidence_case_id] = evidence_case
+    require(len(evidence_by_id) == 21, "service-evidence case count changed")
+
+    for evidence_case in evidence_cases:
+        expected_status = str(evidence_case["expected_status"])
+        observed_status = evaluate_service_evidence_case(evidence_case, target)
+        require(
+            observed_status == expected_status,
+            f"{evidence_case['id']}: expected {expected_status}, got {observed_status}",
+        )
+
+    repair_contract = evidence_contract["repair_receipt_semantics"]
+    required_repair_fields = (
+        "repair_receipt_id",
+        "repair_attempt_id",
+        "repaired_asset_revision",
+        "repair_configuration_digest",
+        "post_repair_test_id",
+        "post_repair_test_status",
+        "post_repair_tested_asset_revision",
+    )
+    require(
+        tuple(repair_contract["required_for_post_repair_candidate"]) == required_repair_fields,
+        "repair receipt field contract changed without revision",
+    )
+    require(
+        "exact current asset revision" in repair_contract["rule"].lower(),
+        "repair receipt must bind to current asset revision",
+    )
+    valid_repair = evidence_by_id["qualified_post_repair_test_current_revision"]
+    require(
+        evaluate_service_evidence_case(valid_repair, target) == "VERIFIED_AVAILABLE_CANDIDATE",
+        "current-revision passing repair receipt should satisfy the synthetic candidate rule",
+    )
+    missing_repair = evidence_by_id["post_repair_status_without_receipt"]
+    require(
+        evaluate_service_evidence_case(missing_repair, target) == "REQUALIFICATION_REQUIRED",
+        "a post-repair status without receipt must remain unqualified",
+    )
+    wrong_revision_repair = evidence_by_id["repair_receipt_bound_to_wrong_revision"]
+    require(
+        evaluate_service_evidence_case(wrong_revision_repair, target) == "REJECT_SCOPE_MISMATCH",
+        "repair and test receipts for an older revision must not qualify the current asset",
+    )
+
+    artifact_binding = evidence_contract["artifact_binding_rule"]
+    require(
+        tuple(artifact_binding["claims_bound"])
+        == (
+            "evidence_id",
+            "issuer_id",
+            "asset_id",
+            "asset_revision",
+            "configuration_digest",
+            "scope_id",
+            "observed_at",
+            "valid_until",
+            "lifecycle_state",
+            "method_id",
+            "method_qualification",
+            "calibration_id",
+            "calibration_status",
+            "acceptance_criterion_id",
+            "measured_value",
+            "unit",
+            "acceptance_min",
+            "acceptance_max",
+        ),
+        "content-bound claim field set changed without contract revision",
+    )
+    require(
+        "does not authenticate issuer identity" in artifact_binding["scope"].lower(),
+        "artifact binding must preserve authentication boundary",
+    )
+    bound_fresh = evidence_by_id["fresh_qualified_evidence"]
+    require(
+        evaluate_service_evidence_case(bound_fresh, target) == "VERIFIED_AVAILABLE_CANDIDATE",
+        "content-bound known-answer evidence record failed",
+    )
+    expected_canonicalization_controls = {
+        "rehash_whitespace": (
+            "insert_space_after_open_brace",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        ),
+        "rehash_duplicate_member": (
+            "duplicate_asset_id_member",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        ),
+        "rehash_nonfinite_number": (
+            "replace_measurement_with_nan",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "rehash_negative_zero": (
+            "replace_measurement_with_negative_zero",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        ),
+        "invalid_utf8_string": (
+            "set_payload_to_lone_surrogate",
+            False,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "invalid_json_syntax": (
+            "replace_open_brace_with_x",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "overflowing_number": (
+            "replace_measurement_with_overflow_exponent",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "excessive_nesting": (
+            "replace_payload_with_deeply_nested_array",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "oversized_claim_payload": (
+            "pad_payload_beyond_declared_byte_limit",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_TOO_LARGE",
+        ),
+    }
+    canonicalization_controls = artifact_binding.get("canonicalization_negative_controls")
+    require(
+        isinstance(canonicalization_controls, list)
+        and len(canonicalization_controls) == len(expected_canonicalization_controls),
+        "canonicalization negative-control corpus cardinality changed",
+    )
+    controls_by_id: dict[str, dict[str, object]] = {}
+    for control in canonicalization_controls:
+        assert isinstance(control, dict)
+        control_id = str(control["id"])
+        require(control_id not in controls_by_id, f"duplicate canonicalization control: {control_id}")
+        controls_by_id[control_id] = control
+    require(
+        set(controls_by_id) == set(expected_canonicalization_controls),
+        "canonicalization negative-control IDs changed without an explicit contract revision",
+    )
+    for control_id, (mutation, recompute_digest, expected_status) in expected_canonicalization_controls.items():
+        control = controls_by_id[control_id]
+        require(
+            control.get("mutation") == mutation
+            and control.get("recompute_artifact_digest") is recompute_digest
+            and control.get("expected_status") == expected_status,
+            f"{control_id}: mutation, digest policy or expected verdict changed without review",
+        )
+        control_record = dict(bound_fresh["records"][0])
+        if mutation == "insert_space_after_open_brace":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace("{", "{ ", 1)
+        elif mutation == "duplicate_asset_id_member":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"asset_id":"water-pump-7",',
+                '"asset_id":"water-pump-7","asset_id":"water-pump-7",',
+                1,
+            )
+        elif mutation == "replace_measurement_with_nan":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"measured_value":1.0,',
+                '"measured_value":NaN,',
+                1,
+            )
+        elif mutation == "replace_measurement_with_negative_zero":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"measured_value":1.0,',
+                '"measured_value":-0,',
+                1,
+            )
+        elif mutation == "set_payload_to_lone_surrogate":
+            mutated_payload = "\ud800"
+        elif mutation == "replace_open_brace_with_x":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace("{", "x", 1)
+        elif mutation == "replace_measurement_with_overflow_exponent":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"measured_value":1.0,',
+                '"measured_value":1e9999,',
+                1,
+            )
+        elif mutation == "replace_payload_with_deeply_nested_array":
+            mutated_payload = "[" * 2000 + "0" + "]" * 2000
+        elif mutation == "pad_payload_beyond_declared_byte_limit":
+            byte_limit = int(target["max_artifact_payload_bytes"])
+            base_payload = str(control_record["artifact_payload_utf8"])
+            padding_bytes = byte_limit + 1 - len(base_payload.encode("utf-8"))
+            mutated_payload = base_payload + (" " * max(1, padding_bytes))
+        else:
+            require(False, f"{control_id}: unknown canonicalization mutation")
+            continue
+        if mutation != "set_payload_to_lone_surrogate":
+            require(
+                mutated_payload != control_record["artifact_payload_utf8"],
+                f"{control_id}: mutation did not change the source payload",
+            )
+        control_record["artifact_payload_utf8"] = mutated_payload
+        if recompute_digest:
+            control_record["artifact_digest"] = (
+                "sha256:" + hashlib.sha256(mutated_payload.encode("utf-8")).hexdigest()
+            )
+        observed_status = evaluate_service_evidence_case({"records": [control_record]}, target)
+        require(
+            observed_status == expected_status,
+            f"{control_id}: expected {expected_status}, got {observed_status}",
+        )
+
+    mutated_claim = evidence_by_id["measurement_mutated_without_rehashed_artifact"]
+    require(
+        evaluate_service_evidence_case(mutated_claim, target) == "REJECT_ARTIFACT_CLAIM_MISMATCH",
+        "mutated claim without changing artifact bytes must be rejected",
+    )
+    mutated_bytes = evidence_by_id["artifact_payload_mutated_without_digest_update"]
+    require(
+        evaluate_service_evidence_case(mutated_bytes, target) == "REJECT_ARTIFACT_DIGEST_MISMATCH",
+        "mutated artifact bytes without digest update must be rejected",
+    )
+
+    conflict_case = evidence_by_id["conflicting_current_observations"]
+    conflict_status = evaluate_service_evidence_case(conflict_case, target)
+    reverse_case = dict(conflict_case)
+    reverse_case["records"] = list(reversed(conflict_case["records"]))
+    reverse_status = evaluate_service_evidence_case(reverse_case, target)
+    require(
+        conflict_status == reverse_status == "UNKNOWN_CONFLICTED",
+        "conflicting-source conclusion must be order-invariant and not last-write-wins",
+    )
+    require(
+        "digest strings are syntax fixtures" in evidence_contract["digest_semantics"].lower(),
+        "digest-format test must not claim artifact-byte verification",
+    )
+    require(
+        "not physical availability proof" in evidence_contract["availability_rule"].lower(),
+        "service evidence candidate must not be represented as physical truth",
     )
 
     print(f"PASS: synthetic CRASH-BOOT reference corpus; {checks} contract/arithmetic assertions.")

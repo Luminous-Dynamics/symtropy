@@ -56,7 +56,7 @@ The reference capacity gate has 30 units/day available. The minimum supported de
 
 ## Dependency graph and recovery gates
 
-The JSON fixture also contains a separate `dependency_graph_reference` contract. Edges mean **required dependencies**: every declared prerequisite must be available and qualified before a dependent node is counted as available. Alternative groups are explicit: a service is supported only if at least one all-of group has every member in `VERIFIED_AVAILABLE` state.
+The JSON fixture also contains a separate `dependency_graph_reference` contract and a `service_evidence_reference` contract. Edges mean **required dependencies**: every declared prerequisite must be available and qualified before a dependent node is counted as available. Alternative groups are explicit: a service is supported only if at least one all-of group has every member in `VERIFIED_AVAILABLE` state.
 
 The six graph cases freeze the following behaviors:
 
@@ -69,6 +69,47 @@ The six graph cases freeze the following behaviors:
 
 This is a deliberately small graph-logic oracle, not a complete reliability model, fault-tree analysis, probabilistic risk assessment or diagnosis engine. It assumes the graph and qualification states have already been supplied by an authoritative evidence process; this code does not authenticate physical sensors, prove that a manual fallback exists, estimate failure rates, validate redundancy independence, or direct repairs. A future implementation needs typed node/edge identities, evidence lineage and freshness, units/capacity, time-dependent transitions, cycle detection, common-cause groups, and explicit repair/requalification receipts.
 
+## Local artifact-digest verification canary
+
+The fixture includes a SHA-256 known-answer canary with literal UTF-8 evidence-payload bytes and a pinned expected digest, plus a one-measurement mutation control. A separate synthetic configuration payload has its own pinned digest, and a one-scope-byte mutation must change that digest. The service-evidence target and qualifying records now use this configuration digest rather than a syntax-only placeholder; an explicit oracle assertion ties the target digest to the hashed configuration bytes. These known-answer values are invented test data, not physical configuration evidence.
+
+One service-evidence record is also **content-bound**: its `artifact_payload_utf8` field holds a canonical, sorted-key compact JSON claim object; the verifier recomputes SHA-256 against `artifact_digest`, checks the fixture-local canonical byte representation, and compares every bound field to the parsed payload. Negative controls reject a changed claim with unchanged bytes, changed bytes with an unchanged digest, and noncanonical bytes even when their new digest is correct. The remaining evidence cases still use syntax-shaped *evidence artifact* digests to isolate other field semantics; their configuration digest refers to the pinned synthetic configuration payload except in explicit mismatch/malformed controls. The canonical JSON rule here is a narrow fixture contract, not a claim of conformance to an interoperable JSON canonicalization standard. This is not a general authenticated artifact registry.
+
+Neither the canary nor the content-bound vector authenticates issuer identity, validates a digital signature, fetches an external artifact, establishes trusted time, proves calibration status, or shows that the evidence describes a physical asset. There is no production trust root or complete signature/authentication scheme.
+
+## Canonical JSON boundary and interoperability gate
+
+The content-bound example uses integer token `1`, rather than `1.0`, and now references the SHA-256 digest of the separate pinned synthetic configuration payload. Its updated artifact digest is `056be46c4f471c2e5ba50ba9631335a905727148d11b0116cc7d25984c3aa750` (without the `sha256:` prefix). The Python oracle checks the configuration payload against its pinned digest and checks that the service-evidence target uses that digest. A second, dependency-free Node.js test helper (`scripts/verify_crash_boot_payload_vectors.mjs`) independently checks the evidence payload hash/bound fields, verifies the target configuration digest against configuration bytes, checks the config mutation control, applies the byte cap and hostile-input controls, and exercises three JCS known-answer vectors for ECMAScript number serialization, UTF-16 property ordering and negative zero. Regression assertions reject whitespace changes even after re-hashing, duplicate property names, non-finite numeric tokens, negative-zero spelling, a payload string that cannot be encoded as UTF-8, malformed syntax, overflow/depth parsing failures and over-limit claim envelopes.
+
+The Node.js helper uses ECMAScript serialization primitives and UTF-16 sorting for these known-answer tests, but **neither the narrow Python rule nor this limited cross-check is represented as full RFC 8785 (JCS) conformance or production authentication**. A separately reviewed interoperable evidence profile with the full applicable conformance corpus remains necessary. The Python standard library documents that `json.loads` normally retains only the last occurrence of a repeated object name and accepts `NaN`/`Infinity` through its default constant parser; Python 3.11 also added a configurable limit for integer-string conversion. The verifier therefore cannot rely on the default decoder alone to enforce a portable evidence-byte contract ([Python `json` documentation](https://docs.python.org/3/library/json.html), [Python `sys` documentation](https://docs.python.org/3/library/sys.html#sys.get_int_max_str_digits)).
+
+[RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html) also specifies ECMAScript-compatible primitive serialization and sorts object member names by UTF-16 code units, not simply the host language's default string ordering. It constrains input to the I-JSON subset, including no duplicate member names and IEEE-754-compatible numbers, and forbids NaN/Infinity. Equivalent key/value objects may otherwise serialize differently between languages and produce different signature/hash bytes. See [Section 3.1](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.1), [Sections 3.2.2–3.2.3](https://www.rfc-editor.org/rfc/rfc8785.html#section-3.2.2), and the [verified errata on negative zero](https://www.rfc-editor.org/errata/rfc8785).
+
+Before evidence payloads are exchanged or signed across Rust/Python/JavaScript implementations, adopt a separately reviewed canonicalization profile and run interoperable known-answer vectors—including numeric edge cases, escaped strings, Unicode property ordering, duplicate members, non-finite numbers and negative zero—using an implementation tested against the profile's conformance corpus. Do not promote this fixture helper into a production trust component by renaming it or by relying on this narrow regression set.
+
+The nine current negative controls are declarative entries in `service_evidence_reference.artifact_binding_rule.canonicalization_negative_controls`. Each entry pins an ID, mutation operation, whether the altered payload digest is recomputed, and the expected rejection status. Besides serialization ambiguities, the set includes malformed syntax, an exponent that overflows finite numeric representation, deeply nested JSON, and a claim payload larger than the explicitly pinned 65,536-byte local envelope limit. The size cap is for the embedded claim envelope only—not for separate evidence artifacts—and must be re-evaluated for any new evidence profile. The oracle converts parser value/depth errors into rejection outcomes rather than uncaught exceptions and rejects over-limit payloads before hashing/parsing. It pins the complete ID/mutation/digest-policy/verdict mapping before replaying them so a fixture edit cannot quietly weaken expected outcomes. This metadata makes the cases portable for future independent checkers without claiming that the checker itself implements JCS.
+
+## Service evidence and repair qualification reference
+
+The `service_evidence_reference` section of the JSON corpus adds twenty-one synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
+
+- fresh, in-scope evidence with an eligible method, valid calibration, compatible unit and an in-range measurement;
+- stale evidence, a future observation timestamp, revoked/superseded evidence and malformed digest syntax;
+- mismatched asset revision or configuration, missing method/calibration context, expired calibration, incompatible units and an out-of-criterion result;
+- a reported repair without a post-repair test; a passing-looking post-repair record bound to the wrong asset revision; a current-revision post-repair receipt that qualifies under the local fixture rule; and a malformed configuration digest;
+- one content-bound record and negative controls for a claim mutation that is not reflected in the bytes and a payload mutation that is not reflected in the digest;
+- multiple current observations that disagree, including reversal of record order to establish that the verdict is not last-write-wins.
+
+The result `VERIFIED_AVAILABLE_CANDIDATE` is intentionally named as a *candidate*. It means only that the fixture's local rule checks accepted the record fields. For the one content-bound case, the checker also confirms that a local payload's UTF-8 bytes match the pinned digest and that its parsed claim fields equal the record fields. The other evidence cases use syntax-shaped digest values to isolate field semantics.
+
+This does not authenticate an issuer, validate a signature, fetch external evidence, establish trusted time, prove calibration status, or confirm that a physical device satisfies an acceptance criterion. A production contract still needs independently pinned artifact bytes, issuer authorization/revocation, trusted chronology, schema/toolchain pins, context-of-use criteria and protected evidence storage.
+
+Timestamp handling is explicit: an observation in the future is rejected, age is measured against the declared evaluation time, and expired validity intervals are not considered current. These fixtures do not define freshness windows for real pressure vessels, water treatment systems, crew medical records or other assets; those policies must be justified per evidence type and hazard.
+
+A `POST_REPAIR_TEST_PASSED` record must include a repair receipt ID, repair-attempt ID, repaired asset revision, repair configuration digest, post-repair test ID and result, and the asset revision tested. All revision/configuration bindings must match the current target, and the test result must be `PASS`. A status flag alone does not restore service. The current-revision receipt outcome remains a local synthetic contract result: no actual repair, instrument, signature, or physical measurement is verified.
+
+For conflicting sources, the synthetic contract returns `UNKNOWN_CONFLICTED` rather than resolving by arrival order. This is intentionally conservative; real evidence reconciliation requires source-specific trust, independence and measurement-uncertainty policies and cannot be inferred from this small checker.
+
 ## Research implications
 
 The contract follows the structure of established human-spaceflight systems engineering without pretending their values transfer to an unknown planet:
@@ -80,6 +121,14 @@ The contract follows the structure of established human-spaceflight systems engi
 - NASA's [planetary-protection overview](https://sma.nasa.gov/sma-disciplines/planetary-protection/) motivates retaining unknown biological status and contamination pathways as explicit constraints.
 
 These references establish subsystem boundaries and verification expectations, not extraterrestrial deployment readiness, acceptable exposure limits for an unknown world, or numerical inputs for this corpus.
+
+For the evidence/provenance layer, three general-purpose standards offer useful *design patterns*, not ready-made certification of physical service records:
+
+- W3C [Verifiable Credentials Data Model v2.0](https://www.w3.org/TR/2025/REC-vc-data-model-2.0-20250515/) separates issuer claims, holders and verifiers, and defines a `credentialStatus` extension point for states such as suspension or revocation. It is a candidate interoperability reference if Mycelix later needs portable signed evidence claims; credential format alone does not make a sensor, issuer or test trustworthy.
+- The [in-toto Attestation Framework Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md) binds an attestation to explicit subject artifact digests and a typed predicate. Its broader framework separates predicate, statement, authentication envelope and bundle. This separation is useful for distinguishing what was tested, the claim made about it, and the mechanism authenticating the claim. It is a software-supply-chain design pattern, not a life-support standard.
+- W3C [PROV-O](https://www.w3.org/TR/prov-o/) provides a general vocabulary for provenance entities, activities and responsible agents, and is a possible mapping target for cross-project audit events.
+
+Do not adopt any of these standards wholesale without a separate profile defining canonicalization, signature suite, key/issuer authorization, revocation freshness, offline operation, privacy, exact physical scope, and context-of-use policy. PR #1632 adds a content-hash binding example only; the service evidence cases still do not verify issuer signatures or a production trust chain.
 
 ## Admission and non-claims
 
