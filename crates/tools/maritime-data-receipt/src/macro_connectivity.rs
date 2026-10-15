@@ -457,27 +457,42 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
     }
     let mut current = value;
     for part in &parts[..parts.len() - 1] {
-        current = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?
-            .get_mut(*part).ok_or("INVALID_CORPUS_MUTATION")?;
+        current = current
+            .as_object_mut()
+            .ok_or("INVALID_CORPUS_MUTATION")?
+            .get_mut(*part)
+            .ok_or("INVALID_CORPUS_MUTATION")?;
     }
     let leaf = parts[parts.len() - 1];
-    let object = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
+    let object = current
+        .as_object_mut()
+        .ok_or("INVALID_CORPUS_MUTATION")?;
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
         "set" => {
-            if !object.contains_key(leaf) { return Err("INVALID_CORPUS_MUTATION"); }
+            if !object.contains_key(leaf) {
+                return Err("INVALID_CORPUS_MUTATION");
+            }
             object.insert(
                 leaf.to_owned(),
-                mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
             );
         }
         "insert" => {
             object.insert(
                 leaf.to_owned(),
-                mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
+                mutation
+                    .get("value")
+                    .cloned()
+                    .ok_or("INVALID_CORPUS_MUTATION")?,
             );
         }
         "remove" => {
-            if object.remove(leaf).is_none() { return Err("INVALID_CORPUS_MUTATION"); }
+            if object.remove(leaf).is_none() {
+                return Err("INVALID_CORPUS_MUTATION");
+            }
         }
         _ => return Err("INVALID_CORPUS_MUTATION"),
     }
@@ -491,26 +506,33 @@ mod tests {
 
     #[test]
     fn frozen_plsci_profile_corpus_matches_expected_dispositions() {
-        let corpus: Value = serde_json::from_str(include_str!(
-            "../tests/fixtures/plsci-profile-corpus-v0.1.json"
-        ))
-            .expect("frozen PLSCI profile corpus must be valid JSON");
-        assert_eq!(corpus["corpus_id"], "luminous.symtropy.maritime-plsci-profile-corpus");
+        let corpus_text = include_str!("../tests/fixtures/plsci-profile-corpus-v0.1.json");
+        let corpus: Value =
+            serde_json::from_str(corpus_text).expect("frozen PLSCI profile corpus must be valid JSON");
+        assert_eq!(
+            corpus["corpus_id"],
+            "luminous.symtropy.maritime-plsci-profile-corpus"
+        );
         assert_eq!(corpus["corpus_version"], "0.1.0");
-        let bases = corpus["base_profiles"].as_object().expect("base profile map");
+        let bases = corpus["base_profiles"]
+            .as_object()
+            .expect("base profile map");
         let cases = corpus["cases"].as_array().expect("profile cases");
         assert_eq!(cases.len(), 21, "frozen PLSCI case count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base profile");
-            let mut candidate = bases.get(base).expect("declared base profile").clone();
+            let mut candidate = bases
+                .get(base)
+                .expect("declared base profile")
+                .clone();
             for mutation in case["mutations"].as_array().expect("mutation list") {
                 mutate_path(
                     &mut candidate,
                     mutation["path"].as_str().expect("mutation path"),
                     mutation,
                 )
-                    .unwrap_or_else(|error| panic!("{id}: invalid corpus mutation: {error}"));
+                .unwrap_or_else(|error| panic!("{id}: invalid corpus mutation: {error}"));
             }
             let actual = match validate_profile(&candidate) {
                 Ok(()) => VALID,
@@ -522,16 +544,18 @@ mod tests {
 
     #[test]
     fn profile_schema_is_valid_json_and_pins_the_same_identity() {
-        let schema: Value = serde_json::from_str(include_str!(
-            "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
-        ))
-            .expect("PLSCI profile schema must be valid JSON");
+        let schema_text = include_str!("../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json");
+        let schema: Value =
+            serde_json::from_str(schema_text).expect("PLSCI profile schema must be valid JSON");
         assert_eq!(
             schema["properties"]["schema_id"]["const"],
             "luminous.symtropy.maritime-plsci-profile"
         );
         assert_eq!(schema["properties"]["schema_version"]["const"], "0.1.0");
-        assert_eq!(schema["properties"]["series"]["properties"]["spatial_level"]["const"], "port");
+        assert_eq!(
+            schema["properties"]["series"]["properties"]["spatial_level"]["const"],
+            "port"
+        );
         assert_eq!(
             schema["properties"]["series"]["properties"]["temporal_frequency"]["const"],
             "quarterly"
@@ -548,10 +572,9 @@ mod tests {
 
     #[test]
     fn source_port_ids_are_not_treated_as_locodes_or_terminal_ids() {
-        let profile: Value = serde_json::from_str(include_str!(
-            "../tests/fixtures/synthetic-plsci-profile.json"
-        ))
-            .expect("synthetic profile");
+        let profile_text = include_str!("../tests/fixtures/synthetic-plsci-profile.json");
+        let profile: Value =
+            serde_json::from_str(profile_text).expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
         assert_eq!(profile["selection"]["source_port_ids"][0], "SYNTH-001");
         assert!(profile["selection"].get("candidate_locode").is_none());
@@ -562,16 +585,20 @@ mod tests {
         let profile_bytes = include_bytes!("../tests/fixtures/synthetic-plsci-profile.json");
         let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-plsci-receipt.json");
         let profile: Value = serde_json::from_slice(profile_bytes).expect("profile JSON");
-        let strict_receipt = super::super::parse_strict(receipt_bytes).expect("strict receipt");
-        let facts = super::super::validate_receipt(&strict_receipt).expect("receipt contract");
-        let receipt: Value = serde_json::from_slice(receipt_bytes).expect("receipt JSON");
-        assert!(super::verify_receipt_semantics(&profile, &receipt, receipt_bytes, &facts).is_ok());
+        let strict_receipt =
+            super::super::parse_strict(receipt_bytes).expect("strict receipt");
+        let facts =
+            super::super::validate_receipt(&strict_receipt).expect("receipt contract");
+        let receipt: Value =
+            serde_json::from_slice(receipt_bytes).expect("receipt JSON");
+        assert!(
+            super::verify_receipt_semantics(&profile, &receipt, receipt_bytes, &facts).is_ok()
+        );
 
         let mut changed = profile.clone();
-        changed["receipt_binding"]["receipt_sha256"] =
-            Value::String(
-                "0000000000000000000000000000000000000000000000000000000000000000".to_owned(),
-            );
+        changed["receipt_binding"]["receipt_sha256"] = Value::String(
+            "0000000000000000000000000000000000000000000000000000000000000000".to_owned(),
+        );
         assert_eq!(
             super::verify_receipt_semantics(&changed, &receipt, receipt_bytes, &facts),
             Err("RECEIPT_BINDING_MISMATCH")
@@ -587,12 +614,15 @@ mod tests {
 
     #[test]
     fn profile_is_only_a_metadata_claim() {
-        let profile: Value = serde_json::from_str(include_str!(
-            "../tests/fixtures/synthetic-plsci-profile.json"
-        ))
-            .expect("synthetic profile");
+        let profile_text = include_str!("../tests/fixtures/synthetic-plsci-profile.json");
+        let profile: Value =
+            serde_json::from_str(profile_text).expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
-        assert!(!profile["intended_use"]["navigation_authorized"].as_bool().expect("boolean"));
+        assert!(
+            !profile["intended_use"]["navigation_authorized"]
+                .as_bool()
+                .expect("boolean")
+        );
         assert!(
             !profile["intended_use"]["physical_truth_claim_authorized"]
                 .as_bool()
