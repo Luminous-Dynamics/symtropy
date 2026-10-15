@@ -11,7 +11,6 @@ use std::collections::HashMap;
 use std::fmt;
 
 use nalgebra::{SMatrix, UnitQuaternion};
-use symtropy_math::Point;
 use symtropy_physics_diff_core::{
     BodyObservation, ObservationError, ObservationFrame, RunIdentity,
 };
@@ -125,6 +124,7 @@ mod tests {
     use super::*;
     use nalgebra::SVector;
     use std::f64::consts::FRAC_PI_2;
+    use symtropy_math::Point;
     use symtropy_math::{Bivector, Rotor};
 
     fn identity() -> RunIdentity {
