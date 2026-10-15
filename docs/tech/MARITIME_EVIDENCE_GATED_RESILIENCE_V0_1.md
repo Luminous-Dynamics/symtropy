@@ -15,7 +15,7 @@ The graph has four node types:
 - **Assumption** states a model assumption and a declared sensitivity-review status. Assumptions are not disguised as data.
 - **Claim target** specifies the kind of conclusion being investigated and links to every dependency. It is a target, not an executed output.
 
-The DAG is deliberately conservative: duplicate identifiers, unknown parents, self-dependencies, cycles and unused nodes are rejected. Every node must contribute to the claim target. Source receipt and artifact bytes are checked against the exact declared SHA-256 values, and the source paths in each receipt must agree with the manifest. The verifier resolves referenced paths inside the workspace and rejects symlinks that resolve outside it.
+The DAG is deliberately conservative: duplicate identifiers, unknown parents, self-dependencies, cycles, claim targets used as inputs and unused nodes are rejected. Every node must contribute to the claim target. Source receipt and artifact bytes are checked against the exact declared SHA-256 values; model and transformation configuration files are hashed independently too. Source kind, artifact path and declared data-time bounds must agree with each receipt. Referenced files must resolve inside the workspace, including after symlink resolution.
 
 ## Do not collapse evidence into a scalar
 
