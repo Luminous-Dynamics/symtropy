@@ -22,7 +22,7 @@ cargo run -p symtropy-housing-evidence -- \
   --brief docs/built-environment/fixtures/example-home-design-brief.json
 ```
 
-The report separately identifies schema validity, brief validity, exact brief linkage, space-accounting consistency, and basic geometry consistency. Editing even the whitespace of the referenced brief changes its digest, so the candidate must be rebound and checked against that exact file revision.
+The report separately identifies schema validity, brief validity, exact brief linkage, space-accounting consistency, and basic geometry consistency. It also reports per-zone width, depth, rectangular area, optional resident target area, and area delta. These metrics are informational: rectangles do not encode wall thickness or usable floor area, and target areas are resident exploration values rather than code minima. Editing even the whitespace of the referenced brief changes its digest, so the candidate must be rebound and checked against that exact file revision.
 
 ## Space accounting and conflicts
 
@@ -46,4 +46,4 @@ Those require separate versioned checks with declared methods and evidence. Symt
 
 ## Test corpus
 
-Rust unit tests include a synthetic valid rectangle plan and negative controls for brief digest mismatch, overlapping rectangles, zones outside floor bounds, removal of a must-have space, and unrequested space IDs. This example is synthetic and makes no construction or compliance assertion.
+Rust unit tests include a synthetic valid rectangle plan and negative controls for brief digest mismatch, overlapping rectangles (including a small-area corner intersection), zones outside floor bounds, removal of a must-have space, and unrequested space IDs. The fixture also asserts numeric dimension/area metrics and confirms that a difference from the resident's target area is informational, not an automatic failure. This example is synthetic and makes no construction or compliance assertion.

@@ -55,6 +55,22 @@ impl Bounds {
     }
 }
 
+/// Measured rectangle dimensions compared with an optional resident target area.
+/// Rectangle area is not net usable floor area or a code-compliance measurement.
+#[derive(Debug, Serialize)]
+pub struct ZoneAreaMetric {
+    pub zone_id: String,
+    pub space_id: String,
+    pub instance_index: u64,
+    pub floor_id: String,
+    pub width_m: f64,
+    pub depth_m: f64,
+    pub rectangle_area_m2: f64,
+    pub target_area_m2: Option<f64>,
+    /// Candidate rectangle area minus target area; informational, never a gate.
+    pub delta_from_target_m2: Option<f64>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct LayoutValidationReport {
     pub validator_version: String,
@@ -71,6 +87,7 @@ pub struct LayoutValidationReport {
     pub reference_issues: Vec<String>,
     pub semantic_issues: Vec<String>,
     pub geometry_issues: Vec<String>,
+    pub zone_area_metrics: Vec<ZoneAreaMetric>,
     pub limitations: Vec<String>,
 }
 
@@ -144,8 +161,15 @@ pub fn validate_values(
 
     let mut semantic_issues = Vec::new();
     let mut geometry_issues = Vec::new();
+    let mut zone_area_metrics = Vec::new();
     if schema_valid {
-        check_semantics(layout, brief, &mut semantic_issues, &mut geometry_issues);
+        check_semantics(
+            layout,
+            brief,
+            &mut semantic_issues,
+            &mut geometry_issues,
+            &mut zone_area_metrics,
+        );
     }
 
     let semantic_valid = semantic_issues.is_empty();
@@ -176,7 +200,10 @@ pub fn validate_values(
         reference_issues,
         semantic_issues,
         geometry_issues,
+        zone_area_metrics,
         limitations: vec![
+            "Zone rectangle areas are geometric bounding-rectangle areas, not net usable floor areas.".to_string(),
+            "Area differences from resident targets are informational; targets are not code minima and do not invalidate a candidate.".to_string(),
             "Valid means only contract shape, exact brief linkage, space accounting, and simple rectangle geometry passed.".to_string(),
             "No openings, circulation, visibility, acoustics, daylight, thermal behavior, structure, accessibility compliance, cost, planning rules, permits, or code compliance are evaluated.".to_string(),
             "All same-floor zones must be disjoint; shared/multi-use zones require a future explicit relationship contract.".to_string(),
@@ -210,6 +237,7 @@ fn check_semantics(
     brief: &Value,
     semantic: &mut Vec<String>,
     geometry: &mut Vec<String>,
+    area_metrics: &mut Vec<ZoneAreaMetric>,
 ) {
     let mut floors = BTreeMap::<String, Bounds>::new();
     let mut floor_ids = BTreeSet::new();
@@ -249,6 +277,7 @@ fn check_semantics(
     }
 
     let mut space_specs = BTreeMap::<String, (String, u64)>::new();
+    let mut target_areas = BTreeMap::<String, Option<f64>>::new();
     for space in brief["spaces"].as_array().into_iter().flatten() {
         if let (Some(id), Some(priority), Some(quantity)) = (
             space["space_id"].as_str(),
@@ -256,6 +285,10 @@ fn check_semantics(
             space["quantity"].as_u64(),
         ) {
             space_specs.insert(id.to_owned(), (priority.to_owned(), quantity));
+            target_areas.insert(
+                id.to_owned(),
+                space.get("target_area_m2").and_then(Value::as_f64),
+            );
         }
     }
 
@@ -312,6 +345,30 @@ fn check_semantics(
             geometry.push(format!(
                 "zones[{index}] lies outside planning bounds for {floor_id:?}"
             ));
+        }
+        let width_m = bounds.x_max - bounds.x_min;
+        let depth_m = bounds.y_max - bounds.y_min;
+        if width_m.is_finite()
+            && depth_m.is_finite()
+            && width_m > GEOMETRY_TOLERANCE_M
+            && depth_m > GEOMETRY_TOLERANCE_M
+        {
+            let rectangle_area_m2 = width_m * depth_m;
+            if rectangle_area_m2.is_finite() {
+                let target_area_m2 = target_areas.get(space_id).copied().flatten();
+                area_metrics.push(ZoneAreaMetric {
+                    zone_id: id.to_owned(),
+                    space_id: space_id.to_owned(),
+                    instance_index: instance,
+                    floor_id: floor_id.to_owned(),
+                    width_m,
+                    depth_m,
+                    rectangle_area_m2,
+                    target_area_m2,
+                    delta_from_target_m2: target_area_m2
+                        .map(|target| rectangle_area_m2 - target),
+                });
+            }
         }
         positioned.push((id.to_owned(), floor_id.to_owned(), bounds));
     }
@@ -405,6 +462,17 @@ mod tests {
         assert!(report.semantic_valid, "{:?}", report.semantic_issues);
         assert!(report.geometry_valid, "{:?}", report.geometry_issues);
         assert_eq!(report.contract_status, "LAYOUT_CANDIDATE_CONTRACT_VALID");
+        assert_eq!(report.zone_area_metrics.len(), 10);
+        let living = report
+            .zone_area_metrics
+            .iter()
+            .find(|metric| metric.zone_id == "living-1")
+            .expect("living rectangle metric exists");
+        assert_eq!(living.width_m, 6.0);
+        assert_eq!(living.depth_m, 4.0);
+        assert_eq!(living.rectangle_area_m2, 24.0);
+        assert_eq!(living.target_area_m2, Some(28.0));
+        assert_eq!(living.delta_from_target_m2, Some(-4.0));
     }
 
     #[test]
