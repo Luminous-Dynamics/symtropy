@@ -1263,7 +1263,7 @@
           "expected_status": "REJECT_ARTIFACT_PAYLOAD_TOO_LARGE"
         }
       ],
-      "scope": "Only the named fixture record is content-bound in v0.1; other evidence cases still test field semantics with syntax-shaped digest fixtures. This does not authenticate issuer identity or establish physical truth.",
+      "scope": "Only the named evidence record's measurement claim payload is content-bound in v0.1; other evidence cases still use syntax-shaped evidence artifact digests to isolate field semantics. The service-evidence target configuration digest equals the SHA-256 of the separate pinned synthetic configuration payload. This does not authenticate issuer identity or establish physical truth.",
       "jcs_known_answer_vectors": [
         {
           "id": "rfc8785_number_serialization",
