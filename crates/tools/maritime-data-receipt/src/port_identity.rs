@@ -770,7 +770,7 @@ mod tests {
 
     #[test]
     fn matching_snapshot_hashes_never_admit_port_identity_or_operation() {
-        use super::{build_crosswalk_report, member, text};
+        use super::build_crosswalk_report;
 
         let bytes = include_bytes!("../tests/fixtures/synthetic-port-crosswalk.json");
         let crosswalk: Value =
@@ -841,10 +841,8 @@ mod tests {
             Ok(_) => panic!("report must reject a byte-match claim without checked paths"),
         }
 
-        // The helper must also reject a half-present path pair, even when the
-        // match flag is false, so malformed report states cannot be serialized.
-        let _source = member(&crosswalk, "source_snapshot").expect("source snapshot");
-        let _digest = text(_source, "artifact_sha256").expect("source digest");
+        // Reject a half-present path pair and a path pair that contradicts the
+        // declared match state, so malformed report states cannot be serialized.
         let partial = build_crosswalk_report(
             &crosswalk,
             bytes,
@@ -855,6 +853,16 @@ mod tests {
             "test-commit".to_owned(),
         );
         assert!(partial.is_err());
+        let contradictory = build_crosswalk_report(
+            &crosswalk,
+            bytes,
+            record_count,
+            Some("source-snapshot.json".to_owned()),
+            Some("locode-registry.json".to_owned()),
+            false,
+            "test-commit".to_owned(),
+        );
+        assert!(contradictory.is_err());
     }
 
     #[test]
