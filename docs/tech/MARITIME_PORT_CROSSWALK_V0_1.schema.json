@@ -277,7 +277,22 @@
                   "type": "string"
                 },
                 "locode_status": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "AA",
+                    "AC",
+                    "AF",
+                    "AI",
+                    "AM",
+                    "AQ",
+                    "AS",
+                    "RL",
+                    "RN",
+                    "RQ",
+                    "RR",
+                    "QQ",
+                    "UR"
+                  ]
                 },
                 "target_feature_id": {
                   "type": "string",
@@ -338,6 +353,9 @@
                 "evidence_refs": {
                   "type": "array",
                   "minItems": 1
+                },
+                "candidate_locode": {
+                  "type": "string"
                 }
               }
             }
