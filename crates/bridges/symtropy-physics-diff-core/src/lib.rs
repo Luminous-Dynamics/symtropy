@@ -373,7 +373,7 @@ mod tests {
         let frame = frame();
         let encoded = serde_json::to_string(&frame).expect("serialize validated frame");
         assert!(
-            !encoded.contains("\\"contact_count\\":null"),
+            !encoded.contains("contact_count"),
             "unavailable metrics should be omitted rather than encoded as fake zero/null values",
         );
 
