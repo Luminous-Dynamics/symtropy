@@ -36,3 +36,7 @@ The report preserves the supplied policy ID, evidence ID/revision, period, unit,
 ## Synthetic test coverage
 
 Offline Rust tests cover sorted receipts and input-order determinism, adjacent periods, distinct-resource accounting, quota overcommitment, arithmetic overflow, stale evidence at period start, period validity coverage, conflicted evidence, already-started periods, duplicate or unknown allocations, unit mismatch and unreferenced quotas. No real railway or terminal data are embedded in the tests.
+
+## Example: a shipment crossing the period boundary
+
+Suppose a shipment consumes 3 tonnes before midnight and 5 tonnes after midnight. The caller supplies one use of 3 tonnes against the first day's quota and a separate use of 5 tonnes against the next day's quota, each with its own evidence ID and period. The validator checks each day's total independently and preserves both lineages. It does not infer the 3/5 split from a shipment duration or route estimate; those amounts must come from an explicit, reviewed demand schedule.
