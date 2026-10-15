@@ -8,4 +8,7 @@ description = "Bounded accounting contract for garden infrastructure scenarios"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 
+[dev-dependencies]
+serde_json = "1.0"
+
 [workspace]
