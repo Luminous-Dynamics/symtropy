@@ -156,6 +156,10 @@ Compare natural-snow scenarios, snowmaking feasibility, storage, water and elect
 
 A peer-reviewed review published online on 23 September 2026 synthesizes falling snow-cover duration/reliability and limitations in evidence about the effectiveness of ski-tourism adaptation. [Yang et al., 2026](https://doi.org/10.1016/j.accre.2026.09.013). UNEP's Mountains ADAPT programme emphasizes locally driven and ecosystem-based adaptation. [UNEP Mountains ADAPT](https://www.unep.org/en/what-we-do/climate-action/adaptation/ecosystem-based-adaptation/mountains-adapt).
 
+A second September 2026 study using a choice experiment with South Korean ski tourists found that more specialized skiers preferred spatial adaptation more strongly, while less-specialized tourists placed greater emphasis on operational reliability and convenience. Treat this as evidence that adaptation preferences can differ by segment—not as a universal rule for all countries or guests. [Choi et al., 2026](https://doi.org/10.1016/j.jdmm.2026.101118).
+
+**Maladaptation check:** snowmaking or infrastructure expansion might protect short-term operations while increasing water/energy demand, emissions, fixed costs and future lock-in. Compare at least natural-snow-only, targeted technical adaptation, four-season diversification, and managed-transition scenarios. Include a no-new-investment or reversible investment option where appropriate.
+
 ## Shared engineering workflow
 
 1. Create a place dossier with precise site boundary, authoritative maps/data, cultural and customary access, climate and hazard sources, infrastructure, ecology, law and community review.
