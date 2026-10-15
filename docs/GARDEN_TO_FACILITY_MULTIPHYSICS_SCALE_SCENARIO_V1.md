@@ -106,7 +106,21 @@ Begin with a Johannesburg community-garden support cell, not a medicine factory:
 
 Compare later with a supervised physical water/energy monitoring experiment before changing model maturity. Extend to a regional network and aggregate transport/testing capacity only afterward. The downstream regulated facility remains an abstract, policy-gated node until a qualified party provides the exact capability and scope.
 
-## 8. Acceptance criteria
+## 8. Nutrition-sensitive local food production
+
+The first executable slice should extend the existing resource accounting boundary into nutrition-aware supply accounting only after source and semantic contracts are agreed. It must distinguish gross biomass, harvested mass, edible mass, post-harvest loss, food delivered, and the nutrient contribution calculated from a matching food-composition record.
+
+- A food record and composition record must match exact identity, cultivar/taxon scope where known, preparation state and source edition. No silent fallback to a generic food record.
+- Nutrient values require explicit nutrient identity, unit, denominator (initial profile: per 100 g of the declared food state), source reference and missingness/evidence state. Missing is not zero. All unit conversion is explicit and independently testable.
+- Compute per-nutrient contributions independently. Calories, total harvest weight or a single scalar score cannot compensate for a micronutrient shortfall.
+- Compare scenario portfolios across the time horizon for nutrient/food-group coverage, acceptability, seasonal availability, water, land, labour, energy, storage, waste, cost, resilience, ecology and distribution. Keep hard constraints separate from preferences and show Pareto trade-offs rather than asserting a universally optimal plan.
+- Results must preserve aggregate/population scope. They are not proof of an individual's nutritional adequacy, clinical suitability, or that every household received the reported amount.
+- Composition inputs must be sourced, versioned, license-reviewed and traceable. The South African SAFOODS 2024 tables are a candidate source but a paid product; public fixtures must not rehost their contents without permission. FAO/INFOODS tables and data-quality/food-matching guidance are the initial public source registry.
+- Food safety, botanical identity, soil/water risk, land permission and knowledge rights remain independent gates. A nutrition score must never clear a blocked or unknown safety/rights record.
+
+Symthaea's research/interface contract is tracked in [Symthaea PR #7476](https://github.com/Luminous-Dynamics/symthaea/pull/7476). This scenario document proposes no new production runtime or local crop-yield facts. The initial implementation should be a deterministic, offline calculator over source-pinned inputs, with an independent checker and synthetic positive/negative cases before any optimizer is trusted.
+
+## 9. Acceptance criteria
 
 - Deterministic replay for frozen inputs and engine/profile versions.
 - Strict units/ranges; invalid state rejected before mutation.
