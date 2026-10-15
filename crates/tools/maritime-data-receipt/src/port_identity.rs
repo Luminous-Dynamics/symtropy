@@ -9,7 +9,7 @@
 //! grant operational authority. Valid output is always NOT ADMITTED.
 
 use serde_json::{Map, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const ROOT_KEYS: &[&str] = &[
     "schema_id", "schema_version", "crosswalk_id", "fixture_kind",
@@ -269,19 +269,21 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
     if records.is_empty() {
         return Err("EMPTY_CROSSWALK");
     }
-    let mut source_ids = BTreeSet::new();
+    let mut source_candidate_pairs = BTreeSet::new();
+    let mut candidate_counts: BTreeMap<String, usize> = BTreeMap::new();
     for record in records {
         exact_keys(record, RECORD_KEYS)?;
         let source_id = text(record, "source_entity_id")?;
-        if !source_ids.insert(source_id) {
-            return Err("DUPLICATE_SOURCE_ENTITY");
-        }
         let source_level = text(record, "source_level")?;
         if !["country", "port", "terminal", "unknown"].contains(&source_level) {
             return Err("INVALID_SOURCE_LEVEL");
         }
 
         let candidate = nullable_text(record, "candidate_locode")?;
+        if !source_candidate_pairs.insert((source_id.to_owned(), candidate.map(str::to_owned))) {
+            return Err("DUPLICATE_SOURCE_ENTITY_CANDIDATE");
+        }
+        *candidate_counts.entry(source_id.to_owned()).or_insert(0) += 1;
         let function = nullable_text(record, "locode_function")?;
         let status = nullable_text(record, "locode_status")?;
         match candidate {
@@ -383,6 +385,19 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
             _ => unreachable!("mapping state was checked above"),
         }
     }
+
+    for record in records {
+        let source_id = text(record, "source_entity_id")?;
+        if candidate_counts.get(source_id).copied().unwrap_or(0) > 1 {
+            if text(record, "mapping_state")? != "ambiguous"
+                || nullable_text(record, "target_feature_id")?.is_some()
+                || text(record, "relationship")? != "none"
+            {
+                return Err("MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS");
+            }
+        }
+    }
+
     Ok(records.len())
 }
 
