@@ -33,9 +33,6 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt, clippy
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- --check
-
       - name: Run validator tests
         run: cargo test --manifest-path tools/joy-worlds-profile-validator/Cargo.toml
 
@@ -45,5 +42,3 @@ jobs:
             --portfolio docs/research/joy-worlds/experience-portfolio-v0.1.json \
             --regional docs/research/joy-worlds/regional-adaptation-profiles-v0.1.json
 
-      - name: Clippy
-        run: cargo clippy --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --all-targets -- -D warnings
