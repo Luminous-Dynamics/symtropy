@@ -142,9 +142,10 @@ def evaluate_service_evidence(
     if lifecycle not in ("CURRENT", "POST_REPAIR_TEST_PASSED"):
         return "REJECT_UNKNOWN_LIFECYCLE"
 
-    digest = record.get("artifact_digest")
-    if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
-        return "REJECT_INVALID_DIGEST"
+    for field in ("artifact_digest", "configuration_digest"):
+        digest = record.get(field)
+        if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            return "REJECT_INVALID_DIGEST"
 
     required = (
         "evidence_id",
@@ -172,6 +173,30 @@ def evaluate_service_evidence(
         if record[field] != target[field]:
             return "REJECT_SCOPE_MISMATCH"
 
+    if lifecycle == "POST_REPAIR_TEST_PASSED":
+        repair_required = (
+            "repair_receipt_id",
+            "repair_attempt_id",
+            "repaired_asset_revision",
+            "repair_configuration_digest",
+            "post_repair_test_id",
+            "post_repair_test_status",
+            "post_repair_tested_asset_revision",
+        )
+        if any(record.get(key) is None or record.get(key) == "" for key in repair_required):
+            return "REQUALIFICATION_REQUIRED"
+        repair_digest = record["repair_configuration_digest"]
+        if not isinstance(repair_digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", repair_digest):
+            return "REJECT_INVALID_DIGEST"
+        if (
+            record["repaired_asset_revision"] != target["asset_revision"]
+            or record["post_repair_tested_asset_revision"] != target["asset_revision"]
+            or repair_digest != target["configuration_digest"]
+        ):
+            return "REJECT_SCOPE_MISMATCH"
+        if record["post_repair_test_status"] != "PASS":
+            return "REQUALIFICATION_REQUIRED"
+
     evaluated_at = parse_timestamp(target.get("evaluation_time"))
     observed_at = parse_timestamp(record.get("observed_at"))
     valid_until = parse_timestamp(record.get("valid_until"))
@@ -179,7 +204,10 @@ def evaluate_service_evidence(
         return "REJECT_INVALID_TIME"
     if observed_at > evaluated_at:
         return "REJECT_FUTURE_OBSERVATION"
-    if (evaluated_at - observed_at).total_seconds() > float(target["max_age_seconds"]) or valid_until <= evaluated_at:
+    if (
+        (evaluated_at - observed_at).total_seconds() > float(target["max_age_seconds"])
+        or valid_until <= evaluated_at
+    ):
         return "NOT_AVAILABLE_STALE"
 
     if record["method_qualification"] != "QUALIFIED":
@@ -202,7 +230,6 @@ def evaluate_service_evidence(
     if measured < lower or measured > upper:
         return "FAIL_ACCEPTANCE"
     return "VERIFIED_AVAILABLE_CANDIDATE"
-
 
 def evaluate_service_evidence_case(
     case: dict[str, object], target: dict[str, object]
@@ -635,7 +662,7 @@ def main() -> None:
             f"duplicate service-evidence case id: {evidence_case_id}",
         )
         evidence_by_id[evidence_case_id] = evidence_case
-    require(len(evidence_by_id) == 15, "service-evidence case count changed")
+    require(len(evidence_by_id) == 19, "service-evidence case count changed")
 
     for evidence_case in evidence_cases:
         expected_status = str(evidence_case["expected_status"])
@@ -644,6 +671,40 @@ def main() -> None:
             observed_status == expected_status,
             f"{evidence_case['id']}: expected {expected_status}, got {observed_status}",
         )
+
+    repair_contract = evidence_contract["repair_receipt_semantics"]
+    required_repair_fields = (
+        "repair_receipt_id",
+        "repair_attempt_id",
+        "repaired_asset_revision",
+        "repair_configuration_digest",
+        "post_repair_test_id",
+        "post_repair_test_status",
+        "post_repair_tested_asset_revision",
+    )
+    require(
+        tuple(repair_contract["required_for_post_repair_candidate"]) == required_repair_fields,
+        "repair receipt field contract changed without revision",
+    )
+    require(
+        "exact current asset revision" in repair_contract["rule"].lower(),
+        "repair receipt must bind to current asset revision",
+    )
+    valid_repair = evidence_by_id["qualified_post_repair_test_current_revision"]
+    require(
+        evaluate_service_evidence_case(valid_repair, target) == "VERIFIED_AVAILABLE_CANDIDATE",
+        "current-revision passing repair receipt should satisfy the synthetic candidate rule",
+    )
+    missing_repair = evidence_by_id["post_repair_status_without_receipt"]
+    require(
+        evaluate_service_evidence_case(missing_repair, target) == "REQUALIFICATION_REQUIRED",
+        "a post-repair status without receipt must remain unqualified",
+    )
+    wrong_revision_repair = evidence_by_id["repair_receipt_bound_to_wrong_revision"]
+    require(
+        evaluate_service_evidence_case(wrong_revision_repair, target) == "REJECT_SCOPE_MISMATCH",
+        "repair and test receipts for an older revision must not qualify the current asset",
+    )
 
     conflict_case = evidence_by_id["conflicting_current_observations"]
     conflict_status = evaluate_service_evidence_case(conflict_case, target)
