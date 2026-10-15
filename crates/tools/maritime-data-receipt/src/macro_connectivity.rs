@@ -475,6 +475,20 @@ mod tests {
     }
 
     #[test]
+    fn profile_schema_is_valid_json_and_pins_the_same_identity() {
+        let schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"))
+            .expect("PLSCI profile schema must be valid JSON");
+        assert_eq!(
+            schema["properties"]["schema_id"]["const"],
+            "luminous.symtropy.maritime-plsci-profile"
+        );
+        assert_eq!(schema["properties"]["schema_version"]["const"], "0.1.0");
+        assert_eq!(schema["properties"]["series"]["properties"]["spatial_level"]["const"], "port");
+        assert_eq!(schema["properties"]["series"]["properties"]["temporal_frequency"]["const"], "quarterly");
+        assert_eq!(schema["properties"]["series"]["properties"]["benchmark_period"]["const"], "2023-Q1");
+    }
+
+    #[test]
     fn source_port_ids_are_not_treated_as_locodes_or_terminal_ids() {
         let profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-plsci-profile.json"))
             .expect("synthetic profile");
