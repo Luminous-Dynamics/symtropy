@@ -931,6 +931,43 @@ mod tests {
     }
 
     #[test]
+    fn exact_floor_boundary_recovers_at_the_end_of_the_second_interval() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][0]["served_rate"] =
+            serde_json::json!([100, 70, 60, 80, 80, 95]);
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(90));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        let report = evaluate_bytes(&changed, "test").expect("exact floor is a valid recovery boundary");
+        let metric = report.trajectory_metrics.iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        assert_eq!(metric.integrated_unmet_service_units, 90);
+        assert_eq!(metric.recovery_time_hours, Some(5));
+    }
+
+    #[test]
+    fn an_interrupted_recovery_streak_does_not_count_as_recovery() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][0]["served_rate"] =
+            serde_json::json!([100, 70, 60, 90, 70, 85]);
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(125));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["recovery_time_hours"] = Value::Null;
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["recovery_status"] = Value::String("NOT_OBSERVED_WITHIN_HORIZON".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        let report = evaluate_bytes(&changed, "test").expect("interrupted streak should remain unrecovered");
+        let metric = report.trajectory_metrics.iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        assert_eq!(metric.integrated_unmet_service_units, 125);
+        assert_eq!(metric.recovery_time_hours, None);
+        assert_eq!(metric.recovery_status, "NOT_OBSERVED_WITHIN_HORIZON");
+    }
+
+    #[test]
     fn a_required_unknown_case_cannot_gain_a_quantitative_projection() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
         let changed = raw.replacen("\"status\": \"INDETERMINATE\"", "\"status\": \"FEASIBLE\"", 1);
