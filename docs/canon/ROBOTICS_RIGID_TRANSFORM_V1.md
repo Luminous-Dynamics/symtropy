@@ -29,8 +29,9 @@ The API is compatible with the base world-contract equation for static child-to-
 - PointInFrameV1 includes a frame label and metre coordinates. Transforming it applies rotation and translation.
 - DirectionInFrameV1 includes a frame label and free-vector components. Transforming it applies rotation only.
 - RigidTransformV1::compose composes rigid transforms/poses and rejects non-contiguous frame edges.
+- QualifiedRigidTransformV1 binds each transform to the qualified-world content digest, rejects undeclared source/target frames, and refuses to compose edges bound to different qualified-world digests. A convention-registry mutation therefore prevents accidental mixing of edges from different qualified worlds.
 
-Points and directions must be finite and match the transform source frame. Transformed non-finite results fail closed in their validated constructors.
+Points and directions must be finite and match the transform source frame. Transformed non-finite results fail closed in their validated constructors. Binding a numerical transform to a world is a consistency check, not proof that its numeric values are physically correct.
 
 ## Quaternion acceptance policy
 
