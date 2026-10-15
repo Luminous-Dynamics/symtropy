@@ -58,6 +58,23 @@ The 22-case synthetic corpus at `crates/tools/maritime-data-receipt/tests/fixtur
 
 This gate does **not** parse forecast observations/predictions from the artifact, authenticate a publisher, establish forecast skill, judge uncertainty quality, choose universal freshness thresholds, compute under-keel clearance, or authorize navigation, berth decisions or physical actions. A temporally applicable result always remains `NotAdmitted`; source licensing, payload semantics, model suitability and independent engineering review are separate gates. All committed forecast bytes are synthetic.
 
+
+## Synthetic disruption-rehearsal contract mode
+
+The disruption-rehearsal contract at `docs/tech/MARITIME_DISRUPTION_REHEARSAL_V0_1.md` defines a deliberately small cross-project fixture with three simulated plans and five required disruption cases. Run the abstract contract evaluator with:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \\
+  --evaluate-disruption-rehearsal \\
+  docs/tech/MARITIME_DISRUPTION_REHEARSAL_V0_1.json
+```
+
+This command **does not execute a physical simulation**. It validates the exact nested contract and frozen plan preconditions; independently recomputes issue-age and forecast-lead arithmetic from canonical UTC timestamps; checks issue/init/assessment/target chronology, target coverage and named policy bounds; derives all 15 plan/case dispositions; compares both outcomes and blocker explanations against the frozen expectations; and emits a JSON report bound to the exact fixture-byte SHA-256. Unknown states, nested-field drift, blocker drift, a future-issued forecast, invalid policy arithmetic and any authority escalation fail with a non-zero exit code.
+
+The Rust test module contains a separate classifier and calendar oracle that does not call the production reducer or timestamp conversion. Mutation tests exercise stale-evidence monotonicity, hard-constraint precedence, unknown fields/states, blocker changes, policy arithmetic drift, look-ahead and authority boundaries. These tests must still pass through the exact-head workflow; source inspection and queued CI are not passes.
+
+The report's contract-match status remains `NotAdmitted`, and all navigation, physical-truth, berth-inference, reservation/custody and physical-execution authorities remain false. The “feasible within declared model” disposition means only that the supplied **abstract states** satisfy this contract's rule; this is not vessel/port physics, engineering qualification, operational feasibility or project integration. All inputs are synthetic, and real-source capture remains a separate open gate.
+
 ## UNCTADstat PLSCI macro-connectivity profile
 
 The separate metadata contract at `docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json` pins the Port Liner Shipping Connectivity Index table `US.PLSCI` to port-level quarterly semantics, index points on a global-average benchmark of 100 for 2023-Q1 (100 is not assigned to a specific port), and the 2024 six-component methodology vintage and the explicit normalization formula (each component divided by its global Q1 2023 component mean, then the six ratios averaged and multiplied by 100). It requires source-native port IDs and explicit selected quarters, preserves incomplete coverage and source-reported estimates/suppression, and forbids silent zero-fill, forward-fill, interpolation, port-call/berth inference, and operational or navigation authority. It does not parse individual observations or prove that a source name maps to a real location.
