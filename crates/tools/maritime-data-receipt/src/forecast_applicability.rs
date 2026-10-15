@@ -114,6 +114,9 @@ fn timestamp_seconds(value: &str, path: &str) -> Result<i64, String> {
     let number = |start: usize, end: usize| value[start..end].parse::<i64>()
         .map_err(|_| format!("{path}: invalid timestamp digits"));
     let year = number(0, 4)?;
+    if year == 0 {
+        return Err(format!("{path}: year zero is not a valid RFC3339 timestamp"));
+    }
     let month = number(5, 7)?;
     let day = number(8, 10)?;
     let hour = number(11, 13)?;
@@ -266,9 +269,9 @@ fn validate_and_evaluate(
     }
 
     let source_age = (issue_seconds <= assessment_seconds)
-        .then_some((assessment_seconds - issue_seconds) as u64);
+        .then(|| (assessment_seconds - issue_seconds) as u64);
     let forecast_lead = (target_seconds >= init_seconds)
-        .then_some((target_seconds - init_seconds) as u64);
+        .then(|| (target_seconds - init_seconds) as u64);
 
     let mut findings = Vec::new();
     let mut applicable = true;
