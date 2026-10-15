@@ -108,7 +108,7 @@ fn valid_utc_timestamp(value: &str) -> bool {
     (1..=days).contains(&day)
 }
 
-fn timestamp(value: &Value, key: &str) -> Result<&str, &'static str> {
+fn timestamp<'a>(value: &'a Value, key: &str) -> Result<&'a str, &'static str> {
     let value = text(value, key)?;
     if !valid_utc_timestamp(value) {
         return Err("INVALID_UTC_TIMESTAMP");
@@ -166,7 +166,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     let coverage = member(profile, "coverage")?;
     exact_keys(coverage, COVERAGE_KEYS)?;
     text(coverage, "coverage_id")?;
-    if text(coverage, "horizontal_crs")?.is_empty() {
+    if !coverage.get("horizontal_crs").and_then(Value::as_str).is_some_and(|value| !value.trim().is_empty()) {
         return Err("MISSING_CRS");
     }
     let vertical_reference = nullable_text(coverage, "vertical_reference")?;
@@ -226,7 +226,9 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     if !["provided", "not_provided", "not_applicable_synthetic"].contains(&uncertainty_state) {
         return Err("INVALID_QUALITY_STATE");
     }
-    if uncertainty_state == "not_provided" {
+    if uncertainty_state == "not_provided"
+        || (source_kind == "public_dataset" && uncertainty_state == "not_applicable_synthetic")
+    {
         return Err("QUALITY_METADATA_UNKNOWN");
     }
     if code == "S-102" && (uncertainty_state != "provided" || nullable_text(quality, "uncertainty_ref")?.is_none()) {
