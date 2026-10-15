@@ -139,7 +139,19 @@ function run() {
   const integrity = fixture.artifact_integrity_reference;
   assert.equal(sha256(Buffer.from(integrity.payload_utf8, 'utf8')), 'sha256:' + integrity.expected_sha256);
   assert.notEqual(sha256(Buffer.from(integrity.altered_payload_utf8, 'utf8')), 'sha256:' + integrity.expected_sha256);
-  assert.equal(sha256(Buffer.from(integrity.configuration_payload_utf8, 'utf8')), 'sha256:' + integrity.expected_configuration_sha256);
+  const configurationHash = sha256(Buffer.from(integrity.configuration_payload_utf8, 'utf8'));
+  assert.equal(configurationHash, 'sha256:' + integrity.expected_configuration_sha256);
+  assert.notEqual(
+    sha256(Buffer.from(integrity.altered_configuration_payload_utf8, 'utf8')),
+    configurationHash,
+    'one-field configuration mutation must change the pinned SHA-256 digest',
+  );
+  assert.ok(integrity.configuration_mutation_rule.toLowerCase().includes('scope bytes must change'));
+  assert.equal(
+    evidence.target.configuration_digest,
+    configurationHash,
+    'service-evidence target must use the digest of the pinned configuration bytes',
+  );
 
   const jcsVectors = binding.jcs_known_answer_vectors;
   const expectedJcsIds = ['rfc8785_number_serialization', 'jcs_utf16_key_order', 'jcs_negative_zero'];
@@ -155,6 +167,7 @@ function run() {
   assert.ok(fresh && fresh.records.length === 1, 'fresh content-bound control must be exactly one record');
   const record = fresh.records[0];
   assert.ok(record.artifact_payload_utf8, 'fresh content-bound payload missing');
+  assert.equal(record.configuration_digest, evidence.target.configuration_digest);
   assert.equal(
     classifyPayload(record.artifact_payload_utf8, record.artifact_digest, record, byteLimit),
     'VERIFIED_AVAILABLE_CANDIDATE',
