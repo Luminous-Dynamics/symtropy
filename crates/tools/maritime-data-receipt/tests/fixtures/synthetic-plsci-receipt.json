@@ -1,0 +1,64 @@
+{
+  "schema_id": "luminous.symtropy.maritime-data-receipt",
+  "schema_version": "0.1.0",
+  "receipt_id": "synthetic-plsci-profile-receipt-v0",
+  "source": {
+    "kind": "synthetic_fixture",
+    "publisher": "SYNTHETIC-TEST-ONLY",
+    "dataset_id": "US.PLSCI",
+    "product": "other",
+    "source_uri": null,
+    "dataset_revision": "synthetic-revision-2026-10-15"
+  },
+  "retrieval": {
+    "method": "local_fixture",
+    "retrieved_at_utc": null,
+    "request_uri": null,
+    "http_status": null,
+    "reported_content_type": "application/json",
+    "collector_version": "maritime-data-receipt/0.1.0"
+  },
+  "artifact": {
+    "relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-payload.json",
+    "media_type": "application/json",
+    "byte_length": 120,
+    "hash_algorithm": "sha-256",
+    "sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14",
+    "bytes_scope": "exact_file_bytes"
+  },
+  "data_context": {
+    "domain": "other",
+    "coordinate_reference_system": null,
+    "vertical_datum": null,
+    "units": [
+      "dimensionless"
+    ],
+    "time_coverage_start_utc": null,
+    "time_coverage_end_utc": null,
+    "survey_or_observation_time_utc": null,
+    "verification_state": "synthetic",
+    "uncertainty_statement": "Invented fixture only; not UNCTAD data or an actual observation.",
+    "freshness_policy": "not_applicable_synthetic",
+    "freshness_policy_description": "Synthetic metadata-contract fixture; no operational freshness claim."
+  },
+  "terms": {
+    "review_status": "not_applicable_synthetic",
+    "license_name": "not_applicable_synthetic_fixture",
+    "license_uri": null,
+    "reviewer": null,
+    "reviewed_at_utc": null,
+    "terms_sha256": null,
+    "permitted_use_statement": "Invented test fixture only; do not represent as sourced UNCTAD values."
+  },
+  "intended_use": {
+    "scope": "synthetic_test_only",
+    "navigation_use_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "independent_review_required": true
+  },
+  "claim_ceiling": [
+    "Synthetic macro-connectivity profile contract tests only.",
+    "Not actual UNCTAD PLSCI values or observed port data.",
+    "No network, port-call, berth availability, navigation, safety or operational authority."
+  ]
+}
