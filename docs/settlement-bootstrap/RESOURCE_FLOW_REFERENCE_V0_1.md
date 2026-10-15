@@ -56,7 +56,7 @@ The reference capacity gate has 30 units/day available. The minimum supported de
 
 ## Dependency graph and recovery gates
 
-The JSON fixture also contains a separate `dependency_graph_reference` contract. Edges mean **required dependencies**: every declared prerequisite must be available and qualified before a dependent node is counted as available. Alternative groups are explicit: a service is supported only if at least one all-of group has every member in `VERIFIED_AVAILABLE` state.
+The JSON fixture also contains a separate `dependency_graph_reference` contract and a `service_evidence_reference` contract. Edges mean **required dependencies**: every declared prerequisite must be available and qualified before a dependent node is counted as available. Alternative groups are explicit: a service is supported only if at least one all-of group has every member in `VERIFIED_AVAILABLE` state.
 
 The six graph cases freeze the following behaviors:
 
@@ -68,6 +68,22 @@ The six graph cases freeze the following behaviors:
 6. A reference to an undeclared dependency is rejected, with the missing identifier retained for diagnostics.
 
 This is a deliberately small graph-logic oracle, not a complete reliability model, fault-tree analysis, probabilistic risk assessment or diagnosis engine. It assumes the graph and qualification states have already been supplied by an authoritative evidence process; this code does not authenticate physical sensors, prove that a manual fallback exists, estimate failure rates, validate redundancy independence, or direct repairs. A future implementation needs typed node/edge identities, evidence lineage and freshness, units/capacity, time-dependent transitions, cycle detection, common-cause groups, and explicit repair/requalification receipts.
+
+## Service evidence and repair qualification reference
+
+The `service_evidence_reference` section of the JSON corpus adds fifteen synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
+
+- fresh, in-scope evidence with an eligible method, valid calibration, compatible unit and an in-range measurement;
+- stale evidence, a future observation timestamp, revoked/superseded evidence and malformed digest syntax;
+- mismatched asset revision or configuration, missing method/calibration context, expired calibration, incompatible units and an out-of-criterion result;
+- a reported repair without a post-repair test and a passing-looking post-repair record bound to the wrong asset revision;
+- multiple current observations that disagree, including reversal of record order to establish that the verdict is not last-write-wins.
+
+The result `VERIFIED_AVAILABLE_CANDIDATE` is intentionally named as a *candidate*. It means only that the fixture's local rule checks accepted the record fields. The test does not authenticate its issuer, fetch or hash the referenced artifact, prove calibration status, validate the acceptance criterion, or confirm a physical device. The digest is syntax-shaped synthetic data. A production contract needs independent trust roots, exact artifact-byte verification, issuer authorization/revocation, source chronology, schema/toolchain pins, context-of-use criteria and protected evidence storage.
+
+Timestamp handling is explicit: an observation in the future is rejected, age is measured against the declared evaluation time, and expired validity intervals are not considered current. These fixtures do not define the freshness windows appropriate for a real pressure vessel, water treatment system, crew medical record or other asset; those policies must be justified per evidence type and hazard.
+
+For conflicting sources, the synthetic contract returns `UNKNOWN_CONFLICTED` rather than resolving by arrival order. This is intentionally conservative; real evidence reconciliation requires source-specific trust, independence and measurement uncertainty policies and must not be inferred from this small checker.
 
 ## Research implications
 
