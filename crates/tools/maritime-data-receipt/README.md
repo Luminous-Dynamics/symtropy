@@ -52,6 +52,16 @@ The metadata guard requires a production UN/LOCODE release identifier (for examp
 
 The report's structural pass still returns `NotAdmitted`: the `--validate-port-crosswalk` mode checks the declared structure and digest syntax but does not fetch the UN/LOCODE package or compare its digests with bytes on disk. The separate `--verify-port-crosswalk-snapshots` mode accepts a crosswalk plus explicit source-snapshot and registry-file paths; it hashes those exact file bytes and fails closed on either mismatch. It still does not establish publisher authenticity, licence permission, freshness, semantic correctness, or a real location match. The paired `synthetic-source-snapshot.json` and `synthetic-locode-registry-snapshot.json` are only test bytes, not copied authoritative data.
 
+To run the exact-byte mode against the synthetic positive fixture:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \
+  --verify-port-crosswalk-snapshots \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-source-snapshot.json \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-locode-registry-snapshot.json
+```
+
 ## Fail-closed metadata gates
 
 The verifier rejects duplicate JSON object keys; missing or unknown fields; schema/version drift; traversal or absolute artifact paths declared inside the receipt; byte length or SHA-256 mismatches; invalid source/retrieval semantics; public-dataset records without HTTPS source/request URIs, retrieval time, a recorded reviewed-permitted terms decision, reviewer, review timestamp and terms digest; water-level records without a vertical datum; hydrography records without a CRS; and invalid unit, temporal, status or claim-ceiling declarations.

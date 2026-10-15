@@ -690,21 +690,28 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/tests/fixtures/synthetic-locode-registry-snapshot.json"
         );
-        assert!(verify_snapshot_digest(
+
+        let source_match = verify_snapshot_digest(
             source,
             "853e9639988bd96dead635195dc37390fd4d48b30ec29b062a7b1dfe43dbf73c",
-            "source snapshot"
-        ).is_ok());
-        assert!(verify_snapshot_digest(
+            "source snapshot",
+        );
+        assert!(source_match.is_ok());
+
+        let registry_match = verify_snapshot_digest(
             registry,
             "06432a56a5d354570bb431215af2e8637cb2d18fb05b93ccda26b09c7b8d79de",
-            "UN/LOCODE registry"
-        ).is_ok());
-        assert!(verify_snapshot_digest(
+            "UN/LOCODE registry",
+        );
+        assert!(registry_match.is_ok());
+
+        let mismatch = verify_snapshot_digest(
             source,
             "0000000000000000000000000000000000000000000000000000000000000000",
-            "source snapshot"
-        ).unwrap_err().contains("SHA-256 mismatch"));
+            "source snapshot",
+        )
+        .expect_err("a wrong digest must fail closed");
+        assert!(mismatch.contains("SHA-256 mismatch"));
     }
 
 }
