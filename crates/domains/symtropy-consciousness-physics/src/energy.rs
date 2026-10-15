@@ -199,7 +199,11 @@ impl EnergyBudget {
 
         let temperature_rise = energy / self.heat_capacity;
         let new_temperature = self.temperature + temperature_rise;
-        let entropy_increment = energy / new_temperature;
+        // For constant heat capacity, the body entropy change is the exact
+        // state-function integral ΔS = ∫(C dT/T) = C ln(T_f/T_i).
+        // ln_1p avoids losing precision when the temperature rise is small.
+        let relative_temperature_rise = temperature_rise / self.temperature;
+        let entropy_increment = self.heat_capacity * relative_temperature_rise.ln_1p();
         let new_entropy = self.entropy + entropy_increment;
         if !temperature_rise.is_finite()
             || !new_temperature.is_finite()
@@ -440,9 +444,12 @@ mod tests {
     #[test]
     fn heat_transfer_updates_temperature_and_entropy() {
         let mut budget = EnergyBudget::new(100.0);
+        let initial_temperature = budget.temperature;
+        let heat_capacity = budget.heat_capacity;
         budget.try_dissipate_heat(100.0).unwrap();
         assert!((budget.temperature - 311.0).abs() < 1e-12);
-        assert!(budget.entropy > 0.0);
+        let exact_entropy_change = heat_capacity * (budget.temperature / initial_temperature).ln();
+        assert!((budget.entropy - exact_entropy_change).abs() < 1e-12);
     }
 
     #[test]
