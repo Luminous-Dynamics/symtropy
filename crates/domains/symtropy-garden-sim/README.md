@@ -10,6 +10,10 @@ This isolated Rust crate provides an exact integer accounting checker for one re
 
 Every field in one balance must use the unit fixed by its resource kind. The checker does not perform unit conversion. Flow, addition, loss and tolerance fields are non-negative unsigned integers; the storage delta is signed. Expected balance is recomputed with wide integer arithmetic and the absolute error uses overflow-safe integer difference.
 
+## Wire format
+
+To preserve exactness across JSON clients that use IEEE-754 numeric values, all `u64`, `i128` and `u128` quantities are serialized as decimal strings (for example, `"18446744073709551615"`), not JSON numbers. The schema version remains a small integer. Consumers must parse these quantity strings with integer-safe handling and must not coerce them through floating-point numbers.
+
 ## Run
 
 ```sh
