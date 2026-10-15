@@ -715,7 +715,7 @@ fn run() -> Result<(), String> {
     let first_arg = args.next();
     if first_arg.as_deref() == Some("--validate-s100-profile") {
         let profile_path = args.next().ok_or_else(|| {
-            "usage: maritime-data-receipt --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+            "usage: maritime-data-receipt --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override] [terms-snapshot-path-override]".to_owned()
         })?;
         let receipt_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
@@ -738,6 +738,7 @@ fn run() -> Result<(), String> {
             "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
         })?;
         let artifact_override = args.next();
+        let terms_snapshot_override = args.next();
         if args.next().is_some() {
             return Err("too many arguments for macro-connectivity profile verification".to_owned());
         }
@@ -745,6 +746,7 @@ fn run() -> Result<(), String> {
             &profile_path,
             &receipt_path,
             artifact_override.as_deref(),
+            terms_snapshot_override.as_deref(),
         );
     }
     if first_arg.as_deref() == Some("--verify-port-crosswalk-snapshots") {
