@@ -71,27 +71,32 @@ This is a deliberately small graph-logic oracle, not a complete reliability mode
 
 ## Local artifact-digest verification canary
 
-The fixture now includes an independent SHA-256 known-answer canary with literal UTF-8 payload bytes and a pinned expected digest, plus a one-measurement mutation that must not retain the original digest. A second payload pins a synthetic configuration digest. This checks the local hashing implementation and a tamper-detection negative control.
+The fixture includes a SHA-256 known-answer canary with literal UTF-8 payload bytes and a pinned expected digest, plus a one-measurement mutation control. A second payload pins a synthetic configuration digest. This checks the local hashing implementation and a tamper-detection negative control.
 
-**This canary is separate from the service-evidence records.** The evidence case digests remain syntax-shaped claims except where a case explicitly states otherwise; the verifier does not fetch or authenticate evidence artifacts, validate issuer signatures, or prove the evidence describes a physical asset. Passing the canary proves only that the verifier hashes the specific local test bytes correctly and that a one-field byte change changes the digest. It is not a production trust root or a signature/authentication scheme.
+One service-evidence record is also **content-bound**: its `artifact_payload_utf8` field holds a canonical, sorted-key compact JSON claim object; the verifier recomputes SHA-256 and compares every bound field to the parsed payload. Two negative controls (a changed claim with unchanged bytes, and changed bytes with an unchanged digest) must be rejected. The remaining evidence cases still use syntax-shaped digests to isolate other field semantics. This is a deliberately narrow first content-binding vector, not a general authenticated artifact registry.
+
+Neither the canary nor the content-bound vector authenticates issuer identity, validates a digital signature, fetches an external artifact, establishes trusted time, proves calibration status, or shows that the evidence describes a physical asset. There is no production trust root or complete signature/authentication scheme.
 
 ## Service evidence and repair qualification reference
 
-The `service_evidence_reference` section of the JSON corpus adds nineteen synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
+The `service_evidence_reference` section of the JSON corpus adds twenty-one synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
 
 - fresh, in-scope evidence with an eligible method, valid calibration, compatible unit and an in-range measurement;
 - stale evidence, a future observation timestamp, revoked/superseded evidence and malformed digest syntax;
 - mismatched asset revision or configuration, missing method/calibration context, expired calibration, incompatible units and an out-of-criterion result;
 - a reported repair without a post-repair test; a passing-looking post-repair record bound to the wrong asset revision; a current-revision post-repair receipt that qualifies under the local fixture rule; and a malformed configuration digest;
+- one content-bound record and negative controls for a claim mutation that is not reflected in the bytes and a payload mutation that is not reflected in the digest;
 - multiple current observations that disagree, including reversal of record order to establish that the verdict is not last-write-wins.
 
-The result `VERIFIED_AVAILABLE_CANDIDATE` is intentionally named as a *candidate*. It means only that the fixture's local rule checks accepted the record fields. The test does not authenticate its issuer, fetch or hash the referenced artifact, prove calibration status, validate the acceptance criterion, or confirm a physical device. The digest is syntax-shaped synthetic data. A production contract needs independent trust roots, exact artifact-byte verification, issuer authorization/revocation, source chronology, schema/toolchain pins, context-of-use criteria and protected evidence storage.
+The result `VERIFIED_AVAILABLE_CANDIDATE` is intentionally named as a *candidate*. It means only that the fixture's local rule checks accepted the record fields. For the one content-bound case, the checker also confirms that a local payload's UTF-8 bytes match the pinned digest and that its parsed claim fields equal the record fields. The other evidence cases use syntax-shaped digest values to isolate field semantics.
 
-Timestamp handling is explicit: an observation in the future is rejected, age is measured against the declared evaluation time, and expired validity intervals are not considered current. These fixtures do not define the freshness windows appropriate for a real pressure vessel, water treatment system, crew medical record or other asset; those policies must be justified per evidence type and hazard.
+This does not authenticate an issuer, validate a signature, fetch external evidence, establish trusted time, prove calibration status, or confirm that a physical device satisfies an acceptance criterion. A production contract still needs independently pinned artifact bytes, issuer authorization/revocation, trusted chronology, schema/toolchain pins, context-of-use criteria and protected evidence storage.
 
-A `POST_REPAIR_TEST_PASSED` record must include a repair receipt ID, repair-attempt ID, repaired asset revision, repair configuration digest, post-repair test ID and result, and the asset revision tested. All revision/configuration bindings must match the currently evaluated target, and the test result must be `PASS`. A status flag alone does not restore service. The fixture's “current-revision receipt passes” outcome is a syntactic contract result only: no repair work, test instrument, signature, source artifact or physical measurement is verified here.
+Timestamp handling is explicit: an observation in the future is rejected, age is measured against the declared evaluation time, and expired validity intervals are not considered current. These fixtures do not define freshness windows for real pressure vessels, water treatment systems, crew medical records or other assets; those policies must be justified per evidence type and hazard.
 
-For conflicting sources, the synthetic contract returns `UNKNOWN_CONFLICTED` rather than resolving by arrival order. This is intentionally conservative; real evidence reconciliation requires source-specific trust, independence and measurement uncertainty policies and must not be inferred from this small checker.
+A `POST_REPAIR_TEST_PASSED` record must include a repair receipt ID, repair-attempt ID, repaired asset revision, repair configuration digest, post-repair test ID and result, and the asset revision tested. All revision/configuration bindings must match the current target, and the test result must be `PASS`. A status flag alone does not restore service. The current-revision receipt outcome remains a local synthetic contract result: no actual repair, instrument, signature, or physical measurement is verified.
+
+For conflicting sources, the synthetic contract returns `UNKNOWN_CONFLICTED` rather than resolving by arrival order. This is intentionally conservative; real evidence reconciliation requires source-specific trust, independence and measurement-uncertainty policies and cannot be inferred from this small checker.
 
 ## Research implications
 
