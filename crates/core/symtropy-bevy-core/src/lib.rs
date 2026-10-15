@@ -336,7 +336,7 @@ fn sweep_point_aabb(origin: Vec2, delta: Vec2, min: Vec2, max: Vec2) -> Option<(
             return None;
         }
     }
-    if entry < 0.0 || entry > 1.0 || exit < 0.0 {
+    if !(0.0..=1.0).contains(&entry) || exit < 0.0 {
         None
     } else {
         Some((entry, entry_normal))
@@ -852,24 +852,32 @@ pub fn cursor_capture_system(
     };
 }
 
+type FirstPersonCharacterQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static mut Transform,
+        &'static FirstPersonController,
+        Option<&'static mut FirstPersonMotion>,
+        Option<&'static FirstPersonCollision>,
+    ),
+    (With<FirstPersonController>, Without<FirstPersonObstacle>),
+>;
+
+type FirstPersonObstacleQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static Transform, &'static FirstPersonObstacle),
+    (With<FirstPersonObstacle>, Without<FirstPersonController>),
+>;
+
 /// Move all entities carrying [`FirstPersonController`] from the current intent frame.
 pub fn first_person_move_system(
     intents: Res<IntentFrame>,
     time: Res<Time>,
     controls: Res<ControlsState>,
-    mut characters: Query<
-        (
-            &mut Transform,
-            &FirstPersonController,
-            Option<&mut FirstPersonMotion>,
-            Option<&FirstPersonCollision>,
-        ),
-        (With<FirstPersonController>, Without<FirstPersonObstacle>),
-    >,
-    obstacles: Query<
-        (&Transform, &FirstPersonObstacle),
-        (With<FirstPersonObstacle>, Without<FirstPersonController>),
-    >,
+    mut characters: FirstPersonCharacterQuery,
+    obstacles: FirstPersonObstacleQuery,
 ) {
     let obstacle_bounds: Vec<(Vec3, Vec3)> = obstacles
         .iter()
