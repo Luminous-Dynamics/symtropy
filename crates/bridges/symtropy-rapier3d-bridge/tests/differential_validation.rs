@@ -736,3 +736,63 @@ fn stack_trace_is_invariant_to_nonsemantic_body_insertion_order() {
         "Rapier stack trace changed under a nonsemantic input permutation"
     );
 }
+
+#[test]
+fn free_fall_trajectory_is_invariant_to_uniform_translation() {
+    let scenario = free_fall_at_dt(0.01);
+    let translation = [100.0, 2.0, -50.0];
+    let mut translated = scenario.clone();
+    for body in &mut translated.bodies {
+        for (axis, offset) in translation.iter().enumerate() {
+            body.position_m[axis] += offset;
+        }
+    }
+    assert_eq!(scenario.scenario_id, translated.scenario_id);
+
+    let native = run_native_scenario_3d(&scenario).unwrap();
+    let native_translated = run_native_scenario_3d(&translated).unwrap();
+    let rapier = run_rapier_scenario_3d(&scenario).unwrap();
+    let rapier_translated = run_rapier_scenario_3d(&translated).unwrap();
+
+    for (backend, reference, shifted) in [
+        ("native", &native, &native_translated),
+        ("Rapier", &rapier, &rapier_translated),
+    ] {
+        assert_eq!(reference.samples.len(), shifted.samples.len());
+        for (reference_sample, shifted_sample) in
+            reference.samples.iter().zip(&shifted.samples)
+        {
+            assert_eq!(reference_sample.step, shifted_sample.step);
+            assert_eq!(reference_sample.time_s, shifted_sample.time_s);
+            assert_eq!(
+                reference_sample.bodies.len(),
+                shifted_sample.bodies.len()
+            );
+
+            for (reference_body, shifted_body) in reference_sample
+                .bodies
+                .iter()
+                .zip(&shifted_sample.bodies)
+            {
+                assert_eq!(reference_body.body_id, shifted_body.body_id);
+                for (axis, offset) in translation.iter().enumerate() {
+                    let observed_translation =
+                        shifted_body.position_m[axis] - reference_body.position_m[axis];
+                    assert!(
+                        (observed_translation - offset).abs() < 2.0e-4,
+                        "{backend} translation drift on axis {axis} at step {}: observed={observed_translation}, expected={offset}",
+                        reference_sample.step
+                    );
+                    let velocity_delta = shifted_body.linear_velocity_mps[axis]
+                        - reference_body.linear_velocity_mps[axis];
+                    assert!(
+                        velocity_delta.abs() < 1.0e-5,
+                        "{backend} velocity changed under translation on axis {axis} at step {}: delta={velocity_delta}",
+                        reference_sample.step
+                    );
+                }
+            }
+        }
+    }
+}
+
