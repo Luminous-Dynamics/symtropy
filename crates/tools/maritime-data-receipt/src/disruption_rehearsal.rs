@@ -529,7 +529,7 @@ fn disposition(
             } else if input.energy == "inadequate_for_declared_plan" {
                 Ok((
                     "UNSUPPORTED",
-                    vec!["energy behaviour while holding is outside the model scope"],
+                    vec!["declared energy behaviour while holding is outside the model scope"],
                 ))
             } else {
                 Ok(("FEASIBLE_WITHIN_DECLARED_MODEL", Vec::new()))
@@ -1019,7 +1019,7 @@ mod tests {
             "hold_and_reassess" if waiting != "declared_available" =>
                 vec!["designated_waiting_resource_declared_available"],
             "hold_and_reassess" if energy != "adequate" =>
-                vec!["energy behaviour while holding is outside the model scope"],
+                vec!["declared energy behaviour while holding is outside the model scope"],
             "hold_and_reassess" => Vec::new(),
             "prepare_alternate_terminal" if alternate != "confirmed" =>
                 vec!["alternate_capacity_confirmed"],
