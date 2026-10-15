@@ -57,6 +57,7 @@
     "terms_sha256": null,
     "attribution_statement": "Synthetic fixture only; not actual UNCTADstat data.",
     "review_evidence_uri": null,
+    "snapshot_retrieved_at_utc": null,
     "snapshot_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt",
     "snapshot_byte_length": 95,
     "snapshot_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
