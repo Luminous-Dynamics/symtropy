@@ -12,7 +12,8 @@
   "model": {
     "model_id": "synthetic-resilience-test-model",
     "revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
-    "config_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "config_sha256": "9344ff9371d96f11662306f2163d1d0df6da9c9920a5b170d8c42b0fae152476",
+    "config_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-scenario-model-config.json"
   },
   "nodes": [
     {
@@ -37,7 +38,8 @@
       ],
       "algorithm_id": "synthetic-port-connectivity-shock",
       "algorithm_revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
-      "config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "config_sha256": "93a67faead93afa09e438aa5b18bc695bcf2c5d2357cf01344c29acdf1a82b9a",
+      "config_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-connectivity-transform-config.json"
     },
     {
       "node_id": "assumption-loss",
