@@ -21,6 +21,8 @@ use std::fmt;
 
 mod batch_allocation;
 pub use batch_allocation::*;
+mod batch_verifier;
+pub use batch_verifier::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
