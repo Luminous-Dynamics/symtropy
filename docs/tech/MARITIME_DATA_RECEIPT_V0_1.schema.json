@@ -545,7 +545,10 @@
           "data_context": {
             "properties": {
               "domain": {
-                "const": "water_level"
+                "enum": [
+                  "water_level",
+                  "water_level_prediction"
+                ]
               }
             },
             "required": [
@@ -595,6 +598,41 @@
               "coordinate_reference_system": {
                 "type": "string",
                 "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "domain": {
+                "const": "water_level_prediction"
+              }
+            },
+            "required": [
+              "domain"
+            ]
+          }
+        },
+        "required": [
+          "data_context"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data_context": {
+            "properties": {
+              "time_coverage_start_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "time_coverage_end_utc": {
+                "type": "string",
+                "format": "date-time"
               }
             }
           }
