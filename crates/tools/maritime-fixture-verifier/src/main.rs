@@ -285,6 +285,19 @@ fn frozen_quantity(
     Ok(actual)
 }
 
+fn envelope_fits(
+    vessel_length_m: f64,
+    vessel_width_m: f64,
+    vessel_draft_m: f64,
+    berth_length_m: f64,
+    berth_width_m: f64,
+    berth_max_draft_m: f64,
+) -> bool {
+    vessel_length_m <= berth_length_m
+        && vessel_width_m <= berth_width_m
+        && vessel_draft_m <= berth_max_draft_m
+}
+
 fn lookup_entity<'a>(
     entities: &'a [JsonValue],
     wanted_id: &str,
@@ -862,32 +875,38 @@ fn verify_case(
             let berth = lookup_entity(entities, "berth.synthetic-01")?;
             let dimensions = field(vessel, "dimensions", "vessel")?;
             let constraints = field(berth, "constraints", "berth")?;
-            let fits = quantity(
-                field(dimensions, "length", "vessel.dimensions")?,
-                "m",
-                "vessel.length",
-            )?
-                <= quantity(
-                    field(constraints, "maximum_length", "berth.constraints")?,
+            let fits = envelope_fits(
+                quantity(
+                    field(dimensions, "length", "vessel.dimensions")?,
                     "m",
-                    "berth.maximum_length",
-                )?
-                && quantity(field(dimensions, "width", "vessel.dimensions")?, "m", "vessel.width")?
-                    <= quantity(
-                        field(constraints, "maximum_width", "berth.constraints")?,
-                        "m",
-                        "berth.maximum_width",
-                    )?
-                && quantity(
+                    "vessel.length",
+                )?,
+                quantity(
+                    field(dimensions, "width", "vessel.dimensions")?,
+                    "m",
+                    "vessel.width",
+                )?,
+                quantity(
                     field(dimensions, "declared_draft", "vessel.dimensions")?,
                     "m",
                     "vessel.declared_draft",
-                )?
-                    <= quantity(
-                        field(constraints, "maximum_declared_draft", "berth.constraints")?,
-                        "m",
-                        "berth.maximum_declared_draft",
-                    )?;
+                )?,
+                quantity(
+                    field(constraints, "maximum_length", "berth.constraints")?,
+                    "m",
+                    "berth.maximum_length",
+                )?,
+                quantity(
+                    field(constraints, "maximum_width", "berth.constraints")?,
+                    "m",
+                    "berth.maximum_width",
+                )?,
+                quantity(
+                    field(constraints, "maximum_declared_draft", "berth.constraints")?,
+                    "m",
+                    "berth.maximum_declared_draft",
+                )?,
+            )
             let energy_ok = stored >= contract.minimum_departure_energy_mwh;
             let envelope_result = if fits {
                 "FitsDeclaredSyntheticEnvelope"
@@ -1470,8 +1489,8 @@ mod tests {
 
     #[test]
     fn envelope_boundary_is_inclusive_and_does_not_use_tolerance() {
-        assert!(100.0_f64 <= 100.0_f64);
-        assert!(!(100.000_001_f64 <= 100.0_f64));
+        assert!(envelope_fits(100.0, 12.0, 3.0, 100.0, 18.0, 3.0));
+        assert!(!envelope_fits(100.000_001, 12.0, 3.0, 100.0, 18.0, 3.0));
     }
 
     #[test]
