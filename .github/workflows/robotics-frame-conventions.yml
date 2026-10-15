@@ -19,6 +19,7 @@ on:
       - 'crates/domains/symtropy-consciousness-physics/**'
       - 'scripts/verify_frame_convention_registry_v1.py'
       - 'scripts/verify_rigid_transform_v1.py'
+      - 'docs/canon/ROBOTICS_RIGID_TRANSFORM_V1.md'
   # Once the stacked change targets main, keep this check available on PRs too.
   pull_request:
     branches:
@@ -34,6 +35,7 @@ on:
       - 'crates/domains/symtropy-consciousness-physics/**'
       - 'scripts/verify_frame_convention_registry_v1.py'
       - 'scripts/verify_rigid_transform_v1.py'
+      - 'docs/canon/ROBOTICS_RIGID_TRANSFORM_V1.md'
 
 permissions:
   contents: read
