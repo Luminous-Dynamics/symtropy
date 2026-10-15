@@ -64,8 +64,9 @@ The synthetic case set perturbs the baseline independently and in combination: a
 3. If a constraint depends on expired or invalidated forecast evidence, degrade the dependent result to `INDETERMINATE`; do not carry forward its previous green state.
 4. If a selected case violates a hard constraint, mark that plan/case `INFEASIBLE` within this rehearsal.
 5. Report an alternate-terminal option as merely prepared while capacity/authority is unconfirmed. Do not create a Mycelix reservation or imply acceptance.
-6. Report the robust candidate set across the declared case family, but do not call the set “safe.” A plan is *robustly feasible within this rehearsal* only if all required hard constraints are supported and satisfied in every required case; otherwise explain exactly which cases/constraints block it.
-7. If all candidate plans are infeasible or indeterminate, report that plainly. Never force a winner.
+6. For `INDETERMINATE` and `UNSUPPORTED` outcomes, emit an **evidence gap** with a stable blocker code, required evidence kind, minimum evidence fields, and resolution scope. A gap identifies a next-evidence requirement; it does not imply that acquiring the evidence will make the plan feasible.
+7. Report the robust candidate set across the declared case family, but do not call the set “safe.” A plan is *robustly feasible within this rehearsal* only if all required hard constraints are supported and satisfied in every required case; otherwise explain exactly which cases/constraints block it.
+8. If all candidate plans are infeasible or indeterminate, report that plainly. Never force a winner.
 
 ## 5. Minimum run receipt
 
@@ -98,6 +99,19 @@ Emit a read-only comparison bundle with these conceptual collections:
 - `authority`: all physical/operational authority booleans false; simulated intent explicitly distinguished from actual events.
 
 Symthaea consumes this bundle as analysis-only input. Mycelix may preserve a proposed action as a `simulated_intent`/`proposed_allocation` type, with no coercion into actual reservation/custody/delivery event types. Sol Atlas projects the same bundle and lets each result be traced back through plan → constraint result → evidence → source receipt. A view refresh must not mutate or promote the underlying record.
+
+### Evidence-directed reassessment
+
+The fixture carries a versioned `evidence_requirements` catalog. Each `evidence_gap` in a contract-evaluation report binds:
+- the scenario case and candidate plan;
+- the exact blocker code;
+- a catalog requirement ID and required evidence kind;
+- minimum semantic fields to be present;
+- a resolution-scope statement which limits the conclusion that evidence may support.
+
+This is a request-for-evidence contract, not an automated source fetch, reservation, workflow dispatch, legal decision or authority grant. The catalog deliberately specifies evidence semantics and minimum fields, not undocumented provider endpoints. When a new source arrives, preserve its exact receipt/digest and re-run the assessment under a new run identity. Never edit a prior receipt to make an old decision appear better informed.
+
+A future integration should map requirement IDs to actual authoritative issuers only after each integration's identity, publication route, permissions, licence and revision behavior are verified. “Evidence requirement satisfied” must remain distinct from “constraint satisfied” and both remain distinct from real-world operational approval.
 
 ## 7. Adversarial and metamorphic tests to implement
 
