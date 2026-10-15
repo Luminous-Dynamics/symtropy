@@ -102,6 +102,14 @@ fn contains_any(values: &[String], needles: &[&str]) -> bool {
     })
 }
 
+fn require_tokens(values: &[String], required: &[&str], path: &str, errors: &mut Vec<String>) {
+    for token in required {
+        if !values.iter().any(|value| value == token) {
+            errors.push(format!("{path}: required evidence/guard token '{token}' is missing"));
+        }
+    }
+}
+
 /// Validates the Joy Worlds experience-portfolio manifest structurally.
 ///
 /// A successful result establishes manifest consistency only. It does not
@@ -130,7 +138,20 @@ pub fn validate_portfolio_json(raw: &str) -> Result<(), Vec<String>> {
     } else {
         errors.push("$.constraint_policy: required object".to_owned());
     }
-    required_strings(&document, "common_evidence_fields", "$", 1, &mut errors);
+    let evidence_fields =
+        required_strings(&document, "common_evidence_fields", "$", 1, &mut errors);
+    require_tokens(
+        &evidence_fields,
+        &[
+            "model_and_code_identity",
+            "assumptions_and_units",
+            "infeasibility_and_unknowns",
+            "site_specific_provenance_refs",
+            "capital_commitments_and_reversibility",
+        ],
+        "$.common_evidence_fields",
+        &mut errors,
+    );
 
     let mut candidate_ids = HashSet::new();
     if let Some(candidates) = required_array(&document, "candidates", "$", 1, &mut errors) {
@@ -202,10 +223,17 @@ pub fn validate_regional_profiles_json(raw: &str) -> Result<(), Vec<String>> {
             "resource_systems",
             "place_and_people",
             "operations",
-            "assessment",
         ] {
             required_strings(shared, key, "$.shared_contract", 1, &mut errors);
         }
+        let assessment =
+            required_strings(shared, "assessment", "$.shared_contract", 1, &mut errors);
+        require_tokens(
+            &assessment,
+            &["model_identity", "baseline_and_counterfactual", "reversibility_and_stranded_asset_exposure"],
+            "$.shared_contract.assessment",
+            &mut errors,
+        );
     } else {
         errors.push("$.shared_contract: required object".to_owned());
     }
@@ -300,7 +328,19 @@ pub fn validate_regional_profiles_json(raw: &str) -> Result<(), Vec<String>> {
         required_strings(protocol, "shared_scenarios", "$.comparative_protocol", 1, &mut errors);
         required_text(protocol, "paired_comparison_rule", "$.comparative_protocol", &mut errors);
         required_strings(protocol, "required_negative_controls", "$.comparative_protocol", 1, &mut errors);
-        required_strings(protocol, "outcome_dimensions", "$.comparative_protocol", 1, &mut errors);
+        let outcomes = required_strings(
+            protocol,
+            "outcome_dimensions",
+            "$.comparative_protocol",
+            1,
+            &mut errors,
+        );
+        require_tokens(
+            &outcomes,
+            &["option_value_and_stranded_asset_exposure"],
+            "$.comparative_protocol.outcome_dimensions",
+            &mut errors,
+        );
         required_text(protocol, "promotion_rule", "$.comparative_protocol", &mut errors);
     } else {
         errors.push("$.comparative_protocol: required object");
@@ -349,7 +389,14 @@ mod tests {
                 "soft_tradeoffs": ["cost", "variety"],
                 "rule": "Hard constraints cannot be traded away."
             },
-            "common_evidence_fields": ["candidate_id", "model_identity"],
+            "common_evidence_fields": [
+                "candidate_id",
+                "model_and_code_identity",
+                "assumptions_and_units",
+                "infeasibility_and_unknowns",
+                "site_specific_provenance_refs",
+                "capital_commitments_and_reversibility"
+            ],
             "candidates": [{
                 "id": "H1",
                 "name": "Aqua",
@@ -384,7 +431,11 @@ mod tests {
                 "resource_systems": ["water"],
                 "place_and_people": ["community_review"],
                 "operations": ["closure_modes"],
-                "assessment": ["model_identity"]
+                "assessment": [
+                    "model_identity",
+                    "baseline_and_counterfactual",
+                    "reversibility_and_stranded_asset_exposure"
+                ]
             },
             "profiles": [{
                 "id": "CUSTOM-REGION",
@@ -403,7 +454,7 @@ mod tests {
                 "shared_scenarios": ["baseline"],
                 "paired_comparison_rule": "Change one declared intervention.",
                 "required_negative_controls": ["unchanged control"],
-                "outcome_dimensions": ["resource use"],
+                "outcome_dimensions": ["resource use", "option_value_and_stranded_asset_exposure"],
                 "promotion_rule": "Synthetic only."
             },
             "sources": [{"topic": "Fixture source", "url": "https://example.org/source"}]
@@ -447,6 +498,22 @@ mod tests {
         document["comparative_protocol"]["initial_profiles"] = json!(["MISSING-PROFILE"]);
         let errors = validate_regional_profiles_json(&document.to_string()).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("unknown profile")));
+    }
+
+    #[test]
+    fn rejects_portfolio_missing_reversibility_evidence_field() {
+        let mut document = valid_portfolio();
+        document["common_evidence_fields"] = json!(["candidate_id", "model_and_code_identity"]);
+        let errors = validate_portfolio_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("capital_commitments_and_reversibility")));
+    }
+
+    #[test]
+    fn rejects_regional_manifest_missing_option_value_dimension() {
+        let mut document = valid_regions();
+        document["comparative_protocol"]["outcome_dimensions"] = json!(["resource use"]);
+        let errors = validate_regional_profiles_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("option_value_and_stranded_asset_exposure")));
     }
 
     #[test]
