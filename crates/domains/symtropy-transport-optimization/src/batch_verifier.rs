@@ -188,7 +188,7 @@ pub fn verify_shared_capacity_batch_report(
     for (assignment, (demand_id, candidate_set)) in
         report.assignments.iter().zip(demands_by_id.iter())
     {
-        if assignment.demand_id != *demand_id
+        if assignment.demand_id.as_str() != *demand_id
             || !seen_assignment_ids.insert(assignment.demand_id.as_str())
         {
             return Err(BatchReportVerificationError::InvalidReport(
@@ -294,7 +294,7 @@ fn verify_route_independently(
             .get(edge_id.as_str())
             .copied()
             .ok_or("route references an unknown edge")?;
-        if edge.from != current_node {
+        if edge.from.as_str() != current_node {
             return Err("route edges are not connected in listed order");
         }
         if edge.capacity_unit != demand.unit || edge.capacity < demand.quantity {
@@ -332,7 +332,7 @@ fn verify_route_independently(
         {
             return Err("route exceeds the demand time limit");
         }
-        if edge.to == demand.origin {
+        if edge.to.as_str() == demand.origin.as_str() {
             return Err("route returns to its origin");
         }
         if edge.to == demand.destination && position + 1 != route.edge_ids.len() {
