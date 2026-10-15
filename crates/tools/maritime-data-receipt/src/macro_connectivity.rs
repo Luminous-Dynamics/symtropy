@@ -188,7 +188,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     }
     if text(series, "benchmark_period")? != "2023-Q1"
         || text(series, "benchmark_scope")? != "global_average_port_connectivity"
-        || member(series, "benchmark_value")?.as_f64() != Some(100.0)
+        || member(series, "benchmark_value")?.as_u64() != Some(100)
     {
         return Err("WRONG_INDEX_BASE");
     }
@@ -390,7 +390,7 @@ struct ProfileReport {
     unit_semantics: String,
     benchmark_period: String,
     benchmark_scope: String,
-    benchmark_value: f64,
+    benchmark_value: u64,
     methodology_vintage: String,
     normalization_method: String,
     selected_geographic_scope: String,
@@ -479,8 +479,8 @@ pub(crate) fn run_cli(
         benchmark_scope: text(series, "benchmark_scope").map_err(str::to_owned)?.to_owned(),
         benchmark_value: member(series, "benchmark_value")
             .map_err(str::to_owned)?
-            .as_f64()
-            .ok_or_else(|| "benchmark_value must be numeric".to_owned())?,
+            .as_u64()
+            .ok_or_else(|| "benchmark_value must be a non-negative integer".to_owned())?,
         methodology_vintage: text(series, "methodology_vintage").map_err(str::to_owned)?.to_owned(),
         normalization_method: text(series, "normalization_method")
             .map_err(str::to_owned)?
@@ -722,17 +722,21 @@ mod tests {
             assert_eq!(required, expected, "schema/Rust required-field drift");
         }
 
-        assert_eq!(
-            schema["properties"]["missingness"]["properties"]["missing_is_zero"]["const"],
-            false
+        assert!(
+            !schema["properties"]["missingness"]["properties"]["missing_is_zero"]
+                ["const"]
+                .as_bool()
+                .expect("boolean")
         );
         assert_eq!(
             schema["properties"]["missingness"]["properties"]["forward_fill"]["const"],
             "forbidden"
         );
-        assert_eq!(
-            schema["properties"]["intended_use"]["properties"]["navigation_authorized"]["const"],
-            false
+        assert!(
+            !schema["properties"]["intended_use"]["properties"]["navigation_authorized"]
+                ["const"]
+                .as_bool()
+                .expect("boolean")
         );
     }
 
