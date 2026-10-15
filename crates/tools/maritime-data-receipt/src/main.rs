@@ -4,6 +4,7 @@
 
 mod s100_profile;
 mod port_identity;
+mod macro_connectivity;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -724,6 +725,23 @@ fn run() -> Result<(), String> {
             return Err("too many arguments for S-100 profile verification".to_owned());
         }
         return s100_profile::run_cli(
+            &profile_path,
+            &receipt_path,
+            artifact_override.as_deref(),
+        );
+    }
+    if first_arg.as_deref() == Some("--validate-macro-connectivity-profile") {
+        let profile_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+        })?;
+        let receipt_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-macro-connectivity-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+        })?;
+        let artifact_override = args.next();
+        if args.next().is_some() {
+            return Err("too many arguments for macro-connectivity profile verification".to_owned());
+        }
+        return macro_connectivity::run_cli(
             &profile_path,
             &receipt_path,
             artifact_override.as_deref(),
