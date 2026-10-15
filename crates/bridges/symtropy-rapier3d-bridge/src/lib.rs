@@ -303,11 +303,11 @@ mod tests {
         }
     }
 
-    struct DoubleForceCallback;
+    struct ScaleForceCallback(f64);
 
-    impl PhysicsCallback<3> for DoubleForceCallback {
+    impl PhysicsCallback<3> for ScaleForceCallback {
         fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
-            force * 2.0
+            force * self.0
         }
 
         fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
@@ -324,7 +324,7 @@ mod tests {
         fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
     }
 
-    fn y_after_one_step(dt: f32) -> f32 {
+    fn y_after_one_step(dt: f32) -> (f32, f32) {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
@@ -333,13 +333,17 @@ mod tests {
                 .additional_mass(1.0)
                 .build(),
         );
+        let caller_dt = world.parameters.dt;
 
         world.step(&mut bridge, dt).expect("valid fixed step");
-        bridge.post_step(&world.bodies)
+        let position_y = bridge
+            .post_step(&world.bodies)
             .into_iter()
             .find(|state| state.handle == handle)
             .expect("body state readback")
-            .translation[1]
+            .translation[1];
+        assert_eq!(world.parameters.dt, caller_dt);
+        (position_y, world.parameters.dt)
     }
 
     #[test]
@@ -367,11 +371,13 @@ mod tests {
 
     #[test]
     fn bridge_step_uses_requested_dt_without_mutating_caller_parameters() {
-        let short_dt_y = y_after_one_step(1.0 / 60.0);
-        let long_dt_y = y_after_one_step(1.0 / 30.0);
+        let (short_dt_y, short_parameters_dt) = y_after_one_step(1.0 / 60.0);
+        let (long_dt_y, long_parameters_dt) = y_after_one_step(1.0 / 30.0);
         let short_drop = 10.0 - short_dt_y;
         let long_drop = 10.0 - long_dt_y;
 
+        assert_eq!(short_parameters_dt, 1.0 / 60.0);
+        assert_eq!(long_parameters_dt, 1.0 / 60.0);
         assert!(short_drop > 0.0);
         assert!(long_drop > short_drop * 2.0);
     }
@@ -380,10 +386,17 @@ mod tests {
     fn invalid_delta_and_gravity_are_rejected_without_stepping() {
         let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
         let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
+        );
         assert_eq!(
             world.step(&mut bridge, f32::NAN),
             Err(RapierStepError::InvalidDelta)
         );
+        assert_eq!(world.bodies.get(handle).unwrap().translation().y, 10.0);
         assert_eq!(
             bridge.set_gravity(vector![0.0, f32::INFINITY, 0.0]),
             Err(RapierStepError::InvalidGravity)
@@ -392,8 +405,32 @@ mod tests {
     }
 
     #[test]
+    fn non_finite_callback_output_fails_before_mutating_body_state() {
+        let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(f64::NAN));
+        let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .additional_mass(1.0)
+                .build(),
+        );
+        world
+            .bodies
+            .get_mut(handle)
+            .expect("body inserted")
+            .add_force(vector![1.0, 0.0, 0.0], true);
+
+        assert!(matches!(
+            world.step(&mut bridge, 0.1),
+            Err(RapierStepError::NonFiniteModulatedForce { .. })
+        ));
+        let body = world.bodies.get(handle).expect("body retained");
+        assert!((body.user_force().x - 1.0).abs() < 1.0e-6);
+        assert_eq!(body.linvel().x, 0.0);
+    }
+
+    #[test]
     fn force_callback_does_not_compound_its_previous_output() {
-        let mut bridge = RapierPhysicsBridge::new(DoubleForceCallback);
+        let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(2.0));
         let mut world = TestWorld::new();
         let handle = world.bodies.insert(
             RigidBodyBuilder::dynamic()
