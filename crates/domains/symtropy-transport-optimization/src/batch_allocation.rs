@@ -1043,7 +1043,7 @@ mod tests {
                 candidate_with_completeness(
                     "d2",
                     4,
-                    vec![shared, alternate],
+                    vec![shared],
                     CandidatePoolCompleteness::ParetoFrontierOnly,
                 ),
             ],
