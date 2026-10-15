@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
     env, fs,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 const EMBEDDED_SCHEMA: &str =
@@ -670,6 +670,9 @@ mod tests {
             validate_paths(&receipt_path, &registry_path).expect("receipt schema compiles");
         assert_ne!(report.receipt_integrity_status, VERIFIED);
         assert!(!report.eligible_to_evaluate);
-        assert!(report.issues.iter().any(|issue| issue.contains("unsafe non-relative artifact path")));
+        assert!(report
+            .issues
+            .iter()
+            .any(|issue| issue.contains("unsafe non-relative artifact path")));
     }
 }

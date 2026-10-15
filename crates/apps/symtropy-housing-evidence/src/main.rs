@@ -165,9 +165,11 @@ fn main() -> ExitCode {
         };
     }
 
-    if args.first().map(String::as_str) == Some("--validate-rule-evaluation-receipt") {
+    if args.first().map(String::as_str) == Some("--validate-receipt") {
         if args.len() != 4 || args.get(2).map(String::as_str) != Some("--registry") {
-            eprintln!("Usage: housing-evidence-verify --validate-rule-evaluation-receipt <receipt.json> --registry <registry.json>");
+            eprintln!(
+                "Usage: housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json>"
+            );
             return ExitCode::from(2);
         }
         return match evaluation_receipt::validate_paths(Path::new(&args[1]), Path::new(&args[3])) {
@@ -375,7 +377,7 @@ fn usage() -> String {
         "Usage: housing-evidence-verify <manifest.json>",
         "       housing-evidence-verify --validate-brief <brief.json>",
         "       housing-evidence-verify --validate-jurisdiction-registry <registry.json>",
-        "       housing-evidence-verify --validate-rule-evaluation-receipt <receipt.json> --registry <registry.json>",
+        "       housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json>",
         "       housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
