@@ -36,6 +36,23 @@ This mode checks profile metadata, pinned numeric edition shape, product-specifi
 
 A valid profile report still returns `NotAdmitted`. This is not an S-100 payload decoder, IHO validation engine, publisher-authentication mechanism or navigation/engineering qualification result. All committed sample profiles/corpus values are synthetic.
 
+## UNCTADstat PLSCI macro-connectivity profile
+
+The separate metadata contract at `docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json` pins the Port Liner Shipping Connectivity Index table `US.PLSCI` to port-level quarterly semantics, index points benchmarked at 100 for 2023-Q1, and the 2024 six-component methodology vintage. It requires source-native port IDs and explicit selected quarters, preserves incomplete coverage and source-reported estimates/suppression, and forbids silent zero-fill, forward-fill, interpolation, port-call/berth inference, and operational or navigation authority. It does not parse individual observations or prove that a source name maps to a real location.
+
+Validate its metadata against the receipt and exact local payload bytes:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \\
+  --validate-macro-connectivity-profile \\
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-profile.json \\
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json
+```
+
+The frozen metadata-only hostile corpus is `crates/tools/maritime-data-receipt/tests/fixtures/plsci-profile-corpus-v0.1.json` (20 cases). The paired payload, receipt, profile, and corpus are invented synthetic test inputs—not captured UNCTAD rows and not a claim about any South African port. The profile CLI's success report remains `NotAdmitted` and explicitly says source authenticity, observed values, port identity, navigation and operational authority are not established.
+
+Research refs: [official PLSCI table metadata](https://unctadstat.unctad.org/datacentre/reportInfo/US.PLSCI), [UNCTAD Data Hub reuse terms](https://unctadstat.unctad.org/EN/About.html), and [source-capture runbook](../../docs/tech/MARITIME_SOURCE_CAPTURE_RUNBOOK_V0_1.md). The 2024 scale reset makes methodology vintage a mandatory field; 100 refers to the global average port-connectivity benchmark in 2023-Q1. Actual source export capture remains a separate open milestone.
+
 ## Port identity crosswalk metadata mode
 
 The port identity profile schema is `docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json`, with 25 frozen adversarial cases in `crates/tools/maritime-data-receipt/tests/fixtures/port-crosswalk-corpus-v0.1.json`.
