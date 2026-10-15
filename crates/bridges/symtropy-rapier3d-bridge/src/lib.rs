@@ -407,6 +407,30 @@ mod tests {
     }
 
     #[test]
+    fn zero_force_step_does_not_wake_an_idle_body() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut world = TestWorld::new();
+        let handle = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .sleeping(true)
+                .build(),
+        );
+
+        assert!(world.bodies.get(handle).expect("body inserted").is_sleeping());
+        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+
+        let state = bridge
+            .post_step(&world.bodies)
+            .into_iter()
+            .find(|state| state.handle == handle)
+            .expect("body state readback");
+        assert!(state.is_sleeping, "zero-force bookkeeping must not wake idle bodies");
+        assert_eq!(state.linear_velocity, [0.0, 0.0, 0.0]);
+    }
+
+    #[test]
     fn non_finite_callback_output_fails_before_mutating_body_state() {
         let mut bridge = RapierPhysicsBridge::new(ScaleForceCallback(f64::NAN));
         let mut world = TestWorld::new();
