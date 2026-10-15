@@ -954,6 +954,15 @@ mod tests {
             schema["$defs"]["transformationNode"]["properties"]["algorithm_revision"]["pattern"],
             "^[a-f0-9]{40}$"
         );
+        assert_eq!(
+            schema["$defs"]["relativePath"]["pattern"],
+            r"^(?!/)(?!.*//)(?!.*\/$)(?!.*(?:^|/)\.{1,2}(?:/|$))(?!.*\\)[A-Za-z0-9._/-]+$"
+        );
+        assert!(valid_relative_path("configs/model.json"));
+        assert!(!valid_relative_path("configs/./model.json"));
+        assert!(!valid_relative_path("configs//model.json"));
+        assert!(!valid_relative_path("configs/model.json "));
+        assert!(!valid_relative_path("configs/modèle.json"));
     }
 
     #[test]
