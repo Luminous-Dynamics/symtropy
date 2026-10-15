@@ -43,6 +43,97 @@ impl Default for FirstPersonController {
     }
 }
 
+/// Optional kinematic response profile for first-person movement.
+///
+/// Attach this component alongside FirstPersonController to opt into acceleration
+/// and braking. Controllers without it preserve legacy instant-response behavior.
+/// This is kinematic presentation movement, not collision-resolved character physics.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct FirstPersonMotion {
+    /// Current horizontal velocity in world units per second.
+    pub horizontal_velocity: Vec3,
+    /// Maximum rate of velocity change while a movement target is requested.
+    pub acceleration: f32,
+    /// Maximum rate of velocity change when releasing movement.
+    pub deceleration: f32,
+}
+
+impl Default for FirstPersonMotion {
+    fn default() -> Self {
+        Self {
+            horizontal_velocity: Vec3::ZERO,
+            acceleration: 18.0,
+            deceleration: 24.0,
+        }
+    }
+}
+
+impl FirstPersonMotion {
+    /// Reset motion immediately when entering a non-moving control mode.
+    pub fn stop(&mut self) {
+        self.horizontal_velocity = Vec3::ZERO;
+    }
+
+    /// Advance horizontal velocity toward a requested velocity and return displacement.
+    ///
+    /// Trapezoidal displacement integration reduces frame-rate sensitivity for constant
+    /// acceleration. Invalid/non-positive delta times or response rates fail closed.
+    /// Non-finite velocity inputs fail closed to a stationary target.
+    pub fn advance(&mut self, desired_velocity: Vec3, delta_secs: f32) -> Vec3 {
+        if !delta_secs.is_finite() || delta_secs <= 0.0 {
+            return Vec3::ZERO;
+        }
+
+        let previous = if self.horizontal_velocity.is_finite() {
+            Vec3::new(self.horizontal_velocity.x, 0.0, self.horizontal_velocity.z)
+        } else {
+            Vec3::ZERO
+        };
+        let target = if desired_velocity.is_finite() {
+            Vec3::new(desired_velocity.x, 0.0, desired_velocity.z)
+        } else {
+            Vec3::ZERO
+        };
+
+        let delta = target - previous;
+        let distance = delta.length();
+        if !distance.is_finite() {
+            self.horizontal_velocity = Vec3::ZERO;
+            return Vec3::ZERO;
+        }
+
+        let response_rate = if target.length_squared() > f32::EPSILON {
+            self.acceleration
+        } else {
+            self.deceleration
+        };
+        if !response_rate.is_finite() || response_rate <= 0.0 {
+            self.stop();
+            return Vec3::ZERO;
+        }
+        let max_delta = response_rate * delta_secs;
+
+        let (next, displacement) = if distance <= max_delta || distance <= f32::EPSILON {
+            // If velocity reaches the target before this frame ends, integrate the
+            // transition only until that instant and then travel at target velocity.
+            let transition_time = if distance <= f32::EPSILON {
+                0.0
+            } else {
+                (distance / response_rate).min(delta_secs)
+            };
+            let transition_displacement = (previous + target) * (0.5 * transition_time);
+            let steady_displacement = target * (delta_secs - transition_time);
+            (target, transition_displacement + steady_displacement)
+        } else {
+            let next = previous + delta * (max_delta / distance);
+            (next, (previous + next) * (0.5 * delta_secs))
+        };
+
+        self.horizontal_velocity = next;
+        displacement
+    }
+}
+
 /// Centralized keyboard bindings for the default first-person control scheme.
 #[derive(Resource, Debug, Clone)]
 pub struct InputBindings {
@@ -547,9 +638,13 @@ pub fn first_person_move_system(
     intents: Res<IntentFrame>,
     time: Res<Time>,
     controls: Res<ControlsState>,
-    mut query: Query<(&mut Transform, &FirstPersonController)>,
+    mut query: Query<(
+        &mut Transform,
+        &FirstPersonController,
+        Option<&mut FirstPersonMotion>,
+    )>,
 ) {
-    for (mut transform, controller) in &mut query {
+    for (mut transform, controller, motion) in &mut query {
         let base_speed = match controls.mode {
             ControlMode::FirstPerson => controller.walk_speed,
             ControlMode::FieldDeck => controller.field_deck_speed,
@@ -557,6 +652,9 @@ pub fn first_person_move_system(
         };
 
         if base_speed == 0.0 {
+            if let Some(mut motion) = motion {
+                motion.stop();
+            }
             continue;
         }
 
@@ -571,9 +669,17 @@ pub fn first_person_move_system(
         let mut direction =
             *transform.forward() * intents.movement.y + *transform.right() * intents.movement.x;
         direction.y = 0.0;
-        if direction.length_squared() > 0.0 {
-            direction = direction.normalize();
-            transform.translation += direction * speed * time.delta_secs();
+        let desired_velocity = if direction.length_squared() > 0.0 {
+            direction.normalize() * speed
+        } else {
+            Vec3::ZERO
+        };
+
+        if let Some(mut motion) = motion {
+            transform.translation += motion.advance(desired_velocity, time.delta_secs());
+        } else if desired_velocity.length_squared() > 0.0 {
+            // Preserve legacy instant-response movement for existing controllers.
+            transform.translation += desired_velocity * time.delta_secs();
         }
     }
 }
@@ -780,6 +886,115 @@ impl_full_plugin!(4);
 mod tests {
     use super::*;
     use symtropy_math::Point;
+
+    fn simulate_motion_at_hz(hz: u32) -> (Vec3, Vec3) {
+        let mut motion = FirstPersonMotion::default();
+        let mut position = Vec3::ZERO;
+        let dt = 1.0 / hz as f32;
+        for _ in 0..hz {
+            position += motion.advance(Vec3::new(0.0, 0.0, -3.6), dt);
+        }
+        (position, motion.horizontal_velocity)
+    }
+
+    #[test]
+    fn first_person_motion_is_nearly_frame_rate_invariant() {
+        let (position_30, velocity_30) = simulate_motion_at_hz(30);
+        let (position_60, velocity_60) = simulate_motion_at_hz(60);
+        let (position_144, velocity_144) = simulate_motion_at_hz(144);
+
+        assert!((position_30 - position_144).length() < 0.03);
+        assert!((position_60 - position_144).length() < 0.02);
+        assert!((velocity_30 - velocity_144).length() < 0.05);
+        assert!((velocity_60 - velocity_144).length() < 0.03);
+        assert!((velocity_144.z + 3.6).abs() < 0.001);
+    }
+
+    #[test]
+    fn first_person_motion_brakes_instead_of_stopping_instantly() {
+        let mut motion = FirstPersonMotion::default();
+        let target = Vec3::new(0.0, 0.0, -3.6);
+        for _ in 0..60 {
+            motion.advance(target, 1.0 / 60.0);
+        }
+        assert!(motion.horizontal_velocity.length() > 3.5);
+
+        let mut total_braking_distance = 0.0;
+        for _ in 0..15 {
+            total_braking_distance += motion.advance(Vec3::ZERO, 1.0 / 60.0).length();
+        }
+
+        assert!(total_braking_distance > 0.0);
+        assert!(total_braking_distance < 0.5);
+        assert_eq!(motion.horizontal_velocity, Vec3::ZERO);
+    }
+
+    #[test]
+    fn first_person_motion_integrates_partial_frame_braking_without_overshoot() {
+        let mut motion = FirstPersonMotion {
+            horizontal_velocity: Vec3::new(0.0, 0.0, -0.2),
+            ..default()
+        };
+        let displacement = motion.advance(Vec3::ZERO, 1.0 / 60.0);
+        let expected_stop_distance = (0.2_f32 * 0.2) / (2.0 * motion.deceleration);
+
+        assert!((displacement.length() - expected_stop_distance).abs() < 1.0e-5);
+        assert_eq!(motion.horizontal_velocity, Vec3::ZERO);
+    }
+
+    #[test]
+    fn first_person_motion_reversal_ramps_through_zero() {
+        let mut motion = FirstPersonMotion {
+            horizontal_velocity: Vec3::new(0.0, 0.0, -3.6),
+            ..default()
+        };
+        let first_step = motion.advance(Vec3::new(0.0, 0.0, 3.6), 1.0 / 60.0);
+        assert!(
+            first_step.z < 0.0,
+            "first displacement should retain prior momentum"
+        );
+        assert!(
+            motion.horizontal_velocity.z < 0.0,
+            "velocity should not reverse instantly"
+        );
+        for _ in 0..30 {
+            motion.advance(Vec3::new(0.0, 0.0, 3.6), 1.0 / 60.0);
+        }
+        assert!(
+            motion.horizontal_velocity.z > 0.0,
+            "the velocity should eventually reverse"
+        );
+    }
+
+    #[test]
+    fn first_person_motion_ignores_invalid_delta_and_sanitizes_non_finite_target() {
+        let mut motion = FirstPersonMotion {
+            horizontal_velocity: Vec3::new(0.0, 0.0, -2.0),
+            ..default()
+        };
+        let previous = motion.horizontal_velocity;
+        assert_eq!(
+            motion.advance(Vec3::ZERO, f32::NAN),
+            Vec3::ZERO,
+            "invalid delta must not move the transform"
+        );
+        assert_eq!(motion.horizontal_velocity, previous);
+
+        motion.advance(Vec3::splat(f32::INFINITY), 1.0 / 60.0);
+        assert!(motion.horizontal_velocity.is_finite());
+        assert!(motion.horizontal_velocity.z < 0.0);
+    }
+
+    #[test]
+    fn first_person_motion_stops_on_invalid_response_rate() {
+        let mut motion = FirstPersonMotion {
+            horizontal_velocity: Vec3::new(0.0, 0.0, -2.0),
+            deceleration: f32::NAN,
+            ..default()
+        };
+        assert_eq!(motion.advance(Vec3::ZERO, 1.0 / 60.0), Vec3::ZERO);
+        assert_eq!(motion.horizontal_velocity, Vec3::ZERO);
+    }
 
     #[test]
     fn bevy_physics_default_has_zero_gravity_2d() {
