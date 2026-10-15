@@ -165,6 +165,12 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             if !modulated_force.iter().all(|value| value.is_finite()) {
                 return Err(RapierStepError::NonFiniteModulatedForce { body: body_handle });
             }
+            // Avoid waking otherwise-idle bodies just to reset/re-add a zero force.
+            if original_force.iter().all(|value| *value == 0.0)
+                && modulated_force.iter().all(|value| *value == 0.0)
+            {
+                continue;
+            }
             force_changes.push((handle, original_force, modulated_force));
         }
 
