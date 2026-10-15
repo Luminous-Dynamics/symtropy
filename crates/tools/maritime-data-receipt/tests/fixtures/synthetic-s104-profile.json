@@ -1,0 +1,60 @@
+{
+  "schema_id": "luminous.symtropy.maritime-s100-profile",
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-s104-receipt-bound-example-v0",
+  "source_kind": "synthetic_fixture",
+  "receipt_binding": {
+    "receipt_id": "synthetic-water-level-example-v0",
+    "receipt_sha256": "83f23494da42fc3ae7b29b918a22ee843096c02303120f4d6d276e5f176fa49a",
+    "artifact_sha256": "3bdbe51ac1f41bd8a837e04ce6ea6ef3925dacd2e8ead3086b6c5a8632993844"
+  },
+  "product": {
+    "code": "S-104",
+    "s100_edition": "5.2.1",
+    "specification_edition": "2.0.0",
+    "producer_code": "SYNTHETIC-TEST-ONLY",
+    "dataset_id": "synthetic-water-level-example-v0",
+    "revision": "v0.1.0",
+    "native_encoding": "application/json"
+  },
+  "coverage": {
+    "coverage_id": "synthetic-water-level-coverage-v0",
+    "horizontal_crs": "EPSG:4326",
+    "vertical_reference": "MLLW",
+    "measurement_units": [
+      "m"
+    ]
+  },
+  "temporal": {
+    "data_epoch_start_utc": "2026-10-14T12:00:00Z",
+    "data_epoch_end_utc": "2026-10-14T12:00:00Z",
+    "valid_from_utc": "2026-10-14T12:00:00Z",
+    "valid_until_utc": "2026-10-14T12:00:00Z",
+    "assessment_time_utc": "2026-10-14T12:00:00Z",
+    "freshness_policy_id": "synthetic-fixture-point-window-only"
+  },
+  "quality": {
+    "uncertainty_state": "provided",
+    "uncertainty_ref": "synthetic-uncertainty-fixture-only",
+    "quality_metadata_ref": "synthetic-quality-fixture-only",
+    "statement": "Invented metadata solely to test receipt binding; not a sourced IHO product or physical observation."
+  },
+  "terms": {
+    "review_status": "not_applicable_synthetic",
+    "terms_sha256": null,
+    "reviewed_at_utc": null
+  },
+  "transform": {
+    "kind": "source_native",
+    "transform_receipt_id": null,
+    "input_crs": null,
+    "output_crs": null,
+    "input_vertical_reference": null,
+    "output_vertical_reference": null
+  },
+  "intended_use": {
+    "navigation_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "independent_review_required": true
+  }
+}
