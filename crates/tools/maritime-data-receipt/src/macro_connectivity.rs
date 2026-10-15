@@ -46,6 +46,7 @@ const TERMS_KEYS: &[&str] = &[
     "terms_sha256",
     "attribution_statement",
     "review_evidence_uri",
+    "snapshot_retrieved_at_utc",
     "snapshot_relative_path",
     "snapshot_byte_length",
     "snapshot_sha256",
@@ -308,6 +309,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     let terms_digest = nullable_text(terms, "terms_sha256")?;
     let attribution = text(terms, "attribution_statement")?;
     let review_evidence_uri = nullable_text(terms, "review_evidence_uri")?;
+    let snapshot_retrieved_at = nullable_text(terms, "snapshot_retrieved_at_utc")?;
     let terms_snapshot_path = text(terms, "snapshot_relative_path")?;
     if !safe_relative_path(terms_snapshot_path) {
         return Err("UNSAFE_TERMS_SNAPSHOT_PATH");
@@ -329,6 +331,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
                 || reviewed_at.is_some()
                 || terms_digest.is_some()
                 || review_evidence_uri.is_some()
+                || snapshot_retrieved_at.is_some()
                 || !attribution.to_ascii_lowercase().contains("synthetic")
             {
                 return Err("SYNTHETIC_TERMS_MISMATCH");
@@ -345,6 +348,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
                 || !terms_digest.is_some_and(sha256)
                 || review_evidence_uri
                     != Some("https://unctadstat.unctad.org/EN/About.html")
+                || !snapshot_retrieved_at.is_some_and(utc_timestamp)
                 || terms_digest != Some(terms_snapshot_sha256)
                 || !attribution.contains("United Nations Trade and Development Data Hub")
             {
@@ -460,6 +464,7 @@ struct ProfileReport {
     terms_snapshot_sha256: String,
     terms_snapshot_byte_length: u64,
     terms_snapshot_path_checked: String,
+    terms_snapshot_retrieved_at_utc: Option<String>,
     terms_snapshot_bytes_verified: bool,
     receipt_id: String,
     receipt_sha256: String,
@@ -547,6 +552,9 @@ pub(crate) fn run_cli(
         .ok_or_else(|| "selected source_port_ids must be an array".to_owned())?;
     let missingness = member(&profile, "missingness").map_err(str::to_owned)?;
     let terms = member(&profile, "terms").map_err(str::to_owned)?;
+    let terms_snapshot_retrieved_at_utc = nullable_text(terms, "snapshot_retrieved_at_utc")
+        .map_err(str::to_owned)?
+        .map(str::to_owned);
     let report = ProfileReport {
         status: "PLSCI_PROFILE_AND_BOUND_BYTES_MATCH_NOT_ADMITTED",
         profile_id: text(&profile, "profile_id").map_err(str::to_owned)?.to_owned(),
@@ -588,6 +596,7 @@ pub(crate) fn run_cli(
         terms_snapshot_sha256,
         terms_snapshot_byte_length,
         terms_snapshot_path_checked: terms_snapshot_path.display().to_string(),
+        terms_snapshot_retrieved_at_utc,
         terms_snapshot_bytes_verified: true,
         receipt_id: receipt_report.receipt_id,
         receipt_sha256: receipt_report.receipt_sha256,
@@ -604,6 +613,7 @@ pub(crate) fn run_cli(
         operational_authority: false,
         claim_ceiling: vec![
             "Pinned PLSCI metadata semantics and exact profile, terms-snapshot, receipt, and artifact byte bindings only.",
+            "The capture and review timestamps are declared metadata, not independently authenticated times.",
             "This metadata guard does not parse the export or validate individual index values, coverage, port identity, or publisher authenticity.",
             "Missing, suppressed, or estimated values must remain distinct; no silent zero-fill, forward-fill, or interpolation is permitted.",
             "No live vessel position, individual port call, available berth, route safety, navigation or operational authority.",
