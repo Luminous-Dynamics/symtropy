@@ -20,7 +20,7 @@ Only contiguous edges compose: the source frame of the left transform must equal
 
 ## Data transforms versus frame-pose representations
 
-This API stores data-coordinate transforms only. ROS 2 tf2 documents that its published frame formulation and the data-coordinate transformation formulation are inverses. Integrations that ingest a frame-formulation value must explicitly invert at the boundary rather than assuming it has the data-transform direction. The inverse operation is regression-tested through round trips and identity composition. See the official [tf2 transform semantics](https://github.com/ros2/ros2_documentation/blob/rolling/source/ROS-Framework/interfaces/About-Tf2/About-Tf2.rst).
+This API stores data-coordinate transforms only. ROS 2 tf2 documents that its published frame formulation and the data-coordinate transformation formulation are inverses. The explicit `FramePoseV1` type represents the pose of a frame relative to a reference frame; `to_data_transform()` returns the inverse data map from that reference frame into the posed frame. Integrations must convert at this boundary rather than assuming both representations have the same direction. A regression composes the pose representation and data map in both orders and checks identity. See the official [tf2 transform semantics](https://github.com/ros2/ros2_documentation/blob/rolling/source/ROS-Framework/interfaces/About-Tf2/About-Tf2.rst).
 
 The API is compatible with the base world-contract equation for static child-to-parent mappings. Coordinate axis conventions remain separate metadata as described in [ROS REP-103](https://reps.openrobotics.org/rep-0103/); this type does not guess conversions between ENU, NED, body, or camera frames.
 
