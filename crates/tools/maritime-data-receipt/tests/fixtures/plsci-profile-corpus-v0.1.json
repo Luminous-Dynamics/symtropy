@@ -1,7 +1,7 @@
 {
   "corpus_id": "luminous.symtropy.maritime-plsci-profile-corpus",
   "corpus_version": "0.1.0",
-  "claim_ceiling": "All cases are synthetic metadata-contract tests. Passing does not parse data rows or admit operational, navigation, physical-truth, port-call, berth or custody claims.",
+  "claim_ceiling": "All cases are synthetic metadata-contract tests. Passing does not parse data rows or admit operational, navigation, physical-truth, port-call, berth or custody claims. Public-terms negative controls use simulated metadata only; they are not claims that a real source was retrieved or a licence was reviewed.",
   "base_profiles": {
     "valid_synthetic": {
       "schema_id": "luminous.symtropy.maritime-plsci-profile",
@@ -62,6 +62,7 @@
         "terms_sha256": null,
         "attribution_statement": "Synthetic fixture only; not actual UNCTADstat data.",
         "review_evidence_uri": null,
+        "snapshot_retrieved_at_utc": null,
         "snapshot_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt",
         "snapshot_byte_length": 95,
         "snapshot_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
@@ -435,6 +436,58 @@
           "path": "terms.attribution_statement",
           "op": "set",
           "value": "United Nations Trade and Development Data Hub, test attribution"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
+    },
+    {
+      "id": "public-terms-capture-time-required",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "fixture-only-simulated-reviewer"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-10-15T16:00:00Z"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub; simulated metadata regression only"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
         }
       ],
       "expected_code": "PUBLIC_TERMS_INCOMPLETE"
