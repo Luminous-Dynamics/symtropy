@@ -1479,4 +1479,37 @@ mod tests {
         let raw = vec![b' '; MAX_INPUT_BYTES + 1];
         assert!(parse_strict(&raw).is_err());
     }
+
+    #[test]
+    fn unknown_schema_fields_are_rejected() {
+        expect_rejected(
+            |raw| {
+                raw.replacen(
+                    "\"schema_version\": \"0.1.0\",",
+                    "\"schema_version\": \"0.1.0\",\n  \"unknown_field\": true,",
+                    1,
+                )
+            },
+            "unknown top-level field",
+        );
+    }
+
+    #[test]
+    fn non_finite_json_numbers_are_rejected() {
+        expect_rejected(
+            |raw| raw.replacen(
+                "\"charging_efficiency\": 0.9",
+                "\"charging_efficiency\": NaN",
+                1,
+            ),
+            "non-finite numeric input",
+        );
+    }
+
+    #[test]
+    fn trailing_json_payload_is_rejected() {
+        let mut raw = fixture_bytes();
+        raw.extend_from_slice(b"\n{}");
+        assert!(parse_strict(&raw).is_err());
+    }
 }
