@@ -23,7 +23,9 @@ pub enum RigidTransformError {
 impl fmt::Display for RigidTransformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidFrameIdentity => f.write_str("frame identities must be non-empty and trimmed"),
+            Self::InvalidFrameIdentity => {
+                f.write_str("frame identities must be non-empty and trimmed")
+            }
             Self::NonFiniteTranslation => f.write_str("transform translation must be finite"),
             Self::NonFiniteQuaternion => f.write_str("transform quaternion must be finite"),
             Self::QuaternionNormOutOfTolerance => write!(
@@ -248,6 +250,62 @@ impl RigidTransformV1 {
     }
 }
 
+/// A frame-pose representation: the pose of frame_id expressed in reference_frame_id.
+///
+/// Its stored pose is the reference-from-frame transform. tf2-style frame-pose
+/// representation and a data transform with the same frame labels are inverses;
+/// call to_data_transform() at the integration boundary to obtain reference -> frame.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FramePoseV1 {
+    frame_id: String,
+    reference_frame_id: String,
+    reference_from_frame: RigidTransformV1,
+}
+
+impl FramePoseV1 {
+    pub fn new(
+        frame_id: impl Into<String>,
+        reference_frame_id: impl Into<String>,
+        translation_reference_m: [f64; 3],
+        rotation_reference_frame_xyzw: [f64; 4],
+    ) -> Result<Self, RigidTransformError> {
+        let frame_id = frame_id.into();
+        let reference_frame_id = reference_frame_id.into();
+        let reference_from_frame = RigidTransformV1::new(
+            reference_frame_id.clone(),
+            frame_id.clone(),
+            translation_reference_m,
+            rotation_reference_frame_xyzw,
+        )?;
+        Ok(Self {
+            frame_id,
+            reference_frame_id,
+            reference_from_frame,
+        })
+    }
+
+    pub fn frame_id(&self) -> &str {
+        &self.frame_id
+    }
+
+    pub fn reference_frame_id(&self) -> &str {
+        &self.reference_frame_id
+    }
+
+    pub fn translation_reference_m(&self) -> [f64; 3] {
+        self.reference_from_frame.translation_target_m()
+    }
+
+    pub fn rotation_reference_frame_xyzw(&self) -> [f64; 4] {
+        self.reference_from_frame.rotation_target_source_xyzw()
+    }
+
+    /// Convert the frame-pose representation to a reference -> frame data map.
+    pub fn to_data_transform(&self) -> Result<RigidTransformV1, RigidTransformError> {
+        self.reference_from_frame.inverse()
+    }
+}
+
 fn validate_frame_identity(frame_id: &str) -> Result<(), RigidTransformError> {
     if frame_id.trim().is_empty() || frame_id.trim() != frame_id {
         return Err(RigidTransformError::InvalidFrameIdentity);
@@ -318,6 +376,19 @@ mod tests {
         }
     }
 
+    fn close_transform(actual: &RigidTransformV1, expected: &RigidTransformV1) {
+        assert_eq!(actual.target_frame_id(), expected.target_frame_id());
+        assert_eq!(actual.source_frame_id(), expected.source_frame_id());
+        close3(actual.translation_target_m(), expected.translation_target_m());
+        for (left, right) in actual
+            .rotation_target_source_xyzw()
+            .into_iter()
+            .zip(expected.rotation_target_source_xyzw())
+        {
+            assert!((left - right).abs() < 1.0e-12);
+        }
+    }
+
     fn fixtures() -> (RigidTransformV1, RigidTransformV1) {
         let s = (0.5_f64).sqrt();
         (
@@ -330,12 +401,14 @@ mod tests {
     fn non_commuting_golden_composition_matches_xyzw_fixture() {
         let (a_b, b_c) = fixtures();
         let a_c = a_b.compose(&b_c).unwrap();
-        close3(a_c.translation_target_m(), [-1.0, 0.0, 0.0]);
-        close3(
-            a_c.rotation_target_source_xyzw()[0..3].try_into().unwrap(),
-            [0.5, 0.5, 0.5],
-        );
-        assert!((a_c.rotation_target_source_xyzw()[3] - 0.5).abs() < 1.0e-12);
+        let expected = RigidTransformV1::new(
+            "A",
+            "C",
+            [-1.0, 0.0, 0.0],
+            [0.5, 0.5, 0.5, 0.5],
+        )
+        .unwrap();
+        close_transform(&a_c, &expected);
 
         let point = PointInFrameV1::new("C", [1.0, 0.0, 0.0]).unwrap();
         close3(a_c.transform_point(&point).unwrap().coordinates_m(), [-1.0, 1.0, 0.0]);
@@ -356,8 +429,10 @@ mod tests {
     #[test]
     fn identity_composes_on_both_sides() {
         let (a_b, _) = fixtures();
-        assert_eq!(RigidTransformV1::identity("A").unwrap().compose(&a_b).unwrap(), a_b);
-        assert_eq!(a_b.compose(&RigidTransformV1::identity("B").unwrap()).unwrap(), a_b);
+        let left = RigidTransformV1::identity("A").unwrap().compose(&a_b).unwrap();
+        let right = a_b.compose(&RigidTransformV1::identity("B").unwrap()).unwrap();
+        close_transform(&left, &a_b);
+        close_transform(&right, &a_b);
     }
 
     #[test]
@@ -367,8 +442,33 @@ mod tests {
         let point_b = PointInFrameV1::new("B", [0.5, -1.0, 2.0]).unwrap();
         let point_a = a_b.transform_point(&point_b).unwrap();
         close3(b_a.transform_point(&point_a).unwrap().coordinates_m(), point_b.coordinates_m());
-        assert_eq!(a_b.compose(&b_a).unwrap(), RigidTransformV1::identity("A").unwrap());
-        assert_eq!(b_a.compose(&a_b).unwrap(), RigidTransformV1::identity("B").unwrap());
+        let identity_a = RigidTransformV1::identity("A").unwrap();
+        let identity_b = RigidTransformV1::identity("B").unwrap();
+        close_transform(&a_b.compose(&b_a).unwrap(), &identity_a);
+        close_transform(&b_a.compose(&a_b).unwrap(), &identity_b);
+    }
+
+    #[test]
+    fn frame_pose_and_data_transform_are_inverse_formulations() {
+        let s = (0.5_f64).sqrt();
+        let pose_b_in_a =
+            FramePoseV1::new("B", "A", [1.0, 0.0, 0.0], [0.0, 0.0, s, s]).unwrap();
+        let a_from_b =
+            RigidTransformV1::new("A", "B", [1.0, 0.0, 0.0], [0.0, 0.0, s, s]).unwrap();
+        let b_from_a = pose_b_in_a.to_data_transform().unwrap();
+
+        assert_eq!(pose_b_in_a.frame_id(), "B");
+        assert_eq!(pose_b_in_a.reference_frame_id(), "A");
+        assert_eq!(b_from_a.target_frame_id(), "B");
+        assert_eq!(b_from_a.source_frame_id(), "A");
+        close_transform(
+            &b_from_a.compose(&a_from_b).unwrap(),
+            &RigidTransformV1::identity("B").unwrap(),
+        );
+        close_transform(
+            &a_from_b.compose(&b_from_a).unwrap(),
+            &RigidTransformV1::identity("A").unwrap(),
+        );
     }
 
     #[test]
