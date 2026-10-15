@@ -9364,6 +9364,7 @@ dependencies = [
  "symthaea-bevy-brain",
  "symtropy-math",
  "symtropy-physics",
+ "symtropy-physics-diff-core",
  "symtropy-robotics-bridge-core",
 ]
 
