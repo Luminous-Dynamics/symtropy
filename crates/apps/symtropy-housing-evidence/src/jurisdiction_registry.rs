@@ -109,6 +109,27 @@ pub fn validate_value(
             let lifecycle_status = record["lifecycle_status"].as_str().unwrap_or("unknown");
             let applicability_status =
                 record["applicability_status"].as_str().unwrap_or("not_assessed");
+            let publication_postdates_evaluation = record["publication_date"]
+                .as_str()
+                .is_some_and(|date| date > evaluation_date);
+            let snapshot_capture_postdates_evaluation = record["source_snapshot"]["captured_at"]
+                .as_str()
+                .is_some_and(|value| value.get(..10).unwrap_or_default() > evaluation_date);
+            let review_postdates_evaluation = record["review_record"]["reviewed_at"]
+                .as_str()
+                .is_some_and(|value| value.get(..10).unwrap_or_default() > evaluation_date);
+
+            if publication_postdates_evaluation {
+                semantic_issues.push(format!(
+                    "source record {record_id:?} has a publication date after registry evaluation_date"
+                ));
+            }
+            if snapshot_capture_postdates_evaluation {
+                semantic_issues.push(format!(
+                    "source record {record_id:?} has a snapshot capture after registry evaluation_date"
+                ));
+            }
+
             let effective_from = record["effective_from"].as_str();
             let effective_to = record["effective_to"].as_str();
             let mut date_window_valid = true;
@@ -150,6 +171,12 @@ pub fn validate_value(
             }
 
             let mut readiness_reasons = Vec::new();
+            if publication_postdates_evaluation {
+                readiness_reasons.push("SOURCE_PUBLICATION_POSTDATES_EVALUATION_DATE".to_string());
+            }
+            if snapshot_capture_postdates_evaluation {
+                readiness_reasons.push("SOURCE_SNAPSHOT_POSTDATES_EVALUATION_DATE".to_string());
+            }
             let snapshot_verified = verify_artifact(
                 record.get("source_snapshot").and_then(|value| value.get("artifact")),
                 artifact_root,
@@ -236,10 +263,7 @@ pub fn validate_value(
             if !corpus_verified {
                 readiness_reasons.push("RULE_TEST_CORPUS_DIGEST_NOT_VERIFIED".to_string());
             }
-            if record["review_record"]["reviewed_at"]
-                .as_str()
-                .is_some_and(|value| value.get(..10).unwrap_or_default() > evaluation_date)
-            {
+            if review_postdates_evaluation {
                 semantic_issues.push(format!(
                     "source record {record_id:?} has a review after registry evaluation_date"
                 ));
@@ -514,6 +538,69 @@ mod tests {
         assert!(record.review_evidence_digest_verified);
         assert!(record.rule_implementation_digest_verified);
         assert!(record.rule_test_corpus_digest_verified);
+    }
+
+    #[test]
+    fn source_snapshot_captured_after_evaluation_date_is_rejected() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["source_snapshot"]["captured_at"] =
+            json!("2026-10-16T09:00:00Z");
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("snapshot capture after registry evaluation_date")
+        }));
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.readiness_reasons.contains(
+            &"SOURCE_SNAPSHOT_POSTDATES_EVALUATION_DATE".to_string()
+        ));
+    }
+
+    #[test]
+    fn source_publication_after_evaluation_date_is_rejected() {
+        let mut registry = fixture();
+        registry["source_records"][0]["publication_date"] = json!("2026-10-16");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/built-environment/fixtures");
+
+        let report = validate_value(&registry, &root).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("publication date after registry evaluation_date")
+        }));
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("source record appears");
+        assert!(record.readiness_reasons.contains(
+            &"SOURCE_PUBLICATION_POSTDATES_EVALUATION_DATE".to_string()
+        ));
+    }
+
+    #[test]
+    fn review_after_evaluation_date_is_rejected() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["review_record"]["reviewed_at"] =
+            json!("2026-10-16T09:00:00Z");
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("review after registry evaluation_date")
+        }));
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.readiness_reasons.contains(
+            &"REVIEW_POSTDATES_EVALUATION_DATE".to_string()
+        ));
     }
 
     #[test]
