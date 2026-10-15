@@ -153,7 +153,11 @@ def evaluate_service_evidence(
         if not isinstance(payload_utf8, str):
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
         # The payload hashes to artifact_digest, never to configuration_digest.
-        if "sha256:" + hashlib.sha256(payload_utf8.encode("utf-8")).hexdigest() != record.get("artifact_digest"):
+        try:
+            payload_bytes = payload_utf8.encode("utf-8")
+        except UnicodeEncodeError:
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if "sha256:" + hashlib.sha256(payload_bytes).hexdigest() != record.get("artifact_digest"):
             return "REJECT_ARTIFACT_DIGEST_MISMATCH"
         try:
             payload_claims = json.loads(payload_utf8)
@@ -845,6 +849,14 @@ def main() -> None:
         evaluate_service_evidence_case({"records": [duplicate_key_record]}, target)
         == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
         "duplicate JSON property names must be rejected even when the payload is correctly re-hashed",
+    )
+
+    invalid_unicode_record = dict(bound_fresh["records"][0])
+    invalid_unicode_record["artifact_payload_utf8"] = "\ud800"
+    require(
+        evaluate_service_evidence_case({"records": [invalid_unicode_record]}, target)
+        == "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        "non-UTF-8-encodable payload strings must be rejected without crashing the oracle",
     )
 
     nonfinite_record = dict(bound_fresh["records"][0])
