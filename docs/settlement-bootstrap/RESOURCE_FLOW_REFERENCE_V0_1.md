@@ -85,6 +85,8 @@ The content-bound example currently enforces a deliberately narrow, fixture-loca
 
 Before evidence payloads are exchanged or signed across Rust/Python/JavaScript implementations, adopt a separately reviewed canonicalization profile and run interoperable known-answer vectors—including numeric edge cases, escaped strings, Unicode property ordering, duplicate members, non-finite numbers and negative zero—using an implementation tested against the profile's conformance corpus. Do not promote this fixture helper into a production trust component by renaming it or by relying on this narrow regression set.
 
+The five current negative controls are declarative entries in `service_evidence_reference.artifact_binding_rule.canonicalization_negative_controls`. Each entry pins an ID, mutation operation, whether the altered payload digest is recomputed, and the expected rejection status. The Python oracle pins the complete ID/mutation/digest-policy/verdict mapping before replaying them so a fixture edit cannot quietly weaken the expected outcomes. This metadata makes the cases portable for future independent checkers without claiming that the checker itself implements JCS.
+
 ## Service evidence and repair qualification reference
 
 The `service_evidence_reference` section of the JSON corpus adds twenty-one synthetic cases for evidence-currentness and service-state admission. The checker applies a declared evaluation time and maximum age and tests:
