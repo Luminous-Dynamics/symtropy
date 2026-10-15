@@ -472,7 +472,9 @@ pub(crate) fn run_cli(
             .as_f64()
             .ok_or_else(|| "benchmark_value must be numeric".to_owned())?,
         methodology_vintage: text(series, "methodology_vintage").map_err(str::to_owned)?.to_owned(),
-        normalization_method: text(series, "normalization_method").map_err(str::to_owned)?.to_owned(),
+        normalization_method: text(series, "normalization_method")
+            .map_err(str::to_owned)?
+            .to_owned(),
         selected_geographic_scope: text(selection, "geographic_scope")
             .map_err(str::to_owned)?.to_owned(),
         selected_period_start: text(selection, "period_start")
