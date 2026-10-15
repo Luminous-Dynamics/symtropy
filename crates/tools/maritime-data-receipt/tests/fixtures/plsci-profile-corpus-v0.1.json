@@ -386,6 +386,58 @@
         }
       ],
       "expected_code": "INVALID_TERMS_SNAPSHOT_LENGTH"
+    },
+    {
+      "id": "public-terms-digest-must-match-reviewed-snapshot",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "test-reviewer"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-10-15T14:00:00Z"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub, test attribution"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
     }
   ]
 }
