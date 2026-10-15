@@ -3,6 +3,9 @@
 
 //! Rigid data-coordinate transforms with explicit source and target frames.
 
+use crate::world_frame_conventions::{
+    QualifiedWorldDigestV2, QualifiedWorldError, QualifiedWorldManifestV2,
+};
 use std::fmt;
 
 pub const QUATERNION_UNIT_NORM_TOLERANCE_V1: f64 = 1.0e-6;
@@ -48,6 +51,33 @@ impl fmt::Display for RigidTransformError {
 }
 
 impl std::error::Error for RigidTransformError {}
+
+#[derive(Debug)]
+pub enum QualifiedRigidTransformError {
+    InvalidTransform(RigidTransformError),
+    InvalidQualifiedWorld(QualifiedWorldError),
+    UnknownFrame { frame_id: String },
+    QualifiedWorldMismatch,
+}
+
+impl fmt::Display for QualifiedRigidTransformError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidTransform(error) => write!(f, "invalid rigid transform: {error}"),
+            Self::InvalidQualifiedWorld(error) => {
+                write!(f, "qualified world rejected transform binding: {error}")
+            }
+            Self::UnknownFrame { frame_id } => {
+                write!(f, "frame {frame_id:?} is not declared in the qualified world")
+            }
+            Self::QualifiedWorldMismatch => {
+                f.write_str("cannot compose transforms bound to different qualified worlds")
+            }
+        }
+    }
+}
+
+impl std::error::Error for QualifiedRigidTransformError {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PointInFrameV1 {
@@ -306,6 +336,91 @@ impl FramePoseV1 {
     }
 }
 
+/// A rigid transform bound to the content identity of a qualified world.
+///
+/// Binding proves only that both frame IDs exist in that world and records its
+/// qualified digest. It does not prove the numeric transform is physically true.
+#[derive(Debug, Clone, PartialEq)]
+pub struct QualifiedRigidTransformV1 {
+    transform: RigidTransformV1,
+    qualified_world_digest: QualifiedWorldDigestV2,
+}
+
+impl QualifiedRigidTransformV1 {
+    pub fn bind(
+        transform: RigidTransformV1,
+        world: &QualifiedWorldManifestV2,
+    ) -> Result<Self, QualifiedRigidTransformError> {
+        world
+            .validate()
+            .map_err(QualifiedRigidTransformError::InvalidQualifiedWorld)?;
+        for frame_id in [transform.target_frame_id(), transform.source_frame_id()] {
+            if !world
+                .world
+                .frames
+                .iter()
+                .any(|frame| frame.frame_id == frame_id)
+            {
+                return Err(QualifiedRigidTransformError::UnknownFrame {
+                    frame_id: frame_id.to_owned(),
+                });
+            }
+        }
+        let qualified_world_digest = world
+            .content_digest_v2()
+            .map_err(QualifiedRigidTransformError::InvalidQualifiedWorld)?;
+        Ok(Self {
+            transform,
+            qualified_world_digest,
+        })
+    }
+
+    pub fn transform(&self) -> &RigidTransformV1 {
+        &self.transform
+    }
+
+    pub fn qualified_world_digest(&self) -> QualifiedWorldDigestV2 {
+        self.qualified_world_digest
+    }
+
+    pub fn transform_point(
+        &self,
+        point: &PointInFrameV1,
+    ) -> Result<PointInFrameV1, QualifiedRigidTransformError> {
+        self.transform
+            .transform_point(point)
+            .map_err(QualifiedRigidTransformError::InvalidTransform)
+    }
+
+    pub fn transform_direction(
+        &self,
+        direction: &DirectionInFrameV1,
+    ) -> Result<DirectionInFrameV1, QualifiedRigidTransformError> {
+        self.transform
+            .transform_direction(direction)
+            .map_err(QualifiedRigidTransformError::InvalidTransform)
+    }
+
+    /// Compose only when both transforms were bound to the exact same qualified
+    /// world; changed frame conventions yield a different qualified digest.
+    pub fn compose(
+        &self,
+        next: &Self,
+    ) -> Result<Self, QualifiedRigidTransformError> {
+        if self.qualified_world_digest != next.qualified_world_digest {
+            return Err(QualifiedRigidTransformError::QualifiedWorldMismatch);
+        }
+        let transform = self
+            .transform
+            .compose(&next.transform)
+            .map_err(QualifiedRigidTransformError::InvalidTransform)?;
+        Ok(Self {
+            transform,
+            qualified_world_digest: self.qualified_world_digest,
+        })
+    }
+}
+
 fn validate_frame_identity(frame_id: &str) -> Result<(), RigidTransformError> {
     if frame_id.trim().is_empty() || frame_id.trim() != frame_id {
         return Err(RigidTransformError::InvalidFrameIdentity);
@@ -500,6 +615,45 @@ mod tests {
         assert!(matches!(
             a_b.transform_direction(&vector),
             Err(RigidTransformError::DirectionSourceFrameMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn qualified_binding_rejects_unknown_frames_and_cross_world_composition() {
+        let world_a = crate::world_frame_conventions::tests::qualified_world();
+        let mut world_b = world_a.clone();
+        world_b.frame_conventions.frames[1].convention =
+            crate::world_frame_conventions::FrameAxisConventionV1::FrdForwardRightDown;
+
+        let world_from_base =
+            RigidTransformV1::new("world", "robot-base", [0.0; 3], [0.0, 0.0, 0.0, 1.0])
+                .unwrap();
+        let base_from_camera = RigidTransformV1::new(
+            "robot-base",
+            "camera-optical",
+            [0.1, 0.0, 0.2],
+            [0.0, 0.0, 0.0, 1.0],
+        )
+        .unwrap();
+        let qualified_a =
+            QualifiedRigidTransformV1::bind(world_from_base.clone(), &world_a).unwrap();
+        let qualified_camera_a =
+            QualifiedRigidTransformV1::bind(base_from_camera.clone(), &world_a).unwrap();
+        assert!(qualified_a.compose(&qualified_camera_a).is_ok());
+
+        let qualified_camera_b =
+            QualifiedRigidTransformV1::bind(base_from_camera, &world_b).unwrap();
+        assert!(matches!(
+            qualified_a.compose(&qualified_camera_b),
+            Err(QualifiedRigidTransformError::QualifiedWorldMismatch)
+        ));
+
+        let unknown =
+            RigidTransformV1::new("not-declared", "robot-base", [0.0; 3], [0.0, 0.0, 0.0, 1.0])
+                .unwrap();
+        assert!(matches!(
+            QualifiedRigidTransformV1::bind(unknown, &world_a),
+            Err(QualifiedRigidTransformError::UnknownFrame { .. })
         ));
     }
 
