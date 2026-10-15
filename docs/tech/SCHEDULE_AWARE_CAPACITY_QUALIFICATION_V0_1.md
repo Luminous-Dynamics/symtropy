@@ -30,7 +30,8 @@ The validator creates start/end events for every assignment and performs a deter
 - adjacent windows therefore do not overlap;
 - simultaneously active assignments are summed with checked integer arithmetic;
 - capacity is rejected if any overlap exceeds the evidence-backed limit;
-- overlapping current evidence records for the same physical resource are ambiguous and fail closed, even if their declared limits happen to match;
+- concurrent assignments to distinct physical resource IDs are independent, while a different scope label does not create a second physical resource;
+- overlapping current evidence records for the same physical resource are ambiguous and fail closed, even if their declared limits happen to match or their scope labels differ;
 - different resource scopes do not let a caller double-spend the same physical resource at overlapping times.
 
 **Capacity semantics are bounded:** this module treats the declared quantity as a concurrent-use limit over operation intervals. It is not a tonnes-per-shift, passenger-throughput, or flow-rate allocator. Those require a time-bucketed flow/quota model with explicit rate units and aggregation semantics. Never adapt a rate or period quota into a concurrent-use limit without a reviewed conversion.
@@ -79,9 +80,13 @@ The Rust tests are synthetic and offline. They intentionally cover:
 - non-overlapping windows reusing capacity;
 - intersecting assignments exceeding capacity;
 - integer overflow when concurrent quantities are aggregated;
+- concurrent operations on distinct physical resources remain independent;
 - conflicting current evidence for the same resource;
 - preserved observation/record timestamps, policy, source digest and window;
 - deterministic replay and changed-window receipts;
-- rejection of conflicted evidence.
+- rejection of conflicted evidence;
+- duplicate assignments, unknown/unreferenced evidence, terminal/unit mismatch and invalid policy identity;
+- simultaneous assignments on separate equipment resources;
+- overlapping snapshots rejected across different capacity-scope labels.
 
 No real rail, road or terminal records are embedded in the tests.
