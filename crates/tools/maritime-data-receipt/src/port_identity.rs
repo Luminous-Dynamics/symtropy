@@ -714,4 +714,43 @@ mod tests {
         assert!(mismatch.contains("SHA-256 mismatch"));
     }
 
+
+    #[test]
+    fn registry_snapshot_mismatch_fails_closed_independently() {
+        let registry = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/synthetic-locode-registry-snapshot.json"
+        );
+        let error = verify_snapshot_digest(
+            registry,
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            "UN/LOCODE registry",
+        )
+        .expect_err("a wrong registry digest must fail closed");
+        assert!(error.contains("UN/LOCODE registry SHA-256 mismatch"));
+        assert!(error.contains("crosswalk declares"));
+    }
+
+    #[test]
+    fn one_byte_source_snapshot_drift_is_detected_against_actual_file_bytes() {
+        use std::fs;
+
+        let mut changed = include_bytes!("../tests/fixtures/synthetic-source-snapshot.json").to_vec();
+        changed.push(b' ');
+        let path = std::env::temp_dir().join(format!(
+            "symtropy-maritime-source-drift-{}.json",
+            std::process::id()
+        ));
+        fs::write(&path, &changed).expect("write temporary drift fixture");
+        let result = verify_snapshot_digest(
+            path.to_str().expect("temporary path is UTF-8"),
+            "853e9639988bd96dead635195dc37390fd4d48b30ec29b062a7b1dfe43dbf73c",
+            "source snapshot",
+        );
+        let _ = fs::remove_file(&path);
+
+        let error = result.expect_err("a single-byte change must fail exact-byte verification");
+        assert!(error.contains("source snapshot SHA-256 mismatch"));
+    }
+
 }
