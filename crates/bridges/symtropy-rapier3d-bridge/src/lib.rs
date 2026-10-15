@@ -5,6 +5,7 @@
 
 pub mod manipulator;
 
+use std::collections::HashMap;
 use std::fmt;
 
 use ::nalgebra::SVector;
@@ -50,6 +51,8 @@ pub enum RapierStepError {
     InvalidGravity,
     /// The callback produced a non-finite force for the identified body.
     NonFiniteModulatedForce { body: BodyHandle },
+    /// The bridge-local callback handle space is exhausted.
+    BodyHandleExhausted,
 }
 
 impl fmt::Display for RapierStepError {
@@ -60,6 +63,7 @@ impl fmt::Display for RapierStepError {
             Self::NonFiniteModulatedForce { body } => {
                 write!(f, "force callback produced a non-finite force for {body:?}")
             }
+            Self::BodyHandleExhausted => write!(f, "bridge-local body handle space is exhausted"),
         }
     }
 }
@@ -89,6 +93,10 @@ pub struct RapierPhysicsBridge<C: PhysicsCallback<3>> {
     pipeline: PhysicsPipeline,
     query_pipeline: QueryPipeline,
     gravity: Vector<Real>,
+    /// Stable callback IDs keyed by Rapier's full generational handle (not slot index alone).
+    body_handle_ids: HashMap<RigidBodyHandle, BodyHandle>,
+    /// Next unused bridge-local callback ID; `None` means `usize` space is exhausted.
+    next_body_handle_id: Option<usize>,
 }
 
 impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
@@ -98,6 +106,8 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             pipeline: PhysicsPipeline::new(),
             query_pipeline: QueryPipeline::new(),
             gravity: vector![0.0, -9.81, 0.0],
+            body_handle_ids: HashMap::new(),
+            next_body_handle_id: Some(0),
         }
     }
 
@@ -113,6 +123,25 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
     /// Return the configured gravity vector.
     pub fn gravity(&self) -> &Vector<Real> {
         &self.gravity
+    }
+
+    /// Return a stable Symtropy callback ID for a full Rapier body handle.
+    /// IDs are bridge-local, monotonic for the bridge lifetime, and never reuse a
+    /// removed body's ID when Rapier recycles its generational arena slot.
+    fn callback_body_handle(
+        &mut self,
+        rapier_handle: RigidBodyHandle,
+    ) -> Result<BodyHandle, RapierStepError> {
+        if let Some(handle) = self.body_handle_ids.get(&rapier_handle) {
+            return Ok(*handle);
+        }
+        let Some(id) = self.next_body_handle_id else {
+            return Err(RapierStepError::BodyHandleExhausted);
+        };
+        self.next_body_handle_id = id.checked_add(1);
+        let handle = BodyHandle(id);
+        self.body_handle_ids.insert(rapier_handle, handle);
+        Ok(handle)
     }
 
     /// Read-only access to query data kept current by successful calls to the step method.
@@ -187,6 +216,11 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         let mut parameters = *integration_parameters;
         parameters.dt = dt;
 
+        // Discard identity entries for bodies removed from the set. Rapier recycles
+        // arena slots, so IDs must key the full generational handle and never the slot.
+        self.body_handle_ids
+            .retain(|handle, _| rigid_body_set.get(*handle).is_some());
+
         // Compute every modulated force before mutating any body. A bad callback output
         // fails the whole step before a partial set of bodies is changed.
         let mut force_changes = Vec::new();
@@ -197,7 +231,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             if original_force.iter().all(|value| *value == 0.0) {
                 continue;
             }
-            let body_handle = BodyHandle(handle.into_raw_parts().0 as usize);
+            let body_handle = self.callback_body_handle(*handle)?;
             let force64 = SVector::<f64, 3>::new(
                 original_force.x as f64,
                 original_force.y as f64,
@@ -347,6 +381,29 @@ mod tests {
                 &(),
             )
         }
+    }
+
+    #[derive(Default)]
+    struct RecordingCallback(std::sync::Mutex<Vec<BodyHandle>>);
+
+    impl PhysicsCallback<3> for RecordingCallback {
+        fn modulate_force(&self, body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+            self.0.lock().expect("callback handle recorder poisoned").push(body);
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, 3>, _: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _: &CollisionEvent<3>) {}
+        fn record_dissipation(&mut self, _: f64) {}
+        fn record_work(&mut self, _: BodyHandle, _: f64) {}
+        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
     }
 
     struct ScaleForceCallback(f64);
@@ -602,6 +659,61 @@ mod tests {
         let body = world.bodies.get(handle).expect("body retained");
         assert!((body.user_force().x - 1.0).abs() < 1.0e-6);
         assert_eq!(body.linvel().x, 0.0);
+    }
+
+    #[test]
+    fn recycled_rapier_body_slots_receive_distinct_symtropy_handles() {
+        let mut bridge = RapierPhysicsBridge::new(RecordingCallback::default());
+        let mut world = TestWorld::new();
+        let first = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
+        );
+        world
+            .bodies
+            .get_mut(first)
+            .expect("first body inserted")
+            .add_force(vector![1.0, 0.0, 0.0], true);
+        world.step(&mut bridge, 1.0 / 60.0).expect("first body step");
+
+        world
+            .bodies
+            .remove(
+                first,
+                &mut world.islands,
+                &mut world.colliders,
+                &mut world.impulse_joints,
+                &mut world.multibody_joints,
+                true,
+            )
+            .expect("first body removed");
+        let second = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
+        );
+        let (first_slot, first_generation) = first.into_raw_parts();
+        let (second_slot, second_generation) = second.into_raw_parts();
+        assert_eq!(first_slot, second_slot, "Rapier should recycle the removed slot");
+        assert_ne!(first_generation, second_generation, "generation must change on reuse");
+
+        world
+            .bodies
+            .get_mut(second)
+            .expect("second body inserted")
+            .add_force(vector![1.0, 0.0, 0.0], true);
+        world.step(&mut bridge, 1.0 / 60.0).expect("second body step");
+
+        let ids = bridge
+            .callback
+            .0
+            .lock()
+            .expect("callback handle recorder poisoned");
+        assert_eq!(ids.len(), 2);
+        assert_ne!(ids[0], ids[1], "a recycled slot must not reuse callback identity");
     }
 
     #[test]
