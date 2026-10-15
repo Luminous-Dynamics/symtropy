@@ -219,6 +219,7 @@ pub fn validate_period_capacity_plan(
     }
 
     let mut quotas_by_id = BTreeMap::new();
+    let mut quota_ids = BTreeSet::new();
     let mut periods_by_resource: BTreeMap<
         (CargoTransferCapacityResourceKind, String),
         Vec<(u64, u64, String)>,
@@ -231,7 +232,7 @@ pub fn validate_period_capacity_plan(
     for quota in quotas {
         validate_period_quota(quota, evaluation_time_epoch_seconds, policy)?;
         let evidence = &quota.evidence;
-        if quotas_by_id.contains_key(&evidence.budget_id) {
+        if !quota_ids.insert(evidence.budget_id.clone()) {
             return Err(PeriodCapacityError::DuplicateQuotaIdentity);
         }
 
