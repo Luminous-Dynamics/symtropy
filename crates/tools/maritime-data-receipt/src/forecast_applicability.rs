@@ -431,6 +431,187 @@ mod tests {
         *current.get_mut(parts[parts.len() - 1]).expect("corpus leaf exists") = replacement;
     }
 
+    fn oracle_field<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
+        path.split('.').try_fold(value, |current, key| current.get(key))
+    }
+
+    fn oracle_text<'a>(value: &'a Value, path: &str) -> Option<&'a str> {
+        oracle_field(value, path)?.as_str()
+    }
+
+    fn oracle_uint(value: &Value, path: &str) -> Option<u64> {
+        oracle_field(value, path)?.as_u64()
+    }
+
+    fn oracle_pinned(value: &str) -> bool {
+        let value = value.trim().to_ascii_lowercase();
+        !value.is_empty()
+            && !["latest", "current", "head", "unknown", "unspecified", "unversioned"]
+                .contains(&value.as_str())
+    }
+
+    // Independent calendar parser/oracle: does not call the production timestamp
+    // parser or epoch conversion. Years are counted from Gregorian year 1.
+    fn oracle_utc_seconds(value: &str) -> Option<i64> {
+        let bytes = value.as_bytes();
+        if bytes.len() != 20
+            || bytes.get(4) != Some(&b'-')
+            || bytes.get(7) != Some(&b'-')
+            || bytes.get(10) != Some(&b'T')
+            || bytes.get(13) != Some(&b':')
+            || bytes.get(16) != Some(&b':')
+            || bytes.get(19) != Some(&b'Z')
+        {
+            return None;
+        }
+        for (start, end) in [(0, 4), (5, 7), (8, 10), (11, 13), (14, 16), (17, 19)] {
+            if !bytes[start..end].iter().all(u8::is_ascii_digit) {
+                return None;
+            }
+        }
+        let number = |start: usize, end: usize| value[start..end].parse::<i64>().ok();
+        let (year, month, day, hour, minute, second) = (
+            number(0, 4)?,
+            number(5, 7)?,
+            number(8, 10)?,
+            number(11, 13)?,
+            number(14, 16)?,
+            number(17, 19)?,
+        );
+        if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
+            return None;
+        }
+        let leap = |candidate: i64| {
+            candidate % 4 == 0 && (candidate % 100 != 0 || candidate % 400 == 0)
+        };
+        let days_in_month = match month {
+            1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+            4 | 6 | 9 | 11 => 30,
+            2 if leap(year) => 29,
+            2 => 28,
+            _ => return None,
+        };
+        if day < 1 || day > days_in_month {
+            return None;
+        }
+        let mut days = 0_i64;
+        for candidate in 1..year {
+            days += if leap(candidate) { 366 } else { 365 };
+        }
+        for prior_month in 1..month {
+            days += match prior_month {
+                1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+                4 | 6 | 9 | 11 => 30,
+                2 if leap(year) => 29,
+                2 => 28,
+                _ => return None,
+            };
+        }
+        days += day - 1;
+        Some(days * 86_400 + hour * 3_600 + minute * 60 + second)
+    }
+
+    fn oracle_disposition(profile: &Value) -> &'static str {
+        const RECEIPT_SHA256: &str =
+            "62d4f04259b3beaf0c462038317a9863e7ebc3e79509a9d44f13c08326778fd2";
+        const ARTIFACT_SHA256: &str =
+            "45dbbb8cabb009dfaf17b697f24aec156b9baaae0a5dc29dcbce20023c02f714";
+        const UNCERTAINTY: &str =
+            "Invented forecast values for temporal applicability tests only; no observation or forecast skill claim.";
+
+        if oracle_text(profile, "schema_id")
+            != Some("luminous.symtropy.maritime-forecast-applicability")
+            || oracle_text(profile, "schema_version") != Some("0.1.0")
+            || oracle_text(profile, "source_kind") != Some("synthetic_fixture")
+            || oracle_text(profile, "receipt_binding.receipt_id")
+                != Some("synthetic-water-level-forecast-v0")
+            || oracle_text(profile, "receipt_binding.receipt_sha256") != Some(RECEIPT_SHA256)
+            || oracle_text(profile, "receipt_binding.artifact_sha256") != Some(ARTIFACT_SHA256)
+            || oracle_text(profile, "forecast.product_kind") != Some("water_level_prediction")
+            || oracle_text(profile, "forecast.dataset_id")
+                != Some("synthetic-water-level-forecast-example-v0")
+            || oracle_text(profile, "forecast.dataset_revision")
+                != Some("synthetic-model-run-001")
+            || oracle_text(profile, "quality.uncertainty_statement") != Some(UNCERTAINTY)
+        {
+            return "INVALID";
+        }
+
+        for path in [
+            "forecast.provider_product_id",
+            "forecast.dataset_revision",
+            "forecast.model_run_id",
+        ] {
+            if !oracle_text(profile, path).is_some_and(oracle_pinned) {
+                return "INVALID";
+            }
+        }
+        if oracle_uint(profile, "forecast.max_issue_age_seconds").unwrap_or(0) == 0
+            || oracle_uint(profile, "forecast.max_forecast_lead_seconds").unwrap_or(0) == 0
+        {
+            return "INVALID";
+        }
+        if oracle_text(profile, "quality.status")
+            .is_none_or(|status| !["synthetic", "unknown"].contains(&status))
+        {
+            return "INVALID";
+        }
+        if oracle_field(profile, "intended_use.scenario_analysis_only")
+            .and_then(Value::as_bool) != Some(true)
+            || oracle_field(profile, "intended_use.navigation_authorized")
+                .and_then(Value::as_bool) != Some(false)
+            || oracle_field(profile, "intended_use.physical_truth_claim_authorized")
+                .and_then(Value::as_bool) != Some(false)
+            || oracle_field(profile, "intended_use.berth_availability_inference_authorized")
+                .and_then(Value::as_bool) != Some(false)
+            || oracle_field(profile, "intended_use.independent_review_required")
+                .and_then(Value::as_bool) != Some(true)
+        {
+            return "INVALID";
+        }
+
+        let mut times = Vec::new();
+        for path in [
+            "forecast.model_initialization_time_utc",
+            "forecast.issued_at_utc",
+            "forecast.assessment_time_utc",
+            "forecast.target_time_utc",
+            "forecast.valid_from_utc",
+            "forecast.valid_until_utc",
+        ] {
+            let Some(raw) = oracle_text(profile, path) else {
+                return "INVALID";
+            };
+            let Some(seconds) = oracle_utc_seconds(raw) else {
+                return "INVALID";
+            };
+            times.push(seconds);
+        }
+        let [init, issue, assessment, target, valid_from, valid_until] =
+            <[i64; 6]>::try_from(times).expect("six temporal fields collected");
+        if init > issue
+            || valid_from > valid_until
+            || oracle_text(profile, "forecast.valid_from_utc")
+                != Some("2026-10-15T00:00:00Z")
+            || oracle_text(profile, "forecast.valid_until_utc")
+                != Some("2026-10-15T06:00:00Z")
+        {
+            return "INVALID";
+        }
+        if issue > assessment
+            || target < assessment
+            || target < valid_from
+            || target > valid_until
+            || target < init
+            || assessment - issue > oracle_uint(profile, "forecast.max_issue_age_seconds").unwrap_or(0) as i64
+            || target - init > oracle_uint(profile, "forecast.max_forecast_lead_seconds").unwrap_or(0) as i64
+            || oracle_text(profile, "quality.status") == Some("unknown")
+        {
+            return "INDETERMINATE_NOT_ADMITTED";
+        }
+        "TEMPORALLY_APPLICABLE_NOT_ADMITTED"
+    }
+
     #[test]
     fn frozen_corpus_dispositions_match_independent_expected_results() {
         let corpus: Value = serde_json::from_slice(include_bytes!(
@@ -449,6 +630,8 @@ mod tests {
                     change["value"].clone(),
                 );
             }
+            let oracle = oracle_disposition(&profile);
+            assert_eq!(oracle, expected, "independent oracle case {id}");
             let actual = evaluate_value(&profile);
             match expected {
                 "TEMPORALLY_APPLICABLE_NOT_ADMITTED" => {
