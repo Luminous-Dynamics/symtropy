@@ -152,7 +152,8 @@
         "captured_at_utc",
         "artifact_sha256"
       ],
-      "resolution_scope": "Can resolve only the declared terminal-window evidence gap; it does not create a booking or authorize vessel movement."
+      "resolution_scope": "Can resolve only the declared terminal-window evidence gap; it does not create a booking or authorize vessel movement.",
+      "blocker_code": "terminal_window_constraint"
     },
     {
       "requirement_id": "water_level_envelope_evidence",
@@ -167,7 +168,8 @@
         "source_receipt_sha256",
         "supported_model_capability_id"
       ],
-      "resolution_scope": "Can establish whether an input envelope is available within a declared model path; it does not calculate or certify under-keel clearance."
+      "resolution_scope": "Can establish whether an input envelope is available within a declared model path; it does not calculate or certify under-keel clearance.",
+      "blocker_code": "water_level_envelope_constraint"
     },
     {
       "requirement_id": "energy_reserve_assessment",
@@ -182,7 +184,8 @@
         "model_capability_id",
         "validation_reference"
       ],
-      "resolution_scope": "Can support a bounded energy feasibility check only if the model path is admitted; no assumption may replace absent loads or derating."
+      "resolution_scope": "Can support a bounded energy feasibility check only if the model path is admitted; no assumption may replace absent loads or derating.",
+      "blocker_code": "energy_reserve_constraint"
     },
     {
       "requirement_id": "forecast_temporal_binding",
@@ -202,7 +205,8 @@
         "target_time_utc",
         "policy_id"
       ],
-      "resolution_scope": "Can resolve temporal applicability for the pinned revision only; it does not validate forecast skill or authorize navigation."
+      "resolution_scope": "Can resolve temporal applicability for the pinned revision only; it does not validate forecast skill or authorize navigation.",
+      "blocker_code": "forecast_temporal_applicability"
     },
     {
       "requirement_id": "waiting_resource_availability",
@@ -218,7 +222,8 @@
         "issuer_identity",
         "source_revision"
       ],
-      "resolution_scope": "Can resolve the declared waiting-resource state only; claimed redundancy is not presumed independent without evidence."
+      "resolution_scope": "Can resolve the declared waiting-resource state only; claimed redundancy is not presumed independent without evidence.",
+      "blocker_code": "waiting_resource_availability"
     },
     {
       "requirement_id": "alternate_terminal_capacity",
@@ -234,7 +239,8 @@
         "captured_at_utc",
         "artifact_sha256"
       ],
-      "resolution_scope": "Can resolve capacity evidence for reassessment; it does not create a reservation, guarantee acceptance, or authorize execution."
+      "resolution_scope": "Can resolve capacity evidence for reassessment; it does not create a reservation, guarantee acceptance, or authorize execution.",
+      "blocker_code": "alternate_terminal_capacity"
     },
     {
       "requirement_id": "holding_energy_model_support",
@@ -249,7 +255,8 @@
         "model_capability_id",
         "validation_reference"
       ],
-      "resolution_scope": "Requires an explicitly supported energy model before comparing hold duration; until then the result remains unsupported."
+      "resolution_scope": "Requires an explicitly supported energy model before comparing hold duration; until then the result remains unsupported.",
+      "blocker_code": "holding_energy_model_unsupported"
     },
     {
       "requirement_id": "alternate_terminal_model_support",
@@ -264,7 +271,8 @@
         "model_revision",
         "source_data_receipts"
       ],
-      "resolution_scope": "Requires a separately admitted, validated model path; a capacity confirmation alone cannot establish alternative feasibility."
+      "resolution_scope": "Requires a separately admitted, validated model path; a capacity confirmation alone cannot establish alternative feasibility.",
+      "blocker_code": "alternate_terminal_model_unsupported"
     }
   ],
   "scenario_cases": [
