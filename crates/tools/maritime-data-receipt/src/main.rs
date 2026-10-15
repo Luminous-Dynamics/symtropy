@@ -150,6 +150,7 @@ struct ReceiptFacts {
     time_coverage_start_utc: Option<String>,
     time_coverage_end_utc: Option<String>,
     survey_or_observation_time_utc: Option<String>,
+    uncertainty_statement: String,
     artifact: ArtifactExpectation,
 }
 
@@ -522,7 +523,10 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     if !["preliminary", "verified", "prediction", "synthetic", "unknown"].contains(&verification_state) {
         return Err(format!("data_context.verification_state: unsupported value {verification_state:?}"));
     }
-    require_nonempty_text(field(context, "uncertainty_statement", "data_context")?, "data_context.uncertainty_statement")?;
+    let uncertainty_statement = require_nonempty_text(
+        field(context, "uncertainty_statement", "data_context")?,
+        "data_context.uncertainty_statement",
+    )?.to_owned();
     let freshness = require_nonempty_text(field(context, "freshness_policy", "data_context")?, "data_context.freshness_policy")?;
     if !["not_applicable_synthetic", "policy_required", "historical_only", "policy_defined"].contains(&freshness) {
         return Err(format!("data_context.freshness_policy: unsupported value {freshness:?}"));
@@ -624,6 +628,7 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         time_coverage_start_utc: coverage_start.map(str::to_owned),
         time_coverage_end_utc: coverage_end.map(str::to_owned),
         survey_or_observation_time_utc: observation_time.map(str::to_owned),
+        uncertainty_statement,
         artifact: ArtifactExpectation { relative_path, byte_length, sha256 },
     })
 }
