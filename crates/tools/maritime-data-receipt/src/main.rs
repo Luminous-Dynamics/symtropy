@@ -235,23 +235,71 @@ fn optional_https_uri(value: &JsonValue, path: &str, required: bool) -> Result<(
     }
 }
 
+fn fixed_digits(value: &str, start: usize, end: usize) -> Option<u32> {
+    let bytes = value.as_bytes().get(start..end)?;
+    if bytes.is_empty() || !bytes.iter().all(u8::is_ascii_digit) {
+        return None;
+    }
+    value.get(start..end)?.parse().ok()
+}
+
+fn valid_utc_timestamp(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() < 20
+        || bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || bytes.get(10) != Some(&b'T')
+        || bytes.get(13) != Some(&b':')
+        || bytes.get(16) != Some(&b':')
+        || bytes.last() != Some(&b'Z')
+    {
+        return false;
+    }
+
+    let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
+        fixed_digits(value, 0, 4),
+        fixed_digits(value, 5, 7),
+        fixed_digits(value, 8, 10),
+        fixed_digits(value, 11, 13),
+        fixed_digits(value, 14, 16),
+        fixed_digits(value, 17, 19),
+    ) else {
+        return false;
+    };
+
+    let fractional_seconds_valid = match bytes.get(19) {
+        Some(b'Z') => bytes.len() == 20,
+        Some(b'.') => {
+            bytes.len() >= 22
+                && bytes[20..bytes.len() - 1]
+                    .iter()
+                    .all(u8::is_ascii_digit)
+        }
+        _ => false,
+    };
+    if !fractional_seconds_valid || month == 0 || month > 12 || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    day >= 1 && day <= days_in_month
+}
+
 fn timestamp_utc<'a>(
     value: &'a JsonValue,
     path: &str,
     required: bool,
 ) -> Result<Option<&'a str>, String> {
-    let actual = optional_text(value, path)?;
-    match actual {
-        Some(value)
-            if value.len() >= 20
-                && value.as_bytes().get(4) == Some(&b'-')
-                && value.as_bytes().get(7) == Some(&b'-')
-                && value.as_bytes().get(10) == Some(&b'T')
-                && value.ends_with('Z') =>
-        {
-            Ok(Some(value))
-        }
-        Some(_) => Err(format!("{path}: expected an RFC3339-like UTC timestamp ending in Z")),
+    match optional_text(value, path)? {
+        Some(value) if valid_utc_timestamp(value) => Ok(Some(value)),
+        Some(_) => Err(format!("{path}: expected a valid RFC3339 UTC timestamp ending in Z")),
         None if required => Err(format!("{path}: required UTC timestamp is missing")),
         None => Ok(None),
     }
@@ -388,8 +436,10 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     for key in ["coordinate_reference_system", "vertical_datum"] {
         let _ = optional_text(field(context, key, "data_context")?, &format!("data_context.{key}"))?;
     }
-    if domain == "water_level" && optional_text(field(context, "vertical_datum", "data_context")?, "data_context.vertical_datum")?.is_none() {
-        return Err("water-level receipt must carry an explicit vertical datum".to_owned());
+    if ["water_level", "water_level_prediction"].contains(&domain)
+        && optional_text(field(context, "vertical_datum", "data_context")?, "data_context.vertical_datum")?.is_none()
+    {
+        return Err("water-level observations and predictions must carry an explicit vertical datum".to_owned());
     }
     if domain == "hydrography" && optional_text(field(context, "coordinate_reference_system", "data_context")?, "data_context.coordinate_reference_system")?.is_none() {
         return Err("hydrography receipt must carry a coordinate reference system".to_owned());
@@ -429,6 +479,17 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     if let (Some(start), Some(end)) = (coverage_start, coverage_end) {
         if start > end {
             return Err("data_context time coverage start must not be after end".to_owned());
+        }
+    }
+    if kind == "public_dataset" {
+        match domain {
+            "water_level" | "currents" | "hydrography" if observation_time.is_none() => {
+                return Err("public observation/survey records must pin their observation or survey time".to_owned());
+            }
+            "water_level_prediction" if coverage_start.is_none() || coverage_end.is_none() => {
+                return Err("public prediction records must bound their validity interval".to_owned());
+            }
+            _ => {}
         }
     }
     let verification_state = require_nonempty_text(
@@ -794,6 +855,18 @@ mod tests {
         let mutated = raw.replacen(
             "\"units\": [\n      \"m\"",
             "\"units\": [\n      \"furlong\"",
+            1,
+        );
+        let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn impossible_calendar_timestamp_is_rejected() {
+        let raw = String::from_utf8(receipt_bytes()).expect("receipt is UTF-8");
+        let mutated = raw.replacen(
+            "2026-10-14T12:00:00Z",
+            "2026-02-31T12:00:00Z",
             1,
         );
         let result = parse_strict(mutated.as_bytes()).and_then(|value| validate_receipt(&value));
