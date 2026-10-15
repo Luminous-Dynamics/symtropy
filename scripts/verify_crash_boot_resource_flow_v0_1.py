@@ -186,7 +186,7 @@ def evaluate_service_evidence(
         return "REJECT_INCOMPLETE_QUALIFICATION"
     if record["calibration_status"] != "VALID":
         return "REJECT_CALIBRATION_EXPIRED"
-    if record["unit"] != target["unit"] or record["unit"] != record.get("measurement_unit", record["unit"]):
+    if record["unit"] != target["unit"]:
         return "REJECT_UNIT_MISMATCH"
     if record["acceptance_criterion_id"] != target["acceptance_criterion_id"]:
         return "REJECT_SCOPE_MISMATCH"
