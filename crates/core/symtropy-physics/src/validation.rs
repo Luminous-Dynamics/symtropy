@@ -342,6 +342,9 @@ pub enum TraceComparisonError {
     NonFiniteSampleTime {
         step: u64,
     },
+    NonFiniteComputedMetric {
+        field: &'static str,
+    },
     SampleTimeMismatch {
         step: u64,
         left: f64,
@@ -382,6 +385,9 @@ impl fmt::Display for TraceComparisonError {
             }
             Self::NonFiniteSampleTime { step } => {
                 write!(f, "trace sample time is non-finite at step {step}")
+            }
+            Self::NonFiniteComputedMetric { field } => {
+                write!(f, "computed differential metric {field} is non-finite")
             }
             Self::SampleTimeMismatch { step, left, right } => write!(
                 f,
@@ -503,6 +509,16 @@ pub fn compare_traces_3d(
                 &left_body.linear_velocity_mps,
                 &right_body.linear_velocity_mps,
             );
+            if !position_error.is_finite() {
+                return Err(TraceComparisonError::NonFiniteComputedMetric {
+                    field: "position_error_m",
+                });
+            }
+            if !velocity_error.is_finite() {
+                return Err(TraceComparisonError::NonFiniteComputedMetric {
+                    field: "linear_velocity_error_mps",
+                });
+            }
             max_position_error_m = max_position_error_m.max(position_error);
             max_linear_velocity_error_mps =
                 max_linear_velocity_error_mps.max(velocity_error);
@@ -514,6 +530,16 @@ pub fn compare_traces_3d(
 
     metrics.finite_comparison_pairs = finite_pairs;
     if finite_pairs > 0 {
+        if !position_error_sq_sum.is_finite() {
+            return Err(TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_position_error_m",
+            });
+        }
+        if !velocity_error_sq_sum.is_finite() {
+            return Err(TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_linear_velocity_error_mps",
+            });
+        }
         let denominator = finite_pairs as f64;
         metrics.max_position_error_m = Some(max_position_error_m);
         metrics.rms_position_error_m = Some((position_error_sq_sum / denominator).sqrt());
@@ -953,6 +979,43 @@ mod tests {
             Err(TraceComparisonError::DuplicateBodyObservation {
                 step: 0,
                 body_id: ValidationBodyId(1),
+            })
+        );
+    }
+
+    #[test]
+    fn partial_finite_coverage_reports_metrics_but_cannot_claim_complete_coverage() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
+        let mut second = left.samples[0].bodies[0].clone();
+        second.body_id = ValidationBodyId(2);
+        second.position_m = [2.0, 0.0, 0.0];
+        left.samples[0].bodies.push(second);
+
+        let mut right = left.clone();
+        right.samples[0].bodies[0].position_m = [0.0, 0.0, 0.0];
+
+        let metrics = compare_traces_3d(&left, &right).unwrap();
+        assert_eq!(metrics.compared_bodies, 2);
+        assert_eq!(metrics.finite_comparison_pairs, 1);
+        assert_eq!(metrics.left_non_finite_observations, 1);
+        assert_eq!(metrics.right_non_finite_observations, 0);
+        assert!(!metrics.has_complete_finite_coverage());
+        assert_eq!(metrics.max_position_error_m, Some(0.0));
+        assert_eq!(metrics.rms_position_error_m, Some(0.0));
+    }
+
+    #[test]
+    fn finite_components_with_overflowing_error_are_rejected() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [f64::MAX, 0.0, 0.0];
+        let mut right = left.clone();
+        right.samples[0].bodies[0].position_m = [-f64::MAX, 0.0, 0.0];
+
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::NonFiniteComputedMetric {
+                field: "position_error_m",
             })
         );
     }
