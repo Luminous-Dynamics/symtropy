@@ -323,6 +323,10 @@ pub struct NutrientContributionDecisionV1 {
     pub nutrient_id: String,
     pub nutrient_definition_ref: String,
     pub unit: NutrientUnit,
+    #[serde(
+        serialize_with = "serialize_option_u64_as_string",
+        deserialize_with = "deserialize_option_u64_from_string"
+    )]
     pub value_scale: Option<u64>,
     /// Exact rational contribution in the declared nutrient unit:
     /// numerator / denominator. No float conversion or rounding is performed.
@@ -849,7 +853,9 @@ mod tests {
         composition.value_scale = u64::MAX;
         delivery.edible_delivered_grams = u64::MAX;
         let serialized_input = serde_json::to_string(&composition).expect("input serializes");
-        assert!(serialized_input.contains("\"amount_per_100g_scaled\":\"18446744073709551615\""));
+        assert!(serialized_input.contains(
+            "\"amount_per_100g_scaled\":\"18446744073709551615\""
+        ));
         let decoded_input: NutrientCompositionRecordV1 =
             serde_json::from_str(&serialized_input).expect("input deserializes");
         assert_eq!(decoded_input, composition);
