@@ -24,15 +24,14 @@ def multiply(a: list[float], b: list[float]) -> list[float]:
 
 
 def rotate(q: list[float], v: list[float]) -> list[float]:
+    # Independent 3x3 rotation-matrix oracle, not the Rust cross-product path.
     x, y, z, w = q
-    u_cross_v = [y*v[2]-z*v[1], z*v[0]-x*v[2], x*v[1]-y*v[0]]
-    twice = [2.0*value for value in u_cross_v]
-    u_cross_twice = [
-        y*twice[2]-z*twice[1],
-        z*twice[0]-x*twice[2],
-        x*twice[1]-y*twice[0],
+    matrix = [
+        [1.0 - 2.0*(y*y + z*z), 2.0*(x*y - z*w), 2.0*(x*z + y*w)],
+        [2.0*(x*y + z*w), 1.0 - 2.0*(x*x + z*z), 2.0*(y*z - x*w)],
+        [2.0*(x*z - y*w), 2.0*(y*z + x*w), 1.0 - 2.0*(x*x + y*y)],
     ]
-    return [v[i] + w*twice[i] + u_cross_twice[i] for i in range(3)]
+    return [sum(matrix[row][col] * v[col] for col in range(3)) for row in range(3)]
 
 
 def add(a: list[float], b: list[float]) -> list[float]:
