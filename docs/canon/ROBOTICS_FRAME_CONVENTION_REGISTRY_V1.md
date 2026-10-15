@@ -53,6 +53,8 @@ The registry commitment uses SHA-256 over these bytes:
 
 UTF-8 strings are not Unicode-normalized. Duplicate frame IDs are invalid rather than resolved by ordering. The canonical registry output is capped at 4 MiB.
 
+Before validation or allocation of the temporary sorted binding vector, the implementation performs a checked size preflight. For each row it counts the 8-byte frame-ID length prefix, exact UTF-8 frame-ID bytes, and one convention tag. ExternalSpec additionally counts one handedness byte, an 8-byte URI length prefix, the exact UTF-8 URI bytes, and 32 digest bytes. The fixed header is the domain plus two 16-bit versions and the 64-bit row count. Every addition is checked; overflow and any total above 4 MiB fail closed with \u0060FrameConventionBytesTooLarge\u0060. Exactly 4 MiB is accepted. The preflight bounds canonicalization's additional sorting/output work; it does not limit raw Serde input bytes or make deserialization of untrusted data fully bounded.
+
 ## Qualified world commitment V2
 
 The qualified commitment deliberately composes the two existing subcommitments rather than rewriting v1 bytes:
