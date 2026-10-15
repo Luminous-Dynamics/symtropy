@@ -37,6 +37,7 @@ On 2026-10-15, the official PLSCI metadata and UNCTAD Data Hub terms were review
    umask 077
    capture_dir='private-maritime-captures/unctad-plsci-2026-10-15'
    mkdir -p "$capture_dir"
+   chmod 700 "$capture_dir"
    date -u +'%Y-%m-%dT%H:%M:%SZ' > "$capture_dir/retrieval-started-at-utc.txt"
    curl --proto '=https' --proto-redir '=https' --location --max-redirs 5 \
      --fail --show-error --silent \
