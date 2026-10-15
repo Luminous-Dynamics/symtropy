@@ -8,12 +8,15 @@ use jsonschema::draft202012;
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, fs, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::Path,
+};
 
 const EMBEDDED_SCHEMA: &str =
     include_str!("../../../../docs/built-environment/home-layout-candidate.schema.json");
 const GEOMETRY_TOLERANCE_M: f64 = 1.0e-9;
-const OVERLAP_AREA_TOLERANCE_M2: f64 = 1.0e-6;
 
 #[derive(Clone, Copy, Debug)]
 struct Bounds {
@@ -45,10 +48,10 @@ impl Bounds {
             && other.y_max <= self.y_max + GEOMETRY_TOLERANCE_M
     }
 
-    fn overlap_area(self, other: Self) -> f64 {
+    fn overlaps(self, other: Self) -> bool {
         let width = (self.x_max.min(other.x_max) - self.x_min.max(other.x_min)).max(0.0);
         let height = (self.y_max.min(other.y_max) - self.y_min.max(other.y_min)).max(0.0);
-        width * height
+        width > GEOMETRY_TOLERANCE_M && height > GEOMETRY_TOLERANCE_M
     }
 }
 
@@ -115,17 +118,23 @@ pub fn validate_values(
     let mut reference_issues = Vec::new();
     let brief_ref = layout.get("brief_ref");
 
-    if brief_ref.and_then(|value| value.get("brief_id")).and_then(Value::as_str)
+    if brief_ref
+        .and_then(|value| value.get("brief_id"))
+        .and_then(Value::as_str)
         != brief.get("brief_id").and_then(Value::as_str)
     {
         reference_issues.push("brief_ref.brief_id does not match the supplied brief".to_string());
     }
-    if brief_ref.and_then(|value| value.get("revision")).and_then(Value::as_u64)
+    if brief_ref
+        .and_then(|value| value.get("revision"))
+        .and_then(Value::as_u64)
         != brief.get("revision").and_then(Value::as_u64)
     {
         reference_issues.push("brief_ref.revision does not match the supplied brief".to_string());
     }
-    if brief_ref.and_then(|value| value.get("sha256")).and_then(Value::as_str)
+    if brief_ref
+        .and_then(|value| value.get("sha256"))
+        .and_then(Value::as_str)
         != Some(brief_sha256.as_str())
     {
         reference_issues
@@ -207,16 +216,19 @@ fn check_semantics(
     let mut level_indices = BTreeSet::new();
     let mut elevations = BTreeSet::new();
 
-    for (index, floor) in layout["floors"].as_array().into_iter().flatten().enumerate() {
+    for (index, floor) in layout["floors"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .enumerate()
+    {
         let id = floor["floor_id"].as_str().unwrap_or_default();
         if !floor_ids.insert(id.to_owned()) {
             semantic.push(format!("floors[{index}].floor_id duplicates {id:?}"));
         }
         if let Some(level) = floor["level_index"].as_u64() {
             if !level_indices.insert(level) {
-                semantic.push(format!(
-                    "floors[{index}].level_index duplicates {level}"
-                ));
+                semantic.push(format!("floors[{index}].level_index duplicates {level}"));
             }
         }
         if let Some(elevation) = floor["elevation_m"].as_f64() {
@@ -305,7 +317,12 @@ fn check_semantics(
     }
 
     let mut omitted = BTreeSet::new();
-    for (index, item) in layout["omissions"].as_array().into_iter().flatten().enumerate() {
+    for (index, item) in layout["omissions"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .enumerate()
+    {
         let id = item["space_id"].as_str().unwrap_or_default();
         if !space_specs.contains_key(id) {
             semantic.push(format!(
@@ -351,9 +368,7 @@ fn check_semantics(
         for right in (left + 1)..positioned.len() {
             let (id_a, floor_a, bounds_a) = &positioned[left];
             let (id_b, floor_b, bounds_b) = &positioned[right];
-            if floor_a == floor_b
-                && bounds_a.overlap_area(*bounds_b) > OVERLAP_AREA_TOLERANCE_M2
-            {
+            if floor_a == floor_b && bounds_a.overlaps(*bounds_b) {
                 geometry.push(format!(
                     "zones {id_a:?} and {id_b:?} overlap on floor {floor_a:?}"
                 ));
@@ -423,6 +438,25 @@ mod tests {
                 .geometry_issues
                 .iter()
                 .any(|issue| issue.contains("outside planning bounds"))
+        );
+    }
+
+    #[test]
+    fn tiny_rectangle_intersection_is_not_hidden_by_area_threshold() {
+        let (mut layout, brief, bytes) = fixtures();
+        let bounds = &mut layout["zones"][1]["bounds_m"];
+        bounds["x_min"] = json!(5.99995);
+        bounds["y_min"] = json!(3.99995);
+        bounds["x_max"] = json!(6.00005);
+        bounds["y_max"] = json!(4.00005);
+
+        let report = validate_values(&layout, &brief, &bytes).expect("schema compiles");
+        assert!(!report.geometry_valid);
+        assert!(
+            report
+                .geometry_issues
+                .iter()
+                .any(|issue| issue.contains("overlap"))
         );
     }
 
