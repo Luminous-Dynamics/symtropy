@@ -87,6 +87,7 @@ pub struct RapierBodyState {
 pub struct RapierPhysicsBridge<C: PhysicsCallback<3>> {
     callback: C,
     pipeline: PhysicsPipeline,
+    query_pipeline: QueryPipeline,
     gravity: Vector<Real>,
 }
 
@@ -95,6 +96,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         Self {
             callback,
             pipeline: PhysicsPipeline::new(),
+            query_pipeline: QueryPipeline::new(),
             gravity: vector![0.0, -9.81, 0.0],
         }
     }
@@ -111,6 +113,14 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
     /// Return the configured gravity vector.
     pub fn gravity(&self) -> &Vector<Real> {
         &self.gravity
+    }
+
+    /// Read-only access to query data kept current by successful calls to the step method.
+    ///
+    /// Shape and ray queries must also pass the current body/collider sets to Rapier's
+    /// query functions; this accessor does not snapshot or own those sets.
+    pub fn query_pipeline(&self) -> &QueryPipeline {
+        &self.query_pipeline
     }
 
     /// Step the persistent Rapier pipeline and apply the Symtropy force callback once.
@@ -195,7 +205,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             impulse_joint_set,
             multibody_joint_set,
             ccd_solver,
-            None,
+            Some(&mut self.query_pipeline),
             physics_hooks,
             event_handler,
         );
@@ -372,6 +382,30 @@ mod tests {
         assert!(state.linear_velocity[1] < 0.0);
         assert!((state.rotation_wxyz[0] - 1.0).abs() < 1.0e-6);
         assert!(!state.is_sleeping);
+    }
+
+    #[test]
+    fn query_pipeline_can_hit_a_collider_after_the_physics_step() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut world = TestWorld::new();
+        let collider_handle = world.colliders.insert(ColliderBuilder::ball(0.5).build());
+
+        world.step(&mut bridge, 1.0 / 60.0).expect("valid fixed step");
+        let ray = Ray::new(point![-2.0, 0.0, 0.0], vector![1.0, 0.0, 0.0]);
+        let (hit_handle, toi) = bridge
+            .query_pipeline()
+            .cast_ray(
+                &world.bodies,
+                &world.colliders,
+                &ray,
+                10.0,
+                true,
+                QueryFilter::default(),
+            )
+            .expect("query pipeline must contain the inserted fixed collider");
+
+        assert_eq!(hit_handle, collider_handle);
+        assert!((toi - 1.5).abs() < 1.0e-3);
     }
 
     #[test]
