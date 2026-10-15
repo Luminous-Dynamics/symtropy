@@ -460,6 +460,81 @@ struct CrosswalkReport {
     claim_ceiling: Vec<&'static str>,
 }
 
+fn build_crosswalk_report(
+    value: &Value,
+    bytes: &[u8],
+    record_count: usize,
+    source_snapshot_path_checked: Option<String>,
+    locode_registry_path_checked: Option<String>,
+    snapshots_match: bool,
+    source_commit: String,
+) -> Result<CrosswalkReport, String> {
+    let source = member(value, "source_snapshot").map_err(str::to_owned)?;
+    let registry = member(value, "locode_registry").map_err(str::to_owned)?;
+    let mut resolved_count = 0usize;
+    let mut ambiguous_count = 0usize;
+    let mut unresolved_count = 0usize;
+    let records = member(value, "records")
+        .map_err(str::to_owned)?
+        .as_array()
+        .ok_or_else(|| "crosswalk records must be an array".to_owned())?;
+    for record in records {
+        match text(record, "mapping_state").map_err(str::to_owned)? {
+            "resolved" => resolved_count += 1,
+            "ambiguous" => ambiguous_count += 1,
+            "unresolved" => unresolved_count += 1,
+            _ => return Err("unexpected validated mapping state".to_owned()),
+        }
+    }
+
+    Ok(CrosswalkReport {
+        status: VALID,
+        crosswalk_id: text(value, "crosswalk_id").map_err(str::to_owned)?.to_owned(),
+        crosswalk_sha256: super::sha256_bytes(bytes),
+        source_commit_binding: source_commit,
+        fixture_kind: text(value, "fixture_kind").map_err(str::to_owned)?.to_owned(),
+        source_series_or_table_id: text(source, "series_or_table_id")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        source_revision: text(source, "source_revision")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        source_snapshot_sha256: text(source, "artifact_sha256")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        locode_release: text(registry, "release").map_err(str::to_owned)?.to_owned(),
+        locode_registry_sha256: text(registry, "artifact_sha256")
+            .map_err(str::to_owned)?
+            .to_owned(),
+        source_snapshot_path_checked,
+        locode_registry_path_checked,
+        declared_snapshot_hashes_match_local_bytes: snapshots_match,
+        record_count,
+        resolved_count,
+        ambiguous_count,
+        unresolved_count,
+        structural_checks_passed: true,
+        evidence_admission: "NotAdmitted",
+        source_authenticity_established: false,
+        port_identity_established: false,
+        operational_authority: false,
+        claim_ceiling: vec![
+            if snapshots_match {
+                "Crosswalk structure, declared release pins, local snapshot-byte equality, and internal mapping-policy consistency only."
+            } else {
+                "Crosswalk structure, declared release pins and internal mapping-policy consistency only."
+            },
+            if snapshots_match {
+                "Declared digests match the supplied local bytes; this does not establish publisher authenticity, licence permission, semantic correctness or freshness."
+            } else {
+                "Snapshot digests are checked for syntax here, not against local source artifacts."
+            },
+            "No real port identity, terminal association, source authenticity, inventory, custody, delivery, port availability, safety or navigation authority is established.",
+        ],
+    })
+}
+
+
 pub(crate) fn run_cli(path: &str) -> Result<(), String> {
     run_cli_inner(path, None)
 }
@@ -509,59 +584,17 @@ fn run_cli_inner(
         } else {
             (None, None, false)
         };
-    let mut resolved_count = 0usize;
-    let mut ambiguous_count = 0usize;
-    let mut unresolved_count = 0usize;
-    let records = member(&value, "records").map_err(str::to_owned)?
-        .as_array()
-        .ok_or_else(|| "crosswalk records must be an array".to_owned())?;
-    for record in records {
-        match text(record, "mapping_state").map_err(str::to_owned)? {
-            "resolved" => resolved_count += 1,
-            "ambiguous" => ambiguous_count += 1,
-            "unresolved" => unresolved_count += 1,
-            _ => return Err("unexpected validated mapping state".to_owned()),
-        }
-    }
     let source_commit = std::env::var("MARITIME_SOURCE_COMMIT")
         .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
-    let report = CrosswalkReport {
-        status: VALID,
-        crosswalk_id: text(&value, "crosswalk_id").map_err(str::to_owned)?.to_owned(),
-        crosswalk_sha256: super::sha256_bytes(&bytes),
-        source_commit_binding: source_commit,
-        fixture_kind: text(&value, "fixture_kind").map_err(str::to_owned)?.to_owned(),
-        source_series_or_table_id: text(source, "series_or_table_id").map_err(str::to_owned)?.to_owned(),
-        source_revision: text(source, "source_revision").map_err(str::to_owned)?.to_owned(),
-        source_snapshot_sha256: text(source, "artifact_sha256").map_err(str::to_owned)?.to_owned(),
-        locode_release: text(registry, "release").map_err(str::to_owned)?.to_owned(),
-        locode_registry_sha256: text(registry, "artifact_sha256").map_err(str::to_owned)?.to_owned(),
+    let report = build_crosswalk_report(
+        &value,
+        &bytes,
+        count,
         source_snapshot_path_checked,
         locode_registry_path_checked,
-        declared_snapshot_hashes_match_local_bytes: snapshots_match,
-        record_count: count,
-        resolved_count,
-        ambiguous_count,
-        unresolved_count,
-        structural_checks_passed: true,
-        evidence_admission: "NotAdmitted",
-        source_authenticity_established: false,
-        port_identity_established: false,
-        operational_authority: false,
-        claim_ceiling: vec![
-            if snapshots_match {
-                "Crosswalk structure, declared release pins, local snapshot-byte equality, and internal mapping-policy consistency only."
-            } else {
-                "Crosswalk structure, declared release pins and internal mapping-policy consistency only."
-            },
-            if snapshots_match {
-                "Declared digests match the supplied local bytes; this does not establish publisher authenticity, licence permission, semantic correctness or freshness."
-            } else {
-                "Snapshot digests are checked for syntax here, not against local source artifacts."
-            },
-            "No real port identity, terminal association, source authenticity, inventory, custody, delivery, port availability, safety or navigation authority is established.",
-        ],
-    };
+        snapshots_match,
+        source_commit,
+    )?;
     println!(
         "{}",
         serde_json::to_string(&report).map_err(|error| format!("cannot serialize report: {error}"))?
@@ -728,6 +761,36 @@ mod tests {
         .expect_err("a wrong registry digest must fail closed");
         assert!(error.contains("UN/LOCODE registry SHA-256 mismatch"));
         assert!(error.contains("crosswalk declares"));
+    }
+
+    #[test]
+    fn matching_snapshot_hashes_never_admit_port_identity_or_operation() {
+        let corpus: Value =
+            serde_json::from_str(include_str!("../tests/fixtures/port-crosswalk-corpus-v0.1.json"))
+                .expect("frozen crosswalk corpus");
+        let crosswalk = &corpus["base_crosswalks"]["valid_resolved"];
+        let bytes = serde_json::to_vec(crosswalk).expect("serialize crosswalk");
+        let record_count = validate_crosswalk(crosswalk).expect("metadata is valid");
+        let report = super::build_crosswalk_report(
+            crosswalk,
+            &bytes,
+            record_count,
+            Some("source-snapshot.json".to_owned()),
+            Some("locode-registry.json".to_owned()),
+            true,
+            "test-commit".to_owned(),
+        )
+        .expect("verified-byte report");
+
+        assert_eq!(report.status, VALID);
+        assert!(report.declared_snapshot_hashes_match_local_bytes);
+        assert_eq!(report.evidence_admission, "NotAdmitted");
+        assert!(!report.source_authenticity_established);
+        assert!(!report.port_identity_established);
+        assert!(!report.operational_authority);
+        assert!(report.claim_ceiling.iter().any(|claim| {
+            claim.contains("does not establish publisher authenticity")
+        }));
     }
 
     #[test]
