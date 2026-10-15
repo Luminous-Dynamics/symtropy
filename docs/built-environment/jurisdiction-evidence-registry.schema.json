@@ -235,7 +235,8 @@
         "validity_domain",
         "acceptance_criteria",
         "implementation_artifact",
-        "test_corpus_artifact"
+        "test_corpus_artifact",
+        "author_reference"
       ],
       "properties": {
         "rule_id": {
@@ -270,8 +271,47 @@
         },
         "test_corpus_artifact": {
           "$ref": "#/$defs/artifact"
+        },
+        "author_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "translation_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/translationReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "independently_reviewed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "translation_review"
+            ],
+            "properties": {
+              "translation_review": {
+                "$ref": "#/$defs/translationReview"
+              }
+            }
+          }
+        }
+      ]
     },
     "sourceRecord": {
       "type": "object",
@@ -474,6 +514,56 @@
           }
         }
       ]
+    },
+    "translationReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "reviewer_reference",
+        "reviewer_role",
+        "reviewed_at",
+        "decision",
+        "evidence_artifact"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "reviewer_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Stable pseudonymous identity reference for checking independence from the translation author."
+        },
+        "reviewer_role": {
+          "$ref": "#/$defs/review/properties/reviewer_role"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decision": {
+          "enum": [
+            "approved_for_evaluation",
+            "rejected",
+            "insufficient_evidence",
+            "requires_follow_up"
+          ]
+        },
+        "evidence_artifact": {
+          "$ref": "#/$defs/artifact"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2000
+        }
+      }
     }
   }
 }

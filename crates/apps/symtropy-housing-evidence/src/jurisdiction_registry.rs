@@ -25,6 +25,7 @@ pub struct RecordReadiness {
     pub applicability_status: String,
     pub source_snapshot_digest_verified: bool,
     pub review_evidence_digest_verified: bool,
+    pub translation_review_evidence_digest_verified: bool,
     pub rule_implementation_digest_verified: bool,
     pub rule_test_corpus_digest_verified: bool,
     pub ready_for_rule_evaluation: bool,
@@ -41,6 +42,7 @@ pub struct RegistryValidationReport {
     pub registry_contract_status: String,
     pub source_snapshot_digests_verified: usize,
     pub review_evidence_digests_verified: usize,
+    pub translation_review_evidence_digests_verified: usize,
     pub rule_artifact_digests_verified: usize,
     pub ready_for_rule_evaluation_count: usize,
     pub schema_issues: Vec<String>,
@@ -83,6 +85,7 @@ pub fn validate_value(
     let mut ids = BTreeSet::new();
     let mut source_snapshot_digests_verified = 0;
     let mut review_evidence_digests_verified = 0;
+    let mut translation_review_evidence_digests_verified = 0;
     let mut rule_artifact_digests_verified = 0;
 
     if schema_valid {
@@ -118,6 +121,10 @@ pub fn validate_value(
             let review_postdates_evaluation = record["review_record"]["reviewed_at"]
                 .as_str()
                 .is_some_and(|value| value.get(..10).unwrap_or_default() > evaluation_date);
+            let translation_review_postdates_evaluation = record["rule_translation"]
+                ["translation_review"]["reviewed_at"]
+                .as_str()
+                .is_some_and(|value| value.get(..10).unwrap_or_default() > evaluation_date);
 
             if publication_postdates_evaluation {
                 semantic_issues.push(format!(
@@ -128,6 +135,26 @@ pub fn validate_value(
                 semantic_issues.push(format!(
                     "source record {record_id:?} has a snapshot capture after registry evaluation_date"
                 ));
+            }
+
+            let artifact_roles = [
+                ("source snapshot", record["source_snapshot"]["artifact"]["sha256"].as_str()),
+                ("applicability review evidence", record["review_record"]["evidence_artifact"]["sha256"].as_str()),
+                ("translation review evidence", record["rule_translation"]["translation_review"]["evidence_artifact"]["sha256"].as_str()),
+                ("rule implementation", record["rule_translation"]["implementation_artifact"]["sha256"].as_str()),
+                ("rule test corpus", record["rule_translation"]["test_corpus_artifact"]["sha256"].as_str()),
+            ];
+            let mut declared_artifact_digests = BTreeSet::new();
+            let mut artifact_roles_distinct = true;
+            for (role, digest) in artifact_roles {
+                if let Some(digest) = digest
+                    && !declared_artifact_digests.insert(digest)
+                {
+                    artifact_roles_distinct = false;
+                    semantic_issues.push(format!(
+                        "source record {record_id:?} reuses a SHA-256 digest across evidence roles (duplicate at {role})"
+                    ));
+                }
             }
 
             let effective_from = record["effective_from"].as_str();
@@ -190,10 +217,21 @@ pub fn validate_value(
                 record.get("review_record").and_then(|value| value.get("evidence_artifact")),
                 artifact_root,
                 &mut semantic_issues,
-                &format!("source record {record_id:?} review evidence"),
+                &format!("source record {record_id:?} applicability review evidence"),
             );
             if review_verified {
                 review_evidence_digests_verified += 1;
+            }
+            let translation_review_verified = verify_artifact(
+                record.get("rule_translation")
+                    .and_then(|value| value.get("translation_review"))
+                    .and_then(|value| value.get("evidence_artifact")),
+                artifact_root,
+                &mut semantic_issues,
+                &format!("source record {record_id:?} translation review evidence"),
+            );
+            if translation_review_verified {
+                translation_review_evidence_digests_verified += 1;
             }
             let implementation_verified = verify_artifact(
                 record.get("rule_translation").and_then(|value| value.get("implementation_artifact")),
@@ -228,6 +266,9 @@ pub fn validate_value(
             if applicability_status != "confirmed_for_project" {
                 readiness_reasons.push("PROJECT_APPLICABILITY_NOT_CONFIRMED".to_string());
             }
+            if !artifact_roles_distinct {
+                readiness_reasons.push("EVIDENCE_ARTIFACT_REUSED_ACROSS_ROLES".to_string());
+            }
             if !snapshot_verified {
                 readiness_reasons.push("SOURCE_SNAPSHOT_MISSING_OR_UNVERIFIED".to_string());
             }
@@ -244,10 +285,29 @@ pub fn validate_value(
             if !matches!(access, "public" | "licensed") {
                 readiness_reasons.push("SOURCE_ACCESS_RIGHTS_NOT_CLEARED".to_string());
             }
-            let translation_reviewed =
-                record["rule_translation"]["status"].as_str() == Some("independently_reviewed");
-            if !translation_reviewed {
+            let translation_status =
+                record["rule_translation"]["status"].as_str().unwrap_or("not_translated");
+            let translation_review = &record["rule_translation"]["translation_review"];
+            let author_reference = record["rule_translation"]["author_reference"].as_str();
+            let reviewer_reference = translation_review["reviewer_reference"].as_str();
+            let translation_review_approved = translation_review["decision"].as_str()
+                == Some("approved_for_evaluation");
+            let reviewer_independent = author_reference.is_some()
+                && reviewer_reference.is_some()
+                && author_reference != reviewer_reference;
+            if translation_status != "independently_reviewed" {
                 readiness_reasons.push("RULE_TRANSLATION_NOT_INDEPENDENTLY_REVIEWED".to_string());
+            }
+            if translation_status == "independently_reviewed"
+                && (!translation_review_verified || !translation_review_approved)
+            {
+                readiness_reasons.push("RULE_TRANSLATION_REVIEW_NOT_EVIDENCED".to_string());
+            }
+            if translation_status == "independently_reviewed" && !reviewer_independent {
+                readiness_reasons.push("RULE_TRANSLATION_REVIEWER_NOT_INDEPENDENT".to_string());
+                semantic_issues.push(format!(
+                    "source record {record_id:?} translation reviewer must differ from the translation author"
+                ));
             }
             if record["rule_translation"].is_object() {
                 if record["edition"].as_str().is_none_or(str::is_empty) {
@@ -269,6 +329,12 @@ pub fn validate_value(
                 ));
                 readiness_reasons.push("REVIEW_POSTDATES_EVALUATION_DATE".to_string());
             }
+            if translation_review_postdates_evaluation {
+                semantic_issues.push(format!(
+                    "source record {record_id:?} has a translation review after registry evaluation_date"
+                ));
+                readiness_reasons.push("TRANSLATION_REVIEW_POSTDATES_EVALUATION_DATE".to_string());
+            }
 
             records.push(RecordReadiness {
                 record_id: record_id.to_owned(),
@@ -276,6 +342,7 @@ pub fn validate_value(
                 applicability_status: applicability_status.to_owned(),
                 source_snapshot_digest_verified: snapshot_verified,
                 review_evidence_digest_verified: review_verified,
+                translation_review_evidence_digest_verified: translation_review_verified,
                 rule_implementation_digest_verified: implementation_verified,
                 rule_test_corpus_digest_verified: corpus_verified,
                 ready_for_rule_evaluation: readiness_reasons.is_empty(),
@@ -323,6 +390,7 @@ pub fn validate_value(
         registry_contract_status: registry_contract_status.to_string(),
         source_snapshot_digests_verified,
         review_evidence_digests_verified,
+        translation_review_evidence_digests_verified,
         rule_artifact_digests_verified,
         ready_for_rule_evaluation_count,
         schema_issues,
@@ -502,10 +570,19 @@ mod tests {
             "rule_id": "controlled-test-rule-1",
             "version": "1.0.0",
             "status": "independently_reviewed",
+            "author_reference": "translator:controlled-author",
             "validity_domain": "test only; no legal meaning",
             "acceptance_criteria": "controlled known-answer fixture",
             "implementation_artifact": write_hashed_artifact(root, "rule.rs", b"fn controlled_rule() -> bool { true }\n"),
-            "test_corpus_artifact": write_hashed_artifact(root, "corpus.json", b"{\"cases\":[{\"expected\":true}]}\n")
+            "test_corpus_artifact": write_hashed_artifact(root, "corpus.json", b"{\"cases\":[{\"expected\":true}]}\n"),
+            "translation_review": {
+                "review_id": "controlled-translation-review-1",
+                "reviewer_reference": "reviewer:independent-reviewer",
+                "reviewer_role": "standards_specialist",
+                "reviewed_at": "2026-10-14T13:00:00Z",
+                "decision": "approved_for_evaluation",
+                "evidence_artifact": write_hashed_artifact(root, "translation-review.txt", b"independent translation review evidence\n")
+            }
         });
         registry
     }
@@ -600,6 +677,80 @@ mod tests {
             .expect("controlled source record appears");
         assert!(record.readiness_reasons.contains(
             &"REVIEW_POSTDATES_EVALUATION_DATE".to_string()
+        ));
+    }
+
+    #[test]
+    fn independently_reviewed_translation_requires_a_verifiable_review_receipt() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["rule_translation"]["translation_review"] = Value::Null;
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.schema_valid, "reviewed status needs a review receipt");
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+    }
+
+    #[test]
+    fn translation_author_cannot_serve_as_independent_reviewer() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["rule_translation"]["translation_review"]["reviewer_reference"] =
+            json!("translator:controlled-author");
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("translation reviewer must differ from the translation author")
+        }));
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.readiness_reasons.contains(
+            &"RULE_TRANSLATION_REVIEWER_NOT_INDEPENDENT".to_string()
+        ));
+    }
+
+    #[test]
+    fn one_artifact_digest_cannot_satisfy_multiple_evidence_roles() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        let source_artifact = registry["source_records"][0]["source_snapshot"]["artifact"].clone();
+        registry["source_records"][0]["review_record"]["evidence_artifact"] = source_artifact;
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("reuses a SHA-256 digest across evidence roles")
+        }));
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.readiness_reasons.contains(
+            &"EVIDENCE_ARTIFACT_REUSED_ACROSS_ROLES".to_string()
+        ));
+    }
+
+    #[test]
+    fn translation_review_after_evaluation_date_is_rejected() {
+        let root = TestRoot::new();
+        let mut registry = ready_candidate_registry(root.path());
+        registry["source_records"][0]["rule_translation"]["translation_review"]["reviewed_at"] =
+            json!("2026-10-16T09:00:00Z");
+
+        let report = validate_value(&registry, root.path()).expect("schema compiles");
+        assert!(!report.semantic_valid);
+        assert_eq!(report.ready_for_rule_evaluation_count, 0);
+        assert!(report.semantic_issues.iter().any(|issue| {
+            issue.contains("translation review after registry evaluation_date")
+        }));
+        let record = report.records.iter()
+            .find(|record| record.record_id == "za-nbrbsa-act-103-1977-reference")
+            .expect("controlled source record appears");
+        assert!(record.readiness_reasons.contains(
+            &"TRANSLATION_REVIEW_POSTDATES_EVALUATION_DATE".to_string()
         ));
     }
 
