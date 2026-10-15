@@ -68,7 +68,7 @@ SHA256(
 
 The resulting digest is `QualifiedWorldDigestV2`. The qualified envelope therefore binds both the full base manifest and the convention registry. A change to a convention changes the qualified-world digest even when scenario identity and generation stay constant.
 
-`QualifiedSolverRequestV2::bind` associates the base request with the qualified-world digest. `QualifiedSolverResultEnvelopeV2::bind` carries the same digest on the result. `QualifiedWorldManifestV2::validate_solver_result` recomputes the qualified digest, requires request and result digests to match the active qualified world, then performs the existing v1 solver admission checks. A base-manifest-only admission call does not claim convention-qualified admission; use the V2 path for frame-dependent quantities.
+`QualifiedSolverRequestV2::bind` associates the base request with the qualified-world digest. A solver adapter returns `QualifiedSolverAdapterResultV2` with an explicit echo of the qualified-world digest associated with the execution; `QualifiedSolverResultEnvelopeV2::bind` rejects an echo that does not match the request instead of silently copying a later request's digest. The integration must preserve this echo from the adapter response. `QualifiedWorldManifestV2::validate_solver_result` recomputes the qualified digest and performs the existing v1 solver admission checks. A digest echo is not a cryptographic attestation and does not prove the solver interpreted the frame conventions. A base-manifest-only admission call does not claim convention-qualified admission; use the V2 path for frame-dependent quantities.
 
 ## Golden vectors
 
