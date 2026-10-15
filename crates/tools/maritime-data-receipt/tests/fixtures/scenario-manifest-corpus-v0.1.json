@@ -42,9 +42,7 @@
           ],
           "algorithm_id": "synthetic-port-connectivity-shock",
           "algorithm_revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
-          "config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "output_artifact_relative_path": "artifacts/synthetic-shock-output.json",
-          "output_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          "config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "node_id": "assumption-loss",
@@ -56,7 +54,7 @@
         },
         {
           "node_id": "scenario-output",
-          "node_kind": "scenario_output",
+          "node_kind": "claim_target",
           "parents": [
             "transform-shock",
             "assumption-loss"
