@@ -327,7 +327,7 @@ fn validate_values(
                             &mut artifact_issues,
                             &role,
                         );
-                        project_input_artifacts_verified += usize::from(verified);
+                        project_input_artifacts_verified += if verified { 1 } else { 0 };
                         if !verified {
                             manifest_artifacts_valid = false;
                         }
@@ -361,18 +361,68 @@ fn validate_values(
 
     let mut digest_roles: Vec<(String, Option<String>)> = vec![
         ("registry".to_string(), Some(actual_registry_sha256.clone())),
-        ("source snapshot".to_string(), record["source_snapshot"]["artifact"]["sha256"].as_str().map(str::to_owned)),
-        ("applicability review".to_string(), record["review_record"]["evidence_artifact"]["sha256"].as_str().map(str::to_owned)),
-        ("translation review".to_string(), record["rule_translation"]["translation_review"]["evidence_artifact"]["sha256"].as_str().map(str::to_owned)),
-        ("rule implementation".to_string(), record["rule_translation"]["implementation_artifact"]["sha256"].as_str().map(str::to_owned)),
-        ("test corpus".to_string(), record["rule_translation"]["test_corpus_artifact"]["sha256"].as_str().map(str::to_owned)),
-        ("project input manifest".to_string(), receipt["project_input_manifest"]["sha256"].as_str().map(str::to_owned)),
-        ("evaluator executable".to_string(), receipt["evaluator"]["executable_artifact"]["sha256"].as_str().map(str::to_owned)),
-        ("output artifact".to_string(), receipt["output_artifact"]["sha256"].as_str().map(str::to_owned)),
+        (
+            "source snapshot".to_string(),
+            record["source_snapshot"]["artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "applicability review".to_string(),
+            record["review_record"]["evidence_artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "translation review".to_string(),
+            record["rule_translation"]["translation_review"]["evidence_artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "rule implementation".to_string(),
+            record["rule_translation"]["implementation_artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "test corpus".to_string(),
+            record["rule_translation"]["test_corpus_artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "project input manifest".to_string(),
+            receipt["project_input_manifest"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "evaluator executable".to_string(),
+            receipt["evaluator"]["executable_artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
+        (
+            "output artifact".to_string(),
+            receipt["output_artifact"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ),
     ];
     if let Some(manifest) = project_manifest_value.as_ref() {
-        digest_roles.push(("project building model".to_string(), manifest["building_model"]["sha256"].as_str().map(str::to_owned)));
-        digest_roles.push(("project design brief".to_string(), manifest["design_brief"]["sha256"].as_str().map(str::to_owned)));
+        digest_roles.push((
+            "project building model".to_string(),
+            manifest["building_model"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ));
+        digest_roles.push((
+            "project design brief".to_string(),
+            manifest["design_brief"]["sha256"]
+                .as_str()
+                .map(str::to_owned),
+        ));
         if let Some(inputs) = manifest["additional_inputs"].as_array() {
             for input in inputs {
                 let input_id = input["input_id"].as_str().unwrap_or("unknown");
@@ -460,7 +510,9 @@ fn validate_values(
 
 fn validate_project_manifest_schema(manifest: &Value) -> Result<Vec<String>, String> {
     let schema: Value = serde_json::from_str(PROJECT_MANIFEST_SCHEMA)
-        .map_err(|error| format!("embedded project input manifest schema is invalid JSON: {error}"))?;
+        .map_err(|error| {
+            format!("embedded project input manifest schema is invalid JSON: {error}")
+        })?;
     if !all_refs_are_local(&schema) {
         return Err("project input manifest schema contains an external reference".to_string());
     }
@@ -481,7 +533,9 @@ fn read_local_artifact_bytes(relative_path: &str, artifact_root: &Path) -> Resul
     let relative = Path::new(relative_path);
     if relative.as_os_str().is_empty()
         || relative.is_absolute()
-        || relative.components().any(|component| !matches!(component, std::path::Component::Normal(_)))
+        || relative
+            .components()
+            .any(|component| !matches!(component, std::path::Component::Normal(_)))
     {
         return Err("unsafe non-relative project input manifest path".to_string());
     }
@@ -491,11 +545,14 @@ fn read_local_artifact_bytes(relative_path: &str, artifact_root: &Path) -> Resul
     let path = base
         .join(relative)
         .canonicalize()
-        .map_err(|error| format!("cannot resolve project input manifest {relative_path:?}: {error}"))?;
+        .map_err(|error| {
+            format!("cannot resolve project input manifest {relative_path:?}: {error}")
+        })?;
     if !path.starts_with(&base) {
         return Err("project input manifest resolves outside the artifact root".to_string());
     }
-    fs::read(path).map_err(|error| format!("cannot read project input manifest: {error}"))
+    fs::read(path)
+        .map_err(|error| format!("cannot read project input manifest: {error}"))
 }
 
 fn build_report(
@@ -720,7 +777,7 @@ mod tests {
         let output = write_artifact(root, "claimed-output.json", b"{\"declared\":\"pass\"}\n");
 
         let receipt = json!({
-            "schema_version": "0.1.0",
+            "schema_version": "0.2.0",
             "receipt_id": "test/receipt-1",
             "evaluated_at": "2026-10-15T14:00:00Z",
             "evaluation_date": "2026-10-15",
