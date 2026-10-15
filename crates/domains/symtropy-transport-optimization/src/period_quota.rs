@@ -506,7 +506,7 @@ mod tests {
                 &[use_of("a", "quota-a", 6), use_of("b", "quota-a", 5)],
                 &[q.clone()],
                 100,
-                &policy()
+                &policy(),
             ),
             Err(PeriodCapacityError::CapacityExceeded)
         );
@@ -516,7 +516,7 @@ mod tests {
                 &[use_of("a", "quota-a", u64::MAX), use_of("b", "quota-a", 1)],
                 &[q],
                 100,
-                &policy()
+                &policy(),
             ),
             Err(PeriodCapacityError::CapacityArithmeticOverflow)
         );
@@ -589,7 +589,7 @@ mod tests {
                 &[use_of("use-a", "missing", 1)],
                 &[q.clone()],
                 100,
-                &policy()
+                &policy(),
             ),
             Err(PeriodCapacityError::UnknownQuota)
         );
@@ -602,7 +602,7 @@ mod tests {
                 &[use_of("same-id", "quota-a", 1), use_of("same-id", "quota-a", 1)],
                 &[q.clone()],
                 100,
-                &policy()
+                &policy(),
             ),
             Err(PeriodCapacityError::DuplicateAllocationIdentity)
         );
