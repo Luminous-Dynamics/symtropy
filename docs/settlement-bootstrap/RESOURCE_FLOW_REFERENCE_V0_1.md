@@ -110,6 +110,14 @@ The contract follows the structure of established human-spaceflight systems engi
 
 These references establish subsystem boundaries and verification expectations, not extraterrestrial deployment readiness, acceptable exposure limits for an unknown world, or numerical inputs for this corpus.
 
+For the evidence/provenance layer, three general-purpose standards offer useful *design patterns*, not ready-made certification of physical service records:
+
+- W3C [Verifiable Credentials Data Model v2.0](https://www.w3.org/TR/2025/REC-vc-data-model-2.0-20250515/) separates issuer claims, holders and verifiers, and defines a `credentialStatus` extension point for states such as suspension or revocation. It is a candidate interoperability reference if Mycelix later needs portable signed evidence claims; credential format alone does not make a sensor, issuer or test trustworthy.
+- The [in-toto Attestation Framework Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md) binds an attestation to explicit subject artifact digests and a typed predicate. Its broader framework separates predicate, statement, authentication envelope and bundle. This separation is useful for distinguishing what was tested, the claim made about it, and the mechanism authenticating the claim. It is a software-supply-chain design pattern, not a life-support standard.
+- W3C [PROV-O](https://www.w3.org/TR/prov-o/) provides a general vocabulary for provenance entities, activities and responsible agents, and is a possible mapping target for cross-project audit events.
+
+Do not adopt any of these standards wholesale without a separate profile defining canonicalization, signature suite, key/issuer authorization, revocation freshness, offline operation, privacy, exact physical scope, and context-of-use policy. PR #1632 adds a content-hash binding example only; the service evidence cases still do not verify issuer signatures or a production trust chain.
+
 ## Admission and non-claims
 
 This file set does **not** relax the gates tracked by [WORLD-START product PR #1422](https://github.com/Luminous-Dynamics/symtropy/pull/1422), [its exact-subject qualifier PR #1423](https://github.com/Luminous-Dynamics/symtropy/pull/1423), or [model-suitability issue #1173](https://github.com/Luminous-Dynamics/symtropy/issues/1173). Their exact-subject qualification must be checked independently; an unfinished or queued run is not a pass.
