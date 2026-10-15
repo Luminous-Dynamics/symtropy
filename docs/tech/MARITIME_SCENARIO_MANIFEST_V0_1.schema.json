@@ -217,8 +217,8 @@
         "receipt_sha256",
         "artifact_relative_path",
         "artifact_sha256",
-        "valid_from_utc",
-        "valid_until_utc"
+        "data_time_start_utc",
+        "data_time_end_utc"
       ],
       "properties": {
         "node_id": {
@@ -280,7 +280,7 @@
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
-        "valid_from_utc": {
+        "data_time_start_utc": {
           "type": [
             "string",
             "null"
@@ -288,7 +288,7 @@
           "format": "date-time",
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
         },
-        "valid_until_utc": {
+        "data_time_end_utc": {
           "type": [
             "string",
             "null"
