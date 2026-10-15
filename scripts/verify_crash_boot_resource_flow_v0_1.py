@@ -157,6 +157,15 @@ def evaluate_service_evidence(
             payload_bytes = payload_utf8.encode("utf-8")
         except UnicodeEncodeError:
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        max_payload_bytes = target.get("max_artifact_payload_bytes")
+        if (
+            not isinstance(max_payload_bytes, int)
+            or isinstance(max_payload_bytes, bool)
+            or max_payload_bytes <= 0
+        ):
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        if len(payload_bytes) > max_payload_bytes:
+            return "REJECT_ARTIFACT_PAYLOAD_TOO_LARGE"
         if "sha256:" + hashlib.sha256(payload_bytes).hexdigest() != record.get("artifact_digest"):
             return "REJECT_ARTIFACT_DIGEST_MISMATCH"
         try:
@@ -735,6 +744,10 @@ def main() -> None:
         "service evidence contract must retain synthetic/non-authoritative scope",
     )
     target = evidence_contract["target"]
+    require(
+        target.get("max_artifact_payload_bytes") == 65536,
+        "claim-payload byte cap changed without explicit contract review",
+    )
     evidence_cases = evidence_contract["cases"]
     assert isinstance(evidence_cases, list)
     evidence_by_id: dict[str, dict[str, object]] = {}
@@ -865,6 +878,11 @@ def main() -> None:
             True,
             "REJECT_ARTIFACT_PAYLOAD_INVALID",
         ),
+        "oversized_claim_payload": (
+            "pad_payload_beyond_declared_byte_limit",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_TOO_LARGE",
+        ),
     }
     canonicalization_controls = artifact_binding.get("canonicalization_negative_controls")
     require(
@@ -923,6 +941,11 @@ def main() -> None:
             )
         elif mutation == "replace_payload_with_deeply_nested_array":
             mutated_payload = "[" * 2000 + "0" + "]" * 2000
+        elif mutation == "pad_payload_beyond_declared_byte_limit":
+            byte_limit = int(target["max_artifact_payload_bytes"])
+            base_payload = str(control_record["artifact_payload_utf8"])
+            padding_bytes = byte_limit + 1 - len(base_payload.encode("utf-8"))
+            mutated_payload = base_payload + (" " * max(1, padding_bytes))
         else:
             require(False, f"{control_id}: unknown canonicalization mutation")
             continue
