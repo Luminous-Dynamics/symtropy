@@ -535,7 +535,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let profiles = corpus["base_profiles"].as_object().expect("base profiles object");
         let cases = corpus["cases"].as_array().expect("case array");
-        assert_eq!(cases.len(), 21, "the frozen corpus count is part of the test contract");
+        assert_eq!(cases.len(), 23, "the frozen corpus count is part of the test contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base_name = case["base"].as_str().expect("base profile");
