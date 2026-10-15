@@ -169,6 +169,27 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         stop_at_penetration: bool,
         exclude_collider: Option<ColliderHandle>,
     ) -> Option<(ColliderHandle, TOI)> {
+        // Invalid cast inputs must not be allowed to reach the narrow-phase query
+        // machinery, where NaNs/infinities can make hit ordering meaningless.
+        if !max_toi.is_finite()
+            || max_toi < 0.0
+            || !shape_velocity.iter().all(|value| value.is_finite())
+            || !shape_velocity.norm_squared().is_finite()
+            || !shape_position
+                .translation
+                .vector
+                .iter()
+                .all(|value| value.is_finite())
+            || !shape_position
+                .rotation
+                .quaternion()
+                .coords
+                .iter()
+                .all(|value| value.is_finite())
+        {
+            return None;
+        }
+
         let filter = exclude_collider.map_or_else(QueryFilter::default, |handle| {
             QueryFilter::default().exclude_collider(handle)
         });
@@ -526,6 +547,77 @@ mod tests {
 
         assert_eq!(hit_handle, obstacle_collider);
         assert!((toi.toi - 4.25).abs() < 1.0e-2);
+    }
+
+    #[test]
+    fn shape_cast_rejects_non_finite_or_negative_query_inputs() {
+        let bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let world = TestWorld::new();
+        let shape = Ball::new(0.25);
+        let position = Isometry::translation(-2.0, 0.0, 0.0);
+        let velocity = vector![1.0, 0.0, 0.0];
+
+        assert!(
+            bridge
+                .cast_shape(
+                    &world.bodies,
+                    &world.colliders,
+                    &position,
+                    &velocity,
+                    &shape,
+                    f32::INFINITY,
+                    true,
+                    None,
+                )
+                .is_none(),
+            "non-finite maximum TOI must be rejected",
+        );
+        assert!(
+            bridge
+                .cast_shape(
+                    &world.bodies,
+                    &world.colliders,
+                    &position,
+                    &velocity,
+                    &shape,
+                    -1.0,
+                    true,
+                    None,
+                )
+                .is_none(),
+            "negative maximum TOI must be rejected",
+        );
+        assert!(
+            bridge
+                .cast_shape(
+                    &world.bodies,
+                    &world.colliders,
+                    &position,
+                    &vector![f32::NAN, 0.0, 0.0],
+                    &shape,
+                    10.0,
+                    true,
+                    None,
+                )
+                .is_none(),
+            "non-finite shape velocity must be rejected",
+        );
+        let invalid_position = Isometry::translation(f32::NAN, 0.0, 0.0);
+        assert!(
+            bridge
+                .cast_shape(
+                    &world.bodies,
+                    &world.colliders,
+                    &invalid_position,
+                    &velocity,
+                    &shape,
+                    10.0,
+                    true,
+                    None,
+                )
+                .is_none(),
+            "non-finite shape pose must be rejected",
+        );
     }
 
     #[test]
