@@ -495,6 +495,42 @@
         }
       ],
       "expected_code": "MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS"
+    },
+    {
+      "id": "unknown_locode_status_cannot_resolve",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.locode_status",
+          "value": "XX"
+        }
+      ],
+      "expected_code": "UNKNOWN_LOCODE_STATUS_NOT_RESOLVABLE"
+    },
+    {
+      "id": "ambiguous_mapping_requires_at_least_one_candidate",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.mapping_state",
+          "value": "ambiguous"
+        },
+        {
+          "op": "set",
+          "path": "records.0.match_method",
+          "value": "manual_review"
+        },
+        {
+          "op": "set",
+          "path": "records.0.evidence_refs",
+          "value": [
+            "fixture-only:ambiguity-review"
+          ]
+        }
+      ],
+      "expected_code": "AMBIGUOUS_CANDIDATE_MISSING"
     }
   ]
 }
