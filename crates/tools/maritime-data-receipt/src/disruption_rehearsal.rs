@@ -282,8 +282,14 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             "alternate_capacity_confirmed" => "default_state",
             _ => unreachable!(),
         };
-        let keys = vec!["constraint_id", "kind", "unit", "source", status_key];
-        super::exact_keys(constraint, &keys, &path)?;
+        let keys: &[&str] = match status_key {
+            "missing_state" => &["constraint_id", "kind", "unit", "source", "missing_state"],
+            "unsupported_state" => &["constraint_id", "kind", "unit", "source", "unsupported_state"],
+            "invalid_or_missing_state" => &["constraint_id", "kind", "unit", "source", "invalid_or_missing_state"],
+            "default_state" => &["constraint_id", "kind", "unit", "source", "default_state"],
+            _ => return Err(format!("{path}: unsupported constraint status field")),
+        };
+        super::exact_keys(constraint, keys, &path)?;
         let expected_kind = if id == "forecast_temporal_applicability" { "evidence_gate" } else { "hard" };
         super::expect_text(super::field(constraint, "kind", &path)?, &format!("{path}.kind"), expected_kind)?;
         let expected_status = if id == "energy_reserve_minimum_satisfied" { "UNSUPPORTED" } else if id == "alternate_capacity_confirmed" { "INDETERMINATE" } else { "INDETERMINATE" };
@@ -294,7 +300,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         } else if !matches!(unit, super::JsonValue::Null) {
             return Err(format!("{path}.unit must remain null for abstract state constraints"));
         }
-        let _ = text_field(constraint, "source", &path)?;
+        text_field(constraint, "source", &path)?;
     }
 
     let properties = super::array(super::field(root, "expected_global_properties", "rehearsal")?, "rehearsal.expected_global_properties")?;
@@ -700,6 +706,43 @@ mod tests {
         }
     }
 
+    fn oracle_blockers(plan: &str, case: &Value) -> Vec<&'static str> {
+        let input = &case["abstract_inputs"];
+        let water = input["water_level_envelope_state"].as_str().unwrap();
+        let energy = input["energy_reserve_state"].as_str().unwrap();
+        let terminal = input["terminal_window_state"].as_str().unwrap();
+        let forecast = input["forecast_evidence_state"].as_str().unwrap();
+        let waiting = input["waiting_resource_state"].as_str().unwrap();
+        let alternate = input["alternate_capacity_state"].as_str().unwrap();
+        match plan {
+            "continue_original_slot" if terminal == "closed" => vec!["terminal_window_open"],
+            "continue_original_slot" if water == "outside_declared_limit" =>
+                vec!["water_level_envelope_supported_and_satisfied"],
+            "continue_original_slot" if energy == "inadequate_for_declared_plan" =>
+                vec!["energy_reserve_minimum_satisfied"],
+            "continue_original_slot" => {
+                let mut blockers = Vec::new();
+                if forecast != "temporally_applicable_not_admitted" {
+                    blockers.push("forecast_temporal_applicability");
+                }
+                if water == "unknown" {
+                    blockers.push("water_level_envelope_supported_and_satisfied");
+                }
+                blockers
+            }
+            "hold_and_reassess" if waiting != "declared_available" =>
+                vec!["designated_waiting_resource_declared_available"],
+            "hold_and_reassess" if energy != "adequate" =>
+                vec!["energy behaviour while holding is outside the model scope"],
+            "hold_and_reassess" => Vec::new(),
+            "prepare_alternate_terminal" if alternate != "confirmed" =>
+                vec!["alternate_capacity_confirmed"],
+            "prepare_alternate_terminal" =>
+                vec!["alternate-terminal feasibility model not admitted"],
+            _ => vec!["unknown plan"],
+        }
+    }
+
     #[test]
     fn frozen_fixture_matches_independent_oracle() {
         let fixture: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON parses");
@@ -723,6 +766,24 @@ mod tests {
                     .find(|d| d.case_id == case_id && d.plan_id == *plan)
                     .expect("production disposition exists");
                 assert_eq!(actual.status, expected, "runtime oracle: {case_id} / {plan}");
+
+                let oracle_blockers = oracle_blockers(plan, case);
+                assert_eq!(
+                    actual.blockers,
+                    oracle_blockers.iter().map(|value| (*value).to_owned()).collect::<Vec<_>>(),
+                    "blocker oracle: {case_id} / {plan}"
+                );
+                let declared_blockers = case["expected_blockers"].get(plan);
+                if oracle_blockers.is_empty() {
+                    assert!(declared_blockers.is_none(), "unexpected declared blockers: {case_id} / {plan}");
+                } else {
+                    let declared = declared_blockers.and_then(Value::as_array).expect("declared blocker array");
+                    assert_eq!(
+                        declared.iter().map(|v| v.as_str().unwrap()).collect::<Vec<_>>(),
+                        oracle_blockers,
+                        "frozen blocker expectations: {case_id} / {plan}"
+                    );
+                }
             }
         }
         assert!(report.robustly_feasible_candidate_plans.is_empty());
