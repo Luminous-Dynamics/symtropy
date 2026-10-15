@@ -906,7 +906,7 @@ fn verify_case(
                     "m",
                     "berth.maximum_declared_draft",
                 )?,
-            )
+            );
             let energy_ok = stored >= contract.minimum_departure_energy_mwh;
             let envelope_result = if fits {
                 "FitsDeclaredSyntheticEnvelope"
