@@ -38,8 +38,10 @@ On 2026-10-15, the official PLSCI metadata and UNCTAD Data Hub terms were review
    capture_dir='private-maritime-captures/unctad-plsci-2026-10-15'
    mkdir -p "$capture_dir"
    chmod 700 "$capture_dir"
+   printf '%s\\n' "$ARTIFACT_URL" > "$capture_dir/requested-uri.txt"
    date -u +'%Y-%m-%dT%H:%M:%SZ' > "$capture_dir/retrieval-started-at-utc.txt"
    curl --proto '=https' --proto-redir '=https' --location --max-redirs 5 \
+     --connect-timeout 20 --max-time 120 \
      --fail --show-error --silent \
      --dump-header "$capture_dir/response-headers.txt" \
      --output "$capture_dir/source-artifact.bin" \
@@ -78,7 +80,16 @@ cargo run --locked -p maritime-data-receipt -- \\
   crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json
 ```
 
-The sample is invented test data only. The current profile validates pinned metadata semantics, exact profile/receipt/source-artifact/terms-snapshot digest bindings, and receipt terms/source-kind consistency; its report hashes the exact profile bytes and summarizes the selected scope. It does **not** parse the source export, validate every row/value, authenticate the publisher, establish a location mapping, or admit operational use. Do not weaken the contract to fit a source file. If a future source release changes scale, methodology, spatial level, frequency, or estimate conventions, add a versioned profile and explicit migration rather than mutating the pinned vintage.
+The sample is invented test data only. For real bytes kept outside the repository, invoke the CLI with both exact local overrides after the profile and receipt paths:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \\
+  --validate-macro-connectivity-profile \\
+  path/to/plsci-profile.json path/to/receipt.json \\
+  "$capture_dir/source-artifact.bin" "$capture_dir/unctad-about.html"
+```
+
+The profile's relative path fields remain path-safe identifiers; the explicit overrides control which local source/terms files are actually hashed. The current profile validates pinned metadata semantics, exact profile/receipt/source-artifact/terms-snapshot digest bindings, and receipt terms/source-kind consistency; its report hashes the exact profile bytes and summarizes the selected scope. It does **not** parse the source export, validate every row/value, authenticate the publisher, establish a location mapping, or admit operational use. Do not weaken the contract to fit a source file. If a future source release changes scale, methodology, spatial level, frequency, or estimate conventions, add a versioned profile and explicit migration rather than mutating the pinned vintage.
 
 ## Acceptance gate
 
