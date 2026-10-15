@@ -292,7 +292,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         super::exact_keys(constraint, keys, &path)?;
         let expected_kind = if id == "forecast_temporal_applicability" { "evidence_gate" } else { "hard" };
         super::expect_text(super::field(constraint, "kind", &path)?, &format!("{path}.kind"), expected_kind)?;
-        let expected_status = if id == "energy_reserve_minimum_satisfied" { "UNSUPPORTED" } else if id == "alternate_capacity_confirmed" { "INDETERMINATE" } else { "INDETERMINATE" };
+        let expected_status = if id == "energy_reserve_minimum_satisfied" { "UNSUPPORTED" } else { "INDETERMINATE" };
         super::expect_text(super::field(constraint, status_key, &path)?, &format!("{path}.{status_key}"), expected_status)?;
         let unit = super::field(constraint, "unit", &path)?;
         if id == "forecast_temporal_applicability" {
@@ -676,6 +676,34 @@ mod tests {
     const FIXTURE: &[u8] =
         include_bytes!("../../../../docs/tech/MARITIME_DISRUPTION_REHEARSAL_V0_1.json");
 
+    // Separate calendar oracle using day/month iteration instead of the
+    // production Gregorian-era conversion. This fixture's dates are post-1970.
+    fn oracle_epoch_seconds(timestamp: &str) -> i64 {
+        assert_eq!(timestamp.len(), 20);
+        let year: i64 = timestamp[0..4].parse().unwrap();
+        let month: usize = timestamp[5..7].parse().unwrap();
+        let day: i64 = timestamp[8..10].parse().unwrap();
+        let hour: i64 = timestamp[11..13].parse().unwrap();
+        let minute: i64 = timestamp[14..16].parse().unwrap();
+        let second: i64 = timestamp[17..19].parse().unwrap();
+        assert!(year >= 1970);
+        let is_leap = |y: i64| y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
+        let mut days = 0_i64;
+        for y in 1970..year {
+            days += if is_leap(y) { 366 } else { 365 };
+        }
+        let month_lengths = [
+            31_i64,
+            if is_leap(year) { 29 } else { 28 },
+            31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+        ];
+        for length in month_lengths.iter().take(month.saturating_sub(1)) {
+            days += *length;
+        }
+        days += day - 1;
+        days * 86_400 + hour * 3_600 + minute * 60 + second
+    }
+
     // Intentionally separate test oracle: direct serde_json parsing and a distinct
     // classifier. It does not use the production JsonValue parser or disposition().
     fn oracle_status(plan: &str, case: &Value) -> &'static str {
@@ -794,6 +822,31 @@ mod tests {
         assert!(!report.reservation_or_custody_event_authorized);
         assert!(!report.physical_execution_authorized);
         assert!(!report.physical_simulation_performed);
+    }
+
+    #[test]
+    fn forecast_arithmetic_matches_independent_calendar_oracle() {
+        let fixture: Value = serde_json::from_slice(FIXTURE).expect("fixture parses");
+        let assessment = fixture["assessment"]["assessment_time_utc"].as_str().unwrap();
+        let target = fixture["assessment"]["target_time_utc"].as_str().unwrap();
+        let forecast = &fixture["assessment"]["forecast_input"];
+        let issued = forecast["issued_at_utc"].as_str().unwrap();
+        let initialized = forecast["model_initialization_time_utc"].as_str().unwrap();
+        let valid_from = forecast["valid_from_utc"].as_str().unwrap();
+        let valid_until = forecast["valid_until_utc"].as_str().unwrap();
+
+        let issue_age = oracle_epoch_seconds(assessment) - oracle_epoch_seconds(issued);
+        let forecast_lead = oracle_epoch_seconds(target) - oracle_epoch_seconds(initialized);
+        assert_eq!(issue_age, 7_200);
+        assert_eq!(forecast_lead, 32_400);
+        assert!(oracle_epoch_seconds(initialized) <= oracle_epoch_seconds(issued));
+        assert!(oracle_epoch_seconds(issued) <= oracle_epoch_seconds(assessment));
+        assert!(oracle_epoch_seconds(assessment) <= oracle_epoch_seconds(target));
+        assert!(oracle_epoch_seconds(valid_from) <= oracle_epoch_seconds(target));
+        assert!(oracle_epoch_seconds(target) <= oracle_epoch_seconds(valid_until));
+        assert!(issue_age as u64 <= forecast["max_issue_age_seconds"].as_u64().unwrap());
+        assert!(forecast_lead as u64 <= forecast["max_forecast_lead_seconds"].as_u64().unwrap());
+        evaluate_bytes(FIXTURE, "time-oracle-test").expect("production evaluator agrees with fixture");
     }
 
     #[test]
