@@ -5,6 +5,7 @@ This is test tooling only. It is not a production planner or a life-support mode
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -269,6 +270,34 @@ def demand_bounds(case: dict[str, object]) -> tuple[Fraction, Fraction]:
 def main() -> None:
     corpus = json.loads(FIXTURE.read_text(encoding="utf-8"))
     require(corpus["contract_version"] == "0.1.0", "unexpected contract version")
+    integrity = corpus["artifact_integrity_reference"]
+    require(
+        integrity["contract_version"] == "0.1.0",
+        "unexpected artifact-integrity reference version",
+    )
+    payload = integrity["payload_utf8"].encode("utf-8")
+    expected_digest = str(integrity["expected_sha256"])
+    recomputed_digest = hashlib.sha256(payload).hexdigest()
+    require(
+        recomputed_digest == expected_digest,
+        "SHA-256 reference payload did not match pinned digest",
+    )
+    altered_payload = integrity["altered_payload_utf8"].encode("utf-8")
+    require(
+        hashlib.sha256(altered_payload).hexdigest() != expected_digest,
+        "one-field payload mutation must change the SHA-256 digest",
+    )
+    configuration_digest = hashlib.sha256(
+        integrity["configuration_payload_utf8"].encode("utf-8")
+    ).hexdigest()
+    require(
+        configuration_digest == integrity["expected_configuration_sha256"],
+        "configuration bytes did not match pinned SHA-256 reference",
+    )
+    require(
+        "distinct from evidence records" in integrity["purpose"].lower(),
+        "integrity canary must not imply evidence-record artifact binding",
+    )
     require(
         corpus["authority"] == "NON_AUTHORITATIVE_SYNTHETIC_REFERENCE",
         "fixture must remain explicitly non-authoritative",
