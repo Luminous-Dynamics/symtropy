@@ -1292,6 +1292,8 @@
     "altered_payload_utf8": "CRASH-BOOT synthetic evidence v1\nasset=water-pump-7\nrevision=8\nmeasurement=1.1\n",
     "mutation_rule": "Changing one measurement byte sequence must cause the recomputed digest to differ from the pinned expected digest.",
     "configuration_payload_utf8": "CRASH-BOOT synthetic configuration v1\nasset=water-pump-7\nrevision=8\nscope=habitat-central-water-loop\n",
-    "expected_configuration_sha256": "ab3a14a2a4b110d2ae492acc01559b9defb4e5a008705132d9f158d3337ffe03"
+    "expected_configuration_sha256": "ab3a14a2a4b110d2ae492acc01559b9defb4e5a008705132d9f158d3337ffe03",
+    "altered_configuration_payload_utf8": "CRASH-BOOT synthetic configuration v1\nasset=water-pump-7\nrevision=8\nscope=habitat-central-water-loop-mutated\n",
+    "configuration_mutation_rule": "Changing the scope bytes must change the recomputed SHA-256 digest; the unchanged pinned digest must no longer match."
   }
 }
