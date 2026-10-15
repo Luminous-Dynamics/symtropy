@@ -1,0 +1,64 @@
+{
+  "schema_id": "luminous.symtropy.maritime-data-receipt",
+  "schema_version": "0.1.0",
+  "receipt_id": "synthetic-water-level-forecast-v0",
+  "source": {
+    "kind": "synthetic_fixture",
+    "publisher": "Luminous Dynamics",
+    "dataset_id": "synthetic-water-level-forecast-example-v0",
+    "product": "water_level_prediction",
+    "source_uri": null,
+    "dataset_revision": "synthetic-model-run-001"
+  },
+  "retrieval": {
+    "method": "local_fixture",
+    "retrieved_at_utc": null,
+    "request_uri": null,
+    "http_status": null,
+    "reported_content_type": "application/json",
+    "collector_version": "maritime-data-receipt/0.1.0"
+  },
+  "artifact": {
+    "relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-forecast-payload.json",
+    "media_type": "application/json",
+    "byte_length": 505,
+    "hash_algorithm": "sha-256",
+    "sha256": "45dbbb8cabb009dfaf17b697f24aec156b9baaae0a5dc29dcbce20023c02f714",
+    "bytes_scope": "exact_file_bytes"
+  },
+  "data_context": {
+    "domain": "water_level_prediction",
+    "coordinate_reference_system": "EPSG:4326",
+    "vertical_datum": "MLLW",
+    "units": [
+      "m"
+    ],
+    "time_coverage_start_utc": "2026-10-15T00:00:00Z",
+    "time_coverage_end_utc": "2026-10-15T06:00:00Z",
+    "survey_or_observation_time_utc": "2026-10-15T00:00:00Z",
+    "verification_state": "synthetic",
+    "uncertainty_statement": "Invented forecast values for temporal applicability tests only; no observation or forecast skill claim.",
+    "freshness_policy": "not_applicable_synthetic",
+    "freshness_policy_description": "Synthetic forecast fixture only; public forecasts require a product-specific decision-time policy."
+  },
+  "terms": {
+    "review_status": "not_applicable_synthetic",
+    "license_name": "not_applicable_synthetic_fixture",
+    "license_uri": null,
+    "reviewer": null,
+    "reviewed_at_utc": null,
+    "terms_sha256": null,
+    "permitted_use_statement": "Synthetic verifier tests only; no source values are represented."
+  },
+  "intended_use": {
+    "scope": "provenance_test_only",
+    "navigation_use_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "independent_review_required": true
+  },
+  "claim_ceiling": [
+    "Forecast metadata and exact-byte verifier test only.",
+    "No physical forecast skill, water-level accuracy, under-keel clearance, seaworthiness, or navigation claim.",
+    "No operational authority or approval to control physical equipment."
+  ]
+}

@@ -36,6 +36,28 @@ This mode checks profile metadata, pinned numeric edition shape, product-specifi
 
 A valid profile report still returns `NotAdmitted`. This is not an S-100 payload decoder, IHO validation engine, publisher-authentication mechanism or navigation/engineering qualification result. All committed sample profiles/corpus values are synthetic.
 
+## Decision-time forecast applicability mode
+
+The v0.1 metadata profile at `docs/tech/MARITIME_FORECAST_APPLICABILITY_V0_1.schema.json` evaluates whether a declared water-level forecast run covers a requested scenario time under an explicitly supplied policy. It is separate from the generic receipt schema and currently accepts only receipts whose product/domain are `water_level_prediction`.
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \
+  --evaluate-forecast-applicability \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-forecast-profile.json \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-forecast-receipt.json
+```
+
+The optional third positional argument overrides the exact artifact path, so a source file can stay outside the public worktree. The CLI verifies the receipt and artifact bytes first, then checks receipt ID/SHA-256, artifact SHA-256, internal product kind, dataset ID/revision, model-run identity, model initialization time, issue time, fixed assessment time, target time, declared validity interval, maximum issue age and maximum forecast lead. The assessment time is explicit rather than the wall clock, preserving deterministic replay. The provider-native product ID remains a distinct reported identifier; it is not inferred from the internal receipt product kind.
+
+Statuses are metadata-only:
+- `TEMPORALLY_APPLICABLE_NOT_ADMITTED`: the declared temporal bounds are satisfied and quality is not marked unknown.
+- `INDETERMINATE_NOT_ADMITTED`: for example, the run was not issued at decision time, the target is before the decision or outside its validity window, an age/lead bound is exceeded, or quality is unknown.
+- Invalid or receipt/profile/artifact mismatches fail with a non-zero exit status.
+
+The 22-case synthetic corpus at `crates/tools/maritime-data-receipt/tests/fixtures/forecast-applicability-corpus-v0.1.json` covers issue-age and lead boundaries, validity-window endpoints, look-ahead, malformed calendar times, receipt binding, mutable revisions, provider-product identifiers and attempted authority escalation. A separate test-only oracle evaluates every corpus case using its own Gregorian timestamp parser and fixed baseline digests, rather than calling the production time parser.
+
+This gate does **not** parse forecast observations/predictions from the artifact, authenticate a publisher, establish forecast skill, judge uncertainty quality, choose universal freshness thresholds, compute under-keel clearance, or authorize navigation, berth decisions or physical actions. A temporally applicable result always remains `NotAdmitted`; source licensing, payload semantics, model suitability and independent engineering review are separate gates. All committed forecast bytes are synthetic.
+
 ## UNCTADstat PLSCI macro-connectivity profile
 
 The separate metadata contract at `docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json` pins the Port Liner Shipping Connectivity Index table `US.PLSCI` to port-level quarterly semantics, index points on a global-average benchmark of 100 for 2023-Q1 (100 is not assigned to a specific port), and the 2024 six-component methodology vintage and the explicit normalization formula (each component divided by its global Q1 2023 component mean, then the six ratios averaged and multiplied by 100). It requires source-native port IDs and explicit selected quarters, preserves incomplete coverage and source-reported estimates/suppression, and forbids silent zero-fill, forward-fill, interpolation, port-call/berth inference, and operational or navigation authority. It does not parse individual observations or prove that a source name maps to a real location.

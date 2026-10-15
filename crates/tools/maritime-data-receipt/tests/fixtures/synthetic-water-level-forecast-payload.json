@@ -1,0 +1,22 @@
+{
+  "data_class": "synthetic_forecast_illustration",
+  "dataset_id": "synthetic-water-level-forecast-example-v0",
+  "model_run_id": "synthetic-run-001",
+  "issued_at_utc": "2026-10-15T00:15:00Z",
+  "vertical_datum": "MLLW",
+  "unit": "m",
+  "predictions": [
+    {
+      "valid_time_utc": "2026-10-15T00:00:00Z",
+      "value": 1.1
+    },
+    {
+      "valid_time_utc": "2026-10-15T03:00:00Z",
+      "value": 1.23
+    },
+    {
+      "valid_time_utc": "2026-10-15T06:00:00Z",
+      "value": 1.04
+    }
+  ]
+}
