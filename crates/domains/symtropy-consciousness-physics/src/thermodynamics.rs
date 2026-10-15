@@ -211,6 +211,9 @@ impl ThermodynamicLedger {
             && self.energy_out >= 0.0
             && self.phi_energy_integral.is_finite()
             && self.phi_energy_integral >= 0.0
+            && (self.phi_energy_integral <= self.energy_in
+                || (self.phi_energy_integral - self.energy_in).abs()
+                    <= 1.0e-12 * self.phi_energy_integral.max(self.energy_in))
             && self.phi_change_total.is_finite()
             && self.phi_change_total >= 0.0
             && self.lifetime_energy.is_finite()
@@ -555,6 +558,21 @@ mod tests {
         );
         assert_eq!(ledger.energy_in, f64::MAX);
         assert_eq!(ledger.phi_energy_integral, 0.0);
+    }
+
+    #[test]
+    fn phi_weighted_energy_cannot_exceed_recorded_energy_input() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.energy_in = 1.0;
+        ledger.phi_energy_integral = 2.0;
+
+        assert_eq!(
+            ledger.try_tick_balance(),
+            Err(ThermodynamicLedgerError::InvalidState)
+        );
+        assert_eq!(ledger.tick_count, 0);
+        assert_eq!(ledger.energy_in, 1.0);
+        assert_eq!(ledger.energy_out, 0.0);
     }
 
     #[test]
