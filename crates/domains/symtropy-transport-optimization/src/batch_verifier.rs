@@ -362,15 +362,42 @@ fn add_edge_metrics(
     edge: EdgeMetrics,
 ) -> Result<RouteMetrics, &'static str> {
     Ok(RouteMetrics {
-        distance_metres: current.distance_metres.checked_add(edge.distance_metres).ok_or("route metric overflow")?,
-        elapsed_seconds: current.elapsed_seconds.checked_add(edge.elapsed_seconds).ok_or("route metric overflow")?,
-        operator_cost_minor_per_unit: current.operator_cost_minor_per_unit.checked_add(edge.operator_cost_minor_per_unit).ok_or("route metric overflow")?,
-        user_cash_cost_minor_per_unit: current.user_cash_cost_minor_per_unit.checked_add(edge.user_cash_cost_minor_per_unit).ok_or("route metric overflow")?,
-        external_cost_minor_per_unit: current.external_cost_minor_per_unit.checked_add(edge.external_cost_minor_per_unit).ok_or("route metric overflow")?,
-        energy_wh_per_unit: current.energy_wh_per_unit.checked_add(edge.energy_wh_per_unit).ok_or("route metric overflow")?,
-        ghg_grams_co2e_per_unit: current.ghg_grams_co2e_per_unit.checked_add(edge.ghg_grams_co2e_per_unit).ok_or("route metric overflow")?,
-        safety_risk_micro_units_per_unit: current.safety_risk_micro_units_per_unit.checked_add(edge.safety_risk_micro_units_per_unit).ok_or("route metric overflow")?,
-        disruption_risk_micro_units_per_unit: current.disruption_risk_micro_units_per_unit.checked_add(edge.disruption_risk_micro_units_per_unit).ok_or("route metric overflow")?,
+        distance_metres: current
+            .distance_metres
+            .checked_add(edge.distance_metres)
+            .ok_or("route metric overflow")?,
+        elapsed_seconds: current
+            .elapsed_seconds
+            .checked_add(edge.elapsed_seconds)
+            .ok_or("route metric overflow")?,
+        operator_cost_minor_per_unit: current
+            .operator_cost_minor_per_unit
+            .checked_add(edge.operator_cost_minor_per_unit)
+            .ok_or("route metric overflow")?,
+        user_cash_cost_minor_per_unit: current
+            .user_cash_cost_minor_per_unit
+            .checked_add(edge.user_cash_cost_minor_per_unit)
+            .ok_or("route metric overflow")?,
+        external_cost_minor_per_unit: current
+            .external_cost_minor_per_unit
+            .checked_add(edge.external_cost_minor_per_unit)
+            .ok_or("route metric overflow")?,
+        energy_wh_per_unit: current
+            .energy_wh_per_unit
+            .checked_add(edge.energy_wh_per_unit)
+            .ok_or("route metric overflow")?,
+        ghg_grams_co2e_per_unit: current
+            .ghg_grams_co2e_per_unit
+            .checked_add(edge.ghg_grams_co2e_per_unit)
+            .ok_or("route metric overflow")?,
+        safety_risk_micro_units_per_unit: current
+            .safety_risk_micro_units_per_unit
+            .checked_add(edge.safety_risk_micro_units_per_unit)
+            .ok_or("route metric overflow")?,
+        disruption_risk_micro_units_per_unit: current
+            .disruption_risk_micro_units_per_unit
+            .checked_add(edge.disruption_risk_micro_units_per_unit)
+            .ok_or("route metric overflow")?,
     })
 }
 
@@ -398,7 +425,9 @@ fn calculate_route_totals(
         energy_wh: scaled(route.metrics_per_unit.energy_wh_per_unit)?,
         ghg_grams_co2e: scaled(route.metrics_per_unit.ghg_grams_co2e_per_unit)?,
         safety_risk_micro_units: scaled(route.metrics_per_unit.safety_risk_micro_units_per_unit)?,
-        disruption_risk_micro_units: scaled(route.metrics_per_unit.disruption_risk_micro_units_per_unit)?,
+        disruption_risk_micro_units: scaled(
+            route.metrics_per_unit.disruption_risk_micro_units_per_unit,
+        )?,
     })
 }
 
@@ -460,9 +489,7 @@ fn objective_value(objective: BatchObjective, totals: &AggregateMetrics) -> u64 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        select_shared_capacity_batch, EdgeMetrics as NetworkEdgeMetrics,
-    };
+    use crate::{select_shared_capacity_batch, EdgeMetrics as NetworkEdgeMetrics};
 
     fn metrics(cost: u64) -> NetworkEdgeMetrics {
         NetworkEdgeMetrics {
