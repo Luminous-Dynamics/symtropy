@@ -573,6 +573,14 @@ mod tests {
             .expect("S-100 profile schema must be valid JSON");
         assert_eq!(schema["properties"]["schema_id"]["const"], "luminous.symtropy.maritime-s100-profile");
         assert_eq!(schema["properties"]["schema_version"]["const"], "0.1.0");
+        assert_eq!(
+            schema["properties"]["product"]["properties"]["s100_edition"]["pattern"],
+            r"^[0-9]+\.[0-9]+\.[0-9]+$"
+        );
+        assert_eq!(
+            schema["properties"]["product"]["properties"]["specification_edition"]["pattern"],
+            r"^[0-9]+\.[0-9]+\.[0-9]+$"
+        );
     }
 
     #[test]
