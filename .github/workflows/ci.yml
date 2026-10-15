@@ -5,6 +5,7 @@ on:
     branches: [ "main", "stabilize/*" ]
   pull_request:
     # Include stacked feature-branch PRs as well as direct PRs to main.
+    branches: [ "**" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
