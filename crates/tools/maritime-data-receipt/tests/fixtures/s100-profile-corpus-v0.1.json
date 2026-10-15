@@ -1,0 +1,423 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-s100-profile-corpus",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Metadata contract tests only. A valid case is still NOT ADMITTED for physical truth, navigation, engineering or operational use.",
+  "base_profiles": {
+    "s102": {
+      "schema_id": "luminous.symtropy.maritime-s100-profile",
+      "schema_version": "0.1.0",
+      "profile_id": "synthetic-s-102-profile-1",
+      "source_kind": "synthetic_fixture",
+      "receipt_binding": {
+        "receipt_id": "synthetic-receipt-1",
+        "receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "product": {
+        "code": "S-102",
+        "s100_edition": "5.2.1",
+        "specification_edition": "3.0.0",
+        "producer_code": "SYNTHETIC-TEST-ONLY",
+        "dataset_id": "synthetic-dataset-s-102-1",
+        "revision": "fixture-revision-001",
+        "native_encoding": "synthetic-metadata-only"
+      },
+      "coverage": {
+        "coverage_id": "synthetic-coverage-1",
+        "horizontal_crs": "EPSG:4326",
+        "vertical_reference": "SYNTHETIC-DEPTH-REFERENCE",
+        "measurement_units": [
+          "m"
+        ]
+      },
+      "temporal": {
+        "data_epoch_start_utc": "2026-10-14T00:00:00Z",
+        "data_epoch_end_utc": "2026-10-14T12:00:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "assessment_time_utc": "2026-10-15T08:00:00Z",
+        "freshness_policy_id": "synthetic-fixture-only-no-operational-freshness"
+      },
+      "quality": {
+        "uncertainty_state": "provided",
+        "uncertainty_ref": "synthetic-uncertainty-1",
+        "quality_metadata_ref": "synthetic-quality-1",
+        "statement": "Invented metadata used only to test this contract; not an IHO dataset or physical observation."
+      },
+      "terms": {
+        "review_status": "not_applicable_synthetic",
+        "terms_sha256": null,
+        "reviewed_at_utc": null
+      },
+      "transform": {
+        "kind": "source_native",
+        "transform_receipt_id": null,
+        "input_crs": null,
+        "output_crs": null,
+        "input_vertical_reference": null,
+        "output_vertical_reference": null
+      },
+      "intended_use": {
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false,
+        "independent_review_required": true
+      }
+    },
+    "s104": {
+      "schema_id": "luminous.symtropy.maritime-s100-profile",
+      "schema_version": "0.1.0",
+      "profile_id": "synthetic-s-104-profile-2",
+      "source_kind": "synthetic_fixture",
+      "receipt_binding": {
+        "receipt_id": "synthetic-receipt-2",
+        "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "product": {
+        "code": "S-104",
+        "s100_edition": "5.2.1",
+        "specification_edition": "2.0.0",
+        "producer_code": "SYNTHETIC-TEST-ONLY",
+        "dataset_id": "synthetic-dataset-s-104-2",
+        "revision": "fixture-revision-001",
+        "native_encoding": "synthetic-metadata-only"
+      },
+      "coverage": {
+        "coverage_id": "synthetic-coverage-2",
+        "horizontal_crs": "EPSG:4326",
+        "vertical_reference": "SYNTHETIC-WATER-LEVEL-REFERENCE",
+        "measurement_units": [
+          "m"
+        ]
+      },
+      "temporal": {
+        "data_epoch_start_utc": "2026-10-14T00:00:00Z",
+        "data_epoch_end_utc": "2026-10-14T12:00:00Z",
+        "valid_from_utc": "2026-10-14T00:00:00Z",
+        "valid_until_utc": "2026-10-16T00:00:00Z",
+        "assessment_time_utc": "2026-10-15T08:00:00Z",
+        "freshness_policy_id": "synthetic-fixture-only-no-operational-freshness"
+      },
+      "quality": {
+        "uncertainty_state": "provided",
+        "uncertainty_ref": "synthetic-uncertainty-2",
+        "quality_metadata_ref": "synthetic-quality-2",
+        "statement": "Invented metadata used only to test this contract; not an IHO dataset or physical observation."
+      },
+      "terms": {
+        "review_status": "not_applicable_synthetic",
+        "terms_sha256": null,
+        "reviewed_at_utc": null
+      },
+      "transform": {
+        "kind": "source_native",
+        "transform_receipt_id": null,
+        "input_crs": null,
+        "output_crs": null,
+        "input_vertical_reference": null,
+        "output_vertical_reference": null
+      },
+      "intended_use": {
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false,
+        "independent_review_required": true
+      }
+    },
+    "s111": {
+      "schema_id": "luminous.symtropy.maritime-s100-profile",
+      "schema_version": "0.1.0",
+      "profile_id": "synthetic-s-111-profile-3",
+      "source_kind": "synthetic_fixture",
+      "receipt_binding": {
+        "receipt_id": "synthetic-receipt-3",
+        "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "product": {
+        "code": "S-111",
+        "s100_edition": "5.2.1",
+        "specification_edition": "2.0.0",
+        "producer_code": "SYNTHETIC-TEST-ONLY",
+        "dataset_id": "synthetic-dataset-s-111-3",
+        "revision": "fixture-revision-001",
+        "native_encoding": "synthetic-metadata-only"
+      },
+      "coverage": {
+        "coverage_id": "synthetic-coverage-3",
+        "horizontal_crs": "EPSG:4326",
+        "vertical_reference": null,
+        "measurement_units": [
+          "m/s"
+        ]
+      },
+      "temporal": {
+        "data_epoch_start_utc": "2026-10-14T00:00:00Z",
+        "data_epoch_end_utc": "2026-10-14T12:00:00Z",
+        "valid_from_utc": "2026-10-14T00:00:00Z",
+        "valid_until_utc": "2026-10-16T00:00:00Z",
+        "assessment_time_utc": "2026-10-15T08:00:00Z",
+        "freshness_policy_id": "synthetic-fixture-only-no-operational-freshness"
+      },
+      "quality": {
+        "uncertainty_state": "provided",
+        "uncertainty_ref": "synthetic-uncertainty-3",
+        "quality_metadata_ref": "synthetic-quality-3",
+        "statement": "Invented metadata used only to test this contract; not an IHO dataset or physical observation."
+      },
+      "terms": {
+        "review_status": "not_applicable_synthetic",
+        "terms_sha256": null,
+        "reviewed_at_utc": null
+      },
+      "transform": {
+        "kind": "source_native",
+        "transform_receipt_id": null,
+        "input_crs": null,
+        "output_crs": null,
+        "input_vertical_reference": null,
+        "output_vertical_reference": null
+      },
+      "intended_use": {
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false,
+        "independent_review_required": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_s102_metadata_only",
+      "base": "s102",
+      "mutations": [],
+      "expected_code": "METADATA_CONTRACT_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "valid_s104_metadata_only",
+      "base": "s104",
+      "mutations": [],
+      "expected_code": "METADATA_CONTRACT_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "valid_s111_metadata_only",
+      "base": "s111",
+      "mutations": [],
+      "expected_code": "METADATA_CONTRACT_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "s102_requires_vertical_reference",
+      "base": "s102",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "coverage.vertical_reference",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_VERTICAL_REFERENCE"
+    },
+    {
+      "id": "s104_requires_validity_window",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "temporal.valid_until_utc",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_VALIDITY_WINDOW"
+    },
+    {
+      "id": "s111_rejects_incompatible_units",
+      "base": "s111",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "coverage.measurement_units",
+          "value": [
+            "furlongs-per-tide"
+          ]
+        }
+      ],
+      "expected_code": "DOMAIN_INCOMPATIBLE_UNITS"
+    },
+    {
+      "id": "mutable_dataset_latest_is_rejected",
+      "base": "s111",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "product.revision",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "MUTABLE_REVISION"
+    },
+    {
+      "id": "mutable_product_edition_is_rejected",
+      "base": "s102",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "product.specification_edition",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "MUTABLE_PRODUCT_EDITION"
+    },
+    {
+      "id": "public_data_terms_need_review",
+      "base": "s111",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "source_kind",
+          "value": "public_dataset"
+        },
+        {
+          "op": "set",
+          "path": "terms.review_status",
+          "value": "review_required"
+        }
+      ],
+      "expected_code": "TERMS_NOT_REVIEWED"
+    },
+    {
+      "id": "expired_validity_is_stale",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "temporal.valid_until_utc",
+          "value": "2026-10-14T00:00:00Z"
+        }
+      ],
+      "expected_code": "STALE_OR_EXPIRED"
+    },
+    {
+      "id": "root_schema_drift_is_rejected",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "insert",
+          "path": "unreviewed_extension",
+          "value": 42
+        }
+      ],
+      "expected_code": "UNKNOWN_FIELD"
+    },
+    {
+      "id": "navigation_authority_cannot_be_promoted",
+      "base": "s102",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "intended_use.navigation_authorized",
+          "value": true
+        }
+      ],
+      "expected_code": "AUTHORITY_ESCALATION_ATTEMPT"
+    },
+    {
+      "id": "changed_crs_requires_transform_receipt",
+      "base": "s102",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "transform.input_crs",
+          "value": "EPSG:4326"
+        },
+        {
+          "op": "set",
+          "path": "transform.output_crs",
+          "value": "EPSG:3857"
+        }
+      ],
+      "expected_code": "SILENT_TRANSFORM"
+    },
+    {
+      "id": "derived_data_requires_transform_receipt",
+      "base": "s102",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "transform.kind",
+          "value": "derived"
+        }
+      ],
+      "expected_code": "TRANSFORM_RECEIPT_REQUIRED"
+    },
+    {
+      "id": "s102_requires_uncertainty_reference",
+      "base": "s102",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "quality.uncertainty_ref",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_UNCERTAINTY_REFERENCE"
+    },
+    {
+      "id": "invalid_calendar_date_is_rejected",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "temporal.data_epoch_start_utc",
+          "value": "2026-02-30T12:00:00Z"
+        }
+      ],
+      "expected_code": "INVALID_UTC_TIMESTAMP"
+    },
+    {
+      "id": "unknown_product_code_is_rejected",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "product.code",
+          "value": "S-999"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_PRODUCT"
+    },
+    {
+      "id": "missing_horizontal_crs_is_rejected",
+      "base": "s111",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "coverage.horizontal_crs",
+          "value": ""
+        }
+      ],
+      "expected_code": "MISSING_CRS"
+    },
+    {
+      "id": "receipt_binding_hash_must_be_sha256",
+      "base": "s104",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "receipt_binding.artifact_sha256",
+          "value": "not-a-digest"
+        }
+      ],
+      "expected_code": "INVALID_RECEIPT_BINDING"
+    },
+    {
+      "id": "nested_schema_drift_is_rejected",
+      "base": "s111",
+      "mutations": [
+        {
+          "op": "insert",
+          "path": "product.unreviewed_metadata",
+          "value": "x"
+        }
+      ],
+      "expected_code": "UNKNOWN_FIELD"
+    }
+  ]
+}
