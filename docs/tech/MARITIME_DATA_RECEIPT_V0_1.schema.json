@@ -186,7 +186,8 @@
         "survey_or_observation_time_utc",
         "verification_state",
         "uncertainty_statement",
-        "freshness_policy"
+        "freshness_policy",
+        "freshness_policy_description"
       ],
       "properties": {
         "domain": {
@@ -266,6 +267,11 @@
             "historical_only",
             "policy_defined"
           ]
+        },
+        "freshness_policy_description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
         }
       }
     },
