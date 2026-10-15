@@ -552,20 +552,13 @@ fn compute_metric(
     if served_rates.len() != horizon_count {
         return Err(format!("{path}.served_rate: expected {horizon_count} values, got {}", served_rates.len()));
     }
-    let mut unmet_units = 0u64;
+
+    // Compute the first qualifying recovery point, with end-of-interval timing.
     let mut saw_breach = false;
     let mut consecutive = 0usize;
     let mut recovery = None;
     for (index, raw_rate) in served_rates.iter().enumerate() {
         let rate = super::integer(raw_rate, &format!("{path}.served_rate[{index}]"))?;
-        let deficit = service.demand_rate.saturating_sub(rate);
-        let interval_loss = deficit
-            .checked_mul(duration)
-            .ok_or_else(|| format!("{path}: service-loss multiplication overflow"))?;
-        unmet_units = unmet_units
-            .checked_add(interval_loss)
-            .ok_or_else(|| format!("{path}: integrated unmet-service overflow"))?;
-
         let ratio = rate as f64 / service.demand_rate as f64;
         if ratio < policy_floor || ratio < service.minimum_service_ratio {
             saw_breach = true;
@@ -583,18 +576,8 @@ fn compute_metric(
             }
         }
     }
-    // The integration metric must cover the entire trajectory even if recovery
-    // occurs before the final interval. Recompute the tail of the loss here.
-    for (index, raw_rate) in served_rates.iter().enumerate() {
-        let rate = super::integer(raw_rate, &format!("{path}.served_rate[{index}]"))?;
-        let deficit = service.demand_rate.saturating_sub(rate);
-        let interval_loss = deficit
-            .checked_mul(duration)
-            .ok_or_else(|| format!("{path}: service-loss multiplication overflow"))?;
-        // unmet_units above included only intervals visited before early recovery;
-        // below we recompute the full value deterministically.
-        let _ = interval_loss;
-    }
+
+    // Integrate the entire trajectory independently of the early recovery stop.
     let total_unmet = served_rates.iter().enumerate().try_fold(0u64, |sum, (index, raw_rate)| {
         let rate = super::integer(raw_rate, &format!("{path}.served_rate[{index}]"))?;
         let deficit = service.demand_rate.saturating_sub(rate);
@@ -603,7 +586,6 @@ fn compute_metric(
             .ok_or_else(|| format!("{path}: service-loss multiplication overflow"))?;
         sum.checked_add(amount).ok_or_else(|| format!("{path}: integrated unmet-service overflow".to_owned()))
     })?;
-    let _ = unmet_units; // intentionally not used: total_unmet independently traverses all intervals
     Ok(TrajectoryMetric {
         trace_id,
         case_id,
@@ -619,7 +601,6 @@ fn compute_metric(
         intervals_evaluated: served_rates.len(),
     })
 }
-
 fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<AdaptiveResilienceReport, String> {
     if bytes.len() > MAX_FIXTURE_BYTES {
         return Err(format!("adaptive resilience fixture exceeds {MAX_FIXTURE_BYTES}-byte bound"));
@@ -823,7 +804,7 @@ mod tests {
                     run = 0;
                 } else if breached {
                     run += 1;
-                    if run == needed {
+                    if run == needed && recovery.is_none() {
                         recovery = Some((idx as u64 + 1) * interval);
                     }
                 }
