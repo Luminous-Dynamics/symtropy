@@ -935,6 +935,23 @@ mod tests {
             assert_eq!(required, expected, "schema/Rust required-field drift");
         }
 
+        // Keep the JSON Schema's canonical UTC syntax aligned with the Rust calendar validator.
+        for key in ["reviewed_at_utc", "snapshot_retrieved_at_utc"] {
+            let timestamp = &schema["properties"]["terms"]["properties"][key];
+            assert_eq!(
+                timestamp["pattern"].as_str(),
+                Some("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"),
+                "schema timestamp syntax changed for {key}",
+            );
+            let kinds = timestamp["type"]
+                .as_array()
+                .expect("UTC timestamp type union")
+                .iter()
+                .map(|item| item.as_str().expect("schema type string"))
+                .collect::<Vec<_>>();
+            assert_eq!(kinds, vec!["string", "null"], "timestamp nullability changed for {key}");
+        }
+
         assert!(
             !schema["properties"]["missingness"]["properties"]["missing_is_zero"]
                 ["const"]
