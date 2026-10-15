@@ -71,6 +71,36 @@ pub struct ZoneAreaMetric {
     pub delta_from_target_m2: Option<f64>,
 }
 
+#[derive(Clone, Debug)]
+struct ZonePlacement {
+    zone_id: String,
+    space_id: String,
+    floor_id: String,
+    bounds: Bounds,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SharedBoundaryPair {
+    pub source_zone_id: String,
+    pub target_zone_id: String,
+    pub floor_id: String,
+    pub shared_boundary_length_m: f64,
+}
+
+/// Resident adjacency preference diagnostic. These are geometric proxies, not door/circulation proofs.
+#[derive(Debug, Serialize)]
+pub struct AdjacencyPreferenceDiagnostic {
+    pub source_space_id: String,
+    pub target_space_id: String,
+    pub relationship: String,
+    pub source_zone_ids: Vec<String>,
+    pub target_zone_ids: Vec<String>,
+    pub minimum_rectangle_gap_m: Option<f64>,
+    pub shared_boundary_pairs: Vec<SharedBoundaryPair>,
+    pub status: String,
+    pub explanation: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct LayoutValidationReport {
     pub validator_version: String,
@@ -88,6 +118,7 @@ pub struct LayoutValidationReport {
     pub semantic_issues: Vec<String>,
     pub geometry_issues: Vec<String>,
     pub zone_area_metrics: Vec<ZoneAreaMetric>,
+    pub adjacency_preference_diagnostics: Vec<AdjacencyPreferenceDiagnostic>,
     pub limitations: Vec<String>,
 }
 
@@ -162,6 +193,7 @@ pub fn validate_values(
     let mut semantic_issues = Vec::new();
     let mut geometry_issues = Vec::new();
     let mut zone_area_metrics = Vec::new();
+    let mut adjacency_preference_diagnostics = Vec::new();
     if schema_valid {
         check_semantics(
             layout,
@@ -169,6 +201,7 @@ pub fn validate_values(
             &mut semantic_issues,
             &mut geometry_issues,
             &mut zone_area_metrics,
+            &mut adjacency_preference_diagnostics,
         );
     }
 
@@ -201,7 +234,10 @@ pub fn validate_values(
         semantic_issues,
         geometry_issues,
         zone_area_metrics,
+        adjacency_preference_diagnostics,
         limitations: vec![
+            "Connected-preference results only identify shared rectangle boundaries; they do not prove a doorway, opening, or usable circulation.".to_string(),
+            "Near, separate, quiet, visual-connection, and outdoor-access preferences are not assessed by rectangle geometry.".to_string(),
             "Zone rectangle areas are geometric bounding-rectangle areas, not net usable floor areas.".to_string(),
             "Area differences from resident targets are informational; targets are not code minima and do not invalidate a candidate.".to_string(),
             "Valid means only contract shape, exact brief linkage, space accounting, and simple rectangle geometry passed.".to_string(),
@@ -238,6 +274,7 @@ fn check_semantics(
     semantic: &mut Vec<String>,
     geometry: &mut Vec<String>,
     area_metrics: &mut Vec<ZoneAreaMetric>,
+    adjacency_diagnostics: &mut Vec<AdjacencyPreferenceDiagnostic>,
 ) {
     let mut floors = BTreeMap::<String, Bounds>::new();
     let mut floor_ids = BTreeSet::new();
@@ -295,7 +332,7 @@ fn check_semantics(
     let mut zone_ids = BTreeSet::new();
     let mut zone_instances = BTreeSet::new();
     let mut zones_per_space = BTreeMap::<String, Vec<u64>>::new();
-    let mut positioned = Vec::<(String, String, Bounds)>::new();
+    let mut positioned = Vec::<ZonePlacement>::new();
 
     for (index, zone) in layout["zones"].as_array().into_iter().flatten().enumerate() {
         let id = zone["zone_id"].as_str().unwrap_or_default();
@@ -370,7 +407,12 @@ fn check_semantics(
                 });
             }
         }
-        positioned.push((id.to_owned(), floor_id.to_owned(), bounds));
+        positioned.push(ZonePlacement {
+            zone_id: id.to_owned(),
+            space_id: space_id.to_owned(),
+            floor_id: floor_id.to_owned(),
+            bounds,
+        });
     }
 
     let mut omitted = BTreeSet::new();
@@ -423,13 +465,138 @@ fn check_semantics(
 
     for left in 0..positioned.len() {
         for right in (left + 1)..positioned.len() {
-            let (id_a, floor_a, bounds_a) = &positioned[left];
-            let (id_b, floor_b, bounds_b) = &positioned[right];
-            if floor_a == floor_b && bounds_a.overlaps(*bounds_b) {
+            let zone_a = &positioned[left];
+            let zone_b = &positioned[right];
+            if zone_a.floor_id == zone_b.floor_id
+                && zone_a.bounds.overlaps(zone_b.bounds)
+            {
                 geometry.push(format!(
-                    "zones {id_a:?} and {id_b:?} overlap on floor {floor_a:?}"
+                    "zones {:?} and {:?} overlap on floor {:?}",
+                    zone_a.zone_id, zone_b.zone_id, zone_a.floor_id
                 ));
             }
+        }
+    }
+
+    check_adjacency_preferences(brief, &positioned, adjacency_diagnostics);
+}
+
+
+fn check_adjacency_preferences(
+    brief: &Value,
+    positions: &[ZonePlacement],
+    diagnostics: &mut Vec<AdjacencyPreferenceDiagnostic>,
+) {
+    for space in brief["spaces"].as_array().into_iter().flatten() {
+        let Some(source_space_id) = space["space_id"].as_str() else {
+            continue;
+        };
+        for preference in space["adjacency_preferences"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            let Some(target_space_id) = preference["other_space_id"].as_str() else {
+                continue;
+            };
+            let relationship = preference["relationship"].as_str().unwrap_or("unknown");
+            let source_zone_ids: Vec<String> = positions
+                .iter()
+                .filter(|zone| zone.space_id == source_space_id)
+                .map(|zone| zone.zone_id.clone())
+                .collect();
+            let target_zone_ids: Vec<String> = positions
+                .iter()
+                .filter(|zone| zone.space_id == target_space_id)
+                .map(|zone| zone.zone_id.clone())
+                .collect();
+
+            let mut minimum_rectangle_gap_m: Option<f64> = None;
+            let mut shared_boundary_pairs = Vec::new();
+            for source in positions.iter().filter(|zone| zone.space_id == source_space_id) {
+                for target in positions.iter().filter(|zone| {
+                    zone.space_id == target_space_id && zone.floor_id == source.floor_id
+                }) {
+                    let dx = (source.bounds.x_min - target.bounds.x_max)
+                        .max(target.bounds.x_min - source.bounds.x_max)
+                        .max(0.0);
+                    let dy = (source.bounds.y_min - target.bounds.y_max)
+                        .max(target.bounds.y_min - source.bounds.y_max)
+                        .max(0.0);
+                    let gap = dx.hypot(dy);
+                    if gap.is_finite() {
+                        minimum_rectangle_gap_m = Some(
+                            minimum_rectangle_gap_m.map_or(gap, |previous| previous.min(gap)),
+                        );
+                    }
+                    let vertical_contact = if
+                        (source.bounds.x_max - target.bounds.x_min).abs()
+                            <= GEOMETRY_TOLERANCE_M
+                        || (target.bounds.x_max - source.bounds.x_min).abs()
+                            <= GEOMETRY_TOLERANCE_M
+                    {
+                        (source.bounds.y_max.min(target.bounds.y_max)
+                            - source.bounds.y_min.max(target.bounds.y_min))
+                            .max(0.0)
+                    } else {
+                        0.0
+                    };
+                    let horizontal_contact = if
+                        (source.bounds.y_max - target.bounds.y_min).abs()
+                            <= GEOMETRY_TOLERANCE_M
+                        || (target.bounds.y_max - source.bounds.y_min).abs()
+                            <= GEOMETRY_TOLERANCE_M
+                    {
+                        (source.bounds.x_max.min(target.bounds.x_max)
+                            - source.bounds.x_min.max(target.bounds.x_min))
+                            .max(0.0)
+                    } else {
+                        0.0
+                    };
+                    let shared_length = vertical_contact.max(horizontal_contact);
+                    if shared_length > GEOMETRY_TOLERANCE_M {
+                        shared_boundary_pairs.push(SharedBoundaryPair {
+                            source_zone_id: source.zone_id.clone(),
+                            target_zone_id: target.zone_id.clone(),
+                            floor_id: source.floor_id.clone(),
+                            shared_boundary_length_m: shared_length,
+                        });
+                    }
+                }
+            }
+
+            let (status, explanation) = if source_zone_ids.is_empty() || target_zone_ids.is_empty() {
+                (
+                    "SPACE_INSTANCE_MISSING",
+                    "At least one requested space has no zone in this candidate; geometric relation cannot be evaluated.",
+                )
+            } else if relationship == "connected" && !shared_boundary_pairs.is_empty() {
+                (
+                    "SHARED_BOUNDARY_PROXY_DETECTED",
+                    "Zone rectangles share a boundary, but this does not prove a doorway, opening, accessible route, or circulation clearance.",
+                )
+            } else if relationship == "connected" {
+                (
+                    "NO_SHARED_BOUNDARY_PROXY_DETECTED",
+                    "No positive-length shared rectangle boundary was detected on a common floor; this does not prove that the intended connection is impossible.",
+                )
+            } else {
+                (
+                    "NOT_ASSESSED",
+                    "This relationship requires a richer model or an explicit threshold/discipline-specific evaluator.",
+                )
+            };
+            diagnostics.push(AdjacencyPreferenceDiagnostic {
+                source_space_id: source_space_id.to_owned(),
+                target_space_id: target_space_id.to_owned(),
+                relationship: relationship.to_owned(),
+                source_zone_ids,
+                target_zone_ids,
+                minimum_rectangle_gap_m,
+                shared_boundary_pairs,
+                status: status.to_owned(),
+                explanation: explanation.to_owned(),
+            });
         }
     }
 }
@@ -473,6 +640,30 @@ mod tests {
         assert_eq!(living.rectangle_area_m2, 24.0);
         assert_eq!(living.target_area_m2, Some(28.0));
         assert_eq!(living.delta_from_target_m2, Some(-4.0));
+        let connected = report
+            .adjacency_preference_diagnostics
+            .iter()
+            .find(|diagnostic| {
+                diagnostic.source_space_id == "living"
+                    && diagnostic.target_space_id == "kitchen"
+                    && diagnostic.relationship == "connected"
+            })
+            .expect("living-to-kitchen preference exists");
+        assert_eq!(connected.status, "SHARED_BOUNDARY_PROXY_DETECTED");
+        assert_eq!(connected.shared_boundary_pairs.len(), 1);
+        assert_eq!(connected.shared_boundary_pairs[0].shared_boundary_length_m, 3.0);
+        assert!(connected.explanation.contains("does not prove a doorway"));
+
+        let visual = report
+            .adjacency_preference_diagnostics
+            .iter()
+            .find(|diagnostic| {
+                diagnostic.source_space_id == "living"
+                    && diagnostic.target_space_id == "courtyard"
+                    && diagnostic.relationship == "visual_connection_to"
+            })
+            .expect("visual-connection preference exists");
+        assert_eq!(visual.status, "NOT_ASSESSED");
     }
 
     #[test]

@@ -22,7 +22,7 @@ cargo run -p symtropy-housing-evidence -- \
   --brief docs/built-environment/fixtures/example-home-design-brief.json
 ```
 
-The report separately identifies schema validity, brief validity, exact brief linkage, space-accounting consistency, and basic geometry consistency. It also reports per-zone width, depth, rectangular area, optional resident target area, and area delta. These metrics are informational: rectangles do not encode wall thickness or usable floor area, and target areas are resident exploration values rather than code minima. Editing even the whitespace of the referenced brief changes its digest, so the candidate must be rebound and checked against that exact file revision.
+The report separately identifies schema validity, brief validity, exact brief linkage, space-accounting consistency, and basic geometry consistency. It also reports per-zone width, depth, rectangular area, optional resident target area, and area delta. These metrics are informational: rectangles do not encode wall thickness or usable floor area, and target areas are resident exploration values rather than code minima. Adjacency diagnostics are similarly informational and do not prove openings, circulation or acoustic/visual properties. Editing even the whitespace of the referenced brief changes its digest, so the candidate must be rebound and checked against that exact file revision.
 
 ## Space accounting and conflicts
 
@@ -37,6 +37,12 @@ A `must_have` space cannot be omitted or silently demoted. If the candidate cann
 - V1 supports only `axis_aligned_rectangle_v1`; it does not encode walls, thickness, doors/windows, openings or circulation widths.
 - Same-floor zone intersections are rejected when both intersection width and depth exceed 1e-9 m. This is a floating-point comparison tolerance only, not a construction tolerance or permission to overlap. A sliver no wider or deeper than that numeric tolerance may be treated as touching boundaries.
 - Floor IDs and level indices must be unique, and zone-to-floor and zone-to-space references must resolve.
+
+## Adjacency preference diagnostics
+
+The report includes one diagnostic for each resident brief adjacency preference. For a connected preference, the validator may report a positive-length shared rectangle boundary as SHARED_BOUNDARY_PROXY_DETECTED, or report that no such proxy was found. A shared boundary is not evidence of a doorway, opening, accessible route, or circulation clearance. If either space is absent, the diagnostic reports SPACE_INSTANCE_MISSING.
+
+Preferences such as near, separate, quiet_from, visual_connection_to, and outdoor_access_from are explicitly NOT_ASSESSED in this version. A minimum same-floor rectangle gap is emitted as an informational distance metric where matching zones exist, but no universal near threshold is assumed. These diagnostics do not change candidate validity.
 
 ## What a valid result does not mean
 
