@@ -208,9 +208,17 @@ fn validate_values(
         }
     }
 
-    let record_ready = registry_report.records.iter()
-        .find(|item| item.record_id == source_id)
+    let readiness_record = registry_report.records.iter()
+        .find(|item| item.record_id == source_id);
+    let record_ready = readiness_record
         .is_some_and(|item| item.ready_for_rule_evaluation);
+    if let Some(item) = readiness_record {
+        artifact_digests_verified += (if item.source_snapshot_digest_verified { 1 } else { 0 })
+            + (if item.review_evidence_digest_verified { 1 } else { 0 })
+            + (if item.translation_review_evidence_digest_verified { 1 } else { 0 })
+            + (if item.rule_implementation_digest_verified { 1 } else { 0 })
+            + (if item.rule_test_corpus_digest_verified { 1 } else { 0 });
+    }
     let eligible_to_evaluate = source_binding_matches
         && record_ready
         && project_verified
@@ -256,16 +264,6 @@ fn build_report(
     issues: Vec<String>,
 ) -> ReceiptValidationReport {
     let schema_sha256 = sha256_hex(EMBEDDED_SCHEMA.as_bytes());
-    let receipt_integrity_status = if schema_valid
-        && registry_digest_matches
-        && source_binding_matches
-        && issues.is_empty()
-        && artifact_digests_verified == 3
-    {
-        VERIFIED
-    } else {
-        NOT_VERIFIED
-    };
     ReceiptValidationReport {
         validator_version: env!("CARGO_PKG_VERSION").to_string(),
         schema_sha256,
@@ -278,13 +276,9 @@ fn build_report(
         eligible_to_evaluate,
         producer_declared_status: receipt.get("producer_declared_status")
             .and_then(Value::as_str).map(str::to_owned),
-        receipt_integrity_status: receipt_integrity_status.to_string(),
+        receipt_integrity_status: NOT_VERIFIED.to_string(),
         // This command checks provenance and binding only; it does not run the rule evaluator.
-        effective_status: if receipt_integrity_status == VERIFIED {
-            "NOT_REPRODUCED".to_string()
-        } else {
-            NOT_VERIFIED.to_string()
-        },
+        effective_status: NOT_VERIFIED.to_string(),
         artifact_digests_verified,
         issues,
     }
@@ -446,6 +440,7 @@ mod tests {
         assert!(report.source_binding_matches,"{:?}",report.issues);
         assert!(report.eligible_to_evaluate,"{:?}",report.issues);
         assert_eq!(report.receipt_integrity_status,VERIFIED,"{:?}",report.issues);
+        assert_eq!(report.artifact_digests_verified,8);
         assert_eq!(report.producer_declared_status.as_deref(),Some("CLAIMED_PASS"));
         assert_eq!(report.effective_status,"NOT_REPRODUCED");
     }
