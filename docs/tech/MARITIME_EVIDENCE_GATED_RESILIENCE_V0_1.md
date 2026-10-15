@@ -42,7 +42,7 @@ The manifest reports unbounded source time coverage explicitly. A future applica
 
 ## Claim-specific gates, not a universal “trust score”
 
-The first implementation validates the manifest contract and verifies source receipt/artifact bytes. Its output always states `NotAdmitted` for operations and navigation and explicitly reports that source authenticity, row semantics, freshness, transformation correctness and scenario results remain unproven.
+The first implementation validates the manifest contract and verifies source receipt/artifact bytes and model/transformation configuration files. It only checks the syntax of model/algorithm revision pins; it does not fetch or authenticate their source-code objects. Its output always states `NotAdmitted` for operations and navigation and explicitly reports that source authenticity, row semantics, freshness, transformation correctness and scenario results remain unproven.
 
 A later decision pipeline should implement separate proof obligations:
 
@@ -97,4 +97,4 @@ Avoid a single composite “resilience” score until each constituent metric, u
 
 ## Claim ceiling
 
-The command `--validate-scenario-manifest` verifies declared graph structure and exact receipt/artifact byte bindings only. It does not authenticate the source publisher, interpret licence terms, validate actual PLSCI rows, establish data freshness or truth, execute transformations, independently test assumptions, run a simulation, validate a digital twin, certify a vessel/port, or authorize navigation or operations. A structurally valid graph is a reproducible *description of intended reasoning*, not proof that the reasoning is true.
+The command `--validate-scenario-manifest` verifies declared graph structure and exact receipt, artifact, model-configuration and transformation-configuration byte bindings. It does not authenticate the source publisher, interpret licence terms, validate actual PLSCI rows, establish data freshness or truth, execute transformations, independently test assumptions, run a simulation, validate a digital twin, certify a vessel/port, or authorize navigation or operations. A structurally valid graph is a reproducible *description of intended reasoning*, not proof that the reasoning is true.
