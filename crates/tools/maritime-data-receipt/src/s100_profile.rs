@@ -492,7 +492,7 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
 
 #[cfg(test)]
 mod tests {
-    use super::{mutate_path, validate_profile, VALID};
+    use super::{mutate_path, validate_profile, verify_receipt_semantics, VALID};
     use serde_json::Value;
 
     #[test]
@@ -522,6 +522,30 @@ mod tests {
                 assert_eq!(profile["intended_use"]["physical_truth_claim_authorized"], false, "{id}");
             }
         }
+    }
+
+    #[test]
+    fn synthetic_s104_profile_matches_the_exact_receipt_semantics() {
+        let profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-s104-profile.json"))
+            .expect("S-104 synthetic profile fixture");
+        let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-water-level-receipt.json");
+        let receipt_root = super::super::parse_strict(receipt_bytes).expect("strict receipt parsing");
+        let facts = super::super::validate_receipt(&receipt_root).expect("receipt metadata validation");
+        assert_eq!(verify_receipt_semantics(&profile, &facts), Ok(()));
+    }
+
+    #[test]
+    fn profile_cannot_relabel_water_level_receipt_as_currents() {
+        let mut profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-s104-profile.json"))
+            .expect("S-104 synthetic profile fixture");
+        let receipt_bytes = include_bytes!("../tests/fixtures/synthetic-water-level-receipt.json");
+        let receipt_root = super::super::parse_strict(receipt_bytes).expect("strict receipt parsing");
+        let facts = super::super::validate_receipt(&receipt_root).expect("receipt metadata validation");
+        profile["product"]["code"] = Value::String("S-111".to_owned());
+        assert_eq!(
+            verify_receipt_semantics(&profile, &facts),
+            Err("RECEIPT_PRODUCT_MISMATCH")
+        );
     }
 
     #[test]
