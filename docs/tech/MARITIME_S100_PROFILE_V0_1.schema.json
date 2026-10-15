@@ -89,35 +89,82 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "product": { "properties": { "code": { "const": "S-102" } } } } },
+      "if": {
+        "properties": { "product": { "properties": { "code": { "const": "S-102" } } } }
+      },
       "then": {
         "properties": {
-          "coverage": { "properties": { "vertical_reference": { "type": "string", "minLength": 1 }, "measurement_units": { "items": { "enum": ["m", "cm", "mm", "ft", "in"] } } } },
-          "quality": { "properties": { "uncertainty_state": { "const": "provided" }, "uncertainty_ref": { "type": "string", "minLength": 1 } } }
+          "coverage": {
+            "properties": {
+              "vertical_reference": { "type": "string", "minLength": 1 },
+              "measurement_units": { "items": { "enum": ["m", "cm", "mm", "ft", "in"] } }
+            }
+          },
+          "quality": {
+            "properties": {
+              "uncertainty_state": { "const": "provided" },
+              "uncertainty_ref": { "type": "string", "minLength": 1 }
+            }
+          }
         }
       }
     },
     {
-      "if": { "properties": { "product": { "properties": { "code": { "const": "S-104" } } } } },
+      "if": {
+        "properties": { "product": { "properties": { "code": { "const": "S-104" } } } }
+      },
       "then": {
         "properties": {
-          "coverage": { "properties": { "vertical_reference": { "type": "string", "minLength": 1 }, "measurement_units": { "items": { "enum": ["m", "cm", "mm", "ft", "in"] } } } },
-          "temporal": { "properties": { "valid_from_utc": { "type": "string", "format": "date-time" }, "valid_until_utc": { "type": "string", "format": "date-time" } } }
+          "coverage": {
+            "properties": {
+              "vertical_reference": { "type": "string", "minLength": 1 },
+              "measurement_units": { "items": { "enum": ["m", "cm", "mm", "ft", "in"] } }
+            }
+          },
+          "temporal": {
+            "properties": {
+              "valid_from_utc": { "type": "string", "format": "date-time" },
+              "valid_until_utc": { "type": "string", "format": "date-time" }
+            }
+          }
         }
       }
     },
     {
-      "if": { "properties": { "product": { "properties": { "code": { "const": "S-111" } } } },
+      "if": {
+        "properties": { "product": { "properties": { "code": { "const": "S-111" } } } }
+      },
       "then": {
         "properties": {
-          "coverage": { "properties": { "measurement_units": { "items": { "enum": ["m/s", "cm/s", "kn", "knot", "knots"] } } },
-          "temporal": { "properties": { "valid_from_utc": { "type": "string", "format": "date-time" }, "valid_until_utc": { "type": "string", "format": "date-time" } }
+          "coverage": {
+            "properties": {
+              "measurement_units": { "items": { "enum": ["m/s", "cm/s", "kn", "knot", "knots"] } }
+            }
+          },
+          "temporal": {
+            "properties": {
+              "valid_from_utc": { "type": "string", "format": "date-time" },
+              "valid_until_utc": { "type": "string", "format": "date-time" }
+            }
+          }
         }
       }
     },
     {
-      "if": { "properties": { "source_kind": { "const": "public_dataset" } },
-      "then": { "properties": { "terms": { "properties": { "review_status": { "const": "reviewed_permitted" }, "terms_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "reviewed_at_utc": { "type": "string", "format": "date-time" } } } }
+      "if": {
+        "properties": { "source_kind": { "const": "public_dataset" } }
+      },
+      "then": {
+        "properties": {
+          "terms": {
+            "properties": {
+              "review_status": { "const": "reviewed_permitted" },
+              "terms_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              "reviewed_at_utc": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
     }
   ]
 }
