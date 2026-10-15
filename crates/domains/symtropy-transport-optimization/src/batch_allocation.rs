@@ -13,6 +13,43 @@ use super::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+/// Caller-declared coverage of the route-candidate pool for one demand.
+///
+/// The exhaustive variant is an assertion by the route generator, not a proof
+/// produced by this selector. Its domain ID should identify a versioned,
+/// machine-readable search-domain definition. Consumers needing network-wide
+/// optimality must independently validate that definition and its coverage.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CandidatePoolCompleteness {
+    /// The caller asserts the pool exhausts a specifically named search domain.
+    ExhaustiveWithinDeclaredSearch { search_domain_id: String },
+    /// Only a single-demand Pareto frontier was retained; bottleneck-useful
+    /// dominated routes may have been removed.
+    ParetoFrontierOnly,
+    /// The pool comes from a bounded heuristic/subset of candidate routes.
+    HeuristicSubset,
+    /// Coverage has not been established.
+    Unknown,
+}
+
+/// Machine-readable per-demand coverage echoed from input into the result.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DemandCandidateCompleteness {
+    pub demand_id: String,
+    pub completeness: CandidatePoolCompleteness,
+}
+
+/// Scope over which the returned optimum is exact after a completed search.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BatchOptimalityScope {
+    /// Exact over the candidate routes explicitly supplied to this call only.
+    ExactOverSuppliedCandidatePools,
+    /// Every pool was caller-labelled exhaustive for its declared search domain.
+    /// This echoes caller assertions; it does not prove those domains cover the
+    /// whole network or the real-world feasible route set.
+    ExactOverCallerAssertedSearchDomains,
+}
+
 /// The single quantity-scaled metric that the batch allocator minimizes.
 ///
 /// Distance and elapsed time are deliberately omitted: the current route model
@@ -48,11 +85,12 @@ impl BatchObjective {
 ///
 /// The caller supplies the candidate pool explicitly. The allocator verifies each
 /// route against the network, but cannot prove that the pool contains every
-/// feasible route. A result is optimal only among the routes in these pools.
+/// feasible route. The coverage assertion is retained in the result report.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DemandRouteCandidates {
     pub demand: Demand,
     pub routes: Vec<Route>,
+    pub completeness: CandidatePoolCompleteness,
 }
 
 /// Explicit hard limit on the finite batch-assignment search.
@@ -93,6 +131,10 @@ pub struct SharedEdgeCapacityUse {
 pub struct SharedCapacityBatchReport {
     pub objective: BatchObjective,
     pub objective_value: u64,
+    /// Exactness scope, limited by the supplied candidate-pool coverage assertions.
+    pub optimality_scope: BatchOptimalityScope,
+    /// Sorted by demand ID; echoes each input coverage assertion for independent review.
+    pub candidate_completeness: Vec<DemandCandidateCompleteness>,
     pub total_metrics: AggregateMetrics,
     /// Sorted by demand ID.
     pub assignments: Vec<BatchRouteAssignment>,
@@ -109,6 +151,7 @@ pub enum BatchAllocationError {
     EmptyBatch,
     DuplicateDemandIdentity(String),
     NoCandidateRoutes(String),
+    InvalidCandidateSearchDomain { demand_id: String },
     DuplicateCandidateRoute {
         demand_id: String,
         edge_ids: Vec<String>,
@@ -137,6 +180,10 @@ impl fmt::Display for BatchAllocationError {
             Self::NoCandidateRoutes(id) => {
                 write!(f, "demand {id} has no candidate routes")
             }
+            Self::InvalidCandidateSearchDomain { demand_id } => write!(
+                f,
+                "exhaustive candidate claim for demand {demand_id} requires a non-empty search-domain ID"
+            ),
             Self::DuplicateCandidateRoute {
                 demand_id,
                 edge_ids,
@@ -380,6 +427,15 @@ pub fn select_shared_capacity_batch(
                 candidate_set.demand.id.clone(),
             ));
         }
+        if let CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch { search_domain_id } =
+            &candidate_set.completeness
+        {
+            if search_domain_id.trim().is_empty() {
+                return Err(BatchAllocationError::InvalidCandidateSearchDomain {
+                    demand_id: candidate_set.demand.id.clone(),
+                });
+            }
+        }
 
         candidate_set.routes.sort_by(|left, right| {
             left.edge_ids
@@ -408,6 +464,23 @@ pub fn select_shared_capacity_batch(
         }
     }
     candidates.sort_by(|left, right| left.demand.id.cmp(&right.demand.id));
+    let candidate_completeness = candidates
+        .iter()
+        .map(|candidate_set| DemandCandidateCompleteness {
+            demand_id: candidate_set.demand.id.clone(),
+            completeness: candidate_set.completeness.clone(),
+        })
+        .collect::<Vec<_>>();
+    let optimality_scope = if candidates.iter().all(|candidate_set| {
+        matches!(
+            &candidate_set.completeness,
+            CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch { .. }
+        )
+    }) {
+        BatchOptimalityScope::ExactOverCallerAssertedSearchDomains
+    } else {
+        BatchOptimalityScope::ExactOverSuppliedCandidatePools
+    };
 
     let edge_capacities = network
         .edges
@@ -484,6 +557,8 @@ pub fn select_shared_capacity_batch(
     Ok(SharedCapacityBatchReport {
         objective,
         objective_value: best.objective_value,
+        optimality_scope,
+        candidate_completeness,
         total_metrics: best.total_metrics,
         assignments,
         capacity_uses,
@@ -717,9 +792,24 @@ mod tests {
     }
 
     fn candidate(id: &str, quantity: u64, routes: Vec<Route>) -> DemandRouteCandidates {
+        candidate_with_completeness(
+            id,
+            quantity,
+            routes,
+            CandidatePoolCompleteness::Unknown,
+        )
+    }
+
+    fn candidate_with_completeness(
+        id: &str,
+        quantity: u64,
+        routes: Vec<Route>,
+        completeness: CandidatePoolCompleteness,
+    ) -> DemandRouteCandidates {
         DemandRouteCandidates {
             demand: demand(id, quantity),
             routes,
+            completeness,
         }
     }
 
@@ -796,6 +886,7 @@ mod tests {
                         route(&network, &["approach-a", "shared"]),
                         route(&network, &["alt-a", "alt-final"]),
                     ],
+                    completeness: CandidatePoolCompleteness::Unknown,
                 },
                 DemandRouteCandidates {
                     demand: second,
@@ -803,6 +894,7 @@ mod tests {
                         route(&network, &["approach-x", "shared"]),
                         route(&network, &["alt-x", "alt-final"]),
                     ],
+                    completeness: CandidatePoolCompleteness::Unknown,
                 },
             ],
             BatchObjective::OperatorCostMinorUnits,
@@ -931,6 +1023,107 @@ mod tests {
             BatchAllocationLimits::default(),
         );
         assert_eq!(result, Err(BatchAllocationError::ArithmeticOverflow));
+    }
+
+    #[test]
+    fn candidate_coverage_is_echoed_and_limits_optimality_scope() {
+        let network = network(7);
+        let (shared, alternate) = routes_for(&network);
+        let report = select_shared_capacity_batch(
+            &network,
+            &[
+                candidate_with_completeness(
+                    "d1",
+                    4,
+                    vec![shared.clone(), alternate.clone()],
+                    CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
+                        search_domain_id: "synthetic-network-v1-simple-paths".to_owned(),
+                    },
+                ),
+                candidate_with_completeness(
+                    "d2",
+                    4,
+                    vec![shared, alternate],
+                    CandidatePoolCompleteness::ParetoFrontierOnly,
+                ),
+            ],
+            BatchObjective::OperatorCostMinorUnits,
+            BatchAllocationLimits::default(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            report.optimality_scope,
+            BatchOptimalityScope::ExactOverSuppliedCandidatePools
+        );
+        assert_eq!(
+            report.candidate_completeness,
+            vec![
+                DemandCandidateCompleteness {
+                    demand_id: "d1".to_owned(),
+                    completeness: CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
+                        search_domain_id: "synthetic-network-v1-simple-paths".to_owned(),
+                    },
+                },
+                DemandCandidateCompleteness {
+                    demand_id: "d2".to_owned(),
+                    completeness: CandidatePoolCompleteness::ParetoFrontierOnly,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn exhaustive_domain_scope_is_explicitly_caller_asserted() {
+        let network = network(10);
+        let (shared, _) = routes_for(&network);
+        let report = select_shared_capacity_batch(
+            &network,
+            &[candidate_with_completeness(
+                "d1",
+                1,
+                vec![shared],
+                CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
+                    search_domain_id: "synthetic-network-v1-simple-paths".to_owned(),
+                },
+            )],
+            BatchObjective::OperatorCostMinorUnits,
+            BatchAllocationLimits::default(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            report.optimality_scope,
+            BatchOptimalityScope::ExactOverCallerAssertedSearchDomains
+        );
+        assert_eq!(report.candidate_completeness.len(), 1);
+        assert_eq!(report.candidate_completeness[0].demand_id, "d1");
+    }
+
+    #[test]
+    fn exhaustive_candidate_pool_requires_search_domain_identity() {
+        let network = network(10);
+        let (shared, _) = routes_for(&network);
+        let result = select_shared_capacity_batch(
+            &network,
+            &[candidate_with_completeness(
+                "d1",
+                1,
+                vec![shared],
+                CandidatePoolCompleteness::ExhaustiveWithinDeclaredSearch {
+                    search_domain_id: "  ".to_owned(),
+                },
+            )],
+            BatchObjective::OperatorCostMinorUnits,
+            BatchAllocationLimits::default(),
+        );
+
+        assert_eq!(
+            result,
+            Err(BatchAllocationError::InvalidCandidateSearchDomain {
+                demand_id: "d1".to_owned(),
+            })
+        );
     }
 
     #[test]
