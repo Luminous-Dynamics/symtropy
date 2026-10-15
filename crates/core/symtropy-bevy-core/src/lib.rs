@@ -114,14 +114,24 @@ impl FirstPersonMotion {
         }
         let max_delta = response_rate * delta_secs;
 
-        let next = if distance <= max_delta || distance <= f32::EPSILON {
-            target
+        let (next, displacement) = if distance <= max_delta || distance <= f32::EPSILON {
+            // If velocity reaches the target before this frame ends, integrate the
+            // transition only until that instant and then travel at target velocity.
+            let transition_time = if distance <= f32::EPSILON {
+                0.0
+            } else {
+                (distance / response_rate).min(delta_secs)
+            };
+            let transition_displacement = (previous + target) * (0.5 * transition_time);
+            let steady_displacement = target * (delta_secs - transition_time);
+            (target, transition_displacement + steady_displacement)
         } else {
-            previous + delta * (max_delta / distance)
+            let next = previous + delta * (max_delta / distance);
+            (next, (previous + next) * (0.5 * delta_secs))
         };
 
         self.horizontal_velocity = next;
-        (previous + next) * (0.5 * delta_secs)
+        displacement
     }
 }
 
@@ -917,6 +927,19 @@ mod tests {
 
         assert!(total_braking_distance > 0.0);
         assert!(total_braking_distance < 0.5);
+        assert_eq!(motion.horizontal_velocity, Vec3::ZERO);
+    }
+
+    #[test]
+    fn first_person_motion_integrates_partial_frame_braking_without_overshoot() {
+        let mut motion = FirstPersonMotion {
+            horizontal_velocity: Vec3::new(0.0, 0.0, -0.2),
+            ..default()
+        };
+        let displacement = motion.advance(Vec3::ZERO, 1.0 / 60.0);
+        let expected_stop_distance = (0.2_f32 * 0.2) / (2.0 * motion.deceleration);
+
+        assert!((displacement.length() - expected_stop_distance).abs() < 1.0e-5);
         assert_eq!(motion.horizontal_velocity, Vec3::ZERO);
     }
 
