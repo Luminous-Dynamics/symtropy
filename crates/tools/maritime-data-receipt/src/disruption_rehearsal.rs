@@ -295,8 +295,11 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     )?;
     if observed_issue_age != declared_issue_age || observed_lead != declared_lead {
         return Err(format!(
-            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} declared={declared_issue_age}; \
-             lead observed={observed_lead} declared={declared_lead}"
+            concat!(
+                "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} ",
+                "declared={declared_issue_age}; lead observed={observed_lead} ",
+                "declared={declared_lead}"
+            )
         ));
     }
     let max_issue_age = super::integer(
