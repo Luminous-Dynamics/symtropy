@@ -853,7 +853,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let bases = corpus["base_manifests"].as_object().expect("base manifest map");
         let cases = corpus["cases"].as_array().expect("corpus cases");
-        assert_eq!(cases.len(), 27, "scenario-manifest corpus count is a contract");
+        assert_eq!(cases.len(), 29, "scenario-manifest corpus count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base manifest id");
