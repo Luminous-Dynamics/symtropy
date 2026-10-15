@@ -416,6 +416,21 @@
               },
               "terms_sha256": {
                 "type": "null"
+              },
+              "review_evidence_uri": {
+                "type": "null"
+              },
+              "snapshot_relative_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "snapshot_byte_length": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
               }
             }
           }
