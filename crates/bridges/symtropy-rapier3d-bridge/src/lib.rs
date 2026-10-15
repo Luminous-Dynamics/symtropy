@@ -14,6 +14,7 @@ use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::contact::CollisionEvent;
 use symtropy_physics::world::PhysicsCallback;
+use symtropy_physics_diff_core::BodyObservation;
 
 pub use manipulator::{
     Manipulator8D, ManipulatorTarget, manipulator_motor_system, spawn_manipulator_8d,
@@ -81,6 +82,27 @@ pub struct RapierBodyState {
     pub linear_velocity: [Real; 3],
     pub angular_velocity: [Real; 3],
     pub is_sleeping: bool,
+}
+
+impl RapierBodyState {
+    /// Convert engine state into the common observation schema.
+    ///
+    /// The semantic ID must come from the declared scenario mapping. It is deliberately
+    /// not inferred from this body's Rapier handle or insertion order.
+    pub fn to_observation(
+        &self,
+        semantic_body_id: impl Into<String>,
+    ) -> BodyObservation {
+        let mut observation = BodyObservation::new(
+            semantic_body_id,
+            self.translation.map(|value| value as f64),
+            self.rotation_wxyz.map(|value| value as f64),
+            self.linear_velocity.map(|value| value as f64),
+            self.angular_velocity.map(|value| value as f64),
+        );
+        observation.sleeping = Some(self.is_sleeping);
+        observation
+    }
 }
 
 /// The Rapier-based physics bridge.
@@ -354,6 +376,7 @@ pub fn add_sphere_to_rapier(
 mod tests {
     use super::*;
     use symtropy_physics::world::NoOpCallback;
+    use symtropy_physics_diff_core::{ObservationFrame, RunIdentity};
 
     struct TestWorld {
         bodies: RigidBodySet,
@@ -491,6 +514,24 @@ mod tests {
         assert!(state.linear_velocity[1] < 0.0);
         assert!((state.rotation_wxyz[0] - 1.0).abs() < 1.0e-6);
         assert!(!state.is_sleeping);
+
+        let mut frame = ObservationFrame::new(
+            RunIdentity::new(
+                "free-fall",
+                "sha256:free-fall-fixture",
+                "rapier3d",
+                "0.18",
+                "default",
+                "sha256:default-config",
+                1.0 / 60.0,
+            ),
+            1,
+            1.0 / 60.0,
+        );
+        frame.bodies.push(state.to_observation("falling-sphere/main"));
+        assert_eq!(frame.bodies[0].semantic_body_id, "falling-sphere/main");
+        assert_eq!(frame.bodies[0].sleeping, Some(false));
+        assert_eq!(frame.validate(), Ok(()));
     }
 
     #[test]
