@@ -293,8 +293,11 @@ fn validate_crosswalk(crosswalk: &Value) -> Result<usize, &'static str> {
                 }
                 let function = function.ok_or("INCOMPLETE_LOCODE_METADATA")?;
                 let status = status.ok_or("INCOMPLETE_LOCODE_METADATA")?;
-                if !valid_function(function) || !valid_status(status) {
-                    return Err("INVALID_LOCODE_METADATA");
+                if !valid_function(function) {
+                    return Err("INVALID_LOCODE_FUNCTION");
+                }
+                if !valid_status(status) {
+                    return Err("INVALID_LOCODE_STATUS");
                 }
             }
             None => {
