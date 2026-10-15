@@ -22,6 +22,23 @@ const CONTROL_SPEC = {
   excessive_nesting: ['replace_payload_with_deeply_nested_array', true, 'REJECT_ARTIFACT_PAYLOAD_INVALID'],
   oversized_claim_payload: ['pad_payload_beyond_declared_byte_limit', true, 'REJECT_ARTIFACT_PAYLOAD_TOO_LARGE'],
 };
+const JCS_SPEC = [
+  {
+    id: 'rfc8785_number_serialization',
+    input_json: '{"numbers":[333333333.33333329,1E30,4.50,2e-3,0.000000000000000000000000001]}',
+    expected_canonical_json: '{"numbers":[333333333.3333333,1e+30,4.5,0.002,1e-27]}',
+  },
+  {
+    id: 'jcs_utf16_key_order',
+    input_json: '{"\\ue000":1,"😀":2}',
+    expected_canonical_json: '{"😀":2,"":1}',
+  },
+  {
+    id: 'jcs_negative_zero',
+    input_json: '-0',
+    expected_canonical_json: '0',
+  },
+];
 const MAX_DEPTH = 128;
 
 function sha256(bytes) {
@@ -138,9 +155,22 @@ function run() {
 
   const integrity = fixture.artifact_integrity_reference;
   assert.equal(sha256(Buffer.from(integrity.payload_utf8, 'utf8')), 'sha256:' + integrity.expected_sha256);
+  assert.equal(
+    integrity.altered_payload_utf8,
+    integrity.payload_utf8.replace('measurement=1.0\\n', 'measurement=1.1\\n'),
+    'evidence canary mutation must change only the declared measurement field',
+  );
   assert.notEqual(sha256(Buffer.from(integrity.altered_payload_utf8, 'utf8')), 'sha256:' + integrity.expected_sha256);
   const configurationHash = sha256(Buffer.from(integrity.configuration_payload_utf8, 'utf8'));
   assert.equal(configurationHash, 'sha256:' + integrity.expected_configuration_sha256);
+  assert.equal(
+    integrity.altered_configuration_payload_utf8,
+    integrity.configuration_payload_utf8.replace(
+      'scope=habitat-central-water-loop\\n',
+      'scope=habitat-central-water-loop-mutated\\n',
+    ),
+    'configuration canary mutation must change only the declared scope field',
+  );
   assert.notEqual(
     sha256(Buffer.from(integrity.altered_configuration_payload_utf8, 'utf8')),
     configurationHash,
@@ -154,9 +184,8 @@ function run() {
   );
 
   const jcsVectors = binding.jcs_known_answer_vectors;
-  const expectedJcsIds = ['rfc8785_number_serialization', 'jcs_utf16_key_order', 'jcs_negative_zero'];
-  assert.deepEqual(jcsVectors.map((v) => v.id), expectedJcsIds, 'JCS known-answer vector set changed');
-  for (const vector of jcsVectors) {
+  assert.deepEqual(jcsVectors, JCS_SPEC, 'JCS known-answer inputs/outputs changed without review');
+  for (const vector of JCS_SPEC) {
     const result = canonicalize(JSON.parse(vector.input_json));
     assert.equal(result, vector.expected_canonical_json, vector.id + ': canonical bytes differ');
   }
