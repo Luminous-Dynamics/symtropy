@@ -123,7 +123,6 @@ impl PhysicsWorld<3> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::world::NoOpCallback;
     use nalgebra::SVector;
     use std::f64::consts::FRAC_PI_2;
     use symtropy_math::{Bivector, Rotor};
