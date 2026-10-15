@@ -9328,6 +9328,7 @@ dependencies = [
  "proptest",
  "serde",
  "symtropy-math",
+ "symtropy-physics-diff-core",
 ]
 
 [[package]]
