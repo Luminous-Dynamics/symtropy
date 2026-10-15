@@ -213,6 +213,342 @@ fn push_blocker(
     });
 }
 
+
+/// Nutrient contribution preserves the exact food state and its source lineage.
+/// Units name the base nutrient unit; value_scale provides decimal precision.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientUnit {
+    Micrograms,
+    Milligrams,
+    Grams,
+    Kilocalories,
+    Kilojoules,
+}
+
+/// Provenance class for a composition value. This does not authenticate its source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientCompositionEvidenceClass {
+    LaboratoryAnalysis,
+    NationalFoodCompositionTable,
+    PublishedLiterature,
+    FoodLabel,
+    ReviewedEstimate,
+    SyntheticFixture,
+}
+
+/// One nutrient value for an exact food record and food/preparation state.
+/// amount_per_100g_scaled / value_scale is the nutrient amount per 100 g in unit.
+/// None means missing data, never a zero nutrient value.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientCompositionRecordV1 {
+    pub schema_version: u16,
+    pub food_record_id: String,
+    pub food_state_id: String,
+    pub nutrient_id: String,
+    pub nutrient_definition_ref: String,
+    pub unit: NutrientUnit,
+    #[serde(
+        serialize_with = "serialize_option_u64_as_string",
+        deserialize_with = "deserialize_option_u64_from_string"
+    )]
+    pub amount_per_100g_scaled: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub value_scale: u64,
+    pub evidence_class: NutrientCompositionEvidenceClass,
+    pub source_ref: String,
+}
+
+/// Mass that actually arrives for the declared scenario. Harvested biomass is not
+/// accepted as a substitute: the caller must account for edible fraction, losses,
+/// and allocation before supplying edible_delivered_grams.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EdibleFoodDeliveryV1 {
+    pub schema_version: u16,
+    pub scenario_id: String,
+    pub food_record_id: String,
+    pub food_state_id: String,
+    #[serde(
+        serialize_with = "serialize_u64_as_string",
+        deserialize_with = "deserialize_u64_from_string"
+    )]
+    pub edible_delivered_grams: u64,
+    pub delivery_source_ref: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientContributionBlockerCode {
+    UnsupportedCompositionSchema,
+    UnsupportedDeliverySchema,
+    EmptyScenarioId,
+    EmptyFoodRecordId,
+    EmptyFoodStateId,
+    EmptyNutrientId,
+    EmptyNutrientDefinitionReference,
+    FoodRecordMismatch,
+    FoodStateMismatch,
+    ZeroValueScale,
+    MissingCompositionSource,
+    MissingDeliverySource,
+    MissingCompositionValue,
+}
+
+/// Stable validation blocker. Ordering follows the evaluator's fixed validation sequence.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientContributionBlocker {
+    pub code: NutrientContributionBlockerCode,
+    pub detail: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientContributionDisposition {
+    /// Exact contribution is available for this declared food state and delivery mass.
+    CalculatedForDeclaredDelivery,
+    /// Composition value is absent; no numerical contribution is inferred.
+    NotAssessable,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientContributionDecisionV1 {
+    pub scenario_id: String,
+    pub food_record_id: String,
+    pub food_state_id: String,
+    pub nutrient_id: String,
+    pub nutrient_definition_ref: String,
+    pub unit: NutrientUnit,
+    pub value_scale: Option<u64>,
+    /// Exact rational contribution in the declared nutrient unit:
+    /// numerator / denominator. No float conversion or rounding is performed.
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub contribution_numerator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub contribution_denominator: Option<u128>,
+    pub composition_source_ref: String,
+    pub delivery_source_ref: String,
+    pub disposition: NutrientContributionDisposition,
+    pub blockers: Vec<NutrientContributionBlocker>,
+}
+
+/// Compute one nutrient contribution without inferring edible yield or source truth.
+///
+/// If composition amount A is expressed as A_scaled / value_scale per 100 g and
+/// E grams were delivered, the exact amount is
+/// (A_scaled * E) / (100 * value_scale) in the declared NutrientUnit.
+/// u64 * u64 fits in u128, so the numerator is exact. Source refs are preserved,
+/// not authenticated; this function cannot certify diet adequacy or food safety.
+pub fn evaluate_nutrient_contribution(
+    composition: &NutrientCompositionRecordV1,
+    delivery: &EdibleFoodDeliveryV1,
+) -> NutrientContributionDecisionV1 {
+    let mut blockers = Vec::new();
+
+    if composition.schema_version != GARDEN_RESOURCE_SCHEMA_VERSION {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::UnsupportedCompositionSchema,
+            "unsupported nutrient-composition schema version",
+        );
+    }
+    if delivery.schema_version != GARDEN_RESOURCE_SCHEMA_VERSION {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::UnsupportedDeliverySchema,
+            "unsupported edible-delivery schema version",
+        );
+    }
+    if delivery.scenario_id.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyScenarioId,
+            "scenario identity is empty",
+        );
+    }
+    if composition.food_record_id.trim().is_empty() || delivery.food_record_id.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyFoodRecordId,
+            "food record identity is empty",
+        );
+    }
+    if composition.food_state_id.trim().is_empty() || delivery.food_state_id.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyFoodStateId,
+            "food/preparation state identity is empty",
+        );
+    }
+    if composition.nutrient_id.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyNutrientId,
+            "nutrient identity is empty",
+        );
+    }
+    if composition.nutrient_definition_ref.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::EmptyNutrientDefinitionReference,
+            "canonical nutrient-definition reference is missing",
+        );
+    }
+    if composition.food_record_id != delivery.food_record_id {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::FoodRecordMismatch,
+            "delivery and nutrient record refer to different foods",
+        );
+    }
+    if composition.food_state_id != delivery.food_state_id {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::FoodStateMismatch,
+            "delivery and nutrient record use different food/preparation states",
+        );
+    }
+    if composition.value_scale == 0 {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::ZeroValueScale,
+            "composition value scale must be greater than zero",
+        );
+    }
+    if composition.source_ref.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::MissingCompositionSource,
+            "composition source reference is required",
+        );
+    }
+    if delivery.delivery_source_ref.trim().is_empty() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::MissingDeliverySource,
+            "edible-delivery evidence reference is required",
+        );
+    }
+    if composition.amount_per_100g_scaled.is_none() {
+        push_nutrient_blocker(
+            &mut blockers,
+            NutrientContributionBlockerCode::MissingCompositionValue,
+            "nutrient composition is missing; missing does not mean zero",
+        );
+    }
+
+    let has_hard_blocker = blockers
+        .iter()
+        .any(|item| item.code != NutrientContributionBlockerCode::MissingCompositionValue);
+    let assessable = composition.amount_per_100g_scaled.is_some();
+    let disposition = if has_hard_blocker {
+        NutrientContributionDisposition::Blocked
+    } else if !assessable {
+        NutrientContributionDisposition::NotAssessable
+    } else {
+        NutrientContributionDisposition::CalculatedForDeclaredDelivery
+    };
+
+    let contribution_numerator = if disposition
+        == NutrientContributionDisposition::CalculatedForDeclaredDelivery
+    {
+        composition.amount_per_100g_scaled.map(|amount| {
+            u128::from(amount) * u128::from(delivery.edible_delivered_grams)
+        })
+    } else {
+        None
+    };
+    let contribution_denominator = if disposition
+        == NutrientContributionDisposition::CalculatedForDeclaredDelivery
+    {
+        Some(100 * u128::from(composition.value_scale))
+    } else {
+        None
+    };
+
+    NutrientContributionDecisionV1 {
+        scenario_id: delivery.scenario_id.clone(),
+        food_record_id: composition.food_record_id.clone(),
+        food_state_id: composition.food_state_id.clone(),
+        nutrient_id: composition.nutrient_id.clone(),
+        nutrient_definition_ref: composition.nutrient_definition_ref.clone(),
+        unit: composition.unit,
+        value_scale: (composition.value_scale != 0).then_some(composition.value_scale),
+        contribution_numerator,
+        contribution_denominator,
+        composition_source_ref: composition.source_ref.clone(),
+        delivery_source_ref: delivery.delivery_source_ref.clone(),
+        disposition,
+        blockers,
+    }
+}
+
+fn push_nutrient_blocker(
+    blockers: &mut Vec<NutrientContributionBlocker>,
+    code: NutrientContributionBlockerCode,
+    detail: &str,
+) {
+    blockers.push(NutrientContributionBlocker {
+        code,
+        detail: detail.to_owned(),
+    });
+}
+
+fn serialize_option_u64_as_string<S>(value: &Option<u64>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match value {
+        Some(value) => serializer.serialize_some(&value.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_u64_from_string<'de, D>(
+    deserializer: D,
+) -> Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<String>::deserialize(deserializer)?
+        .map(|raw| raw.parse::<u64>().map_err(serde::de::Error::custom))
+        .transpose()
+}
+
+fn serialize_option_u128_as_string<S>(
+    value: &Option<u128>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match value {
+        Some(value) => serializer.serialize_some(&value.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_u128_from_string<'de, D>(
+    deserializer: D,
+) -> Result<Option<u128>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<String>::deserialize(deserializer)?
+        .map(|raw| raw.parse::<u128>().map_err(serde::de::Error::custom))
+        .transpose()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,6 +731,154 @@ mod tests {
         let decoded_decision: ResourceBalanceDecisionV1 =
             serde_json::from_str(&serialized_decision).expect("decision deserializes");
         assert_eq!(decoded_decision, decision);
+    }
+
+    fn valid_nutrient_fixture() -> (NutrientCompositionRecordV1, EdibleFoodDeliveryV1) {
+        let composition = NutrientCompositionRecordV1 {
+            schema_version: GARDEN_RESOURCE_SCHEMA_VERSION,
+            food_record_id: "FOOD-001".to_owned(),
+            food_state_id: "boiled_edible".to_owned(),
+            nutrient_id: "iron".to_owned(),
+            nutrient_definition_ref: "nutrient-definition:iron-v1".to_owned(),
+            unit: NutrientUnit::Milligrams,
+            amount_per_100g_scaled: Some(250_000),
+            value_scale: 1_000,
+            evidence_class: NutrientCompositionEvidenceClass::SyntheticFixture,
+            source_ref: "fixture:composition-001".to_owned(),
+        };
+        let delivery = EdibleFoodDeliveryV1 {
+            schema_version: GARDEN_RESOURCE_SCHEMA_VERSION,
+            scenario_id: "SYNTH-FOOD-001".to_owned(),
+            food_record_id: "FOOD-001".to_owned(),
+            food_state_id: "boiled_edible".to_owned(),
+            edible_delivered_grams: 75,
+            delivery_source_ref: "fixture:delivered-edible-mass-001".to_owned(),
+        };
+        (composition, delivery)
+    }
+
+    #[test]
+    fn nutrient_contribution_preserves_exact_rational_value() {
+        let (composition, delivery) = valid_nutrient_fixture();
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::CalculatedForDeclaredDelivery
+        );
+        assert_eq!(decision.contribution_numerator, Some(18_750_000));
+        assert_eq!(decision.contribution_denominator, Some(100_000));
+        assert_eq!(decision.unit, NutrientUnit::Milligrams);
+        assert_eq!(decision.composition_source_ref, "fixture:composition-001");
+        assert_eq!(decision.delivery_source_ref, "fixture:delivered-edible-mass-001");
+        // 18,750,000 / 100,000 = 187.5 mg; no float or rounding is used.
+    }
+
+    #[test]
+    fn different_food_record_is_blocked() {
+        let (composition, mut delivery) = valid_nutrient_fixture();
+        delivery.food_record_id = "FOOD-OTHER".to_owned();
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+        assert!(decision.blockers.iter().any(|item| {
+            item.code == NutrientContributionBlockerCode::FoodRecordMismatch
+        }));
+        assert_eq!(decision.contribution_numerator, None);
+    }
+
+    #[test]
+    fn different_preparation_state_is_blocked() {
+        let (composition, mut delivery) = valid_nutrient_fixture();
+        delivery.food_state_id = "raw_edible".to_owned();
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert!(decision.blockers.iter().any(|item| {
+            item.code == NutrientContributionBlockerCode::FoodStateMismatch
+        }));
+        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+    }
+
+    #[test]
+    fn missing_composition_is_not_assumed_to_be_zero() {
+        let (mut composition, delivery) = valid_nutrient_fixture();
+        composition.amount_per_100g_scaled = None;
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert_eq!(decision.disposition, NutrientContributionDisposition::NotAssessable);
+        assert_eq!(decision.contribution_numerator, None);
+        assert_eq!(decision.contribution_denominator, None);
+        assert!(decision.blockers.iter().any(|item| {
+            item.code == NutrientContributionBlockerCode::MissingCompositionValue
+        }));
+    }
+
+    #[test]
+    fn zero_value_scale_is_blocked() {
+        let (mut composition, delivery) = valid_nutrient_fixture();
+        composition.value_scale = 0;
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+        assert_eq!(decision.contribution_numerator, None);
+        assert!(decision.blockers.iter().any(|item| {
+            item.code == NutrientContributionBlockerCode::ZeroValueScale
+        }));
+    }
+
+    #[test]
+    fn extreme_nutrient_amount_and_mass_remain_exact() {
+        let (mut composition, mut delivery) = valid_nutrient_fixture();
+        composition.amount_per_100g_scaled = Some(u64::MAX);
+        composition.value_scale = u64::MAX;
+        delivery.edible_delivered_grams = u64::MAX;
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert_eq!(
+            decision.contribution_numerator,
+            Some(u128::from(u64::MAX) * u128::from(u64::MAX))
+        );
+        assert_eq!(
+            decision.contribution_denominator,
+            Some(100 * u128::from(u64::MAX))
+        );
+        assert_eq!(
+            decision.disposition,
+            NutrientContributionDisposition::CalculatedForDeclaredDelivery
+        );
+    }
+
+    #[test]
+    fn nutrient_contribution_json_preserves_large_integers_as_strings() {
+        let (mut composition, mut delivery) = valid_nutrient_fixture();
+        composition.amount_per_100g_scaled = Some(u64::MAX);
+        composition.value_scale = u64::MAX;
+        delivery.edible_delivered_grams = u64::MAX;
+        let serialized_input = serde_json::to_string(&composition).expect("input serializes");
+        assert!(serialized_input.contains("\"amount_per_100g_scaled\":\"18446744073709551615\""));
+        let decoded_input: NutrientCompositionRecordV1 =
+            serde_json::from_str(&serialized_input).expect("input deserializes");
+        assert_eq!(decoded_input, composition);
+
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        let serialized_decision = serde_json::to_string(&decision).expect("decision serializes");
+        assert!(serialized_decision.contains(&format!(
+            "\"contribution_numerator\":\"{}\"",
+            u128::from(u64::MAX) * u128::from(u64::MAX)
+        )));
+        let decoded_decision: NutrientContributionDecisionV1 =
+            serde_json::from_str(&serialized_decision).expect("decision deserializes");
+        assert_eq!(decoded_decision, decision);
+    }
+
+    #[test]
+    fn missing_provenance_blocks_nutrient_calculation() {
+        let (mut composition, mut delivery) = valid_nutrient_fixture();
+        composition.source_ref.clear();
+        delivery.delivery_source_ref.clear();
+        let decision = evaluate_nutrient_contribution(&composition, &delivery);
+        assert_eq!(decision.disposition, NutrientContributionDisposition::Blocked);
+        assert_eq!(decision.contribution_numerator, None);
+        assert!(decision.blockers.iter().any(|item| {
+            item.code == NutrientContributionBlockerCode::MissingCompositionSource
+        }));
+        assert!(decision.blockers.iter().any(|item| {
+            item.code == NutrientContributionBlockerCode::MissingDeliverySource
+        }));
     }
 
 }
