@@ -486,7 +486,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
     }
 
     let feasible_ids: Vec<String> = statuses.iter()
-        .filter(|(id, status)| **status == "feasible_under_declared_assumptions" && robust_outcomes.contains_key(*id))
+        .filter(|(id, status)| status.as_str() == "feasible_under_declared_assumptions" && robust_outcomes.contains_key(*id))
         .map(|(id, _)| id.clone())
         .collect();
     let mut pareto_front_ids = Vec::new();
@@ -507,7 +507,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
     }
 
     let excluded_from_pareto: Vec<Value> = statuses.iter()
-        .filter(|(id, status)| **status != "feasible_under_declared_assumptions" || !robust_outcomes.contains_key(*id))
+        .filter(|(id, status)| status.as_str() != "feasible_under_declared_assumptions" || !robust_outcomes.contains_key(*id))
         .map(|(id, status)| json!({
             "candidate_id": id,
             "status": status,
