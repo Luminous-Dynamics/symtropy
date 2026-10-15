@@ -55,7 +55,8 @@
       "model_identity",
       "baseline_and_counterfactual",
       "independent_oracle_refs",
-      "field_validation_plan"
+      "field_validation_plan",
+      "reversibility_and_stranded_asset_exposure"
     ]
   },
   "reusable_rules": [
@@ -88,6 +89,11 @@
       "id": "R6",
       "name": "No cultural copy-paste",
       "rule": "Living culture, Indigenous knowledge, language, traditional access and cultural IP are locally governed; generic regional stereotypes are prohibited."
+    },
+    {
+      "id": "R7",
+      "name": "Preserve future options",
+      "rule": "Compare phased, reversible, repurposable and exit pathways; evaluate irreversible commitments against multiple plausible futures and distributional downside. Do not optimize only for one forecast."
     }
   ],
   "profiles": [
@@ -716,7 +722,8 @@
       "community_and_cultural_outcomes",
       "workforce_effects",
       "lifecycle_economics",
-      "uncertainty_and_unknowns"
+      "uncertainty_and_unknowns",
+      "option_value_and_stranded_asset_exposure"
     ],
     "promotion_rule": "Profiles remain hypotheses until site observations, local review, jurisdictional review, independent tests and fit-for-purpose field validation are complete."
   },
