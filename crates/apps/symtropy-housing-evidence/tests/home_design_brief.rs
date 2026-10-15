@@ -118,6 +118,7 @@ fn referenced_dimension_constraint_requires_specific_source_metadata() {
         "explicit fixture metadata should satisfy the schema without authenticating the source"
     );
 }
+
 #[test]
 fn out_of_range_priority_is_rejected() {
     let (schema, mut example) = schema_and_example();
