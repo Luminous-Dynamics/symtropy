@@ -2,22 +2,26 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-use joy_worlds_profile_validator::{validate_portfolio_json, validate_regional_profiles_json};
+use joy_worlds_profile_validator::{
+    validate_decision_contract_json, validate_portfolio_json, validate_regional_profiles_json,
+};
 
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
     let mut portfolio_path = None;
     let mut regional_path = None;
+    let mut decision_contract_path = None;
 
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--portfolio" => portfolio_path = args.next(),
             "--regional" => regional_path = args.next(),
+            "--decision-contract" => decision_contract_path = args.next(),
             "--help" | "-h" => {
                 println!(
-                    "Usage: joy-worlds-profile-validator --portfolio PATH --regional PATH"
+                    "Usage: joy-worlds-profile-validator --portfolio PATH --regional PATH --decision-contract PATH"
                 );
-                println!("Checks manifest structure and cross-references only; it does not qualify site feasibility or safety.");
+                println!("Checks structure and cross-references only; it does not qualify site feasibility, impact or safety.");
                 return ExitCode::SUCCESS;
             }
             unknown => {
@@ -28,25 +32,30 @@ fn main() -> ExitCode {
         }
     }
 
-    let (Some(portfolio_path), Some(regional_path)) = (portfolio_path, regional_path) else {
-        eprintln!("Both --portfolio PATH and --regional PATH are required.");
+    let (Some(portfolio_path), Some(regional_path), Some(decision_contract_path)) =
+        (portfolio_path, regional_path, decision_contract_path)
+    else {
+        eprintln!("--portfolio PATH, --regional PATH and --decision-contract PATH are required.");
         eprintln!("Use --help for usage.");
         return ExitCode::FAILURE;
     };
 
-    let portfolio = match fs::read_to_string(&portfolio_path) {
-        Ok(content) => content,
+    let read = |path: &str, label: &str| match fs::read_to_string(path) {
+        Ok(content) => Some(content),
         Err(error) => {
-            eprintln!("Cannot read portfolio manifest '{}': {error}", portfolio_path);
-            return ExitCode::FAILURE;
+            eprintln!("Cannot read {label} manifest '{path}': {error}");
+            None
         }
     };
-    let regional = match fs::read_to_string(&regional_path) {
-        Ok(content) => content,
-        Err(error) => {
-            eprintln!("Cannot read regional profile manifest '{}': {error}", regional_path);
-            return ExitCode::FAILURE;
-        }
+
+    let Some(portfolio) = read(&portfolio_path, "portfolio") else {
+        return ExitCode::FAILURE;
+    };
+    let Some(regional) = read(&regional_path, "regional") else {
+        return ExitCode::FAILURE;
+    };
+    let Some(decision_contract) = read(&decision_contract_path, "decision-contract") else {
+        return ExitCode::FAILURE;
     };
 
     let mut failures = Vec::new();
@@ -55,6 +64,9 @@ fn main() -> ExitCode {
     }
     if let Err(errors) = validate_regional_profiles_json(&regional) {
         failures.extend(errors.into_iter().map(|error| format!("REGIONAL: {error}")));
+    }
+    if let Err(errors) = validate_decision_contract_json(&decision_contract) {
+        failures.extend(errors.into_iter().map(|error| format!("DECISION-CONTRACT: {error}")));
     }
 
     if !failures.is_empty() {
@@ -66,7 +78,7 @@ fn main() -> ExitCode {
     }
 
     println!("STRUCTURAL-VALIDATION-PASS");
-    println!("Portfolio and regional profile structure/cross-references are consistent.");
+    println!("Portfolio, regional profiles and decision-contract structure are consistent.");
     println!("This result does not establish site feasibility, sustainability, safety, or forecast validity.");
     ExitCode::SUCCESS
 }

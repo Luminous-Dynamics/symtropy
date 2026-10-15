@@ -1,6 +1,6 @@
 # Joy Worlds Profile Validator
 
-A small standalone Rust tool for structural checks on the Joy Worlds portfolio and regional-adaptation manifests.
+A small standalone Rust tool for structural checks on the Joy Worlds portfolio, regional-adaptation and destination decision-contract manifests.
 
 ## Run
 
@@ -10,7 +10,8 @@ From the repository root:
 cargo test --manifest-path tools/joy-worlds-profile-validator/Cargo.toml
 cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- \
   --portfolio docs/research/joy-worlds/experience-portfolio-v0.1.json \
-  --regional docs/research/joy-worlds/regional-adaptation-profiles-v0.1.json
+  --regional docs/research/joy-worlds/regional-adaptation-profiles-v0.1.json \\
+  --decision-contract docs/research/joy-worlds/destination-decision-contract-v0.1.json
 ```
 
 ## Current checks
@@ -22,7 +23,7 @@ cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- \
 - Named coastal profiles must identify coastal drivers and constraints.
 - Named ski profiles must explicitly address snow reliability, avalanche/mountain hazards and uncertainty around snowmaking.
 - Named cruise profiles must cover ship and port scope and not assume shore-power capability implies port supply.
-- Source URLs must be HTTPS.
+- The destination decision contract must retain hard-constraint precedence, explicit infeasible/not-evaluable states, no-build/reversible alternatives, separated outcome dimensions, negative controls and human authority/privacy boundaries.\n- Source URLs must be HTTPS.
 - Malformed JSON and adverse/missing fields fail closed.
 
 ## Claim ceiling

@@ -350,6 +350,163 @@ pub fn validate_regional_profiles_json(raw: &str) -> Result<(), Vec<String>> {
     finish(errors)
 }
 
+
+/// Validates the machine-readable destination decision contract structurally.
+/// It checks the stated ordering and required concepts; it does not execute a
+/// destination optimizer or certify any real-world decision.
+pub fn validate_decision_contract_json(raw: &str) -> Result<(), Vec<String>> {
+    let document: Value = serde_json::from_str(raw)
+        .map_err(|error| vec![format!("JSON parse error: {error}")])?;
+    let mut errors = Vec::new();
+
+    for key in ["schema_version", "artifact_id", "status", "governing_rule"] {
+        required_text(&document, key, "$", &mut errors);
+    }
+    required_strings(&document, "non_claims", "$", 1, &mut errors);
+
+    let states = required_strings(&document, "decision_states", "$", 3, &mut errors);
+    require_tokens(
+        &states,
+        &["infeasible", "not_evaluable", "feasible_under_declared_assumptions"],
+        "$.decision_states",
+        &mut errors,
+    );
+
+    if let Some(policy) = document.get("hard_constraint_policy") {
+        let order = required_strings(policy, "evaluation_order", "$.hard_constraint_policy", 4, &mut errors);
+        require_tokens(
+            &order,
+            &["rights_and_feasibility_screen", "hard_constraint_screen", "pareto_analysis", "robustness_analysis"],
+            "$.hard_constraint_policy.evaluation_order",
+            &mut errors,
+        );
+        let missing_state = required_text(policy, "missing_critical_evidence_state", "$.hard_constraint_policy", &mut errors);
+        if missing_state != "not_evaluable" {
+            errors.push("$.hard_constraint_policy.missing_critical_evidence_state: must be not_evaluable".to_owned());
+        }
+        match policy.get("score_override_prohibited").and_then(Value::as_bool) {
+            Some(true) => {}
+            _ => errors.push("$.hard_constraint_policy.score_override_prohibited: must be true".to_owned()),
+        }
+        required_text(policy, "non_substitution_rule", "$.hard_constraint_policy", &mut errors);
+        required_text(policy, "authority_rule", "$.hard_constraint_policy", &mut errors);
+    } else {
+        errors.push("$.hard_constraint_policy: required object".to_owned());
+    }
+
+    let alternatives = required_strings(&document, "required_alternatives", "$", 6, &mut errors);
+    require_tokens(
+        &alternatives,
+        &[
+            "current_or_no_build_baseline",
+            "maintenance_or_adaptive_reuse",
+            "reversible_pilot",
+            "proposed_new_build",
+            "distributed_local_operator_portfolio",
+            "managed_transition_or_closure",
+        ],
+        "$.required_alternatives",
+        &mut errors,
+    );
+
+    let gates = required_strings(&document, "gate_order", "$", 8, &mut errors);
+    require_tokens(
+        &gates,
+        &[
+            "rights_and_feasibility_envelope",
+            "meaningful_alternatives",
+            "scenario_set",
+            "hard_constraint_screen",
+            "separate_outcome_vector",
+            "pareto_and_robustness",
+            "staged_investment_gate",
+            "decision_receipt",
+        ],
+        "$.gate_order",
+        &mut errors,
+    );
+
+    let outcomes = required_strings(&document, "required_outcome_dimensions", "$", 7, &mut errors);
+    require_tokens(
+        &outcomes,
+        &[
+            "visitor_experience_and_access",
+            "workforce_quality_and_safety",
+            "host_community_wellbeing",
+            "local_economic_value_retention",
+            "ecology_and_resource_flows",
+            "climate_and_mobility",
+            "resilience_and_option_value",
+        ],
+        "$.required_outcome_dimensions",
+        &mut errors,
+    );
+
+    let controls = required_strings(&document, "required_negative_controls", "$", 6, &mut errors);
+    require_tokens(
+        &controls,
+        &[
+            "zero_demand",
+            "unavailable_service",
+            "closed_route",
+            "missing_or_stale_observation",
+            "resource_limit_breach",
+            "model_version_mismatch",
+        ],
+        "$.required_negative_controls",
+        &mut errors,
+    );
+
+    let receipt = required_strings(&document, "required_decision_receipt_fields", "$", 1, &mut errors);
+    require_tokens(
+        &receipt,
+        &[
+            "model_and_code_identity",
+            "hard_constraints_and_authority_references",
+            "independent_checks_and_negative_controls",
+            "local_value_commitments_and_distribution",
+            "community_decision_provenance_and_dissent",
+            "accountable_review_sign_off",
+            "investment_gate_and_exit_plan",
+        ],
+        "$.required_decision_receipt_fields",
+        &mut errors,
+    );
+
+    let authorities = required_strings(&document, "required_authority_boundaries", "$", 5, &mut errors);
+    require_tokens(
+        &authorities,
+        &[
+            "community_rights_and_consent_remain_human_and_local",
+            "qualified_safety_authority_remains_accountable",
+            "no_autonomous_physical_actuation",
+            "privacy_and_culturally_restricted_evidence_protection",
+            "simulation_or_attestation_does_not_equal_real_world_truth",
+        ],
+        "$.required_authority_boundaries",
+        &mut errors,
+    );
+
+    let rules = required_strings(&document, "required_analysis_rules", "$", 6, &mut errors);
+    require_tokens(
+        &rules,
+        &[
+            "hard_constraints_before_pareto",
+            "report_outcomes_separately",
+            "no_universal_weights",
+            "unknown_is_not_zero",
+            "preserve_no_build_and_reversible_options",
+            "publish_adverse_and_null_results",
+        ],
+        "$.required_analysis_rules",
+        &mut errors,
+    );
+
+    required_text(&document, "promotion_rule", "$", &mut errors);
+    validate_sources(&document, &mut errors);
+    finish(errors)
+}
+
 fn validate_sources(document: &Value, errors: &mut Vec<String>) {
     let Some(sources) = required_array(document, "sources", "$", 1, errors) else {
         return;
@@ -459,6 +616,111 @@ mod tests {
             },
             "sources": [{"topic": "Fixture source", "url": "https://example.org/source"}]
         })
+    }
+
+
+    fn valid_decision_contract() -> Value {
+        json!({
+            "schema_version": "0.1.0",
+            "artifact_id": "test.decision-contract",
+            "status": "synthetic",
+            "governing_rule": "Constraints first; preserve uncertainty.",
+            "non_claims": ["Structural completeness is not site feasibility."],
+            "decision_states": ["infeasible", "not_evaluable", "feasible_under_declared_assumptions"],
+            "hard_constraint_policy": {
+                "evaluation_order": ["rights_and_feasibility_screen", "hard_constraint_screen", "pareto_analysis", "robustness_analysis"],
+                "missing_critical_evidence_state": "not_evaluable",
+                "score_override_prohibited": true,
+                "non_substitution_rule": "Scores cannot override a constraint.",
+                "authority_rule": "Qualified authority remains accountable."
+            },
+            "required_alternatives": [
+                "current_or_no_build_baseline", "maintenance_or_adaptive_reuse", "reversible_pilot",
+                "proposed_new_build", "distributed_local_operator_portfolio", "managed_transition_or_closure"
+            ],
+            "gate_order": [
+                "rights_and_feasibility_envelope", "meaningful_alternatives", "scenario_set",
+                "hard_constraint_screen", "separate_outcome_vector", "pareto_and_robustness",
+                "staged_investment_gate", "decision_receipt"
+            ],
+            "required_outcome_dimensions": [
+                "visitor_experience_and_access", "workforce_quality_and_safety", "host_community_wellbeing",
+                "local_economic_value_retention", "ecology_and_resource_flows", "climate_and_mobility",
+                "resilience_and_option_value"
+            ],
+            "required_negative_controls": [
+                "zero_demand", "unavailable_service", "closed_route", "missing_or_stale_observation",
+                "resource_limit_breach", "model_version_mismatch"
+            ],
+            "required_decision_receipt_fields": [
+                "candidate_and_scenario_identity", "data_and_source_versions", "model_and_code_identity",
+                "assumptions_units_and_uncertainty", "hard_constraints_and_authority_references",
+                "independent_checks_and_negative_controls", "separate_outcome_vector",
+                "local_value_commitments_and_distribution", "community_decision_provenance_and_dissent",
+                "unresolved_objections_and_appeal_path", "selected_and_rejected_alternatives",
+                "accountable_review_sign_off", "investment_gate_and_exit_plan"
+            ],
+            "required_authority_boundaries": [
+                "community_rights_and_consent_remain_human_and_local",
+                "qualified_safety_authority_remains_accountable", "no_autonomous_physical_actuation",
+                "privacy_and_culturally_restricted_evidence_protection",
+                "simulation_or_attestation_does_not_equal_real_world_truth"
+            ],
+            "required_analysis_rules": [
+                "hard_constraints_before_pareto", "report_outcomes_separately", "no_universal_weights",
+                "unknown_is_not_zero", "preserve_no_build_and_reversible_options", "publish_adverse_and_null_results"
+            ],
+            "promotion_rule": "Structural completeness does not certify a site.",
+            "sources": [{"topic": "Fixture", "url": "https://example.org/source"}]
+        })
+    }
+
+    #[test]
+    fn accepts_structurally_valid_decision_contract() {
+        assert!(validate_decision_contract_json(&valid_decision_contract().to_string()).is_ok());
+    }
+
+    #[test]
+    fn rejects_decision_contract_without_no_build_alternative() {
+        let mut document = valid_decision_contract();
+        document["required_alternatives"] = json!([
+            "maintenance_or_adaptive_reuse", "reversible_pilot", "proposed_new_build",
+            "distributed_local_operator_portfolio", "managed_transition_or_closure"
+        ]);
+        let errors = validate_decision_contract_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("current_or_no_build_baseline")));
+    }
+
+    #[test]
+    fn rejects_decision_contract_missing_local_value_dimension() {
+        let mut document = valid_decision_contract();
+        document["required_outcome_dimensions"] = json!([
+            "visitor_experience_and_access", "workforce_quality_and_safety", "host_community_wellbeing",
+            "ecology_and_resource_flows", "climate_and_mobility", "resilience_and_option_value"
+        ]);
+        let errors = validate_decision_contract_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("local_economic_value_retention")));
+    }
+
+    #[test]
+    fn rejects_decision_contract_without_authority_boundary() {
+        let mut document = valid_decision_contract();
+        document["required_authority_boundaries"] = json!([
+            "community_rights_and_consent_remain_human_and_local",
+            "qualified_safety_authority_remains_accountable",
+            "privacy_and_culturally_restricted_evidence_protection",
+            "simulation_or_attestation_does_not_equal_real_world_truth"
+        ]);
+        let errors = validate_decision_contract_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("no_autonomous_physical_actuation")));
+    }
+
+    #[test]
+    fn rejects_decision_contract_when_scores_can_override_constraints() {
+        let mut document = valid_decision_contract();
+        document["hard_constraint_policy"]["score_override_prohibited"] = json!(false);
+        let errors = validate_decision_contract_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("score_override_prohibited")));
     }
 
     #[test]
