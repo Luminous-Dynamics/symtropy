@@ -31,7 +31,8 @@
           "liner_service_providers",
           "largest_deployed_ship_teu",
           "directly_connected_ports"
-        ]
+        ],
+        "benchmark_scope": "global_average_port_connectivity"
       },
       "selection": {
         "geographic_scope": "synthetic-test-only",
