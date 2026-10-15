@@ -19,6 +19,23 @@ cargo run --locked -p maritime-data-receipt -- path/to/receipt.json /path/to/exa
 
 No network request is made. The caller is responsible for preserving exactly the bytes received; this tool never normalizes line endings, decodes/re-encodes source files, transforms coordinates, or mutates artifacts.
 
+## S-100 product-profile metadata mode
+
+A separate metadata-only profile schema is defined in `docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json`. It currently models only the metadata envelope for S-102 bathymetry, S-104 water-level information and S-111 surface currents. The positive/negative synthetic corpus is `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`.
+
+Validate a profile against its exact generic receipt and artifact:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \
+  --validate-s100-profile \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-s104-profile.json \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-receipt.json
+```
+
+This mode checks profile metadata, pinned numeric edition shape, product-specific units, source/dataset/revision identity, CRS/vertical-reference/units/time-coverage/quality-statement matches, receipt ID and exact receipt SHA-256, and then verifies the receipt's exact local artifact bytes. For a source-native product all transform fields must remain absent. A derived S-102/S-104 profile must refer to a transform receipt and declare both input/output vertical references; this metadata guard does not independently validate the transformation itself.
+
+A valid profile report still returns `NotAdmitted`. This is not an S-100 payload decoder, IHO validation engine, publisher-authentication mechanism or navigation/engineering qualification result. All committed sample profiles/corpus values are synthetic.
+
 ## Fail-closed metadata gates
 
 The verifier rejects duplicate JSON object keys; missing or unknown fields; schema/version drift; traversal or absolute artifact paths declared inside the receipt; byte length or SHA-256 mismatches; invalid source/retrieval semantics; public-dataset records without HTTPS source/request URIs, retrieval time, a recorded reviewed-permitted terms decision, reviewer, review timestamp and terms digest; water-level records without a vertical datum; hydrography records without a CRS; and invalid unit, temporal, status or claim-ceiling declarations.
