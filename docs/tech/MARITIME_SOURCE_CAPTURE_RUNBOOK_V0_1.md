@@ -24,6 +24,8 @@ The South African slice should be modest: select only the desired quarters and p
 
 On 2026-10-15, the official PLSCI metadata and UNCTAD Data Hub terms were reviewable, but the data-table page returned 403 to the available retrieval channel and the direct CSV/API representation was not accessible through that channel. An official UNECE production UN/LOCODE download was also attempted as a fallback, but the ZIP could not be materialized in this execution. Consequently **no raw table or registry bytes, digest, or real port mapping is claimed here**. Repeat the capture from a permitted environment using the source's official download UI or documented endpoint.
 
+A later live re-open of the official [UNECE UN/LOCODE Publications](https://unlocode.unece.org/publications/) page on the same date displayed `15 October 2026` as the pre-release update timestamp, while an earlier indexed result displayed `2 October 2026`. This is a concrete reminder that even page-level freshness metadata may change or lag between retrieval channels. Preserve the exact downloaded production artifact and its retrieval evidence; neither timestamp substitutes for a captured archive or digest.
+
 ## Capture procedure
 
 1. Open the official PLSCI table and record the visible table ID, selected dimensions/filters, indicator label, latest included quarter, methodological notes, and source/coverage notes. Download using the official UI or documented endpoint. Do not guess a hidden export URL.
