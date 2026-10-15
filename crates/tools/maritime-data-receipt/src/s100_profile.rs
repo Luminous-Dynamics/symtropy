@@ -7,7 +7,7 @@
 //! These checks do not parse S-100 payloads or qualify a dataset for navigation.
 //! A structurally valid profile is always reported as not admitted.
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 const ROOT_KEYS: &[&str] = &[
     "schema_id", "schema_version", "profile_id", "source_kind", "receipt_binding",
@@ -291,38 +291,6 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
         return Err("AUTHORITY_ESCALATION_ATTEMPT");
     }
 
-    Ok(())
-}
-
-fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'static str> {
-    let parts: Vec<&str> = path.split('.').collect();
-    if parts.is_empty() {
-        return Err("INVALID_CORPUS_MUTATION");
-    }
-    let mut current = value;
-    for part in &parts[..parts.len() - 1] {
-        current = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?
-            .get_mut(*part).ok_or("INVALID_CORPUS_MUTATION")?;
-    }
-    let object: &mut Map<String, Value> = current.as_object_mut().ok_or("INVALID_CORPUS_MUTATION")?;
-    let leaf = parts[parts.len() - 1];
-    match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
-        "set" => {
-            if !object.contains_key(leaf) {
-                return Err("INVALID_CORPUS_MUTATION");
-            }
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
-        }
-        "insert" => {
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
-        }
-        "remove" => {
-            if object.remove(leaf).is_none() {
-                return Err("INVALID_CORPUS_MUTATION");
-            }
-        }
-        _ => return Err("INVALID_CORPUS_MUTATION"),
-    }
     Ok(())
 }
 
