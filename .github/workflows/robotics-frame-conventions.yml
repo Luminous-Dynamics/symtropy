@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - feat/robotics-qualified-frame-conventions
+      - feat/robotics-rigid-transform-compose
     paths:
       - '.github/workflows/robotics-frame-conventions.yml'
       - 'Cargo.toml'
@@ -17,6 +18,7 @@ on:
       - 'crates/core/symtropy-physics/**'
       - 'crates/domains/symtropy-consciousness-physics/**'
       - 'scripts/verify_frame_convention_registry_v1.py'
+      - 'scripts/verify_rigid_transform_v1.py'
   # Once the stacked change targets main, keep this check available on PRs too.
   pull_request:
     branches:
@@ -31,6 +33,7 @@ on:
       - 'crates/core/symtropy-physics/**'
       - 'crates/domains/symtropy-consciousness-physics/**'
       - 'scripts/verify_frame_convention_registry_v1.py'
+      - 'scripts/verify_rigid_transform_v1.py'
 
 permissions:
   contents: read
@@ -50,6 +53,10 @@ jobs:
       - name: Verify independent canonical reference
         id: reference
         run: python3 scripts/verify_frame_convention_registry_v1.py
+
+      - name: Verify independent rigid-transform reference
+        id: rigid_reference
+        run: python3 scripts/verify_rigid_transform_v1.py
 
       - name: Install Linux build dependencies
         if: always()
@@ -91,12 +98,15 @@ jobs:
         if: always()
         env:
           REFERENCE: ${{ steps.reference.outcome }}
+          RIGID_REFERENCE: ${{ steps.rigid_reference.outcome }}
           FORMATTING: ${{ steps.fmt.outcome }}
           TESTS: ${{ steps.tests.outcome }}
           CLIPPY: ${{ steps.clippy.outcome }}
         run: |
           printf 'independent reference: %s\nformatting: %s\nRust tests: %s\nClippy: %s\n' "$REFERENCE" "$FORMATTING" "$TESTS" "$CLIPPY"
+          printf 'rigid-transform reference: %s\n' "$RIGID_REFERENCE"
           test "$REFERENCE" = success &&
+          test "$RIGID_REFERENCE" = success &&
           test "$FORMATTING" = success &&
           test "$TESTS" = success &&
           test "$CLIPPY" = success
