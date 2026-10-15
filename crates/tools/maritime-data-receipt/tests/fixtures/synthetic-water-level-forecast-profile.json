@@ -1,0 +1,38 @@
+{
+  "schema_id": "luminous.symtropy.maritime-forecast-applicability",
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-water-level-forecast-2026-10-15T0200Z",
+  "source_kind": "synthetic_fixture",
+  "receipt_binding": {
+    "receipt_id": "synthetic-water-level-forecast-v0",
+    "receipt_sha256": "62d4f04259b3beaf0c462038317a9863e7ebc3e79509a9d44f13c08326778fd2",
+    "artifact_sha256": "45dbbb8cabb009dfaf17b697f24aec156b9baaae0a5dc29dcbce20023c02f714"
+  },
+  "forecast": {
+    "product_kind": "water_level_prediction",
+    "provider_product_id": "synthetic-coops-predictions-product-v0",
+    "dataset_id": "synthetic-water-level-forecast-example-v0",
+    "dataset_revision": "synthetic-model-run-001",
+    "model_run_id": "synthetic-run-001",
+    "model_initialization_time_utc": "2026-10-15T00:00:00Z",
+    "issued_at_utc": "2026-10-15T00:15:00Z",
+    "assessment_time_utc": "2026-10-15T02:00:00Z",
+    "target_time_utc": "2026-10-15T03:00:00Z",
+    "valid_from_utc": "2026-10-15T00:00:00Z",
+    "valid_until_utc": "2026-10-15T06:00:00Z",
+    "max_issue_age_seconds": 7200,
+    "max_forecast_lead_seconds": 14400,
+    "freshness_policy_id": "synthetic-policy-max-2h-issue-age-max-4h-lead-v1"
+  },
+  "quality": {
+    "status": "synthetic",
+    "uncertainty_statement": "Invented forecast values for temporal applicability tests only; no observation or forecast skill claim."
+  },
+  "intended_use": {
+    "scenario_analysis_only": true,
+    "navigation_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "berth_availability_inference_authorized": false,
+    "independent_review_required": true
+  }
+}

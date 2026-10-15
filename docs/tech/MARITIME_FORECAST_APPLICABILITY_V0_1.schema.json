@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_FORECAST_APPLICABILITY_V0_1.schema.json",
+  "title": "Maritime Forecast Applicability Profile v0.1",
+  "description": "Decision-time forecast applicability metadata only. Every result remains NotAdmitted for physical truth, engineering, berth or navigation claims.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "profile_id", "source_kind", "receipt_binding", "forecast", "quality", "intended_use"],
+  "properties": {
+    "schema_id": {"const": "luminous.symtropy.maritime-forecast-applicability"},
+    "schema_version": {"const": "0.1.0"},
+    "profile_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "source_kind": {"enum": ["synthetic_fixture", "public_dataset"]},
+    "receipt_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt_id", "receipt_sha256", "artifact_sha256"],
+      "properties": {
+        "receipt_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "receipt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_kind", "provider_product_id", "dataset_id", "dataset_revision", "model_run_id", "model_initialization_time_utc", "issued_at_utc", "assessment_time_utc", "target_time_utc", "valid_from_utc", "valid_until_utc", "max_issue_age_seconds", "max_forecast_lead_seconds", "freshness_policy_id"],
+      "properties": {
+        "product_kind": {"type": "string", "minLength": 1, "maxLength": 256},
+        "provider_product_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "dataset_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "dataset_revision": {"type": "string", "minLength": 1, "maxLength": 256},
+        "model_run_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "model_initialization_time_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "format": "date-time"},
+        "issued_at_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "format": "date-time"},
+        "assessment_time_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "format": "date-time"},
+        "target_time_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "format": "date-time"},
+        "valid_from_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "format": "date-time"},
+        "valid_until_utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", "format": "date-time"},
+        "max_issue_age_seconds": {"type": "integer", "minimum": 1},
+        "max_forecast_lead_seconds": {"type": "integer", "minimum": 1},
+        "freshness_policy_id": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "uncertainty_statement"],
+      "properties": {
+        "status": {"enum": ["prediction", "synthetic", "unknown"]},
+        "uncertainty_statement": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "intended_use": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_analysis_only", "navigation_authorized", "physical_truth_claim_authorized", "berth_availability_inference_authorized", "independent_review_required"],
+      "properties": {
+        "scenario_analysis_only": {"const": true},
+        "navigation_authorized": {"const": false},
+        "physical_truth_claim_authorized": {"const": false},
+        "berth_availability_inference_authorized": {"const": false},
+        "independent_review_required": {"const": true}
+      }
+    }
+  }
+}

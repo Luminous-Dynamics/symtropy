@@ -5,6 +5,7 @@
 mod s100_profile;
 mod port_identity;
 mod macro_connectivity;
+mod forecast_applicability;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -713,6 +714,23 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--evaluate-forecast-applicability") {
+        let profile_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --evaluate-forecast-applicability <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+        })?;
+        let receipt_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --evaluate-forecast-applicability <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
+        })?;
+        let artifact_override = args.next();
+        if args.next().is_some() {
+            return Err("too many arguments for forecast applicability verification".to_owned());
+        }
+        return forecast_applicability::run_cli(
+            &profile_path,
+            &receipt_path,
+            artifact_override.as_deref(),
+        );
+    }
     if first_arg.as_deref() == Some("--validate-s100-profile") {
         let profile_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override]".to_owned()
