@@ -23,7 +23,8 @@ cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml -- \
 - Named coastal profiles must identify coastal drivers and constraints.
 - Named ski profiles must explicitly address snow reliability, avalanche/mountain hazards and uncertainty around snowmaking.
 - Named cruise profiles must cover ship and port scope and not assume shore-power capability implies port supply.
-- The destination decision contract must retain hard-constraint precedence, explicit infeasible/not-evaluable states, no-build/reversible alternatives, separated outcome dimensions, negative controls and human authority/privacy boundaries.\n- Source URLs must be HTTPS.
+- The destination decision contract must retain hard-constraint precedence, explicit infeasible/not-evaluable states, no-build/reversible alternatives, separated outcome dimensions, negative controls and human authority/privacy boundaries.
+- Source URLs must be HTTPS.
 - Malformed JSON and adverse/missing fields fail closed.
 
 ## Claim ceiling
