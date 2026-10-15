@@ -1288,17 +1288,39 @@ mod tests {
         assert!(!report.reservation_or_custody_event_authorized);
         assert!(!report.physical_execution_authorized);
         assert!(!report.physical_simulation_performed);
-        let expected_gap_count = report.dispositions.iter()
-            .filter(|result| result.status == "INDETERMINATE" || result.status == "UNSUPPORTED")
-            .map(|result| {
-                let case = cases.iter().find(|case| case["case_id"].as_str() == Some(result.case_id.as_str())).unwrap();
-                oracle_blockers(&result.plan_id, case).len()
-            })
-            .sum::<usize>();
-        assert_eq!(report.evidence_gaps.len(), expected_gap_count);
+        let mut expected_gaps = Vec::new();
+        for result in &report.dispositions {
+            if result.status != "INDETERMINATE" && result.status != "UNSUPPORTED" {
+                continue;
+            }
+            let case = cases
+                .iter()
+                .find(|case| case["case_id"].as_str() == Some(result.case_id.as_str()))
+                .unwrap();
+            for blocker in oracle_blockers(&result.plan_id, case) {
+                expected_gaps.push((
+                    result.case_id.as_str(),
+                    result.plan_id.as_str(),
+                    blocker,
+                    oracle_requirement_id(blocker),
+                ));
+            }
+        }
+        let actual_gaps: Vec<_> = report
+            .evidence_gaps
+            .iter()
+            .map(|gap| (
+                gap.case_id.as_str(),
+                gap.plan_id.as_str(),
+                gap.blocker_code.as_str(),
+                gap.requirement_id.as_str(),
+            ))
+            .collect();
+        assert_eq!(actual_gaps, expected_gaps);
         for gap in &report.evidence_gaps {
-            assert_eq!(gap.requirement_id, oracle_requirement_id(&gap.blocker_code));
             assert_ne!(gap.requirement_id, "unknown");
+            assert!(!gap.minimum_fields.is_empty());
+            assert!(!gap.resolution_scope.is_empty());
         }
     }
 
