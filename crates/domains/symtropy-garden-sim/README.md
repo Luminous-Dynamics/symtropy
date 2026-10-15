@@ -29,7 +29,7 @@ The crate also evaluates one nutrient contribution from a source-pinned food-com
 - Composition is scoped to an exact food record and food/preparation state, with a nutrient-definition reference, unit, source reference, evidence class and explicit decimal scale.
 - Delivery is expressed as grams of edible food actually delivered, not gross harvest biomass, and is bound to an explicit community/population scope and time period. The upstream system must already account for edible fraction, loss and allocation.
 - A missing composition value returns `NotAssessable`, not a zero contribution. A food identity, preparation-state, scale or provenance mismatch blocks calculation.
-- The output is an exact rational numerator/denominator in the stated nutrient unit. It avoids rounding and floating-point arithmetic; wide JSON integers are decimal strings.
+- The output retains the exact edible-delivered mass, beneficiary scope, period, source references and rational numerator/denominator in the stated nutrient unit. It avoids rounding and floating-point arithmetic; wide JSON integers are decimal strings.
 - This calculation does not authenticate evidence, choose crops, infer yields or requirements, aggregate a diet, or prove nutrient adequacy.
 
 The synthetic test fixture declares 250 mg per 100 g at scale 1,000 and 75 g of edible food delivered. The exact contribution is represented as (18{,}750{,}000 / 100{,}000 = 187.5) mg. These values test arithmetic only; they are not a claim about a real food.
