@@ -77,6 +77,7 @@ const ASSUMPTION_KEYS: &[&str] = &[
     "sensitivity_status",
 ];
 const CLAIM_TARGET_KEYS: &[&str] = &["node_id", "node_kind", "parents", "output_claim"];
+#[cfg(test)]
 const VALID: &str = "SCENARIO_MANIFEST_VALID_NOT_ADMITTED";
 
 fn exact_keys(value: &Value, expected: &[&str]) -> Result<(), &'static str> {
@@ -556,6 +557,9 @@ fn verify_configuration_file(
     }
     let bytes = fs::read(&path)
         .map_err(|error| format!("cannot read configuration {relative_path}: {error}"))?;
+    if bytes.len() > super::MAX_RECEIPT_BYTES {
+        return Err(format!("configuration exceeds bounded size: {relative_path}"));
+    }
     let actual_sha256 = super::sha256_bytes(&bytes);
     if actual_sha256 != expected_sha256 {
         return Err(format!("scenario configuration SHA-256 mismatch: {relative_path}"));
@@ -615,6 +619,9 @@ fn verify_source_receipts(manifest: &Value, workspace_root: &Path) -> Result<usi
         }
         let receipt_bytes = fs::read(&receipt_path)
             .map_err(|error| format!("cannot read source receipt {receipt_relative}: {error}"))?;
+        if receipt_bytes.len() > super::MAX_RECEIPT_BYTES {
+            return Err(format!("source receipt exceeds bounded size: {receipt_relative}"));
+        }
         super::parse_strict(&receipt_bytes)
             .map_err(|error| format!("invalid source receipt {receipt_relative}: {error}"))?;
         let receipt: Value = serde_json::from_slice(&receipt_bytes)
