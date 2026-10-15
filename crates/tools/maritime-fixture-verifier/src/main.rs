@@ -8,9 +8,9 @@ use serde_json::Number;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
+use std::fmt;
 use std::fs;
 use std::path::Path;
-use std::fmt;
 
 const DEFAULT_SCENARIO_PATH: &str = "docs/tech/MARITIME_FLOATING_SITE_SCENARIO_V0_1.json";
 const MAX_INPUT_BYTES: usize = 1_000_000;
@@ -209,7 +209,9 @@ fn exact_keys(value: &JsonValue, expected: &[&str], path: &str) -> Result<(), St
     }
     let missing = expected.difference(&actual).copied().collect::<Vec<_>>();
     let unknown = actual.difference(&expected).copied().collect::<Vec<_>>();
-    Err(format!("{path}: field-set mismatch; missing={missing:?}, unknown={unknown:?}"))
+    Err(format!(
+        "{path}: field-set mismatch; missing={missing:?}, unknown={unknown:?}"
+    ))
 }
 
 fn expect_text(value: &JsonValue, path: &str, expected: &str) -> Result<(), String> {
@@ -262,10 +264,16 @@ fn expect_string_set(value: &JsonValue, expected: &[&str], path: &str) -> Result
 
 fn quantity(value: &JsonValue, expected_unit: &str, path: &str) -> Result<f64, String> {
     exact_keys(value, &["unit", "value"], path)?;
-    expect_text(field(value, "unit", path)?, &format!("{path}.unit"), expected_unit)?;
+    expect_text(
+        field(value, "unit", path)?,
+        &format!("{path}.unit"),
+        expected_unit,
+    )?;
     let value = number(field(value, "value", path)?, &format!("{path}.value"))?;
     if value < 0.0 {
-        return Err(format!("{path}.value: negative quantity is outside this fixture's domain"));
+        return Err(format!(
+            "{path}.value: negative quantity is outside this fixture's domain"
+        ));
     }
     Ok(value)
 }
@@ -298,14 +306,13 @@ fn envelope_fits(
         && vessel_draft_m <= berth_max_draft_m
 }
 
-fn lookup_entity<'a>(
-    entities: &'a [JsonValue],
-    wanted_id: &str,
-) -> Result<&'a JsonValue, String> {
+fn lookup_entity<'a>(entities: &'a [JsonValue], wanted_id: &str) -> Result<&'a JsonValue, String> {
     entities
         .iter()
         .find(|entity| {
-            field(entity, "id", "entity").and_then(|v| text(v, "entity.id")).ok()
+            field(entity, "id", "entity")
+                .and_then(|v| text(v, "entity.id"))
+                .ok()
                 == Some(wanted_id)
         })
         .ok_or_else(|| format!("missing entity reference {wanted_id:?}"))
@@ -324,7 +331,11 @@ fn validate_status(root: &JsonValue) -> Result<(), String> {
         ],
         "status",
     )?;
-    expect_text(field(status, "kind", "status")?, "status.kind", "SpecificationOnly")?;
+    expect_text(
+        field(status, "kind", "status")?,
+        "status.kind",
+        "SpecificationOnly",
+    )?;
     expect_bool(
         field(status, "execution_performed", "status")?,
         "status.execution_performed",
@@ -340,7 +351,11 @@ fn validate_status(root: &JsonValue) -> Result<(), String> {
         "status.physical_validation",
         "None",
     )?;
-    expect_text(field(status, "external_approval", "status")?, "status.external_approval", "None")?;
+    expect_text(
+        field(status, "external_approval", "status")?,
+        "status.external_approval",
+        "None",
+    )?;
     Ok(())
 }
 
@@ -416,7 +431,10 @@ fn validate_execution_contract(root: &JsonValue) -> Result<(), String> {
             "profile_admission",
             "Must be checked against the exact current engine capability census and ENG-SYNTH-CRED gate.",
         ),
-        ("unsupported_model_semantics", "UnsupportedOrUnknown; never silently approximate."),
+        (
+            "unsupported_model_semantics",
+            "UnsupportedOrUnknown; never silently approximate.",
+        ),
     ] {
         expect_text(
             field(contract, key, "execution_contract")?,
@@ -444,7 +462,10 @@ fn validate_execution_contract(root: &JsonValue) -> Result<(), String> {
 fn validate_entities(root: &JsonValue) -> Result<Vec<JsonValue>, String> {
     let entities = array(field(root, "entities", "root")?, "entities")?;
     if entities.len() != 4 {
-        return Err(format!("entities: expected 4 frozen entities, got {}", entities.len()));
+        return Err(format!(
+            "entities: expected 4 frozen entities, got {}",
+            entities.len()
+        ));
     }
 
     let mut ids = BTreeSet::new();
@@ -456,7 +477,11 @@ fn validate_entities(root: &JsonValue) -> Result<Vec<JsonValue>, String> {
         }
         match id {
             "vessel.synthetic-cargo-01" => {
-                exact_keys(entity, &["id", "kind", "dimensions", "evidence_class"], &path)?;
+                exact_keys(
+                    entity,
+                    &["id", "kind", "dimensions", "evidence_class"],
+                    &path,
+                )?;
                 expect_text(
                     field(entity, "kind", &path)?,
                     &format!("{path}.kind"),
@@ -473,8 +498,18 @@ fn validate_entities(root: &JsonValue) -> Result<Vec<JsonValue>, String> {
                     &["length", "width", "declared_draft"],
                     &format!("{path}.dimensions"),
                 )?;
-                frozen_quantity(field(dimensions, "length", &path)?, "m", 80.0, "vessel.length")?;
-                frozen_quantity(field(dimensions, "width", &path)?, "m", 12.0, "vessel.width")?;
+                frozen_quantity(
+                    field(dimensions, "length", &path)?,
+                    "m",
+                    80.0,
+                    "vessel.length",
+                )?;
+                frozen_quantity(
+                    field(dimensions, "width", &path)?,
+                    "m",
+                    12.0,
+                    "vessel.width",
+                )?;
                 frozen_quantity(
                     field(dimensions, "declared_draft", &path)?,
                     "m",
@@ -483,7 +518,11 @@ fn validate_entities(root: &JsonValue) -> Result<Vec<JsonValue>, String> {
                 )?;
             }
             "berth.synthetic-01" => {
-                exact_keys(entity, &["id", "kind", "constraints", "evidence_class"], &path)?;
+                exact_keys(
+                    entity,
+                    &["id", "kind", "constraints", "evidence_class"],
+                    &path,
+                )?;
                 expect_text(
                     field(entity, "kind", &path)?,
                     &format!("{path}.kind"),
@@ -545,7 +584,11 @@ fn validate_entities(root: &JsonValue) -> Result<Vec<JsonValue>, String> {
                     "SyntheticAssumption",
                 )?;
             }
-            _ => return Err(format!("{path}: unknown entity id {id:?} in frozen v0.1.0 fixture")),
+            _ => {
+                return Err(format!(
+                    "{path}: unknown entity id {id:?} in frozen v0.1.0 fixture"
+                ));
+            }
         }
     }
 
@@ -568,14 +611,22 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
     let contracts = field(root, "contracts", "root")?;
     exact_keys(
         contracts,
-        &["berth_envelope", "battery_departure_energy", "floating_site_essential_load"],
+        &[
+            "berth_envelope",
+            "battery_departure_energy",
+            "floating_site_essential_load",
+        ],
         "contracts",
     )?;
 
     let berth = field(contracts, "berth_envelope", "contracts")?;
     exact_keys(
         berth,
-        &["model_scope", "required_vessel_dimensions", "excluded_semantics"],
+        &[
+            "model_scope",
+            "required_vessel_dimensions",
+            "excluded_semantics",
+        ],
         "contracts.berth_envelope",
     )?;
     expect_text(
@@ -584,7 +635,11 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         "ComponentWiseDeclaredEnvelopeComparisonOnly",
     )?;
     expect_string_set(
-        field(berth, "required_vessel_dimensions", "contracts.berth_envelope")?,
+        field(
+            berth,
+            "required_vessel_dimensions",
+            "contracts.berth_envelope",
+        )?,
         &["length", "width", "declared_draft"],
         "contracts.berth_envelope.required_vessel_dimensions",
     )?;
@@ -624,19 +679,31 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         "contracts.route_energy",
     )?;
     let reserve_mwh = frozen_quantity(
-        field(energy, "protected_reserve", "contracts.battery_departure_energy")?,
+        field(
+            energy,
+            "protected_reserve",
+            "contracts.battery_departure_energy",
+        )?,
         "MWh",
         1.5,
         "contracts.protected_reserve",
     )?;
     let minimum_departure_energy_mwh = frozen_quantity(
-        field(energy, "minimum_departure_energy", "contracts.battery_departure_energy")?,
+        field(
+            energy,
+            "minimum_departure_energy",
+            "contracts.battery_departure_energy",
+        )?,
         "MWh",
         5.5,
         "contracts.minimum_departure_energy",
     )?;
     let baseline_stored_energy_mwh = frozen_quantity(
-        field(energy, "baseline_stored_energy", "contracts.battery_departure_energy")?,
+        field(
+            energy,
+            "baseline_stored_energy",
+            "contracts.battery_departure_energy",
+        )?,
         "MWh",
         6.0,
         "contracts.baseline_stored_energy",
@@ -650,7 +717,11 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         "available_departure_energy >= route_energy + protected_reserve",
     )?;
     expect_string_set(
-        field(energy, "excluded_semantics", "contracts.battery_departure_energy")?,
+        field(
+            energy,
+            "excluded_semantics",
+            "contracts.battery_departure_energy",
+        )?,
         &[
             "RealVesselPropulsionPower",
             "HydrodynamicallyDerivedEnergyDemand",
@@ -675,25 +746,39 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         "contracts.floating_site_essential_load",
     )?;
     let essential_load_mw = frozen_quantity(
-        field(site, "synthetic_essential_load", "contracts.floating_site_essential_load")?,
+        field(
+            site,
+            "synthetic_essential_load",
+            "contracts.floating_site_essential_load",
+        )?,
         "MW",
         1.2,
         "contracts.synthetic_essential_load",
     )?;
     let independent_backup_mw = frozen_quantity(
-        field(site, "synthetic_independent_backup", "contracts.floating_site_essential_load")?,
+        field(
+            site,
+            "synthetic_independent_backup",
+            "contracts.floating_site_essential_load",
+        )?,
         "MW",
         0.5,
         "contracts.synthetic_independent_backup",
     )?;
     frozen_quantity(
-        field(site, "expected_instantaneous_deficit", "contracts.floating_site_essential_load")?,
+        field(
+            site,
+            "expected_instantaneous_deficit",
+            "contracts.floating_site_essential_load",
+        )?,
         "MW",
         0.7,
         "contracts.expected_instantaneous_deficit",
     )?;
     if (essential_load_mw - independent_backup_mw).max(0.0) != 0.7 {
-        return Err("derived instantaneous site deficit does not equal the frozen value".to_owned());
+        return Err(
+            "derived instantaneous site deficit does not equal the frozen value".to_owned(),
+        );
     }
     expect_text(
         field(site, "arithmetic", "contracts.floating_site_essential_load")?,
@@ -701,7 +786,11 @@ fn validate_contracts(root: &JsonValue) -> Result<Contract, String> {
         "reported_deficit = max(0, essential_load - independent_backup)",
     )?;
     expect_string_set(
-        field(site, "excluded_semantics", "contracts.floating_site_essential_load")?,
+        field(
+            site,
+            "excluded_semantics",
+            "contracts.floating_site_essential_load",
+        )?,
         &[
             "EnergyDuration",
             "PowerSystemTransientStability",
@@ -753,17 +842,29 @@ fn validate_claim_ceiling(root: &JsonValue) -> Result<(), String> {
         "security_and_privacy",
     )?;
     expect_bool(
-        field(security, "uses_real_facility_layout", "security_and_privacy")?,
+        field(
+            security,
+            "uses_real_facility_layout",
+            "security_and_privacy",
+        )?,
         "security_and_privacy.uses_real_facility_layout",
         false,
     )?;
     expect_bool(
-        field(security, "contains_tactical_security_details", "security_and_privacy")?,
+        field(
+            security,
+            "contains_tactical_security_details",
+            "security_and_privacy",
+        )?,
         "security_and_privacy.contains_tactical_security_details",
         false,
     )?;
     expect_bool(
-        field(security, "contains_credentials_or_personal_data", "security_and_privacy")?,
+        field(
+            security,
+            "contains_credentials_or_personal_data",
+            "security_and_privacy",
+        )?,
         "security_and_privacy.contains_credentials_or_personal_data",
         false,
     )?;
@@ -806,12 +907,23 @@ fn fixture_map<'a>(root: &'a JsonValue) -> Result<BTreeMap<String, &'a JsonValue
     let mut observed_order = Vec::new();
     for (index, fixture) in values.iter().enumerate() {
         let path = format!("fixtures[{index}]");
-        exact_keys(fixture, &["case_id", "revision", "inputs", "expected"], &path)?;
-        let case_id = text(field(fixture, "case_id", &path)?, &format!("{path}.case_id"))?;
+        exact_keys(
+            fixture,
+            &["case_id", "revision", "inputs", "expected"],
+            &path,
+        )?;
+        let case_id = text(
+            field(fixture, "case_id", &path)?,
+            &format!("{path}.case_id"),
+        )?;
         if result.insert(case_id.to_owned(), fixture).is_some() {
             return Err(format!("{path}: duplicate case_id {case_id:?}"));
         }
-        expect_number(field(fixture, "revision", &path)?, &format!("{path}.revision"), 1.0)?;
+        expect_number(
+            field(fixture, "revision", &path)?,
+            &format!("{path}.revision"),
+            1.0,
+        )?;
         observed_order.push(case_id);
     }
     if observed_order.as_slice() != CASE_IDS {
@@ -823,7 +935,10 @@ fn fixture_map<'a>(root: &'a JsonValue) -> Result<BTreeMap<String, &'a JsonValue
 }
 
 fn expected_disposition<'a>(expected: &'a JsonValue, path: &str) -> Result<&'a str, String> {
-    text(field(expected, "disposition", path)?, &format!("{path}.disposition"))
+    text(
+        field(expected, "disposition", path)?,
+        &format!("{path}.disposition"),
+    )
 }
 
 fn verify_case(
@@ -847,12 +962,12 @@ fn verify_case(
             exact_keys(
                 expected,
                 &[
-                "disposition",
-                "berth_envelope",
-                "departure_energy",
-                "physical_qualification",
-                "regulatory_approval",
-            ],
+                    "disposition",
+                    "berth_envelope",
+                    "departure_energy",
+                    "physical_qualification",
+                    "regulatory_approval",
+                ],
                 &format!("{path}.expected"),
             )?;
             expect_text(
@@ -938,13 +1053,25 @@ fn verify_case(
                 "baseline.expected.regulatory_approval",
                 false,
             )?;
-            disposition = if fits && energy_ok { "PassDeclaredChecksOnly" } else { "Infeasible" };
+            disposition = if fits && energy_ok {
+                "PassDeclaredChecksOnly"
+            } else {
+                "Infeasible"
+            };
         }
         "vessel-exceeds-berth-length" => {
-            exact_keys(inputs, &["vessel_dimensions", "berth_entity"], &format!("{path}.inputs"))?;
+            exact_keys(
+                inputs,
+                &["vessel_dimensions", "berth_entity"],
+                &format!("{path}.inputs"),
+            )?;
             exact_keys(
                 expected,
-                &["disposition", "failed_constraint", "silent_fallback_allowed"],
+                &[
+                    "disposition",
+                    "failed_constraint",
+                    "silent_fallback_allowed",
+                ],
                 &format!("{path}.expected"),
             )?;
             expect_text(
@@ -1108,12 +1235,19 @@ fn verify_case(
         "stale-configuration-currentness" => {
             exact_keys(
                 inputs,
-                &["run_configuration_revision", "current_asset_configuration_revision"],
+                &[
+                    "run_configuration_revision",
+                    "current_asset_configuration_revision",
+                ],
                 &format!("{path}.inputs"),
             )?;
             exact_keys(
                 expected,
-                &["disposition", "reason", "prior_result_may_be_carried_forward"],
+                &[
+                    "disposition",
+                    "reason",
+                    "prior_result_may_be_carried_forward",
+                ],
                 &format!("{path}.expected"),
             )?;
             let run = text(
@@ -1259,18 +1393,25 @@ fn expect_quantity_value(
     if actual == expected {
         Ok(())
     } else {
-        Err(format!("{path}: expected {expected} {unit}, got {actual} {unit}"))
+        Err(format!(
+            "{path}: expected {expected} {unit}, got {actual} {unit}"
+        ))
     }
 }
 
 fn parse_strict(raw: &[u8]) -> Result<JsonValue, String> {
     if raw.len() > MAX_INPUT_BYTES {
-        return Err(format!("input exceeds the {}-byte safety bound", MAX_INPUT_BYTES));
+        return Err(format!(
+            "input exceeds the {}-byte safety bound",
+            MAX_INPUT_BYTES
+        ));
     }
     let mut deserializer = serde_json::Deserializer::from_slice(raw);
     let value = JsonValue::deserialize(&mut deserializer)
         .map_err(|error| format!("invalid JSON: {error}"))?;
-    deserializer.end().map_err(|error| format!("trailing JSON data: {error}"))?;
+    deserializer
+        .end()
+        .map_err(|error| format!("trailing JSON data: {error}"))?;
     Ok(value)
 }
 
@@ -1294,10 +1435,26 @@ fn validate_document(root: &JsonValue) -> Result<(String, String, Vec<CaseResult
         ],
         "root",
     )?;
-    expect_text(field(root, "schema_id", "root")?, "schema_id", EXPECTED_SCHEMA_ID)?;
-    expect_text(field(root, "schema_version", "root")?, "schema_version", EXPECTED_SCHEMA_VERSION)?;
-    expect_text(field(root, "scenario_id", "root")?, "scenario_id", EXPECTED_SCENARIO_ID)?;
-    expect_number(field(root, "scenario_revision", "root")?, "scenario_revision", 1.0)?;
+    expect_text(
+        field(root, "schema_id", "root")?,
+        "schema_id",
+        EXPECTED_SCHEMA_ID,
+    )?;
+    expect_text(
+        field(root, "schema_version", "root")?,
+        "schema_version",
+        EXPECTED_SCHEMA_VERSION,
+    )?;
+    expect_text(
+        field(root, "scenario_id", "root")?,
+        "scenario_id",
+        EXPECTED_SCENARIO_ID,
+    )?;
+    expect_number(
+        field(root, "scenario_revision", "root")?,
+        "scenario_revision",
+        1.0,
+    )?;
     validate_status(root)?;
     validate_provenance(root)?;
     validate_execution_contract(root)?;
@@ -1312,7 +1469,11 @@ fn validate_document(root: &JsonValue) -> Result<(String, String, Vec<CaseResult
             .ok_or_else(|| format!("missing frozen case {case_id:?}"))?;
         cases.push(verify_case(case_id, fixture, &entities, &contract)?);
     }
-    Ok((EXPECTED_SCHEMA_ID.to_owned(), EXPECTED_SCHEMA_VERSION.to_owned(), cases))
+    Ok((
+        EXPECTED_SCHEMA_ID.to_owned(),
+        EXPECTED_SCHEMA_VERSION.to_owned(),
+        cases,
+    ))
 }
 
 fn verify_bytes(
@@ -1323,7 +1484,10 @@ fn verify_bytes(
     let root = parse_strict(raw)?;
     let (schema_id, schema_version, cases) = validate_document(&root)?;
     let digest = Sha256::digest(raw);
-    let source_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    let source_sha256 = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
     let scenario_id = text(field(&root, "scenario_id", "root")?, "scenario_id")?.to_owned();
     Ok(VerificationReport {
         status: "VERIFIED_SYNTHETIC_CONTRACT_ONLY",
@@ -1348,7 +1512,9 @@ fn verify_bytes(
 
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
-    let path = args.next().unwrap_or_else(|| DEFAULT_SCENARIO_PATH.to_owned());
+    let path = args
+        .next()
+        .unwrap_or_else(|| DEFAULT_SCENARIO_PATH.to_owned());
     if args.next().is_some() {
         return Err("usage: maritime-fixture-verifier [scenario-json-path]".to_owned());
     }
@@ -1356,12 +1522,15 @@ fn run() -> Result<(), String> {
     let metadata = fs::metadata(file_path)
         .map_err(|error| format!("cannot stat {}: {error}", file_path.display()))?;
     if metadata.len() > MAX_INPUT_BYTES as u64 {
-        return Err(format!("input exceeds the {}-byte safety bound", MAX_INPUT_BYTES));
+        return Err(format!(
+            "input exceeds the {}-byte safety bound",
+            MAX_INPUT_BYTES
+        ));
     }
     let raw = fs::read(file_path)
         .map_err(|error| format!("cannot read {}: {error}", file_path.display()))?;
-    let source_commit = env::var("MARITIME_SOURCE_COMMIT")
-        .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
+    let source_commit =
+        env::var("MARITIME_SOURCE_COMMIT").unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
     let report = verify_bytes(&raw, &path, &source_commit)?;
     let output = serde_json::to_string(&report)
         .map_err(|error| format!("cannot serialize verification report: {error}"))?;
@@ -1388,7 +1557,10 @@ mod tests {
         let raw = String::from_utf8(fixture_bytes()).expect("fixture is UTF-8");
         let changed = mutator(raw);
         let result = verify_bytes(changed.as_bytes(), "mutated-fixture.json", "unit-test");
-        assert!(result.is_err(), "mutated fixture should be rejected: {name}");
+        assert!(
+            result.is_err(),
+            "mutated fixture should be rejected: {name}"
+        );
     }
 
     #[test]
@@ -1398,9 +1570,12 @@ mod tests {
             .expect("frozen fixture should verify");
         assert_eq!(report.fixtures_checked, 6);
         assert!(report.cases.iter().all(|case| case.expectation_matches));
-        assert!(report.cases.iter().all(|case| {
-            case.derived_disposition == case.expected_disposition
-        }));
+        assert!(
+            report
+                .cases
+                .iter()
+                .all(|case| { case.derived_disposition == case.expected_disposition })
+        );
         assert!(!report.execution_performed);
         assert_eq!(report.physical_validation, "None");
         assert_eq!(report.external_approval, "None");
@@ -1447,7 +1622,13 @@ mod tests {
     #[test]
     fn impossible_charging_efficiency_is_rejected() {
         expect_rejected(
-            |raw| raw.replacen("\"charging_efficiency\": 0.9", "\"charging_efficiency\": 1.5", 1),
+            |raw| {
+                raw.replacen(
+                    "\"charging_efficiency\": 0.9",
+                    "\"charging_efficiency\": 1.5",
+                    1,
+                )
+            },
             "efficiency outside [0, 1]",
         );
     }
@@ -1455,11 +1636,13 @@ mod tests {
     #[test]
     fn stale_configuration_cannot_claim_previous_result_current() {
         expect_rejected(
-            |raw| raw.replacen(
-                "\"prior_result_may_be_carried_forward\": false",
-                "\"prior_result_may_be_carried_forward\": true",
-                1,
-            ),
+            |raw| {
+                raw.replacen(
+                    "\"prior_result_may_be_carried_forward\": false",
+                    "\"prior_result_may_be_carried_forward\": true",
+                    1,
+                )
+            },
             "stale result improperly carried forward",
         );
     }
@@ -1467,11 +1650,13 @@ mod tests {
     #[test]
     fn unsupported_physics_cannot_claim_rigid_body_fallback() {
         expect_rejected(
-            |raw| raw.replacen(
-                "\"silent_rigid_body_approximation_allowed\": false",
-                "\"silent_rigid_body_approximation_allowed\": true",
-                1,
-            ),
+            |raw| {
+                raw.replacen(
+                    "\"silent_rigid_body_approximation_allowed\": false",
+                    "\"silent_rigid_body_approximation_allowed\": true",
+                    1,
+                )
+            },
             "unsupported physics fallback",
         );
     }
@@ -1482,7 +1667,10 @@ mod tests {
         let report = verify_bytes(&raw, "frozen-fixture.json", "0123456789abcdef")
             .expect("fixture should verify");
         let digest = Sha256::digest(&raw);
-        let expected = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+        let expected = digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
         assert_eq!(report.source_sha256, expected);
         assert_eq!(report.source_commit_binding, "0123456789abcdef");
     }
@@ -1516,11 +1704,13 @@ mod tests {
     #[test]
     fn non_finite_json_numbers_are_rejected() {
         expect_rejected(
-            |raw| raw.replacen(
-                "\"charging_efficiency\": 0.9",
-                "\"charging_efficiency\": NaN",
-                1,
-            ),
+            |raw| {
+                raw.replacen(
+                    "\"charging_efficiency\": 0.9",
+                    "\"charging_efficiency\": NaN",
+                    1,
+                )
+            },
             "non-finite numeric input",
         );
     }
