@@ -1127,5 +1127,16 @@
       ],
       "rule": "A POST_REPAIR_TEST_PASSED status can only be a candidate when the receipt, repair attempt, repaired asset revision, configuration digest and test identity are present; the test must PASS against the exact current asset revision and configuration. These are synthetic field semantics only; source signatures, test bytes and physical measurements are not authenticated."
     }
+  },
+  "artifact_integrity_reference": {
+    "contract_version": "0.1.0",
+    "purpose": "SHA-256 known-answer and mutation canary for the local verifier; distinct from evidence records below.",
+    "payload_encoding": "Exact UTF-8 bytes of the literal string, with LF newlines as shown and one trailing LF.",
+    "payload_utf8": "CRASH-BOOT synthetic evidence v1\nasset=water-pump-7\nrevision=8\nmeasurement=1.0\n",
+    "expected_sha256": "fa3d6f08cf4df7b3eb0447ccb8ba6a9117b81b5016a79dadb216685b578ce7d9",
+    "altered_payload_utf8": "CRASH-BOOT synthetic evidence v1\nasset=water-pump-7\nrevision=8\nmeasurement=1.1\n",
+    "mutation_rule": "Changing one measurement byte sequence must cause the recomputed digest to differ from the pinned expected digest.",
+    "configuration_payload_utf8": "CRASH-BOOT synthetic configuration v1\nasset=water-pump-7\nrevision=8\nscope=habitat-central-water-loop\n",
+    "expected_configuration_sha256": "ab3a14a2a4b110d2ae492acc01559b9defb4e5a008705132d9f158d3337ffe03"
   }
 }
