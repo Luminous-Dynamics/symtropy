@@ -143,10 +143,7 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
 
-        return match layout_candidate::validate_paths(
-            Path::new(&args[1]),
-            Path::new(&args[3]),
-        ) {
+        return match layout_candidate::validate_paths(Path::new(&args[1]), Path::new(&args[3])) {
             Ok(report) => {
                 match serde_json::to_string_pretty(&report) {
                     Ok(output) => println!("{output}"),

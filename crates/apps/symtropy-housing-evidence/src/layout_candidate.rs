@@ -383,8 +383,7 @@ mod tests {
     use serde_json::json;
 
     fn fixtures() -> (Value, Value, Vec<u8>) {
-        let root =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../docs/built-environment");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../docs/built-environment");
         let layout: Value = serde_json::from_slice(
             &fs::read(root.join("fixtures/example-home-layout-candidate.json"))
                 .expect("layout fixture exists"),
