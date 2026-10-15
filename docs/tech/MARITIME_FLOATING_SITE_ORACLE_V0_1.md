@@ -1,6 +1,6 @@
 # Maritime / Floating-Site Independent Oracle Contract v0.1
 
-**Status:** design contract only; no scenario executor or engineering-admission path is implemented by this document.  
+**Status:** independent-verifier contract; a standalone Rust implementation and hostile/reference tests are now in the PR. No scenario executor or engineering-admission path is implemented by this document.  
 **Parent:** [MARITIME-SIM-001 #1612](https://github.com/Luminous-Dynamics/symtropy/issues/1612)  
 **Scenario data:** [MARITIME_FLOATING_SITE_SCENARIO_V0_1.json](./MARITIME_FLOATING_SITE_SCENARIO_V0_1.json)  
 **Scenario boundary:** [MARITIME_FLOATING_SITE_SCENARIO_V0_1.md](./MARITIME_FLOATING_SITE_SCENARIO_V0_1.md)
@@ -16,6 +16,14 @@ Specify how a future verifier should independently check the six frozen syntheti
 The fixture's `expected` fields are assertions to verify, not a source of truth for the oracle. The runner must not be allowed to declare its own result correct merely because it repeats the fixture's expected disposition.
 
 This document does **not** admit an execution profile, establish engine capability, validate physical models, or authorize a physical decision. Keep the scenario specification-only until the existing ENG-SYNTH / ENG-SYNTH-CRED prerequisites have the required exact-head qualification and the runtime capability census has been inspected.
+
+## Implemented verifier
+
+The companion implementation is `crates/tools/maritime-fixture-verifier`. It is deliberately tied to schema `0.1.0` / scenario revision 1 and freezes the current six-case corpus. It parses JSON through a duplicate-key-rejecting visitor; checks exact field sets, units, frozen assumptions and case ordering; independently derives each disposition; compares expected values; and reports the SHA-256 digest of the exact input bytes.
+
+Run `cargo test --locked -p maritime-fixture-verifier` and `cargo run --locked -p maritime-fixture-verifier -- docs/tech/MARITIME_FLOATING_SITE_SCENARIO_V0_1.json`. The dedicated `.github/workflows/maritime-fixture-verifier.yml` runs formatting, hostile/reference tests, the frozen-artifact verification, Clippy and clean postflight on the exact PR head.
+
+This implementation does not call the production physics engine and cannot issue model-credibility, physical-safety, certification, external-approval or actuation claims. A local run without `MARITIME_SOURCE_COMMIT` reports `UNBOUND_LOCAL_SOURCE`; it is not a repository evidence receipt. The tool's CI qualification remains whatever the exact-head workflow actually reports—pending or queued is not a pass.
 
 ## Independence requirements
 
