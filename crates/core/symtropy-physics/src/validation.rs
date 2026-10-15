@@ -319,7 +319,9 @@ impl DifferentialMetrics3d {
     /// coverage. Partial metrics are useful diagnostically but do not prove that
     /// the entire trace met its tolerances.
     pub fn has_complete_finite_coverage(&self) -> bool {
-        self.finite_comparison_pairs == self.compared_bodies
+        self.compared_bodies > 0
+            && self.finite_comparison_pairs > 0
+            && self.finite_comparison_pairs == self.compared_bodies
             && self.left_non_finite_observations == 0
             && self.right_non_finite_observations == 0
     }
@@ -336,6 +338,9 @@ pub enum TraceComparisonError {
     ScenarioMismatch,
     SampleCountMismatch,
     EmptyTrace,
+    EmptyBodySample {
+        step: u64,
+    },
     InvalidSampleSequence {
         backend: String,
         sample_index: usize,
@@ -378,6 +383,9 @@ impl fmt::Display for TraceComparisonError {
             Self::ScenarioMismatch => write!(f, "trace scenario_id values differ"),
             Self::SampleCountMismatch => write!(f, "trace sample counts differ"),
             Self::EmptyTrace => write!(f, "trace must contain at least one sample"),
+            Self::EmptyBodySample { step } => {
+                write!(f, "trace sample at step {step} has no body observations")
+            }
             Self::InvalidSampleSequence {
                 backend,
                 sample_index,
@@ -459,6 +467,11 @@ pub fn compare_traces_3d(
     let mut finite_pairs = 0_u64;
 
     for (left_sample, right_sample) in left.samples.iter().zip(&right.samples) {
+        if left_sample.bodies.is_empty() || right_sample.bodies.is_empty() {
+            return Err(TraceComparisonError::EmptyBodySample {
+                step: left_sample.step,
+            });
+        }
         if left_sample.step != right_sample.step {
             return Err(TraceComparisonError::SampleStepMismatch {
                 left: left_sample.step,
@@ -914,6 +927,18 @@ mod tests {
         assert_eq!(metrics.max_position_error_m, Some(0.0));
         assert_eq!(metrics.max_linear_velocity_error_mps, Some(0.0));
         assert_eq!(metrics.sleeping_mismatches, 0);
+    }
+
+    #[test]
+    fn trace_comparison_rejects_samples_without_body_observations() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies.clear();
+        let right = left.clone();
+
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::EmptyBodySample { step: 0 })
+        );
     }
 
     #[test]
