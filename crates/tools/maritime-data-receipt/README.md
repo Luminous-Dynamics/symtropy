@@ -105,3 +105,20 @@ The public-dataset `terms_sha256` is a declared digest: v0.1 checks its syntax b
 The output binds the receipt bytes and artifact bytes to SHA-256 digests, records the local source-commit binding when supplied, and identifies the fixture/source class. It always states that the result is provenance/byte-integrity only and **not admission**. It does not perform physics, navigation calculations, under-keel clearance, engineering review, safety qualification, or operational control. Unknown or stale quality data must not be represented as verified by this receipt check.
 
 The included payload is explicitly synthetic. It is not a NOAA measurement.
+
+
+## Source-bound scenario evidence manifest
+
+The scenario evidence graph is documented in `docs/tech/MARITIME_EVIDENCE_GATED_RESILIENCE_V0_1.md`, with its contract at `docs/tech/MARITIME_SCENARIO_MANIFEST_V0_1.schema.json`. A manifest links source evidence to exact receipts/artifacts, pinned model and transformation revisions, explicit assumptions, and a claim target. The Rust validator rejects unknown or duplicate nodes, dangling/self/duplicate dependencies, cycles, unused nodes, mismatched claim types, policy escalation and authority escalation.
+
+Run it from the workspace root:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \
+  --validate-scenario-manifest \
+  crates/tools/maritime-data-receipt/tests/fixtures/synthetic-scenario-manifest.json
+```
+
+The validator verifies that each source receipt's exact bytes match its declared SHA-256, that its artifact bytes match the receipt, and that the manifest's source kind, artifact path and data-time coverage match the receipt. Referenced files must resolve inside the workspace, including after symlink resolution. The report is always `SCENARIO_MANIFEST_VALID_AND_BYTES_BOUND_NOT_ADMITTED`: source authenticity, licence interpretation, row semantics, freshness, transformation correctness, assumption testing and scenario execution remain outside this command. A claim target is not an executed output, and byte-valid input is not proof that the source is true or suitable for a decision.
+
+The frozen corpus `crates/tools/maritime-data-receipt/tests/fixtures/scenario-manifest-corpus-v0.1.json` contains 24 synthetic positive/negative contract cases. The sample manifest binds the existing synthetic PLSCI receipt/payload only; it is not a real source capture or a real maritime resilience result. Null source data-time bounds remain unknown, not automatically fresh.
