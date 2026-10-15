@@ -991,7 +991,141 @@
         ],
         "expected_status": "UNKNOWN_CONFLICTED",
         "order_invariant": true
+      },
+      {
+        "id": "invalid_configuration_digest",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "digest-unverified",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_INVALID_DIGEST"
+      },
+      {
+        "id": "qualified_post_repair_test_current_revision",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "POST_REPAIR_TEST_PASSED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2,
+            "repair_receipt_id": "synthetic-repair-receipt-04",
+            "repair_attempt_id": "repair-attempt-04",
+            "repaired_asset_revision": 8,
+            "repair_configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "post_repair_test_id": "post-repair-test-04",
+            "post_repair_test_status": "PASS",
+            "post_repair_tested_asset_revision": 8
+          }
+        ],
+        "expected_status": "VERIFIED_AVAILABLE_CANDIDATE"
+      },
+      {
+        "id": "post_repair_status_without_receipt",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "POST_REPAIR_TEST_PASSED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REQUALIFICATION_REQUIRED"
+      },
+      {
+        "id": "repair_receipt_bound_to_wrong_revision",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "POST_REPAIR_TEST_PASSED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2,
+            "repair_receipt_id": "synthetic-repair-receipt-04",
+            "repair_attempt_id": "repair-attempt-04",
+            "repaired_asset_revision": 7,
+            "repair_configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "post_repair_test_id": "post-repair-test-04",
+            "post_repair_test_status": "PASS",
+            "post_repair_tested_asset_revision": 7
+          }
+        ],
+        "expected_status": "REJECT_SCOPE_MISMATCH"
       }
-    ]
+    ],
+    "repair_receipt_semantics": {
+      "required_for_post_repair_candidate": [
+        "repair_receipt_id",
+        "repair_attempt_id",
+        "repaired_asset_revision",
+        "repair_configuration_digest",
+        "post_repair_test_id",
+        "post_repair_test_status",
+        "post_repair_tested_asset_revision"
+      ],
+      "rule": "A POST_REPAIR_TEST_PASSED status can only be a candidate when the receipt, repair attempt, repaired asset revision, configuration digest and test identity are present; the test must PASS against the exact current asset revision and configuration. These are synthetic field semantics only; source signatures, test bytes and physical measurements are not authenticated."
+    }
   }
 }
