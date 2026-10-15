@@ -35,10 +35,10 @@ fn make_grid_mesh(requested_triangles: usize) -> TriangleMesh {
     TriangleMesh::new(triangles)
 }
 
-fn query_for(index: usize, side: usize) -> Aabb<3> {
+fn query_for(index: usize, cells: usize, side: usize) -> Aabb<3> {
     // A fixed modular sequence makes the workload reproducible and spreads
-    // queries throughout the surface without needing a random-number crate.
-    let cell = index.wrapping_mul(7_919) % (side * side);
+    // queries over populated cells only, including for non-square meshes.
+    let cell = index.wrapping_mul(7_919) % cells;
     let x = (cell % side) as f64 + 0.5;
     let z = (cell / side) as f64 + 0.5;
     Aabb {
@@ -60,7 +60,7 @@ fn run_case(requested_triangles: usize) {
     let mut checksum = 0usize;
 
     for i in 0..query_count {
-        let query = query_for(i, side);
+        let query = query_for(i, cells, side);
         let candidates = black_box(mesh.query_overlap(black_box(&query)));
         total_candidates += candidates.len();
         checksum = checksum.wrapping_add(candidates.iter().copied().sum::<usize>());
