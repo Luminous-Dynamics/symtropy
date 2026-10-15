@@ -415,10 +415,17 @@ struct CrosswalkReport {
     status: &'static str,
     crosswalk_id: String,
     crosswalk_sha256: String,
+    source_commit_binding: String,
+    fixture_kind: String,
     source_series_or_table_id: String,
     source_revision: String,
+    source_snapshot_sha256: String,
     locode_release: String,
+    locode_registry_sha256: String,
     record_count: usize,
+    resolved_count: usize,
+    ambiguous_count: usize,
+    unresolved_count: usize,
     structural_checks_passed: bool,
     evidence_admission: &'static str,
     source_authenticity_established: bool,
@@ -438,14 +445,37 @@ pub(crate) fn run_cli(path: &str) -> Result<(), String> {
     let count = validate_crosswalk(&value).map_err(str::to_owned)?;
     let source = member(&value, "source_snapshot").map_err(str::to_owned)?;
     let registry = member(&value, "locode_registry").map_err(str::to_owned)?;
+    let mut resolved_count = 0usize;
+    let mut ambiguous_count = 0usize;
+    let mut unresolved_count = 0usize;
+    let records = member(&value, "records").map_err(str::to_owned)?
+        .as_array()
+        .ok_or_else(|| "crosswalk records must be an array".to_owned())?;
+    for record in records {
+        match text(record, "mapping_state").map_err(str::to_owned)? {
+            "resolved" => resolved_count += 1,
+            "ambiguous" => ambiguous_count += 1,
+            "unresolved" => unresolved_count += 1,
+            _ => return Err("unexpected validated mapping state".to_owned()),
+        }
+    }
+    let source_commit = std::env::var("MARITIME_SOURCE_COMMIT")
+        .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
     let report = CrosswalkReport {
         status: VALID,
         crosswalk_id: text(&value, "crosswalk_id").map_err(str::to_owned)?.to_owned(),
         crosswalk_sha256: super::sha256_bytes(&bytes),
+        source_commit_binding: source_commit,
+        fixture_kind: text(&value, "fixture_kind").map_err(str::to_owned)?.to_owned(),
         source_series_or_table_id: text(source, "series_or_table_id").map_err(str::to_owned)?.to_owned(),
         source_revision: text(source, "source_revision").map_err(str::to_owned)?.to_owned(),
+        source_snapshot_sha256: text(source, "artifact_sha256").map_err(str::to_owned)?.to_owned(),
         locode_release: text(registry, "release").map_err(str::to_owned)?.to_owned(),
+        locode_registry_sha256: text(registry, "artifact_sha256").map_err(str::to_owned)?.to_owned(),
         record_count: count,
+        resolved_count,
+        ambiguous_count,
+        unresolved_count,
         structural_checks_passed: true,
         evidence_admission: "NotAdmitted",
         source_authenticity_established: false,
