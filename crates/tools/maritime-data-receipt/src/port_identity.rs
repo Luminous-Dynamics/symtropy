@@ -534,7 +534,6 @@ fn build_crosswalk_report(
     })
 }
 
-
 pub(crate) fn run_cli(path: &str) -> Result<(), String> {
     run_cli_inner(path, None)
 }
