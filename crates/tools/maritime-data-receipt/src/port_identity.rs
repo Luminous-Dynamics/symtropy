@@ -527,7 +527,7 @@ mod tests {
         assert_eq!(corpus["corpus_version"], "0.1.0");
         let bases = corpus["base_crosswalks"].as_object().expect("base crosswalk map");
         let cases = corpus["cases"].as_array().expect("crosswalk case array");
-        assert_eq!(cases.len(), 23, "frozen port crosswalk count is a contract");
+        assert_eq!(cases.len(), 25, "frozen port crosswalk count is a contract");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
             let base = case["base"].as_str().expect("base crosswalk");
