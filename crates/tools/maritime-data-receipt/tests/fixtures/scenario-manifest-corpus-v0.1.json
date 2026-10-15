@@ -31,8 +31,8 @@
           "receipt_sha256": "90f22c60776281f6eb62a6b8d9c8fb9711324c8b7038f7db8a9aa3329aa9fee1",
           "artifact_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-payload.json",
           "artifact_sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14",
-          "valid_from_utc": null,
-          "valid_until_utc": null
+          "data_time_start_utc": null,
+          "data_time_end_utc": null
         },
         {
           "node_id": "transform-shock",
@@ -315,12 +315,12 @@
       "expected_code": "INVALID_VALIDITY_INTERVAL",
       "mutations": [
         {
-          "path": "nodes.0.valid_from_utc",
+          "path": "nodes.0.data_time_start_utc",
           "op": "set",
           "value": "2026-04-01T00:00:00Z"
         },
         {
-          "path": "nodes.0.valid_until_utc",
+          "path": "nodes.0.data_time_end_utc",
           "op": "set",
           "value": "2026-01-01T00:00:00Z"
         }
