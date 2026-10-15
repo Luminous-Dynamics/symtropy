@@ -164,6 +164,7 @@ def evaluate_service_evidence(
         except (ValueError, RecursionError):
             # Malformed JSON, rejected numeric tokens/limits, and parser-depth exhaustion
             # are invalid evidence, not uncaught verifier failures.
+            return "REJECT_ARTIFACT_PAYLOAD_INVALID"
         if not isinstance(payload_claims, dict):
             return "REJECT_ARTIFACT_PAYLOAD_INVALID"
         try:
