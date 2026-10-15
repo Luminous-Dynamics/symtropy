@@ -786,7 +786,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn qualified_world() -> QualifiedWorldManifestV2 {
+    pub(crate) fn qualified_world() -> QualifiedWorldManifestV2 {
         let world = sample_world();
         QualifiedWorldManifestV2 {
             schema_version: QUALIFIED_WORLD_SCHEMA_VERSION_V2,
