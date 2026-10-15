@@ -170,12 +170,25 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         return Err("rehearsal.assessment.time_policy_id is not the pinned v0.1 policy".to_owned());
     }
     let forecast = super::field(assessment, "forecast_input", "rehearsal.assessment")?;
-    super::exact_keys(forecast, &[
-        "fixture_reference", "source_artifact_sha256", "receipt_sha256", "binding_state",
-        "issued_at_utc", "model_initialization_time_utc", "valid_from_utc", "valid_until_utc",
-        "max_issue_age_seconds", "max_forecast_lead_seconds",
-        "expected_temporal_arithmetic_for_test_design_only", "execution_status", "interpretation"
-    ], "rehearsal.assessment.forecast_input")?;
+    super::exact_keys(
+        forecast,
+        &[
+            "fixture_reference",
+            "source_artifact_sha256",
+            "receipt_sha256",
+            "binding_state",
+            "issued_at_utc",
+            "model_initialization_time_utc",
+            "valid_from_utc",
+            "valid_until_utc",
+            "max_issue_age_seconds",
+            "max_forecast_lead_seconds",
+            "expected_temporal_arithmetic_for_test_design_only",
+            "execution_status",
+            "interpretation",
+        ],
+        "rehearsal.assessment.forecast_input",
+    )?;
     for key in ["source_artifact_sha256", "receipt_sha256"] {
         if !matches!(super::field(forecast, key, "forecast_input")?, super::JsonValue::Null) {
             return Err(format!(
@@ -282,7 +295,8 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
     )?;
     if observed_issue_age != declared_issue_age || observed_lead != declared_lead {
         return Err(format!(
-            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} declared={declared_issue_age}; lead observed={observed_lead} declared={declared_lead}"
+            "forecast temporal arithmetic mismatch: issue_age observed={observed_issue_age} declared={declared_issue_age}; \
+             lead observed={observed_lead} declared={declared_lead}"
         ));
     }
     let max_issue_age = super::integer(
@@ -354,18 +368,27 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         "rehearsal.hard_constraints",
     )?;
     const IDS: [&str; 6] = [
-        "water_level_envelope_supported_and_satisfied", "energy_reserve_minimum_satisfied",
-        "terminal_window_open", "forecast_temporal_applicability",
-        "designated_waiting_resource_declared_available", "alternate_capacity_confirmed"
+        "water_level_envelope_supported_and_satisfied",
+        "energy_reserve_minimum_satisfied",
+        "terminal_window_open",
+        "forecast_temporal_applicability",
+        "designated_waiting_resource_declared_available",
+        "alternate_capacity_confirmed",
     ];
     if constraints.len() != IDS.len() {
-        return Err(format!("expected {} v0.1 constraints, found {}", IDS.len(), constraints.len()));
+        return Err(format!(
+            "expected {} v0.1 constraints, found {}",
+            IDS.len(),
+            constraints.len()
+        ));
     }
     for (index, (constraint, id)) in constraints.iter().zip(IDS).enumerate() {
         let path = format!("rehearsal.hard_constraints[{index}]");
         let actual_id = text_field(constraint, "constraint_id", &path)?;
         if actual_id != id {
-            return Err(format!("{path}.constraint_id: unexpected or reordered ID {actual_id:?}"));
+            return Err(format!(
+                "{path}.constraint_id: unexpected or reordered ID {actual_id:?}"
+            ));
         }
         let status_key = match id {
             "water_level_envelope_supported_and_satisfied"
