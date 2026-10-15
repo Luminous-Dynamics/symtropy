@@ -822,74 +822,98 @@ def main() -> None:
         evaluate_service_evidence_case(bound_fresh, target) == "VERIFIED_AVAILABLE_CANDIDATE",
         "content-bound known-answer evidence record failed",
     )
-    noncanonical_record = dict(bound_fresh["records"][0])
-    noncanonical_payload_utf8 = str(noncanonical_record["artifact_payload_utf8"]).replace("{", "{ ", 1)
-    noncanonical_record["artifact_payload_utf8"] = noncanonical_payload_utf8
-    noncanonical_record["artifact_digest"] = (
-        "sha256:" + hashlib.sha256(noncanonical_payload_utf8.encode("utf-8")).hexdigest()
-    )
-    noncanonical_case = {"records": [noncanonical_record]}
+    expected_canonicalization_controls = {
+        "rehash_whitespace": (
+            "insert_space_after_open_brace",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        ),
+        "rehash_duplicate_member": (
+            "duplicate_asset_id_member",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        ),
+        "rehash_nonfinite_number": (
+            "replace_measurement_with_nan",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+        "rehash_negative_zero": (
+            "replace_measurement_with_negative_zero",
+            True,
+            "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
+        ),
+        "invalid_utf8_string": (
+            "set_payload_to_lone_surrogate",
+            False,
+            "REJECT_ARTIFACT_PAYLOAD_INVALID",
+        ),
+    }
+    canonicalization_controls = artifact_binding.get("canonicalization_negative_controls")
     require(
-        evaluate_service_evidence_case(noncanonical_case, target)
-        == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
-        "canonical claim bytes must be enforced even when the altered payload is correctly rehashed",
+        isinstance(canonicalization_controls, list)
+        and len(canonicalization_controls) == len(expected_canonicalization_controls),
+        "canonicalization negative-control corpus cardinality changed",
     )
-
-    duplicate_key_record = dict(bound_fresh["records"][0])
-    duplicate_key_payload = str(duplicate_key_record["artifact_payload_utf8"]).replace(
-        '"asset_id":"water-pump-7",',
-        '"asset_id":"water-pump-7","asset_id":"water-pump-7",',
-        1,
-    )
-    duplicate_key_record["artifact_payload_utf8"] = duplicate_key_payload
-    duplicate_key_record["artifact_digest"] = (
-        "sha256:" + hashlib.sha256(duplicate_key_payload.encode("utf-8")).hexdigest()
-    )
+    controls_by_id: dict[str, dict[str, object]] = {}
+    for control in canonicalization_controls:
+        assert isinstance(control, dict)
+        control_id = str(control["id"])
+        require(control_id not in controls_by_id, f"duplicate canonicalization control: {control_id}")
+        controls_by_id[control_id] = control
     require(
-        evaluate_service_evidence_case({"records": [duplicate_key_record]}, target)
-        == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
-        "duplicate JSON property names must be rejected even when the payload is correctly re-hashed",
+        set(controls_by_id) == set(expected_canonicalization_controls),
+        "canonicalization negative-control IDs changed without an explicit contract revision",
     )
-
-    invalid_unicode_record = dict(bound_fresh["records"][0])
-    invalid_unicode_record["artifact_payload_utf8"] = "\ud800"
-    require(
-        evaluate_service_evidence_case({"records": [invalid_unicode_record]}, target)
-        == "REJECT_ARTIFACT_PAYLOAD_INVALID",
-        "non-UTF-8-encodable payload strings must be rejected without crashing the oracle",
-    )
-
-    nonfinite_record = dict(bound_fresh["records"][0])
-    nonfinite_payload = str(nonfinite_record["artifact_payload_utf8"]).replace(
-        '"measured_value":1.0,',
-        '"measured_value":NaN,',
-        1,
-    )
-    nonfinite_record["artifact_payload_utf8"] = nonfinite_payload
-    nonfinite_record["artifact_digest"] = (
-        "sha256:" + hashlib.sha256(nonfinite_payload.encode("utf-8")).hexdigest()
-    )
-    require(
-        evaluate_service_evidence_case({"records": [nonfinite_record]}, target)
-        == "REJECT_ARTIFACT_PAYLOAD_INVALID",
-        "non-finite JSON number tokens must be rejected even when their payload digest matches",
-    )
-
-    negative_zero_record = dict(bound_fresh["records"][0])
-    negative_zero_payload = str(negative_zero_record["artifact_payload_utf8"]).replace(
-        '"measured_value":1.0,',
-        '"measured_value":-0,',
-        1,
-    )
-    negative_zero_record["artifact_payload_utf8"] = negative_zero_payload
-    negative_zero_record["artifact_digest"] = (
-        "sha256:" + hashlib.sha256(negative_zero_payload.encode("utf-8")).hexdigest()
-    )
-    require(
-        evaluate_service_evidence_case({"records": [negative_zero_record]}, target)
-        == "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL",
-        "negative-zero spelling must not silently normalize under the local canonical byte rule",
-    )
+    for control_id, (mutation, recompute_digest, expected_status) in expected_canonicalization_controls.items():
+        control = controls_by_id[control_id]
+        require(
+            control.get("mutation") == mutation
+            and control.get("recompute_artifact_digest") is recompute_digest
+            and control.get("expected_status") == expected_status,
+            f"{control_id}: mutation, digest policy or expected verdict changed without review",
+        )
+        control_record = dict(bound_fresh["records"][0])
+        if mutation == "insert_space_after_open_brace":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace("{", "{ ", 1)
+        elif mutation == "duplicate_asset_id_member":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"asset_id":"water-pump-7",',
+                '"asset_id":"water-pump-7","asset_id":"water-pump-7",',
+                1,
+            )
+        elif mutation == "replace_measurement_with_nan":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"measured_value":1.0,',
+                '"measured_value":NaN,',
+                1,
+            )
+        elif mutation == "replace_measurement_with_negative_zero":
+            mutated_payload = str(control_record["artifact_payload_utf8"]).replace(
+                '"measured_value":1.0,',
+                '"measured_value":-0,',
+                1,
+            )
+        elif mutation == "set_payload_to_lone_surrogate":
+            mutated_payload = "\ud800"
+        else:
+            require(False, f"{control_id}: unknown canonicalization mutation")
+            continue
+        if mutation != "set_payload_to_lone_surrogate":
+            require(
+                mutated_payload != control_record["artifact_payload_utf8"],
+                f"{control_id}: mutation did not change the source payload",
+            )
+        control_record["artifact_payload_utf8"] = mutated_payload
+        if recompute_digest:
+            control_record["artifact_digest"] = (
+                "sha256:" + hashlib.sha256(mutated_payload.encode("utf-8")).hexdigest()
+            )
+        observed_status = evaluate_service_evidence_case({"records": [control_record]}, target)
+        require(
+            observed_status == expected_status,
+            f"{control_id}: expected {expected_status}, got {observed_status}",
+        )
 
     mutated_claim = evidence_by_id["measurement_mutated_without_rehashed_artifact"]
     require(
