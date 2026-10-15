@@ -1330,13 +1330,14 @@ mod tests {
                 gap.case_id.as_str(),
                 gap.plan_id.as_str(),
                 gap.blocker_code.as_str(),
+                gap.blocker_reason.as_str(),
                 gap.requirement_id.as_str(),
             ))
             .collect();
         let expected_gaps = expected_gaps
             .into_iter()
-            .map(|(case_id, plan_id, blocker, (blocker_code, requirement_id))| {
-                (case_id, plan_id, blocker_code, requirement_id)
+            .map(|(case_id, plan_id, blocker_reason, (blocker_code, requirement_id))| {
+                (case_id, plan_id, blocker_code, blocker_reason, requirement_id)
             })
             .collect::<Vec<_>>();
         assert_eq!(actual_gaps, expected_gaps);
