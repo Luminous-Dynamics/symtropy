@@ -312,7 +312,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     if !safe_relative_path(terms_snapshot_path) {
         return Err("UNSAFE_TERMS_SNAPSHOT_PATH");
     }
-    let terms_snapshot_byte_length = member(terms, "snapshot_byte_length")?
+    let _terms_snapshot_byte_length = member(terms, "snapshot_byte_length")?
         .as_u64()
         .filter(|length| *length > 0)
         .ok_or("INVALID_TERMS_SNAPSHOT_LENGTH")?;
@@ -459,6 +459,7 @@ struct ProfileReport {
     license_name: Option<String>,
     terms_snapshot_sha256: String,
     terms_snapshot_byte_length: u64,
+    terms_snapshot_path_checked: String,
     terms_snapshot_bytes_verified: bool,
     receipt_id: String,
     receipt_sha256: String,
@@ -586,6 +587,7 @@ pub(crate) fn run_cli(
             .map(str::to_owned),
         terms_snapshot_sha256,
         terms_snapshot_byte_length,
+        terms_snapshot_path_checked: terms_snapshot_path.display().to_string(),
         terms_snapshot_bytes_verified: true,
         receipt_id: receipt_report.receipt_id,
         receipt_sha256: receipt_report.receipt_sha256,
@@ -601,7 +603,7 @@ pub(crate) fn run_cli(
         navigation_authorized: false,
         operational_authority: false,
         claim_ceiling: vec![
-            "Pinned PLSCI metadata semantics and exact source-receipt/artifact byte binding only.",
+            "Pinned PLSCI metadata semantics and exact profile, terms-snapshot, receipt, and artifact byte bindings only.",
             "This metadata guard does not parse the export or validate individual index values, coverage, port identity, or publisher authenticity.",
             "Missing, suppressed, or estimated values must remain distinct; no silent zero-fill, forward-fill, or interpolation is permitted.",
             "No live vessel position, individual port call, available berth, route safety, navigation or operational authority.",
