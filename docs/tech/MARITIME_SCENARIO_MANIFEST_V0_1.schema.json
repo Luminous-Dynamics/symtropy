@@ -73,7 +73,8 @@
       "required": [
         "model_id",
         "revision",
-        "config_sha256"
+        "config_sha256",
+        "config_relative_path"
       ],
       "properties": {
         "model_id": {
@@ -87,6 +88,11 @@
         "config_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "config_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
         }
       }
     },
@@ -352,7 +358,8 @@
         "parents",
         "algorithm_id",
         "algorithm_revision",
-        "config_sha256"
+        "config_sha256",
+        "config_relative_path"
       ],
       "properties": {
         "node_id": {
@@ -383,6 +390,11 @@
         "config_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "config_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
         }
       }
     },
