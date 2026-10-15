@@ -3,22 +3,180 @@
   "corpus_version": "0.1.0",
   "claim_ceiling": "Synthetic temporal-policy tests only; no real forecast, physical truth, navigation, berth or execution authority.",
   "cases": [
-    {"id":"baseline-within-policy","expected":"TEMPORALLY_APPLICABLE_NOT_ADMITTED","changes":[]},
-    {"id":"issue-age-exactly-at-policy-boundary","expected":"TEMPORALLY_APPLICABLE_NOT_ADMITTED","changes":[{"path":"forecast.assessment_time_utc","value":"2026-10-15T02:15:00Z"}]},
-    {"id":"forecast-lead-exactly-at-policy-boundary","expected":"TEMPORALLY_APPLICABLE_NOT_ADMITTED","changes":[{"path":"forecast.target_time_utc","value":"2026-10-15T04:00:00Z"}]},
-    {"id":"recent-download-old-issued-run","expected":"INDETERMINATE_NOT_ADMITTED","changes":[{"path":"forecast.assessment_time_utc","value":"2026-10-15T03:00:00Z"}]},
-    {"id":"run-not-issued-at-decision-time","expected":"INDETERMINATE_NOT_ADMITTED","changes":[{"path":"forecast.assessment_time_utc","value":"2026-10-15T00:10:00Z"}]},
-    {"id":"initialization-after-issue","expected":"INVALID","changes":[{"path":"forecast.model_initialization_time_utc","value":"2026-10-15T00:30:00Z"}]},
-    {"id":"target-before-decision","expected":"INDETERMINATE_NOT_ADMITTED","changes":[{"path":"forecast.target_time_utc","value":"2026-10-15T01:30:00Z"}]},
-    {"id":"target-after-valid-window","expected":"INDETERMINATE_NOT_ADMITTED","changes":[{"path":"forecast.target_time_utc","value":"2026-10-15T07:00:00Z"}]},
-    {"id":"forecast-lead-over-policy","expected":"INDETERMINATE_NOT_ADMITTED","changes":[{"path":"forecast.max_forecast_lead_seconds","value":7200}]},
-    {"id":"unknown-quality","expected":"INDETERMINATE_NOT_ADMITTED","changes":[{"path":"quality.status","value":"unknown"}]},
-    {"id":"mutable-revision","expected":"INVALID","changes":[{"path":"forecast.dataset_revision","value":"latest"}]},
-    {"id":"receipt-digest-drift","expected":"INVALID","changes":[{"path":"receipt_binding.receipt_sha256","value":"0000000000000000000000000000000000000000000000000000000000000000"}]},
-    {"id":"product-dataset-identity-confusion","expected":"INVALID","changes":[{"path":"forecast.product_kind","value":"GLOBAL_ANALYSISFORECAST_PHY_001_024"}]},
-    {"id":"authority-escalation","expected":"INVALID","changes":[{"path":"intended_use.navigation_authorized","value":true}]},
-    {"id":"noncanonical-fractional-utc","expected":"INVALID","changes":[{"path":"forecast.issued_at_utc","value":"2026-10-15T00:15:00.000Z"}]},
-    {"id":"receipt-coverage-mismatch","expected":"INVALID","changes":[{"path":"forecast.valid_until_utc","value":"2026-10-15T05:00:00Z"}]},
-    {"id":"zero-policy-bound","expected":"INVALID","changes":[{"path":"forecast.max_issue_age_seconds","value":0}]}
+    {
+      "id": "baseline-within-policy",
+      "expected": "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
+      "changes": []
+    },
+    {
+      "id": "issue-age-exactly-at-policy-boundary",
+      "expected": "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.assessment_time_utc",
+          "value": "2026-10-15T02:15:00Z"
+        }
+      ]
+    },
+    {
+      "id": "forecast-lead-exactly-at-policy-boundary",
+      "expected": "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.target_time_utc",
+          "value": "2026-10-15T04:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "issued-run-exceeds-max-age",
+      "expected": "INDETERMINATE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.assessment_time_utc",
+          "value": "2026-10-15T03:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "run-not-issued-at-decision-time",
+      "expected": "INDETERMINATE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.assessment_time_utc",
+          "value": "2026-10-15T00:10:00Z"
+        }
+      ]
+    },
+    {
+      "id": "initialization-after-issue",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.model_initialization_time_utc",
+          "value": "2026-10-15T00:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "target-before-decision",
+      "expected": "INDETERMINATE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.target_time_utc",
+          "value": "2026-10-15T01:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "target-after-valid-window",
+      "expected": "INDETERMINATE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.target_time_utc",
+          "value": "2026-10-15T07:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "forecast-lead-over-policy",
+      "expected": "INDETERMINATE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "forecast.max_forecast_lead_seconds",
+          "value": 7200
+        }
+      ]
+    },
+    {
+      "id": "unknown-quality",
+      "expected": "INDETERMINATE_NOT_ADMITTED",
+      "changes": [
+        {
+          "path": "quality.status",
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "mutable-revision",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.dataset_revision",
+          "value": "latest"
+        }
+      ]
+    },
+    {
+      "id": "receipt-digest-drift",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "receipt_binding.receipt_sha256",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "id": "product-dataset-identity-confusion",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.product_kind",
+          "value": "GLOBAL_ANALYSISFORECAST_PHY_001_024"
+        }
+      ]
+    },
+    {
+      "id": "authority-escalation",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "intended_use.navigation_authorized",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "noncanonical-fractional-utc",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.issued_at_utc",
+          "value": "2026-10-15T00:15:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "receipt-coverage-mismatch",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.valid_until_utc",
+          "value": "2026-10-15T05:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "zero-policy-bound",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.max_issue_age_seconds",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "year-zero-timestamp",
+      "expected": "INVALID",
+      "changes": [
+        {
+          "path": "forecast.issued_at_utc",
+          "value": "0000-10-15T00:15:00Z"
+        }
+      ]
+    }
   ]
 }
