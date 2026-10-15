@@ -1,0 +1,667 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-plsci-profile-corpus",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "All cases are synthetic metadata-contract tests. Passing does not parse data rows or admit operational, navigation, physical-truth, port-call, berth or custody claims. Public-terms negative controls use simulated metadata only; they are not claims that a real source was retrieved or a licence was reviewed.",
+  "base_profiles": {
+    "valid_synthetic": {
+      "schema_id": "luminous.symtropy.maritime-plsci-profile",
+      "schema_version": "0.1.0",
+      "profile_id": "synthetic-plsci-profile-v0",
+      "source_kind": "synthetic_fixture",
+      "receipt_binding": {
+        "receipt_id": "synthetic-plsci-profile-receipt-v0",
+        "receipt_sha256": "90f22c60776281f6eb62a6b8d9c8fb9711324c8b7038f7db8a9aa3329aa9fee1",
+        "artifact_sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14"
+      },
+      "series": {
+        "provider": "UNCTADstat",
+        "table_id": "US.PLSCI",
+        "indicator_id": "index_average_q1_2023_100",
+        "spatial_level": "port",
+        "temporal_frequency": "quarterly",
+        "unit_semantics": "index_points",
+        "benchmark_period": "2023-Q1",
+        "benchmark_value": 100,
+        "methodology_vintage": "rescaled-2024-six-component",
+        "source_basis": "published-container-liner-shipping-schedules",
+        "components": [
+          "scheduled_ship_calls_per_week",
+          "deployed_annual_capacity_teu",
+          "regular_liner_services",
+          "liner_service_providers",
+          "largest_deployed_ship_teu",
+          "directly_connected_ports"
+        ],
+        "benchmark_scope": "global_average_port_connectivity",
+        "normalization_method": "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
+      },
+      "selection": {
+        "geographic_scope": "synthetic-test-only",
+        "period_start": "2026-Q1",
+        "period_end": "2026-Q1",
+        "source_port_ids": [
+          "SYNTH-001"
+        ],
+        "selection_specification": "Invented single-port/single-quarter contract test; no UNCTAD values."
+      },
+      "missingness": {
+        "availability": "not_all_ports_for_every_quarter",
+        "missing_value_policy": "preserve_missing_as_unknown",
+        "missing_is_zero": false,
+        "estimate_policy": "preserve_explicit_source_flag",
+        "suppressed_policy": "preserve_suppressed_state",
+        "forward_fill": "forbidden",
+        "interpolation": "forbidden"
+      },
+      "terms": {
+        "review_status": "reviewed_permitted",
+        "license_name": "CC BY 3.0 IGO",
+        "license_uri": "https://creativecommons.org/licenses/by/3.0/igo/",
+        "reviewer": "fixture-only-simulated-reviewer",
+        "reviewed_at_utc": "2026-02-30T16:00:00Z",
+        "terms_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5",
+        "attribution_statement": "United Nations Trade and Development Data Hub; simulated metadata regression only",
+        "review_evidence_uri": "https://unctadstat.unctad.org/EN/About.html",
+        "snapshot_retrieved_at_utc": "2026-10-15T15:59:00Z",
+        "snapshot_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt",
+        "snapshot_byte_length": 95,
+        "snapshot_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+      },
+      "intended_use": {
+        "analysis_scope": "comparative_network_analysis_and_synthetic_scenarios",
+        "scenario_only": true,
+        "live_operational_feed": false,
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false,
+        "berth_availability_inference_authorized": false,
+        "port_call_inference_authorized": false,
+        "custody_or_delivery_inference_authorized": false,
+        "independent_review_required": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-synthetic-profile",
+      "base": "valid_synthetic",
+      "mutations": [],
+      "expected_code": "PLSCI_METADATA_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "wrong-table-id",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.table_id",
+          "op": "set",
+          "value": "US.LSCI"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_SERIES"
+    },
+    {
+      "id": "country-level-is-not-port-level",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.spatial_level",
+          "op": "set",
+          "value": "country"
+        }
+      ],
+      "expected_code": "WRONG_SPATIAL_LEVEL"
+    },
+    {
+      "id": "monthly-frequency-is-not-quarterly",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.temporal_frequency",
+          "op": "set",
+          "value": "monthly"
+        }
+      ],
+      "expected_code": "WRONG_TEMPORAL_FREQUENCY"
+    },
+    {
+      "id": "count-is-not-index-points",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.unit_semantics",
+          "op": "set",
+          "value": "count"
+        }
+      ],
+      "expected_code": "WRONG_UNIT_SEMANTICS"
+    },
+    {
+      "id": "old-base-period-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.benchmark_period",
+          "op": "set",
+          "value": "2006-Q1"
+        }
+      ],
+      "expected_code": "WRONG_INDEX_BASE"
+    },
+    {
+      "id": "benchmark-is-not-a-specific-port",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.benchmark_scope",
+          "op": "set",
+          "value": "specific_port_score"
+        }
+      ],
+      "expected_code": "WRONG_INDEX_BASE"
+    },
+    {
+      "id": "normalization-method-must-be-pinned",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.normalization_method",
+          "op": "set",
+          "value": "legacy-max-q1-2006"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_NORMALIZATION_METHOD"
+    },
+    {
+      "id": "legacy-methodology-cannot-mix",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.methodology_vintage",
+          "op": "set",
+          "value": "legacy-max-2006"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_METHODOLOGY_VINTAGE"
+    },
+    {
+      "id": "required-components-missing",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.components",
+          "op": "set",
+          "value": [
+            "scheduled_ship_calls_per_week",
+            "deployed_annual_capacity_teu"
+          ]
+        }
+      ],
+      "expected_code": "COMPONENT_SET_MISMATCH"
+    },
+    {
+      "id": "duplicate-source-port-id",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "selection.source_port_ids",
+          "op": "set",
+          "value": [
+            "SYNTH-001",
+            "SYNTH-001"
+          ]
+        }
+      ],
+      "expected_code": "DUPLICATE_SOURCE_PORT_ID"
+    },
+    {
+      "id": "empty-port-selection",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "selection.source_port_ids",
+          "op": "set",
+          "value": []
+        }
+      ],
+      "expected_code": "EMPTY_PORT_SELECTION"
+    },
+    {
+      "id": "end-before-start",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "selection.period_end",
+          "op": "set",
+          "value": "2025-Q4"
+        }
+      ],
+      "expected_code": "PERIOD_RANGE_INVALID"
+    },
+    {
+      "id": "invalid-quarter",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "selection.period_start",
+          "op": "set",
+          "value": "2026-Q5"
+        }
+      ],
+      "expected_code": "INVALID_QUARTER"
+    },
+    {
+      "id": "missing-is-not-zero",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "missingness.missing_is_zero",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "expected_code": "MISSING_MUST_NOT_BE_ZERO"
+    },
+    {
+      "id": "forward-fill-is-forbidden",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "missingness.forward_fill",
+          "op": "set",
+          "value": "last-observation-carried-forward"
+        }
+      ],
+      "expected_code": "INVALID_MISSINGNESS_POLICY"
+    },
+    {
+      "id": "interpolation-is-forbidden",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "missingness.interpolation",
+          "op": "set",
+          "value": "linear"
+        }
+      ],
+      "expected_code": "INVALID_MISSINGNESS_POLICY"
+    },
+    {
+      "id": "unreviewed-public-terms-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        }
+      ],
+      "expected_code": "TERMS_NOT_REVIEWED"
+    },
+    {
+      "id": "navigation-authority-escalation-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "intended_use.navigation_authorized",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "expected_code": "AUTHORITY_OR_POLICY_ESCALATION"
+    },
+    {
+      "id": "unknown-field-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "unexpected",
+          "op": "insert",
+          "value": true
+        }
+      ],
+      "expected_code": "UNKNOWN_FIELD"
+    },
+    {
+      "id": "missing-estimate-flag-policy-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "missingness.estimate_policy",
+          "op": "set",
+          "value": "assume-observed"
+        }
+      ],
+      "expected_code": "INVALID_MISSINGNESS_POLICY"
+    },
+    {
+      "id": "duplicate-component-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "series.components",
+          "op": "set",
+          "value": [
+            "scheduled_ship_calls_per_week",
+            "scheduled_ship_calls_per_week",
+            "deployed_annual_capacity_teu",
+            "regular_liner_services",
+            "liner_service_providers",
+            "largest_deployed_ship_teu"
+          ]
+        }
+      ],
+      "expected_code": "DUPLICATE_COMPONENT"
+    },
+    {
+      "id": "terms-snapshot-path-traversal-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "terms.snapshot_relative_path",
+          "op": "set",
+          "value": "../private/terms.html"
+        }
+      ],
+      "expected_code": "UNSAFE_TERMS_SNAPSHOT_PATH"
+    },
+    {
+      "id": "malformed-terms-snapshot-digest-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "terms.snapshot_sha256",
+          "op": "set",
+          "value": "not-a-sha256"
+        }
+      ],
+      "expected_code": "INVALID_TERMS_SNAPSHOT_DIGEST"
+    },
+    {
+      "id": "terms-snapshot-byte-length-zero-rejected",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "terms.snapshot_byte_length",
+          "op": "set",
+          "value": 0
+        }
+      ],
+      "expected_code": "INVALID_TERMS_SNAPSHOT_LENGTH"
+    },
+    {
+      "id": "public-terms-digest-must-match-reviewed-snapshot",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "test-reviewer"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-10-15T14:00:00Z"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub, test attribution"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
+    },
+    {
+      "id": "public-terms-capture-time-required",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "fixture-only-simulated-reviewer"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-10-15T16:00:00Z"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub; simulated metadata regression only"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
+    },
+    {
+      "id": "public-terms-capture-time-invalid-calendar-date",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "fixture-only-simulated-reviewer"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-10-15T16:00:00Z"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub; simulated metadata regression only"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
+        },
+        {
+          "path": "terms.snapshot_retrieved_at_utc",
+          "op": "set",
+          "value": "2026-02-30T15:59:00Z"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
+    },
+    {
+      "id": "public-terms-capture-time-offset-not-utc",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "fixture-only-simulated-reviewer"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-10-15T16:00:00Z"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub; simulated metadata regression only"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
+        },
+        {
+          "path": "terms.snapshot_retrieved_at_utc",
+          "op": "set",
+          "value": "2026-10-15T15:59:00+00:00"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
+    },
+    {
+      "id": "public-terms-review-time-invalid-calendar-date",
+      "base": "valid_synthetic",
+      "mutations": [
+        {
+          "path": "source_kind",
+          "op": "set",
+          "value": "public_dataset"
+        },
+        {
+          "path": "terms.review_status",
+          "op": "set",
+          "value": "reviewed_permitted"
+        },
+        {
+          "path": "terms.license_name",
+          "op": "set",
+          "value": "CC BY 3.0 IGO"
+        },
+        {
+          "path": "terms.license_uri",
+          "op": "set",
+          "value": "https://creativecommons.org/licenses/by/3.0/igo/"
+        },
+        {
+          "path": "terms.reviewer",
+          "op": "set",
+          "value": "fixture-only-simulated-reviewer"
+        },
+        {
+          "path": "terms.terms_sha256",
+          "op": "set",
+          "value": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+        },
+        {
+          "path": "terms.attribution_statement",
+          "op": "set",
+          "value": "United Nations Trade and Development Data Hub; simulated metadata regression only"
+        },
+        {
+          "path": "terms.review_evidence_uri",
+          "op": "set",
+          "value": "https://unctadstat.unctad.org/EN/About.html"
+        },
+        {
+          "path": "terms.reviewed_at_utc",
+          "op": "set",
+          "value": "2026-02-30T16:00:00Z"
+        },
+        {
+          "path": "terms.snapshot_retrieved_at_utc",
+          "op": "set",
+          "value": "2026-10-15T15:59:00Z"
+        }
+      ],
+      "expected_code": "PUBLIC_TERMS_INCOMPLETE"
+    }
+  ]
+}

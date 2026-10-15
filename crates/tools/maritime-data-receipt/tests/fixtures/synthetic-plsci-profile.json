@@ -1,0 +1,76 @@
+{
+  "schema_id": "luminous.symtropy.maritime-plsci-profile",
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-plsci-profile-v0",
+  "source_kind": "synthetic_fixture",
+  "receipt_binding": {
+    "receipt_id": "synthetic-plsci-profile-receipt-v0",
+    "receipt_sha256": "90f22c60776281f6eb62a6b8d9c8fb9711324c8b7038f7db8a9aa3329aa9fee1",
+    "artifact_sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14"
+  },
+  "series": {
+    "provider": "UNCTADstat",
+    "table_id": "US.PLSCI",
+    "indicator_id": "index_average_q1_2023_100",
+    "spatial_level": "port",
+    "temporal_frequency": "quarterly",
+    "unit_semantics": "index_points",
+    "benchmark_period": "2023-Q1",
+    "benchmark_value": 100,
+    "methodology_vintage": "rescaled-2024-six-component",
+    "source_basis": "published-container-liner-shipping-schedules",
+    "components": [
+      "scheduled_ship_calls_per_week",
+      "deployed_annual_capacity_teu",
+      "regular_liner_services",
+      "liner_service_providers",
+      "largest_deployed_ship_teu",
+      "directly_connected_ports"
+    ],
+    "benchmark_scope": "global_average_port_connectivity",
+    "normalization_method": "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
+  },
+  "selection": {
+    "geographic_scope": "synthetic-test-only",
+    "period_start": "2026-Q1",
+    "period_end": "2026-Q1",
+    "source_port_ids": [
+      "SYNTH-001"
+    ],
+    "selection_specification": "Invented single-port/single-quarter contract test; no UNCTAD values."
+  },
+  "missingness": {
+    "availability": "not_all_ports_for_every_quarter",
+    "missing_value_policy": "preserve_missing_as_unknown",
+    "missing_is_zero": false,
+    "estimate_policy": "preserve_explicit_source_flag",
+    "suppressed_policy": "preserve_suppressed_state",
+    "forward_fill": "forbidden",
+    "interpolation": "forbidden"
+  },
+  "terms": {
+    "review_status": "not_applicable_synthetic",
+    "license_name": "not_applicable_synthetic_fixture",
+    "license_uri": null,
+    "reviewer": null,
+    "reviewed_at_utc": null,
+    "terms_sha256": null,
+    "attribution_statement": "Synthetic fixture only; not actual UNCTADstat data.",
+    "review_evidence_uri": null,
+    "snapshot_retrieved_at_utc": null,
+    "snapshot_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-terms-snapshot.txt",
+    "snapshot_byte_length": 95,
+    "snapshot_sha256": "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5"
+  },
+  "intended_use": {
+    "analysis_scope": "comparative_network_analysis_and_synthetic_scenarios",
+    "scenario_only": true,
+    "live_operational_feed": false,
+    "navigation_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "berth_availability_inference_authorized": false,
+    "port_call_inference_authorized": false,
+    "custody_or_delivery_inference_authorized": false,
+    "independent_review_required": true
+  }
+}

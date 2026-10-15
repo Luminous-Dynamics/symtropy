@@ -1,0 +1,5 @@
+{
+  "synthetic_fixture": true,
+  "dataset": "test-source",
+  "purpose": "hash-verification-only"
+}

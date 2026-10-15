@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_SCENARIO_MANIFEST_V0_1.schema.json",
+  "title": "Maritime Scenario Evidence Manifest v0.1",
+  "description": "A source-bound evidence dependency graph for reproducible scenario work. Structural validation is never operational, navigation, or physical-truth admission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "manifest_id",
+    "purpose",
+    "decision_time_utc",
+    "analysis_window",
+    "model",
+    "nodes",
+    "policy",
+    "intended_use"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "luminous.symtropy.maritime-scenario-manifest"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "enum": [
+        "comparative_network_resilience",
+        "continuity_scenario",
+        "operational_port_state",
+        "navigation_safety",
+        "custody_delivery"
+      ]
+    },
+    "decision_time_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "analysis_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_utc",
+        "end_utc",
+        "geographic_scope"
+      ],
+      "properties": {
+        "start_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "end_utc": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "geographic_scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "revision",
+        "config_sha256",
+        "config_relative_path"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "config_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "missing_value_policy",
+        "zero_fill_allowed",
+        "forward_fill_allowed",
+        "interpolation_allowed",
+        "independent_review_required",
+        "sensitivity_analysis_required",
+        "input_receipts_must_be_verified"
+      ],
+      "properties": {
+        "missing_value_policy": {
+          "const": "preserve_unknown"
+        },
+        "zero_fill_allowed": {
+          "const": false
+        },
+        "forward_fill_allowed": {
+          "const": false
+        },
+        "interpolation_allowed": {
+          "const": false
+        },
+        "independent_review_required": {
+          "const": true
+        },
+        "sensitivity_analysis_required": {
+          "const": true
+        },
+        "input_receipts_must_be_verified": {
+          "const": true
+        }
+      }
+    },
+    "intended_use": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_only",
+        "live_operational_feed",
+        "navigation_authorized",
+        "physical_truth_claim_authorized",
+        "operational_decision_admitted"
+      ],
+      "properties": {
+        "scenario_only": {
+          "const": true
+        },
+        "live_operational_feed": {
+          "const": false
+        },
+        "navigation_authorized": {
+          "const": false
+        },
+        "physical_truth_claim_authorized": {
+          "const": false
+        },
+        "operational_decision_admitted": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "nullableUtc": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*//)(?!.*\\/$)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
+    },
+    "node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sourceEvidenceNode"
+        },
+        {
+          "$ref": "#/$defs/transformationNode"
+        },
+        {
+          "$ref": "#/$defs/assumptionNode"
+        },
+        {
+          "$ref": "#/$defs/claimTargetNode"
+        }
+      ],
+      "description": "Typed source, transform, assumption or output node. Parent references form a directed acyclic graph."
+    },
+    "sourceEvidenceNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "parents",
+        "evidence_class",
+        "source_kind",
+        "evidence_state",
+        "receipt_relative_path",
+        "receipt_sha256",
+        "artifact_relative_path",
+        "artifact_sha256",
+        "data_time_start_utc",
+        "data_time_end_utc"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parents": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "node_kind": {
+          "const": "source_evidence"
+        },
+        "evidence_class": {
+          "enum": [
+            "macro_connectivity",
+            "port_statistics",
+            "hydrography",
+            "water_level",
+            "current",
+            "vessel_event",
+            "custody_event",
+            "other"
+          ]
+        },
+        "source_kind": {
+          "enum": [
+            "synthetic_fixture",
+            "public_dataset"
+          ]
+        },
+        "evidence_state": {
+          "enum": [
+            "observed",
+            "estimated",
+            "modeled",
+            "synthetic",
+            "unknown",
+            "disputed",
+            "stale",
+            "superseded"
+          ]
+        },
+        "receipt_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "artifact_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "data_time_start_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "data_time_end_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "synthetic_fixture"
+              }
+            },
+            "required": [
+              "source_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence_state": {
+                "const": "synthetic"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "public_dataset"
+              }
+            },
+            "required": [
+              "source_kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "properties": {
+                "evidence_state": {
+                  "const": "synthetic"
+                }
+              },
+              "required": [
+                "evidence_state"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "transformationNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "parents",
+        "algorithm_id",
+        "algorithm_revision",
+        "config_sha256",
+        "config_relative_path"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parents": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "node_kind": {
+          "const": "transformation"
+        },
+        "algorithm_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm_revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "config_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
+        }
+      }
+    },
+    "assumptionNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "parents",
+        "assumption_id",
+        "statement",
+        "sensitivity_status"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parents": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "node_kind": {
+          "const": "assumption"
+        },
+        "assumption_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensitivity_status": {
+          "enum": [
+            "not_run",
+            "reviewed",
+            "passed",
+            "failed",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "claimTargetNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "parents",
+        "output_claim"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parents": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "node_kind": {
+          "const": "claim_target"
+        },
+        "output_claim": {
+          "enum": [
+            "comparative_network_resilience",
+            "continuity_scenario",
+            "operational_port_state",
+            "navigation_safety",
+            "custody_delivery"
+          ]
+        }
+      }
+    }
+  }
+}

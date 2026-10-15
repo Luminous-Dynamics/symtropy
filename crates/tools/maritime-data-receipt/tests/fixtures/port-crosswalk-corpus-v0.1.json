@@ -1,0 +1,536 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-port-crosswalk-corpus",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "The fixture is synthetic. A structurally valid mapping is not proof that a source entity and a real port feature are the same place, and grants no operational authority.",
+  "base_crosswalks": {
+    "valid_unresolved": {
+      "schema_id": "luminous.symtropy.maritime-port-crosswalk",
+      "schema_version": "0.1.0",
+      "crosswalk_id": "synthetic-unresolved-crosswalk-v0",
+      "fixture_kind": "synthetic_fixture",
+      "source_snapshot": {
+        "source_system": "SYNTHETIC-TEST-ONLY",
+        "series_or_table_id": "synthetic-series-v0",
+        "source_revision": "synthetic-revision-v0",
+        "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "retrieved_at_utc": null,
+        "source_uri": null,
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "locode_registry": {
+        "release": "2025-1",
+        "release_kind": "production",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "mapping_policy": {
+        "policy_id": "maritime-port-identity-policy",
+        "version": "0.1.0",
+        "name_match_can_resolve": false,
+        "port_statistics_can_target_terminal": false,
+        "unresolved_is_zero": false
+      },
+      "records": [
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": null,
+          "locode_function": null,
+          "locode_status": null,
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "unresolved",
+          "match_method": "none",
+          "evidence_refs": []
+        }
+      ]
+    },
+    "valid_resolved": {
+      "schema_id": "luminous.symtropy.maritime-port-crosswalk",
+      "schema_version": "0.1.0",
+      "crosswalk_id": "synthetic-resolved-crosswalk-v0",
+      "fixture_kind": "synthetic_fixture",
+      "source_snapshot": {
+        "source_system": "SYNTHETIC-TEST-ONLY",
+        "series_or_table_id": "synthetic-series-v0",
+        "source_revision": "synthetic-revision-v0",
+        "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "retrieved_at_utc": null,
+        "source_uri": null,
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "locode_registry": {
+        "release": "2025-1",
+        "release_kind": "production",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "mapping_policy": {
+        "policy_id": "maritime-port-identity-policy",
+        "version": "0.1.0",
+        "name_match_can_resolve": false,
+        "port_statistics_can_target_terminal": false,
+        "unresolved_is_zero": false
+      },
+      "records": [
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": "ZACPT",
+          "locode_function": "12345---",
+          "locode_status": "AF",
+          "target_feature_id": "synthetic-atlas-port-area-001",
+          "target_level": "port_area",
+          "relationship": "same_entity",
+          "mapping_state": "resolved",
+          "match_method": "manual_review",
+          "evidence_refs": [
+            "fixture-only:synthetic-review-record-not-a-real-mapping"
+          ]
+        }
+      ]
+    },
+    "duplicate_records": {
+      "schema_id": "luminous.symtropy.maritime-port-crosswalk",
+      "schema_version": "0.1.0",
+      "crosswalk_id": "synthetic-duplicate-source-crosswalk-v0",
+      "fixture_kind": "synthetic_fixture",
+      "source_snapshot": {
+        "source_system": "SYNTHETIC-TEST-ONLY",
+        "series_or_table_id": "synthetic-series-v0",
+        "source_revision": "synthetic-revision-v0",
+        "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "retrieved_at_utc": null,
+        "source_uri": null,
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "locode_registry": {
+        "release": "2025-1",
+        "release_kind": "production",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "mapping_policy": {
+        "policy_id": "maritime-port-identity-policy",
+        "version": "0.1.0",
+        "name_match_can_resolve": false,
+        "port_statistics_can_target_terminal": false,
+        "unresolved_is_zero": false
+      },
+      "records": [
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": null,
+          "locode_function": null,
+          "locode_status": null,
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "unresolved",
+          "match_method": "none",
+          "evidence_refs": []
+        },
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": null,
+          "locode_function": null,
+          "locode_status": null,
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "unresolved",
+          "match_method": "none",
+          "evidence_refs": []
+        }
+      ]
+    },
+    "ambiguous_candidates": {
+      "schema_id": "luminous.symtropy.maritime-port-crosswalk",
+      "schema_version": "0.1.0",
+      "crosswalk_id": "synthetic-ambiguous-candidates-crosswalk-v0",
+      "fixture_kind": "synthetic_fixture",
+      "source_snapshot": {
+        "source_system": "SYNTHETIC-TEST-ONLY",
+        "series_or_table_id": "synthetic-series-v0",
+        "source_revision": "synthetic-revision-v0",
+        "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "retrieved_at_utc": null,
+        "source_uri": null,
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "locode_registry": {
+        "release": "2025-1",
+        "release_kind": "production",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "terms_review_status": "not_applicable_synthetic"
+      },
+      "mapping_policy": {
+        "policy_id": "maritime-port-identity-policy",
+        "version": "0.1.0",
+        "name_match_can_resolve": false,
+        "port_statistics_can_target_terminal": false,
+        "unresolved_is_zero": false
+      },
+      "records": [
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": "ZACPT",
+          "locode_function": "12345---",
+          "locode_status": "AF",
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "ambiguous",
+          "match_method": "manual_review",
+          "evidence_refs": [
+            "fixture-only:candidate-a-not-a-real-crosswalk"
+          ]
+        },
+        {
+          "source_entity_id": "synthetic-source-port-001",
+          "source_level": "port",
+          "candidate_locode": "ZADUR",
+          "locode_function": "12345---",
+          "locode_status": "AI",
+          "target_feature_id": null,
+          "target_level": "unknown",
+          "relationship": "none",
+          "mapping_state": "ambiguous",
+          "match_method": "manual_review",
+          "evidence_refs": [
+            "fixture-only:candidate-b-not-a-real-crosswalk"
+          ]
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_unresolved_stays_unknown",
+      "base": "valid_unresolved",
+      "mutations": [],
+      "expected_code": "CROSSWALK_METADATA_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "valid_reviewed_port_area_mapping_shape",
+      "base": "valid_resolved",
+      "mutations": [],
+      "expected_code": "CROSSWALK_METADATA_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "mutable_locode_release_rejected",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "locode_registry.release",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "UNPINNED_LOCODE_RELEASE"
+    },
+    {
+      "id": "pre_release_registry_rejected",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "locode_registry.release_kind",
+          "value": "pre_release"
+        }
+      ],
+      "expected_code": "NON_PRODUCTION_LOCODE_RELEASE"
+    },
+    {
+      "id": "invalid_locode_syntax_rejected",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.candidate_locode",
+          "value": "DUR"
+        }
+      ],
+      "expected_code": "INVALID_LOCODE"
+    },
+    {
+      "id": "missing_locode_function_rejected",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.locode_function",
+          "value": null
+        }
+      ],
+      "expected_code": "INCOMPLETE_LOCODE_METADATA"
+    },
+    {
+      "id": "unknown_locode_status_rejected",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.locode_status",
+          "value": "ZZ"
+        }
+      ],
+      "expected_code": "INVALID_LOCODE_STATUS"
+    },
+    {
+      "id": "resolved_without_target_rejected",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.target_feature_id",
+          "value": null
+        }
+      ],
+      "expected_code": "RESOLVED_MAPPING_INCOMPLETE"
+    },
+    {
+      "id": "resolved_without_evidence_rejected",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.evidence_refs",
+          "value": []
+        }
+      ],
+      "expected_code": "RESOLVED_MAPPING_INCOMPLETE"
+    },
+    {
+      "id": "name_similarity_cannot_resolve",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.match_method",
+          "value": "name_similarity_only"
+        }
+      ],
+      "expected_code": "NAME_MATCH_CANNOT_RESOLVE"
+    },
+    {
+      "id": "port_statistic_cannot_map_to_terminal",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.target_level",
+          "value": "terminal"
+        }
+      ],
+      "expected_code": "GRANULARITY_MISMATCH"
+    },
+    {
+      "id": "country_statistic_cannot_map_to_port",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.source_level",
+          "value": "country"
+        }
+      ],
+      "expected_code": "GRANULARITY_MISMATCH"
+    },
+    {
+      "id": "unresolved_cannot_have_target",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.target_feature_id",
+          "value": "synthetic-feature-001"
+        }
+      ],
+      "expected_code": "UNRESOLVED_MAPPING_HAS_TARGET"
+    },
+    {
+      "id": "unresolved_is_not_zero",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "mapping_policy.unresolved_is_zero",
+          "value": true
+        }
+      ],
+      "expected_code": "POLICY_FORBIDS_UNRESOLVED_ZERO"
+    },
+    {
+      "id": "name_match_policy_must_remain_false",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "mapping_policy.name_match_can_resolve",
+          "value": true
+        }
+      ],
+      "expected_code": "POLICY_FORBIDS_NAME_MATCH_RESOLUTION"
+    },
+    {
+      "id": "duplicate_source_entity_rejected",
+      "base": "duplicate_records",
+      "mutations": [],
+      "expected_code": "DUPLICATE_SOURCE_ENTITY_CANDIDATE"
+    },
+    {
+      "id": "public_source_terms_must_be_reviewed",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "fixture_kind",
+          "value": "public_capture"
+        },
+        {
+          "op": "set",
+          "path": "source_snapshot.terms_review_status",
+          "value": "review_required"
+        },
+        {
+          "op": "set",
+          "path": "locode_registry.terms_review_status",
+          "value": "reviewed_permitted"
+        }
+      ],
+      "expected_code": "TERMS_NOT_REVIEWED"
+    },
+    {
+      "id": "public_source_needs_retrieval_identity",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "fixture_kind",
+          "value": "public_capture"
+        },
+        {
+          "op": "set",
+          "path": "source_snapshot.terms_review_status",
+          "value": "reviewed_permitted"
+        },
+        {
+          "op": "set",
+          "path": "locode_registry.terms_review_status",
+          "value": "reviewed_permitted"
+        }
+      ],
+      "expected_code": "PUBLIC_SOURCE_SNAPSHOT_INCOMPLETE"
+    },
+    {
+      "id": "mutable_source_revision_rejected",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "source_snapshot.source_revision",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "UNPINNED_SOURCE_REVISION"
+    },
+    {
+      "id": "changed_policy_version_is_rejected",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "mapping_policy.version",
+          "value": "v0"
+        }
+      ],
+      "expected_code": "INVALID_POLICY_VERSION"
+    },
+    {
+      "id": "registry_digest_must_be_sha256",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "locode_registry.artifact_sha256",
+          "value": "not-a-digest"
+        }
+      ],
+      "expected_code": "INVALID_SNAPSHOT_DIGEST"
+    },
+    {
+      "id": "valid_multiple_candidates_remain_ambiguous",
+      "base": "ambiguous_candidates",
+      "mutations": [],
+      "expected_code": "CROSSWALK_METADATA_VALID_NOT_ADMITTED"
+    },
+    {
+      "id": "multiple_candidates_cannot_resolve_one_of_the_candidates",
+      "base": "ambiguous_candidates",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.mapping_state",
+          "value": "resolved"
+        },
+        {
+          "op": "set",
+          "path": "records.0.target_feature_id",
+          "value": "synthetic-atlas-port-area-001"
+        },
+        {
+          "op": "set",
+          "path": "records.0.target_level",
+          "value": "port_area"
+        },
+        {
+          "op": "set",
+          "path": "records.0.relationship",
+          "value": "same_entity"
+        }
+      ],
+      "expected_code": "MULTIPLE_CANDIDATES_MUST_BE_AMBIGUOUS"
+    },
+    {
+      "id": "unknown_locode_status_cannot_resolve",
+      "base": "valid_resolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.locode_status",
+          "value": "XX"
+        }
+      ],
+      "expected_code": "UNKNOWN_LOCODE_STATUS_NOT_RESOLVABLE"
+    },
+    {
+      "id": "ambiguous_mapping_requires_at_least_one_candidate",
+      "base": "valid_unresolved",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "records.0.mapping_state",
+          "value": "ambiguous"
+        },
+        {
+          "op": "set",
+          "path": "records.0.match_method",
+          "value": "manual_review"
+        },
+        {
+          "op": "set",
+          "path": "records.0.evidence_refs",
+          "value": [
+            "fixture-only:ambiguity-review"
+          ]
+        }
+      ],
+      "expected_code": "AMBIGUOUS_CANDIDATE_MISSING"
+    }
+  ]
+}

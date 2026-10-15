@@ -1,0 +1,78 @@
+{
+  "schema_id": "luminous.symtropy.maritime-scenario-manifest",
+  "schema_version": "0.1.0",
+  "manifest_id": "synthetic-connectivity-disruption-manifest-v0",
+  "purpose": "comparative_network_resilience",
+  "decision_time_utc": "2026-03-31T23:59:59Z",
+  "analysis_window": {
+    "start_utc": "2026-01-01T00:00:00Z",
+    "end_utc": "2026-03-31T23:59:59Z",
+    "geographic_scope": "synthetic-test-only"
+  },
+  "model": {
+    "model_id": "synthetic-resilience-test-model",
+    "revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
+    "config_sha256": "9344ff9371d96f11662306f2163d1d0df6da9c9920a5b170d8c42b0fae152476",
+    "config_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-scenario-model-config.json"
+  },
+  "nodes": [
+    {
+      "node_id": "source-plsci",
+      "node_kind": "source_evidence",
+      "parents": [],
+      "evidence_class": "macro_connectivity",
+      "source_kind": "synthetic_fixture",
+      "evidence_state": "synthetic",
+      "receipt_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json",
+      "receipt_sha256": "90f22c60776281f6eb62a6b8d9c8fb9711324c8b7038f7db8a9aa3329aa9fee1",
+      "artifact_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-payload.json",
+      "artifact_sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14",
+      "data_time_start_utc": null,
+      "data_time_end_utc": null
+    },
+    {
+      "node_id": "transform-shock",
+      "node_kind": "transformation",
+      "parents": [
+        "source-plsci"
+      ],
+      "algorithm_id": "synthetic-port-connectivity-shock",
+      "algorithm_revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
+      "config_sha256": "93a67faead93afa09e438aa5b18bc695bcf2c5d2357cf01344c29acdf1a82b9a",
+      "config_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-connectivity-transform-config.json"
+    },
+    {
+      "node_id": "assumption-loss",
+      "node_kind": "assumption",
+      "parents": [],
+      "assumption_id": "synthetic-connectivity-loss",
+      "statement": "Synthetic disruption reduces the connectivity contribution by a declared fraction.",
+      "sensitivity_status": "not_run"
+    },
+    {
+      "node_id": "scenario-output",
+      "node_kind": "claim_target",
+      "parents": [
+        "transform-shock",
+        "assumption-loss"
+      ],
+      "output_claim": "comparative_network_resilience"
+    }
+  ],
+  "policy": {
+    "missing_value_policy": "preserve_unknown",
+    "zero_fill_allowed": false,
+    "forward_fill_allowed": false,
+    "interpolation_allowed": false,
+    "independent_review_required": true,
+    "sensitivity_analysis_required": true,
+    "input_receipts_must_be_verified": true
+  },
+  "intended_use": {
+    "scenario_only": true,
+    "live_operational_feed": false,
+    "navigation_authorized": false,
+    "physical_truth_claim_authorized": false,
+    "operational_decision_admitted": false
+  }
+}

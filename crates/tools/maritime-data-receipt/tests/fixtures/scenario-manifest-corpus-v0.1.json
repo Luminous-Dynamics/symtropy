@@ -1,0 +1,453 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-scenario-manifest-corpus",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic metadata-contract tests only. A valid graph does not prove source authenticity, data-row semantics, temporal freshness, transformation correctness, scenario output correctness, operational safety or authority.",
+  "base_manifests": {
+    "valid_synthetic": {
+      "schema_id": "luminous.symtropy.maritime-scenario-manifest",
+      "schema_version": "0.1.0",
+      "manifest_id": "synthetic-connectivity-disruption-manifest-v0",
+      "purpose": "comparative_network_resilience",
+      "decision_time_utc": "2026-03-31T23:59:59Z",
+      "analysis_window": {
+        "start_utc": "2026-01-01T00:00:00Z",
+        "end_utc": "2026-03-31T23:59:59Z",
+        "geographic_scope": "synthetic-test-only"
+      },
+      "model": {
+        "model_id": "synthetic-resilience-test-model",
+        "revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
+        "config_sha256": "9344ff9371d96f11662306f2163d1d0df6da9c9920a5b170d8c42b0fae152476",
+        "config_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-scenario-model-config.json"
+      },
+      "nodes": [
+        {
+          "node_id": "source-plsci",
+          "node_kind": "source_evidence",
+          "parents": [],
+          "evidence_class": "macro_connectivity",
+          "source_kind": "synthetic_fixture",
+          "evidence_state": "synthetic",
+          "receipt_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-receipt.json",
+          "receipt_sha256": "90f22c60776281f6eb62a6b8d9c8fb9711324c8b7038f7db8a9aa3329aa9fee1",
+          "artifact_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-plsci-payload.json",
+          "artifact_sha256": "22bd62deff79fbffabdbe4f26e035e5b5fb698b4c6149eab4620d37e695a9c14",
+          "data_time_start_utc": null,
+          "data_time_end_utc": null
+        },
+        {
+          "node_id": "transform-shock",
+          "node_kind": "transformation",
+          "parents": [
+            "source-plsci"
+          ],
+          "algorithm_id": "synthetic-port-connectivity-shock",
+          "algorithm_revision": "83b94e806bb05f2d219afa4da4debfb133632af5",
+          "config_sha256": "93a67faead93afa09e438aa5b18bc695bcf2c5d2357cf01344c29acdf1a82b9a",
+          "config_relative_path": "crates/tools/maritime-data-receipt/tests/fixtures/synthetic-connectivity-transform-config.json"
+        },
+        {
+          "node_id": "assumption-loss",
+          "node_kind": "assumption",
+          "parents": [],
+          "assumption_id": "synthetic-connectivity-loss",
+          "statement": "Synthetic disruption reduces the connectivity contribution by a declared fraction.",
+          "sensitivity_status": "not_run"
+        },
+        {
+          "node_id": "scenario-output",
+          "node_kind": "claim_target",
+          "parents": [
+            "transform-shock",
+            "assumption-loss"
+          ],
+          "output_claim": "comparative_network_resilience"
+        }
+      ],
+      "policy": {
+        "missing_value_policy": "preserve_unknown",
+        "zero_fill_allowed": false,
+        "forward_fill_allowed": false,
+        "interpolation_allowed": false,
+        "independent_review_required": true,
+        "sensitivity_analysis_required": true,
+        "input_receipts_must_be_verified": true
+      },
+      "intended_use": {
+        "scenario_only": true,
+        "live_operational_feed": false,
+        "navigation_authorized": false,
+        "physical_truth_claim_authorized": false,
+        "operational_decision_admitted": false
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-synthetic-dag",
+      "base": "valid_synthetic",
+      "expected_code": "SCENARIO_MANIFEST_VALID_NOT_ADMITTED",
+      "mutations": []
+    },
+    {
+      "id": "unknown-root-field-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNKNOWN_FIELD",
+      "mutations": [
+        {
+          "path": "unexpected",
+          "op": "insert",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "unsupported-schema-version-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNSUPPORTED_MANIFEST_SCHEMA",
+      "mutations": [
+        {
+          "path": "schema_version",
+          "op": "set",
+          "value": "latest"
+        }
+      ]
+    },
+    {
+      "id": "invalid-decision-time-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_DECISION_TIME",
+      "mutations": [
+        {
+          "path": "decision_time_utc",
+          "op": "set",
+          "value": "2026-02-30T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "reversed-analysis-window-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_ANALYSIS_WINDOW",
+      "mutations": [
+        {
+          "path": "analysis_window.end_utc",
+          "op": "set",
+          "value": "2025-12-31T23:59:59Z"
+        }
+      ]
+    },
+    {
+      "id": "mutable-model-revision-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNPINNED_MODEL_REVISION",
+      "mutations": [
+        {
+          "path": "model.revision",
+          "op": "set",
+          "value": "latest"
+        }
+      ]
+    },
+    {
+      "id": "invalid-model-config-digest-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_DIGEST",
+      "mutations": [
+        {
+          "path": "model.config_sha256",
+          "op": "set",
+          "value": "not-a-digest"
+        }
+      ]
+    },
+    {
+      "id": "duplicate-node-identity-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "DUPLICATE_NODE_ID",
+      "mutations": [
+        {
+          "path": "nodes.1.node_id",
+          "op": "set",
+          "value": "source-plsci"
+        }
+      ]
+    },
+    {
+      "id": "dangling-parent-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "DANGLING_PARENT",
+      "mutations": [
+        {
+          "path": "nodes.3.parents",
+          "op": "set",
+          "value": [
+            "missing-node"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "self-dependency-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "SELF_DEPENDENCY",
+      "mutations": [
+        {
+          "path": "nodes.1.parents",
+          "op": "set",
+          "value": [
+            "transform-shock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "duplicate-dependency-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "DUPLICATE_PARENT",
+      "mutations": [
+        {
+          "path": "nodes.3.parents",
+          "op": "set",
+          "value": [
+            "transform-shock",
+            "transform-shock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dependency-cycle-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "DEPENDENCY_CYCLE",
+      "mutations": [
+        {
+          "path": "nodes.1.parents",
+          "op": "set",
+          "value": [
+            "assumption-loss"
+          ]
+        },
+        {
+          "path": "nodes.2.parents",
+          "op": "set",
+          "value": [
+            "transform-shock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unused-evidence-node-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNUSED_NODE",
+      "mutations": [
+        {
+          "path": "nodes.3.parents",
+          "op": "set",
+          "value": [
+            "transform-shock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "output-purpose-mismatch-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "OUTPUT_CLAIM_MISMATCH",
+      "mutations": [
+        {
+          "path": "nodes.3.output_claim",
+          "op": "set",
+          "value": "navigation_safety"
+        }
+      ]
+    },
+    {
+      "id": "zero-fill-policy-escalation-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "POLICY_ESCALATION",
+      "mutations": [
+        {
+          "path": "policy.zero_fill_allowed",
+          "op": "set",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "operational-authority-escalation-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "AUTHORITY_OR_POLICY_ESCALATION",
+      "mutations": [
+        {
+          "path": "intended_use.navigation_authorized",
+          "op": "set",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "unsafe-receipt-path-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNSAFE_PATH",
+      "mutations": [
+        {
+          "path": "nodes.0.receipt_relative_path",
+          "op": "set",
+          "value": "../../private/receipt.json"
+        }
+      ]
+    },
+    {
+      "id": "synthetic-source-cannot-claim-observed",
+      "base": "valid_synthetic",
+      "expected_code": "SOURCE_KIND_STATE_MISMATCH",
+      "mutations": [
+        {
+          "path": "nodes.0.evidence_state",
+          "op": "set",
+          "value": "observed"
+        }
+      ]
+    },
+    {
+      "id": "inverted-evidence-validity-window-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_VALIDITY_INTERVAL",
+      "mutations": [
+        {
+          "path": "nodes.0.data_time_start_utc",
+          "op": "set",
+          "value": "2026-04-01T00:00:00Z"
+        },
+        {
+          "path": "nodes.0.data_time_end_utc",
+          "op": "set",
+          "value": "2026-01-01T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "transform-without-input-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "TRANSFORM_REQUIRES_INPUT",
+      "mutations": [
+        {
+          "path": "nodes.1.parents",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "invalid-assumption-sensitivity-state-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_ASSUMPTION",
+      "mutations": [
+        {
+          "path": "nodes.2.sensitivity_status",
+          "op": "set",
+          "value": "guaranteed"
+        }
+      ]
+    },
+    {
+      "id": "scenario-output-required",
+      "base": "valid_synthetic",
+      "expected_code": "NO_SCENARIO_OUTPUT",
+      "mutations": [
+        {
+          "path": "nodes.3",
+          "op": "remove"
+        }
+      ]
+    },
+    {
+      "id": "missing-model-config-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "MISSING_REQUIRED_FIELD",
+      "mutations": [
+        {
+          "path": "model.config_sha256",
+          "op": "remove"
+        }
+      ]
+    },
+    {
+      "id": "source-receipt-digest-invalid",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_DIGEST",
+      "mutations": [
+        {
+          "path": "nodes.0.receipt_sha256",
+          "op": "set",
+          "value": "xyz"
+        }
+      ]
+    },
+    {
+      "id": "mutable-transform-revision-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNPINNED_ALGORITHM_REVISION",
+      "mutations": [
+        {
+          "path": "nodes.1.algorithm_revision",
+          "op": "set",
+          "value": "latest"
+        }
+      ]
+    },
+    {
+      "id": "model-config-path-traversal-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNSAFE_PATH",
+      "mutations": [
+        {
+          "path": "model.config_relative_path",
+          "op": "set",
+          "value": "../../private/model.json"
+        }
+      ]
+    },
+    {
+      "id": "year-zero-decision-time-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "INVALID_DECISION_TIME",
+      "mutations": [
+        {
+          "path": "decision_time_utc",
+          "op": "set",
+          "value": "0000-01-01T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "claim-target-cannot-be-upstream-dependency",
+      "base": "valid_synthetic",
+      "expected_code": "CLAIM_TARGET_NOT_TERMINAL",
+      "mutations": [
+        {
+          "path": "nodes.1.parents",
+          "op": "set",
+          "value": [
+            "source-plsci",
+            "scenario-output"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dot-segment-in-model-config-path-rejected",
+      "base": "valid_synthetic",
+      "expected_code": "UNSAFE_PATH",
+      "mutations": [
+        {
+          "path": "model.config_relative_path",
+          "op": "set",
+          "value": "configs/./model.json"
+        }
+      ]
+    }
+  ]
+}

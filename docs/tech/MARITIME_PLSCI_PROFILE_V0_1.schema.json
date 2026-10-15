@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json",
+  "title": "UNCTADstat PLSCI macro-connectivity profile v0.1",
+  "description": "Metadata envelope for the quarterly port-level PLSCI. It does not parse source rows, resolve identities, or admit operational use.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "profile_id",
+    "source_kind",
+    "receipt_binding",
+    "series",
+    "selection",
+    "missingness",
+    "terms",
+    "intended_use"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "luminous.symtropy.maritime-plsci-profile"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_kind": {
+      "enum": [
+        "synthetic_fixture",
+        "public_dataset"
+      ]
+    },
+    "receipt_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "receipt_sha256",
+        "artifact_sha256"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "table_id",
+        "indicator_id",
+        "spatial_level",
+        "temporal_frequency",
+        "unit_semantics",
+        "benchmark_period",
+        "benchmark_scope",
+        "benchmark_value",
+        "methodology_vintage",
+        "source_basis",
+        "normalization_method",
+        "components"
+      ],
+      "properties": {
+        "provider": {
+          "const": "UNCTADstat"
+        },
+        "table_id": {
+          "const": "US.PLSCI"
+        },
+        "indicator_id": {
+          "const": "index_average_q1_2023_100"
+        },
+        "spatial_level": {
+          "const": "port"
+        },
+        "temporal_frequency": {
+          "const": "quarterly"
+        },
+        "unit_semantics": {
+          "const": "index_points"
+        },
+        "benchmark_period": {
+          "const": "2023-Q1"
+        },
+        "benchmark_value": {
+          "const": 100
+        },
+        "methodology_vintage": {
+          "const": "rescaled-2024-six-component"
+        },
+        "source_basis": {
+          "const": "published-container-liner-shipping-schedules"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "scheduled_ship_calls_per_week",
+              "deployed_annual_capacity_teu",
+              "regular_liner_services",
+              "liner_service_providers",
+              "largest_deployed_ship_teu",
+              "directly_connected_ports"
+            ]
+          }
+        },
+        "benchmark_scope": {
+          "const": "global_average_port_connectivity"
+        },
+        "normalization_method": {
+          "const": "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "geographic_scope",
+        "period_start",
+        "period_end",
+        "source_port_ids",
+        "selection_specification"
+      ],
+      "properties": {
+        "geographic_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period_start": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-Q[1-4]$"
+        },
+        "period_end": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-Q[1-4]$"
+        },
+        "source_port_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "selection_specification": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "missingness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "availability",
+        "missing_value_policy",
+        "missing_is_zero",
+        "estimate_policy",
+        "suppressed_policy",
+        "forward_fill",
+        "interpolation"
+      ],
+      "properties": {
+        "availability": {
+          "const": "not_all_ports_for_every_quarter"
+        },
+        "missing_value_policy": {
+          "const": "preserve_missing_as_unknown"
+        },
+        "missing_is_zero": {
+          "const": false
+        },
+        "estimate_policy": {
+          "const": "preserve_explicit_source_flag"
+        },
+        "suppressed_policy": {
+          "const": "preserve_suppressed_state"
+        },
+        "forward_fill": {
+          "const": "forbidden"
+        },
+        "interpolation": {
+          "const": "forbidden"
+        }
+      }
+    },
+    "terms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_status",
+        "license_name",
+        "license_uri",
+        "reviewer",
+        "reviewed_at_utc",
+        "terms_sha256",
+        "attribution_statement",
+        "review_evidence_uri",
+        "snapshot_retrieved_at_utc",
+        "snapshot_relative_path",
+        "snapshot_byte_length",
+        "snapshot_sha256"
+      ],
+      "properties": {
+        "review_status": {
+          "enum": [
+            "reviewed_permitted",
+            "review_required",
+            "not_applicable_synthetic"
+          ]
+        },
+        "license_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "reviewer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewed_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "terms_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "attribution_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_evidence_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "snapshot_retrieved_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "snapshot_relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot_byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "intended_use": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysis_scope",
+        "scenario_only",
+        "live_operational_feed",
+        "navigation_authorized",
+        "physical_truth_claim_authorized",
+        "berth_availability_inference_authorized",
+        "port_call_inference_authorized",
+        "custody_or_delivery_inference_authorized",
+        "independent_review_required"
+      ],
+      "properties": {
+        "analysis_scope": {
+          "const": "comparative_network_analysis_and_synthetic_scenarios"
+        },
+        "scenario_only": {
+          "const": true
+        },
+        "live_operational_feed": {
+          "const": false
+        },
+        "navigation_authorized": {
+          "const": false
+        },
+        "physical_truth_claim_authorized": {
+          "const": false
+        },
+        "berth_availability_inference_authorized": {
+          "const": false
+        },
+        "port_call_inference_authorized": {
+          "const": false
+        },
+        "custody_or_delivery_inference_authorized": {
+          "const": false
+        },
+        "independent_review_required": {
+          "const": true
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source_kind": {
+            "const": "public_dataset"
+          }
+        },
+        "required": [
+          "source_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "terms": {
+            "properties": {
+              "review_status": {
+                "const": "reviewed_permitted"
+              },
+              "license_name": {
+                "const": "CC BY 3.0 IGO"
+              },
+              "license_uri": {
+                "const": "https://creativecommons.org/licenses/by/3.0/igo/"
+              },
+              "terms_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "reviewer": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reviewed_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "attribution_statement": {
+                "pattern": "United Nations Trade and Development Data Hub"
+              },
+              "review_evidence_uri": {
+                "const": "https://unctadstat.unctad.org/EN/About.html"
+              }
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source_kind": {
+            "const": "synthetic_fixture"
+          }
+        },
+        "required": [
+          "source_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "terms": {
+            "properties": {
+              "review_status": {
+                "const": "not_applicable_synthetic"
+              },
+              "license_name": {
+                "const": "not_applicable_synthetic_fixture"
+              },
+              "license_uri": {
+                "type": "null"
+              },
+              "reviewer": {
+                "type": "null"
+              },
+              "reviewed_at_utc": {
+                "type": "null"
+              },
+              "terms_sha256": {
+                "type": "null"
+              },
+              "review_evidence_uri": {
+                "type": "null"
+              },
+              "snapshot_relative_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "snapshot_byte_length": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      }
+    }
+  ]
+}
