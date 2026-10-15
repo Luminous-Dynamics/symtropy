@@ -1,5 +1,5 @@
 use jsonschema::draft202012;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::fs;
 use std::path::PathBuf;
 
@@ -36,7 +36,10 @@ fn validation_errors(schema: &Value, instance: &Value) -> Vec<String> {
 fn all_refs_are_local(value: &Value) -> bool {
     match value {
         Value::Object(map) => map.iter().all(|(key, child)| {
-            (key != "$ref" || child.as_str().is_some_and(|reference| reference.starts_with("#/")))
+            (key != "$ref"
+                || child
+                    .as_str()
+                    .is_some_and(|reference| reference.starts_with("#/")))
                 && all_refs_are_local(child)
         }),
         Value::Array(values) => values.iter().all(all_refs_are_local),
@@ -51,16 +54,25 @@ fn home_design_brief_schema_is_valid_draft_2020_12() {
         draft202012::meta::validate(&schema).is_ok(),
         "schema must pass Draft 2020-12 meta-validation"
     );
-    assert!(all_refs_are_local(&schema), "schema must not require remote $ref retrieval");
+    assert!(
+        all_refs_are_local(&schema),
+        "schema must not require remote $ref retrieval"
+    );
 }
 
 #[test]
 fn synthetic_home_design_brief_fixture_is_valid() {
     let (schema, example) = schema_and_example();
     let errors = validation_errors(&schema, &example);
-    assert!(errors.is_empty(), "synthetic fixture failed schema validation: {errors:#?}");
+    assert!(
+        errors.is_empty(),
+        "synthetic fixture failed schema validation: {errors:#?}"
+    );
     assert_eq!(example["schema_version"], "0.1.0");
-    assert_eq!(example["conflict_policy"]["on_conflict"], "preserve_and_report");
+    assert_eq!(
+        example["conflict_policy"]["on_conflict"],
+        "preserve_and_report"
+    );
 }
 
 #[test]
