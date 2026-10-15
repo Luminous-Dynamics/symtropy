@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main", "research/multimodal-transport-optimization-v0.1" ]
+    branches: [ "main", "research/multimodal-transport-optimization-v0.1", "feat/transport-schedule-aware-capacity-window-r2" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
