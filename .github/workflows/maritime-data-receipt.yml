@@ -8,6 +8,7 @@ on:
       - 'docs/tech/MARITIME_DATA_RECEIPT_V0_1.md'
       - 'docs/tech/MARITIME_S100_PROFILE_V0_1.schema.json'
       - 'docs/tech/MARITIME_PORT_CROSSWALK_V0_1.schema.json'
+      - 'docs/tech/MARITIME_SOURCE_CAPTURE_RUNBOOK_V0_1.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.gitignore'
