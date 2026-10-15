@@ -12,6 +12,8 @@ on:
       - 'docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json'
       - 'docs/tech/MARITIME_FORECAST_APPLICABILITY_V0_1.schema.json'
       - 'docs/tech/MARITIME_FORECAST_APPLICABILITY_V0_1.md'
+      - 'docs/tech/MARITIME_DISRUPTION_REHEARSAL_V0_1.md'
+      - 'docs/tech/MARITIME_DISRUPTION_REHEARSAL_V0_1.json'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.gitignore'
@@ -59,6 +61,9 @@ jobs:
 
       - name: Evaluate synthetic water-level forecast applicability against exact receipt and bytes
         run: cargo run --locked -p maritime-data-receipt -- --evaluate-forecast-applicability crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-forecast-profile.json crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-forecast-receipt.json
+
+      - name: Verify synthetic maritime disruption rehearsal contract
+        run: cargo run --locked -p maritime-data-receipt -- --evaluate-disruption-rehearsal docs/tech/MARITIME_DISRUPTION_REHEARSAL_V0_1.json
 
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
