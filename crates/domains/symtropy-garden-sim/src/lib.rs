@@ -899,6 +899,391 @@ fn push_target_blocker(
     });
 }
 
+
+/// One source-pinned food-composition record paired with one delivered edible mass.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientSupplyLineV1 {
+    pub composition: NutrientCompositionRecordV1,
+    pub delivery: EdibleFoodDeliveryV1,
+}
+
+/// A candidate supply scenario for one population/community and one period.
+/// It describes inputs to the calculator, not a committed distribution or diet.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientSupplyScenarioV1 {
+    pub schema_version: u16,
+    pub scenario_id: String,
+    pub target_scope_ref: String,
+    pub period_ref: String,
+    pub lines: Vec<NutrientSupplyLineV1>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientPortfolioBlockerCode {
+    UnsupportedScenarioSchema,
+    EmptyScenarioId,
+    EmptyTargetScope,
+    EmptyTargetPeriod,
+    NoSupplyLines,
+    ScenarioMismatch,
+    ScopeMismatch,
+    PeriodMismatch,
+    DuplicateDeliverySource,
+    InvalidContributionLine,
+    MissingCompositionValue,
+    QuantityOverflow,
+}
+
+/// A stable blocker. line_index is zero-based and omitted for scenario-level blockers.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientPortfolioBlockerV1 {
+    pub line_index: Option<usize>,
+    pub code: NutrientPortfolioBlockerCode,
+    pub detail: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NutrientPortfolioStatus {
+    MeetsDeclaredMinimum,
+    ShortfallAgainstDeclaredMinimum,
+    NotAssessable,
+    Blocked,
+}
+
+/// Aggregate exact nutrient supply from multiple food lines against one target.
+///
+/// Every line must share a nutrient definition, unit, scale, scenario, population
+/// scope and period. Missing composition prevents a partial sum from being
+/// presented as complete. Duplicate delivery source refs and arithmetic overflow
+/// block the scenario. Composition source refs may repeat because multiple rows can
+/// legitimately come from one licensed table artifact.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NutrientPortfolioAssessmentV1 {
+    pub scenario_id: String,
+    pub target_id: String,
+    pub nutrient_id: String,
+    pub nutrient_definition_ref: String,
+    pub unit: NutrientUnit,
+    pub target_scope_ref: String,
+    pub period_ref: String,
+    #[serde(
+        serialize_with = "serialize_option_u64_as_string",
+        deserialize_with = "deserialize_option_u64_from_string"
+    )]
+    pub value_scale: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub total_edible_delivered_grams: Option<u128>,
+    /// Sum of line numerators with common denominator 100 * value_scale.
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub supply_numerator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub target_numerator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub denominator: Option<u128>,
+    #[serde(
+        serialize_with = "serialize_option_u128_as_string",
+        deserialize_with = "deserialize_option_u128_from_string"
+    )]
+    pub shortfall_numerator: Option<u128>,
+    pub composition_source_refs: Vec<String>,
+    pub delivery_source_refs: Vec<String>,
+    pub target_source_ref: String,
+    pub status: NutrientPortfolioStatus,
+    pub blockers: Vec<NutrientPortfolioBlockerV1>,
+}
+
+/// Independently aggregate multiple source-attributed food lines against one declared
+/// nutrient target. This calculator does not choose crops, estimate yield, infer
+/// composition, authenticate references, or derive clinical dietary requirements.
+pub fn evaluate_nutrient_supply_scenario(
+    scenario: &NutrientSupplyScenarioV1,
+    target: &NutrientSupplyTargetV1,
+) -> NutrientPortfolioAssessmentV1 {
+    let mut blockers = Vec::new();
+    let mut seen_delivery_refs: Vec<String> = Vec::new();
+    let mut composition_refs: Vec<String> = Vec::new();
+    let mut delivery_refs: Vec<String> = Vec::new();
+    let mut supply_numerator = 0_u128;
+    let mut total_edible_grams = 0_u128;
+    let mut has_missing_composition = false;
+    let mut has_quantity_overflow = false;
+
+    if scenario.schema_version != GARDEN_RESOURCE_SCHEMA_VERSION {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::UnsupportedScenarioSchema,
+            "unsupported nutrient supply-scenario schema version",
+        );
+    }
+    if scenario.scenario_id.trim().is_empty() {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::EmptyScenarioId,
+            "supply scenario identity is empty",
+        );
+    }
+    if scenario.target_scope_ref.trim().is_empty() {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::EmptyTargetScope,
+            "supply scenario scope reference is empty",
+        );
+    }
+    if scenario.period_ref.trim().is_empty() {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::EmptyTargetPeriod,
+            "supply scenario period reference is empty",
+        );
+    }
+    if scenario.lines.is_empty() {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::NoSupplyLines,
+            "no food delivery lines were supplied; absence is not assumed to mean zero production",
+        );
+    }
+
+    if target.target_scope_ref != scenario.target_scope_ref {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::ScopeMismatch,
+            "target and supply scenario name different population/community scopes",
+        );
+    }
+    if target.period_ref != scenario.period_ref {
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::PeriodMismatch,
+            "target and supply scenario cover different periods",
+        );
+    }
+
+    for (line_index, line) in scenario.lines.iter().enumerate() {
+        let single = assess_nutrient_target(&line.composition, &line.delivery, target);
+        if line.delivery.scenario_id != scenario.scenario_id {
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::ScenarioMismatch,
+                "delivery row belongs to a different scenario",
+            );
+        }
+        if line.delivery.delivery_scope_ref != scenario.target_scope_ref {
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::ScopeMismatch,
+                "delivery row uses a different population/community scope",
+            );
+        }
+        if line.delivery.period_ref != scenario.period_ref {
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::PeriodMismatch,
+                "delivery row covers a different time period",
+            );
+        }
+
+        if line.delivery.delivery_source_ref.trim().is_empty() {
+            // The single-line assessment already reports the missing source.
+        } else if seen_delivery_refs.contains(&line.delivery.delivery_source_ref) {
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::DuplicateDeliverySource,
+                "delivery source reference is repeated; counting it again could double-count supply",
+            );
+        } else {
+            seen_delivery_refs.push(line.delivery.delivery_source_ref.clone());
+        }
+
+        add_unique_source(
+            &mut composition_refs,
+            &line.composition.source_ref,
+        );
+        add_unique_source(&mut delivery_refs, &line.delivery.delivery_source_ref);
+
+        if single.status == NutrientTargetStatus::Blocked {
+            let detail = single
+                .blockers
+                .iter()
+                .map(|blocker| blocker.detail.as_str())
+                .collect::<Vec<_>>()
+                .join("; ");
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::InvalidContributionLine,
+                &detail,
+            );
+            continue;
+        }
+        if single.status == NutrientTargetStatus::NotAssessable {
+            has_missing_composition = true;
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::MissingCompositionValue,
+                "one delivery line has no assessable composition; partial totals are withheld",
+            );
+            continue;
+        }
+
+        let Some(line_numerator) = single.supply_numerator else {
+            push_portfolio_blocker(
+                &mut blockers,
+                Some(line_index),
+                NutrientPortfolioBlockerCode::InvalidContributionLine,
+                "assessable nutrient line did not produce an exact numerator",
+            );
+            continue;
+        };
+
+        match supply_numerator.checked_add(line_numerator) {
+            Some(total) => supply_numerator = total,
+            None => {
+                has_quantity_overflow = true;
+                push_portfolio_blocker(
+                    &mut blockers,
+                    Some(line_index),
+                    NutrientPortfolioBlockerCode::QuantityOverflow,
+                    "aggregated nutrient numerator exceeds u128",
+                );
+            }
+        }
+        match total_edible_grams.checked_add(u128::from(line.delivery.edible_delivered_grams)) {
+            Some(total) => total_edible_grams = total,
+            None => {
+                has_quantity_overflow = true;
+                push_portfolio_blocker(
+                    &mut blockers,
+                    Some(line_index),
+                    NutrientPortfolioBlockerCode::QuantityOverflow,
+                    "aggregated edible delivered mass exceeds u128",
+                );
+            }
+        }
+    }
+
+    let hard_blocked = blockers.iter().any(|blocker| {
+        !matches!(
+            blocker.code,
+            NutrientPortfolioBlockerCode::NoSupplyLines
+                | NutrientPortfolioBlockerCode::MissingCompositionValue
+        )
+    });
+    if has_quantity_overflow && !hard_blocked {
+        // Defensive consistency: overflow must always be a hard blocker.
+        push_portfolio_blocker(
+            &mut blockers,
+            None,
+            NutrientPortfolioBlockerCode::QuantityOverflow,
+            "aggregate arithmetic did not remain representable",
+        );
+    }
+    let has_lines = !scenario.lines.is_empty();
+    let fully_assessable = has_lines
+        && !has_missing_composition
+        && !has_quantity_overflow
+        && !hard_blocked;
+    let denominator = if fully_assessable {
+        Some(100 * u128::from(target.value_scale))
+    } else {
+        None
+    };
+    let aggregate_numerator = if fully_assessable {
+        Some(supply_numerator)
+    } else {
+        None
+    };
+    let target_numerator = if fully_assessable {
+        Some(100 * u128::from(target.target_amount_scaled))
+    } else {
+        None
+    };
+    let shortfall_numerator = match (aggregate_numerator, target_numerator) {
+        (Some(supply), Some(minimum)) => Some(minimum.saturating_sub(supply)),
+        _ => None,
+    };
+
+    let status = if hard_blocked {
+        NutrientPortfolioStatus::Blocked
+    } else if !fully_assessable {
+        NutrientPortfolioStatus::NotAssessable
+    } else {
+        match (aggregate_numerator, target_numerator) {
+            (Some(supply), Some(minimum)) if supply >= minimum => {
+                NutrientPortfolioStatus::MeetsDeclaredMinimum
+            }
+            (Some(_), Some(_)) => NutrientPortfolioStatus::ShortfallAgainstDeclaredMinimum,
+            _ => NutrientPortfolioStatus::Blocked,
+        }
+    };
+
+    NutrientPortfolioAssessmentV1 {
+        scenario_id: scenario.scenario_id.clone(),
+        target_id: target.target_id.clone(),
+        nutrient_id: target.nutrient_id.clone(),
+        nutrient_definition_ref: target.nutrient_definition_ref.clone(),
+        unit: target.unit,
+        target_scope_ref: scenario.target_scope_ref.clone(),
+        period_ref: scenario.period_ref.clone(),
+        value_scale: (target.value_scale != 0).then_some(target.value_scale),
+        total_edible_delivered_grams: fully_assessable.then_some(total_edible_grams),
+        supply_numerator: aggregate_numerator,
+        target_numerator,
+        denominator,
+        shortfall_numerator,
+        composition_source_refs: composition_refs,
+        delivery_source_refs: delivery_refs,
+        target_source_ref: target.source_ref.clone(),
+        status,
+        blockers,
+    }
+}
+
+fn add_unique_source(sources: &mut Vec<String>, source: &str) {
+    if !source.trim().is_empty() && !sources.iter().any(|existing| existing == source) {
+        sources.push(source.to_owned());
+    }
+}
+
+fn push_portfolio_blocker(
+    blockers: &mut Vec<NutrientPortfolioBlockerV1>,
+    line_index: Option<usize>,
+    code: NutrientPortfolioBlockerCode,
+    detail: &str,
+) {
+    blockers.push(NutrientPortfolioBlockerV1 {
+        line_index,
+        code,
+        detail: detail.to_owned(),
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1388,6 +1773,134 @@ mod tests {
             item.code == NutrientTargetBlockerCode::TargetPeriodMismatch
         }));
         assert_eq!(assessment.supply_numerator, None);
+    }
+
+    fn valid_supply_scenario() -> NutrientSupplyScenarioV1 {
+        let (composition, delivery) = valid_nutrient_fixture();
+        NutrientSupplyScenarioV1 {
+            schema_version: GARDEN_RESOURCE_SCHEMA_VERSION,
+            scenario_id: "SYNTH-FOOD-001".to_owned(),
+            target_scope_ref: "scope:community-001".to_owned(),
+            period_ref: "period:2026-11".to_owned(),
+            lines: vec![NutrientSupplyLineV1 {
+                composition,
+                delivery,
+            }],
+        }
+    }
+
+    #[test]
+    fn portfolio_aggregates_two_foods_with_exact_common_scale() {
+        let mut scenario = valid_supply_scenario();
+        let mut second = scenario.lines[0].clone();
+        second.composition.food_record_id = "FOOD-002".to_owned();
+        second.composition.amount_per_100g_scaled = Some(100_000);
+        second.composition.source_ref = "fixture:composition-002".to_owned();
+        second.delivery.food_record_id = "FOOD-002".to_owned();
+        second.delivery.edible_delivered_grams = 100;
+        second.delivery.delivery_source_ref = "fixture:delivered-edible-mass-002".to_owned();
+        scenario.lines.push(second);
+
+        let mut target = valid_nutrient_target();
+        target.target_amount_scaled = 250_000;
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &target);
+        assert_eq!(assessment.status, NutrientPortfolioStatus::MeetsDeclaredMinimum);
+        assert_eq!(assessment.total_edible_delivered_grams, Some(175));
+        assert_eq!(assessment.supply_numerator, Some(28_750_000));
+        assert_eq!(assessment.target_numerator, Some(25_000_000));
+        assert_eq!(assessment.denominator, Some(100_000));
+        assert_eq!(assessment.shortfall_numerator, Some(0));
+        assert_eq!(assessment.composition_source_refs.len(), 2);
+        assert_eq!(assessment.delivery_source_refs.len(), 2);
+    }
+
+    #[test]
+    fn portfolio_does_not_treat_one_missing_food_value_as_zero() {
+        let mut scenario = valid_supply_scenario();
+        let mut second = scenario.lines[0].clone();
+        second.composition.food_record_id = "FOOD-002".to_owned();
+        second.composition.amount_per_100g_scaled = None;
+        second.delivery.food_record_id = "FOOD-002".to_owned();
+        second.delivery.delivery_source_ref = "fixture:delivered-edible-mass-002".to_owned();
+        scenario.lines.push(second);
+
+        let assessment =
+            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        assert_eq!(assessment.status, NutrientPortfolioStatus::NotAssessable);
+        assert_eq!(assessment.supply_numerator, None);
+        assert_eq!(assessment.total_edible_delivered_grams, None);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientPortfolioBlockerCode::MissingCompositionValue
+        }));
+    }
+
+    #[test]
+    fn portfolio_rejects_duplicate_delivery_references() {
+        let mut scenario = valid_supply_scenario();
+        let mut second = scenario.lines[0].clone();
+        second.composition.food_record_id = "FOOD-002".to_owned();
+        second.delivery.food_record_id = "FOOD-002".to_owned();
+        // Reusing the first line's receipt must not double-count its delivery.
+        scenario.lines.push(second);
+        let assessment =
+            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientPortfolioBlockerCode::DuplicateDeliverySource
+        }));
+        assert_eq!(assessment.supply_numerator, None);
+    }
+
+    #[test]
+    fn portfolio_rejects_cross_scope_or_period_lines() {
+        let mut scenario = valid_supply_scenario();
+        let mut second = scenario.lines[0].clone();
+        second.composition.food_record_id = "FOOD-002".to_owned();
+        second.delivery.food_record_id = "FOOD-002".to_owned();
+        second.delivery.delivery_source_ref = "fixture:delivery-002".to_owned();
+        second.delivery.delivery_scope_ref = "scope:other-community".to_owned();
+        scenario.lines.push(second);
+        let assessment =
+            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientPortfolioBlockerCode::ScopeMismatch
+        }));
+        assert_eq!(assessment.supply_numerator, None);
+    }
+
+    #[test]
+    fn portfolio_rejects_arithmetic_overflow() {
+        let mut scenario = valid_supply_scenario();
+        scenario.lines[0].composition.amount_per_100g_scaled = Some(u64::MAX);
+        scenario.lines[0].composition.value_scale = u64::MAX;
+        scenario.lines[0].delivery.edible_delivered_grams = u64::MAX;
+        scenario.lines[0].delivery.delivery_source_ref = "fixture:delivery-max-1".to_owned();
+        let mut second = scenario.lines[0].clone();
+        second.delivery.delivery_source_ref = "fixture:delivery-max-2".to_owned();
+        scenario.lines.push(second);
+        let mut target = valid_nutrient_target();
+        target.target_amount_scaled = u64::MAX;
+        target.value_scale = u64::MAX;
+        let assessment = evaluate_nutrient_supply_scenario(&scenario, &target);
+        assert_eq!(assessment.status, NutrientPortfolioStatus::Blocked);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientPortfolioBlockerCode::QuantityOverflow
+        }));
+        assert_eq!(assessment.supply_numerator, None);
+    }
+
+    #[test]
+    fn empty_portfolio_is_not_assumed_to_be_zero_supply() {
+        let mut scenario = valid_supply_scenario();
+        scenario.lines.clear();
+        let assessment =
+            evaluate_nutrient_supply_scenario(&scenario, &valid_nutrient_target());
+        assert_eq!(assessment.status, NutrientPortfolioStatus::NotAssessable);
+        assert_eq!(assessment.supply_numerator, None);
+        assert!(assessment.blockers.iter().any(|item| {
+            item.code == NutrientPortfolioBlockerCode::NoSupplyLines
+        }));
     }
 
 }
