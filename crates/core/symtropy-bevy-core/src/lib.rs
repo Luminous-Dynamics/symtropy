@@ -302,7 +302,9 @@ fn sweep_point_aabb(origin: Vec2, delta: Vec2, min: Vec2, max: Vec2) -> Option<(
             (max.y - origin.y, Vec2::new(0.0, 1.0)),
         ];
         let normal = distances.into_iter().min_by(|a, b| a.0.total_cmp(&b.0))?.1;
-        return (delta.dot(normal) < 0.0).then_some((0.0, normal));
+        // Starting overlapped is not a valid "no hit": fail closed rather than
+        // allowing motion through the obstacle. Depenetration is a separate feature.
+        return Some((0.0, normal));
     }
 
     let mut entry = f32::NEG_INFINITY;
@@ -1290,6 +1292,19 @@ mod tests {
             "wall-normal velocity must be removed"
         );
         assert!(velocity.z > 0.0, "tangential velocity must survive");
+    }
+
+    #[test]
+    fn kinematic_sweep_fails_closed_when_starting_inside_an_obstacle() {
+        let wall = obstacle(Vec3::new(1.0, 1.0, 0.0), Vec3::new(0.5, 1.0, 3.0));
+        let result = resolve_first_person_motion(
+            Vec3::new(1.6, 1.45, 0.0),
+            Vec3::new(0.1, 0.0, 0.0),
+            FirstPersonCollision::default(),
+            &[wall],
+        );
+
+        assert_eq!(result.displacement, Vec3::ZERO);
     }
 
     #[test]
