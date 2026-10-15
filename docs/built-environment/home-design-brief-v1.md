@@ -7,7 +7,7 @@
 
 ## 1. Product intent
 
-People should be able to describe the life they want to live and review meaningful design alternatives without having to learn a CAD or BIM application first. The brief is the resident-owned input to that workflow. It is not the canonical building geometry, a cost estimate, a code interpretation, or construction permission.
+People should be able to describe the life they want to live and review meaningful design alternatives without having to learn a CAD or BIM application first. The brief is the resident-owned input to that workflow. It is not the canonical building geometry, a cost estimate, a code interpretation, or construction permission. The next contract, [Home Layout Candidate V1](home-layout-candidate-v1.md), is the explicit candidate output linked to the exact brief bytes.
 
 The proposed hand-off is:
 

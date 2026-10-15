@@ -24,6 +24,7 @@
 //! --artifact-root. Remote retrieval is intentionally not supported.
 
 mod home_design_brief;
+mod layout_candidate;
 
 use jsonschema::draft202012;
 use serde::{Deserialize, Serialize};
@@ -129,6 +130,36 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("home design brief validation failed: {error}");
+                ExitCode::from(2)
+            }
+        };
+    }
+
+    if args.first().map(String::as_str) == Some("--validate-layout") {
+        if args.len() != 4 || args.get(2).map(String::as_str) != Some("--brief") {
+            eprintln!(
+                "Usage: housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>"
+            );
+            return ExitCode::from(2);
+        }
+
+        return match layout_candidate::validate_paths(Path::new(&args[1]), Path::new(&args[3])) {
+            Ok(report) => {
+                match serde_json::to_string_pretty(&report) {
+                    Ok(output) => println!("{output}"),
+                    Err(error) => {
+                        eprintln!("failed to serialize layout validation report: {error}");
+                        return ExitCode::from(2);
+                    }
+                }
+                if report.contract_status == "LAYOUT_CANDIDATE_CONTRACT_VALID" {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(2)
+                }
+            }
+            Err(error) => {
+                eprintln!("home layout candidate validation failed: {error}");
                 ExitCode::from(2)
             }
         };
@@ -286,6 +317,7 @@ fn usage() -> String {
     [
         "Usage: housing-evidence-verify <manifest.json>",
         "       housing-evidence-verify --validate-brief <brief.json>",
+        "       housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
         "  [--artifact-root <directory>] [--require-pass]",
