@@ -157,7 +157,7 @@ function run() {
   assert.equal(sha256(Buffer.from(integrity.payload_utf8, 'utf8')), 'sha256:' + integrity.expected_sha256);
   assert.equal(
     integrity.altered_payload_utf8,
-    integrity.payload_utf8.replace('measurement=1.0\\n', 'measurement=1.1\\n'),
+    integrity.payload_utf8.replace('measurement=1.0\n', 'measurement=1.1\n'),
     'evidence canary mutation must change only the declared measurement field',
   );
   assert.notEqual(sha256(Buffer.from(integrity.altered_payload_utf8, 'utf8')), 'sha256:' + integrity.expected_sha256);
@@ -166,8 +166,8 @@ function run() {
   assert.equal(
     integrity.altered_configuration_payload_utf8,
     integrity.configuration_payload_utf8.replace(
-      'scope=habitat-central-water-loop\\n',
-      'scope=habitat-central-water-loop-mutated\\n',
+      'scope=habitat-central-water-loop\n',
+      'scope=habitat-central-water-loop-mutated\n',
     ),
     'configuration canary mutation must change only the declared scope field',
   );
