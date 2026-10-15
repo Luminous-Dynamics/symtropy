@@ -303,13 +303,19 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
         text_field(constraint, "source", &path)?;
     }
 
-    let properties = super::array(super::field(root, "expected_global_properties", "rehearsal")?, "rehearsal.expected_global_properties")?;
-    if properties.len() != 7 {
-        return Err("expected seven global non-escalation/metamorphic properties".to_owned());
-    }
-    for (index, property) in properties.iter().enumerate() {
-        super::require_nonempty_text(property, &format!("rehearsal.expected_global_properties[{index}]"))?;
-    }
+    expect_text_array(
+        super::field(root, "expected_global_properties", "rehearsal")?,
+        "rehearsal.expected_global_properties",
+        &[
+            "No hard constraint can be compensated by a lower delay or cost metric.",
+            "A missing, stale, conflicting or invalidated input cannot improve a dependent result.",
+            "Adding a required adverse case cannot enlarge the robustly-feasible candidate set.",
+            "Duplicating correlated evidence cannot be counted as independent corroboration.",
+            "An alternate-terminal preparation never creates a reservation or capacity-confirmation event.",
+            "Every result remains NotAdmitted for navigation, physical truth, berth availability and physical execution.",
+            "No numerical value in this fixture represents a real physical quantity or real-world estimate.",
+        ],
+    )?;
     Ok(())
 }
 
@@ -469,6 +475,19 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     )? {
         return Err("design fixture must not claim that the physical scenario executed".to_owned());
     }
+    for (key, expected) in [
+        ("rust_build_test_status", "not_yet_run_on_exact_branch_head"),
+        ("independent_oracle_status", "implemented_in_source_not_yet_run"),
+        ("canonical_replay_status", "test_implemented_not_yet_run"),
+        ("real_source_capture_status", "still_open"),
+        ("expected_status", "contract_evaluable_no_physical_simulation"),
+    ] {
+        super::expect_text(
+            super::field(execution, key, "rehearsal.execution")?,
+            &format!("rehearsal.execution.{key}"),
+            expected,
+        )?;
+    }
 
     let plans = super::array(
         super::field(&root, "candidate_plans", "rehearsal")?,
@@ -504,13 +523,29 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
         )? {
             return Err(format!("{path}.not_a_booking must be true"));
         }
-        let preconditions = super::array(super::field(plan, "preconditions", &path)?, &format!("{path}.preconditions"))?;
-        if preconditions.is_empty() {
-            return Err(format!("{path}.preconditions cannot be empty"));
-        }
-        for (precondition_index, precondition) in preconditions.iter().enumerate() {
-            super::require_nonempty_text(precondition, &format!("{path}.preconditions[{precondition_index}]"))?;
-        }
+        let expected_preconditions: &[&str] = match plan_id.as_str() {
+            "continue_original_slot" => &[
+                "forecast_temporally_applicable",
+                "water_level_envelope_supported_and_satisfied",
+                "energy_reserve_minimum_satisfied",
+                "terminal_window_open",
+            ],
+            "hold_and_reassess" => &[
+                "designated_waiting_resource_declared_available",
+                "reassessment_time_and_policy_declared",
+            ],
+            "prepare_alternate_terminal" => &[
+                "alternate_terminal_identity_resolved",
+                "alternate_capacity_confirmed",
+                "alternate_constraints_supported",
+            ],
+            _ => return Err(format!("{path}.plan_id: unsupported plan")),
+        };
+        expect_text_array(
+            super::field(plan, "preconditions", &path)?,
+            &format!("{path}.preconditions"),
+            expected_preconditions,
+        )?;
         if index == 2 && !super::bool_value(super::field(plan, "preparation_does_not_reserve_capacity", &path)?, &format!("{path}.preparation_does_not_reserve_capacity"))? {
             return Err("preparing an alternate terminal must not reserve capacity".to_owned());
         }
@@ -566,6 +601,26 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
             super::field(case, "abstract_inputs", &case_path)?,
             &format!("{case_path}.abstract_inputs"),
         )?;
+        let disturbances = super::array(
+            super::field(case, "disturbances", &case_path)?,
+            &format!("{case_path}.disturbances"),
+        )?;
+        for (disturbance_index, disturbance) in disturbances.iter().enumerate() {
+            super::require_nonempty_text(disturbance, &format!("{case_path}.disturbances[{disturbance_index}]"))?;
+        }
+        if case_id == "adverse_water_level_envelope" {
+            super::expect_text(
+                super::field(case, "interpretation", &case_path)?,
+                &format!("{case_path}.interpretation"),
+                "This state is an abstract hostile control; no real water level or vessel clearance is represented.",
+            )?;
+        }
+        if matches!(case_id.as_str(), "forecast_invalidated_before_decision" | "common_cause_terminal_and_power_disruption") {
+            super::require_nonempty_text(
+                super::field(case, "metamorphic_property", &case_path)?,
+                &format!("{case_path}.metamorphic_property"),
+            )?;
+        }
         let expected = super::object(
             super::field(case, "expected_plan_dispositions", &case_path)?,
             &format!("{case_path}.expected_plan_dispositions"),
