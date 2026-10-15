@@ -72,6 +72,7 @@
         "benchmark_value",
         "methodology_vintage",
         "source_basis",
+        "normalization_method",
         "components"
       ],
       "properties": {
@@ -123,6 +124,9 @@
         },
         "benchmark_scope": {
           "const": "global_average_port_connectivity"
+        },
+        "normalization_method": {
+          "const": "mean_of_six_component_ratios_to_each_component_global_mean_in_2023_Q1_times_100"
         }
       }
     },
