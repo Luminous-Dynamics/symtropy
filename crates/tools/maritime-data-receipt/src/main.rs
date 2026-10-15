@@ -321,7 +321,8 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         return Err(format!("source.product: unsupported value {product:?}"));
     }
     let revision = text(field(source, "dataset_revision", "source")?, "source.dataset_revision")?;
-    if ["latest", "unknown", "unspecified"].contains(&revision.to_ascii_lowercase().as_str()) {
+    let normalized_revision = revision.to_ascii_lowercase();
+    if ["latest", "unknown", "unspecified"].contains(&normalized_revision.as_str()) {
         return Err("source.dataset_revision must be pinned, not latest/unknown/unspecified".to_owned());
     }
     let source_uri_required = kind == "public_dataset";
@@ -356,7 +357,10 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
                 return Err("public_dataset HTTP retrieval must record a 2xx response status".to_owned());
             }
         } else if !matches!(field(retrieval, "http_status", "retrieval")?, JsonValue::Null) {
-            let _ = integer(field(retrieval, "http_status", "retrieval")?, "retrieval.http_status")?;
+            let status = integer(field(retrieval, "http_status", "retrieval")?, "retrieval.http_status")?;
+            if !(100..=599).contains(&status) {
+                return Err("retrieval.http_status must be null or in the 100..599 range".to_owned());
+            }
         }
     }
 
@@ -394,12 +398,21 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     if units.is_empty() {
         return Err("data_context.units must not be empty".to_owned());
     }
-    let allowed_units = [
-        "m", "cm", "mm", "ft", "in", "cm/s", "m/s", "kn", "knot", "knots",
-        "degrees", "degree", "deg", "degrees_east", "degrees_north", "count",
-        "dimensionless", "m^2", "m3/s", "kW", "MW", "kWh", "MWh", "seconds",
-        "minutes", "hours",
-    ];
+    let allowed_units = match domain {
+        "water_level" | "water_level_prediction" | "hydrography" => {
+            &["m", "cm", "mm", "ft", "in"][..]
+        }
+        "currents" => &["cm/s", "m/s", "kn", "knot", "knots"][..],
+        "port_facility" => {
+            &["m", "cm", "mm", "ft", "in", "degrees_east", "degrees_north", "count"][..]
+        }
+        _ => &[
+            "m", "cm", "mm", "ft", "in", "cm/s", "m/s", "kn", "knot", "knots",
+            "degrees", "degree", "deg", "degrees_east", "degrees_north", "count",
+            "dimensionless", "m^2", "m3/s", "kW", "MW", "kWh", "MWh", "seconds",
+            "minutes", "hours",
+        ][..],
+    };
     let mut unique_units = BTreeSet::new();
     for (index, unit) in units.iter().enumerate() {
         let unit = require_nonempty_text(unit, &format!("data_context.units[{index}]"))?;
@@ -447,8 +460,14 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
         if freshness == "not_applicable_synthetic" {
             return Err("public dataset cannot use the synthetic-only freshness policy".to_owned());
         }
-        if expect_text(field(context, "verification_state", "data_context")?, "data_context.verification_state", "unknown").is_ok() {
-            return Err("public dataset with unknown verification state is not admissible to this receipt verifier".to_owned());
+        if !["preliminary", "verified", "prediction"].contains(&verification_state) {
+            return Err("public dataset requires a declared preliminary, verified, or prediction state".to_owned());
+        }
+        if domain == "water_level_prediction" && verification_state != "prediction" {
+            return Err("water_level_prediction must be labelled prediction".to_owned());
+        }
+        if domain == "water_level" && verification_state == "prediction" {
+            return Err("water_level observations must not be labelled prediction".to_owned());
         }
     }
 
