@@ -503,6 +503,114 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "transform": {
+            "properties": {
+              "kind": {
+                "const": "derived"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "transform": {
+            "properties": {
+              "transform_receipt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input_crs": {
+                "type": "string",
+                "minLength": 1
+              },
+              "output_crs": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "transform": {
+            "properties": {
+              "kind": {
+                "const": "derived"
+              }
+            }
+          },
+          "product": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "S-102",
+                  "S-104"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "transform": {
+            "properties": {
+              "input_vertical_reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "output_vertical_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "transform": {
+            "properties": {
+              "kind": {
+                "const": "source_native"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "transform": {
+            "properties": {
+              "transform_receipt_id": {
+                "type": "null"
+              },
+              "input_crs": {
+                "type": "null"
+              },
+              "output_crs": {
+                "type": "null"
+              },
+              "input_vertical_reference": {
+                "type": "null"
+              },
+              "output_vertical_reference": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
