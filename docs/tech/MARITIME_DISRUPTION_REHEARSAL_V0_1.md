@@ -1,6 +1,6 @@
 # Maritime Disruption Rehearsal Contract v0.1
 
-**Status:** proposal + synthetic design fixture; not an executable scenario, validated model, operational procedure, or safety case.  
+**Status:** executable contract evaluator + synthetic design fixture; not a physical simulation, validated model, operational procedure, or safety case.  
 **Layer:** orchestration contract over existing Symtropy deterministic-scenario facilities; not a second simulator.  
 **Parent:** [MARITIME-SIM-001 #1612](https://github.com/Luminous-Dynamics/symtropy/issues/1612), [MARITIME-TIME-001 #1650](https://github.com/Luminous-Dynamics/symtropy/issues/1650), [forecast applicability PR #1651](https://github.com/Luminous-Dynamics/symtropy/pull/1651).
 
@@ -19,7 +19,7 @@ This changes the unit of work from a validated feed to an auditable comparison:
 - **Digital twin as authority → digital twin as bounded evidence.** A simulation can show consequences inside declared model scope; it cannot create physical truth, authorization, bookings, custody, port calls or delivery events.
 - **Unknown as a first-class result.** Stale, conflicting, absent, unsupported or insufficiently sourced inputs produce `INDETERMINATE` or `UNSUPPORTED`, not zero, success, a clear map, or a silently substituted default.
 
-This fits the direction of the IMO Compendium: interoperable maritime exchange with shared meanings, not a replacement proprietary vocabulary. It also gives an engineering workflow for the preparation / response / recovery phases described by UNCTAD's port resilience guidance.
+This fits the IMO Compendium's direction toward interoperable maritime exchange with shared meanings, not a replacement proprietary vocabulary. The IMO Facilitation Committee approved a Strategy on Maritime Digitalization at FAL 50 (23–27 March 2026); the Committee's 31 March 2026 notice says it will be sent to other IMO committees for further review before submission to the Assembly in 2027. This is an approved committee strategy, not yet an adopted Assembly instrument. The contract also maps to UNCTAD's preparation / response / recovery resilience framing. Its stepwise method stresses hazard identification, vulnerability/impact assessment, response measures, prioritization and learning from implementation.
 
 ## 2. Boundaries and owners
 
@@ -123,7 +123,7 @@ The independent oracle must not call the production reducer, timestamp conversio
 
 ## 8. Research-aligned integration points
 
-- IMO, [Maritime Single Window digitalization](https://www.imo.org/en/mediacentre/pressbriefings/pages/maritime-single-window-advancing-digitalization-in-shipping.aspx): use harmonized semantics and standards rather than project-local reinvention.
+- IMO, [Maritime Single Window digitalization](https://www.imo.org/en/ourwork/facilitation/pages/maritimesinglewindow-default.aspx) and [FAL 50 digitalization strategy update, 31 March 2026](https://www.imo.org/en/mediacentre/pressbriefings/pages/facilitation-committee-approves-digitalization-strategy-cyber-security-measures.aspx): reuse shared semantics, interoperability and data-governance principles; do not represent the committee-approved strategy as already adopted by the Assembly.
 - IMO, [Compendium on Facilitation and Electronic Business](https://www.imo.org/en/ourwork/facilitation/pages/imocompendium.aspx): reference model for shared maritime meanings and port-call/business data exchange.
 - UNCTAD, [Building Capacity to Manage Risks and Enhance Resilience: A Guidebook for Ports](https://unctad.org/publication/building-capacity-manage-risks-and-enhance-resilience-guidebook-ports): organize rehearsals around preparedness, response and recovery.
 - UNCTAD, [Review of Maritime Transport 2025](https://unctad.org/publication/review-maritime-transport-2025): current structural context for disruption, connectivity and maritime resilience; it is not a substitute for source capture or route-level operational input.
@@ -132,12 +132,12 @@ The independent oracle must not call the production reducer, timestamp conversio
 
 ## 9. Delivery sequence and honest completion criteria
 
-1. **Now — freeze the contract and synthetic fixture** (this PR). It is a design artefact only.
-2. **Next — implement the narrow Rust scenario manifest/constraint reducer** by extending the existing deterministic scenario substrate, after inspecting its exact current API/capability profile. No duplicate runtime.
-3. Implement a separate oracle and frozen adversarial/metamorphic corpus; test schema-to-Rust contract parity and deterministic canonical output.
-4. Emit a run receipt tied to the exact head and compare at least two alternatives across baseline/adverse/stale-input cases.
-5. Connect Symthaea analysis, Mycelix simulated-intent records and Sol Atlas's read-only projection through explicit, versioned fields.
-6. Capture one real official source artifact only after bytes, retrieval evidence, product/dataset IDs, selected scope, licence/terms snapshot and attribution are accessible and independently verified. Until then the fixture remains synthetic.
-7. Require exact-head build, tests, formatting, Clippy, independent oracle, replay equality, positive/negative CLI tests and clean postflight. Queued, skipped, stale-head or static-inspection results are not passes.
+1. Freeze the contract, fixture and authority constraints (included in this PR).
+2. Add a **narrow executable Rust contract evaluator** to the existing `maritime-data-receipt` tool, invoked with `--evaluate-disruption-rehearsal <scenario-json-path>`. It derives outcomes from the declared abstract input states, cross-checks the frozen expected dispositions, rejects unknown fields/states and authority escalation, and emits a digest-bound report. It does not execute physical simulation.
+3. Add a **separate test-only oracle** using a different JSON parser and an independent disposition classifier. The frozen five-case / three-plan fixture now has fifteen result combinations; tests also cover deterministic report bytes, unknown states, unknown fields and attempted authority escalation.
+4. Run the exact-head workflow with rustfmt, the full crate tests, the rehearsal CLI, all existing maritime CLI verifiers and Clippy. A queued run is not a pass; inspect the exact candidate head and all jobs.
+5. Only after the contract evaluator passes should the next increment connect to the existing deterministic scenario engine. Inspect the engine capability census first; do not create a second simulator or invent hydrodynamics, under-keel clearance, energy or terminal physics.
+6. Bind an executable scenario run receipt and replay comparison to exact source, configuration, policy, evidence and output digests. Then connect Symthaea analysis, Mycelix simulated-intent records and Sol Atlas's read-only projection through explicit versioned fields.
+7. Capture one real official source artifact only after exact bytes, retrieval evidence, product/dataset IDs, selected scope, terms snapshot and attribution are accessible and independently verified. Until then all scenario outcomes remain synthetic.
 
-**Current limitation:** the existing forecast-applicability PR's Rust code has not been independently executed by this design note. This document does not resolve its queued CI or the outstanding real-source capture. It is intentionally not represented as an executable end-to-end demonstration.
+**Current limitations:** the new contract evaluator and tests have been committed to this PR branch, but they have not yet been reported as passing an exact-head Rust workflow. The forecast-applicability PR #1651 and its queued workflow remain separate gates. The new evaluator validates only the frozen abstraction contract; it is not a physics simulation or end-to-end project integration. Real-source capture remains open.
