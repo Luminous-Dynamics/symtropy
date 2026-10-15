@@ -86,7 +86,10 @@ fn bool_is(value: &Value, key: &str, expected: bool) -> Result<(), &'static str>
 }
 
 fn sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn utc_timestamp(value: &str) -> bool {
@@ -185,8 +188,13 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
         return Err("UNSUPPORTED_SOURCE_BASIS");
     }
     let components = member(series, "components")?.as_array().ok_or("INVALID_FIELD_TYPE")?;
-    let component_set: BTreeSet<&str> = components.iter()
-        .map(|item| item.as_str().filter(|name| !name.trim().is_empty()).ok_or("INVALID_FIELD_TYPE"))
+    let component_set: BTreeSet<&str> = components
+        .iter()
+        .map(|item| {
+            item.as_str()
+                .filter(|name| !name.trim().is_empty())
+                .ok_or("INVALID_FIELD_TYPE")
+        })
         .collect::<Result<_, _>>()?;
     let expected_components: BTreeSet<&str> = COMPONENTS.iter().copied().collect();
     if component_set.len() != components.len() {
@@ -295,7 +303,12 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn verify_receipt_semantics(profile: &Value, receipt: &Value, receipt_bytes: &[u8], facts: &super::ReceiptFacts) -> Result<(), &'static str> {
+fn verify_receipt_semantics(
+    profile: &Value,
+    receipt: &Value,
+    receipt_bytes: &[u8],
+    facts: &super::ReceiptFacts,
+) -> Result<(), &'static str> {
     let source_kind = text(profile, "source_kind")?;
     let binding = member(profile, "receipt_binding")?;
     if text(binding, "receipt_id")? != facts.receipt_id
@@ -315,7 +328,14 @@ fn verify_receipt_semantics(profile: &Value, receipt: &Value, receipt_bytes: &[u
     }
     let profile_terms = member(profile, "terms")?;
     let receipt_terms = member(receipt, "terms")?;
-    for key in ["review_status", "license_name", "license_uri", "reviewer", "reviewed_at_utc", "terms_sha256"] {
+    for key in [
+        "review_status",
+        "license_name",
+        "license_uri",
+        "reviewer",
+        "reviewed_at_utc",
+        "terms_sha256",
+    ] {
         if member(profile_terms, key)? != member(receipt_terms, key)? {
             return Err("RECEIPT_TERMS_MISMATCH");
         }
@@ -348,7 +368,11 @@ struct ProfileReport {
     claim_ceiling: Vec<&'static str>,
 }
 
-pub(crate) fn run_cli(profile_path: &str, receipt_path: &str, artifact_override: Option<&str>) -> Result<(), String> {
+pub(crate) fn run_cli(
+    profile_path: &str,
+    receipt_path: &str,
+    artifact_override: Option<&str>,
+) -> Result<(), String> {
     use std::fs;
     use std::path::PathBuf;
 
@@ -371,14 +395,16 @@ pub(crate) fn run_cli(profile_path: &str, receipt_path: &str, artifact_override:
     let facts = super::validate_receipt(&receipt_strict)?;
     let receipt_value: Value = serde_json::from_slice(&receipt_bytes)
         .map_err(|error| format!("invalid receipt JSON: {error}"))?;
-    verify_receipt_semantics(&profile, &receipt_value, &receipt_bytes, &facts).map_err(str::to_owned)?;
+    verify_receipt_semantics(&profile, &receipt_value, &receipt_bytes, &facts)
+        .map_err(str::to_owned)?;
 
     let artifact_path = artifact_override
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(&facts.artifact.relative_path));
     let source_commit = std::env::var("MARITIME_SOURCE_COMMIT")
         .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
-    let receipt_report = super::verify(&receipt_bytes, &artifact_path, receipt_path, &source_commit)?;
+    let receipt_report =
+        super::verify(&receipt_bytes, &artifact_path, receipt_path, &source_commit)?;
 
     let series = member(&profile, "series").map_err(str::to_owned)?;
     let report = ProfileReport {
@@ -431,7 +457,10 @@ fn mutate_path(value: &mut Value, path: &str, mutation: &Value) -> Result<(), &'
     match mutation["op"].as_str().ok_or("INVALID_CORPUS_MUTATION")? {
         "set" => {
             if !object.contains_key(leaf) { return Err("INVALID_CORPUS_MUTATION"); }
-            object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
+            object.insert(
+                leaf.to_owned(),
+                mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?,
+            );
         }
         "insert" => {
             object.insert(leaf.to_owned(), mutation.get("value").cloned().ok_or("INVALID_CORPUS_MUTATION")?);
@@ -451,7 +480,9 @@ mod tests {
 
     #[test]
     fn frozen_plsci_profile_corpus_matches_expected_dispositions() {
-        let corpus: Value = serde_json::from_str(include_str!("../tests/fixtures/plsci-profile-corpus-v0.1.json"))
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/plsci-profile-corpus-v0.1.json"
+        ))
             .expect("frozen PLSCI profile corpus must be valid JSON");
         assert_eq!(corpus["corpus_id"], "luminous.symtropy.maritime-plsci-profile-corpus");
         assert_eq!(corpus["corpus_version"], "0.1.0");
@@ -463,7 +494,11 @@ mod tests {
             let base = case["base"].as_str().expect("base profile");
             let mut candidate = bases.get(base).expect("declared base profile").clone();
             for mutation in case["mutations"].as_array().expect("mutation list") {
-                mutate_path(&mut candidate, mutation["path"].as_str().expect("mutation path"), mutation)
+                mutate_path(
+                    &mut candidate,
+                    mutation["path"].as_str().expect("mutation path"),
+                    mutation,
+                )
                     .unwrap_or_else(|error| panic!("{id}: invalid corpus mutation: {error}"));
             }
             let actual = match validate_profile(&candidate) {
@@ -476,7 +511,9 @@ mod tests {
 
     #[test]
     fn profile_schema_is_valid_json_and_pins_the_same_identity() {
-        let schema: Value = serde_json::from_str(include_str!("../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"))
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
+        ))
             .expect("PLSCI profile schema must be valid JSON");
         assert_eq!(
             schema["properties"]["schema_id"]["const"],
@@ -484,13 +521,21 @@ mod tests {
         );
         assert_eq!(schema["properties"]["schema_version"]["const"], "0.1.0");
         assert_eq!(schema["properties"]["series"]["properties"]["spatial_level"]["const"], "port");
-        assert_eq!(schema["properties"]["series"]["properties"]["temporal_frequency"]["const"], "quarterly");
-        assert_eq!(schema["properties"]["series"]["properties"]["benchmark_period"]["const"], "2023-Q1");
+        assert_eq!(
+            schema["properties"]["series"]["properties"]["temporal_frequency"]["const"],
+            "quarterly"
+        );
+        assert_eq!(
+            schema["properties"]["series"]["properties"]["benchmark_period"]["const"],
+            "2023-Q1"
+        );
     }
 
     #[test]
     fn source_port_ids_are_not_treated_as_locodes_or_terminal_ids() {
-        let profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-plsci-profile.json"))
+        let profile: Value = serde_json::from_str(include_str!(
+            "../tests/fixtures/synthetic-plsci-profile.json"
+        ))
             .expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
         assert_eq!(profile["selection"]["source_port_ids"][0], "SYNTH-001");
@@ -509,7 +554,9 @@ mod tests {
 
         let mut changed = profile.clone();
         changed["receipt_binding"]["receipt_sha256"] =
-            Value::String("0000000000000000000000000000000000000000000000000000000000000000".to_owned());
+            Value::String(
+                "0000000000000000000000000000000000000000000000000000000000000000".to_owned(),
+            );
         assert_eq!(
             super::verify_receipt_semantics(&changed, &receipt, receipt_bytes, &facts),
             Err("RECEIPT_BINDING_MISMATCH")
@@ -521,7 +568,7 @@ mod tests {
         let profile: Value = serde_json::from_str(include_str!("../tests/fixtures/synthetic-plsci-profile.json"))
             .expect("synthetic profile");
         assert!(validate_profile(&profile).is_ok());
-        assert_eq!(profile["intended_use"]["navigation_authorized"], false);
-        assert_eq!(profile["intended_use"]["physical_truth_claim_authorized"], false);
+        assert!(!profile["intended_use"]["navigation_authorized"].as_bool().expect("boolean"));
+        assert!(!profile["intended_use"]["physical_truth_claim_authorized"].as_bool().expect("boolean"));
     }
 }
