@@ -35,6 +35,20 @@ Receipt implications:
 - retain source facility IDs and record status, publication age and all relevant units;
 - a public catalog is a discovery lead, not proof that a value is current, correct for a specific design, or licensed for arbitrary redistribution.
 
+## Separate S-100 profile layer
+
+The generic receipt remains deliberately product-agnostic. Product-specific metadata and receipt cross-checks live in the separate [S-100 profile envelope](./MARITIME_S100_PROFILE_V0_1.schema.json), with synthetic S-102/S-104/S-111 cases in `crates/tools/maritime-data-receipt/tests/fixtures/s100-profile-corpus-v0.1.json`.
+
+The offline profile verification mode is:
+
+```text
+cargo run --locked -p maritime-data-receipt -- --validate-s100-profile <profile-json-path> <receipt-json-path> [artifact-path-override]
+```
+
+It checks profile schema/required fields, product-specific unit vocabulary, edition/revision pinning, required datum and validity metadata, freshness-window status, explicit transformation receipt, terms-review state, and no-authority flags. It then binds profile source kind, IHO product/domain mapping, dataset ID/revision, declared CRS, vertical reference, units, data time coverage and uncertainty statement to the exact receipt; the profile's receipt ID and receipt SHA-256 are cross-checked, and the existing receipt verifier hashes the exact artifact bytes. Any mismatch rejects the profile.
+
+The S-100 profile report remains `NotAdmitted`. It is not an S-100 payload decoder or IHO product validation engine, and does not establish a publisher's authenticity, product correctness, navigational suitability, under-keel clearance, physical truth, or operating authority. Product-spec editions must be pinned from the authoritative IHO registry for the specific dataset/use date; the synthetic corpus's edition strings are test inputs, not an authoritative release registry.
+
 ## Receipt fields
 
 The normative structure is [`MARITIME_DATA_RECEIPT_V0_1.schema.json`](./MARITIME_DATA_RECEIPT_V0_1.schema.json). The Rust checker additionally enforces source-kind-specific constraints and hashes the exact local artifact bytes without network access or normalization.
