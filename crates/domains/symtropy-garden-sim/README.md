@@ -22,6 +22,20 @@ cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml
 cargo clippy --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets -- -D warnings
 ```
 
+## Exact nutrient contribution
+
+The crate also evaluates one nutrient contribution from a source-pinned food-composition row and an already-calculated edible-delivery mass:
+
+- Composition is scoped to an exact food record and food/preparation state, with a nutrient-definition reference, unit, source reference, evidence class and explicit decimal scale.
+- Delivery is expressed as grams of edible food actually delivered, not gross harvest biomass. The upstream system must already account for edible fraction, loss and allocation.
+- A missing composition value returns `NotAssessable`, not a zero contribution. A food identity, preparation-state, scale or provenance mismatch blocks calculation.
+- The output is an exact rational numerator/denominator in the stated nutrient unit. It avoids rounding and floating-point arithmetic; wide JSON integers are decimal strings.
+- This calculation does not authenticate evidence, choose crops, infer yields or requirements, aggregate a diet, or prove nutrient adequacy.
+
+The synthetic test fixture declares 250 mg per 100 g at scale 1,000 and 75 g of edible food delivered. The exact contribution is represented as (18{,}750{,}000 / 100{,}000 = 187.5) mg. These values test arithmetic only; they are not a claim about a real food.
+
+The next step is not to invent a crop catalogue: add a licensed, versioned composition source registry, explicit population targets and a seasonal production portfolio contract before implementing any optimizer.
+
 ## Claim ceiling
 
 The checker independently recomputes a declared interval balance from supplied quantities. It does not simulate fluid flow, infer water quality, predict crop yield, identify plants, model medicine stability, or prove physical validity. Inputs can still be wrong or fabricated; source references are not fetched or authenticated. A consistent accounting result is not proof that the physical model or external observation is correct.
