@@ -23,7 +23,7 @@ No network request is made. The caller is responsible for preserving exactly the
 
 The verifier rejects duplicate JSON object keys; missing or unknown fields; schema/version drift; traversal or absolute artifact paths declared inside the receipt; byte length or SHA-256 mismatches; invalid source/retrieval semantics; public-dataset records without HTTPS source/request URIs, retrieval time, a recorded reviewed-permitted terms decision, reviewer, review timestamp and terms digest; water-level records without a vertical datum; hydrography records without a CRS; and invalid unit, temporal, status or claim-ceiling declarations.
 
-A declared licence review is still a statement recorded by the receipt author. This tool does not independently interpret legal terms, authenticate publisher identity, check a source server, assess source quality/freshness, or establish that published values describe the physical world.
+The public-dataset `terms_sha256` is a declared digest: v0.1 checks its syntax but does not fetch or hash a separate terms-document artifact. A declared licence review is still a statement recorded by the receipt author. This tool does not independently interpret legal terms, authenticate publisher identity, check a source server, assess source quality/freshness, or establish that published values describe the physical world.
 
 ## Output claim ceiling
 
