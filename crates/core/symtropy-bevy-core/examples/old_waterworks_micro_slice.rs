@@ -52,6 +52,10 @@ const OLD_WATERWORKS_ROOM: RoomScaleSpec = RoomScaleSpec {
 };
 
 const INTERACTION_DISTANCE: f32 = OLD_WATERWORKS_ROOM.interaction_distance;
+
+/// Only solid prop meshes are collision obstacles; mounted pipes/signs/decals remain visual.
+const OLD_WATERWORKS_SOLID_PROP_LABELS: &[&str] =
+    &["valve wheel crossbar", "repair crate"];
 #[cfg(test)]
 const OLD_WATERWORKS_VISIBLE_PROP_COUNT: usize = OLD_WATERWORKS_PROP_SPECS.len();
 #[cfg(test)]
@@ -975,13 +979,15 @@ fn setup(
 
     // Low-cost silhouettes and decals for the material truth pass.
     for spec in OLD_WATERWORKS_PROP_SPECS {
-        commands.spawn((
+        let mut prop = commands.spawn((
             Name::new(spec.label),
             Mesh3d(cube_mesh.clone()),
             MeshMaterial3d(material_handles.get(spec.material)),
             Transform::from_translation(vec3(spec.position)).with_scale(vec3(spec.scale)),
-            FirstPersonObstacle::new(vec3(spec.scale) * 0.5),
         ));
+        if OLD_WATERWORKS_SOLID_PROP_LABELS.contains(&spec.label) {
+            prop.insert(FirstPersonObstacle::new(vec3(spec.scale) * 0.5));
+        }
     }
 
     commands.spawn((
@@ -2554,6 +2560,10 @@ mod tests {
         assert!(collision.skin_width > 0.0);
         assert!(collision.max_slide_iterations >= 2);
         assert!(OLD_WATERWORKS_PROP_SPECS.iter().any(|spec| spec.label == "repair crate"));
+        assert_eq!(
+            OLD_WATERWORKS_SOLID_PROP_LABELS,
+            &["valve wheel crossbar", "repair crate"]
+        );
     }
 
     #[test]
