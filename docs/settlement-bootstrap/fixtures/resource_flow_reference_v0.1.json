@@ -1206,6 +1206,38 @@
         "acceptance_min",
         "acceptance_max"
       ],
+      "canonicalization_negative_controls": [
+        {
+          "id": "rehash_whitespace",
+          "mutation": "insert_space_after_open_brace",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL"
+        },
+        {
+          "id": "rehash_duplicate_member",
+          "mutation": "duplicate_asset_id_member",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL"
+        },
+        {
+          "id": "rehash_nonfinite_number",
+          "mutation": "replace_measurement_with_nan",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        },
+        {
+          "id": "rehash_negative_zero",
+          "mutation": "replace_measurement_with_negative_zero",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_NONCANONICAL"
+        },
+        {
+          "id": "invalid_utf8_string",
+          "mutation": "set_payload_to_lone_surrogate",
+          "recompute_artifact_digest": false,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        }
+      ],
       "scope": "Only the named fixture record is content-bound in v0.1; other evidence cases still test field semantics with syntax-shaped digest fixtures. This does not authenticate issuer identity or establish physical truth."
     }
   },
