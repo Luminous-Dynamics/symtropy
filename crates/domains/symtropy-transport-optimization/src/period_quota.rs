@@ -585,7 +585,12 @@ mod tests {
     fn rejects_unknown_unused_duplicate_and_unit_mismatched_uses() {
         let q = quota("quota-a", "edge-a", "daily", 200, 300, 10);
         assert_eq!(
-            validate_period_capacity_plan(&[use_of("use-a", "missing", 1)], &[q.clone()], 100, &policy()),
+            validate_period_capacity_plan(
+                &[use_of("use-a", "missing", 1)],
+                &[q.clone()],
+                100,
+                &policy()
+            ),
             Err(PeriodCapacityError::UnknownQuota)
         );
         assert_eq!(
