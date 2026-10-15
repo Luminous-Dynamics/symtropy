@@ -153,6 +153,7 @@ pub enum ThermodynamicLedgerError {
     InvalidPhiChange,
     InvalidBitCount,
     InvalidState,
+    UnrepresentableTransfer,
     NumericalOverflow,
 }
 
@@ -164,6 +165,9 @@ impl std::fmt::Display for ThermodynamicLedgerError {
             Self::InvalidPhiChange => write!(f, "Phi delta must be finite and in [-1, 1]"),
             Self::InvalidBitCount => write!(f, "bit count must be finite and nonnegative"),
             Self::InvalidState => write!(f, "thermodynamic ledger state is invalid"),
+            Self::UnrepresentableTransfer => {
+                write!(f, "nonzero transfer is too small to represent in the ledger")
+            }
             Self::NumericalOverflow => write!(f, "ledger operation produced a non-finite result"),
         }
     }
@@ -248,12 +252,16 @@ impl ThermodynamicLedger {
         }
 
         let new_energy_in = self.energy_in + energy_cost;
-        let phi_weighted_cost = energy_cost * phi;
+        if !new_energy_in.is_finite() {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        let actual_energy_added = new_energy_in - self.energy_in;
+        if energy_cost > 0.0 && actual_energy_added <= 0.0 {
+            return Err(ThermodynamicLedgerError::UnrepresentableTransfer);
+        }
+        let phi_weighted_cost = actual_energy_added * phi;
         let new_phi_energy_integral = self.phi_energy_integral + phi_weighted_cost;
-        if !new_energy_in.is_finite()
-            || !phi_weighted_cost.is_finite()
-            || !new_phi_energy_integral.is_finite()
-        {
+        if !phi_weighted_cost.is_finite() || !new_phi_energy_integral.is_finite() {
             return Err(ThermodynamicLedgerError::NumericalOverflow);
         }
 
@@ -284,6 +292,9 @@ impl ThermodynamicLedger {
         if !new_energy_out.is_finite() {
             return Err(ThermodynamicLedgerError::NumericalOverflow);
         }
+        if energy > 0.0 && new_energy_out <= self.energy_out {
+            return Err(ThermodynamicLedgerError::UnrepresentableTransfer);
+        }
         self.energy_out = new_energy_out;
         Ok(())
     }
@@ -308,6 +319,9 @@ impl ThermodynamicLedger {
         let new_phi_change_total = self.phi_change_total + delta_phi.abs();
         if !new_phi_change_total.is_finite() {
             return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        if delta_phi != 0.0 && new_phi_change_total <= self.phi_change_total {
+            return Err(ThermodynamicLedgerError::UnrepresentableTransfer);
         }
         self.phi_change_total = new_phi_change_total;
         Ok(())
@@ -407,6 +421,9 @@ impl ThermodynamicLedger {
         let floor = LANDAUER_BOUND_310K * bits;
         if !floor.is_finite() {
             return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        if bits > 0.0 && floor == 0.0 {
+            return Err(ThermodynamicLedgerError::UnrepresentableTransfer);
         }
         Ok(floor)
     }
@@ -585,6 +602,44 @@ mod tests {
         assert!(balance.conservation_error.is_infinite());
         assert!(ledger.energy_in.is_nan());
         assert_eq!(ledger.tick_count, 0);
+    }
+
+    #[test]
+    fn sub_ulp_ledger_transfers_are_rejected_without_mutation() {
+        let tiny = f64::EPSILON / 4.0;
+
+        let mut action_ledger = ThermodynamicLedger::new();
+        action_ledger.energy_in = 100.0;
+        assert_eq!(
+            action_ledger.try_record_action(tiny, 0.5),
+            Err(ThermodynamicLedgerError::UnrepresentableTransfer)
+        );
+        assert_eq!(action_ledger.energy_in, 100.0);
+        assert_eq!(action_ledger.phi_energy_integral, 0.0);
+
+        let mut dissipation_ledger = ThermodynamicLedger::new();
+        dissipation_ledger.energy_out = 100.0;
+        assert_eq!(
+            dissipation_ledger.try_record_dissipation(tiny),
+            Err(ThermodynamicLedgerError::UnrepresentableTransfer)
+        );
+        assert_eq!(dissipation_ledger.energy_out, 100.0);
+
+        let mut phi_ledger = ThermodynamicLedger::new();
+        phi_ledger.phi_change_total = 1.0;
+        assert_eq!(
+            phi_ledger.try_record_phi_change(tiny),
+            Err(ThermodynamicLedgerError::UnrepresentableTransfer)
+        );
+        assert_eq!(phi_ledger.phi_change_total, 1.0);
+    }
+
+    #[test]
+    fn landauer_floor_fails_closed_when_positive_bound_underflows_to_zero() {
+        assert_eq!(
+            ThermodynamicLedger::try_landauer_floor(f64::MIN_POSITIVE),
+            Err(ThermodynamicLedgerError::UnrepresentableTransfer)
+        );
     }
 
     #[test]
