@@ -1263,9 +1263,9 @@ mod tests {
     }
 
     #[test]
-    fn rms_avoids_intermediate_overflow_when_the_aggregate_is_representable() {
+    fn large_representable_errors_do_not_overflow_norm_or_rms() {
         let mut left = one_sample_trace();
-        left.samples[0].bodies[0].position_m = [1.0e154, 0.0, 0.0];
+        left.samples[0].bodies[0].position_m = [1.0e200, 0.0, 0.0];
         let mut second = left.samples[0].bodies[0].clone();
         second.body_id = ValidationBodyId(2);
         left.samples[0].bodies.push(second);
@@ -1276,8 +1276,8 @@ mod tests {
         }
 
         let metrics = compare_traces_3d(&left, &right).unwrap();
-        assert_eq!(metrics.max_position_error_m, Some(1.0e154));
-        assert_eq!(metrics.rms_position_error_m, Some(1.0e154));
+        assert_eq!(metrics.max_position_error_m, Some(1.0e200));
+        assert_eq!(metrics.rms_position_error_m, Some(1.0e200));
         assert_eq!(metrics.finite_comparison_pairs, 2);
         assert!(metrics.has_complete_finite_coverage());
     }
