@@ -547,5 +547,451 @@
         }
       }
     ]
+  },
+  "service_evidence_reference": {
+    "contract_version": "0.1.0",
+    "authority": "NON_AUTHORITATIVE_SYNTHETIC_REFERENCE",
+    "time_semantics": "All timestamps and measurements are fabricated fixture values. The evaluator tests record semantics only, not authenticated physical truth.",
+    "digest_semantics": "Digest strings are syntax fixtures. This corpus does not claim to fetch or hash an evidence artifact, authenticate issuers, or establish a trust root.",
+    "availability_rule": "Only current, scope-matched, non-revoked evidence with valid method/calibration, compatible units, an in-bounds result, and freshness within the declared evaluation profile may yield VERIFIED_AVAILABLE_CANDIDATE. That label is still only a contract-evaluation result, not physical availability proof.",
+    "target": {
+      "asset_id": "water-pump-7",
+      "asset_revision": 8,
+      "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scope_id": "habitat-central-water-loop",
+      "evaluation_time": "2042-01-01T12:00:00Z",
+      "max_age_seconds": 86400,
+      "unit": "synthetic-index",
+      "acceptance_criterion_id": "synthetic-pressure-band-v1"
+    },
+    "cases": [
+      {
+        "id": "fresh_qualified_evidence",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "VERIFIED_AVAILABLE_CANDIDATE"
+      },
+      {
+        "id": "stale_evidence",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2041-12-30T12:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "NOT_AVAILABLE_STALE"
+      },
+      {
+        "id": "future_observation_time",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T12:00:01Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_FUTURE_OBSERVATION"
+      },
+      {
+        "id": "asset_revision_mismatch",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 7,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_SCOPE_MISMATCH"
+      },
+      {
+        "id": "configuration_scope_mismatch",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_SCOPE_MISMATCH"
+      },
+      {
+        "id": "revoked_evidence",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "REVOKED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_REVOKED"
+      },
+      {
+        "id": "superseded_evidence",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "SUPERSEDED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_SUPERSEDED"
+      },
+      {
+        "id": "missing_method_or_calibration",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "UNKNOWN",
+            "calibration_id": null,
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_INCOMPLETE_QUALIFICATION"
+      },
+      {
+        "id": "expired_calibration",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "EXPIRED",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_CALIBRATION_EXPIRED"
+      },
+      {
+        "id": "measurement_outside_acceptance",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1.5,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "FAIL_ACCEPTANCE"
+      },
+      {
+        "id": "unit_mismatch",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-mass",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_UNIT_MISMATCH"
+      },
+      {
+        "id": "invalid_artifact_digest",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "not-a-digest",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_INVALID_DIGEST"
+      },
+      {
+        "id": "reported_repair_without_post_repair_test",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "REPORTED_REPAIRED_UNVERIFIED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REQUALIFICATION_REQUIRED"
+      },
+      {
+        "id": "post_repair_test_for_old_revision",
+        "records": [
+          {
+            "evidence_id": "synthetic-evidence-01",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 7,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "POST_REPAIR_TEST_PASSED",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "REJECT_SCOPE_MISMATCH"
+      },
+      {
+        "id": "conflicting_current_observations",
+        "records": [
+          {
+            "evidence_id": "synthetic-current-a",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-a",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 0.9,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          },
+          {
+            "evidence_id": "synthetic-current-b",
+            "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "issuer_id": "synthetic-verifier-b",
+            "asset_id": "water-pump-7",
+            "asset_revision": 8,
+            "configuration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "scope_id": "habitat-central-water-loop",
+            "observed_at": "2042-01-01T10:00:00Z",
+            "valid_until": "2042-01-02T12:00:00Z",
+            "lifecycle_state": "CURRENT",
+            "method_id": "synthetic-test-method-v1",
+            "method_qualification": "QUALIFIED",
+            "calibration_id": "synthetic-calibration-v3",
+            "calibration_status": "VALID",
+            "acceptance_criterion_id": "synthetic-pressure-band-v1",
+            "measured_value": 1.1,
+            "unit": "synthetic-index",
+            "acceptance_min": 0.8,
+            "acceptance_max": 1.2
+          }
+        ],
+        "expected_status": "UNKNOWN_CONFLICTED",
+        "order_invariant": true
+      }
+    ]
   }
 }
