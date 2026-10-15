@@ -69,6 +69,7 @@ struct DispositionReport {
 #[derive(Debug, Clone, Copy)]
 struct EvidenceRequirementSpec {
     requirement_id: &'static str,
+    blocker_code: &'static str,
     trigger_blocker: &'static str,
     required_evidence_kind: &'static str,
     minimum_fields: &'static [&'static str],
@@ -78,6 +79,7 @@ struct EvidenceRequirementSpec {
 const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     EvidenceRequirementSpec {
         requirement_id: "terminal_window_confirmation",
+        blocker_code: "terminal_window_constraint",
         trigger_blocker: "terminal_window_open",
         required_evidence_kind: "authoritative_terminal_window_state",
         minimum_fields: &[
@@ -88,6 +90,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "water_level_envelope_evidence",
+        blocker_code: "water_level_envelope_constraint",
         trigger_blocker: "water_level_envelope_supported_and_satisfied",
         required_evidence_kind: "supported_water_level_envelope",
         minimum_fields: &[
@@ -98,6 +101,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "energy_reserve_assessment",
+        blocker_code: "energy_reserve_constraint",
         trigger_blocker: "energy_reserve_minimum_satisfied",
         required_evidence_kind: "qualified_energy_reserve_assessment",
         minimum_fields: &[
@@ -109,6 +113,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "forecast_temporal_binding",
+        blocker_code: "forecast_temporal_applicability",
         trigger_blocker: "forecast_temporal_applicability",
         required_evidence_kind: "byte_bound_forecast_timing_evidence",
         minimum_fields: &[
@@ -120,6 +125,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "waiting_resource_availability",
+        blocker_code: "waiting_resource_availability",
         trigger_blocker: "designated_waiting_resource_declared_available",
         required_evidence_kind: "waiting_resource_and_dependency_state",
         minimum_fields: &[
@@ -130,6 +136,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "alternate_terminal_capacity",
+        blocker_code: "alternate_terminal_capacity",
         trigger_blocker: "alternate_capacity_confirmed",
         required_evidence_kind: "authoritative_alternate_terminal_capacity_response",
         minimum_fields: &[
@@ -141,6 +148,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "holding_energy_model_support",
+        blocker_code: "holding_energy_model_unsupported",
         trigger_blocker: "declared energy behaviour while holding is outside the model scope",
         required_evidence_kind: "supported_holding_energy_model",
         minimum_fields: &[
@@ -152,6 +160,7 @@ const EVIDENCE_REQUIREMENTS: &[EvidenceRequirementSpec] = &[
     },
     EvidenceRequirementSpec {
         requirement_id: "alternate_terminal_model_support",
+        blocker_code: "alternate_terminal_model_unsupported",
         trigger_blocker: "alternate-terminal feasibility model not admitted",
         required_evidence_kind: "admitted_alternate_terminal_feasibility_model",
         minimum_fields: &[
@@ -171,6 +180,7 @@ struct EvidenceGapReport {
     case_id: String,
     plan_id: String,
     blocker_code: String,
+    blocker_reason: String,
     requirement_id: String,
     required_evidence_kind: String,
     minimum_fields: Vec<String>,
@@ -183,7 +193,8 @@ fn evidence_gap(case_id: &str, plan_id: &str, blocker: &str) -> Result<EvidenceG
     Ok(EvidenceGapReport {
         case_id: case_id.to_owned(),
         plan_id: plan_id.to_owned(),
-        blocker_code: blocker.to_owned(),
+        blocker_code: requirement.blocker_code.to_owned(),
+        blocker_reason: blocker.to_owned(),
         requirement_id: requirement.requirement_id.to_owned(),
         required_evidence_kind: requirement.required_evidence_kind.to_owned(),
         minimum_fields: requirement.minimum_fields.iter().map(|field| (*field).to_owned()).collect(),
@@ -514,6 +525,7 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             value,
             &[
                 "requirement_id",
+                "blocker_code",
                 "trigger_blocker",
                 "required_evidence_kind",
                 "minimum_fields",
@@ -525,6 +537,11 @@ fn validate_static_contract(root: &super::JsonValue) -> Result<(), String> {
             super::field(value, "requirement_id", &path)?,
             &format!("{path}.requirement_id"),
             expected.requirement_id,
+        )?;
+        super::expect_text(
+            super::field(value, "blocker_code", &path)?,
+            &format!("{path}.blocker_code"),
+            expected.blocker_code,
         )?;
         super::expect_text(
             super::field(value, "trigger_blocker", &path)?,
@@ -1181,17 +1198,17 @@ mod tests {
         }
     }
 
-    fn oracle_requirement_id(blocker: &str) -> &'static str {
+    fn oracle_requirement(blocker: &str) -> (&'static str, &'static str) {
         match blocker {
-            "terminal_window_open" => "terminal_window_confirmation",
-            "water_level_envelope_supported_and_satisfied" => "water_level_envelope_evidence",
-            "energy_reserve_minimum_satisfied" => "energy_reserve_assessment",
-            "forecast_temporal_applicability" => "forecast_temporal_binding",
-            "designated_waiting_resource_declared_available" => "waiting_resource_availability",
-            "alternate_capacity_confirmed" => "alternate_terminal_capacity",
-            "declared energy behaviour while holding is outside the model scope" => "holding_energy_model_support",
-            "alternate-terminal feasibility model not admitted" => "alternate_terminal_model_support",
-            _ => "unknown",
+            "terminal_window_open" => ("terminal_window_constraint", "terminal_window_confirmation"),
+            "water_level_envelope_supported_and_satisfied" => ("water_level_envelope_constraint", "water_level_envelope_evidence"),
+            "energy_reserve_minimum_satisfied" => ("energy_reserve_constraint", "energy_reserve_assessment"),
+            "forecast_temporal_applicability" => ("forecast_temporal_applicability", "forecast_temporal_binding"),
+            "designated_waiting_resource_declared_available" => ("waiting_resource_availability", "waiting_resource_availability"),
+            "alternate_capacity_confirmed" => ("alternate_terminal_capacity", "alternate_terminal_capacity"),
+            "declared energy behaviour while holding is outside the model scope" => ("holding_energy_model_unsupported", "holding_energy_model_support"),
+            "alternate-terminal feasibility model not admitted" => ("alternate_terminal_model_unsupported", "alternate_terminal_model_support"),
+            _ => ("unknown", "unknown"),
         }
     }
 
@@ -1302,7 +1319,7 @@ mod tests {
                     result.case_id.as_str(),
                     result.plan_id.as_str(),
                     blocker,
-                    oracle_requirement_id(blocker),
+                    oracle_requirement(blocker),
                 ));
             }
         }
@@ -1316,8 +1333,15 @@ mod tests {
                 gap.requirement_id.as_str(),
             ))
             .collect();
+        let expected_gaps = expected_gaps
+            .into_iter()
+            .map(|(case_id, plan_id, blocker, (blocker_code, requirement_id))| {
+                (case_id, plan_id, blocker_code, requirement_id)
+            })
+            .collect::<Vec<_>>();
         assert_eq!(actual_gaps, expected_gaps);
         for gap in &report.evidence_gaps {
+            assert_ne!(gap.blocker_code, "unknown");
             assert_ne!(gap.requirement_id, "unknown");
             assert!(!gap.minimum_fields.is_empty());
             assert!(!gap.resolution_scope.is_empty());
