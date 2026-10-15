@@ -1096,8 +1096,16 @@ mod tests {
             b"geotechnical evidence\n",
         );
         manifest["additional_inputs"] = json!([
-            {"input_id":"duplicate-input","role":"site_survey","artifact":site_survey},
-            {"input_id":"duplicate-input","role":"geotechnical_report","artifact":geotechnical}
+            {
+                "input_id": "duplicate-input",
+                "role": "site_survey",
+                "artifact": site_survey
+            },
+            {
+                "input_id": "duplicate-input",
+                "role": "geotechnical_report",
+                "artifact": geotechnical
+            }
         ]);
         let bytes = serde_json::to_vec_pretty(&manifest).unwrap();
         fs::write(&manifest_path, &bytes).unwrap();
@@ -1123,7 +1131,11 @@ mod tests {
             serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
         let building_model = manifest["building_model"].clone();
         manifest["additional_inputs"] = json!([
-            {"input_id":"site-survey-1","role":"site_survey","artifact":building_model}
+            {
+                "input_id": "site-survey-1",
+                "role": "site_survey",
+                "artifact": building_model
+            }
         ]);
         let bytes = serde_json::to_vec_pretty(&manifest).unwrap();
         fs::write(&manifest_path, &bytes).unwrap();
@@ -1147,11 +1159,12 @@ mod tests {
         );
         let mut manifest: Value =
             serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
-        manifest["additional_inputs"] = json!([
+        let retained_inputs = vec![
             manifest["additional_inputs"][0].clone(),
             manifest["additional_inputs"][1].clone(),
-            manifest["additional_inputs"][2].clone()
-        ]);
+            manifest["additional_inputs"][2].clone(),
+        ];
+        manifest["additional_inputs"] = json!(retained_inputs);
         let bytes = serde_json::to_vec_pretty(&manifest).unwrap();
         fs::write(&manifest_path, &bytes).unwrap();
         receipt["project_input_manifest"]["sha256"] = json!(sha256_hex(&bytes));
@@ -1172,10 +1185,11 @@ mod tests {
     fn missing_profile_required_gate_blocks_scope() {
         let root = TestRoot::new();
         let (_registry, mut receipt, registry_path) = positive_case(root.path());
-        receipt["evaluation_gate_evidence"] = json!([
+        let retained_gates = vec![
             receipt["evaluation_gate_evidence"][0].clone(),
-            receipt["evaluation_gate_evidence"][1].clone()
-        ]);
+            receipt["evaluation_gate_evidence"][1].clone(),
+        ];
+        receipt["evaluation_gate_evidence"] = json!(retained_gates);
         let receipt_path = root.path().join("receipt.json");
         fs::write(&receipt_path, serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
 
