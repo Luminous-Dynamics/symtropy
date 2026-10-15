@@ -1149,17 +1149,21 @@ pub fn evaluate_nutrient_supply_scenario(
             );
         }
 
-        if line.delivery.delivery_source_ref.trim().is_empty() {
-            // The single-line assessment already reports the missing source.
-        } else if seen_delivery_refs.contains(&line.delivery.delivery_source_ref) {
-            push_portfolio_blocker(
-                &mut blockers,
-                Some(line_index),
-                NutrientPortfolioBlockerCode::DuplicateDeliverySource,
-                "delivery source reference is repeated; counting it again could double-count supply",
-            );
-        } else {
-            seen_delivery_refs.push(line.delivery.delivery_source_ref.clone());
+        let delivery_source_ref = line.delivery.delivery_source_ref.trim();
+        if !delivery_source_ref.is_empty() {
+            if seen_delivery_refs
+                .iter()
+                .any(|existing| existing.as_str() == delivery_source_ref)
+            {
+                push_portfolio_blocker(
+                    &mut blockers,
+                    Some(line_index),
+                    NutrientPortfolioBlockerCode::DuplicateDeliverySource,
+                    "delivery source reference is repeated; counting it again could double-count supply",
+                );
+            } else {
+                seen_delivery_refs.push(delivery_source_ref.to_owned());
+            }
         }
 
         add_unique_source(
