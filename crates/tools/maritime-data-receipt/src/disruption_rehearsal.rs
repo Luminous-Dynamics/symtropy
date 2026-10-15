@@ -209,7 +209,7 @@ fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<RehearsalReport, 
     super::expect_text(
         super::field(&root, "fixture_status", "rehearsal")?,
         "rehearsal.fixture_status",
-        "design_fixture_not_yet_executable",
+        "synthetic_contract_evaluable_physics_not_executed",
     )?;
     super::expect_text(
         super::field(&root, "source_kind", "rehearsal")?,
