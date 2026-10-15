@@ -140,6 +140,16 @@ struct ArtifactExpectation {
 struct ReceiptFacts {
     receipt_id: String,
     source_kind: String,
+    product: String,
+    dataset_id: String,
+    dataset_revision: String,
+    domain: String,
+    coordinate_reference_system: Option<String>,
+    vertical_datum: Option<String>,
+    units: Vec<String>,
+    time_coverage_start_utc: Option<String>,
+    time_coverage_end_utc: Option<String>,
+    survey_or_observation_time_utc: Option<String>,
     artifact: ArtifactExpectation,
 }
 
@@ -362,15 +372,15 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     if kind != "synthetic_fixture" && kind != "public_dataset" {
         return Err("source.kind: unsupported source kind".to_owned());
     }
-    for key in ["publisher", "dataset_id", "product", "dataset_revision"] {
-        require_nonempty_text(field(source, key, "source")?, &format!("source.{key}"))?;
-    }
+    require_nonempty_text(field(source, "publisher", "source")?, "source.publisher")?;
+    let dataset_id = require_nonempty_text(field(source, "dataset_id", "source")?, "source.dataset_id")?.to_owned();
     let product = text(field(source, "product", "source")?, "source.product")?;
     let supported_products = ["water_level", "water_level_prediction", "currents", "hydrography", "port_facility", "other"];
     if !supported_products.contains(&product) {
         return Err(format!("source.product: unsupported value {product:?}"));
     }
     let revision = text(field(source, "dataset_revision", "source")?, "source.dataset_revision")?;
+    let dataset_revision = revision.to_owned();
     let normalized_revision = revision.to_ascii_lowercase();
     if ["latest", "unknown", "unspecified"].contains(&normalized_revision.as_str()) {
         return Err("source.dataset_revision must be pinned, not latest/unknown/unspecified".to_owned());
@@ -438,6 +448,14 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     for key in ["coordinate_reference_system", "vertical_datum"] {
         let _ = optional_text(field(context, key, "data_context")?, &format!("data_context.{key}"))?;
     }
+    let coordinate_reference_system = optional_text(
+        field(context, "coordinate_reference_system", "data_context")?,
+        "data_context.coordinate_reference_system",
+    )?.map(str::to_owned);
+    let vertical_datum = optional_text(
+        field(context, "vertical_datum", "data_context")?,
+        "data_context.vertical_datum",
+    )?.map(str::to_owned);
     if ["water_level", "water_level_prediction"].contains(&domain)
         && optional_text(field(context, "vertical_datum", "data_context")?, "data_context.vertical_datum")?.is_none()
     {
@@ -494,6 +512,9 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
             _ => {}
         }
     }
+    let receipt_units = units.iter().enumerate().map(|(index, unit)| {
+        require_nonempty_text(unit, &format!("data_context.units[{index}]")).map(str::to_owned)
+    }).collect::<Result<Vec<_>, _>>()?;
     let verification_state = require_nonempty_text(
         field(context, "verification_state", "data_context")?,
         "data_context.verification_state",
@@ -593,6 +614,16 @@ fn validate_receipt(root: &JsonValue) -> Result<ReceiptFacts, String> {
     Ok(ReceiptFacts {
         receipt_id,
         source_kind: kind,
+        product: product.to_owned(),
+        dataset_id,
+        dataset_revision,
+        domain: domain.to_owned(),
+        coordinate_reference_system,
+        vertical_datum,
+        units: receipt_units,
+        time_coverage_start_utc: coverage_start.map(str::to_owned),
+        time_coverage_end_utc: coverage_end.map(str::to_owned),
+        survey_or_observation_time_utc: observation_time.map(str::to_owned),
         artifact: ArtifactExpectation { relative_path, byte_length, sha256 },
     })
 }
