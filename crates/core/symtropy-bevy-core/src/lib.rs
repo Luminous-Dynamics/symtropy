@@ -178,6 +178,8 @@ impl FirstPersonObstacle {
 pub struct FirstPersonMoveResult {
     pub displacement: Vec3,
     pub blocking_normals: Vec<Vec2>,
+    /// True when invalid input or obstacle geometry forced a fail-closed stop.
+    pub fail_closed: bool,
 }
 
 /// Resolve horizontal movement against static axis-aligned obstacle bounds.
@@ -195,6 +197,7 @@ pub fn resolve_first_person_motion(
     let stopped = || FirstPersonMoveResult {
         displacement: Vec3::ZERO,
         blocking_normals: Vec::new(),
+        fail_closed: true,
     };
     if !start.is_finite() || !desired_displacement.is_finite() {
         return stopped();
@@ -218,6 +221,7 @@ pub fn resolve_first_person_motion(
         return FirstPersonMoveResult {
             displacement: Vec3::ZERO,
             blocking_normals,
+            fail_closed: false,
         };
     }
 
@@ -296,6 +300,7 @@ pub fn resolve_first_person_motion(
     FirstPersonMoveResult {
         displacement: applied,
         blocking_normals,
+        fail_closed: false,
     }
 }
 
@@ -936,10 +941,15 @@ pub fn first_person_move_system(
                 &obstacle_bounds,
             );
             if let Some(motion) = motion.as_deref_mut() {
-                remove_velocity_into_blocking_normals(
-                    &mut motion.horizontal_velocity,
-                    &result.blocking_normals,
-                );
+                if result.fail_closed {
+                    // Do not preserve momentum through an invalid collision world.
+                    motion.stop();
+                } else {
+                    remove_velocity_into_blocking_normals(
+                        &mut motion.horizontal_velocity,
+                        &result.blocking_normals,
+                    );
+                }
             }
             result.displacement
         } else {
@@ -1312,6 +1322,7 @@ mod tests {
         );
 
         assert_eq!(result.displacement, Vec3::ZERO);
+        assert!(result.fail_closed);
     }
 
     #[test]
@@ -1362,6 +1373,7 @@ mod tests {
                 Vec3::ZERO,
                 "invalid obstacle bounds must not be treated as empty space",
             );
+            assert!(result.fail_closed);
         }
     }
 
