@@ -1,0 +1,60 @@
+name: Maritime Data Receipt Verification
+
+on:
+  pull_request:
+    paths:
+      - 'crates/tools/maritime-data-receipt/**'
+      - 'docs/tech/MARITIME_DATA_RECEIPT_V0_1.schema.json'
+      - 'docs/tech/MARITIME_DATA_RECEIPT_V0_1.md'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.gitignore'
+      - '.github/workflows/maritime-data-receipt.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  MARITIME_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  verify:
+    name: Verify receipt metadata and exact bytes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run receipt hostile/reference tests
+        run: cargo test --locked -p maritime-data-receipt
+
+      - name: Verify synthetic receipt and exact payload bytes
+        run: cargo run --locked -p maritime-data-receipt -- crates/tools/maritime-data-receipt/tests/fixtures/synthetic-water-level-receipt.json
+
+      - name: Clippy receipt verifier
+        run: cargo clippy --locked -p maritime-data-receipt --all-targets -- -D warnings
+
+      - name: Clean postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          status="$(git status --porcelain --untracked-files=all)"
+          if [[ -n "$status" ]]; then
+            printf '%s\n' "$status"
+            exit 1
+          fi
