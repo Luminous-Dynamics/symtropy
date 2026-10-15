@@ -44,7 +44,7 @@ A result only evaluates the declared metadata and policy bounds. It does not par
 
 ## Frozen corpus
 
-The 22-case corpus at `crates/tools/maritime-data-receipt/tests/fixtures/forecast-applicability-corpus-v0.1.json` mutates a synthetic baseline to test issue age, look-ahead, initialization chronology, target-window boundaries, inclusive policy boundaries, unknown quality, mutable revisions, receipt binding, product-kind/provider-ID separation, invalid year-zero timestamps and attempted authority escalation. The test-only oracle recomputes UTC epoch seconds via a separate Gregorian loop and independently checks ordering, age and lead for the positive baseline; it does not call the production parser/conversion.
+The 22-case corpus at `crates/tools/maritime-data-receipt/tests/fixtures/forecast-applicability-corpus-v0.1.json` mutates a synthetic baseline to test issue age, look-ahead, initialization chronology, target-window boundaries, inclusive policy boundaries, unknown quality, mutable revisions, receipt binding, product-kind/provider-ID separation, invalid year-zero timestamps and attempted authority escalation. The test-only oracle evaluates every frozen case using a separate Gregorian parser, fixed baseline receipt/artifact bindings and independent policy comparisons. It does not call the production parser or epoch conversion; the positive baseline additionally checks reported issue age and forecast lead.
 
 ## Claim ceiling
 
