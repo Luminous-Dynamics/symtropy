@@ -561,6 +561,7 @@
       "scope_id": "habitat-central-water-loop",
       "evaluation_time": "2042-01-01T12:00:00Z",
       "max_age_seconds": 86400,
+      "max_artifact_payload_bytes": 65536,
       "unit": "synthetic-index",
       "acceptance_criterion_id": "synthetic-pressure-band-v1"
     },
@@ -1254,6 +1255,12 @@
           "mutation": "replace_payload_with_deeply_nested_array",
           "recompute_artifact_digest": true,
           "expected_status": "REJECT_ARTIFACT_PAYLOAD_INVALID"
+        },
+        {
+          "id": "oversized_claim_payload",
+          "mutation": "pad_payload_beyond_declared_byte_limit",
+          "recompute_artifact_digest": true,
+          "expected_status": "REJECT_ARTIFACT_PAYLOAD_TOO_LARGE"
         }
       ],
       "scope": "Only the named fixture record is content-bound in v0.1; other evidence cases still test field semantics with syntax-shaped digest fixtures. This does not authenticate issuer identity or establish physical truth."
