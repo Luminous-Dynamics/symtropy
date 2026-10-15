@@ -38,7 +38,8 @@
     "survey_or_observation_time_utc": "2026-10-14T12:00:00Z",
     "verification_state": "synthetic",
     "uncertainty_statement": "Not applicable: this value is an invented test datum, not a physical observation.",
-    "freshness_policy": "not_applicable_synthetic"
+    "freshness_policy": "not_applicable_synthetic",
+    "freshness_policy_description": "Not applicable to an invented fixture; public datasets require an explicit policy statement and source-specific age limits."
   },
   "terms": {
     "review_status": "not_applicable_synthetic",
