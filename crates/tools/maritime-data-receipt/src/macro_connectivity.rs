@@ -751,6 +751,32 @@ mod tests {
     }
 
     #[test]
+    fn terms_snapshot_one_byte_drift_fails_digest_when_length_is_updated() {
+        use std::fs;
+
+        let original =
+            include_bytes!("../tests/fixtures/synthetic-plsci-terms-snapshot.txt");
+        let mut changed = original.to_vec();
+        changed.push(b' ');
+        let path = std::env::temp_dir().join(format!(
+            "symtropy-plsci-terms-drift-{}.txt",
+            std::process::id()
+        ));
+        fs::write(&path, &changed).expect("write temporary terms snapshot");
+
+        // Keep the declared length honest: this must fail on SHA-256, not length.
+        let result = verify_terms_snapshot(
+            &path,
+            changed.len() as u64,
+            "6d8f9943914a11445991bd478b807f322c81d459d6d3dba8112a63c5851471c5",
+        );
+        let _ = fs::remove_file(&path);
+
+        let error = result.expect_err("one-byte terms drift must fail exact-digest verification");
+        assert!(error.contains("terms snapshot SHA-256 mismatch"));
+    }
+
+    #[test]
     fn profile_schema_is_valid_json_and_pins_the_same_identity() {
         let schema_text = include_str!(
             "../../../../docs/tech/MARITIME_PLSCI_PROFILE_V0_1.schema.json"
