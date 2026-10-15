@@ -110,6 +110,14 @@ fn require_tokens(values: &[String], required: &[&str], path: &str, errors: &mut
     }
 }
 
+fn require_exact_sequence(values: &[String], expected: &[&str], path: &str, errors: &mut Vec<String>) {
+    let matches = values.len() == expected.len()
+        && values.iter().zip(expected.iter()).all(|(actual, expected)| actual.as_str() == *expected);
+    if !matches {
+        errors.push(format!("{path}: expected exact ordered sequence [{}]", expected.join(", ")));
+    }
+}
+
 /// Validates the Joy Worlds experience-portfolio manifest structurally.
 ///
 /// A successful result establishes manifest consistency only. It does not
@@ -374,7 +382,7 @@ pub fn validate_decision_contract_json(raw: &str) -> Result<(), Vec<String>> {
 
     if let Some(policy) = document.get("hard_constraint_policy") {
         let order = required_strings(policy, "evaluation_order", "$.hard_constraint_policy", 4, &mut errors);
-        require_tokens(
+        require_exact_sequence(
             &order,
             &["rights_and_feasibility_screen", "hard_constraint_screen", "pareto_analysis", "robustness_analysis"],
             "$.hard_constraint_policy.evaluation_order",
@@ -410,7 +418,7 @@ pub fn validate_decision_contract_json(raw: &str) -> Result<(), Vec<String>> {
     );
 
     let gates = required_strings(&document, "gate_order", "$", 8, &mut errors);
-    require_tokens(
+    require_exact_sequence(
         &gates,
         &[
             "rights_and_feasibility_envelope",
@@ -713,6 +721,18 @@ mod tests {
         ]);
         let errors = validate_decision_contract_json(&document.to_string()).unwrap_err();
         assert!(errors.iter().any(|error| error.contains("no_autonomous_physical_actuation")));
+    }
+
+    #[test]
+    fn rejects_decision_contract_when_gate_order_is_changed() {
+        let mut document = valid_decision_contract();
+        document["gate_order"] = json!([
+            "rights_and_feasibility_envelope", "meaningful_alternatives", "hard_constraint_screen",
+            "scenario_set", "separate_outcome_vector", "pareto_and_robustness",
+            "staged_investment_gate", "decision_receipt"
+        ]);
+        let errors = validate_decision_contract_json(&document.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("$.gate_order: expected exact ordered sequence")));
     }
 
     #[test]
