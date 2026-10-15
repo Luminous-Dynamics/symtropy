@@ -47,6 +47,7 @@ pub struct PeriodCapacityReceiptV1 {
     pub quota_id: String,
     pub resource_kind: CargoTransferCapacityResourceKind,
     pub resource_id: String,
+    pub terminal_id: Option<String>,
     pub capacity_scope_id: String,
     pub period_start_epoch_seconds: u64,
     pub period_end_epoch_seconds: u64,
@@ -58,8 +59,11 @@ pub struct PeriodCapacityReceiptV1 {
     pub time_profile_id: String,
     pub source_record_id: String,
     pub source_schema_profile_id: String,
+    pub authority_id: String,
+    pub authority_profile_id: String,
     pub source_record_digest: String,
     pub revision: u64,
+    pub supersedes_revision: Option<u64>,
     pub source_event_time_epoch_seconds: Option<u64>,
     pub capacity_observed_at_epoch_seconds: u64,
     pub repository_recorded_at_epoch_seconds: u64,
@@ -321,6 +325,7 @@ pub fn validate_period_capacity_plan(
                 quota_id: evidence.budget_id.clone(),
                 resource_kind: evidence.resource_kind,
                 resource_id: evidence.resource_id.clone(),
+                terminal_id: evidence.terminal_id.clone(),
                 capacity_scope_id: evidence.capacity_scope_id.clone(),
                 period_start_epoch_seconds: quota.period_start_epoch_seconds,
                 period_end_epoch_seconds: quota.period_end_epoch_seconds,
@@ -335,8 +340,11 @@ pub fn validate_period_capacity_plan(
                 time_profile_id: evidence.time_profile_id.clone(),
                 source_record_id: evidence.source_record_id.clone(),
                 source_schema_profile_id: evidence.source_schema_profile_id.clone(),
+                authority_id: evidence.authority_id.clone(),
+                authority_profile_id: evidence.authority_profile_id.clone(),
                 source_record_digest: evidence.source_record_digest.clone(),
                 revision: evidence.revision,
+                supersedes_revision: evidence.supersedes_revision,
                 source_event_time_epoch_seconds: evidence.source_event_time_epoch_seconds,
                 capacity_observed_at_epoch_seconds: evidence
                     .capacity_observed_at_epoch_seconds
@@ -452,6 +460,14 @@ mod tests {
         assert_eq!(report.receipts[0].quota_id, "next-day");
         assert_eq!(report.receipts[0].capacity_units_used, 7);
         assert_eq!(report.receipts[0].capacity_units_limit, 10);
+        assert_eq!(
+            report.receipts[0].authority_id,
+            "infra-manager".to_owned()
+        );
+        assert_eq!(
+            report.receipts[0].authority_profile_id,
+            "rail-capacity-v1".to_owned()
+        );
         assert_eq!(
             report.receipts[0].allocation_ids,
             vec!["shipment-a".to_owned(), "shipment-b".to_owned()]
