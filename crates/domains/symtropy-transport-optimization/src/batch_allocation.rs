@@ -166,7 +166,6 @@ impl std::error::Error for BatchAllocationError {}
 
 #[derive(Clone, Copy)]
 struct EdgeCapacity {
-    quantity_unit: QuantityUnit,
     capacity: u64,
 }
 
@@ -229,7 +228,8 @@ impl SearchContext<'_> {
             return Ok(());
         }
 
-        let candidate_set = &self.candidates[index];
+        let candidates = self.candidates;
+        let candidate_set = &candidates[index];
         for (route_index, route) in candidate_set.routes.iter().enumerate() {
             self.tick()?;
             if !self.route_fits(
@@ -423,7 +423,6 @@ pub fn select_shared_capacity_batch(
             (
                 edge.id.clone(),
                 EdgeCapacity {
-                    quantity_unit: edge.capacity_unit,
                     capacity: edge.capacity,
                 },
             )
@@ -528,7 +527,7 @@ fn validate_candidate_route(
         let Some(edge) = edges_by_id.get(edge_id.as_str()).copied() else {
             return Err("route references an unknown network edge");
         };
-        if edge.from != current_node {
+        if edge.from.as_str() != current_node {
             return Err("route edges are not contiguous from the demand origin");
         }
         if edge.capacity_unit != demand.unit {
@@ -584,7 +583,7 @@ fn validate_candidate_route(
         current_mode = Some(next_mode);
     }
 
-    if current_node != demand.destination {
+    if current_node != demand.destination.as_str() {
         return Err("route does not end at the demand destination");
     }
     if transfer_count != route.transfer_count {
@@ -753,7 +752,7 @@ mod tests {
         assert_eq!(report.total_metrics.operator_cost_minor_units, 44);
         assert_eq!(report.assignments.len(), 2);
         assert_eq!(report.assignments[0].demand_id, "d1");
-        assert_eq!(report.assignments[0].route.edge_ids, vec!["alt-a", "alt-b"]);
+        assert_eq!(report.assignments[0].route.edge_ids, vec!["alt-a".to_owned(), "alt-b".to_owned()]);
         assert_eq!(report.assignments[1].demand_id, "d2");
         assert_eq!(report.assignments[1].route.edge_ids, vec!["shared"]);
 
@@ -764,7 +763,7 @@ mod tests {
             .unwrap();
         assert_eq!(shared_use.quantity_used, 4);
         assert_eq!(shared_use.capacity_limit, 7);
-        assert_eq!(shared_use.demand_ids, vec!["d2"]);
+        assert_eq!(shared_use.demand_ids, vec!["d2".to_owned()]);
     }
 
     #[test]
