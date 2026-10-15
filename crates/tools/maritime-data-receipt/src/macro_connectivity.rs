@@ -16,7 +16,7 @@ const ROOT_KEYS: &[&str] = &[
 const BINDING_KEYS: &[&str] = &["receipt_id", "receipt_sha256", "artifact_sha256"];
 const SERIES_KEYS: &[&str] = &[
     "provider", "table_id", "indicator_id", "spatial_level", "temporal_frequency",
-    "unit_semantics", "benchmark_period", "benchmark_value", "methodology_vintage",
+    "unit_semantics", "benchmark_period", "benchmark_scope", "benchmark_value", "methodology_vintage",
     "source_basis", "components",
 ];
 const SELECTION_KEYS: &[&str] = &[
@@ -177,6 +177,7 @@ fn validate_profile(profile: &Value) -> Result<(), &'static str> {
         return Err("WRONG_UNIT_SEMANTICS");
     }
     if text(series, "benchmark_period")? != "2023-Q1"
+        || text(series, "benchmark_scope")? != "global_average_port_connectivity"
         || member(series, "benchmark_value")?.as_f64() != Some(100.0)
     {
         return Err("WRONG_INDEX_BASE");
@@ -538,6 +539,10 @@ mod tests {
         assert_eq!(
             schema["properties"]["series"]["properties"]["benchmark_period"]["const"],
             "2023-Q1"
+        );
+        assert_eq!(
+            schema["properties"]["series"]["properties"]["benchmark_scope"]["const"],
+            "global_average_port_connectivity"
         );
     }
 
