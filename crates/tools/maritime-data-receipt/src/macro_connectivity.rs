@@ -317,7 +317,14 @@ fn verify_receipt_semantics(
     {
         return Err("RECEIPT_BINDING_MISMATCH");
     }
-    if source_kind != facts.source_kind
+    let receipt_source = member(receipt, "source")?;
+    let expected_publisher = match source_kind {
+        "synthetic_fixture" => "SYNTHETIC-TEST-ONLY",
+        "public_dataset" => "UNCTADstat",
+        _ => return Err("UNSUPPORTED_SOURCE_KIND"),
+    };
+    if text(receipt_source, "publisher")? != expected_publisher
+        || source_kind != facts.source_kind
         || facts.dataset_id != "US.PLSCI"
         || facts.product != "other"
         || facts.domain != "other"
@@ -563,6 +570,13 @@ mod tests {
         assert_eq!(
             super::verify_receipt_semantics(&changed, &receipt, receipt_bytes, &facts),
             Err("RECEIPT_BINDING_MISMATCH")
+        );
+
+        let mut changed_receipt = receipt.clone();
+        changed_receipt["source"]["publisher"] = Value::String("UNCTADstat".to_owned());
+        assert_eq!(
+            super::verify_receipt_semantics(&profile, &changed_receipt, receipt_bytes, &facts),
+            Err("RECEIPT_SEMANTICS_MISMATCH")
         );
     }
 
