@@ -7,7 +7,7 @@
 //! complete network-flow solver. Candidate-set completeness is not inferred.
 
 use super::{
-    AggregateMetrics, Demand, Edge, EdgeOperation, ModelError, Mode, Network, QuantityUnit, Route,
+    AggregateMetrics, Demand, Edge, EdgeOperation, Mode, ModelError, Network, QuantityUnit, Route,
     RouteMetrics,
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -137,10 +137,10 @@ impl fmt::Display for BatchAllocationError {
             Self::NoCandidateRoutes(id) => {
                 write!(f, "demand {id} has no candidate routes")
             }
-            Self::DuplicateCandidateRoute { demand_id, edge_ids } => write!(
-                f,
-                "demand {demand_id} repeats candidate route {edge_ids:?}"
-            ),
+            Self::DuplicateCandidateRoute {
+                demand_id,
+                edge_ids,
+            } => write!(f, "demand {demand_id} repeats candidate route {edge_ids:?}"),
             Self::InvalidCandidateRoute {
                 demand_id,
                 route_index,
@@ -149,9 +149,10 @@ impl fmt::Display for BatchAllocationError {
                 f,
                 "candidate route {route_index} for demand {demand_id} is invalid: {reason}"
             ),
-            Self::NoFeasibleBatchAllocation => {
-                write!(f, "no candidate-route assignment satisfies shared edge capacities")
-            }
+            Self::NoFeasibleBatchAllocation => write!(
+                f,
+                "no candidate-route assignment satisfies shared edge capacities"
+            ),
             Self::SearchBudgetExceeded { limit } => write!(
                 f,
                 "batch route-assignment search exceeded its {limit}-step limit"
@@ -469,13 +470,13 @@ pub fn select_shared_capacity_batch(
 
     let mut capacity_uses = Vec::with_capacity(edge_usage.len());
     for (edge_id, (quantity_used, demand_ids)) in edge_usage {
-        let edge = edges_by_id
-            .get(edge_id.as_str())
-            .ok_or(BatchAllocationError::InvalidCandidateRoute {
+        let edge = edges_by_id.get(edge_id.as_str()).ok_or(
+            BatchAllocationError::InvalidCandidateRoute {
                 demand_id: String::new(),
                 route_index: 0,
                 reason: "selected route references an unknown network edge",
-            })?;
+            },
+        )?;
         if quantity_used > edge.capacity {
             return Err(BatchAllocationError::NoFeasibleBatchAllocation);
         }
@@ -634,10 +635,7 @@ fn add_aggregate_metrics(
         )?,
         energy_wh: add(left.energy_wh, right.energy_wh)?,
         ghg_grams_co2e: add(left.ghg_grams_co2e, right.ghg_grams_co2e)?,
-        safety_risk_micro_units: add(
-            left.safety_risk_micro_units,
-            right.safety_risk_micro_units,
-        )?,
+        safety_risk_micro_units: add(left.safety_risk_micro_units, right.safety_risk_micro_units)?,
         disruption_risk_micro_units: add(
             left.disruption_risk_micro_units,
             right.disruption_risk_micro_units,
@@ -752,7 +750,10 @@ mod tests {
         assert_eq!(report.total_metrics.operator_cost_minor_units, 44);
         assert_eq!(report.assignments.len(), 2);
         assert_eq!(report.assignments[0].demand_id, "d1");
-        assert_eq!(report.assignments[0].route.edge_ids, vec!["alt-a".to_owned(), "alt-b".to_owned()]);
+        assert_eq!(
+            report.assignments[0].route.edge_ids,
+            vec!["alt-a".to_owned(), "alt-b".to_owned()]
+        );
         assert_eq!(report.assignments[1].demand_id, "d2");
         assert_eq!(report.assignments[1].route.edge_ids, vec!["shared"]);
 
@@ -764,6 +765,72 @@ mod tests {
         assert_eq!(shared_use.quantity_used, 4);
         assert_eq!(shared_use.capacity_limit, 7);
         assert_eq!(shared_use.demand_ids, vec!["d2".to_owned()]);
+    }
+
+    #[test]
+    fn different_approaches_cannot_double_spend_a_shared_downstream_corridor() {
+        let mut network = Network::new(["A", "X", "Hub", "B", "Alt"], "ZAR").unwrap();
+        for (id, from, to, cost, capacity) in [
+            ("approach-a", "A", "Hub", 1, 10),
+            ("approach-x", "X", "Hub", 1, 10),
+            ("shared", "Hub", "B", 1, 7),
+            ("alt-a", "A", "Alt", 5, 10),
+            ("alt-x", "X", "Alt", 5, 10),
+            ("alt-final", "Alt", "B", 5, 10),
+        ] {
+            network.add_edge(Edge::movement(
+                id,
+                from,
+                to,
+                Mode::Rail,
+                capacity,
+                QuantityUnit::Tonnes,
+                metrics(cost),
+            ));
+        }
+
+        let mut first = demand("d1", 4);
+        first.destination = "B".to_owned();
+        let mut second = demand("d2", 4);
+        second.origin = "X".to_owned();
+        second.destination = "B".to_owned();
+
+        let report = select_shared_capacity_batch(
+            &network,
+            &[
+                DemandRouteCandidates {
+                    demand: first,
+                    routes: vec![
+                        route(&network, &["approach-a", "shared"]),
+                        route(&network, &["alt-a", "alt-final"]),
+                    ],
+                },
+                DemandRouteCandidates {
+                    demand: second,
+                    routes: vec![
+                        route(&network, &["approach-x", "shared"]),
+                        route(&network, &["alt-x", "alt-final"]),
+                    ],
+                },
+            ],
+            BatchObjective::OperatorCostMinorUnits,
+            BatchAllocationLimits::default(),
+        )
+        .unwrap();
+
+        let shared = report
+            .capacity_uses
+            .iter()
+            .find(|usage| usage.edge_id == "shared")
+            .unwrap();
+        assert_eq!(shared.quantity_used, 4);
+        assert_eq!(shared.capacity_limit, 7);
+        assert_eq!(shared.demand_ids.len(), 1);
+        assert_eq!(report.assignments.len(), 2);
+        assert!(report
+            .assignments
+            .iter()
+            .all(|assignment| !assignment.route.edge_ids.is_empty()));
     }
 
     #[test]
@@ -779,10 +846,7 @@ mod tests {
             BatchObjective::OperatorCostMinorUnits,
             BatchAllocationLimits::default(),
         );
-        assert_eq!(
-            result,
-            Err(BatchAllocationError::NoFeasibleBatchAllocation)
-        );
+        assert_eq!(result, Err(BatchAllocationError::NoFeasibleBatchAllocation));
     }
 
     #[test]
