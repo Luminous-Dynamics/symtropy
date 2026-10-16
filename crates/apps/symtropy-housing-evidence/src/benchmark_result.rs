@@ -802,6 +802,33 @@ mod tests {
     }
 
     #[test]
+    fn output_path_traversal_is_blocked() {
+        let outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
+        let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
+        let record_bytes = fs::read(&record_path).expect("read result record");
+        let mut record: Value =
+            serde_json::from_slice(&record_bytes).expect("parse result record");
+        record["raw_output_artifact"]["relative_path"] = json!("../outside.json");
+        fs::write(
+            &record_path,
+            serde_json::to_vec_pretty(&record).expect("serialize result record"),
+        )
+        .expect("write changed result record");
+
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(report.issues.iter().any(|issue| issue.contains("path is unsafe")));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
     fn raw_output_byte_mutation_is_detected() {
         let (root, record_path, pin) = setup_case(correct_outputs(), "CLAIMED_PASS", None);
         fs::write(root.join("raw-outputs.json"), b"{\"tampered\":true}")
