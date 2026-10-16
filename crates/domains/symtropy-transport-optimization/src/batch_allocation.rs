@@ -1146,4 +1146,404 @@ mod tests {
             ))
         );
     }
+
+    // Recompute the selected scalar objective directly from network edge fields.
+    // Deliberately do not call Route::aggregate or BatchObjective::score: this
+    // reference path must catch common-mode errors in the production aggregation.
+    fn reference_route_objective(
+        network: &Network,
+        route: &Route,
+        quantity: u64,
+        objective: BatchObjective,
+    ) -> Option<u64> {
+        route.edge_ids.iter().try_fold(0_u64, |total, edge_id| {
+            let edge = network.edges.iter().find(|edge| edge.id.as_str() == edge_id.as_str())?;
+            let per_unit = match objective {
+                BatchObjective::OperatorCostMinorUnits => {
+                    edge.metrics.operator_cost_minor_per_unit
+                }
+                BatchObjective::UserCashCostMinorUnits => {
+                    edge.metrics.user_cash_cost_minor_per_unit
+                }
+                BatchObjective::ExternalCostMinorUnits => {
+                    edge.metrics.external_cost_minor_per_unit
+                }
+                BatchObjective::EnergyWattHours => edge.metrics.energy_wh_per_unit,
+                BatchObjective::GreenhouseGasGramsCo2e => {
+                    edge.metrics.ghg_grams_co2e_per_unit
+                }
+                BatchObjective::SafetyRiskMicroUnits => {
+                    edge.metrics.safety_risk_micro_units_per_unit
+                }
+                BatchObjective::DisruptionRiskMicroUnits => {
+                    edge.metrics.disruption_risk_micro_units_per_unit
+                }
+            };
+            let scaled = per_unit.checked_mul(quantity)?;
+            total.checked_add(scaled)
+        })
+    }
+
+    // Deliberately straightforward reference enumerator used only for small test
+    // fixtures. It independently enumerates route combinations and checks shared
+    // edge-capacity use rather than invoking the production search implementation.
+    fn reference_best_batch(
+        network: &Network,
+        candidate_sets: &[DemandRouteCandidates],
+        objective: BatchObjective,
+    ) -> Option<(u64, Vec<Vec<String>>)> {
+        fn visit(
+            network: &Network,
+            candidates: &[DemandRouteCandidates],
+            objective: BatchObjective,
+            index: usize,
+            used: &mut std::collections::BTreeMap<String, u64>,
+            score: u64,
+            signature: &mut Vec<Vec<String>>,
+            best: &mut Option<(u64, Vec<Vec<String>>)>,
+        ) {
+            if index == candidates.len() {
+                let candidate = (score, signature.clone());
+                let replace = match best.as_ref() {
+                    None => true,
+                    Some((best_score, best_signature)) => {
+                        candidate.0 < *best_score
+                            || (candidate.0 == *best_score && candidate.1 < *best_signature)
+                    }
+                };
+                if replace {
+                    *best = Some(candidate);
+                }
+                return;
+            }
+
+            let demand = &candidates[index].demand;
+            for route in &candidates[index].routes {
+                let mut fits = true;
+                let mut previous_values = Vec::with_capacity(route.edge_ids.len());
+                for edge_id in &route.edge_ids {
+                    let Some(edge) = network
+                        .edges
+                        .iter()
+                        .find(|edge| edge.id.as_str() == edge_id.as_str())
+                    else {
+                        fits = false;
+                        break;
+                    };
+                    let previous = used.get(edge_id).copied().unwrap_or(0);
+                    let Some(next) = previous.checked_add(demand.quantity) else {
+                        fits = false;
+                        break;
+                    };
+                    if next > edge.capacity {
+                        fits = false;
+                        break;
+                    }
+                    previous_values.push((edge_id.clone(), used.get(edge_id).copied()));
+                }
+                if !fits {
+                    continue;
+                }
+
+                for edge_id in &route.edge_ids {
+                    let previous = used.get(edge_id).copied().unwrap_or(0);
+                    let next = previous
+                        .checked_add(demand.quantity)
+                        .expect("the independent feasibility pass checked capacity arithmetic");
+                    used.insert(edge_id.clone(), next);
+                }
+
+                let route_score = reference_route_objective(
+                    network,
+                    route,
+                    demand.quantity,
+                    objective,
+                )
+                .expect("small oracle fixtures must not overflow edge objective totals");
+                let next_score = score
+                    .checked_add(route_score)
+                    .expect("small oracle fixtures must not overflow objective totals");
+
+                signature.push(route.edge_ids.clone());
+                visit(
+                    network,
+                    candidates,
+                    objective,
+                    index + 1,
+                    used,
+                    next_score,
+                    signature,
+                    best,
+                );
+                signature.pop();
+
+                for (edge_id, previous) in previous_values.into_iter().rev() {
+                    match previous {
+                        Some(quantity) => {
+                            used.insert(edge_id, quantity);
+                        }
+                        None => {
+                            used.remove(&edge_id);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut candidates = candidate_sets.to_vec();
+        candidates.sort_by(|left, right| left.demand.id.cmp(&right.demand.id));
+        let mut best = None;
+        visit(
+            network,
+            &candidates,
+            objective,
+            0,
+            &mut std::collections::BTreeMap::new(),
+            0,
+            &mut Vec::with_capacity(candidates.len()),
+            &mut best,
+        );
+        best
+    }
+
+    #[test]
+    fn batch_search_matches_independent_exhaustive_oracle_on_small_networks() {
+        let quantity_sets = [[1, 2, 3], [2, 3, 4], [1, 4, 5]];
+
+        // 36 tiny scenarios cover bottleneck capacities below, at, and above
+        // useful demand combinations. Each demand can still use the two-edge
+        // alternate route, so every fixture has a feasible assignment.
+        for capacity in 1..=12 {
+            for quantities in quantity_sets {
+                let network = network(capacity);
+                let (shared, alternate) = routes_for(&network);
+                let candidates = vec![
+                    candidate("d1", quantities[0], vec![shared.clone(), alternate.clone()]),
+                    candidate("d2", quantities[1], vec![shared.clone(), alternate.clone()]),
+                    candidate("d3", quantities[2], vec![shared, alternate]),
+                ];
+
+                let expected = reference_best_batch(
+                    &network,
+                    &candidates,
+                    BatchObjective::OperatorCostMinorUnits,
+                )
+                .expect("the alternate corridor makes the reference fixture feasible");
+                let report = select_shared_capacity_batch(
+                    &network,
+                    &candidates,
+                    BatchObjective::OperatorCostMinorUnits,
+                    BatchAllocationLimits::default(),
+                )
+                .expect("the production selector must return a feasible optimum");
+
+                let actual_signature = report
+                    .assignments
+                    .iter()
+                    .map(|assignment| assignment.route.edge_ids.clone())
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    report.objective_value,
+                    expected.0,
+                    "objective mismatch at shared capacity {capacity}, quantities {quantities:?}"
+                );
+                assert_eq!(
+                    actual_signature,
+                    expected.1,
+                    "route-choice mismatch at shared capacity {capacity}, quantities {quantities:?}"
+                );
+            }
+        }
+    }
+
+    fn multi_objective_network(shared_capacity: u64) -> Network {
+        let mut network = Network::new(["A", "B", "C"], "ZAR").unwrap();
+        network.add_edge(Edge::movement(
+            "shared",
+            "A",
+            "B",
+            Mode::Rail,
+            shared_capacity,
+            QuantityUnit::Tonnes,
+            super::super::EdgeMetrics {
+                distance_metres: 1,
+                elapsed_seconds: 10,
+                operator_cost_minor_per_unit: 1,
+                user_cash_cost_minor_per_unit: 5,
+                external_cost_minor_per_unit: 9,
+                energy_wh_per_unit: 12,
+                ghg_grams_co2e_per_unit: 10,
+                safety_risk_micro_units_per_unit: 8,
+                disruption_risk_micro_units_per_unit: 1,
+            },
+        ));
+        network.add_edge(Edge::movement(
+            "alt-a",
+            "A",
+            "C",
+            Mode::Rail,
+            10,
+            QuantityUnit::Tonnes,
+            super::super::EdgeMetrics {
+                distance_metres: 2,
+                elapsed_seconds: 3,
+                operator_cost_minor_per_unit: 4,
+                user_cash_cost_minor_per_unit: 1,
+                external_cost_minor_per_unit: 2,
+                energy_wh_per_unit: 3,
+                ghg_grams_co2e_per_unit: 2,
+                safety_risk_micro_units_per_unit: 2,
+                disruption_risk_micro_units_per_unit: 5,
+            },
+        ));
+        network.add_edge(Edge::movement(
+            "alt-b",
+            "C",
+            "B",
+            Mode::Rail,
+            10,
+            QuantityUnit::Tonnes,
+            super::super::EdgeMetrics {
+                distance_metres: 2,
+                elapsed_seconds: 3,
+                operator_cost_minor_per_unit: 4,
+                user_cash_cost_minor_per_unit: 1,
+                external_cost_minor_per_unit: 2,
+                energy_wh_per_unit: 3,
+                ghg_grams_co2e_per_unit: 2,
+                safety_risk_micro_units_per_unit: 2,
+                disruption_risk_micro_units_per_unit: 5,
+            },
+        ));
+        network
+    }
+
+    #[test]
+    fn batch_search_matches_each_objective_and_is_input_order_invariant() {
+        let quantity_sets = [[1, 2, 3], [2, 3, 4], [1, 4, 5]];
+        let objectives = [
+            BatchObjective::OperatorCostMinorUnits,
+            BatchObjective::UserCashCostMinorUnits,
+            BatchObjective::ExternalCostMinorUnits,
+            BatchObjective::EnergyWattHours,
+            BatchObjective::GreenhouseGasGramsCo2e,
+            BatchObjective::SafetyRiskMicroUnits,
+            BatchObjective::DisruptionRiskMicroUnits,
+        ];
+
+        // 252 combinations exercise every objective against distinct metric
+        // trade-offs and shared bottleneck capacities; each is also rerun with
+        // reversed input demand order to verify canonicalization/determinism.
+        for capacity in 1..=12 {
+            for quantities in quantity_sets {
+                let network = multi_objective_network(capacity);
+                let (shared, alternate) = routes_for(&network);
+                let candidates = vec![
+                    candidate("d1", quantities[0], vec![shared.clone(), alternate.clone()]),
+                    candidate("d2", quantities[1], vec![shared.clone(), alternate.clone()]),
+                    candidate("d3", quantities[2], vec![shared.clone(), alternate]),
+                ];
+
+                let mut objective_signatures = std::collections::BTreeSet::new();
+                for objective in objectives {
+                    let expected = reference_best_batch(&network, &candidates, objective)
+                        .expect("the alternate corridor keeps every small fixture feasible");
+                    let forward = select_shared_capacity_batch(
+                        &network,
+                        &candidates,
+                        objective,
+                        BatchAllocationLimits::default(),
+                    )
+                    .expect("the production selector must return a feasible optimum");
+                    let mut reversed_candidates = candidates.clone();
+                    reversed_candidates.reverse();
+                    let reversed = select_shared_capacity_batch(
+                        &network,
+                        &reversed_candidates,
+                        objective,
+                        BatchAllocationLimits::default(),
+                    )
+                    .expect("reordering input demands must not change feasibility");
+                    let mut reversed_route_order = candidates.clone();
+                    for candidate_set in &mut reversed_route_order {
+                        candidate_set.routes.reverse();
+                    }
+                    let route_order_permuted = select_shared_capacity_batch(
+                        &network,
+                        &reversed_route_order,
+                        objective,
+                        BatchAllocationLimits::default(),
+                    )
+                    .expect("reordering candidate routes must not change feasibility");
+
+                    assert_eq!(
+                        super::super::verify_shared_capacity_batch_report(
+                            &network,
+                            &candidates,
+                            objective,
+                            BatchAllocationLimits::default(),
+                            &forward,
+                        ),
+                        Ok(()),
+                    );
+                    assert_eq!(
+                        super::super::verify_shared_capacity_batch_report(
+                            &network,
+                            &reversed_candidates,
+                            objective,
+                            BatchAllocationLimits::default(),
+                            &reversed,
+                        ),
+                        Ok(()),
+                    );
+                    assert_eq!(
+                        super::super::verify_shared_capacity_batch_report(
+                            &network,
+                            &reversed_route_order,
+                            objective,
+                            BatchAllocationLimits::default(),
+                            &route_order_permuted,
+                        ),
+                        Ok(()),
+                    );
+                    assert_eq!(
+                        forward,
+                        route_order_permuted,
+                        "report changed after candidate route order reversal for {objective:?}, capacity {capacity}, quantities {quantities:?}"
+                    );
+                    let signature = |report: &SharedCapacityBatchReport| {
+                        report
+                            .assignments
+                            .iter()
+                            .map(|assignment| assignment.route.edge_ids.clone())
+                            .collect::<Vec<_>>()
+                    };
+                    assert_eq!(
+                        forward.objective_value,
+                        expected.0,
+                        "objective value mismatch for {objective:?}, capacity {capacity}, quantities {quantities:?}"
+                    );
+                    assert_eq!(
+                        signature(&forward),
+                        expected.1,
+                        "route signature mismatch for {objective:?}, capacity {capacity}, quantities {quantities:?}"
+                    );
+                    objective_signatures.insert(signature(&forward));
+                    assert_eq!(
+                        forward,
+                        reversed,
+                        "report changed after input order reversal for {objective:?}, capacity {capacity}, quantities {quantities:?}"
+                    );
+                }
+                if quantities.iter().any(|quantity| *quantity <= capacity) {
+                    assert!(
+                        objective_signatures.len() > 1,
+                        "objective trade-off fixture collapsed to one plan at capacity {capacity}, quantities {quantities:?}"
+                    );
+                }
+            }
+        }
+    }
+
+
 }

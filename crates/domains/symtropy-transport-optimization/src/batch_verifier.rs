@@ -620,6 +620,43 @@ mod tests {
     }
 
     #[test]
+    fn rejects_zero_search_steps_even_when_report_arithmetic_is_valid() {
+        let (network, candidates, limits, mut report) = plan();
+        report.search_steps = 0;
+        assert!(matches!(
+            verify_shared_capacity_batch_report(
+                &network,
+                &candidates,
+                BatchObjective::OperatorCostMinorUnits,
+                limits,
+                &report,
+            ),
+            Err(BatchReportVerificationError::InvalidReport(
+                "search-step count is zero or exceeds the declared limit"
+            ))
+        ));
+    }
+
+    #[test]
+    fn rejects_search_step_count_above_the_declared_limit() {
+        let (network, candidates, mut limits, mut report) = plan();
+        limits.max_search_steps = report.search_steps;
+        report.search_steps = report.search_steps.checked_add(1).unwrap();
+        assert!(matches!(
+            verify_shared_capacity_batch_report(
+                &network,
+                &candidates,
+                BatchObjective::OperatorCostMinorUnits,
+                limits,
+                &report,
+            ),
+            Err(BatchReportVerificationError::InvalidReport(
+                "search-step count is zero or exceeds the declared limit"
+            ))
+        ));
+    }
+
+    #[test]
     fn rejects_forged_edge_utilization() {
         let (network, candidates, limits, mut report) = plan();
         report.capacity_uses[0].quantity_used += 1;
