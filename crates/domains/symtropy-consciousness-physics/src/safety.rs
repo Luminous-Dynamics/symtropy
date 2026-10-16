@@ -168,19 +168,61 @@ impl SafetyTier {
 /// assert!((gain - 0.3).abs() < 1e-9);  // signal below sprint → floor.
 /// ```
 ///
-/// # Panics
+/// Input parameter being rejected by the checked sprint/floor mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SprintFloorParameter {
+    Signal,
+    SprintThreshold,
+    Floor,
+}
+
+/// Invalid input for the checked sprint/floor mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvalidSprintFloorInput {
+    NonFinite(SprintFloorParameter),
+    OutOfRange(SprintFloorParameter),
+}
+
+/// Compute the two-level gain after validating all inputs are finite and in [0, 1].
 ///
-/// Does not panic. `floor` outside [0, 1] is accepted but the caller
-/// is responsible for choosing a physically sensible value — typically
-/// above whatever gain floor the inverse-kinematics loop needs to
-/// converge, and below 1.0.
-#[inline]
-pub fn sprint_floor_gain(signal: f64, sprint_threshold: f64, floor: f64) -> f64 {
-    if signal > sprint_threshold {
+/// Equality at the threshold remains on the floor: sprint activates only when
+/// `signal > sprint_threshold`. This function validates numeric domains only;
+/// choosing a suitable threshold/floor still requires platform-specific
+/// calibration and safety analysis.
+pub fn try_sprint_floor_gain(
+    signal: f64,
+    sprint_threshold: f64,
+    floor: f64,
+) -> Result<f64, InvalidSprintFloorInput> {
+    for (value, parameter) in [
+        (signal, SprintFloorParameter::Signal),
+        (sprint_threshold, SprintFloorParameter::SprintThreshold),
+        (floor, SprintFloorParameter::Floor),
+    ] {
+        if !value.is_finite() {
+            return Err(InvalidSprintFloorInput::NonFinite(parameter));
+        }
+        if !(0.0..=1.0).contains(&value) {
+            return Err(InvalidSprintFloorInput::OutOfRange(parameter));
+        }
+    }
+
+    Ok(if signal > sprint_threshold {
         1.0
     } else {
         floor
-    }
+    })
+}
+
+/// Compatibility wrapper for the checked two-level signal → gain mapping.
+///
+/// Invalid inputs fail closed to zero gain. Call [`try_sprint_floor_gain`]
+/// when callers need to distinguish invalid configuration/telemetry from a
+/// valid zero-gain result. Numeric validation does not replace platform
+/// calibration or a safety case.
+#[inline]
+pub fn sprint_floor_gain(signal: f64, sprint_threshold: f64, floor: f64) -> f64 {
+    try_sprint_floor_gain(signal, sprint_threshold, floor).unwrap_or(0.0)
 }
 
 #[cfg(test)]
@@ -232,6 +274,69 @@ mod tests {
     }
 
     // ── sprint_floor_gain (empirically-derived minimal mapping) ────────
+
+    #[test]
+    fn checked_sprint_floor_gain_accepts_domain_endpoints() {
+        assert_eq!(try_sprint_floor_gain(0.0, 0.0, 0.0), Ok(0.0));
+        assert_eq!(try_sprint_floor_gain(1.0, 0.0, 0.0), Ok(1.0));
+        assert_eq!(try_sprint_floor_gain(0.5, 0.5, 1.0), Ok(1.0));
+        assert_eq!(try_sprint_floor_gain(0.5, 0.5, 0.0), Ok(0.0));
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_rejects_nonfinite_each_parameter() {
+        use InvalidSprintFloorInput::NonFinite;
+        use SprintFloorParameter::*;
+
+        assert_eq!(
+            try_sprint_floor_gain(f64::NAN, 0.5, 0.3),
+            Err(NonFinite(Signal))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, f64::INFINITY, 0.3),
+            Err(NonFinite(SprintThreshold))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, 0.5, f64::NEG_INFINITY),
+            Err(NonFinite(Floor))
+        );
+        // The compatibility wrapper must not accidentally grant authority
+        // from invalid telemetry or configuration.
+        assert_eq!(sprint_floor_gain(f64::INFINITY, 0.5, 0.3), 0.0);
+        assert_eq!(sprint_floor_gain(0.5, f64::NAN, 0.3), 0.0);
+        assert_eq!(sprint_floor_gain(0.5, 0.5, f64::NAN), 0.0);
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_rejects_out_of_range_each_parameter() {
+        use InvalidSprintFloorInput::OutOfRange;
+        use SprintFloorParameter::*;
+
+        assert_eq!(
+            try_sprint_floor_gain(-f64::EPSILON, 0.5, 0.3),
+            Err(OutOfRange(Signal))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, 1.0 + f64::EPSILON, 0.3),
+            Err(OutOfRange(SprintThreshold))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, 0.5, -0.1),
+            Err(OutOfRange(Floor))
+        );
+        assert_eq!(sprint_floor_gain(0.5, 0.5, 1.1), 0.0);
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_preserves_strict_threshold() {
+        let threshold = 0.135_f64;
+        let below = f64::from_bits(threshold.to_bits() - 1);
+        let above = f64::from_bits(threshold.to_bits() + 1);
+
+        assert_eq!(try_sprint_floor_gain(below, threshold, 0.3), Ok(0.3));
+        assert_eq!(try_sprint_floor_gain(threshold, threshold, 0.3), Ok(0.3));
+        assert_eq!(try_sprint_floor_gain(above, threshold, 0.3), Ok(1.0));
+    }
 
     #[test]
     fn sprint_floor_gain_full_above_threshold() {
