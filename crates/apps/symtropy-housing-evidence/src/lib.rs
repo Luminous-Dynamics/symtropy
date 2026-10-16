@@ -4,4 +4,6 @@
 //! Reusable analytical reference utilities for housing-engineering evidence.
 //! The verifier executable remains separate from this library API.
 
+#![forbid(unsafe_code)]
+
 pub mod structural_reference;
