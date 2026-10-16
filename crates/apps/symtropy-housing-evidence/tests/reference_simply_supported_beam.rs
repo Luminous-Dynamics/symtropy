@@ -472,3 +472,78 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
         }
     }
 }
+
+
+#[test]
+fn analytical_simply_supported_beam_obeys_load_span_modulus_interactions() {
+    let base: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let span = base["inputs"]["span_m"].as_f64().unwrap();
+    let modulus = base["inputs"]["elastic_modulus_Pa"].as_f64().unwrap();
+
+    for (case_index, base_case) in base["load_cases"]
+        .as_array()
+        .expect("load_cases array")
+        .iter()
+        .enumerate()
+    {
+        let reference =
+            evaluate_reference(&base, base_case).expect("baseline load case is valid");
+        let is_point_load = base_case["load_type"].as_str() == Some("point_load_midspan");
+        let (deflection_span_power, moment_span_power, reaction_span_power) =
+            if is_point_load { (3, 1, 0) } else { (4, 2, 1) };
+
+        for load_factor in [0.5_f64, 2.0] {
+            for span_factor in [0.5_f64, 2.0] {
+                for modulus_factor in [0.5_f64, 2.0] {
+                    let mut changed = base.clone();
+                    if is_point_load {
+                        let load = base_case["load_N"].as_f64().unwrap();
+                        changed["load_cases"][case_index]["load_N"] =
+                            serde_json::json!(load * load_factor);
+                    } else {
+                        let load = base_case["load_N_per_m"].as_f64().unwrap();
+                        changed["load_cases"][case_index]["load_N_per_m"] =
+                            serde_json::json!(load * load_factor);
+                    }
+                    changed["inputs"]["span_m"] = serde_json::json!(span * span_factor);
+                    changed["inputs"]["elastic_modulus_Pa"] =
+                        serde_json::json!(modulus * modulus_factor);
+
+                    let result = evaluate_reference(
+                        &changed,
+                        &changed["load_cases"][case_index],
+                    )
+                    .expect("combined load/span/modulus transformation is valid");
+                    assert!(close_relative(
+                        result.deflection_m,
+                        reference.deflection_m * load_factor
+                            * span_factor.powi(deflection_span_power)
+                            / modulus_factor,
+                        tolerance
+                    ));
+                    assert!(close_relative(
+                        result.maximum_moment_nm,
+                        reference.maximum_moment_nm * load_factor
+                            * span_factor.powi(moment_span_power),
+                        tolerance
+                    ));
+                    assert!(close_relative(
+                        result.maximum_stress_pa,
+                        reference.maximum_stress_pa * load_factor
+                            * span_factor.powi(moment_span_power),
+                        tolerance
+                    ));
+                    assert!(close_relative(
+                        result.reaction_magnitude_n,
+                        reference.reaction_magnitude_n * load_factor
+                            * span_factor.powi(reaction_span_power),
+                        tolerance
+                    ));
+                }
+            }
+        }
+    }
+}
