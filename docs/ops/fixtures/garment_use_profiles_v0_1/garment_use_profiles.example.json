@@ -25,7 +25,11 @@
         "resale",
         "qualified_material_recovery"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "forecast_driven_batch",
+        "small_batch"
+      ]
     },
     {
       "profile_id": "WORKWEAR-REPAIRABLE",
@@ -51,7 +55,12 @@
         "alteration_or_restyling",
         "qualified_material_recovery"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "forecast_driven_batch",
+        "small_batch",
+        "repair_or_alteration_first"
+      ]
     },
     {
       "profile_id": "RENTAL-OCCASION-SUIT",
@@ -79,7 +88,12 @@
         "alteration_or_restyling",
         "resale"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "rental_or_shared_inventory",
+        "small_batch",
+        "repair_or_alteration_first"
+      ]
     },
     {
       "profile_id": "COUTURE-BEADED-EVENING-GOWN",
@@ -110,9 +124,15 @@
         "repair_and_return",
         "resale",
         "archive_or_museum_collection",
-        "exhibition_or_display"
+        "exhibition_or_display",
+        "donation_or_community_transfer"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "made_to_order",
+        "one_off_artisanal",
+        "reuse_existing_sample"
+      ]
     },
     {
       "profile_id": "BRIDAL-AND-CEREMONIAL-GARMENT",
@@ -145,7 +165,12 @@
         "lending_or_shared_wardrobe",
         "resale"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "commissioned_or_ceremonial",
+        "made_to_order",
+        "repair_or_alteration_first"
+      ]
     },
     {
       "profile_id": "STAGE-AND-PERFORMANCE-COSTUME",
@@ -176,7 +201,12 @@
         "transform_into_another_article",
         "archive_or_museum_collection"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "rental_or_shared_inventory",
+        "one_off_artisanal",
+        "reuse_existing_sample"
+      ]
     },
     {
       "profile_id": "MODULAR-DECORATIVE-STATEMENT-GARMENT",
@@ -205,7 +235,12 @@
         "lending_or_shared_wardrobe",
         "transform_into_another_article"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "made_to_order",
+        "small_batch",
+        "repair_or_alteration_first"
+      ]
     },
     {
       "profile_id": "DEADSTOCK-AND-RUNWAY-SAMPLE",
@@ -234,9 +269,16 @@
         "lending_or_shared_wardrobe",
         "resale",
         "archive_or_museum_collection",
-        "transform_into_another_article"
+        "transform_into_another_article",
+        "unsold_inventory_reallocation",
+        "donation_or_community_transfer"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "reuse_existing_sample",
+        "preorder_or_demand_signal",
+        "one_off_artisanal"
+      ]
     },
     {
       "profile_id": "HERITAGE-COSTUME-ARCHIVE",
@@ -267,7 +309,12 @@
         "archive_or_museum_collection",
         "exhibition_or_display"
       ],
-      "evaluation_rule": "use_frequency_is_not_a_value_proxy"
+      "evaluation_rule": "use_frequency_is_not_a_value_proxy",
+      "production_strategies": [
+        "commissioned_or_ceremonial",
+        "repair_or_alteration_first",
+        "reuse_existing_sample"
+      ]
     }
   ]
 }
