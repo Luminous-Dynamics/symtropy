@@ -78,7 +78,9 @@ fn bench_spatial_queries(c: &mut Criterion) {
                 (input.len() * queries.len()) as u64,
             ));
 
-            group.bench_function(BenchmarkId::new("naive_exact_scan", format!("{density}_{count}")), |bench| {
+            group.bench_function(
+                BenchmarkId::new("naive_exact_scan", format!("{density}_{count}")),
+                |bench| {
                 bench.iter(|| {
                     let mut matched = 0_usize;
                     for center in &queries {
@@ -88,7 +90,9 @@ fn bench_spatial_queries(c: &mut Criterion) {
                 });
             });
 
-            group.bench_function(BenchmarkId::new("grid_candidates_plus_exact_filter", format!("{density}_{count}")), |bench| {
+            group.bench_function(
+                BenchmarkId::new("grid_candidates_plus_exact_filter", format!("{density}_{count}")),
+                |bench| {
                 bench.iter(|| {
                     let mut matched = 0_usize;
                     let mut candidates_seen = 0_usize;
