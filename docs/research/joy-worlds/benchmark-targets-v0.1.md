@@ -15,7 +15,7 @@ The UN Statistical Framework for Measuring the Sustainability of Tourism integra
 
 The target suite should combine a small set of explicit negative controls with bounded exhaustive oracle checks and higher-order interaction cases. NIST's combinatorial testing work shows that t-way interaction coverage can substantially reduce test-set size while exposing interacting configuration faults; it is a test-design technique, not a guarantee that all faults are found. Use full pairwise coverage for the declared factor model, then selected 3-way combinations for interactions that can change constraint status or scenario feasibility.
 
-Sources: [NIST Combinatorial Testing](https://www.nist.gov/programs-projects/combinatorial-testing) · [NIST SP 800-142, Practical Combinatorial Testing](https://csrc.nist.gov/pubs/sp/800/142/final) · [Rust proptest documentation](https://docs.rs/crate/proptest/latest).
+Sources: [NIST Combinatorial Testing](https://www.nist.gov/programs-projects/combinatorial-testing) · [NIST SP 800-142, Practical Combinatorial Testing](https://csrc.nist.gov/pubs/sp/800/142/final) · [Rust proptest documentation](https://docs.rs/crate/proptest/latest). The current tests use dependency-free exhaustive loops; a future property-testing dependency is optional, not required to claim these exhaustive cases.
 
 ## Benchmark ladder
 
@@ -51,6 +51,6 @@ For a model that reports nominal 90% prediction intervals, one possible future p
 
 ## Current implementation scope
 
-The first Rust comparator reads the synthetic scenario manifest, validates paired candidate sets, hard-constraint states, units and uncertainty bounds, classifies candidates as infeasible/not-evaluable/feasible-under-declared-assumptions, aggregates a conservative cross-scenario envelope and emits a Pareto front without a weighted score. A bounded exhaustive oracle test and a generated scale benchmark are being added to strengthen independent correctness evidence and make the proposed performance target measurable.
+The Rust comparator reads the synthetic scenario manifest, validates paired candidate sets, hard-constraint states, units and uncertainty bounds, classifies candidates as infeasible/not-evaluable/feasible-under-declared-assumptions, aggregates a conservative cross-scenario envelope and emits a Pareto front without a weighted score. The test suite now includes a bounded exhaustive independent Pareto oracle across 729 inputs, all 81 combinations of four three-state hard constraints, and a generated scale benchmark that reports the exact input SHA-256 and p50/p95 timing samples. These tests have been authored but have not been run without Rust tooling.
 
 The current milestone does **not** include a calibrated demand simulation, ecological carrying-capacity model, accessibility audit, market forecast, investment-grade financial model, or site-safety engine. These must remain separately qualified interfaces rather than invented data.

@@ -30,7 +30,7 @@ Benchmark targets and proposed acceptance criteria: [benchmark targets v0.1](../
 
 ## Reproducible synthetic performance benchmark
 
-Generate a 10,000 candidate-scenario-pair workload with eight dimensions and collect seven timing samples:
+Generate a 10,000 candidate-scenario-pair workload with eight dimensions and collect seven timing samples. The benchmark emits the exact input SHA-256, input byte size, all timing samples, median and nearest-rank p95:
 
 ```sh
 cargo run --release --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --bin portfolio-benchmark -- \
@@ -39,7 +39,7 @@ cargo run --release --manifest-path tools/joy-worlds-profile-validator/Cargo.tom
 
 Use a fixed, documented host and record its CPU, OS and Rust version. The target is p95 below 1 second, not a claimed result. Fixture generation is excluded from the timed section; JSON parsing and comparison are included.
 
-A small CI smoke invocation is included to test the benchmark binary without making the 10,000-pair performance threshold a flaky shared-runner gate.
+A small CI smoke invocation is included to test the benchmark binary without making the 10,000-pair performance threshold a flaky shared-runner gate. Unit tests exhaust 729 two-objective values for three candidates against a separately written Pareto oracle and exhaust all 81 combinations of four three-state hard constraints to test fail-closed precedence.
 
 ## Current checks
 

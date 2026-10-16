@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 #[derive(Clone, Debug)]
@@ -522,6 +523,8 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         "engine": "joy-worlds-deterministic-portfolio-comparator/0.1.0",
         "run_status": "synthetic_decision_support_only",
         "input_artifact_id": artifact_id,
+        "input_sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
+        "input_bytes": raw.len(),
         "scenario_ids": scenario_ids,
         "required_hard_constraints": required_constraints,
         "objective_dimensions": objectives.iter().map(|objective| json!({
@@ -683,6 +686,15 @@ mod tests {
     }
 
     #[test]
+    fn receipt_binds_exact_input_bytes_with_sha256() {
+        let raw = fixture();
+        let receipt = compare_scenarios_json(&raw).unwrap();
+        let expected = format!("{:x}", Sha256::digest(raw.as_bytes()));
+        assert_eq!(receipt["input_sha256"], expected);
+        assert_eq!(receipt["input_bytes"], raw.len());
+    }
+
+    #[test]
     fn receipt_is_deterministic_for_identical_input() {
         let raw = fixture();
         let first = compare_scenarios_json(&raw).unwrap().to_string();
@@ -733,6 +745,56 @@ mod tests {
                 {"id":"stress","assumptions_ref":"synthetic://mini/stress","candidates":candidates}
             ]
         }).to_string()
+    }
+
+    #[test]
+    fn all_81_four_constraint_state_combinations_fail_closed() {
+        let states = ["pass", "fail", "unknown"];
+        for encoded in 0_u32..81 {
+            let mut remainder = encoded;
+            let mut state_vector = ["pass"; 4];
+            for state in &mut state_vector {
+                *state = states[(remainder % 3) as usize];
+                remainder /= 3;
+            }
+
+            let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+            let constraints = [
+                "rights_and_access",
+                "safety_case",
+                "resource_envelope",
+                "ecological_capacity"
+            ];
+            for (index, constraint_id) in constraints.iter().enumerate() {
+                let candidate = raw["scenarios"][0]["candidates"].as_array_mut().unwrap()
+                    .iter_mut()
+                    .find(|candidate| candidate["id"] == "baseline").unwrap();
+                let check = candidate["constraint_checks"].as_array_mut().unwrap()
+                    .iter_mut()
+                    .find(|check| check["id"] == *constraint_id).unwrap();
+                check["status"] = json!(state_vector[index]);
+            }
+
+            let receipt = compare_scenarios_json(&raw.to_string())
+                .unwrap_or_else(|errors| panic!("constraint combination {encoded} rejected: {errors:?}"));
+            let candidate = receipt["candidate_results"].as_array().unwrap()
+                .iter().find(|candidate| candidate["candidate_id"] == "baseline").unwrap();
+            let expected = if state_vector.contains(&"fail") {
+                "infeasible"
+            } else if state_vector.contains(&"unknown") {
+                "not_evaluable"
+            } else {
+                "feasible_under_declared_assumptions"
+            };
+            assert_eq!(candidate["status"], expected, "constraint states {state_vector:?}");
+            let in_front = receipt["pareto_front_ids"].as_array().unwrap()
+                .iter().any(|id| id == "baseline");
+            assert_eq!(
+                in_front,
+                expected == "feasible_under_declared_assumptions",
+                "frontier constraint leak for state vector {state_vector:?}"
+            );
+        }
     }
 
     #[test]

@@ -1,11 +1,12 @@
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::env;
 use std::process::ExitCode;
 use std::time::Instant;
 
 use joy_worlds_profile_validator::comparison::compare_scenarios_json;
 
-fn parse_count(args: &mut impl Iterator<Item = String>, flag: &str, default: usize) -> Result<usize, String> {
+fn parse_count(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<usize, String> {
     let Some(value) = args.next() else {
         return Err(format!("{flag} requires a value"));
     };
@@ -24,10 +25,10 @@ fn parse_args() -> Result<(usize, usize, usize, usize), String> {
     let mut repetitions = 7;
     while let Some(arg) = args.next() {
         match arg.as_str() {
-            "--candidates" => candidates = parse_count(&mut args, "--candidates", candidates)?,
-            "--scenarios" => scenarios = parse_count(&mut args, "--scenarios", scenarios)?,
-            "--objectives" => objectives = parse_count(&mut args, "--objectives", objectives)?,
-            "--repetitions" => repetitions = parse_count(&mut args, "--repetitions", repetitions)?,
+            "--candidates" => candidates = parse_count(&mut args, "--candidates")?,
+            "--scenarios" => scenarios = parse_count(&mut args, "--scenarios")?,
+            "--objectives" => objectives = parse_count(&mut args, "--objectives")?,
+            "--repetitions" => repetitions = parse_count(&mut args, "--repetitions")?,
             "--help" | "-h" => {
                 return Err("USAGE: portfolio-benchmark [--candidates N] [--scenarios N] [--objectives N] [--repetitions N] (defaults: 500, 20, 8, 7)".to_owned());
             }
@@ -117,7 +118,12 @@ fn main() -> ExitCode {
         }
     };
 
+    let Some(candidate_scenario_pairs) = candidates.checked_mul(scenarios) else {
+        eprintln!("candidate count multiplied by scenario count overflows usize");
+        return ExitCode::FAILURE;
+    };
     let raw = make_fixture(candidates, scenarios, objectives);
+    let input_sha256 = format!("{:x}", Sha256::digest(raw.as_bytes()));
     let mut samples_ms = Vec::with_capacity(repetitions);
     let mut pareto_count = None;
     for _ in 0..repetitions {
@@ -145,7 +151,9 @@ fn main() -> ExitCode {
         "scope": "synthetic fixture generation excluded; input parsing plus validation, aggregation and Pareto computation included",
         "candidate_count": candidates,
         "scenario_count": scenarios,
-        "candidate_scenario_pairs": candidates * scenarios,
+        "candidate_scenario_pairs": candidate_scenario_pairs,
+        "input_bytes": raw.len(),
+        "input_sha256": input_sha256,
         "objective_count": objectives,
         "repetitions": repetitions,
         "median_ms": median_ms,
