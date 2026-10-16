@@ -67,9 +67,9 @@ profile/capability/problem contract:
   impossible.
 
 Keep non-feasible scenarios as explicit negative controls. Add future corpus
-slices for utility budget reduction, rush-order insertion, supplier quantity
-shortfall, rework/rejection, and multiple concurrent machine outages only after
-each perturbation has deterministic semantics and unit checks.
+slices for time-indexed utility supply shocks, rush-order insertion, supplier
+quantity shortfall, rework/rejection, and multiple concurrent machine outages
+only after each perturbation has deterministic semantics and unit checks.
 
 All scenario input files must have stable IDs, versions, source/fixture refs and
 a canonical input SHA-256. Record the exact commit, toolchain, node count,
