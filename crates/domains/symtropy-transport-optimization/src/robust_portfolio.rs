@@ -120,6 +120,7 @@ pub enum FifoRobustPortfolioErrorV1 {
         combinations_checked: usize,
         capacity_conflicts: usize,
         inconsistent_capacity_snapshots: usize,
+        infeasibility_examples: Vec<FifoRejectedPortfolioCombinationV1>,
     },
 }
 
@@ -153,7 +154,7 @@ impl fmt::Display for FifoRobustPortfolioErrorV1 {
             Self::ObjectiveArithmeticOverflow => {
                 f.write_str("portfolio objective or concurrent resource arithmetic overflowed")
             }
-            Self::NoFeasiblePortfolio { combinations_checked, capacity_conflicts, inconsistent_capacity_snapshots } => write!(
+            Self::NoFeasiblePortfolio { combinations_checked, capacity_conflicts, inconsistent_capacity_snapshots, .. } => write!(
                 f,
                 "no portfolio is jointly feasible after {combinations_checked} combinations ({capacity_conflicts} capacity conflicts, {inconsistent_capacity_snapshots} inconsistent evidence snapshots)"
             ),
@@ -910,6 +911,7 @@ pub fn select_joint_robust_transport_portfolio(
             combinations_checked,
             capacity_conflicts,
             inconsistent_capacity_snapshots,
+            infeasibility_examples,
         });
     };
 
