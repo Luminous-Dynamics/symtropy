@@ -74,7 +74,6 @@ pub enum Assessment {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 #[serde(transparent)]
 pub struct RequiredNullableString(pub Option<String>);
 
