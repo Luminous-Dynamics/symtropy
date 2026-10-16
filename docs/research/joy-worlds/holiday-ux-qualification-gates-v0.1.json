@@ -1,0 +1,328 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "HOLIDAY-UX-QUALIFICATION-001",
+  "status": "draft_targets_not_evidence",
+  "purpose": "Specify verifiable qualification gates for a human-centered, accessible holiday-planning experience. Values in this contract are proposed targets, not measured performance.",
+  "scope": {
+    "in_scope": [
+      "intent discovery",
+      "trip constraint capture",
+      "destination comparison",
+      "itinerary drafting and pacing",
+      "simulated booking confirmation",
+      "disruption recovery",
+      "offline trip information",
+      "optional post-trip reflection"
+    ],
+    "first_prototype_mode": "static_synthetic_data_no_login_no_live_inventory_no_transactions",
+    "excluded_authorities": [
+      "real booking/payment authorization",
+      "physical venue safety",
+      "statutory accessibility certification",
+      "supplier verification",
+      "legal determination",
+      "objective measurement of happiness or wellbeing",
+      "autonomous destination operations"
+    ]
+  },
+  "principles": [
+    {
+      "id": "P-01",
+      "name": "intent_first",
+      "requirement": "Users can begin with a chosen purpose for the trip, skip questions, and revise preferences without completing a mandatory long quiz."
+    },
+    {
+      "id": "P-02",
+      "name": "truthful_unknowns",
+      "requirement": "Unknown price, inventory, access, schedule, weather or transfer information is labelled as unknown; missing data never imply a positive claim."
+    },
+    {
+      "id": "P-03",
+      "name": "agency_without_dark_patterns",
+      "requirement": "Every recommendation can be edited or dismissed. There are no automatic bookings, silent confirmed-plan edits, forced upsells or fake urgency."
+    },
+    {
+      "id": "P-04",
+      "name": "accessible_whole_journey",
+      "requirement": "Digital accessibility and evidence about the physical access chain are reported separately. Generic badges never imply verified end-to-end access."
+    },
+    {
+      "id": "P-05",
+      "name": "user_controlled_pacing",
+      "requirement": "Users can preserve rest, buffers, open time and a no-replacement option; activity count is not treated as a welfare proxy."
+    },
+    {
+      "id": "P-06",
+      "name": "privacy_minimization",
+      "requirement": "Prototype planning works without an account or persistent location tracking. No emotional-state inference or persistent sensitive visitor dossier is required."
+    },
+    {
+      "id": "P-07",
+      "name": "whole_system_constraints",
+      "requirement": "Known safety, rights, access, legal and ecological hard constraints are not exchangeable for a better commercial or experience score."
+    },
+    {
+      "id": "P-08",
+      "name": "no_universal_holiday_score",
+      "requirement": "Report a versioned multidimensional outcome vector; do not collapse holiday quality, joy, happiness, wellbeing or sustainability into a single score."
+    }
+  ],
+  "gates": [
+    {
+      "id": "HUX-G0",
+      "name": "integrity_and_truthfulness",
+      "classification": "hard_gate",
+      "checks": [
+        {
+          "id": "HUX-G0-01",
+          "metric": "synthetic_offer_labelling",
+          "target": "100% of synthetic offers are explicitly labelled synthetic",
+          "verification": "fixture audit and automated UI assertions"
+        },
+        {
+          "id": "HUX-G0-02",
+          "metric": "material_unknown_visibility",
+          "target": "100% of offers with missing material facts render the named unknown state",
+          "verification": "negative fixtures for price, access, inventory and schedule fields"
+        },
+        {
+          "id": "HUX-G0-03",
+          "metric": "precommitment_disclosure",
+          "target": "100% of simulated confirmation summaries show known total, currency, mandatory fees and key cancellation terms",
+          "verification": "manual task audit and assertions against the prototype data model"
+        },
+        {
+          "id": "HUX-G0-04",
+          "metric": "unauthorized_actions",
+          "target": "zero automatic bookings, silent edits to confirmed plans, fake-urgency prompts or non-dismissable recommendations",
+          "verification": "interaction audit and adversarial task scripts"
+        },
+        {
+          "id": "HUX-G0-05",
+          "metric": "hard_constraint_precedence",
+          "target": "zero candidates with a known failed hard constraint presented as feasible",
+          "verification": "decision-contract negative controls"
+        }
+      ]
+    },
+    {
+      "id": "HUX-G1",
+      "name": "digital_accessibility",
+      "classification": "hard_gate",
+      "standard_target": "WCAG 2.2 Level AA for all in-scope digital paths",
+      "checks": [
+        {
+          "id": "HUX-G1-01",
+          "metric": "critical_or_serious_accessibility_defects",
+          "target": "zero unresolved critical or serious defects at release gate; lower-severity issues remain in an explicit exception log",
+          "verification": "automated checks plus manual expert audit"
+        },
+        {
+          "id": "HUX-G1-02",
+          "metric": "critical_task_blocking",
+          "target": "zero critical tasks blocked in keyboard-only and screen-reader runs",
+          "verification": "manual journey testing with representative assistive technology"
+        },
+        {
+          "id": "HUX-G1-03",
+          "metric": "environmental_variants",
+          "target": "complete the critical journey at 200% zoom, narrow viewport, reduced-motion mode and low-bandwidth condition",
+          "verification": "documented manual test matrix"
+        }
+      ],
+      "claim_limit": "This target is not an accessibility certification or legal determination; automated scans alone cannot pass the gate."
+    },
+    {
+      "id": "HUX-G2",
+      "name": "core_usability",
+      "classification": "comparative_target",
+      "prerequisites": [
+        "preregistered tasks and success definitions",
+        "documented baseline flow",
+        "documented prototype/build and fixture identity",
+        "participant consent, recruitment and analysis plan",
+        "cohort sample sizes and uncertainty reported"
+      ],
+      "checks": [
+        {
+          "id": "HUX-G2-01",
+          "metric": "critical_task_completion_overall",
+          "target": "at least 90% in the comparative round",
+          "verification": "task-level observation against preregistered completion rules"
+        },
+        {
+          "id": "HUX-G2-02",
+          "metric": "critical_task_completion_by_priority_cohort",
+          "target": "at least 85% in each adequately sampled priority cohort, with no severe critical-task blocker",
+          "verification": "stratified reporting with sample sizes and confidence intervals"
+        },
+        {
+          "id": "HUX-G2-03",
+          "metric": "task_ease",
+          "target": "median at least 5.5/7 as an initial hypothesis",
+          "verification": "post-task ease question and qualitative debrief"
+        },
+        {
+          "id": "HUX-G2-04",
+          "metric": "system_usability",
+          "target": "at least 80/100 as an initial hypothesis",
+          "verification": "documented System Usability Scale scoring"
+        },
+        {
+          "id": "HUX-G2-05",
+          "metric": "avoidable_planning_effort",
+          "target": "at least 20% relative reduction versus the documented baseline, with task success non-inferior",
+          "verification": "preregistered effort measure and matched comparative tasks"
+        }
+      ],
+      "claim_limit": "Targets are hypotheses, not observed results. If the baseline is already better, the new interface must not regress to reach an arbitrary improvement target."
+    },
+    {
+      "id": "HUX-G3",
+      "name": "decision_quality_and_agency",
+      "classification": "comparative_target",
+      "checks": [
+        {
+          "id": "HUX-G3-01",
+          "metric": "precommitment_comprehension",
+          "target": "100% of test tasks provide a findable total-cost basis, cancellation conditions and known accessibility gaps before simulated commit",
+          "verification": "task observation and content audit"
+        },
+        {
+          "id": "HUX-G3-02",
+          "metric": "recommendation_control",
+          "target": "100% of recommendations are editable or dismissible and include a user-understandable reason",
+          "verification": "interaction and explanation audit"
+        },
+        {
+          "id": "HUX-G3-03",
+          "metric": "unknown_state_comprehension",
+          "target": "at least 90% correctly identify unknown offer attributes in controlled comprehension checks",
+          "verification": "scenario-based comprehension tasks"
+        },
+        {
+          "id": "HUX-G3-04",
+          "metric": "account_independence",
+          "target": "browse, compare, draft and export are possible in the prototype without mandatory account creation",
+          "verification": "end-to-end smoke test"
+        }
+      ]
+    },
+    {
+      "id": "HUX-G4",
+      "name": "disruption_resilience",
+      "classification": "comparative_target",
+      "scenarios": [
+        "activity_closure",
+        "weather_disruption",
+        "missed_connection",
+        "fatigue_or_need_for_rest"
+      ],
+      "checks": [
+        {
+          "id": "HUX-G4-01",
+          "metric": "recovery_task_completion",
+          "target": "at least 85% of participants complete a preregistered recovery task unaided",
+          "verification": "observed user test with declared success criteria"
+        },
+        {
+          "id": "HUX-G4-02",
+          "metric": "time_to_identify_viable_option",
+          "target": "median at or below 90 seconds in the prototype",
+          "verification": "timestamped task observation"
+        },
+        {
+          "id": "HUX-G4-03",
+          "metric": "state_integrity",
+          "target": "zero unverified substitutions represented as confirmed and zero loss of the original plan in tested scenarios",
+          "verification": "state-transition assertions and manual audit"
+        },
+        {
+          "id": "HUX-G4-04",
+          "metric": "rest_or_skip_option",
+          "target": "recovery flow offers rest, skip or end-the-day options when relevant, not only replacement purchases",
+          "verification": "scenario review and interaction audit"
+        }
+      ]
+    },
+    {
+      "id": "HUX-G5",
+      "name": "whole_trip_validity",
+      "classification": "field_evidence_gate",
+      "checks": [
+        {
+          "id": "HUX-G5-01",
+          "metric": "post_trip_claims",
+          "target": "no claims of improved holiday quality, safety, accessibility, sustainability or restoration until corresponding real-world evidence exists",
+          "verification": "claim review against study receipts"
+        },
+        {
+          "id": "HUX-G5-02",
+          "metric": "context_specific_success",
+          "target": "pilot success criteria are defined with participating travellers and local stakeholders before the pilot",
+          "verification": "dated protocol and stakeholder review record"
+        },
+        {
+          "id": "HUX-G5-03",
+          "metric": "negative_result_retention",
+          "target": "null and adverse findings retained in the study record",
+          "verification": "protocol-to-report audit"
+        }
+      ],
+      "minimum_reported_dimensions": [
+        "usability and task failures",
+        "reported planning burden",
+        "agency and trust",
+        "planned versus actual pace/effort",
+        "access-information accuracy and unresolved barriers",
+        "disruption costs and recovery",
+        "voluntary trip-fit reflection with response-rate and selection-bias caveats",
+        "local/worker effects when measured",
+        "ecological/resource constraints when measured"
+      ],
+      "claim_limit": "Voluntary self-report is subjective evidence and does not establish objective wellbeing or causality by itself."
+    }
+  ],
+  "study_protocol_requirements": [
+    "Preregister hypotheses, primary outcomes and non-inferiority rules.",
+    "Pin prototype/build identity and synthetic fixture-data version.",
+    "Publish task scripts, success/error definitions, stop rules and exclusion criteria.",
+    "Document recruitment, cohort, consent, compensation, retention and data minimization.",
+    "Document baseline, test order, learning effects and missing-data treatment.",
+    "Separate exploratory formative findings from comparative results.",
+    "Report cohort sample sizes, uncertainty, serious barriers and adverse findings.",
+    "Do not treat a synthetic prototype as evidence of live price correctness, physical accessibility, actual supplier availability or post-trip wellbeing."
+  ],
+  "research_sources": [
+    {
+      "title": "UN Tourism Accessibility Tourism publications and guidelines",
+      "url": "https://www.untourism.int/accessibility-tourism-publications-guidelines",
+      "supports": "whole journey accessibility and accessible information",
+      "does_not_prove": "the quality of this proposed interface"
+    },
+    {
+      "title": "ISO 21902:2021 Accessible tourism for all",
+      "url": "https://www.iso.org/standard/72126.html",
+      "supports": "requirements and recommendations across the tourism supply chain",
+      "does_not_prove": "physical or digital compliance of a particular implementation"
+    },
+    {
+      "title": "W3C Web Content Accessibility Guidelines 2.2",
+      "url": "https://www.w3.org/TR/WCAG22/",
+      "supports": "digital accessibility criteria",
+      "does_not_prove": "good usability or physical destination accessibility"
+    },
+    {
+      "title": "OECD Tourism Trends and Policies 2026",
+      "url": "https://www.oecd.org/en/publications/oecd-tourism-trends-and-policies-2026_3fd3cd75-en.html",
+      "supports": "accessible participation, resilience, destination management and broader local benefits",
+      "does_not_prove": "the numeric targets in this contract"
+    }
+  ],
+  "evidence_policy": {
+    "target_state": "proposed",
+    "implementation_state": "not_evaluated",
+    "measured_result": null,
+    "rule": "Never convert a target into a PASS merely because it appears in this file. Store evidence receipts and measured outcomes separately, bound to exact prototype/build, fixture, study protocol and report identities."
+  }
+}
