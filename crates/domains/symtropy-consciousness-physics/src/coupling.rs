@@ -591,11 +591,16 @@ impl<const D: usize> ConsciousnessField<D> {
             let effect = leakage.total_effect_at(pos);
             if let Some(entity) = self.entities.get_mut(handle) {
                 if effect > 0.0 {
+                    let available_before = entity.energy.available;
                     entity.energy.regenerate(effect);
-                    self.ledger.record_dissipation(-effect); // Energy enters 3D
+                    // Record only the energy that actually reached the reservoir
+                    // (not the requested amount discarded by the capacity cap).
+                    let accepted = (entity.energy.available - available_before).max(0.0);
+                    self.ledger.record_regeneration(accepted);
                 } else if effect < 0.0 {
                     let consumed = entity.energy.consume(effect.abs());
-                    self.ledger.record_dissipation(consumed); // Energy exits 3D
+                    // A leakage sink removes stored energy; it is not automatically heat.
+                    self.ledger.record_external_sink(consumed);
                 }
             }
         }
