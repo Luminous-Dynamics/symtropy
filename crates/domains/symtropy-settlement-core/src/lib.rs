@@ -41,9 +41,7 @@ fn valid_identifier(value: &str, field: &str) -> Result<(), SettlementError> {
     }
 }
 
-#[derive(
-    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ComponentId(String);
 
@@ -809,7 +807,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut output = String::with_capacity(64);
     const HEX: &[u8; 16] = b"0123456789abcdef";
-    for byte in digest {
+    for byte in digest.iter().copied() {
         output.push(HEX[(byte >> 4) as usize] as char);
         output.push(HEX[(byte & 0x0f) as usize] as char);
     }
