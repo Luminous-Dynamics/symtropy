@@ -238,8 +238,8 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
     )?;
     match super::field(source, "last_modified_utc", &path)? {
         JsonValue::Null => {}
-        JsonValue::String(timestamp) if timestamp.ends_with('Z') && timestamp.len() >= 20 => {}
-        _ => return Err(format!("{path}.last_modified_utc: expected UTC timestamp or null")),
+        JsonValue::String(timestamp) if super::valid_utc_timestamp(timestamp) => {}
+        _ => return Err(format!("{path}.last_modified_utc: expected a valid RFC3339 UTC timestamp or null")),
     }
     nonempty_text(super::field(source, "access_level", &path)?, &format!("{path}.access_level"))?;
     nonempty_text(super::field(source, "intended_role", &path)?, &format!("{path}.intended_role"))?;
@@ -741,6 +741,14 @@ mod tests {
         root["sources"][1]["source_id"] = first_id;
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("duplicate source ID"));
+    }
+
+    #[test]
+    fn malformed_modification_timestamp_is_rejected() {
+        let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
+        root["sources"][1]["last_modified_utc"] = Value::String("2026-02-31T00:00:00Z".to_owned());
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(evaluate_bytes(&changed).unwrap_err().contains("valid RFC3339 UTC timestamp"));
     }
 
     #[test]
