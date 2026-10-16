@@ -1284,7 +1284,7 @@ mod tests {
 
         let error = select_joint_robust_transport_portfolio(&[d1, d2], 1).unwrap_err();
         assert!(matches!(
-            error,
+            &error,
             FifoRobustPortfolioErrorV1::NoFeasiblePortfolio {
                 combinations_checked: 1,
                 inconsistent_capacity_snapshots: 1,
