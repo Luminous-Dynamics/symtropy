@@ -24,7 +24,7 @@ cargo run --release --manifest-path tools/accessible-home-evidence-lifecycle-val
 rustc --version --verbose > /tmp/accessible-home-rustc-version.txt
 cargo build --release --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml \
   --bin accessible-home-evidence-lifecycle-benchmark
-/usr/bin/time -v target/release/accessible-home-evidence-lifecycle-benchmark \
+/usr/bin/time -v tools/accessible-home-evidence-lifecycle-validator/target/release/accessible-home-evidence-lifecycle-benchmark \
   --claims 10000 --events 1000 --paths 1000 --warmup 3 --iterations 30 \
   > /tmp/accessible-home-lifecycle-benchmark-with-time.json \
   2> /tmp/accessible-home-lifecycle-time.txt
