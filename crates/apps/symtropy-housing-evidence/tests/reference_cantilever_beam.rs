@@ -478,3 +478,32 @@ fn cantilever_reference_preserves_dimensionless_deflection_under_geometric_simil
         ));
     }
 }
+
+#[test]
+fn cantilever_similarity_control_detects_missing_span_power_mutant() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let inputs = &base["inputs"];
+    let load = inputs["load_N"].as_f64().unwrap();
+    let span = inputs["span_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+    let inertia = inputs["second_moment_area_m4"].as_f64().unwrap();
+    let scale = 2.0_f64;
+
+    // Seeded mutant: delta = F * L^2 / (3 E I), omitting one span factor.
+    // Under geometric similarity I scales as s^4 and force as s^2, so this
+    // mutant incorrectly makes delta/span drift with the scale factor.
+    let mutant_base = load * span.powi(2) / (3.0 * modulus * inertia);
+    let mutant_scaled = (load * scale.powi(2) * (span * scale).powi(2))
+        / (3.0 * modulus * (inertia * scale.powi(4)));
+    assert!(
+        !close_relative(
+            mutant_scaled / (span * scale),
+            mutant_base / span,
+            tolerance
+        ),
+        "the missing-span-power cantilever mutant must violate normalized-deflection similarity"
+    );
+}

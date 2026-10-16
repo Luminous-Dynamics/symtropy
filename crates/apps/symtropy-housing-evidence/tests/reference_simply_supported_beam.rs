@@ -613,3 +613,45 @@ fn simply_supported_reference_preserves_dimensionless_deflection_under_geometric
         }
     }
 }
+
+#[test]
+fn simply_supported_similarity_control_detects_missing_span_power_mutants() {
+    let base: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let inputs = &base["inputs"];
+    let span = inputs["span_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+    let inertia = inputs["second_moment_area_m4"].as_f64().unwrap();
+    let scale = 2.0_f64;
+    let cases = base["load_cases"].as_array().expect("load_cases array");
+
+    for (case_index, load_case) in cases.iter().enumerate() {
+        let (mutant_base, mutant_scaled) = if case_index == 0 {
+            let load = load_case["load_N"].as_f64().unwrap();
+            // Seeded point-load mutant: delta = F * L^2 / (48 E I).
+            (
+                load * span.powi(2) / (48.0 * modulus * inertia),
+                (load * scale.powi(2) * (span * scale).powi(2))
+                    / (48.0 * modulus * (inertia * scale.powi(4))),
+            )
+        } else {
+            let load_per_m = load_case["load_N_per_m"].as_f64().unwrap();
+            // Seeded uniform-load mutant: delta = 5 q * L^3 / (384 E I).
+            (
+                5.0 * load_per_m * span.powi(3) / (384.0 * modulus * inertia),
+                5.0 * (load_per_m * scale) * (span * scale).powi(3)
+                    / (384.0 * modulus * (inertia * scale.powi(4))),
+            )
+        };
+        assert!(
+            !close_relative(
+                mutant_scaled / (span * scale),
+                mutant_base / span,
+                tolerance
+            ),
+            "missing-span-power mutant must be detected for load case {case_index}"
+        );
+    }
+}

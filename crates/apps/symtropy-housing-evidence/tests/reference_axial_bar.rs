@@ -418,3 +418,28 @@ fn axial_reference_preserves_dimensionless_strain_under_geometric_similarity() {
         ));
     }
 }
+
+#[test]
+fn axial_similarity_control_detects_missing_length_power_mutant() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let inputs = &base["inputs"];
+    let load = inputs["load_N"].as_f64().unwrap();
+    let length = inputs["length_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+    let area = inputs["cross_section_area_m2"].as_f64().unwrap();
+    let scale = 2.0_f64;
+
+    // Seeded mutant: delta = F * L^2 / (E * A), omitting the required
+    // first power of length. This has the wrong physical dimension. The
+    // similarity benchmark must detect that its normalized extension drifts.
+    let mutant_base = load * length.powi(2) / (modulus * area);
+    let mutant_scaled = (load * scale.powi(2) * (length * scale).powi(2))
+        / (modulus * (area * scale.powi(2)));
+    assert!(
+        !close_relative(mutant_scaled / (length * scale), mutant_base / length, tolerance),
+        "the dimensionally incorrect axial mutant must violate normalized-strain similarity"
+    );
+}
