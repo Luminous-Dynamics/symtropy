@@ -6,7 +6,7 @@
 
 The v0.1 evaluator classifies evidence for a task's required capabilities. That is a useful triage baseline, but a flat list cannot adequately answer: *if the preferred path fails, does another path achieve the same resident-defined outcome without violating their constraints?*
 
-Model the home experience as a **resident-owned task network**: nodes are actions, decisions, outcomes or handoffs; edges express sequence, dependency, alternatives, fallback and recovery. Paths are evaluated separately under explicit operating conditions. A fallback is not considered available merely because a designer has named it.
+Model the home experience as a **resident-owned task network**: nodes are actions, decisions, outcomes or handoffs; edges express sequence, dependency, alternatives, fallback and recovery. Paths are evaluated separately under explicit operating conditions and name both their ordered node IDs and edge IDs so their dependencies and fallback triggers can be audited. A fallback is not considered available merely because a designer has named it.
 
 This fits the built-environment scope of ISO 21542 (access, circulation, egress and evacuation) while leaving geometric and life-safety determinations to qualified reviewers. The ISO status page currently lists ISO 21542:2021 as published and records the September 2026 review milestone; confirm its current status and local legal requirements for every live project. WHO's housing guidance considers real-world outcomes including injury, well-being, independence and social participation. South Africa's Universal Design and Access framework supplies important local policy context, not an approval certificate.
 
