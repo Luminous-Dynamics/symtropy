@@ -252,6 +252,51 @@ fn binned_sah_and_median_preserve_exact_query_candidate_sets() {
 }
 
 #[test]
+fn instrumented_overlap_query_matches_hot_path_and_counts_traversal_work() {
+    let mesh = TriangleMesh::with_bvh_strategy(
+        grid_mesh(29, 23).triangles,
+        MeshBvhBuildStrategy::BinnedSah { bin_count: 16 },
+    );
+
+    for qz in [-2.0, 0.0, 0.5, 8.5, 20.0, 26.0] {
+        for qx in [-2.0, 0.0, 0.5, 11.5, 25.0, 31.0] {
+            for half_extent in [0.0, 0.25, 1.5, 6.0] {
+                let query = Aabb {
+                    min: SVector::<f64, 3>::from([
+                        qx - half_extent,
+                        -0.25,
+                        qz - half_extent,
+                    ]),
+                    max: SVector::<f64, 3>::from([
+                        qx + half_extent,
+                        0.25,
+                        qz + half_extent,
+                    ]),
+                };
+
+                let mut plain = mesh.query_overlap(&query);
+                let (mut measured, stats) = mesh.query_overlap_with_stats(&query);
+                plain.sort_unstable();
+                measured.sort_unstable();
+
+                assert_eq!(measured, plain, "instrumentation changed candidate semantics");
+                assert_eq!(stats.candidate_count, measured.len());
+                assert_eq!(stats.overlapping_leaves, measured.len());
+                assert!(
+                    stats.bounds_tested
+                        >= stats.overlapping_internal_nodes + stats.overlapping_leaves,
+                    "every overlapping node must have had its bound tested"
+                );
+                assert!(
+                    stats.bounds_tested <= mesh.bvh_nodes.len(),
+                    "a tree node should be tested at most once per query"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn binned_sah_degenerate_centroids_fall_back_without_losing_candidates() {
     let p0 = SVector::<f64, 3>::from([0.0, 0.0, 0.0]);
     let p1 = SVector::<f64, 3>::from([1.0, 0.0, 0.0]);
