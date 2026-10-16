@@ -346,7 +346,8 @@ mod tests {
             archetype: GarmentArchetype::ModularDecorative,
             use_pattern: UsePattern::Occasional,
             functional_unit: FunctionalUnitBasis::DistinctEvents,
-            intended_service: "distinct styled appearances with detachable decorative modules".into(),
+            intended_service:
+                "distinct styled appearances with detachable decorative modules".into(),
             value_dimensions: vec![
                 ValueDimension::AestheticExpression,
                 ValueDimension::IdentityOrBelonging,
