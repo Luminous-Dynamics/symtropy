@@ -81,39 +81,44 @@ fn bench_spatial_queries(c: &mut Criterion) {
             group.bench_function(
                 BenchmarkId::new("naive_exact_scan", format!("{density}_{count}")),
                 |bench| {
-                bench.iter(|| {
-                    let mut matched = 0_usize;
-                    for center in &queries {
-                        matched += exact_count(&input, *center, QUERY_RADIUS);
-                    }
-                    black_box(matched)
-                });
-            });
+                    bench.iter(|| {
+                        let mut matched = 0_usize;
+                        for center in &queries {
+                            matched += exact_count(&input, *center, QUERY_RADIUS);
+                        }
+                        black_box(matched)
+                    });
+                },
+            );
 
             group.bench_function(
-                BenchmarkId::new("grid_candidates_plus_exact_filter", format!("{density}_{count}")),
+                BenchmarkId::new(
+                    "grid_candidates_plus_exact_filter",
+                    format!("{density}_{count}"),
+                ),
                 |bench| {
-                bench.iter(|| {
-                    let mut matched = 0_usize;
-                    let mut candidates_seen = 0_usize;
-                    for center in &queries {
-                        let candidates = index
-                            .query_radius_candidates(*center, QUERY_RADIUS)
-                            .expect("fixed finite query");
-                        candidates_seen += candidates.len();
-                        let radius_squared = QUERY_RADIUS * QUERY_RADIUS;
-                        matched += candidates
-                            .iter()
-                            .filter(|point| {
-                                let dx = point.x - center[0];
-                                let dy = point.y - center[1];
-                                dx * dx + dy * dy <= radius_squared
-                            })
-                            .count();
-                    }
-                    black_box((matched, candidates_seen))
-                });
-            });
+                    bench.iter(|| {
+                        let mut matched = 0_usize;
+                        let mut candidates_seen = 0_usize;
+                        for center in &queries {
+                            let candidates = index
+                                .query_radius_candidates(*center, QUERY_RADIUS)
+                                .expect("fixed finite query");
+                            candidates_seen += candidates.len();
+                            let radius_squared = QUERY_RADIUS * QUERY_RADIUS;
+                            matched += candidates
+                                .iter()
+                                .filter(|point| {
+                                    let dx = point.x - center[0];
+                                    let dy = point.y - center[1];
+                                    dx * dx + dy * dy <= radius_squared
+                                })
+                                .count();
+                        }
+                        black_box((matched, candidates_seen))
+                    });
+                },
+            );
         }
     }
     group.finish();
