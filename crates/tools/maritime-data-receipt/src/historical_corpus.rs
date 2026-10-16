@@ -297,6 +297,41 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
                 &format!("{path}.required_capture_fields"),
             )?;
         }
+        "cyport_us_port_tropical_cyclone_resilience" => {
+            if source_kind != "research_incident_dataset" {
+                return Err(format!("{path}.source_kind: unexpected kind for CyPort research candidate"));
+            }
+            let revision = nonempty_text(
+                super::field(source, "immutable_revision", &path)?,
+                &format!("{path}.immutable_revision"),
+            )?;
+            if !is_lower_hex(revision, 40) {
+                return Err(format!("{path}.immutable_revision: expected pinned 40-character lowercase Git commit"));
+            }
+            if license_status != "readme_declares_cc_by_4_0" {
+                return Err(format!("{path}.license_status: declared CC BY 4.0 status must remain explicit"));
+            }
+            validate_url(license_uri, &format!("{path}.license_uri"), false)?;
+            if field_text(source, "use_decision", &path)?
+                != "primary_candidate_after_component_rights_and_schema_review"
+            {
+                return Err(format!("{path}.use_decision: component-level rights and schema review are required"));
+            }
+            if field_text(source, "access_level", &path)? != "public_repository" {
+                return Err(format!("{path}.access_level: expected public_repository"));
+            }
+            expect_array_contains_all(
+                &capture_fields,
+                &[
+                    "exact_resource_byte_length",
+                    "exact_resource_sha256",
+                    "rights_or_license_evidence",
+                    "component_level_terms_snapshot",
+                    "raw_vs_derived_field_map",
+                ],
+                &format!("{path}.required_capture_fields"),
+            )?;
+        }
         "bts_port_throughput_metrics" => {
             if source_kind != "government_port_performance_dataset" {
                 return Err(format!("{path}.source_kind: unexpected kind for BTS candidate"));
@@ -541,8 +576,8 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HistoricalCorpusReport, String> {
     }
 
     let sources = super::array(super::field(&root, "sources", "manifest")?, "manifest.sources")?;
-    if sources.len() != 2 {
-        return Err(format!("manifest.sources: expected two pinned source candidates, found {}", sources.len()));
+    if sources.len() != 3 {
+        return Err(format!("manifest.sources: expected three source candidates, found {}", sources.len()));
     }
     let mut summaries = Vec::with_capacity(sources.len());
     let mut ids = BTreeSet::new();
@@ -557,8 +592,11 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HistoricalCorpusReport, String> {
         }
         summaries.push(summary);
     }
-    if !ids.contains("port_disruption_database") || !ids.contains("bts_port_throughput_metrics") {
-        return Err("manifest.sources: required research and BTS candidates must both be present".to_owned());
+    if !ids.contains("port_disruption_database")
+        || !ids.contains("cyport_us_port_tropical_cyclone_resilience")
+        || !ids.contains("bts_port_throughput_metrics")
+    {
+        return Err("manifest.sources: CyPort, legacy research candidate and BTS baseline source must all be present".to_owned());
     }
 
     let (pilot_episodes, pilot_classes, broad_episodes) = validate_corpus_design(&root)?;
@@ -618,8 +656,8 @@ mod tests {
     fn prospective_source_registry_is_valid_but_not_admitted() {
         let report = evaluate_bytes(FIXTURE).expect("registry contract should validate");
         assert_eq!(report.status, "SOURCE_REGISTRY_VALID_NOT_CAPTURED");
-        assert_eq!(report.source_count, 2);
-        assert_eq!(report.immutable_revision_pinned_count, 1);
+        assert_eq!(report.source_count, 3);
+        assert_eq!(report.immutable_revision_pinned_count, 2);
         assert_eq!(report.captured_artifact_count, 0);
         assert!(!report.data_capture_performed);
         assert!(!report.model_validation_performed);
@@ -698,9 +736,18 @@ mod tests {
     }
 
     #[test]
+    fn cyport_component_license_and_revision_are_explicit() {
+        let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
+        assert_eq!(root["sources"][1]["license_status"], "readme_declares_cc_by_4_0");
+        root["sources"][1]["license_status"] = Value::String("all_components_unrestricted".to_owned());
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(evaluate_bytes(&changed).unwrap_err().contains("declared CC BY 4.0 status must remain explicit"));
+    }
+
+    #[test]
     fn mutable_bts_view_cannot_be_mistaken_for_immutable_revision() {
         let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
-        root["sources"][1]["immutable_revision"] = Value::String("latest".to_owned());
+        root["sources"][2]["immutable_revision"] = Value::String("latest".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("mutable API view must not be treated as a content revision"));
     }
@@ -754,7 +801,7 @@ mod tests {
     #[test]
     fn invalid_calendar_date_is_rejected() {
         let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
-        root["sources"][1]["last_modified_date"] = Value::String("2026-02-31".to_owned());
+        root["sources"][2]["last_modified_date"] = Value::String("2026-02-31".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("invalid calendar date"));
     }
