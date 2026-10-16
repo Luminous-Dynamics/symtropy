@@ -411,6 +411,18 @@ mod tests {
     }
 
     #[test]
+    fn source_ingested_after_cutoff_does_not_leak_when_already_published() {
+        let scope = PolicyScope::lock_system(PolicyLockSystem::Panamax);
+        let old = qualified_rule("v1", 10, 11, 12, None, scope.clone(), &[]);
+        // Public since time 20, but absent from this replay corpus until time 50.
+        let late_ingested = qualified_rule("v2", 20, 50, 20, None, scope.clone(), &["v1"]);
+        let book = PolicyRuleBook::new(vec![old, late_ingested]).expect("valid bitemporal history");
+
+        assert_eq!(resolved_version(book.resolve(&query(60, 40, scope.clone()))), "v1");
+        assert_eq!(resolved_version(book.resolve(&query(60, 50, scope))), "v2");
+    }
+
+    #[test]
     fn effective_interval_is_half_open_and_not_the_publication_time() {
         let rule = qualified_rule(
             "v1", 10, 10, 20, Some(30),
