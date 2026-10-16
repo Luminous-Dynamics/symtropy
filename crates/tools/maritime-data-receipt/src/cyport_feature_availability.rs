@@ -164,7 +164,7 @@ fn validate_field(field_record: &JsonValue, index: usize) -> Result<(String, Str
     if EXPECTED_LABEL_FIELDS.contains(&name) && eligibility != "FORBIDDEN_TARGET_OR_POST_EVENT" {
         return Err(format!("{path}.eligibility: label or post-event field {name:?} must stay forbidden"));
     }
-    if ["ID", "SID", "PID"].contains(&name.as_str()) && eligibility != "JOIN_OR_GROUP_KEY_ONLY" {
+    if ["ID", "SID", "PID"].contains(&name) && eligibility != "JOIN_OR_GROUP_KEY_ONLY" {
         return Err(format!("{path}.eligibility: identifier {name:?} must remain join/group-only"));
     }
     Ok((category.to_owned(), eligibility.to_owned()))
