@@ -32,6 +32,14 @@ pub struct ProcessingDelay {
 
 /// Additional delay before the job's inputs or specialist preparation are ready.
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProcessResourceShock {
+    pub job_id: String,
+    pub additional_energy_units: u64,
+    pub additional_water_units: u64,
+}
+
+/// Additional delay before a job's inputs or specialist preparation are ready.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct JobReleaseDelay {
     pub job_id: String,
     /// Additional delay before the job's inputs or specialist preparation are ready.
@@ -60,6 +68,7 @@ pub struct StressScenario {
     /// Stable fixture or signed manifest reference; not authentication.
     pub fixture_ref: String,
     pub processing_delays: Vec<ProcessingDelay>,
+    pub process_resource_shocks: Vec<ProcessResourceShock>,
     pub release_delays: Vec<JobReleaseDelay>,
     pub utility_budget_shock: Option<UtilityBudgetShock>,
     pub machine_availability_delays: Vec<MachineAvailabilityDelay>,
@@ -173,6 +182,11 @@ pub enum StressHarnessError {
     UnknownJobInDelay { scenario_id: String, job_id: String },
     ZeroProcessingDelay { scenario_id: String, job_id: String },
     ProcessingDelayOverflow { scenario_id: String, job_id: String },
+    EmptyJobIdInResourceShock { scenario_id: String },
+    DuplicateJobResourceShock { scenario_id: String, job_id: String },
+    UnknownJobInResourceShock { scenario_id: String, job_id: String },
+    EmptyProcessResourceShock { scenario_id: String, job_id: String },
+    ProcessResourceOverflow { scenario_id: String, job_id: String, resource: &'static str },
     EmptyJobIdInReleaseDelay { scenario_id: String },
     DuplicateJobReleaseDelay { scenario_id: String, job_id: String },
     UnknownJobInReleaseDelay { scenario_id: String, job_id: String },
@@ -294,6 +308,54 @@ pub fn evaluate_stress_corpus(
                 .ok_or_else(|| StressHarnessError::ProcessingDelayOverflow {
                     scenario_id: scenario.id.clone(),
                     job_id: shock.job_id.clone(),
+                })?;
+        }
+
+        let mut shocked_jobs = BTreeSet::new();
+        for shock in &scenario.process_resource_shocks {
+            if shock.job_id.trim().is_empty() {
+                return Err(StressHarnessError::EmptyJobIdInResourceShock {
+                    scenario_id: scenario.id.clone(),
+                });
+            }
+            if !shocked_jobs.insert(shock.job_id.as_str()) {
+                return Err(StressHarnessError::DuplicateJobResourceShock {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                });
+            }
+            if !job_ids.contains(shock.job_id.as_str()) {
+                return Err(StressHarnessError::UnknownJobInResourceShock {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                });
+            }
+            if shock.additional_energy_units == 0 && shock.additional_water_units == 0 {
+                return Err(StressHarnessError::EmptyProcessResourceShock {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                });
+            }
+            let job = perturbed
+                .jobs
+                .iter_mut()
+                .find(|job| job.id == shock.job_id)
+                .expect("job ID validated against baseline");
+            job.energy_units = job
+                .energy_units
+                .checked_add(shock.additional_energy_units)
+                .ok_or_else(|| StressHarnessError::ProcessResourceOverflow {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                    resource: "energy",
+                })?;
+            job.water_units = job
+                .water_units
+                .checked_add(shock.additional_water_units)
+                .ok_or_else(|| StressHarnessError::ProcessResourceOverflow {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                    resource: "water",
                 })?;
         }
 
@@ -675,6 +737,7 @@ mod tests {
             id: id.to_owned(),
             fixture_ref: format!("fixture:stress:{id}"),
             processing_delays,
+            process_resource_shocks: vec![],
             release_delays: vec![],
             utility_budget_shock: None,
             machine_availability_delays,
@@ -700,6 +763,7 @@ mod tests {
                     id: "specialist-material-arrives-late".to_owned(),
                     fixture_ref: "fixture:stress:specialist-material-arrives-late".to_owned(),
                     processing_delays: vec![],
+                    process_resource_shocks: vec![],
                     release_delays: vec![JobReleaseDelay {
                         job_id: "ceremonial-repair".to_owned(),
                         additional_ticks: 2,
@@ -708,9 +772,23 @@ mod tests {
                     machine_availability_delays: vec![],
                 },
                 StressScenario {
+                    id: "water-intensive-finish".to_owned(),
+                    fixture_ref: "fixture:stress:water-intensive-finish".to_owned(),
+                    processing_delays: vec![],
+                    process_resource_shocks: vec![ProcessResourceShock {
+                        job_id: "ceremonial-repair".to_owned(),
+                        additional_energy_units: 0,
+                        additional_water_units: 4,
+                    }],
+                    release_delays: vec![],
+                    utility_budget_shock: None,
+                    machine_availability_delays: vec![],
+                },
+                StressScenario {
                     id: "energy-curtailed".to_owned(),
                     fixture_ref: "fixture:stress:energy-curtailed".to_owned(),
                     processing_delays: vec![],
+                    process_resource_shocks: vec![],
                     release_delays: vec![],
                     utility_budget_shock: Some(UtilityBudgetShock {
                         energy_budget_units: Some(0),
@@ -738,16 +816,16 @@ mod tests {
             "ceremonial-repair"
         );
         assert_eq!(
-            report.scenario_results[3]
+            report.scenario_results[4]
                 .scenario
                 .utility_budget_shock
                 .as_ref()
                 .and_then(|shock| shock.energy_budget_units),
             Some(0)
         );
-        assert_eq!(report.scenario_count, 5);
+        assert_eq!(report.scenario_count, 6);
         assert_eq!(report.exact_feasible_scenarios, 3);
-        assert_eq!(report.exact_no_schedule_scenarios, 2);
+        assert_eq!(report.exact_no_schedule_scenarios, 3);
         assert_eq!(report.rule_summaries.len(), 4);
         assert!(report.rule_summaries.iter().all(|summary| {
             summary.plans_found_on_feasible_scenarios == 3
@@ -755,10 +833,10 @@ mod tests {
                 && summary.total_tardiness_ticks.p95.is_some()
         }));
         assert_eq!(
-            report.scenario_results[4].exact_outcome,
+            report.scenario_results[5].exact_outcome,
             ScenarioExactOutcome::NoFeasibleSchedule
         );
-        assert!(report.scenario_results[4]
+        assert!(report.scenario_results[5]
             .dispatch_results
             .iter()
             .all(|result| !result.plan_found));
@@ -908,6 +986,7 @@ mod tests {
                 id: "supplier-delay".to_owned(),
                 fixture_ref: "fixture:stress:supplier-delay".to_owned(),
                 processing_delays: vec![],
+                process_resource_shocks: vec![],
                 release_delays: vec![JobReleaseDelay {
                     job_id: "ceremonial-repair".to_owned(),
                     additional_ticks: 1,
@@ -987,6 +1066,7 @@ mod tests {
                 id: "more-energy-than-baseline".to_owned(),
                 fixture_ref: "fixture:stress:invalid-relaxed-budget".to_owned(),
                 processing_delays: vec![],
+                process_resource_shocks: vec![],
                 release_delays: vec![],
                 utility_budget_shock: Some(UtilityBudgetShock {
                     energy_budget_units: Some(5),
@@ -1010,6 +1090,7 @@ mod tests {
                 id: "empty-budget".to_owned(),
                 fixture_ref: "fixture:stress:empty-budget".to_owned(),
                 processing_delays: vec![],
+                process_resource_shocks: vec![],
                 release_delays: vec![],
                 utility_budget_shock: Some(UtilityBudgetShock {
                     energy_budget_units: None,
