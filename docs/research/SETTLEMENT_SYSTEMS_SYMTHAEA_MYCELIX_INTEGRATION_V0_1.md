@@ -268,3 +268,8 @@ A new regression tests this behavior. The kernel now has 15 authored Rust tests;
 ### Strict deserialization guard
 
 The scenario, component, dependency, resource, service-floor and report structs now use Serde's `deny_unknown_fields` contract, and `ComponentState` rejects unrecognized extra fields. Regression coverage exercises unexpected fields at the scenario, nested component and tagged operational-state levels. This prevents newly supplied values from being silently discarded during parsing. The policy is intentionally fail-closed; any future schema expansion needs an explicit version/review rather than relying on ignored extras.
+
+
+### Explicit source-selection semantics
+
+Supply-source choice now uses an explicit `allocation_priority` on each supply record, descending, with the stable supply ID only as a tie-break. Canonical alphabetical order is no longer allowed to act as an undocumented allocation policy. This priority is a declared synthetic policy input, not a real-grid dispatch rule or a guarantee of physical source preference.
