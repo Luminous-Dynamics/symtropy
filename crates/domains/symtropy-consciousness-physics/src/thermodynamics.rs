@@ -426,7 +426,8 @@ impl ThermodynamicLedger {
     /// Lifetime local-flow residual rate. Returns infinity after invalid input;
     /// it does not certify conservation of the whole simulated system.
     pub fn lifetime_error_rate(&self) -> f64 {
-        if self.lifetime_invalid_flow_count > 0
+        if self.invalid_flow_count > 0
+            || self.lifetime_invalid_flow_count > 0
             || !self.lifetime_energy.is_finite()
             || !self.lifetime_error.is_finite()
             || !self.lifetime_flow_scale.is_finite()
@@ -608,6 +609,8 @@ mod tests {
             Err(LedgerInputError::NegativeFlow)
         );
         assert_eq!(ledger.energy_out, 4.0);
+        // The lifetime accessor must fail closed before the tick is finalized too.
+        assert!(ledger.lifetime_error_rate().is_infinite());
 
         let balance = ledger.tick_balance();
         assert!(!balance.inputs_valid);
