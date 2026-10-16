@@ -18,6 +18,23 @@ This binary is a fail-closed verifier for the draft housing evidence manifest. I
 
 It does **not** parse or interpret legislation/SANS clauses, independently recompute structural/building-physics results, determine whether a measured result satisfies an engineering criterion, establish physical truth, verify a person's professional registration, or issue approvals. A successful package check sets `evidence_integrity_status: EVIDENCE_INTEGRITY_VERIFIED`; it does not replace the declared or effective engineering status. `effective_status` stays `PASS` only if the manifest declared PASS and all integrity checks succeed. The manifest's declared engineering status remains an assertion from the evidence producer.
 
+## Analytical structural reference library
+
+The crate also exports a small, dependency-free API from
+`src/structural_reference.rs`. It computes rectangular section properties,
+axial-bar outputs, cantilever outputs, and both simply supported beam load
+families. The analytical integration tests call this shared kernel rather than
+keeping the tested formula implementation entirely inside each test file.
+
+The kernel validates positive finite SI inputs and rejects non-finite or
+non-positive derived intermediates/results. Fixture tests compare its outputs
+against separate declared analytical values and preserve negative controls for
+malformed formulas.
+
+This library is deliberately not a claim that the manifest verifier validates
+an FEM solver. The executable, analytical reference kernel, Lean specification,
+and future solver adapter remain distinct trust boundaries.
+
 ## Run
 
 From the Symtropy repository root:

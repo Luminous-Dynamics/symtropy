@@ -47,6 +47,9 @@ impl std::error::Error for StructuralReferenceError {}
 
 type Result<T> = std::result::Result<T, StructuralReferenceError>;
 
+/// Public result type for fail-closed structural reference calculations.
+pub type StructuralReferenceResult<T> = std::result::Result<T, StructuralReferenceError>;
+
 fn positive_input(field: &'static str, value: f64) -> Result<f64> {
     if !value.is_finite() {
         return Err(StructuralReferenceError::new(
@@ -124,10 +127,12 @@ pub struct RectangularSectionProperties {
 }
 
 /// Compute A = b h, I = b h³ / 12, and c = h / 2 from primitive dimensions.
+///
+/// Formal contract: `geometry.rectangular_section.second_moment.v1`.
 pub fn rectangular_section_properties(
     width_m: f64,
     depth_m: f64,
-) -> Result<RectangularSectionProperties> {
+) -> StructuralReferenceResult<RectangularSectionProperties> {
     let width_m = positive_input("section_width_m", width_m)?;
     let depth_m = positive_input("section_depth_m", depth_m)?;
     let area_m2 = checked_product("section_area_m2", width_m, depth_m)?;
@@ -160,13 +165,15 @@ pub struct AxialBarResult {
 /// Evaluate sigma = F/A, delta = F L/(E A), and R = F.
 /// All loads/material values are positive scalar magnitudes; compression/sign
 /// conventions and more complex bar models are intentionally outside this API.
+///
+/// Formal contract: `mechanics.axial_bar.extension.v1`.
 pub fn axial_bar(
     load_n: f64,
     length_m: f64,
     youngs_modulus_pa: f64,
     width_m: f64,
     depth_m: f64,
-) -> Result<AxialBarResult> {
+) -> StructuralReferenceResult<AxialBarResult> {
     let load_n = positive_input("load_N", load_n)?;
     let length_m = positive_input("length_m", length_m)?;
     let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa)?;
@@ -230,13 +237,15 @@ fn bending_stress(
 
 /// Evaluate the cantilever free-end point-load reference:
 /// delta = F L³/(3 E I), M = F L, sigma = M c/I.
+///
+/// Formal contract: `mechanics.cantilever.tip_deflection.v1`.
 pub fn cantilever_tip_load(
     load_n: f64,
     span_m: f64,
     youngs_modulus_pa: f64,
     width_m: f64,
     depth_m: f64,
-) -> Result<BeamResult> {
+) -> StructuralReferenceResult<BeamResult> {
     let load_n = positive_input("load_N", load_n)?;
     let span_m = positive_input("span_m", span_m)?;
     let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa)?;
@@ -274,8 +283,11 @@ pub fn cantilever_tip_load(
 }
 
 /// Evaluate an elementary simply supported beam with either midpoint force or
-/// uniformly distributed load. Euler-Bernoulli, linear-static and small-
-/** deflection assumptions are expected; this is not a general solver. */
+/// uniformly distributed load. Euler-Bernoulli, linear-static, small-deflection
+/// assumptions are expected; this is not a general solver.
+///
+/// Load-family contracts are `mechanics.simply_supported.midpoint_point_load.v1`
+/// and `mechanics.simply_supported.uniform_load.v1`.
 pub fn simply_supported_beam(
     span_m: f64,
     youngs_modulus_pa: f64,
