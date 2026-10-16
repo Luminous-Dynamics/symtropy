@@ -1045,7 +1045,7 @@ mod tests {
             evaluation_time_epoch_seconds: 99,
             capacity_policy: ScheduledCapacityPolicyV1 {
                 policy_id: "adaptive-test-policy-v1".into(),
-                expected_time_profile_id: PROFILE,
+                expected_time_profile_id: PROFILE.into(),
                 max_observation_age_seconds: 1_000,
                 allowed_future_clock_skew_seconds: 0,
             },
