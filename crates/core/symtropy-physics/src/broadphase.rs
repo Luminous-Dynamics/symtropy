@@ -789,6 +789,93 @@ mod tests {
         );
     }
 
+    fn deterministic_broadphase_unit(state: &mut u64) -> f64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((*state >> 32) % 1_000_001) as f64 / 1_000_000.0
+    }
+
+    fn seeded_mixed_body_corpus(seed: u64, count: usize) -> Vec<RigidBody<3>> {
+        let mut state = seed;
+        let mut bodies = Vec::with_capacity(count);
+        for index in 0..count {
+            let handle = BodyHandle(index);
+            let position = if index < 6 {
+                // Deliberately overlapping seed fixtures guarantee positive
+                // controls for all three body types.
+                Point::new([index as f64 * 0.3, 0.0, 0.0])
+            } else {
+                Point::new([
+                    deterministic_broadphase_unit(&mut state) * 20.0 - 10.0,
+                    deterministic_broadphase_unit(&mut state) * 20.0 - 10.0,
+                    deterministic_broadphase_unit(&mut state) * 20.0 - 10.0,
+                ])
+            };
+            let radius = if index < 6 {
+                1.0
+            } else {
+                0.15 + deterministic_broadphase_unit(&mut state) * 1.1
+            };
+            let body_type = match index % 3 {
+                0 => BodyType::Static,
+                1 => BodyType::Kinematic,
+                _ => BodyType::Dynamic,
+            };
+            let mut body = match body_type {
+                BodyType::Static => RigidBody::<3>::static_body(
+                    handle,
+                    position,
+                    Box::new(Sphere::new(Point::origin(), radius)),
+                ),
+                BodyType::Kinematic => RigidBody::<3>::new(
+                    handle,
+                    BodyType::Kinematic,
+                    symtropy_math::Transform::from_translation(position),
+                    Box::new(Sphere::new(Point::origin(), radius)),
+                    0.0,
+                    SVector::zeros(),
+                ),
+                BodyType::Dynamic => {
+                    RigidBody::<3>::dynamic_sphere(handle, position, radius, 1.0)
+                }
+            };
+
+            body.collision_group = 1 << (index % 3);
+            body.collision_mask = if index < 6 {
+                0b111
+            } else {
+                (deterministic_broadphase_unit(&mut state) * 7.0) as u32 + 1
+            };
+            bodies.push(body);
+        }
+        bodies
+    }
+
+    #[test]
+    fn incremental_mixed_body_corpora_match_bruteforce() {
+        // Exercise the incremental branch below its active-body crossover.
+        // Multiple deterministic seeds, scene sizes, and collision masks guard
+        // against correctness being an artifact of one hand-picked arrangement.
+        for seed in [1, 2, 3, 5, 8, 13, 21, 34] {
+            for count in [3, 7, 17, 41, 49] {
+                let bodies = seeded_mixed_body_corpus(seed, count);
+                let mut static_bp = StaticBroadphase::new();
+                static_bp.rebuild(&bodies);
+
+                let mut incremental = find_pairs_incremental(&bodies, &static_bp);
+                let mut reference = find_pairs_brute(&bodies);
+                incremental.sort_unstable_by_key(|p| (p.0, p.1));
+                reference.sort_unstable_by_key(|p| (p.0, p.1));
+
+                assert_eq!(
+                    incremental, reference,
+                    "incremental/reference mismatch for seed {seed}, count {count}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn incremental_no_static_degrades_to_standard() {
         let bodies = vec![
