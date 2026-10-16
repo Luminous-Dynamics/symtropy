@@ -18,49 +18,57 @@
       "id": "visitor_quality",
       "label": "Synthetic visitor-experience proxy",
       "unit": "index_0_100",
-      "direction": "maximize"
+      "direction": "maximize",
+      "dominance_tolerance": 0
     },
     {
       "id": "accessibility_coverage_pct",
       "label": "Declared accessibility coverage proxy",
       "unit": "percent",
-      "direction": "maximize"
+      "direction": "maximize",
+      "dominance_tolerance": 0
     },
     {
       "id": "local_value_retained_pct",
       "label": "Locally retained destination value proxy",
       "unit": "percent",
-      "direction": "maximize"
+      "direction": "maximize",
+      "dominance_tolerance": 0
     },
     {
       "id": "water_m3_year",
       "label": "Annual water use proxy",
       "unit": "m3/year",
-      "direction": "minimize"
+      "direction": "minimize",
+      "dominance_tolerance": 0
     },
     {
       "id": "energy_mwh_year",
       "label": "Annual energy use proxy",
       "unit": "MWh/year",
-      "direction": "minimize"
+      "direction": "minimize",
+      "dominance_tolerance": 0
     },
     {
       "id": "capex_musd",
       "label": "Capital expenditure proxy",
       "unit": "USD_millions",
-      "direction": "minimize"
+      "direction": "minimize",
+      "dominance_tolerance": 0
     },
     {
       "id": "reversibility_index",
       "label": "Reversibility proxy",
       "unit": "index_0_100",
-      "direction": "maximize"
+      "direction": "maximize",
+      "dominance_tolerance": 0
     },
     {
       "id": "habitat_pressure_index",
       "label": "Habitat pressure proxy",
       "unit": "index_0_100",
-      "direction": "minimize"
+      "direction": "minimize",
+      "dominance_tolerance": 0
     }
   ],
   "scenarios": [

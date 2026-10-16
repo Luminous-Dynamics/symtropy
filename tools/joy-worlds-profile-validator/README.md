@@ -24,7 +24,7 @@ cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --bin po
   --output /tmp/destination-decision-receipt.json
 ```
 
-It rejects unpaired candidate sets, missing constraints/outcomes, unit mismatches, invalid uncertainty bounds and any non-synthetic input. A failed hard constraint in any scenario excludes the candidate from the Pareto set; unknown constraints or outcomes make it `not_evaluable`. The robust envelope uses lower bounds for maximization and upper bounds for minimization, and never creates a single weighted score.
+It rejects unpaired candidate sets, missing constraints/outcomes, unit mismatches, invalid uncertainty bounds and any non-synthetic input. A failed hard constraint in any scenario excludes the candidate from the Pareto set; unknown constraints or outcomes make it `not_evaluable`. The robust envelope uses lower bounds for maximization and upper bounds for minimization, and never creates a single weighted score. Each objective declares its own non-negative dominance tolerance in that objective's units.
 
 Benchmark targets and proposed acceptance criteria: [benchmark targets v0.1](../../docs/research/joy-worlds/benchmark-targets-v0.1.md).
 

@@ -46,7 +46,8 @@ fn make_fixture(candidate_count: usize, scenario_count: usize, objective_count: 
         json!({
             "id": format!("objective_{index:02}"),
             "unit": format!("unit_{index:02}"),
-            "direction": if index % 2 == 0 { "maximize" } else { "minimize" }
+            "direction": if index % 2 == 0 { "maximize" } else { "minimize" },
+            "dominance_tolerance": 0.0
         })
     }).collect();
 

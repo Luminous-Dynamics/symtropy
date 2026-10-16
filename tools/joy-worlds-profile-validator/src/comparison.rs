@@ -7,6 +7,7 @@ struct Objective {
     id: String,
     unit: String,
     direction: String,
+    dominance_tolerance: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -250,13 +251,18 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         let id = text_field(raw_objective, "id", &path, &mut errors);
         let unit = text_field(raw_objective, "unit", &path, &mut errors);
         let direction = text_field(raw_objective, "direction", &path, &mut errors);
+        let dominance_tolerance = number_field(raw_objective, "dominance_tolerance", &path, &mut errors)
+            .unwrap_or(0.0);
         if direction != "maximize" && direction != "minimize" {
             errors.push(format!("{path}.direction: expected maximize or minimize"));
+        }
+        if dominance_tolerance < 0.0 {
+            errors.push(format!("{path}.dominance_tolerance: must be non-negative and expressed in the objective's declared unit"));
         }
         if !id.is_empty() && !objective_ids.insert(id.clone()) {
             errors.push(format!("{path}.id: duplicate objective '{id}'"));
         }
-        objectives.push(Objective { id, unit, direction });
+        objectives.push(Objective { id, unit, direction, dominance_tolerance });
     }
 
     let raw_scenarios = array_field(&document, "scenarios", "$", 2, &mut errors);
@@ -528,7 +534,8 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         "scenario_ids": scenario_ids,
         "required_hard_constraints": required_constraints,
         "objective_dimensions": objectives.iter().map(|objective| json!({
-            "id": objective.id, "unit": objective.unit, "direction": objective.direction
+            "id": objective.id, "unit": objective.unit, "direction": objective.direction,
+            "dominance_tolerance": objective.dominance_tolerance
         })).collect::<Vec<_>>(),
         "candidate_results": candidate_results,
         "pareto_front_ids": pareto_front_ids,
@@ -537,7 +544,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         "methodology": {
             "hard_constraints": "A single fail in any declared scenario makes a candidate infeasible; any unresolved required constraint or outcome makes it not_evaluable unless a known failure already makes it infeasible.",
             "aggregation": "Conservative envelope uses lower bounds for maximize dimensions and upper bounds for minimize dimensions across all scenarios.",
-            "ranking": "Pareto dominance only; no weighted aggregate score is constructed.",
+            "ranking": "Pareto dominance only; no weighted aggregate score is constructed. Objective-specific dominance_tolerance values are expressed in each declared unit; there is no hidden universal epsilon.",
             "paired_comparison": "Every scenario must contain the same candidate IDs with consistent names and declared objective units.",
             "ordering": "Candidate and objective IDs are emitted deterministically in lexical order; scenario results retain input order.",
             "evidence": "Evidence references are carried through, but are not independently authenticated by this engine."
@@ -556,17 +563,17 @@ fn dominates(a: &BTreeMap<String, f64>, b: &BTreeMap<String, f64>, objectives: &
         let Some(a_value) = a.get(&objective.id) else { return false };
         let Some(b_value) = b.get(&objective.id) else { return false };
         let no_worse = if objective.direction == "maximize" {
-            *a_value >= *b_value - 1e-9
+            *a_value >= *b_value - objective.dominance_tolerance
         } else {
-            *a_value <= *b_value + 1e-9
+            *a_value <= *b_value + objective.dominance_tolerance
         };
         if !no_worse {
             return false;
         }
         let better = if objective.direction == "maximize" {
-            *a_value > *b_value + 1e-9
+            *a_value > *b_value + objective.dominance_tolerance
         } else {
-            *a_value < *b_value - 1e-9
+            *a_value < *b_value - objective.dominance_tolerance
         };
         strictly_better |= better;
     }
@@ -613,9 +620,9 @@ mod tests {
             "non_claims":["No site-feasibility claim."],
             "required_hard_constraints":["rights_and_access","safety_case","resource_envelope","ecological_capacity"],
             "objective_dimensions":[
-                {"id":"visitor_quality","unit":"index_0_100","direction":"maximize"},
-                {"id":"water_m3_year","unit":"m3/year","direction":"minimize"},
-                {"id":"capex_musd","unit":"USD_millions","direction":"minimize"}
+                {"id":"visitor_quality","unit":"index_0_100","direction":"maximize","dominance_tolerance":0.0},
+                {"id":"water_m3_year","unit":"m3/year","direction":"minimize","dominance_tolerance":0.0},
+                {"id":"capex_musd","unit":"USD_millions","direction":"minimize","dominance_tolerance":0.0}
             ],
             "scenarios":[
                 {"id":"base","assumptions_ref":"synthetic://scenario/base","candidates":[
@@ -678,6 +685,22 @@ mod tests {
     }
 
     #[test]
+    fn rejects_negative_objective_dominance_tolerance() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        raw["objective_dimensions"][0]["dominance_tolerance"] = json!(-0.01);
+        let errors = compare_scenarios_json(&raw.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("dominance_tolerance: must be non-negative")));
+    }
+
+    #[test]
+    fn rejects_objective_missing_dominance_tolerance() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        raw["objective_dimensions"][0].as_object_mut().unwrap().remove("dominance_tolerance");
+        let errors = compare_scenarios_json(&raw.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("objective_dimensions[0].dominance_tolerance")));
+    }
+
+    #[test]
     fn rejects_invalid_uncertainty_bounds() {
         let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
         raw["scenarios"][0]["candidates"][0]["outcomes"]["visitor_quality"]["lower_bound"] = json!(33.0);
@@ -737,8 +760,8 @@ mod tests {
             "non_claims":["Bounded mathematical fixture only."],
             "required_hard_constraints":["rights","safety"],
             "objective_dimensions":[
-                {"id":"quality","unit":"points","direction":"maximize"},
-                {"id":"water","unit":"m3/year","direction":"minimize"}
+                {"id":"quality","unit":"points","direction":"maximize","dominance_tolerance":0.0},
+                {"id":"water","unit":"m3/year","direction":"minimize","dominance_tolerance":0.0}
             ],
             "scenarios":[
                 {"id":"base","assumptions_ref":"synthetic://mini/base","candidates":candidates.clone()},
