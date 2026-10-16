@@ -150,6 +150,28 @@ Concrete pilot: [Panama November 2026 prospective evaluation draft](TRANSPORT_PA
 
 Tracking: [TRANSPORT-RES-005 #1671](https://github.com/Luminous-Dynamics/symtropy/issues/1671). This gate composes with the Symthaea measurement-validity/evidence graph and does not create a parallel event/source registry.
 
+## Cross-cutting gate — reservation-policy rule conformance
+
+Physical feasibility and reservation eligibility are different questions. The Panama case shows that a planner can respect a daily slot count yet still apply the wrong booking rule, lock system, market segment, competition period, swap/substitution condition, or effective date.
+
+Use [TRANSPORT_POLICY-001 #1681](https://github.com/Luminous-Dynamics/symtropy/issues/1681), [the public rule matrix](TRANSPORT_PANAMA_POLICY_RULES_V0_1.md) and [19 provisional golden cases](TRANSPORT_PANAMA_POLICY_GOLDEN_CASES_V0_1.csv). These fixtures validate only specific published rule clauses; they do not reconstruct confidential customer rankings, bids or realized slot awards.
+
+### Required conformance targets
+
+- **100%** agreement with manually reviewed golden eligibility/rule outcomes within the declared public-rule domain.
+- **Zero** application before the rule is known or outside the stated effective interval/booking horizon.
+- **Zero** unintended policy-scope leakage between Panamax and Neopanamax, market segments, booking periods, booking dates and transit dates.
+- **Zero** daily/weekly/package-period unit confusion and zero documented quota violations in synthetic fixture results.
+- **100%** deterministic normalized results under rule-load and request-input ordering permutations.
+- **100%** of public rules and footnotes either represented and verified or explicitly marked unsupported/unknown. Unparsed details fail closed; they never silently mean unrestricted eligibility.
+- Every denial/acceptance identifies the rule version, source clause and applicability window.
+
+### Adversarial controls
+
+Test that the evaluator rejects: A-37 knowledge before its publication; same-period Panamax consecutive-date booking when the base rule restricts it; applying A-31 Neopanamax exceptions to Panamax; swapping a NetZero slot with mismatched PCUMS when the swap rule requires equality; applying the four-day cancellation threshold before 15 October 2026; treating the November 17/24 competitions as 2027 transit dates; or assuming a weekly slot count fixes every daily distribution.
+
+A correct rule replay is **not** a prediction of actual awards. Actual fair-access or service improvement claims require permitted request/award/outcome observations and a predeclared evaluation. Fairness metrics must show denominators and results by market segment; do not collapse the result into one universal fairness score.
+
 ## 6. B4 — distributional value and whole-life outcomes
 
 Do not allow aggregate savings to conceal a loss of essential access for a subset of users or regions. When demand data support it, report:
