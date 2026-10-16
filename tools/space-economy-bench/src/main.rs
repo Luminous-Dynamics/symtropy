@@ -81,6 +81,9 @@ fn lifecycle(v: &Value) -> Check<Value> {
     }
     let horizon = req_u64(v, "horizon_years", at)?;
     let required = req_u64(v, "required_service_units_total", at)?;
+    if req_u64(v, "discount_rate_basis_points", at)? != 0 {
+        return Err(format!("{at}: v0.1 fixture arithmetic requires a zero discount rate"));
+    }
     if horizon == 0 || required == 0 {
         return Err(format!("{at}: horizon and required service must be positive"));
     }
@@ -122,7 +125,7 @@ fn lifecycle(v: &Value) -> Check<Value> {
     if isru_mass >= import_mass || isru_cost <= import_cost {
         return Err(format!("{at}: fixture must show lower ISRU launch mass but higher lifecycle cost"));
     }
-    let mass_reduction_percent = (import_mass - isru_mass) * 100 / import_mass;
+    let mass_reduction_percent = mul(import_mass - isru_mass, 100, at)? / import_mass;
     Ok(json!({
         "scenario_id": at,
         "status": "pass",
@@ -172,7 +175,7 @@ fn relay(v: &Value) -> Check<Value> {
         costs.insert(id, cost);
     }
     let faults = array(field(v, "fault_cases", at)?, &format!("{at}.fault_cases"))?;
-    if faults.len() < 3 { return Err(format!("{at}: required nominal and N-1 fault cases missing")); }
+    if faults.len() != 3 { return Err(format!("{at}: expected exactly nominal and two single-provider fault cases")); }
     let mut seen_faults = BTreeSet::new();
     for fault in faults {
         exact_keys(fault, &["id", "failed_provider_ids"], &format!("{at}.fault"))?;
@@ -180,18 +183,31 @@ fn relay(v: &Value) -> Check<Value> {
         if !seen_faults.insert(fid.clone()) { return Err(format!("{at}: duplicate fault case {fid}")); }
         let failed: BTreeSet<String> = array(field(fault, "failed_provider_ids", at)?, &format!("{at}.{fid}.failed_provider_ids"))?
             .iter().map(|x| text(x, &format!("{at}.{fid}.failed_provider_ids"))).collect::<Check<Vec<_>>>()?.into_iter().collect();
+        let expected_failed: BTreeSet<String> = match fid.as_str() {
+            "none" => BTreeSet::new(),
+            "relay_a_down" => ["relay-a".to_owned()].into_iter().collect(),
+            "relay_b_down" => ["relay-b".to_owned()].into_iter().collect(),
+            _ => return Err(format!("{at}: unknown fault case {fid}")),
+        };
+        if failed != expected_failed { return Err(format!("{at}.{fid}: failed-provider set does not match the named fault")); }
         for plan_id in ["single_provider", "dual_provider"] {
             let available = capacities[plan_id].iter()
-                .filter(|(pid, _)| !failed.contains(*pid))
+                .filter(|(pid, _)| !failed.contains(pid.as_str()))
                 .try_fold(0_u64, |acc, (_, c)| add(acc, *c, at))?;
-            if fid == "none" || !failed.is_empty() {
-                if plan_id == "dual_provider" && available < demand {
-                    return Err(format!("{at}: dual-provider plan misses demand for {fid}"));
-                }
+            if plan_id == "dual_provider" && available < demand {
+                return Err(format!("{at}: dual-provider plan misses demand for {fid}"));
             }
-            if plan_id == "single_provider" && failed.contains("relay-a") && available >= demand {
+            if plan_id == "single_provider" && fid == "none" && available < demand {
+                return Err(format!("{at}: single-provider plan does not meet nominal demand"));
+            }
+            if plan_id == "single_provider" && fid == "relay_a_down" && available >= demand {
                 return Err(format!("{at}: single-provider negative control unexpectedly survives relay-a loss"));
             }
+        }
+    }
+    for required_fault in ["none", "relay_a_down", "relay_b_down"] {
+        if !seen_faults.contains(required_fault) {
+            return Err(format!("{at}: missing required fault case {required_fault}"));
         }
     }
     if costs.get("dual_provider") != Some(&65) {
@@ -376,6 +392,22 @@ fn robust_service(v: &Value) -> Check<Value> {
     }}))
 }
 
+fn validate_annotations(v: &Value, at: &str) -> Check<()> {
+    for key in ["expected_assertions", "negative_controls"] {
+        let values = array(field(v, key, at)?, &format!("{at}.{key}"))?;
+        if values.is_empty() {
+            return Err(format!("{at}.{key}: must not be empty"));
+        }
+        for value in values {
+            let sentence = text(value, &format!("{at}.{key}"))?;
+            if sentence.trim().len() < 10 {
+                return Err(format!("{at}.{key}: annotation too short to be actionable"));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn validate(root: &Value, source_commit: &str, corpus_digest: &str) -> Check<Value> {
     exact_keys(root, &["suite_id", "suite_version", "manifest_kind", "created_date", "units", "claim_ceiling", "scenarios"], "root")?;
     if req_text(root, "suite_id", "root")? != "space-economy-reference"
@@ -399,6 +431,7 @@ fn validate(root: &Value, source_commit: &str, corpus_digest: &str) -> Check<Val
     for scenario in scenarios {
         let id = req_text(scenario, "id", "scenario")?;
         if !REQUIRED_IDS.contains(&id.as_str()) { return Err(format!("scenario: unknown id {id}")); }
+        validate_annotations(scenario, &id)?;
         if found.insert(id.clone(), scenario.clone()).is_some() { return Err(format!("scenario: duplicate id {id}")); }
     }
     let mut reports = Vec::new();
