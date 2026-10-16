@@ -1,0 +1,36 @@
+name: Lean formalization
+
+on:
+  pull_request:
+    paths:
+      - "formalization/lean/**"
+      - "docs/built-environment/lean-verification-roadmap.md"
+      - ".github/workflows/lean-formalization.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "formalization/lean/**"
+      - "docs/built-environment/lean-verification-roadmap.md"
+      - ".github/workflows/lean-formalization.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Build proofs and audit axioms
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Build pinned Lean project and audit theorem namespace
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formalization/lean
+          use-mathlib-cache: true
+          build: true
+          axiom-audit: true
+          axiom-audit-root: SymtropyFormal
+          axiom-audit-allow: propext,Classical.choice,Quot.sound
