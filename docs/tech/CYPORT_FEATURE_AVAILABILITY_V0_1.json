@@ -1,0 +1,689 @@
+{
+  "schema_id": "luminous.symtropy.maritime.cyport-feature-availability",
+  "schema_version": "0.1.0",
+  "status": "FIELD_REGISTER_COMPLETE_NO_PREDICTORS_APPROVED",
+  "source": {
+    "dataset_repository": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+    "dataset_revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+    "interaction_resource_path": "Tropical_cyclone_interaction/interaction_data.csv",
+    "interaction_resource_git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "interaction_resource_byte_length": 643047,
+    "source_description_path": "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/README.md",
+    "source_description_note": "The pinned README describes baseline port/freight data, cyclone-period exposures and observed weather/tide data, port network centralities in recent weekly freight networks, resilience metrics, and static port characteristics. This is source documentation, not proof that any field was available at a forecast issue time."
+  },
+  "field_policy": {
+    "classification_policy": "Classify all source columns by role and evidence gate; eligibility is a policy decision, not a claim that a field is scientifically validated.",
+    "point_in_time_availability_required": true,
+    "all_predictors_blocked_until_review": true,
+    "approved_predictor_fields": [],
+    "issue_time_required": true,
+    "grouping_key": "SID",
+    "join_only_keys": [
+      "ID",
+      "SID",
+      "PID"
+    ],
+    "outcome_or_post_event_fields": [
+      "start_recovery_date",
+      "end_recovery_date",
+      "total_impact",
+      "total_impact_value",
+      "max_impact",
+      "day_of_recover"
+    ]
+  },
+  "fields": [
+    {
+      "name": "ID",
+      "category": "identity_or_group_key",
+      "eligibility": "JOIN_OR_GROUP_KEY_ONLY",
+      "semantic_note": "Interaction-row identity; use for deduplication and joins only.",
+      "required_evidence": [
+        "Keep this field out of the raw predictor matrix by default.",
+        "Use stable identifiers only for joins, audit trails, grouping and deduplication."
+      ]
+    },
+    {
+      "name": "SID",
+      "category": "identity_or_group_key",
+      "eligibility": "JOIN_OR_GROUP_KEY_ONLY",
+      "semantic_note": "Cyclone episode grouping key; use for split assignment and clustered uncertainty only.",
+      "required_evidence": [
+        "Keep this field out of the raw predictor matrix by default.",
+        "Use stable identifiers only for joins, audit trails, grouping and deduplication."
+      ]
+    },
+    {
+      "name": "PID",
+      "category": "identity_or_group_key",
+      "eligibility": "JOIN_OR_GROUP_KEY_ONLY",
+      "semantic_note": "Port identity/join key; use for port joins and diagnostics only, not a raw default predictor.",
+      "required_evidence": [
+        "Keep this field out of the raw predictor matrix by default.",
+        "Use stable identifiers only for joins, audit trails, grouping and deduplication."
+      ]
+    },
+    {
+      "name": "port",
+      "category": "static_context",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Port name/display label. Treat as a join/display value, not a default model feature; any train-only port effect needs an explicit seen-port versus unseen-port evaluation.",
+      "required_evidence": [
+        "Document normalization and port identity crosswalk/version.",
+        "Declare whether unseen ports are in scope and evaluate port-transfer separately.",
+        "Do not fit arbitrary row encodings before the train/test policy is locked."
+      ]
+    },
+    {
+      "name": "PORT_LON",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Port coordinates are potentially static geography, but datum, reference source and port crosswalk/version must be verified.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "PORT_LAT",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Port coordinates are potentially static geography, but datum, reference source and port crosswalk/version must be verified.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "start_date",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Retrospective port–cyclone interaction window; its presence and end time are not evidence that the same value was available before operations were affected.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "end_date",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Retrospective port–cyclone interaction window; its presence and end time are not evidence that the same value was available before operations were affected.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "start_recovery_date",
+      "category": "outcome_or_post_event",
+      "eligibility": "FORBIDDEN_TARGET_OR_POST_EVENT",
+      "semantic_note": "Recovery curve start marker; source-derived outcome information.",
+      "required_evidence": [
+        "Never use as a predictor for a task where this field or a downstream outcome is evaluated.",
+        "Retain the field's target-specific definition and source sentinel/rounding semantics."
+      ]
+    },
+    {
+      "name": "end_recovery_date",
+      "category": "outcome_or_post_event",
+      "eligibility": "FORBIDDEN_TARGET_OR_POST_EVENT",
+      "semantic_note": "Recovery curve end marker; source-derived outcome information.",
+      "required_evidence": [
+        "Never use as a predictor for a task where this field or a downstream outcome is evaluated.",
+        "Retain the field's target-specific definition and source sentinel/rounding semantics."
+      ]
+    },
+    {
+      "name": "total_impact",
+      "category": "outcome_or_post_event",
+      "eligibility": "FORBIDDEN_TARGET_OR_POST_EVENT",
+      "semantic_note": "Rounded equivalent-days-lost outcome label.",
+      "required_evidence": [
+        "Never use as a predictor for a task where this field or a downstream outcome is evaluated.",
+        "Retain the field's target-specific definition and source sentinel/rounding semantics."
+      ]
+    },
+    {
+      "name": "total_impact_value",
+      "category": "outcome_or_post_event",
+      "eligibility": "FORBIDDEN_TARGET_OR_POST_EVENT",
+      "semantic_note": "Continuous impact proxy tightly related to the outcome; target leakage risk.",
+      "required_evidence": [
+        "Never use as a predictor for a task where this field or a downstream outcome is evaluated.",
+        "Retain the field's target-specific definition and source sentinel/rounding semantics."
+      ]
+    },
+    {
+      "name": "max_impact",
+      "category": "outcome_or_post_event",
+      "eligibility": "FORBIDDEN_TARGET_OR_POST_EVENT",
+      "semantic_note": "Maximum impact proxy; target leakage risk.",
+      "required_evidence": [
+        "Never use as a predictor for a task where this field or a downstream outcome is evaluated.",
+        "Retain the field's target-specific definition and source sentinel/rounding semantics."
+      ]
+    },
+    {
+      "name": "day_of_recover",
+      "category": "outcome_or_post_event",
+      "eligibility": "FORBIDDEN_TARGET_OR_POST_EVENT",
+      "semantic_note": "Recovery-duration outcome label.",
+      "required_evidence": [
+        "Never use as a predictor for a task where this field or a downstream outcome is evaluated.",
+        "Retain the field's target-specific definition and source sentinel/rounding semantics."
+      ]
+    },
+    {
+      "name": "DD",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "CCD",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "BCD",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SSHS",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SSHS_1",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SSHS_2",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SSHS_3",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SSHS_4",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SSHS_5",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "IF_LANDFALL_CLOSE2PORT",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Cyclone landfall flag/indicator family; event-derived coding and forecast-time availability need source-level proof.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "IF_LANDFALL",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Cyclone landfall flag/indicator family; event-derived coding and forecast-time availability need source-level proof.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "WIND",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Cyclone exposure or meteorological variable. The table is retrospective; do not treat the stored value as an operational forecast without issue-time/vintage evidence.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "PRESSURE",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Cyclone exposure or meteorological variable. The table is retrospective; do not treat the stored value as an operational forecast without issue-time/vintage evidence.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "DISTANCE",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Cyclone exposure or meteorological variable. The table is retrospective; do not treat the stored value as an operational forecast without issue-time/vintage evidence.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "Wind_speed",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Observed/derived meteorological or water-level exposure field; the dataset README describes observed weather/tide observations during tropical cyclones, not timestamped forecast vintages.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "Surge_height",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Observed/derived meteorological or water-level exposure field; the dataset README describes observed weather/tide observations during tropical cyclones, not timestamped forecast vintages.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "Rainfall",
+      "category": "retrospective_event_or_exposure",
+      "eligibility": "BLOCKED_UNTIL_POINT_IN_TIME_EVIDENCE",
+      "semantic_note": "Observed/derived meteorological or water-level exposure field; the dataset README describes observed weather/tide observations during tropical cyclones, not timestamped forecast vintages.",
+      "required_evidence": [
+        "Join to an immutable source observation or forecast product with valid time and issue/ingest time.",
+        "For forecasts, keep the vintage that was actually available at the simulated decision time; prohibit later revisions.",
+        "For realized observations, use only in retrospective explanatory analyses unless a pre-issue measurement is explicitly documented.",
+        "Document units, spatial aggregation, missingness and transformations."
+      ]
+    },
+    {
+      "name": "Port_ranking",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Port ranking is derived or context-dependent; the precise ranking definition and timestamp are not established in this register.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "D_normal",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "D_cyclone",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "C_normal",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "C_cyclone",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "B_normal",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "B_cyclone",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "E_normal",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "E_cyclone",
+      "category": "network_derived_context",
+      "eligibility": "BLOCKED_UNTIL_NETWORK_WINDOW_AUDIT",
+      "semantic_note": "Network centrality/structure feature; source README describes port network centralities in recent weekly freight networks, while field-specific window and timestamp still require verification.",
+      "required_evidence": [
+        "Identify the exact graph, edge definition, vessel/cargo scope and computation code.",
+        "Prove the graph snapshot ends no later than the forecast issue time.",
+        "For any cyclone-period metric, demonstrate that its window excludes future and outcome-period observations.",
+        "Recompute graph features inside each training fold and compare node-only versus graph-aware baselines."
+      ]
+    },
+    {
+      "name": "Seaport",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Potential static port/trade/demographic context. Dataset README lists multiple external sources and vintages; this field's exact mapping and observation year remain to be audited.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Pop_C",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Potential static port/trade/demographic context. Dataset README lists multiple external sources and vintages; this field's exact mapping and observation year remain to be audited.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Pop_Tract",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Potential static port/trade/demographic context. Dataset README lists multiple external sources and vintages; this field's exact mapping and observation year remain to be audited.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "PCT_Pov",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Potential static port/trade/demographic context. Dataset README lists multiple external sources and vintages; this field's exact mapping and observation year remain to be audited.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "WF",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "PCT_TA",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "PCT_ACEW",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "PCT_TI",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "PCT_SV",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "SL",
+      "category": "source_code_or_encoding_unresolved",
+      "eligibility": "BLOCKED_UNTIL_SEMANTIC_DICTIONARY",
+      "semantic_note": "Column name or encoding is not sufficiently self-defining for a safe model contract; do not infer its exact meaning from the abbreviation alone.",
+      "required_evidence": [
+        "Record the upstream data dictionary and exact transformation/encoding definition.",
+        "Validate units, category order, sentinel values, missingness and reference period.",
+        "Determine whether the value was forecast, measured, observed or calculated, and at what timestamp."
+      ]
+    },
+    {
+      "name": "Railway_Length",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Infrastructure context candidate; verify data vintage and whether it is port-specific or an aggregate of a surrounding area.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Highway_Length",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Infrastructure context candidate; verify data vintage and whether it is port-specific or an aggregate of a surrounding area.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Dock_Count",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Infrastructure context candidate; verify data vintage and whether it is port-specific or an aggregate of a surrounding area.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Coast_Gulf_of_Mexico",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Coastal-region indicator likely describes geography; confirm port assignment, source and one-hot/exclusivity rules.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Coast_Atlantic",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Coastal-region indicator likely describes geography; confirm port assignment, source and one-hot/exclusivity rules.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    },
+    {
+      "name": "Coast_Pacific",
+      "category": "static_or_context_candidate",
+      "eligibility": "BLOCKED_UNTIL_VINTAGE_AND_JOIN_AUDIT",
+      "semantic_note": "Coastal-region indicator likely describes geography; confirm port assignment, source and one-hot/exclusivity rules.",
+      "required_evidence": [
+        "Record source dataset, source revision, source vintage/as-of date, units and transformation formula.",
+        "Verify exact port/port-area crosswalk and geographic coverage.",
+        "Check for future information relative to each forecast issue date and for missingness mechanisms.",
+        "Retain source license/attribution and test transfer to unseen ports."
+      ]
+    }
+  ],
+  "hard_gates": {
+    "csv_header_order_pinned": true,
+    "feature_whitelist_empty": true,
+    "retrospective_realized_data_blocked_without_forecast_vintage": true,
+    "network_features_require_pre_issue_time_snapshot": true,
+    "source_outcome_fields_never_predictors": true,
+    "public_holdout_not_blind": true
+  },
+  "claim_ceiling": [
+    "The register accounts for the 56 column names and proposes conservative field eligibility gates; it does not validate each field's scientific construction.",
+    "No feature is approved as an operational forecast predictor until point-in-time provenance, units, missingness, source terms and transformation lineage pass review.",
+    "The retrospective CyPort interaction table alone does not reconstruct historical weather forecast vintages or live operational availability.",
+    "No model score, forecast skill, causal result, physical truth, safety or operational authority is established."
+  ]
+}
