@@ -5,8 +5,9 @@ example for the bounded schedule stress harness.
 
 - stress_corpus.schema.json: JSON Schema draft 2020-12 contract.
 - stress_corpus.example.json: one qualified heritage-repair job with six cases:
-  nominal, increased processing time, delayed input readiness, energy curtailment,
-  and a specialist cell unavailable too long to meet the hard finish window.
+  nominal, increased processing time, delayed input readiness, higher water
+  intensity, energy curtailment, and a specialist cell unavailable too long to
+  meet the hard finish window.
 
 The example declares explicit time, energy and water unit IDs, keeps its garment
 profile and service unit, includes evidence-reference placeholders, and retains
