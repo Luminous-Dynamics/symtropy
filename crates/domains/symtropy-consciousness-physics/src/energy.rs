@@ -72,9 +72,13 @@ impl EnergyBudget {
             || !self.max_energy.is_finite()
             || self.max_energy < self.available
             || !self.temperature.is_finite()
+            || self.temperature <= 0.0
             || !self.entropy.is_finite()
+            || self.entropy < 0.0
             || !self.consumed_this_tick.is_finite()
+            || self.consumed_this_tick < 0.0
             || !self.lifetime_consumed.is_finite()
+            || self.lifetime_consumed < 0.0
         {
             return 0.0;
         }
@@ -161,6 +165,7 @@ impl EnergyBudget {
             || self.available < 0.0
             || self.available > self.max_energy
             || !self.regenerated_this_tick.is_finite()
+            || self.regenerated_this_tick < 0.0
         {
             return;
         }
