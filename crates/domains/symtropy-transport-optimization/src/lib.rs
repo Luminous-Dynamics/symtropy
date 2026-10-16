@@ -22,6 +22,8 @@ mod capacity_window;
 pub use capacity_window::*;
 mod time_dependent;
 pub use time_dependent::*;
+mod robust_path;
+pub use robust_path::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
