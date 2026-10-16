@@ -558,6 +558,12 @@ mod tests {
         path
     }
 
+    fn checker_pin() -> String {
+        let executable = std::env::current_exe().expect("current test executable path");
+        let bytes = fs::read(executable).expect("read current test executable");
+        sha256_hex(&bytes)
+    }
+
     fn correct_outputs() -> Value {
         json!({
             "schema_version": "0.1.0",
@@ -627,6 +633,7 @@ mod tests {
             &root.join("benchmark.json"),
             &record_path,
             &pin,
+            &checker_pin(),
             &root,
         )
         .expect("validation should produce a report");
@@ -645,6 +652,7 @@ mod tests {
             &root.join("benchmark.json"),
             &record_path,
             &pin,
+            &checker_pin(),
             &root,
         )
         .expect("validation should produce a report");
@@ -663,6 +671,7 @@ mod tests {
             &root.join("benchmark.json"),
             &record_path,
             wrong_pin,
+            &checker_pin(),
             &root,
         )
         .expect("validation should produce a report");
@@ -689,11 +698,30 @@ mod tests {
             &root.join("benchmark.json"),
             &record_path,
             &pin,
+            &checker_pin(),
             &root,
         )
         .expect("validation should produce a report");
         assert_eq!(report.independent_result_status, "BLOCKED");
         assert!(!report.execution_completed);
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
+    fn checker_pin_mismatch_blocks_even_correct_reference_outputs() {
+        let (root, record_path, pin) = setup_case(correct_outputs(), "CLAIMED_PASS", None);
+        let wrong_checker_pin =
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            wrong_checker_pin,
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(!report.checker_pin_matches);
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
@@ -706,6 +734,7 @@ mod tests {
             &root.join("benchmark.json"),
             &record_path,
             &pin,
+            &checker_pin(),
             &root,
         )
         .expect("validation should produce a report");
@@ -724,6 +753,7 @@ mod tests {
             &root.join("benchmark.json"),
             &record_path,
             &pin,
+            &checker_pin(),
             &root,
         )
         .expect("validation should produce a report");
