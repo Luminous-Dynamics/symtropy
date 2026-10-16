@@ -53,6 +53,10 @@ jobs:
             ([.contracts[] | .candidate_rust_mapping.status] | all(. == "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED")) and
             ([.contracts[] | .candidate_rust_mapping.refinement_status] | all(. == "NOT_ESTABLISHED")) and
             ([.contracts[] | .candidate_rust_mapping.outputs | length] | all(. > 0)) and
+            ([.contracts[] | .candidate_rust_mapping.input_quantity_types | length] | all(. > 0)) and
+            ([.contracts[] | .candidate_rust_mapping.units] | all(contains("newtypes"))) and
+            ([.contracts[] | .candidate_rust_mapping.type_safety] | all(contains("compile-time"))) and
+            ([.contracts[] | select(.id != "geometry.rectangular_section.second_moment.v1") | .candidate_rust_mapping.api] | all(contains("Pascals"))) and
             (.rust_refinement_status == "NOT_ESTABLISHED")
           ' formalization/lean/contracts.json >/dev/null
 

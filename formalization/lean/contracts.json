@@ -2,7 +2,7 @@
   "schema_version": "0.1.0",
   "package": "SymtropyFormal",
   "status": "PROTOTYPE_PENDING_EXACT_HEAD_CI",
-  "unit_convention": "The future Rust binding layer must normalize the following SI units explicitly. Lean functions currently use real numbers and do not enforce physical dimensions.",
+  "unit_convention": "Lean formulas are real-valued and accompanied by a separate dimension-exponent model. Candidate Rust kernel APIs use validated SI quantity newtypes; try_from_si validates positive finite magnitudes but performs no unit conversion. Rust implementation refinement remains NOT_ESTABLISHED.",
   "contracts": [
     {
       "id": "geometry.rectangular_section.second_moment.v1",
@@ -50,15 +50,20 @@
       "candidate_rust_mapping": {
         "repository": "Luminous-Dynamics/symtropy",
         "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
-        "api": "rectangular_section_properties(width_m, depth_m)",
+        "api": "rectangular_section_properties(width_m: Meters, depth_m: Meters) -> StructuralReferenceResult<RectangularSectionProperties>",
         "outputs": {
-          "area_m2": "RectangularSectionProperties.area_m2",
-          "second_moment_area_m4": "RectangularSectionProperties.second_moment_area_m4",
-          "extreme_fiber_distance_m": "RectangularSectionProperties.extreme_fiber_distance_m"
+          "area_m2": "RectangularSectionProperties.area_m2: SquareMeters",
+          "second_moment_area_m4": "RectangularSectionProperties.second_moment_area_m4: FourthMomentOfArea",
+          "extreme_fiber_distance_m": "RectangularSectionProperties.extreme_fiber_distance_m: Meters"
         },
         "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
         "refinement_status": "NOT_ESTABLISHED",
-        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "width_m": "Meters",
+          "depth_m": "Meters"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
       }
     },
     {
@@ -109,16 +114,24 @@
       "candidate_rust_mapping": {
         "repository": "Luminous-Dynamics/symtropy",
         "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
-        "api": "axial_bar(load_n, length_m, youngs_modulus_pa, width_m, depth_m)",
+        "api": "axial_bar(load_n: Newtons, length_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters) -> StructuralReferenceResult<AxialBarResult>",
         "outputs": {
-          "extension_m": "AxialBarResult.free_end_extension_m",
-          "stress_pa": "AxialBarResult.axial_stress_pa",
-          "support_reaction_n": "AxialBarResult.support_reaction_magnitude_n",
-          "section_area_m2": "AxialBarResult.section.area_m2"
+          "extension_m": "AxialBarResult.free_end_extension_m: Meters",
+          "stress_pa": "AxialBarResult.axial_stress_pa: Pascals",
+          "support_reaction_n": "AxialBarResult.support_reaction_magnitude_n: Newtons",
+          "section_area_m2": "AxialBarResult.section.area_m2: SquareMeters"
         },
         "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
         "refinement_status": "NOT_ESTABLISHED",
-        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "load_n": "Newtons",
+          "length_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
       }
     },
     {
@@ -171,16 +184,24 @@
       "candidate_rust_mapping": {
         "repository": "Luminous-Dynamics/symtropy",
         "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
-        "api": "cantilever_tip_load(load_n, span_m, youngs_modulus_pa, width_m, depth_m)",
+        "api": "cantilever_tip_load(load_n: Newtons, span_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters) -> StructuralReferenceResult<BeamResult>",
         "outputs": {
-          "tip_deflection_m": "BeamResult.maximum_deflection_m",
-          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm",
-          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa",
-          "support_reaction_n": "BeamResult.support_reaction_magnitude_n"
+          "tip_deflection_m": "BeamResult.maximum_deflection_m: Meters",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm: NewtonMeters",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa: Pascals",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n: Newtons"
         },
         "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
         "refinement_status": "NOT_ESTABLISHED",
-        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "load_n": "Newtons",
+          "span_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
       }
     },
     {
@@ -236,16 +257,24 @@
       "candidate_rust_mapping": {
         "repository": "Luminous-Dynamics/symtropy",
         "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
-        "api": "simply_supported_beam(span_m, youngs_modulus_pa, width_m, depth_m, SimplySupportedLoadCase::MidpointPointLoad { force_n })",
+        "api": "simply_supported_beam(span_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters, MidpointPointLoad { force_n: Newtons }) -> StructuralReferenceResult<BeamResult>",
         "outputs": {
-          "midspan_deflection_m": "BeamResult.maximum_deflection_m",
-          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm",
-          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa",
-          "support_reaction_n": "BeamResult.support_reaction_magnitude_n"
+          "midspan_deflection_m": "BeamResult.maximum_deflection_m: Meters",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm: NewtonMeters",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa: Pascals",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n: Newtons"
         },
         "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
         "refinement_status": "NOT_ESTABLISHED",
-        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "span_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters",
+          "force_n": "Newtons"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
       }
     },
     {
@@ -301,16 +330,24 @@
       "candidate_rust_mapping": {
         "repository": "Luminous-Dynamics/symtropy",
         "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
-        "api": "simply_supported_beam(span_m, youngs_modulus_pa, width_m, depth_m, SimplySupportedLoadCase::UniformDistributedLoad { load_n_per_m })",
+        "api": "simply_supported_beam(span_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters, UniformDistributedLoad { load_n_per_m: NewtonsPerMeter }) -> StructuralReferenceResult<BeamResult>",
         "outputs": {
-          "midspan_deflection_m": "BeamResult.maximum_deflection_m",
-          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm",
-          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa",
-          "support_reaction_n": "BeamResult.support_reaction_magnitude_n"
+          "midspan_deflection_m": "BeamResult.maximum_deflection_m: Meters",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm: NewtonMeters",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa: Pascals",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n: Newtons"
         },
         "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
         "refinement_status": "NOT_ESTABLISHED",
-        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "span_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters",
+          "load_n_per_m": "NewtonsPerMeter"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
       }
     }
   ],
