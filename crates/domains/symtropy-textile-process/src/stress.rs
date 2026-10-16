@@ -31,6 +31,13 @@ pub struct ProcessingDelay {
 /// time unit. The current v0.1 model treats this as a pre-horizon availability
 /// shift; it does not simulate failures during an in-progress operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct JobReleaseDelay {
+    pub job_id: String,
+    /// Additional delay before the job's inputs or specialist preparation are ready.
+    pub additional_ticks: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MachineAvailabilityDelay {
     pub machine_id: String,
     pub unavailable_until_tick: u64,
@@ -42,6 +49,7 @@ pub struct StressScenario {
     /// Stable fixture or signed manifest reference; not authentication.
     pub fixture_ref: String,
     pub processing_delays: Vec<ProcessingDelay>,
+    pub release_delays: Vec<JobReleaseDelay>,
     pub machine_availability_delays: Vec<MachineAvailabilityDelay>,
 }
 
@@ -145,6 +153,11 @@ pub enum StressHarnessError {
     UnknownJobInDelay { scenario_id: String, job_id: String },
     ZeroProcessingDelay { scenario_id: String, job_id: String },
     ProcessingDelayOverflow { scenario_id: String, job_id: String },
+    EmptyJobIdInReleaseDelay { scenario_id: String },
+    DuplicateJobReleaseDelay { scenario_id: String, job_id: String },
+    UnknownJobInReleaseDelay { scenario_id: String, job_id: String },
+    ZeroReleaseDelay { scenario_id: String, job_id: String },
+    ReleaseDelayOverflow { scenario_id: String, job_id: String },
     EmptyMachineIdInDelay { scenario_id: String },
     DuplicateMachineDelay { scenario_id: String, machine_id: String },
     UnknownMachineInDelay { scenario_id: String, machine_id: String },
@@ -255,6 +268,45 @@ pub fn evaluate_stress_corpus(
                 .processing_ticks
                 .checked_add(shock.additional_ticks)
                 .ok_or_else(|| StressHarnessError::ProcessingDelayOverflow {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                })?;
+        }
+
+        let mut delayed_jobs = BTreeSet::new();
+        for shock in &scenario.release_delays {
+            if shock.job_id.trim().is_empty() {
+                return Err(StressHarnessError::EmptyJobIdInReleaseDelay {
+                    scenario_id: scenario.id.clone(),
+                });
+            }
+            if !delayed_jobs.insert(shock.job_id.as_str()) {
+                return Err(StressHarnessError::DuplicateJobReleaseDelay {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                });
+            }
+            if !job_ids.contains(shock.job_id.as_str()) {
+                return Err(StressHarnessError::UnknownJobInReleaseDelay {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                });
+            }
+            if shock.additional_ticks == 0 {
+                return Err(StressHarnessError::ZeroReleaseDelay {
+                    scenario_id: scenario.id.clone(),
+                    job_id: shock.job_id.clone(),
+                });
+            }
+            let job = perturbed
+                .jobs
+                .iter_mut()
+                .find(|job| job.id == shock.job_id)
+                .expect("job ID validated against baseline");
+            job.release_tick = job
+                .release_tick
+                .checked_add(shock.additional_ticks)
+                .ok_or_else(|| StressHarnessError::ReleaseDelayOverflow {
                     scenario_id: scenario.id.clone(),
                     job_id: shock.job_id.clone(),
                 })?;
@@ -539,6 +591,7 @@ mod tests {
             id: id.to_owned(),
             fixture_ref: format!("fixture:stress:{id}"),
             processing_delays,
+            release_delays: vec![],
             machine_availability_delays,
         }
     }
@@ -558,6 +611,16 @@ mod tests {
                     }],
                     vec![],
                 ),
+                StressScenario {
+                    id: "specialist-material-arrives-late".to_owned(),
+                    fixture_ref: "fixture:stress:specialist-material-arrives-late".to_owned(),
+                    processing_delays: vec![],
+                    release_delays: vec![JobReleaseDelay {
+                        job_id: "ceremonial-repair".to_owned(),
+                        additional_ticks: 2,
+                    }],
+                    machine_availability_delays: vec![],
+                },
                 scenario(
                     "cell-unavailable-too-long",
                     vec![],
@@ -572,20 +635,20 @@ mod tests {
         let report = evaluate_stress_corpus(&fixture_problem(), &corpus)
             .expect("the tiny stress corpus is valid");
 
-        assert_eq!(report.scenario_count, 3);
-        assert_eq!(report.exact_feasible_scenarios, 2);
+        assert_eq!(report.scenario_count, 4);
+        assert_eq!(report.exact_feasible_scenarios, 3);
         assert_eq!(report.exact_no_schedule_scenarios, 1);
         assert_eq!(report.rule_summaries.len(), 3);
         assert!(report.rule_summaries.iter().all(|summary| {
-            summary.plans_found_on_feasible_scenarios == 2
+            summary.plans_found_on_feasible_scenarios == 3
                 && summary.feasible_scenarios_missed == 0
                 && summary.total_tardiness_ticks.p95.is_some()
         }));
         assert_eq!(
-            report.scenario_results[2].exact_outcome,
+            report.scenario_results[3].exact_outcome,
             ScenarioExactOutcome::NoFeasibleSchedule
         );
-        assert!(report.scenario_results[2]
+        assert!(report.scenario_results[3]
             .dispatch_results
             .iter()
             .all(|result| !result.plan_found));
@@ -723,4 +786,29 @@ mod tests {
         assert!(!report.interpretation_boundary.contains("probability of failure"));
         assert_eq!(report.scenario_count, 1);
     }
+
+    #[test]
+    fn material_release_delay_overflow_is_rejected() {
+        let mut problem = fixture_problem();
+        problem.jobs[0].release_tick = u64::MAX;
+        let corpus = StressCorpus {
+            id: "release-overflow".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![StressScenario {
+                id: "supplier-delay".to_owned(),
+                fixture_ref: "fixture:stress:supplier-delay".to_owned(),
+                processing_delays: vec![],
+                release_delays: vec![JobReleaseDelay {
+                    job_id: "ceremonial-repair".to_owned(),
+                    additional_ticks: 1,
+                }],
+                machine_availability_delays: vec![],
+            }],
+        };
+        assert!(matches!(
+            evaluate_stress_corpus(&problem, &corpus),
+            Err(StressHarnessError::ReleaseDelayOverflow { .. })
+        ));
+    }
+
 }
