@@ -1,6 +1,6 @@
 # Adaptive geometry and mesh benchmark protocol
 
-Status: benchmark harness and conservativeness regression tests added. No speedup is claimed until measurements are recorded against a baseline commit on the same hardware.
+Status: benchmark harness and conservative-query regression tests added. No speedup is claimed until results are measured against a baseline commit on the same hardware.
 
 ## Initial executable workload
 
@@ -12,9 +12,9 @@ cargo bench -p symtropy-mesh --bench bvh_queries
 SYMTROPY_BVH_BENCH_LARGE=1 cargo bench -p symtropy-mesh --bench bvh_queries
 ```
 
-The benchmark reports BVH build time and mean query time / candidate count for deterministic planar grid meshes. The million-triangle case is opt-in because the current recursive median-split builder may be expensive at that scale. Store stdout, compiler version, CPU, operating system, commit SHA, and whether the large case ran.
+The dependency-free harness currently measures a deterministic planar grid mesh at 10k and 100k triangles (1M is opt-in). It reports one build-time observation, then runs 7 repeats over the same 2,000-query corpus in different deterministic orders. Query latency percentiles are computed over means from batches of 25 queries, so they describe **batch-mean latency**, not individual-query p95/p99. Aggregate candidate counts and checksums must remain stable across repetitions; a mismatch aborts the run.
 
-This is a reproducible baseline harness, not a claim that the current algorithm is optimal. Compare old and new code at the same CPU/toolchain and preserve raw outputs.
+The build-time field is explicitly a single sample. Repeat the whole command in fresh processes and retain every raw output before concluding that build cost changed. This initial corpus is a reproducible smoke baseline, not representative of arbitrary geometry or a claim that the current algorithm is optimal.
 
 ## Geometry correctness gates
 
@@ -40,9 +40,22 @@ This is a reproducible baseline harness, not a claim that the current algorithm 
 - Small / medium / broad query boxes and queries concentrated in hot regions.
 - Collision workloads with many shapes, including edge and vertex contacts.
 
+The first harness only implements a planar grid. The remaining distributions are required before any claim about broad applicability; do not infer their performance from this grid result.
+
 ## Required metrics
 
-Build/refit time, query p50/p95/p99, candidate triangles per query, narrowphase invocation count, memory footprint, false-negative count, false-positive candidate ratio, and end-to-end simulation-step time. Report scenario-specific regressions rather than only a geometric mean.
+Build/refit time, query p50/p95/p99, candidate triangles per query, narrowphase invocation count, memory footprint, false-negative count, false-positive candidate ratio, and end-to-end simulation-step time. The current initial harness covers only single-sample build time, query batch-mean percentiles, candidates, and a checksum. Mark metrics as unavailable rather than imply they were measured.
+
+Report scenario-specific regressions rather than only a geometric mean. Keep correctness tests independent of the optimized implementation and preserve negative controls.
+
+## Measurement protocol
+
+- Pin the exact source commit, Rust version, target profile, CPU, operating system, and relevant environment variables.
+- Preserve raw stdout for every run; do not report only a best run.
+- Compare baseline and candidate on the same host and toolchain, alternate or randomize A/B order where feasible, and use repeated fresh processes for build-time comparisons.
+- Separate tuning seeds/traces from held-out seeds/traces for adaptive policies.
+- Report distributions and per-scenario regressions; a single mean can conceal tail latency or a correctness failure.
+- Treat benchmark outputs as implementation measurements, not as proof of physical validity or workload-wide superiority.
 
 ## Acceptance
 
