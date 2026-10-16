@@ -169,6 +169,20 @@ Only after Gates A–C: target 10% lower energy intensity, 10% lower freshwater 
 
 No benchmark pass alone establishes regulatory compliance, product certification, safe process operation, environmental superiority, or permission to control factory equipment.
 
+### Gate E — rare-use, decorative, and conservation-sensitive garments
+
+These are internal semantic/measurement targets, not a universal definition of garment value.
+
+- **100% profile admission correctness:** every valid profile declares intended service, a specific functional unit, value/function dimensions, care constraints and credible circulation options. No profile is assigned a lower value solely because its use pattern is occasional, event-specific, display-rotation or archive-preservation.
+- **Zero unjustified cross-unit ranking:** do not rank everyday wear/care cycles against ceremonial events, performance runs, exhibition days or conservation years unless a documented functional-equivalence rule makes the denominator defensible. Otherwise report the comparison as unresolved.
+- **100% decorative-component uncertainty retention:** beads, sequins, embroidery, metallic thread, adhesives, coatings, mixed-material trims and detachable modules must have a known/unknown composition state and material-separation evidence before the system admits a qualified recovery claim.
+- **Zero false circularity admissions:** collecting, renting, re-selling, repairing, downcycling, mass-balance accounting or a named recycling event must not alone qualify a material as accepted fiber-to-fiber feedstock. Preserve a distinct source/output-lot and grade path.
+- **Profile-specific appearance/condition tests:** for each physical trial, predeclare appropriate metrics such as bead loss, seam integrity, attachment strength, dimensional change, colour change, drape, fit, repairability or conservation condition. An acceptance threshold must be set for that garment and intended service by the responsible product/conservation owner; there is no one numerical appearance threshold for all garments.
+- **Fair rental/resale comparisons:** measure cleaning method and frequency, transport, packaging, damage, repair, storage and actual completed uses. Calculate break-even with uncertainty for the specified route and location rather than publishing a universal “rental is greener after N wears” number.
+- **No forced-wear assumption:** archive/display profiles can use controlled exhibition days or conservation years. A historical or culturally significant garment need not be worn to have a declared service, and conservation guidance must not be indiscriminately applied to ordinary commercial apparel.
+
+For any physical pilot, the unit, profile, comparison alternatives, measurements and stopping criteria must be frozen before the observation period. Specialist review is required where the profile marks fragile/degrading materials or conservation needs.
+
 ## 8. Data and validation path
 
 Useful starting evidence exists, but it must be scoped carefully:
