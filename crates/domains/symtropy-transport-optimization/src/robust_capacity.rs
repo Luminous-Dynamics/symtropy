@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::{
-    CargoTransferCapacityResourceKind, FifoPathLegEstimateV1, FifoRobustPathScoreV1,
+    CargoTransferCapacityResourceKind, FifoRobustPathScoreV1,
     FifoRobustPathSelectionReportV1, FifoPathScenarioKindV1, QuantityUnit,
     ScheduledCapacityAssignmentV1, ScheduledCapacityEvidenceV1, ScheduledCapacityPlanError,
     ScheduledCapacityPolicyV1, ScheduledCapacityReportV1, validate_scheduled_capacity_plan,
@@ -217,7 +217,7 @@ fn validate_selection_report(
     scenario_order.extend(
         scenario_kinds
             .keys()
-            .filter(|id| **id != nominal_id)
+            .filter(|id| id.as_str() != nominal_id.as_str())
             .cloned(),
     );
 
@@ -737,7 +737,7 @@ mod tests {
         ScheduledCapacityPolicyV1 {
             policy_id: "fixture-capacity-policy-v1".into(),
             expected_time_profile_id: PROFILE.into(),
-            max_observation_age_seconds: 1_000,
+            max_observation_age_seconds: 20,
             allowed_future_clock_skew_seconds: 0,
         }
     }
@@ -869,9 +869,9 @@ mod tests {
         assert!(report.rejected_path_scenarios.iter().any(|rejected| {
             rejected.path_id == "A"
                 && rejected.scenario_id == "stress"
-                && rejected.reason == FifoPathCapacityFailureV1::MissingResourceUse {
+                && rejected.reason == (FifoPathCapacityFailureV1::MissingResourceUse {
                     edge_id: "edge-A".into(),
-                }
+                })
         }));
     }
 
@@ -895,9 +895,9 @@ mod tests {
         assert!(report.rejected_path_scenarios.iter().any(|rejected| {
             rejected.path_id == "A"
                 && rejected.scenario_id == "nominal"
-                && rejected.reason == FifoPathCapacityFailureV1::ResourceWindowMismatch {
+                && rejected.reason == (FifoPathCapacityFailureV1::ResourceWindowMismatch {
                     edge_id: "edge-A".into(),
-                }
+                })
         }));
     }
 
@@ -926,7 +926,7 @@ mod tests {
         assert!(report.rejected_path_scenarios.iter().any(|rejected| {
             rejected.path_id == "A"
                 && rejected.scenario_id == "stress"
-                && matches!(rejected.reason, FifoPathCapacityFailureV1::CrosswalkChangedAcrossScenarios { .. })
+                && matches!(&rejected.reason, FifoPathCapacityFailureV1::CrosswalkChangedAcrossScenarios { .. })
         }));
     }
 
@@ -986,7 +986,8 @@ mod tests {
     fn duplicate_and_unexpected_plans_are_input_errors() {
         let travel = travel_report();
         let mut plans = plans_from_report(&travel);
-        plans.push(plans[0].clone());
+        let duplicate = plans[0].clone();
+        plans.push(duplicate);
         assert!(matches!(
             select_capacity_qualified_robust_fifo_path(&travel, &plans, EVALUATION_TIME, &policy()),
             Err(FifoRobustCapacitySelectionErrorV1::DuplicateCapacityPlan { .. })
