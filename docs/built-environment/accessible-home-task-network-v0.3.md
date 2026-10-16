@@ -76,6 +76,6 @@ The accessibility systematic review included in WHO's 2018 *Housing and health g
 
 ## Integration and boundaries
 
-This v0.3 contract extends the synthetic task network from PR #1705 and the semantic validator from PR #1711. It does not replace resident-led planning (#1687 / PR #1688) or the housing evidence/jurisdiction work (PR #1596). A schema-valid declaration does not prove that its statements are true.
+This v0.3 contract extends the synthetic task network from PR #1705 and the semantic validator from PR #1711. It does not replace resident-led planning (#1687 / PR #1688) or the housing evidence/jurisdiction work (PR #1596). The separate [participatory outcome evaluation protocol PR #1717](https://github.com/Luminous-Dynamics/symtropy/pull/1717) describes how future human evidence could be collected over time. A schema-valid declaration does not prove that its statements are true.
 
 Real deployment requires consented resident co-design, actual site measurements, current local regulations and qualified access/building/life-safety review. Do not collect unnecessary personal or diagnostic details to represent resident goals.
