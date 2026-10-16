@@ -347,7 +347,9 @@ pub fn select_robust_fifo_path(
             {
                 let actual = (first_leg.from_node_id.clone(), last_leg.to_node_id.clone());
                 if let Some((expected_origin, expected_destination)) = &common_endpoints {
-                    if actual.0 != *expected_origin || actual.1 != *expected_destination {
+                    if actual.0.as_str() != expected_origin.as_str()
+                        || actual.1.as_str() != expected_destination.as_str()
+                    {
                         return Err(FifoRobustSelectionError::CandidateEndpointsDiffer {
                             path_id: candidate.path_id.clone(),
                             expected_origin_node_id: expected_origin.clone(),
