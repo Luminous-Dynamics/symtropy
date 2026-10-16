@@ -215,19 +215,6 @@ pub fn validate_paths(
         }
     }
 
-    let declared_status_consistent = match (declared_status.as_deref(), outputs_match_reference) {
-        (Some("CLAIMED_PASS"), true) => Some(true),
-        (Some("CLAIMED_FAIL"), false) => Some(true),
-        (Some("CLAIMED_PASS" | "CLAIMED_FAIL"), _) => Some(false),
-        _ => None,
-    };
-    if declared_status_consistent == Some(false) {
-        issues.push(
-            "producer-declared gate outcome contradicts the independently checked reference result"
-                .to_string(),
-        );
-    }
-
     let blocked = !benchmark_pin_matches
         || !record_schema_valid
         || !record_benchmark_sha256_matches
@@ -244,6 +231,22 @@ pub fn validate_paths(
     } else {
         "REFERENCE_MISMATCH"
     };
+    let declared_status_consistent = if blocked {
+        None
+    } else {
+        match (declared_status.as_deref(), outputs_match_reference) {
+            (Some("CLAIMED_PASS"), true) => Some(true),
+            (Some("CLAIMED_FAIL"), false) => Some(true),
+            (Some("CLAIMED_PASS" | "CLAIMED_FAIL"), _) => Some(false),
+            _ => None,
+        }
+    };
+    if declared_status_consistent == Some(false) {
+        issues.push(
+            "producer-declared gate outcome contradicts the independently checked reference result"
+                .to_string(),
+        );
+    }
 
     Ok(BenchmarkResultReport {
         validator_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -536,7 +539,7 @@ mod tests {
     }
 
     fn setup_case(
-        mut outputs: Value,
+        outputs: Value,
         declared_status: &str,
         override_output_digest: Option<&str>,
     ) -> (PathBuf, PathBuf, String) {
