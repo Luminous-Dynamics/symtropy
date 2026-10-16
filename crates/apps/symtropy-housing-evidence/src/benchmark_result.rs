@@ -820,6 +820,54 @@ mod tests {
     }
 
     #[test]
+    fn output_with_incompatible_unit_cannot_pass_reference() {
+        let mut outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
+        let extension = outputs["outputs"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item.get("quantity").and_then(Value::as_str) == Some("free_end_extension_m"))
+            .expect("free-end extension output");
+        extension["unit"] = json!("mm");
+
+        let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "REFERENCE_MISMATCH");
+        assert!(!report.outputs_match_reference);
+        assert!(report.issues.iter().any(|issue| issue.contains("has unit")));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
+    fn missing_required_output_cannot_pass_reference() {
+        let mut outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
+        outputs["outputs"].as_array_mut().unwrap().retain(|item| {
+            item.get("quantity").and_then(Value::as_str) != Some("support_reaction_magnitude_N")
+        });
+
+        let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "REFERENCE_MISMATCH");
+        assert!(!report.outputs_match_reference);
+        assert!(report.issues.iter().any(|issue| issue.contains("omits required quantity")));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
     fn duplicate_output_quantity_cannot_satisfy_reference() {
         let mut outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
         let duplicate = outputs["outputs"][0].clone();
