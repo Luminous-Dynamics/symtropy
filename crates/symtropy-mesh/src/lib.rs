@@ -199,9 +199,8 @@ impl TriangleMesh {
     }
 
     fn centroid_bin(value: f64, minimum: f64, extent: f64, bin_count: usize) -> usize {
-        (((value - minimum) / extent).clamp(0.0, 1.0) * bin_count as f64)
-            as usize
-            .min(bin_count - 1)
+        let bin = (((value - minimum) / extent).clamp(0.0, 1.0) * bin_count as f64) as usize;
+        bin.min(bin_count - 1)
     }
 
     /// Return a split index after sorting indices by the selected binned-SAH
