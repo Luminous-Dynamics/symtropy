@@ -22,7 +22,7 @@ pub struct SpatialPoint {
     pub y: f64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Cell(i64, i64);
 
 /// Construction/query failures that cannot be safely interpreted as an empty result.
