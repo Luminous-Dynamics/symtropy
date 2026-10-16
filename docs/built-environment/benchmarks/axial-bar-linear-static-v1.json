@@ -1,0 +1,51 @@
+{
+  "benchmark_id": "structural/axial-bar-linear-static/v1",
+  "status": "analytical_reference_only",
+  "purpose": "Deterministic analytical oracle for testing axial stiffness, section geometry, force equilibrium and unit/calculation plumbing. Not a building design or proof of code compliance.",
+  "model": {
+    "idealization": "Prismatic rectangular bar fixed at one end and loaded by a centered axial tensile force at the other end.",
+    "assumptions": [
+      "linear elastic isotropic material",
+      "small axial strain",
+      "uniform cross-section and elastic modulus",
+      "quasi-static load",
+      "ideal fixed support and centered axial load",
+      "self-weight, stress concentrations, buckling, connections, fatigue, fire and material defects ignored"
+    ],
+    "units": "SI",
+    "sign_convention": "tension, displacement and support reaction magnitudes are reported as positive scalar magnitudes"
+  },
+  "inputs": {
+    "load_N": 12000,
+    "length_m": 3,
+    "elastic_modulus_Pa": 200000000000,
+    "section_width_m": 0.05,
+    "section_height_m": 0.1,
+    "cross_section_area_m2": 0.005
+  },
+  "equations": {
+    "cross_section_area": "A = b*h",
+    "axial_stress": "sigma = P/A",
+    "free_end_extension": "delta = P*L/(E*A)",
+    "support_reaction_magnitude": "R = P"
+  },
+  "expected": {
+    "cross_section_area_m2": 0.005,
+    "axial_stress_Pa": 2400000,
+    "free_end_extension_m": 0.000036,
+    "support_reaction_magnitude_N": 12000
+  },
+  "acceptance": {
+    "relative_tolerance": 1e-12,
+    "require_positive_inputs": true
+  },
+  "interpretation": {
+    "pass_means": "The elementary axial-bar equations, geometry consistency and unit/calculation plumbing match this synthetic reference within the stated tolerance.",
+    "does_not_mean": [
+      "A finite-element solver has been independently validated.",
+      "The bar or a real building member is adequate or code-compliant.",
+      "Buckling, local effects, connections, load combinations, fire, fatigue or material variability have been checked.",
+      "Any building-code provision is satisfied."
+    ]
+  }
+}
