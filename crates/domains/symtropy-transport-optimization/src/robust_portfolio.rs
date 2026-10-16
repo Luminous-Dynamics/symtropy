@@ -204,7 +204,6 @@ struct PreparedOption {
     demand_id: String,
     path_id: String,
     objective_weight: u64,
-    path_score: FifoRobustPathScoreV1,
     scenario_uses: BTreeMap<String, Vec<PreparedResourceUse>>,
     elapsed_by_scenario: BTreeMap<String, u64>,
 }
@@ -478,7 +477,6 @@ fn prepare_option(
         demand_id: demand_id.to_owned(),
         path_id: path.path_score.path_id.clone(),
         objective_weight,
-        path_score: path.path_score.clone(),
         scenario_uses,
         elapsed_by_scenario,
     })
@@ -1053,7 +1051,7 @@ mod tests {
         ScheduledCapacityPolicyV1 {
             policy_id: "portfolio-capacity-policy-v1".into(),
             expected_time_profile_id: PROFILE.into(),
-            max_observation_age_seconds: 20,
+            max_observation_age_seconds: 1_000,
             allowed_future_clock_skew_seconds: 0,
         }
     }
@@ -1063,11 +1061,12 @@ mod tests {
         candidates: Vec<(String, u64, u64, String, String)>,
         origin: &str,
         destination: &str,
+        departure: u64,
     ) -> FifoRobustCapacitySelectionReportV1 {
         let paths = candidates.iter().map(|(path, nominal, stress, _, _)| {
             candidate(path, origin, destination, *nominal, *stress)
         }).collect::<Vec<_>>();
-        let travel = select_robust_fifo_path(&scenario_set(), &paths, 100, 90).unwrap();
+        let travel = select_robust_fifo_path(&scenario_set(), &paths, departure, 90).unwrap();
         let mut plans = Vec::new();
         for score in &travel.scores {
             let original = candidates.iter().find(|(id, _, _, _, _)| id == &score.path_id).unwrap();
@@ -1137,10 +1136,20 @@ mod tests {
         origin: &str,
         destination: &str,
     ) -> FifoRobustDemandCapacityOptionsV1 {
+        demand_at(demand_id, candidates, origin, destination, 100)
+    }
+
+    fn demand_at(
+        demand_id: &str,
+        candidates: Vec<(String, u64, u64, String, String)>,
+        origin: &str,
+        destination: &str,
+        departure: u64,
+    ) -> FifoRobustDemandCapacityOptionsV1 {
         FifoRobustDemandCapacityOptionsV1 {
             demand_id: demand_id.into(),
             objective_weight: 1,
-            selection: demand_selection(demand_id, candidates, origin, destination),
+            selection: demand_selection(demand_id, candidates, origin, destination, departure),
         }
     }
 
@@ -1209,26 +1218,13 @@ mod tests {
             "origin-1",
             "dest-1",
         );
-        let mut d2 = demand(
+        let d2 = demand_at(
             "demand-2",
             vec![("later".into(), 100, 100, "bridge".into(), "bridge".into())],
             "origin-2",
             "dest-2",
+            200,
         );
-        // Simulate the second assignment occupying [200, 300), adjacent to
-        // the first [100, 200), with the same frozen capacity evidence.
-        for path in &mut d2.selection.qualified_paths {
-            for scenario in &mut path.scenario_capacity {
-                for assignment in &mut scenario.report.assignments {
-                    assignment.window.planned_start_epoch_seconds = 200;
-                    assignment.window.planned_end_epoch_seconds = 300;
-                }
-                for resource in &mut scenario.report.resources {
-                    resource.first_planned_start_epoch_seconds = 200;
-                    resource.last_planned_end_epoch_seconds = 300;
-                }
-            }
-        }
         let report = select_joint_robust_transport_portfolio(&[d1, d2], 1).unwrap();
         assert_eq!(report.feasible_combinations_found, 1);
         assert_eq!(report.infeasible_combinations_found, 0);
