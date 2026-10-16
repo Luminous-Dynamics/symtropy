@@ -19,6 +19,8 @@ const RECORD_SCHEMA: &str =
     include_str!("../../../../docs/built-environment/benchmark-result.schema.json");
 const OUTPUT_SCHEMA: &str =
     include_str!("../../../../docs/built-environment/benchmark-result-output.schema.json");
+const REPORT_SCHEMA: &str =
+    include_str!("../../../../docs/built-environment/benchmark-result-report.schema.json");
 
 #[derive(Debug, Serialize)]
 pub struct QuantityComparison {
@@ -41,6 +43,7 @@ pub struct BenchmarkResultReport {
     pub checker_pin_matches: bool,
     pub record_schema_sha256: String,
     pub output_schema_sha256: String,
+    pub report_schema_sha256: String,
     pub benchmark_sha256_actual: String,
     pub benchmark_pin_matches: bool,
     pub result_record_sha256: String,
@@ -99,6 +102,7 @@ pub fn validate_paths(
         validator_binary_sha256.as_deref() == Some(expected_checker_sha256);
     let record_schema_sha256 = sha256_hex(RECORD_SCHEMA.as_bytes());
     let output_schema_sha256 = sha256_hex(OUTPUT_SCHEMA.as_bytes());
+    let report_schema_sha256 = sha256_hex(REPORT_SCHEMA.as_bytes());
 
     let benchmark_bytes = fs::read(benchmark_path)
         .map_err(|error| format!("cannot read {}: {error}", benchmark_path.display()))?;
@@ -296,7 +300,7 @@ pub fn validate_paths(
         );
     }
 
-    Ok(BenchmarkResultReport {
+    let report = BenchmarkResultReport {
         validator_version: env!("CARGO_PKG_VERSION").to_string(),
         benchmark_id: benchmark_id.map(str::to_owned),
         case_id: case_id.map(str::to_owned),
@@ -304,6 +308,7 @@ pub fn validate_paths(
         checker_pin_matches,
         record_schema_sha256,
         output_schema_sha256,
+        report_schema_sha256,
         benchmark_sha256_actual,
         benchmark_pin_matches,
         result_record_sha256,
@@ -327,7 +332,18 @@ pub fn validate_paths(
             "A reference match verifies only this benchmark case and its listed output quantities; it does not validate a finite-element solver generally, a real structure, legal compliance or building safety.".to_string(),
             "The benchmark's out-of-band digest and acceptance criteria must be approved by a trusted independent authority.".to_string(),
         ],
-    })
+    };
+    let report_value = serde_json::to_value(&report)
+        .map_err(|error| format!("cannot serialize benchmark result report: {error}"))?;
+    let report_schema_errors =
+        validate_against_schema(REPORT_SCHEMA, &report_value, "benchmark result report")?;
+    if !report_schema_errors.is_empty() {
+        return Err(format!(
+            "constructed benchmark result report violates its schema: {}",
+            report_schema_errors.join("; ")
+        ));
+    }
+    Ok(report)
 }
 
 fn require_derived_input(
