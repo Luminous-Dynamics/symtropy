@@ -8,11 +8,10 @@
 //! fit models, calculate scores, or establish physical truth.
 
 use super::{
-    array, exact_keys, expect_text, field, integer, object, parse_strict, require_nonempty_text,
-    text, JsonValue,
+    array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, text,
+    JsonValue,
 };
 use serde::Serialize;
-use serde_json::Value;
 use std::collections::BTreeSet;
 use std::fs;
 
@@ -53,6 +52,7 @@ const FORBIDDEN_FEATURES: &[&str] = &[
     "day_of_recover",
     "ID",
     "SID",
+    "PID",
 ];
 
 #[derive(Debug, Serialize)]
@@ -70,10 +70,6 @@ struct BenchmarkContractReport {
     model_fit_performed: bool,
     prediction_authorized: bool,
     claim_ceiling: &'static str,
-}
-
-fn text_at<'a>(value: &'a JsonValue, key: &str, path: &str) -> Result<&'a str, String> {
-    text(field(value, key, path)?, &format!("{path}.{key}"))
 }
 
 fn require_array_strings(
@@ -470,6 +466,7 @@ pub fn run_cli(path: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
 
     const CONTRACT: &[u8] =
         include_bytes!("../../../../docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.json");
