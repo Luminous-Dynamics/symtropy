@@ -308,6 +308,19 @@ mod tests {
         assert_eq!(reservoir.regenerated_this_tick, 10.0);
     }
 
+    #[test]
+    fn invalid_reservoir_state_does_not_debit_well() {
+        let mut well = EnergyWell::new(10.0, 10.0, 100.0);
+        let mut reservoir = TestReservoir::new(100.0);
+        reservoir.available = f64::NAN;
+
+        let accepted = transfer_well_energy(&mut well, &mut reservoir);
+
+        assert_eq!(accepted, 0.0);
+        assert_eq!(well.remaining, 100.0);
+        assert!(reservoir.available.is_nan());
+    }
+
     struct CountingReservoir {
         calls: usize,
     }
