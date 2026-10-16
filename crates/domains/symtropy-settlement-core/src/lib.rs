@@ -227,6 +227,9 @@ pub enum DemandOutcome {
     Indeterminate,
     ConsumerUnavailable,
     ConsumerStateUnknown,
+    /// Another consumer in this pool has unknown state, so a shared inventory
+    /// cannot be safely assigned to known consumers without more evidence.
+    PoolBlockedByUnknownConsumer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -390,7 +393,9 @@ pub fn evaluate_scenario(input: &ScenarioInput) -> Result<SettlementReport, Sett
             || required_outcomes.iter().any(|outcome| {
                 matches!(
                     outcome,
-                    DemandOutcome::Indeterminate | DemandOutcome::ConsumerStateUnknown
+                    DemandOutcome::Indeterminate
+                        | DemandOutcome::ConsumerStateUnknown
+                        | DemandOutcome::PoolBlockedByUnknownConsumer
                 )
             });
         let status = if proven_breach {
@@ -750,6 +755,46 @@ fn allocate_resources(
                 .cmp(&a.priority)
                 .then_with(|| a.demand_id.cmp(&b.demand_id))
         });
+
+        // A stale/unknown consumer may still be operating and competing for the
+        // same shared inventory. Until its state is resolved, fail closed for
+        // the whole affected pool instead of letting known consumers consume
+        // resources that may be required by that unknown higher/lower-priority
+        // consumer. The scenario remains evaluable, but pool allocations are
+        // explicitly blocked rather than guessed.
+        let has_unknown_consumer = ordered_demands.iter().any(|demand| {
+            effective_states
+                .get(&demand.consumer_component)
+                .is_some_and(|state| matches!(state, ComponentState::Unknown { .. }))
+        });
+        let has_potential_supply = known_remaining.values().any(|units| *units > 0)
+            || unresolved_remaining > 0;
+        if has_unknown_consumer && has_potential_supply {
+            let unresolved_at_pool_start = unresolved_remaining;
+            for demand in ordered_demands {
+                let consumer_state = effective_states
+                    .get(&demand.consumer_component)
+                    .ok_or_else(|| SettlementError("resource consumer state missing".into()))?;
+                let outcome = match consumer_state {
+                    ComponentState::Failed => DemandOutcome::ConsumerUnavailable,
+                    ComponentState::Unknown { .. } => DemandOutcome::ConsumerStateUnknown,
+                    ComponentState::Available => DemandOutcome::PoolBlockedByUnknownConsumer,
+                };
+                outcomes.push(ResourceAllocation {
+                    demand_id: demand.demand_id.clone(),
+                    consumer_component: demand.consumer_component.clone(),
+                    resource_kind: kind,
+                    unit_code: kind.synthetic_unit_code().into(),
+                    requested_units: demand.requested_units,
+                    minimum_units: demand.minimum_units,
+                    allocated_known_units: 0,
+                    unresolved_potential_units: unresolved_at_pool_start,
+                    sources: Vec::new(),
+                    outcome,
+                });
+            }
+            continue;
+        }
 
         for demand in ordered_demands {
             let consumer_state = effective_states
@@ -1217,6 +1262,32 @@ mod tests {
         );
         assert_eq!(demand(&report, "pump-power").outcome, DemandOutcome::Shortfall);
         assert_eq!(floor(&report, "water-floor").status, FloorStatus::Breached);
+    }
+
+    #[test]
+    fn unknown_consumer_blocks_shared_pool_allocation_fail_closed() {
+        let mut input = fixture();
+        input
+            .components
+            .iter_mut()
+            .find(|component| component.id == id("clinic-cooling"))
+            .unwrap()
+            .observed_state = ComponentState::Unknown {
+            cause: UnknownCause::ConflictingTelemetry,
+        };
+
+        let report = evaluate_scenario(&input).unwrap();
+        assert_eq!(
+            demand(&report, "clinic-power").outcome,
+            DemandOutcome::ConsumerStateUnknown
+        );
+        assert_eq!(
+            demand(&report, "pump-power").outcome,
+            DemandOutcome::PoolBlockedByUnknownConsumer
+        );
+        assert_eq!(floor(&report, "clinic-floor").status, FloorStatus::Blocked);
+        assert_eq!(floor(&report, "water-floor").status, FloorStatus::Blocked);
+        assert_eq!(demand(&report, "pump-power").allocated_known_units, 0);
     }
 
     #[test]
