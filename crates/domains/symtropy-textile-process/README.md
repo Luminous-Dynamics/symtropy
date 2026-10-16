@@ -16,11 +16,12 @@ unit IDs.
 
 The stress module evaluates processing-time delays, input-release delays,
 utility-budget curtailment, and pre-horizon machine unavailability against the
-bounded exact solver and all four dispatch rules. The result preserves each fixture reference,
-exact feasibility outcome, concrete heuristic plan (if found), profile/service
-identifiers, and per-objective gaps. This is an equally enumerated stress corpus,
-not an estimate of real-world disruption probabilities. Full protocol and
-proposed acceptance targets: docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md.
+bounded exact solver and all four dispatch rules. Reports preserve the baseline
+problem, original shock inputs, fixture references, exact feasibility, concrete
+heuristic plans (if found), profile/service IDs, and per-objective gaps. The
+equally enumerated stress corpus is not an estimate of real-world probabilities.
+Protocol and proposed targets:
+docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md.
 
 ## Run locally
 
