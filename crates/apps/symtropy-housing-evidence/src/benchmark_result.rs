@@ -788,6 +788,35 @@ mod tests {
     }
 
     #[test]
+    fn fixture_oracle_drift_is_detected_against_recomputed_outputs() {
+        let mut benchmark: Value =
+            serde_json::from_str(AXIAL_FIXTURE).expect("valid analytical fixture");
+        benchmark["expected"]["axial_stress_Pa"] = json!(2500000.0);
+        let altered_fixture =
+            serde_json::to_string_pretty(&benchmark).expect("serialize altered fixture");
+        let outputs = outputs_from_fixture(&altered_fixture, "default");
+        let (root, record_path, pin) = setup_case_for_fixture(
+            &altered_fixture,
+            "default",
+            outputs,
+            "CLAIMED_PASS",
+            None,
+        );
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "REFERENCE_MISMATCH");
+        assert_eq!(report.declared_status_consistent, Some(false));
+        assert!(report.issues.iter().any(|issue| issue.contains("axial_stress_Pa")));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
     fn independent_checker_matches_valid_reference_outputs() {
         let (root, record_path, pin) = setup_case(outputs_from_fixture(AXIAL_FIXTURE, "default"), "CLAIMED_PASS", None);
         let report = validate_paths(
