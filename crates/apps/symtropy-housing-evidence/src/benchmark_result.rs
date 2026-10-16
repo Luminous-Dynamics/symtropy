@@ -139,22 +139,22 @@ pub fn validate_paths(
         issues.push("benchmark_id or case_id does not match the selected benchmark".to_string());
     }
 
+    let execution_kind = record["execution"]["execution_kind"].as_str();
     let execution_completed = record.get("execution").is_some_and(|execution| {
-        let execution_kind = execution.get("execution_kind").and_then(Value::as_str);
-        let convergence_status = execution.get("convergence_status").and_then(Value::as_str);
-        let convergence_is_appropriate = matches!(
-            (execution_kind, convergence_status),
-            (Some("ANALYTICAL_REFERENCE"), Some("NOT_APPLICABLE"))
-                | (Some("NUMERICAL_SOLVER"), Some("CONVERGED"))
-        );
         execution.get("exit_code").and_then(Value::as_i64) == Some(0)
             && execution.get("termination_status").and_then(Value::as_str) == Some("COMPLETED")
-            && convergence_is_appropriate
+            && execution.get("execution_kind").and_then(Value::as_str)
+                == Some("ANALYTICAL_REFERENCE")
+            && execution.get("convergence_status").and_then(Value::as_str)
+                == Some("NOT_APPLICABLE")
     });
     if !execution_completed {
         issues.push(
-            "execution did not complete successfully or has no acceptable convergence state"
-                .to_string(),
+            if execution_kind == Some("NUMERICAL_SOLVER") {
+                "numerical solver results are unsupported until solver-specific acceptance profiles and authenticated execution are implemented".to_string()
+            } else {
+                "execution did not complete successfully or analytical-reference convergence must be NOT_APPLICABLE".to_string()
+            },
         );
     }
 
@@ -938,9 +938,9 @@ mod tests {
             &root,
         )
         .expect("validation should produce a report");
-        assert_eq!(report.independent_result_status, "REFERENCE_MISMATCH");
-        assert_eq!(report.declared_status_consistent, Some(false));
-        assert!(report.issues.iter().any(|issue| issue.contains("axial_stress_Pa")));
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert_eq!(report.declared_status_consistent, None);
+        assert!(report.issues.iter().any(|issue| issue.contains("benchmark oracle drift")));
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
@@ -1028,6 +1028,35 @@ mod tests {
         .expect("validation should produce a report");
         assert_eq!(report.independent_result_status, "BLOCKED");
         assert!(!report.execution_completed);
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
+    fn converged_numerical_solver_is_blocked_without_solver_specific_profile() {
+        let outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
+        let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
+        let record_bytes = fs::read(&record_path).expect("read result record");
+        let mut record: Value =
+            serde_json::from_slice(&record_bytes).expect("parse result record");
+        record["execution"]["execution_kind"] = json!("NUMERICAL_SOLVER");
+        record["execution"]["convergence_status"] = json!("CONVERGED");
+        fs::write(
+            &record_path,
+            serde_json::to_vec_pretty(&record).expect("serialize result record"),
+        )
+        .expect("write changed result record");
+
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(!report.execution_completed);
+        assert!(report.issues.iter().any(|issue| issue.contains("solver-specific acceptance profiles")));
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
