@@ -101,7 +101,7 @@ fn field_text<'a>(root: &'a JsonValue, key: &str, path: &str) -> Result<&'a str,
     super::text(super::field(root, key, path)?, &format!("{path}.{key}"))
 }
 
-fn nonempty_text(value: &JsonValue, path: &str) -> Result<&str, String> {
+fn nonempty_text<'a>(value: &'a JsonValue, path: &str) -> Result<&'a str, String> {
     let text = super::text(value, path)?;
     if text.trim().is_empty() {
         return Err(format!("{path}: empty string is forbidden"));
