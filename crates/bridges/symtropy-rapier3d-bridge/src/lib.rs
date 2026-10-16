@@ -12,7 +12,6 @@ use ::nalgebra::SVector;
 use bevy::prelude::{Component, Resource, Vec3};
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
-use symtropy_physics::contact::CollisionEvent;
 use symtropy_physics::world::PhysicsCallback;
 
 pub use manipulator::{
