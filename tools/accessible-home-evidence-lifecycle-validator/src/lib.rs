@@ -733,6 +733,50 @@ mod tests {
     }
 
     #[test]
+    fn one_thousand_independent_claims_and_paths_replay() {
+        let mut value = fixture_value();
+        for index in 0..1_000 {
+            let suffix = format!("{index:04}");
+            let facet_id = format!("scale-facet-{suffix}");
+            let revision_id = format!("scale-revision-{suffix}");
+            let claim_id = format!("scale-claim-{suffix}");
+            let scope_ref = format!("synthetic://scale/facet-{suffix}");
+            value["facets"].as_array_mut().unwrap().push(json!({
+                "facet_id": facet_id,
+                "initial_revision_id": revision_id,
+                "scope_ref": scope_ref,
+                "description": "Synthetic scale-test facet; no physical home represented."
+            }));
+            value["claims"].as_array_mut().unwrap().push(json!({
+                "claim_id": claim_id,
+                "scope_ref": scope_ref,
+                "bindings": [{
+                    "facet_id": facet_id,
+                    "revision_id": revision_id
+                }],
+                "evidence_state": "verified_for_declared_scope",
+                "source_ref": format!("synthetic://scale/evidence/{suffix}"),
+                "review_role": "synthetic scale-test reviewer",
+                "observed_at": "2026-09-01T00:00:00Z",
+                "review_due": "2027-09-01T00:00:00Z",
+                "supersedes_claim_id": null,
+                "expected_currentness": "current",
+                "note": "Generated synthetic test claim."
+            }));
+            value["paths"].as_array_mut().unwrap().push(json!({
+                "path_id": format!("scale-path-{suffix}"),
+                "required_claim_ids": [claim_id],
+                "expected_assessment": "evidence_complete_for_fixture",
+                "note": "Generated synthetic test path."
+            }));
+        }
+        let report = evaluate_value(&value).expect("1,000 independent synthetic claims should replay");
+        assert_eq!(report.facet_count, 1_004);
+        assert_eq!(report.claim_count, 1_003);
+        assert_eq!(report.path_count, 1_003);
+    }
+
+    #[test]
     fn receipt_hash_binds_exact_input_bytes() {
         let first = evaluate_bytes(FIXTURE.as_bytes()).expect("first replay");
         let mut value = fixture_value();
