@@ -1210,6 +1210,28 @@ mod tests {
             .collect::<BTreeMap<_, _>>();
         assert_eq!(chosen["demand-1"], "alternate-1");
         assert_eq!(chosen["demand-2"], "shared-fast");
+
+        // Independent reference table enumerates all four route pairs. The
+        // shared/shared pair is infeasible at capacity 1; among the other three,
+        // the lexicographic objective selects worst-individual 140, then total 250.
+        let reference = [
+            (("shared-fast", "shared-fast"), false, 110_u64, 210_u64),
+            (("shared-fast", "alternate-2"), true, 145_u64, 245_u64),
+            (("alternate-1", "shared-fast"), true, 140_u64, 250_u64),
+            (("alternate-1", "alternate-2"), true, 145_u64, 285_u64),
+        ];
+        let expected = reference.iter()
+            .filter(|(_, feasible, _, _)| *feasible)
+            .min_by(|a, b| (a.2, a.3, a.3, a.0).cmp(&(b.2, b.3, b.3, b.0)))
+            .expect("the reference has feasible portfolios");
+        assert_eq!(
+            (chosen["demand-1"], chosen["demand-2"]),
+            expected.0
+        );
+        assert_eq!(report.worst_case_individual_elapsed_seconds, expected.2);
+        assert_eq!(report.worst_case_weighted_elapsed_score, expected.3);
+        assert_eq!(report.nominal_weighted_elapsed_score, expected.3);
+
         assert!(report.infeasibility_examples.iter().any(|example| {
             matches!(&example.reason, FifoPortfolioInfeasibilityV1::ConcurrentCapacityExceeded { .. })
         }));
