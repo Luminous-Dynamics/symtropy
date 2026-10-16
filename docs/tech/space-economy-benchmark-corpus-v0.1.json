@@ -1,0 +1,237 @@
+{
+  "suite_id": "space-economy-reference",
+  "suite_version": "0.1.0",
+  "manifest_kind": "synthetic-contract-fixtures",
+  "created_date": "2026-10-16",
+  "units": {
+    "cost": "synthetic_cost_unit",
+    "mass": "kg",
+    "energy": "kWh",
+    "service": "normalized_service_unit",
+    "availability": "parts_per_million"
+  },
+  "claim_ceiling": "These fixtures test deterministic decision contracts only. They do not calibrate real prices, ISRU yields, orbital dynamics, reliability, debris compliance, or flight readiness.",
+  "scenarios": [
+    {
+      "id": "LIFECYCLE_MASS_COST_TRADEOFF",
+      "evidence_class": "synthetic",
+      "horizon_years": 5,
+      "discount_rate_basis_points": 0,
+      "required_service_units_total": 1000,
+      "options": [
+        {
+          "id": "earth_import",
+          "earth_launch_mass_kg": 1000,
+          "capital_cost_scu": 10,
+          "annual_operating_cost_scu": 30,
+          "annual_maintenance_cost_scu": 0,
+          "service_units_per_year": 200
+        },
+        {
+          "id": "local_isru",
+          "earth_launch_mass_kg": 430,
+          "capital_cost_scu": 100,
+          "annual_operating_cost_scu": 20,
+          "annual_maintenance_cost_scu": 35,
+          "service_units_per_year": 200,
+          "energy_kwh_per_service_unit": 50
+        }
+      ],
+      "expected_assertions": [
+        "Both options deliver exactly 1000 service units over the five-year horizon.",
+        "Earth-import lifecycle cost is 160 SCU: 10 + 5 * (30 + 0).",
+        "Local-ISRU lifecycle cost is 375 SCU: 100 + 5 * (20 + 35).",
+        "Local ISRU reduces Earth-launched mass by 57 percent relative to this fixture's import option.",
+        "Local ISRU has the higher lifecycle cost in this fixture, so the system must report a mass-cost trade-off rather than claim that local production is categorically superior."
+      ],
+      "negative_controls": [
+        "Do not rank local ISRU as economically cheaper based on launch mass alone.",
+        "Do not treat the synthetic energy intensity as an empirically validated lunar process parameter."
+      ]
+    },
+    {
+      "id": "CISLUNAR_RELAY_N_MINUS_ONE",
+      "evidence_class": "synthetic",
+      "service_window_id": "window-001",
+      "demand_capacity_units": 60,
+      "plans": [
+        {
+          "id": "single_provider",
+          "providers": [
+            {"provider_id": "relay-a", "capacity_units": 100, "cost_scu": 40}
+          ]
+        },
+        {
+          "id": "dual_provider",
+          "providers": [
+            {"provider_id": "relay-a", "capacity_units": 70, "cost_scu": 35},
+            {"provider_id": "relay-b", "capacity_units": 70, "cost_scu": 30}
+          ]
+        }
+      ],
+      "fault_cases": [
+        {"id": "none", "failed_provider_ids": []},
+        {"id": "relay_a_down", "failed_provider_ids": ["relay-a"]},
+        {"id": "relay_b_down", "failed_provider_ids": ["relay-b"]}
+      ],
+      "expected_assertions": [
+        "The single-provider plan is infeasible in relay_a_down.",
+        "The dual-provider plan satisfies demand in nominal operation and after either individual provider failure.",
+        "The dual-provider plan has total listed cost of 65 SCU.",
+        "A plan that violates the required service floor is rejected before cost ranking."
+      ],
+      "negative_controls": [
+        "Do not count failed provider capacity as available.",
+        "Do not infer independence of real-world failures from this synthetic single-fault test."
+      ]
+    },
+    {
+      "id": "DELAYED_MARKET_AND_DOUBLE_SALE",
+      "evidence_class": "synthetic",
+      "time_unit": "logical_tick",
+      "offer": {
+        "offer_id": "offer-001",
+        "created_tick": 80,
+        "expires_at_tick": 100,
+        "acceptance_tick": 103
+      },
+      "physical_asset": {
+        "asset_id": "asset-batch-001",
+        "quantity": 1,
+        "unit": "asset"
+      },
+      "sale_attempts": [
+        {"transaction_id": "sale-001", "buyer_id": "buyer-a", "idempotency_key": "sale-001-key", "acceptance_tick": 90},
+        {"transaction_id": "sale-002", "buyer_id": "buyer-b", "idempotency_key": "sale-002-key", "acceptance_tick": 91}
+      ],
+      "replay": {
+        "transaction_id": "sale-001",
+        "idempotency_key": "sale-001-key",
+        "replay_count": 2
+      },
+      "expected_assertions": [
+        "Acceptance at tick 103 is rejected because the offer expired at tick 100.",
+        "At most one sale transaction can commit against the single physical asset.",
+        "Replaying sale-001 with the same idempotency key cannot create a second custody transition or settlement.",
+        "A financial claim or market view does not create a second physical unit."
+      ],
+      "negative_controls": [
+        "Do not treat delayed or stale offer data as current global truth.",
+        "Do not settle both competing sale attempts."
+      ]
+    },
+    {
+      "id": "PROCESS_MASS_BALANCE_AND_DUPLICATE_EVENT",
+      "evidence_class": "synthetic",
+      "inventory": {
+        "initial_measured_mass_kg": 1000,
+        "import_event": {
+          "event_id": "import-001",
+          "verified_mass_kg": 200
+        },
+        "expected_total_mass_kg": 1200
+      },
+      "process": {
+        "process_id": "refine-001",
+        "input_mass_kg": 300,
+        "outputs": [
+          {"stream_id": "primary-product", "mass_kg": 210},
+          {"stream_id": "co-product", "mass_kg": 60}
+        ],
+        "waste_mass_kg": 30,
+        "malformed_negative_control": {
+          "outputs": [
+            {"stream_id": "primary-product", "mass_kg": 211},
+            {"stream_id": "co-product", "mass_kg": 60}
+          ],
+          "waste_mass_kg": 30
+        }
+      },
+      "duplicate_event": {
+        "event_id": "import-001",
+        "verified_mass_kg": 200
+      },
+      "expected_assertions": [
+        "The valid process is mass-balanced: 300 kg input equals 210 kg primary product + 60 kg co-product + 30 kg waste.",
+        "The duplicate import event is idempotent; expected physical inventory remains 1200 kg.",
+        "The malformed process has 301 kg of outputs and waste from 300 kg of input and must be rejected.",
+        "Estimated or simulated feedstock is not accepted inventory without an explicit acceptance event."
+      ],
+      "negative_controls": [
+        "Reject mass creation without an explicit modeled source.",
+        "Do not fix an imbalance by silently dropping waste or rounding away the difference."
+      ]
+    },
+    {
+      "id": "DEBRIS_GATE_BEFORE_COST",
+      "evidence_class": "synthetic",
+      "orbital_regime": "Earth_LEO",
+      "applicability_note": "The fixture supplies an independent, scenario-specific gate result. It does not calculate compliance with ISO 24113 or any disposal standard.",
+      "mission_specific_disposal_gate": "required",
+      "options": [
+        {
+          "id": "low_cost_noncompliant",
+          "lifecycle_cost_scu": 80,
+          "disposal_gate_pass": false
+        },
+        {
+          "id": "higher_cost_compliant",
+          "lifecycle_cost_scu": 95,
+          "disposal_gate_pass": true
+        }
+      ],
+      "expected_assertions": [
+        "The low_cost_noncompliant option is infeasible irrespective of its lower cost.",
+        "The higher_cost_compliant option is the only feasible option in this fixture.",
+        "Hard policy gates are evaluated before economic ranking."
+      ],
+      "negative_controls": [
+        "Do not describe the fixture result as a standards-compliance certificate.",
+        "Do not generalize near-Earth debris requirements to lunar surface operations without an applicable mission-specific basis."
+      ]
+    },
+    {
+      "id": "ROBUST_COST_AND_SERVICE_FLOOR",
+      "evidence_class": "synthetic",
+      "required_min_service_coverage_ppm": 970000,
+      "stress_scenarios": ["nominal", "communications_outage", "launch_slip"],
+      "options": [
+        {
+          "id": "fragile_low_bid",
+          "cost_by_scenario_scu": {
+            "nominal": 50,
+            "communications_outage": 250,
+            "launch_slip": 180
+          },
+          "service_coverage_ppm_by_scenario": {
+            "nominal": 995000,
+            "communications_outage": 810000,
+            "launch_slip": 900000
+          }
+        },
+        {
+          "id": "robust_provider",
+          "cost_by_scenario_scu": {
+            "nominal": 80,
+            "communications_outage": 95,
+            "launch_slip": 100
+          },
+          "service_coverage_ppm_by_scenario": {
+            "nominal": 985000,
+            "communications_outage": 975000,
+            "launch_slip": 970000
+          }
+        }
+      ],
+      "expected_assertions": [
+        "fragile_low_bid is infeasible because it violates the service floor in required stress scenarios.",
+        "robust_provider satisfies the required service floor in all three listed scenarios.",
+        "The benchmark does not permit a lower nominal price to compensate for a hard service-floor violation."
+      ],
+      "negative_controls": [
+        "Do not average away a failed hard constraint.",
+        "Do not treat the three synthetic stress cases as a calibrated probability distribution."
+      ]
+    }
+  ]
+}
