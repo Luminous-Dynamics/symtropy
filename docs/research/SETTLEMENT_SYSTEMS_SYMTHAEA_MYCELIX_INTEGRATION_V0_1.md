@@ -254,3 +254,12 @@ These are design references, not model coefficients or certification standards f
 ## Known remaining limitations
 
 The current kernel is static and declarative. It does not yet model event time, resource production/consumption over multiple ticks, duration-limited backup use, repair completion, transient outages, restoration delays, physical capacity flows, or time-to-stable-recovery. Service-floor results are consequences of the declared graph and allocation rules, not estimates from electrical, hydraulic or thermal solvers. The next vertical should add a deterministic event timeline and explicit finite-duration interventions before using terms such as "recovery time."
+
+
+### Unknown consumer / contested inventory guard
+
+The kernel now also blocks allocation across a shared resource pool when any demand consumer in that pool has an unknown operational state and there is potentially available inventory. The directly unknown consumer is reported as `ConsumerStateUnknown`; otherwise-available consumers in that pool receive `PoolBlockedByUnknownConsumer`. The related service floors become `Blocked` rather than allowing a known consumer to consume inventory that an unknown higher- or lower-priority consumer may need.
+
+This is intentionally conservative v1 semantics. It trades availability of a speculative allocation for explicit ambiguity until the contested pool's evidence is resolved. Other resource pools can continue independently.
+
+A new regression tests this behavior. The kernel now has 15 authored Rust tests; exact-head hosted CI remains unverified.
