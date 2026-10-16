@@ -28,6 +28,19 @@ It rejects unpaired candidate sets, missing constraints/outcomes, unit mismatche
 
 Benchmark targets and proposed acceptance criteria: [benchmark targets v0.1](../../docs/research/joy-worlds/benchmark-targets-v0.1.md).
 
+## Reproducible synthetic performance benchmark
+
+Generate a 10,000 candidate-scenario-pair workload with eight dimensions and collect seven timing samples:
+
+```sh
+cargo run --release --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --bin portfolio-benchmark -- \
+  --candidates 500 --scenarios 20 --objectives 8 --repetitions 7
+```
+
+Use a fixed, documented host and record its CPU, OS and Rust version. The target is p95 below 1 second, not a claimed result. Fixture generation is excluded from the timed section; JSON parsing and comparison are included.
+
+A small CI smoke invocation is included to test the benchmark binary without making the 10,000-pair performance threshold a flaky shared-runner gate.
+
 ## Current checks
 
 - Required fields and non-empty evidence/unknown/constraint lists.

@@ -690,6 +690,107 @@ mod tests {
         assert_eq!(first, second);
     }
 
+
+    fn mini_candidate(id: &str, quality: i64, water: i64) -> Value {
+        json!({
+            "id": id,
+            "name": format!("Candidate {id}"),
+            "constraint_checks": [
+                {"id":"rights","status":"pass","evidence_ref":format!("synthetic://mini/{id}/rights")},
+                {"id":"safety","status":"pass","evidence_ref":format!("synthetic://mini/{id}/safety")}
+            ],
+            "outcomes": {
+                "quality": {
+                    "status":"known","value":quality,"lower_bound":quality,"upper_bound":quality,
+                    "unit":"points","evidence_ref":format!("synthetic://mini/{id}/quality")
+                },
+                "water": {
+                    "status":"known","value":water,"lower_bound":water,"upper_bound":water,
+                    "unit":"m3/year","evidence_ref":format!("synthetic://mini/{id}/water")
+                }
+            }
+        })
+    }
+
+    fn mini_fixture(values: &[(i64, i64); 3]) -> String {
+        let candidates = vec![
+            mini_candidate("A", values[0].0, values[0].1),
+            mini_candidate("B", values[1].0, values[1].1),
+            mini_candidate("C", values[2].0, values[2].1)
+        ];
+        json!({
+            "schema_version":"0.1.0",
+            "artifact_id":"test.bounded-pareto-oracle",
+            "status":"synthetic_fixture",
+            "non_claims":["Bounded mathematical fixture only."],
+            "required_hard_constraints":["rights","safety"],
+            "objective_dimensions":[
+                {"id":"quality","unit":"points","direction":"maximize"},
+                {"id":"water","unit":"m3/year","direction":"minimize"}
+            ],
+            "scenarios":[
+                {"id":"base","assumptions_ref":"synthetic://mini/base","candidates":candidates.clone()},
+                {"id":"stress","assumptions_ref":"synthetic://mini/stress","candidates":candidates}
+            ]
+        }).to_string()
+    }
+
+    #[test]
+    fn bounded_exhaustive_pareto_agrees_with_independent_oracle() {
+        // Exhaust all 3^6 assignments of three candidate quality/water pairs.
+        // The reference front is computed directly from the source values,
+        // independently of the engine's aggregation and dominates helper.
+        for encoded in 0_u32..729 {
+            let mut remainder = encoded;
+            let mut digits = [0_i64; 6];
+            for digit in &mut digits {
+                *digit = (remainder % 3) as i64;
+                remainder /= 3;
+            }
+            let values = [
+                (digits[0], digits[1]),
+                (digits[2], digits[3]),
+                (digits[4], digits[5]),
+            ];
+            let receipt = compare_scenarios_json(&mini_fixture(&values))
+                .unwrap_or_else(|errors| panic!("fixture {encoded} rejected: {errors:?}"));
+
+            let ids = ["A", "B", "C"];
+            let mut expected = Vec::new();
+            for i in 0..3 {
+                let mut dominated = false;
+                for j in 0..3 {
+                    if i == j {
+                        continue;
+                    }
+                    let no_worse = values[j].0 >= values[i].0 && values[j].1 <= values[i].1;
+                    let strictly_better = values[j].0 > values[i].0 || values[j].1 < values[i].1;
+                    if no_worse && strictly_better {
+                        dominated = true;
+                        break;
+                    }
+                }
+                if !dominated {
+                    expected.push(ids[i]);
+                }
+            }
+            assert_eq!(
+                receipt["pareto_front_ids"],
+                json!(expected),
+                "independent Pareto oracle mismatch for encoded fixture {encoded} with values {values:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn scenario_order_does_not_change_pareto_membership() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        let expected = compare_scenarios_json(&raw.to_string()).unwrap()["pareto_front_ids"].clone();
+        raw["scenarios"].as_array_mut().unwrap().reverse();
+        let actual = compare_scenarios_json(&raw.to_string()).unwrap()["pareto_front_ids"].clone();
+        assert_eq!(actual, expected);
+    }
+
     #[test]
     fn rejects_non_synthetic_input_by_default() {
         let mut raw: Value = serde_json::from_str(&fixture()).unwrap();

@@ -50,3 +50,8 @@ jobs:
             --output /tmp/destination-decision-receipt.json
           test -s /tmp/destination-decision-receipt.json
 
+      - name: Smoke-test generated comparator benchmark
+        run: |
+          cargo run --manifest-path tools/joy-worlds-profile-validator/Cargo.toml --bin portfolio-benchmark -- \
+            --candidates 25 --scenarios 4 --objectives 8 --repetitions 1
+
