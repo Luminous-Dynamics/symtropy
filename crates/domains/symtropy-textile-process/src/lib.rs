@@ -13,6 +13,7 @@
 //! A caller must not translate synthetic inputs into factory claims. All values
 //! and evidence references supplied here are caller-owned assertions.
 
+pub mod demand;
 pub mod garment_profile;
 pub mod scheduler;
 pub mod stress;
