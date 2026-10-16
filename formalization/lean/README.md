@@ -8,10 +8,11 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
 - **HousingReferences.lean** defines five elementary closed-form reference
   equations and theorem declarations for positivity, exact scaling, and exact
   rational known-answer values.
-- **Dimensions.lean** defines seven-SI-base dimension vectors and proves eight
-  dimensional-homogeneity identities for the equation families, stress, moment,
-  and reaction. It also includes a negative control showing that a deliberately
-  malformed cantilever expression has the wrong dimension.
+- **Dimensions.lean** defines seven-SI-base dimension vectors, proves eight
+  dimensional-homogeneity identities and five dimensionless-group invariants,
+  and includes a negative control that rejects a malformed cantilever expression.
+  The catalogue maps every declared SI unit to an exponent vector and a matching
+  Lean theorem anchor.
 - **contracts.json** maps stable contract IDs to assumptions, input/output SI
   units, theorem IDs, candidate housing fixture links, dimension status, and
   negative controls.

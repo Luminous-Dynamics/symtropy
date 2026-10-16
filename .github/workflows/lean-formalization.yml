@@ -25,18 +25,19 @@ jobs:
     steps:
       - name: Check out exact revision
         uses: actions/checkout@v4
-      - name: Validate theorem, unit and negative-control mappings
+      - name: Validate contract, unit and dimensionless-group mappings
         shell: bash
         run: |
           jq -e '
             .schema_version == "0.1.0" and
             .package == "SymtropyFormal" and
             (.contracts | length == 5) and
-            ([.contracts[].theorems[]] | unique | length == 28) and
+            ([.contracts[].theorems[]] | unique | length == 33) and
             (.negative_controls | length == 1) and
             (.dimension_system.unit_dimension_vectors | keys | sort) ==
               (.dimension_system.unit_theorems | keys | sort) and
             ([.dimension_system.unit_theorems[]] | unique | length == 7) and
+            ([.contracts[].dimensionless_groups[]] | length == 5) and
             (.dimension_system.unit_dimension_vectors == {
               "m":[1,0,0,0,0,0,0],
               "m^2":[2,0,0,0,0,0,0],

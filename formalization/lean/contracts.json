@@ -21,7 +21,8 @@
         "SymtropyFormal.rectangularSecondMoment_depth_scaling",
         "SymtropyFormal.rectangularSecondMoment_cantilever_fixture_value",
         "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value",
-        "SymtropyFormal.rectangularSecondMoment_dimensions"
+        "SymtropyFormal.rectangularSecondMoment_dimensions",
+        "SymtropyFormal.rectangularSectionShapeFactor_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -37,7 +38,15 @@
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
       ],
-      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "geometry.rectangular.section.shape-factor.pi1.v1",
+          "expression": "I / L^4 = (b*h^3)/(12*L^4)",
+          "theorem": "SymtropyFormal.rectangularSectionShapeFactor_dimensions",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ]
     },
     {
       "id": "mechanics.axial_bar.extension.v1",
@@ -63,7 +72,8 @@
         "SymtropyFormal.axialExtension_length_scaling",
         "SymtropyFormal.axialBar_fixture_extension_value",
         "SymtropyFormal.axialExtension_dimensions",
-        "SymtropyFormal.supportReaction_dimensions"
+        "SymtropyFormal.supportReaction_dimensions",
+        "SymtropyFormal.axialExtension_normalized_strain_dimensionless"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -74,7 +84,15 @@
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
       ],
-      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.axial_bar.strain.pi1.v1",
+          "expression": "delta/L = F/(E*A)",
+          "theorem": "SymtropyFormal.axialExtension_normalized_strain_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ]
     },
     {
       "id": "mechanics.cantilever.tip_deflection.v1",
@@ -102,7 +120,8 @@
         "SymtropyFormal.cantileverTipDeflection_length_cubic_scaling",
         "SymtropyFormal.cantilever_fixture_tip_deflection_value",
         "SymtropyFormal.cantileverTipDeflection_dimensions",
-        "SymtropyFormal.axialStress_dimensions"
+        "SymtropyFormal.axialStress_dimensions",
+        "SymtropyFormal.cantilever_normalized_deflection_dimensionless"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -113,7 +132,15 @@
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
       ],
-      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.cantilever.normalized-deflection.pi1.v1",
+          "expression": "delta/L = F*L^2/(3*E*I)",
+          "theorem": "SymtropyFormal.cantilever_normalized_deflection_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ]
     },
     {
       "id": "mechanics.simply_supported.midpoint_point_load.v1",
@@ -143,7 +170,8 @@
         "SymtropyFormal.simplySupportedMidpointDeflection_dimensions",
         "SymtropyFormal.axialStress_dimensions",
         "SymtropyFormal.bendingMoment_dimensions",
-        "SymtropyFormal.supportReaction_dimensions"
+        "SymtropyFormal.supportReaction_dimensions",
+        "SymtropyFormal.simplySupportedMidpoint_normalized_deflection_dimensionless"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -155,7 +183,15 @@
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
       ],
-      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.simply_supported.midpoint.normalized-deflection.pi1.v1",
+          "expression": "delta/L = F*L^2/(48*E*I)",
+          "theorem": "SymtropyFormal.simplySupportedMidpoint_normalized_deflection_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ]
     },
     {
       "id": "mechanics.simply_supported.uniform_load.v1",
@@ -185,7 +221,8 @@
         "SymtropyFormal.simplySupportedUniformLoadDeflection_dimensions",
         "SymtropyFormal.axialStress_dimensions",
         "SymtropyFormal.bendingMoment_dimensions",
-        "SymtropyFormal.supportReaction_dimensions"
+        "SymtropyFormal.supportReaction_dimensions",
+        "SymtropyFormal.simplySupportedUniformLoad_normalized_deflection_dimensionless"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -197,7 +234,15 @@
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
       ],
-      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.simply_supported.uniform-load.normalized-deflection.pi1.v1",
+          "expression": "delta/L = 5*q*L^3/(384*E*I)",
+          "theorem": "SymtropyFormal.simplySupportedUniformLoad_normalized_deflection_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ]
     }
   ],
   "dimension_system": {

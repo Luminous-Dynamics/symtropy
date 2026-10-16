@@ -134,6 +134,47 @@ def cantileverMissingLengthPowerDim : PhysicalDimension :=
 theorem cantilever_missing_length_power_is_not_length :
     cantileverMissingLengthPowerDim ≠ lengthDim := by decide
 
+/-! ## Dimensionless groups for scale-transfer benchmarks
+
+The groups below are dimensionally invariant. Their invariance is the basis for
+cross-scale metamorphic tests: when geometry and loads are scaled to keep the
+group fixed, normalized results should agree under the stated linear model.
+This is a mathematical property of the reference equations, not yet a test of
+the Rust implementation or a claim that real materials remain scale-similar.
+
+theorem rectangularSectionShapeFactor_dimensions :
+    PhysicalDimension.div
+      (PhysicalDimension.mul lengthDim (PhysicalDimension.pow lengthDim 3))
+      (PhysicalDimension.pow lengthDim 4) = dimensionlessDim := by decide
+
+theorem axialExtension_normalized_strain_dimensionless :
+    PhysicalDimension.div
+      (PhysicalDimension.div
+        (PhysicalDimension.mul forceDim lengthDim)
+        (PhysicalDimension.mul youngsModulusDim areaDim))
+      lengthDim = dimensionlessDim := by decide
+
+theorem cantilever_normalized_deflection_dimensionless :
+    PhysicalDimension.div
+      (PhysicalDimension.div
+        (PhysicalDimension.mul forceDim (PhysicalDimension.pow lengthDim 3))
+        (PhysicalDimension.mul youngsModulusDim secondMomentAreaDim))
+      lengthDim = dimensionlessDim := by decide
+
+theorem simplySupportedMidpoint_normalized_deflection_dimensionless :
+    PhysicalDimension.div
+      (PhysicalDimension.div
+        (PhysicalDimension.mul forceDim (PhysicalDimension.pow lengthDim 3))
+        (PhysicalDimension.mul youngsModulusDim secondMomentAreaDim))
+      lengthDim = dimensionlessDim := by decide
+
+theorem simplySupportedUniformLoad_normalized_deflection_dimensionless :
+    PhysicalDimension.div
+      (PhysicalDimension.div
+        (PhysicalDimension.mul lineLoadDim (PhysicalDimension.pow lengthDim 4))
+        (PhysicalDimension.mul youngsModulusDim secondMomentAreaDim))
+      lengthDim = dimensionlessDim := by decide
+
 /-! ## Unit-catalogue anchors
 
 These kernel-checked identities state the canonical exponent vector for each
