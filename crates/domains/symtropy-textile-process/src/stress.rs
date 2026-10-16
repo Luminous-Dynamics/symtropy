@@ -493,7 +493,7 @@ fn summarize_rule(
     scenarios: &[ScenarioResult],
     exact_feasible_scenarios: usize,
 ) -> RuleStressSummary {
-    let mut selected: Vec<&ScheduleMetrics> = scenarios
+    let selected: Vec<&ScheduleMetrics> = scenarios
         .iter()
         .filter_map(|scenario| {
             if !matches!(scenario.exact_outcome, ScenarioExactOutcome::Feasible { .. }) {
@@ -688,12 +688,12 @@ mod tests {
 
         assert_eq!(report_a.rule_summaries, report_b.rule_summaries);
         let normalize = |report: &StressReport| {
-            let mut pairs: Vec<(&str, &ScenarioExactOutcome)> = report
+            let mut pairs: Vec<(String, ScenarioExactOutcome)> = report
                 .scenario_results
                 .iter()
-                .map(|item| (item.scenario_id.as_str(), &item.exact_outcome))
+                .map(|item| (item.scenario_id.clone(), item.exact_outcome.clone()))
                 .collect();
-            pairs.sort_by(|left, right| left.0.cmp(right.0));
+            pairs.sort_by(|left, right| left.0.cmp(&right.0));
             pairs
         };
         assert_eq!(normalize(&report_a), normalize(&report_b));
