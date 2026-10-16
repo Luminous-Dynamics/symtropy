@@ -461,7 +461,10 @@ pub fn compare_portfolios_v1(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::UnexpectedCandidateObjective,
                             Some(candidate.candidate_id.as_str()),
-                            &format!("candidate supplied undeclared objective {}", value.objective_id),
+                            &format!(
+                                "candidate supplied undeclared objective {}",
+                                value.objective_id
+                            ),
                         );
                         continue;
                     };
@@ -478,7 +481,10 @@ pub fn compare_portfolios_v1(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::CandidateObjectiveUnitMismatch,
                             Some(candidate.candidate_id.as_str()),
-                            &format!("objective {} unit does not match its definition", value.objective_id),
+                            &format!(
+                                "objective {} unit does not match its definition",
+                                value.objective_id
+                            ),
                         );
                     }
                     if value.value_scale != objective.value_scale {
@@ -486,7 +492,10 @@ pub fn compare_portfolios_v1(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::CandidateObjectiveScaleMismatch,
                             Some(candidate.candidate_id.as_str()),
-                            &format!("objective {} scale does not match its definition", value.objective_id),
+                            &format!(
+                                "objective {} scale does not match its definition",
+                                value.objective_id
+                            ),
                         );
                     }
                 }
@@ -853,7 +862,11 @@ mod tests {
             };
             let values = if feasibility == PortfolioCandidateFeasibilityV1::Feasible {
                 vec![
-                    value("cost_minor_units", "minor_unit", i128::from(next_random(&mut state) % 10_001)),
+                    value(
+                        "cost_minor_units",
+                        "minor_unit",
+                        i128::from(next_random(&mut state) % 10_001),
+                    ),
                     value("water_ml", "ml", i128::from(next_random(&mut state) % 10_001)),
                     value("edible_grams", "g", i128::from(next_random(&mut state) % 10_001)),
                     value("diversity_groups", "group", i128::from(next_random(&mut state) % 101)),
@@ -861,7 +874,12 @@ mod tests {
             } else {
                 Vec::new()
             };
-            candidates.push(candidate(&id, feasibility, blocker_refs.iter().map(String::as_str).collect(), values));
+            candidates.push(candidate(
+                &id,
+                feasibility,
+                blocker_refs.iter().map(String::as_str).collect(),
+                values,
+            ));
         }
         PortfolioComparisonRequestV1 {
             schema_version: GARDEN_PORTFOLIO_SCHEMA_VERSION,
@@ -963,7 +981,9 @@ mod tests {
             let mut expected_exclusions: Vec<_> = request
                 .candidates
                 .iter()
-                .filter(|candidate| candidate.feasibility != PortfolioCandidateFeasibilityV1::Feasible)
+                .filter(|candidate| {
+                    candidate.feasibility != PortfolioCandidateFeasibilityV1::Feasible
+                })
                 .map(|candidate| candidate.candidate_id.clone())
                 .collect();
             expected_exclusions.sort();
