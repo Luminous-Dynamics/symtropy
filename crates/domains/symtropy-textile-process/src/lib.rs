@@ -590,9 +590,14 @@ mod tests {
         .unwrap();
 
         assert_eq!(report.frontier, vec!["admissible"]);
+        let blocked = report
+            .dispositions
+            .iter()
+            .find(|item| item.candidate_id == "best-looking")
+            .expect("blocked candidate is retained in the report");
         assert_eq!(
-            report.dispositions[0].disposition,
-            Disposition::Blocked {
+            &blocked.disposition,
+            &Disposition::Blocked {
                 failed_gate_ids: vec!["effluent_admission".into()]
             }
         );
