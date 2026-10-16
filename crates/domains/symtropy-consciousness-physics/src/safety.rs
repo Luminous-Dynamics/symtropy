@@ -71,16 +71,43 @@ pub enum SafetyTier {
     Red,
 }
 
+/// Why a Φ value cannot be classified against the safety-tier domain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvalidPhi {
+    /// The value is NaN or an infinity.
+    NonFinite,
+    /// The finite value is outside the declared inclusive domain [0, 1].
+    OutOfRange,
+}
+
 impl SafetyTier {
     /// Determine safety tier from Φ value, using the hardcoded 0.6 / 0.3 / 0.1
     /// cut points.
     ///
-    /// **Not used by any platform demo in this workspace.** Measured platform
-    /// Φ clusters around 0.1, so this classifies every real platform as
-    /// Orange or Red permanently. See the module-level docs and prefer
+    /// This compatibility wrapper fails closed: invalid values map to Red.
+    /// Call [`try_from_phi`] when invalid telemetry should be distinguishable
+    /// from a valid low-Φ state. These cut points are not calibrated for any
+    /// platform demo; see the module-level docs and prefer
     /// [`sprint_floor_gain`] with a measured threshold.
     pub fn from_phi(phi: f64) -> Self {
-        if phi > 0.6 {
+        Self::try_from_phi(phi).unwrap_or(Self::Red)
+    }
+
+    /// Classify a finite Φ in the declared inclusive domain [0, 1].
+    ///
+    /// Non-finite values and finite values outside the domain are rejected
+    /// rather than allowing values such as +∞ to grant Green-tier authority.
+    /// Strict threshold behavior is preserved: equality at 0.1 is Red, at
+    /// 0.3 is Orange, and at 0.6 is Yellow.
+    pub fn try_from_phi(phi: f64) -> Result<Self, InvalidPhi> {
+        if !phi.is_finite() {
+            return Err(InvalidPhi::NonFinite);
+        }
+        if !(0.0..=1.0).contains(&phi) {
+            return Err(InvalidPhi::OutOfRange);
+        }
+
+        Ok(if phi > 0.6 {
             Self::Green
         } else if phi > 0.3 {
             Self::Yellow
@@ -88,7 +115,7 @@ impl SafetyTier {
             Self::Orange
         } else {
             Self::Red
-        }
+        })
     }
 
     /// Motor gain multiplier [0.0, 1.0].
@@ -195,6 +222,54 @@ mod tests {
         assert_eq!(SafetyTier::from_phi(0.05), SafetyTier::Red);
         assert_eq!(SafetyTier::from_phi(0.0), SafetyTier::Red);
         assert_eq!(SafetyTier::from_phi(1.0), SafetyTier::Green);
+    }
+
+    #[test]
+    fn tier_thresholds_are_strict_and_stable_at_adjacent_floats() {
+        let below_01 = f64::from_bits(0.1_f64.to_bits() - 1);
+        let above_01 = f64::from_bits(0.1_f64.to_bits() + 1);
+        let below_03 = f64::from_bits(0.3_f64.to_bits() - 1);
+        let above_03 = f64::from_bits(0.3_f64.to_bits() + 1);
+        let below_06 = f64::from_bits(0.6_f64.to_bits() - 1);
+        let above_06 = f64::from_bits(0.6_f64.to_bits() + 1);
+
+        assert_eq!(SafetyTier::from_phi(below_01), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(0.1), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(above_01), SafetyTier::Orange);
+
+        assert_eq!(SafetyTier::from_phi(below_03), SafetyTier::Orange);
+        assert_eq!(SafetyTier::from_phi(0.3), SafetyTier::Orange);
+        assert_eq!(SafetyTier::from_phi(above_03), SafetyTier::Yellow);
+
+        assert_eq!(SafetyTier::from_phi(below_06), SafetyTier::Yellow);
+        assert_eq!(SafetyTier::from_phi(0.6), SafetyTier::Yellow);
+        assert_eq!(SafetyTier::from_phi(above_06), SafetyTier::Green);
+    }
+
+    #[test]
+    fn checked_phi_rejects_invalid_domain_and_nonfinite_values() {
+        assert_eq!(SafetyTier::try_from_phi(f64::NAN), Err(InvalidPhi::NonFinite));
+        assert_eq!(
+            SafetyTier::try_from_phi(f64::INFINITY),
+            Err(InvalidPhi::NonFinite)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(f64::NEG_INFINITY),
+            Err(InvalidPhi::NonFinite)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(-f64::EPSILON),
+            Err(InvalidPhi::OutOfRange)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(1.0 + f64::EPSILON),
+            Err(InvalidPhi::OutOfRange)
+        );
+
+        // Legacy callers remain fail-closed without a signature change.
+        assert_eq!(SafetyTier::from_phi(f64::NAN), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(f64::INFINITY), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(-f64::EPSILON), SafetyTier::Red);
     }
 
     #[test]
