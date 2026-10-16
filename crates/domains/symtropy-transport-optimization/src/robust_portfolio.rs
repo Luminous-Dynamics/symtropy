@@ -1258,6 +1258,47 @@ mod tests {
         assert_eq!(first, second);
     }
 
+
+    #[test]
+    fn conflicting_cross_demand_capacity_snapshots_are_not_blended() {
+        let d1 = demand(
+            "demand-1",
+            vec![("shared-fast".into(), 100, 100, "bridge".into(), "bridge".into())],
+            "origin-1",
+            "dest-1",
+        );
+        let mut d2 = demand(
+            "demand-2",
+            vec![("shared-fast".into(), 110, 110, "bridge".into(), "bridge".into())],
+            "origin-2",
+            "dest-2",
+        );
+        let path = d2.selection.qualified_paths.iter_mut()
+            .find(|path| path.path_score.path_id == "shared-fast")
+            .expect("shared option exists");
+        for scenario in &mut path.scenario_capacity {
+            for assignment in &mut scenario.report.assignments {
+                assignment.source_record_digest = "e".repeat(64);
+            }
+        }
+
+        let error = select_joint_robust_transport_portfolio(&[d1, d2], 1).unwrap_err();
+        assert!(matches!(
+            error,
+            FifoRobustPortfolioErrorV1::NoFeasiblePortfolio {
+                combinations_checked: 1,
+                inconsistent_capacity_snapshots: 1,
+                ..
+            }
+        ));
+        let FifoRobustPortfolioErrorV1::NoFeasiblePortfolio {
+            infeasibility_examples, ..
+        } = error else { unreachable!() };
+        assert!(infeasibility_examples.iter().any(|example| {
+            matches!(&example.reason, FifoPortfolioInfeasibilityV1::InconsistentCapacityEvidence { .. })
+        }));
+    }
+
     #[test]
     fn exact_search_refuses_an_excessive_cartesian_product() {
         let d1 = demand(
