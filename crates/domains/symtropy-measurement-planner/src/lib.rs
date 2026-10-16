@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const MEASUREMENT_PLANNER_SCHEMA_VERSION: u16 = 1;
 pub const PROBABILITY_SCALE_PPM: u32 = 1_000_000;
-pub const EVSI_DENOMINATOR_PPM_SQUARED: u128 = 1_000_000_000_000;
+pub const EVSI_DENOMINATOR_PPM_SQUARED: u64 = 1_000_000_000_000;
 
 fn serialize_i64_as_string<S>(value: &i64, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -95,15 +95,6 @@ pub enum ProbabilityBasisV1 {
     ReviewedExpertElicitation,
     SyntheticFixture,
     Unjustified,
-}
-
-impl ProbabilityBasisV1 {
-    fn supports_expected_value(self) -> bool {
-        matches!(
-            self,
-            Self::CalibratedEmpirical | Self::ReviewedExpertElicitation
-        )
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -279,7 +270,7 @@ pub struct ValueOfInformationReportV1 {
     )]
     pub utility_scale: u64,
     pub probability_scale_ppm: u32,
-    pub evsi_denominator_ppm_squared: u128,
+    pub evsi_denominator_ppm_squared: u64,
     pub baseline_decision_id: String,
     #[serde(
         serialize_with = "serialize_i128_as_string",
@@ -668,9 +659,7 @@ fn compare_measurement(
         return blocked_comparison(action, baseline_id, baseline_numerator_ppm, blockers);
     }
 
-    if !action.probability_basis.supports_expected_value() && 
-        action.probability_basis != ProbabilityBasisV1::SyntheticFixture
-    {
+    if action.probability_basis == ProbabilityBasisV1::Unjustified {
         return MeasurementComparisonV1 {
             action_id: action.action_id.clone(),
             probability_basis: action.probability_basis,
