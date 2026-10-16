@@ -349,9 +349,10 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             counts.duplicate_pair_rows += 1;
         }
 
-        let impact = record_field(record, &indexes, "total_impact", row_index + 2)?
+        let impact_raw = record_field(record, &indexes, "total_impact", row_index + 2)?;
+        let impact = impact_raw
             .parse::<f64>()
-            .map_err(|_| format!("CSV row {} has invalid total_impact {:?}", row_index + 2, record_field(record, &indexes, "total_impact", row_index + 2)?))?;
+            .map_err(|_| format!("CSV row {} has invalid total_impact {impact_raw:?}", row_index + 2))?;
         if !impact.is_finite() || impact < 0.0 {
             return Err(format!("CSV row {} has non-finite or negative total_impact", row_index + 2));
         }
