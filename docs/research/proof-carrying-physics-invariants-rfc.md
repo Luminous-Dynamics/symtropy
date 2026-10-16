@@ -39,6 +39,23 @@ The contract record must separate three claims:
 
 Evidence for one level cannot silently promote either of the others.
 
+## Ledger source audit: accounting semantics are not yet a conservation theorem
+
+The current implementation in [`thermodynamics.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-consciousness-physics/src/thermodynamics.rs) defines `energy_in` as the sum of action costs and `energy_out` as dissipated heat, then computes `abs(energy_in - energy_out) / energy_in`. This is a local action-cost/dissipation residual. It is not, by itself, a whole-system conservation error: the current record does not include change in reservoir storage, kinetic/potential energy, external well input, or all boundaries.
+
+There is also a concrete sign-semantic collision in [`coupling.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-consciousness-physics/src/coupling.rs): the field-energy path calls `record_dissipation(-effect)` when an entity regenerates. That makes `energy_out` a signed net-flow accumulator despite its documented meaning as dissipated heat. The public ledger record methods also accept negative and non-finite values without explicit rejection, allowing invalid inputs to alter or poison totals.
+
+This has consequences beyond naming:
+- `TickBalance.conservation_error` is not constrained to the documented [0, 1] range when the signed accumulator or invalid inputs occur.
+- A finite, positive dissipation and a negative regeneration share a counter whose intended physical meaning is not homogeneous.
+- The current tests prove the arithmetic behavior for synthetic `action_cost == dissipation` examples, not conservation of the coupled simulation.
+
+### Required redesign before promoting ST-INV-004
+
+Do not “fix” the residual by guessing the right sign. First introduce typed, finite, non-negative flow categories (action cost/consumption, dissipation, regeneration/external input) and migrate the negative-`record_dissipation` call site. Then define the exact accounted system boundary and track the relevant state delta. Only after all sources, sinks, storage changes, and units are explicit should a conservation identity be stated.
+
+Keep legacy residual metrics clearly named/documented as local diagnostics until a full ledger contract is implemented. Add hostile tests for negative/non-finite flows, overflow, double recording, regeneration sign, missing flow categories, and balance mutations. A test suite that only checks “100 consumed and 100 dissipated gives zero” is insufficient evidence for whole-system conservation.
+
 ## P0 contract candidates
 
 These are proposed candidates to be checked against the actual current implementation. This RFC does not assert they are already proved.
