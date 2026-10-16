@@ -205,7 +205,9 @@ pub fn evaluate_bytes(input: &[u8]) -> Result<ValidationReport, Vec<String>> {
                     }
                 }
                 ConstraintKind::Preference => {
-                    if finding.disposition == ConstraintDisposition::Conflicted && fully_evidenced {
+                    if finding.disposition == ConstraintDisposition::Conflicted
+                        && matches!(finding.evidence_state, EvidenceState::VerifiedForDeclaredScope | EvidenceState::KnownBarrier)
+                    {
                         preference_conflict_count += 1;
                     } else if finding.disposition != ConstraintDisposition::SatisfiedForFixture || !fully_evidenced {
                         preference_unresolved_count += 1;
@@ -454,6 +456,15 @@ fn validate_structure(network: &Network) -> Vec<String> {
             if !applies && finding.disposition != ConstraintDisposition::NotApplicable {
                 errors.push(format!("path '{}' must mark out-of-condition constraint '{}' not_applicable", path.id, constraint.id));
             }
+            if applies
+                && finding.evidence_state == EvidenceState::KnownBarrier
+                && finding.disposition != ConstraintDisposition::Conflicted
+            {
+                errors.push(format!(
+                    "path '{}' must label known-barrier evidence for constraint '{}' as conflicted",
+                    path.id, constraint.id
+                ));
+            }
         }
         if seen_findings.len() != constraint_by_id.len() {
             errors.push(format!(
@@ -556,11 +567,17 @@ fn assess_path(
         if constraint.kind != ConstraintKind::Hard || !constraint.applies_when.contains(&path.condition) {
             continue;
         }
-        match (finding.disposition, finding.evidence_state) {
-            (ConstraintDisposition::Conflicted, EvidenceState::VerifiedForDeclaredScope | EvidenceState::KnownBarrier)
-            | (_, EvidenceState::KnownBarrier) => has_required_barrier = true,
-            (ConstraintDisposition::SatisfiedForFixture, EvidenceState::VerifiedForDeclaredScope) => {}
-            _ => has_required_gap = true,
+        if finding.evidence_state == EvidenceState::KnownBarrier
+            || (finding.disposition == ConstraintDisposition::Conflicted
+                && finding.evidence_state == EvidenceState::VerifiedForDeclaredScope)
+        {
+            has_required_barrier = true;
+        } else if finding.disposition == ConstraintDisposition::SatisfiedForFixture
+            && finding.evidence_state == EvidenceState::VerifiedForDeclaredScope
+        {
+            // Explicitly evidenced satisfaction is the only passing hard-constraint state.
+        } else {
+            has_required_gap = true;
         }
     }
 
@@ -767,6 +784,15 @@ mod tests {
         value["goal"]["constraints"][1]["id"] = duplicate;
         let error = evaluate_value(&value).unwrap_err().join("\n");
         assert!(error.contains("duplicate global id"));
+    }
+
+    #[test]
+    fn known_barrier_evidence_cannot_be_claimed_satisfied() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["evidence_state"] = serde_json::json!("known_barrier");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("must label known-barrier evidence"));
     }
 
     #[test]
