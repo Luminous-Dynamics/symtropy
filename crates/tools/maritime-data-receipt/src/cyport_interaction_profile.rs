@@ -61,10 +61,46 @@ struct CyPortInteractionReport {
     latest_event_start: String,
     earliest_event_end: String,
     latest_event_end: String,
+    episode_split_policy_id: &'static str,
+    split_summaries: Vec<SplitSummary>,
+    episode_groups: Vec<StormEpisodeSplit>,
     data_capture_persisted: bool,
     model_validation_performed: bool,
     physical_simulation_performed: bool,
     claim_ceiling: &'static str,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct StormEpisodeSplit {
+    storm_id: String,
+    first_event_start: String,
+    last_event_start: String,
+    split: &'static str,
+    interaction_rows: usize,
+    unique_port_ids: usize,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct SplitSummary {
+    split: &'static str,
+    storm_count: usize,
+    interaction_rows: usize,
+    unique_port_ids: usize,
+}
+
+#[derive(Default)]
+struct StormAccumulator {
+    row_count: usize,
+    port_ids: BTreeSet<String>,
+    first_event_start: Option<String>,
+    last_event_start: Option<String>,
+}
+
+#[derive(Default)]
+struct SplitAccumulator {
+    storm_count: usize,
+    interaction_rows: usize,
+    port_ids: BTreeSet<String>,
 }
 
 #[derive(Default)]
@@ -73,6 +109,7 @@ struct ProfileCounts {
     storm_ids: BTreeSet<String>,
     port_ids: BTreeSet<String>,
     storm_port_pairs: BTreeSet<(String, String)>,
+    storm_groups: BTreeMap<String, StormAccumulator>,
     duplicate_id_rows: usize,
     duplicate_pair_rows: usize,
     zero_total_impact_rows: usize,
@@ -82,6 +119,24 @@ struct ProfileCounts {
     day_of_recover_sentinels: usize,
     event_starts: Vec<String>,
     event_ends: Vec<String>,
+}
+
+const EPISODE_SPLIT_POLICY_ID: &str =
+    "cyport-sid-temporal-v0.1:train<=2020;calibration=2021;test>=2022";
+
+fn split_for_date(date: &str) -> Result<&'static str, String> {
+    let year = date
+        .get(0..4)
+        .ok_or_else(|| format!("date lacks a four-digit year: {date:?}"))?
+        .parse::<u32>()
+        .map_err(|_| format!("date has an invalid year: {date:?}"))?;
+    Ok(if year <= 2020 {
+        "train"
+    } else if year == 2021 {
+        "calibration"
+    } else {
+        "test"
+    })
 }
 
 fn parse_csv(bytes: &[u8]) -> Result<Vec<Vec<String>>, String> {
@@ -345,7 +400,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         let port_id = record_field(record, &indexes, "PID", row_index + 2)?.to_owned();
         counts.storm_ids.insert(storm.clone());
         counts.port_ids.insert(port_id.clone());
-        if !counts.storm_port_pairs.insert((storm, port_id)) {
+        if !counts.storm_port_pairs.insert((storm.clone(), port_id.clone())) {
             counts.duplicate_pair_rows += 1;
         }
 
@@ -370,8 +425,20 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 row_index + 2
             ));
         }
-        counts.event_starts.push(start);
+        counts.event_starts.push(start.clone());
         counts.event_ends.push(end);
+
+        let group = counts.storm_groups.entry(storm).or_default();
+        group.row_count += 1;
+        group.port_ids.insert(port_id);
+        match group.first_event_start.as_ref() {
+            Some(current) if current <= &start => {}
+            _ => group.first_event_start = Some(start.clone()),
+        }
+        match group.last_event_start.as_ref() {
+            Some(current) if current >= &start => {}
+            _ => group.last_event_start = Some(start),
+        }
 
         if is_sentinel(record_field(record, &indexes, "start_recovery_date", row_index + 2)?) {
             counts.start_recovery_sentinels += 1;
@@ -390,6 +457,73 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
 
     counts.event_starts.sort();
     counts.event_ends.sort();
+
+    let mut episode_groups: Vec<StormEpisodeSplit> = counts
+        .storm_groups
+        .iter()
+        .map(|(storm_id, group)| {
+            let first_event_start = group
+                .first_event_start
+                .clone()
+                .expect("storm group is created only after a valid event start");
+            let last_event_start = group
+                .last_event_start
+                .clone()
+                .expect("storm group is created only after a valid event start");
+            Ok(StormEpisodeSplit {
+                storm_id: storm_id.clone(),
+                split: split_for_date(&first_event_start)?,
+                first_event_start,
+                last_event_start,
+                interaction_rows: group.row_count,
+                unique_port_ids: group.port_ids.len(),
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    episode_groups.sort_by(|left, right| {
+        left.first_event_start
+            .cmp(&right.first_event_start)
+            .then_with(|| left.storm_id.cmp(&right.storm_id))
+    });
+
+    let split_names: &[&str] = &["train", "calibration", "test"];
+    let mut split_accumulators: BTreeMap<&str, SplitAccumulator> = split_names
+        .iter()
+        .map(|name| (*name, SplitAccumulator::default()))
+        .collect();
+    for episode in &episode_groups {
+        let summary = split_accumulators
+            .get_mut(episode.split)
+            .ok_or_else(|| format!("unknown split assignment {:?}", episode.split))?;
+        summary.storm_count += 1;
+        summary.interaction_rows += episode.interaction_rows;
+        let group = counts
+            .storm_groups
+            .get(&episode.storm_id)
+            .ok_or_else(|| format!("missing storm group {:?}", episode.storm_id))?;
+        summary.port_ids.extend(group.port_ids.iter().cloned());
+    }
+    let split_summaries: Vec<SplitSummary> = split_names
+        .iter()
+        .map(|name| {
+            let summary = split_accumulators
+                .get(name)
+                .expect("all declared split accumulators were inserted");
+            SplitSummary {
+                split: if *name == "train" {
+                    "train"
+                } else if *name == "calibration" {
+                    "calibration"
+                } else {
+                    "test"
+                },
+                storm_count: summary.storm_count,
+                interaction_rows: summary.interaction_rows,
+                unique_port_ids: summary.port_ids.len(),
+            }
+        })
+        .collect();
+
     let observed_blob_sha1 = git_blob_sha1(bytes);
     let pinned_source_identity_verified =
         bytes.len() == PINNED_BYTES && observed_blob_sha1 == PINNED_GIT_BLOB_SHA1;
@@ -416,6 +550,25 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         }
         if counts.duplicate_id_rows != 0 || counts.duplicate_pair_rows != 0 {
             return Err("pinned CyPort profile contains duplicate interaction IDs or storm-port pairs".to_owned());
+        }
+        let expected_splits = [
+            ("train", 59usize, 1_471usize, 122usize),
+            ("calibration", 13usize, 308usize, 92usize),
+            ("test", 18usize, 148usize, 61usize),
+        ];
+        for (name, storms, interaction_rows, ports) in expected_splits {
+            let actual = split_summaries
+                .iter()
+                .find(|summary| summary.split == name)
+                .ok_or_else(|| format!("missing expected split {name}"))?;
+            if (actual.storm_count, actual.interaction_rows, actual.unique_port_ids)
+                != (storms, interaction_rows, ports)
+            {
+                return Err(format!(
+                    "pinned CyPort {name} split drift: expected ({storms} storms, {interaction_rows} rows, {ports} ports), observed ({} storms, {} rows, {} ports)",
+                    actual.storm_count, actual.interaction_rows, actual.unique_port_ids
+                ));
+            }
         }
         if counts.event_starts.first().map(String::as_str) != Some("2015-05-06")
             || counts.event_starts.last().map(String::as_str) != Some("2023-10-22")
@@ -458,6 +611,9 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         latest_event_start: counts.event_starts[counts.event_starts.len() - 1].clone(),
         earliest_event_end: counts.event_ends[0].clone(),
         latest_event_end: counts.event_ends[counts.event_ends.len() - 1].clone(),
+        episode_split_policy_id: EPISODE_SPLIT_POLICY_ID,
+        split_summaries,
+        episode_groups,
         data_capture_persisted: false,
         model_validation_performed: false,
         physical_simulation_performed: false,
@@ -504,6 +660,23 @@ mod tests {
         assert!(!report.data_capture_persisted);
         assert!(!report.model_validation_performed);
         assert!(!report.physical_simulation_performed);
+    }
+
+    #[test]
+    fn all_rows_for_each_synthetic_storm_remain_in_one_temporal_split() {
+        let report = profile_bytes(SYNTHETIC_FIXTURE).expect("fixture should profile");
+        assert_eq!(report.episode_split_policy_id, EPISODE_SPLIT_POLICY_ID);
+        assert_eq!(report.episode_groups.len(), 2);
+        assert_eq!(report.episode_groups[0].storm_id, "SYNTHETIC_STORM_A");
+        assert_eq!(report.episode_groups[0].interaction_rows, 2);
+        assert_eq!(report.episode_groups[0].split, "test");
+        assert_eq!(report.episode_groups[1].storm_id, "SYNTHETIC_STORM_B");
+        assert_eq!(report.episode_groups[1].interaction_rows, 2);
+        assert_eq!(report.episode_groups[1].split, "test");
+        let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
+        assert_eq!(test.storm_count, 2);
+        assert_eq!(test.interaction_rows, 4);
+        assert_eq!(test.unique_port_ids, 3);
     }
 
     #[test]
