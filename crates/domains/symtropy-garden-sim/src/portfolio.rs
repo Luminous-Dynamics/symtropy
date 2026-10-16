@@ -824,6 +824,158 @@ mod tests {
         }));
     }
 
+    fn generated_request(seed: u64, case_index: usize) -> PortfolioComparisonRequestV1 {
+        let mut state = seed;
+        let objectives = vec![
+            objective("cost_minor_units", PortfolioObjectiveDirectionV1::Minimize, "minor_unit"),
+            objective("water_ml", PortfolioObjectiveDirectionV1::Minimize, "ml"),
+            objective("edible_grams", PortfolioObjectiveDirectionV1::Maximize, "g"),
+            objective("diversity_groups", PortfolioObjectiveDirectionV1::Maximize, "group"),
+        ];
+        let mut candidates = Vec::new();
+        for index in 0..12 {
+            let id = format!("CASE-{case_index:03}-CAND-{index:02}");
+            let feasibility = if index == 0 {
+                PortfolioCandidateFeasibilityV1::Unassessed
+            } else if index % 7 == 0 {
+                PortfolioCandidateFeasibilityV1::Infeasible
+            } else {
+                PortfolioCandidateFeasibilityV1::Feasible
+            };
+            let blocker_refs = match feasibility {
+                PortfolioCandidateFeasibilityV1::Feasible => Vec::new(),
+                PortfolioCandidateFeasibilityV1::Infeasible => {
+                    vec![format!("constraint:{id}")]
+                }
+                PortfolioCandidateFeasibilityV1::Unassessed => {
+                    vec![format!("missing-evidence:{id}")]
+                }
+            };
+            let values = if feasibility == PortfolioCandidateFeasibilityV1::Feasible {
+                vec![
+                    value("cost_minor_units", "minor_unit", i128::from(next_random(&mut state) % 10_001)),
+                    value("water_ml", "ml", i128::from(next_random(&mut state) % 10_001)),
+                    value("edible_grams", "g", i128::from(next_random(&mut state) % 10_001)),
+                    value("diversity_groups", "group", i128::from(next_random(&mut state) % 101)),
+                ]
+            } else {
+                Vec::new()
+            };
+            candidates.push(candidate(&id, feasibility, blocker_refs.iter().map(String::as_str).collect(), values));
+        }
+        PortfolioComparisonRequestV1 {
+            schema_version: GARDEN_PORTFOLIO_SCHEMA_VERSION,
+            comparison_id: format!("generated-comparison-{case_index:03}"),
+            scope_ref: "scope:community-1".to_owned(),
+            period_ref: "period:2026-11".to_owned(),
+            objectives,
+            candidates,
+        }
+    }
+
+    fn next_random(state: &mut u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        *state
+    }
+
+    /// Deliberately separate oracle: enumerates every feasible pair and reads axes
+    /// by ID instead of using the production prepared-vector/dominance helper.
+    fn reference_frontier(
+        request: &PortfolioComparisonRequestV1,
+    ) -> (Vec<String>, Vec<String>, Vec<PortfolioDominanceWitnessV1>) {
+        let mut feasible: Vec<_> = request
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.feasibility == PortfolioCandidateFeasibilityV1::Feasible)
+            .collect();
+        feasible.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
+        let mut frontier = Vec::new();
+        let mut dominated = Vec::new();
+        let mut witnesses = Vec::new();
+        for target in &feasible {
+            let mut dominators = Vec::new();
+            for challenger in &feasible {
+                if challenger.candidate_id == target.candidate_id {
+                    continue;
+                }
+                let mut no_worse_on_every_axis = true;
+                let mut strictly_better_on_an_axis = false;
+                for axis in &request.objectives {
+                    let challenger_value = challenger
+                        .objective_values
+                        .iter()
+                        .find(|value| value.objective_id == axis.objective_id)
+                        .expect("generated feasible candidate supplies every axis")
+                        .value_scaled;
+                    let target_value = target
+                        .objective_values
+                        .iter()
+                        .find(|value| value.objective_id == axis.objective_id)
+                        .expect("generated feasible candidate supplies every axis")
+                        .value_scaled;
+                    let wins_axis = match axis.direction {
+                        PortfolioObjectiveDirectionV1::Minimize => challenger_value <= target_value,
+                        PortfolioObjectiveDirectionV1::Maximize => challenger_value >= target_value,
+                    };
+                    if !wins_axis {
+                        no_worse_on_every_axis = false;
+                        break;
+                    }
+                    if challenger_value != target_value {
+                        strictly_better_on_an_axis = true;
+                    }
+                }
+                if no_worse_on_every_axis && strictly_better_on_an_axis {
+                    dominators.push(challenger.candidate_id.clone());
+                }
+            }
+            if dominators.is_empty() {
+                frontier.push(target.candidate_id.clone());
+            } else {
+                dominators.sort();
+                dominated.push(target.candidate_id.clone());
+                witnesses.push(PortfolioDominanceWitnessV1 {
+                    candidate_id: target.candidate_id.clone(),
+                    dominated_by_candidate_id: dominators[0].clone(),
+                });
+            }
+        }
+        (frontier, dominated, witnesses)
+    }
+
+    #[test]
+    fn one_hundred_seeded_scenarios_match_independent_exhaustive_oracle() {
+        for case_index in 0..100 {
+            let request = generated_request(
+                0x5eed_u64.wrapping_add(case_index as u64 * 7919),
+                case_index,
+            );
+            let expected = reference_frontier(&request);
+            let actual = compare_portfolios_v1(&request);
+            assert_eq!(actual.status, PortfolioComparisonStatusV1::Compared, "case {case_index}");
+            assert_eq!(actual.frontier_candidate_ids, expected.0, "frontier case {case_index}");
+            assert_eq!(actual.dominated_candidate_ids, expected.1, "dominated case {case_index}");
+            assert_eq!(actual.dominance_witnesses, expected.2, "witness case {case_index}");
+
+            let mut expected_exclusions: Vec<_> = request
+                .candidates
+                .iter()
+                .filter(|candidate| candidate.feasibility != PortfolioCandidateFeasibilityV1::Feasible)
+                .map(|candidate| candidate.candidate_id.clone())
+                .collect();
+            expected_exclusions.sort();
+            let actual_exclusions: Vec<_> = actual
+                .excluded_candidates
+                .iter()
+                .map(|candidate| candidate.candidate_id.clone())
+                .collect();
+            assert_eq!(actual_exclusions, expected_exclusions, "exclusions case {case_index}");
+        }
+    }
+
     #[test]
     fn strict_dominance_is_irreflexive_and_asymmetric() {
         let definitions = vec![
