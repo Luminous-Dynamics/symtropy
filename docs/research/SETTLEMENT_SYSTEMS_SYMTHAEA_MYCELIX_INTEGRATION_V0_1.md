@@ -263,3 +263,8 @@ The kernel now also blocks allocation across a shared resource pool when any dem
 This is intentionally conservative v1 semantics. It trades availability of a speculative allocation for explicit ambiguity until the contested pool's evidence is resolved. Other resource pools can continue independently.
 
 A new regression tests this behavior. The kernel now has 15 authored Rust tests; exact-head hosted CI remains unverified.
+
+
+### Strict deserialization guard
+
+The scenario, component, dependency, resource, service-floor and report structs now use Serde's `deny_unknown_fields` contract, and `ComponentState` rejects unrecognized extra fields. Regression coverage exercises unexpected fields at the scenario, nested component and tagged operational-state levels. This prevents newly supplied values from being silently discarded during parsing. The policy is intentionally fail-closed; any future schema expansion needs an explicit version/review rather than relying on ignored extras.
