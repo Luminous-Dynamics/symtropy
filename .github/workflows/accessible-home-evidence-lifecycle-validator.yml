@@ -55,4 +55,14 @@ jobs:
           grep -q '"claims": 1000' /tmp/accessible-home-lifecycle-benchmark.json
           grep -q '"events": 100' /tmp/accessible-home-lifecycle-benchmark.json
           grep -q '"paths": 100' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"validated_claim_count": 1000' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -Eq '"input_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -Eq '"receipt_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-lifecycle-benchmark.json
           grep -q '"timed_iterations": 3' /tmp/accessible-home-lifecycle-benchmark.json
+      - name: Preserve synthetic benchmark smoke report
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessible-home-lifecycle-benchmark-smoke
+          path: /tmp/accessible-home-lifecycle-benchmark.json
+          if-no-files-found: error
+          retention-days: 7
