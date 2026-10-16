@@ -28,6 +28,8 @@ mod robust_capacity;
 pub use robust_capacity::*;
 mod robust_portfolio;
 pub use robust_portfolio::*;
+mod adaptive_policy;
+pub use adaptive_policy::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
