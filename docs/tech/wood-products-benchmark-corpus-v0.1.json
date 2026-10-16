@@ -1,0 +1,325 @@
+{
+  "suite_id": "wood-products-lifecycle-reference",
+  "suite_version": "0.1.0",
+  "manifest_kind": "synthetic-contract-fixtures",
+  "created_date": "2026-10-16",
+  "units": {
+    "dry_mass": "gram",
+    "moisture": "basis_point",
+    "energy": "synthetic_energy_unit",
+    "cost": "synthetic_cost_unit",
+    "synthetic_impact": "synthetic_impact_unit",
+    "qualified_output": "unit"
+  },
+  "claim_ceiling": "These fixtures test deterministic reference contracts only. They do not calibrate a real forest, sawmill, kiln, lumber grade, cost, carbon factor, harvest plan, certification or regulatory decision.",
+  "scenarios": [
+    {
+      "id": "SAWING_DRY_MASS_CLOSURE",
+      "evidence_class": "synthetic",
+      "input_dry_mass_g": 1000000,
+      "material_streams": [
+        {
+          "stream_id": "qualified_lumber",
+          "dry_mass_g": 620000
+        },
+        {
+          "stream_id": "chips",
+          "dry_mass_g": 220000
+        },
+        {
+          "stream_id": "sawdust",
+          "dry_mass_g": 80000
+        },
+        {
+          "stream_id": "bark",
+          "dry_mass_g": 30000
+        },
+        {
+          "stream_id": "declared_process_loss",
+          "dry_mass_g": 50000
+        }
+      ],
+      "expected_assertions": [
+        "All declared dry-mass streams sum to exactly 1000000 grams.",
+        "The verifier counts by-products and declared loss; it does not treat all non-lumber mass as mysteriously disappearing."
+      ],
+      "negative_controls": [
+        "Increasing any output stream without increasing input must reject the corpus.",
+        "Removing a residual stream must not be treated as harmless rounding."
+      ]
+    },
+    {
+      "id": "STRUCTURAL_GRADE_GATE",
+      "evidence_class": "synthetic",
+      "application": "structural",
+      "options": [
+        {
+          "option_id": "unverified_high_margin",
+          "synthetic_margin_units": 1200,
+          "grade_evidence_status": "missing",
+          "inspection_pass": false
+        },
+        {
+          "option_id": "qualified_structural",
+          "synthetic_margin_units": 800,
+          "grade_evidence_status": "qualified",
+          "inspection_pass": true
+        },
+        {
+          "option_id": "inspection_failed",
+          "synthetic_margin_units": 900,
+          "grade_evidence_status": "qualified",
+          "inspection_pass": false
+        }
+      ],
+      "expected_selected_option_id": "qualified_structural",
+      "expected_assertions": [
+        "Only qualified grade evidence plus a passing inspection makes an option eligible for this synthetic structural-use decision.",
+        "The lower-margin qualified option is selected because the higher-margin choices fail hard gates."
+      ],
+      "negative_controls": [
+        "A high synthetic margin cannot replace grade or inspection evidence.",
+        "A qualified grade record does not override a failed inspection."
+      ]
+    },
+    {
+      "id": "DRYING_QUALITY_FLOOR",
+      "evidence_class": "synthetic",
+      "minimum_moisture_basis_points": 600,
+      "maximum_moisture_basis_points": 1600,
+      "schedules": [
+        {
+          "schedule_id": "fast_wet",
+          "energy_units": 50,
+          "final_moisture_basis_points": 1900,
+          "moisture_evidence_status": "measured",
+          "defect_detected": false
+        },
+        {
+          "schedule_id": "balanced_qualified",
+          "energy_units": 75,
+          "final_moisture_basis_points": 1200,
+          "moisture_evidence_status": "measured",
+          "defect_detected": false
+        },
+        {
+          "schedule_id": "over_dried",
+          "energy_units": 45,
+          "final_moisture_basis_points": 400,
+          "moisture_evidence_status": "measured",
+          "defect_detected": true
+        },
+        {
+          "schedule_id": "measurement_missing",
+          "energy_units": 60,
+          "final_moisture_basis_points": null,
+          "moisture_evidence_status": "unknown",
+          "defect_detected": false
+        }
+      ],
+      "expected_selected_schedule_id": "balanced_qualified",
+      "expected_assertions": [
+        "The minimum-energy feasible schedule is selected only after moisture, evidence and defect gates.",
+        "The lower-energy schedules do not qualify because they fail moisture or defect requirements."
+      ],
+      "negative_controls": [
+        "Unknown moisture does not default to zero or to a typical kiln result.",
+        "An over-dried or defective sample cannot be rescued by low energy use."
+      ]
+    },
+    {
+      "id": "HARVEST_REGENERATION_GUARD",
+      "evidence_class": "synthetic",
+      "maximum_removal_units": 70,
+      "options": [
+        {
+          "option_id": "aggressive_90",
+          "planned_removal_units": 90,
+          "excluded_area_overlap_units": 0,
+          "regeneration_evidence_status": "qualified",
+          "ecological_gate_pass": true,
+          "synthetic_net_value_units": 200
+        },
+        {
+          "option_id": "conservative_65",
+          "planned_removal_units": 65,
+          "excluded_area_overlap_units": 0,
+          "regeneration_evidence_status": "qualified",
+          "ecological_gate_pass": true,
+          "synthetic_net_value_units": 120
+        },
+        {
+          "option_id": "boundary_violation",
+          "planned_removal_units": 45,
+          "excluded_area_overlap_units": 5,
+          "regeneration_evidence_status": "qualified",
+          "ecological_gate_pass": false,
+          "synthetic_net_value_units": 90
+        },
+        {
+          "option_id": "estimated_inventory",
+          "planned_removal_units": 50,
+          "excluded_area_overlap_units": 0,
+          "regeneration_evidence_status": "estimated",
+          "ecological_gate_pass": true,
+          "synthetic_net_value_units": 150
+        }
+      ],
+      "expected_feasible_option_ids": [
+        "conservative_65"
+      ],
+      "expected_assertions": [
+        "The only feasible synthetic option respects the removal cap, excluded-area rule and qualified evidence gates."
+      ],
+      "negative_controls": [
+        "A plan with larger synthetic value cannot override a removal cap or ecological exclusion.",
+        "Estimated regeneration evidence is not silently upgraded to qualified."
+      ]
+    },
+    {
+      "id": "CUSTODY_REPLAY_AND_CORRECTION",
+      "evidence_class": "synthetic",
+      "batch_id": "batch-wood-001",
+      "batch_quantity_units": 100,
+      "events": [
+        {
+          "event_id": "origin-001",
+          "kind": "create_batch",
+          "from_party": "none",
+          "to_party": "forest_coop",
+          "quantity_units": 100,
+          "correction_of": "none",
+          "expected_result": "committed"
+        },
+        {
+          "event_id": "origin-001",
+          "kind": "create_batch",
+          "from_party": "none",
+          "to_party": "forest_coop",
+          "quantity_units": 100,
+          "correction_of": "none",
+          "expected_result": "idempotent_noop"
+        },
+        {
+          "event_id": "transfer-001",
+          "kind": "transfer",
+          "from_party": "forest_coop",
+          "to_party": "mill_a",
+          "quantity_units": 100,
+          "correction_of": "none",
+          "expected_result": "committed"
+        },
+        {
+          "event_id": "sale-001",
+          "kind": "transfer",
+          "from_party": "mill_a",
+          "to_party": "buyer_a",
+          "quantity_units": 100,
+          "correction_of": "none",
+          "expected_result": "committed"
+        },
+        {
+          "event_id": "sale-002",
+          "kind": "transfer",
+          "from_party": "mill_a",
+          "to_party": "buyer_b",
+          "quantity_units": 100,
+          "correction_of": "none",
+          "expected_result": "rejected_stale_owner"
+        },
+        {
+          "event_id": "correction-001",
+          "kind": "correction",
+          "from_party": "none",
+          "to_party": "none",
+          "quantity_units": 0,
+          "correction_of": "origin-001",
+          "expected_result": "appended_correction"
+        }
+      ],
+      "expected_final_owner": "buyer_a",
+      "expected_rejected_transfers": 1,
+      "expected_idempotent_replays": 1,
+      "expected_appended_corrections": 1,
+      "expected_assertions": [
+        "The identical origin replay is a no-op.",
+        "Only the first transfer from mill_a can commit; a second transfer from the stale owner is rejected.",
+        "The correction is appended and linked; it does not erase the original event or change current owner."
+      ],
+      "negative_controls": [
+        "An event ID with a different payload must be rejected.",
+        "Two buyers cannot both obtain custody of the same 100-unit batch through competing stale-owner events."
+      ]
+    },
+    {
+      "id": "LIFECYCLE_RECOVERY_PARETO",
+      "evidence_class": "synthetic",
+      "minimum_qualified_output_units": 100,
+      "options": [
+        {
+          "option_id": "virgin_certified",
+          "synthetic_cost_units": 100,
+          "synthetic_energy_units": 80,
+          "synthetic_impact_units": 90,
+          "qualified_output_units": 120,
+          "provenance_complete": true,
+          "grade_evidence_status": "qualified"
+        },
+        {
+          "option_id": "reclaimed_certified",
+          "synthetic_cost_units": 110,
+          "synthetic_energy_units": 50,
+          "synthetic_impact_units": 45,
+          "qualified_output_units": 100,
+          "provenance_complete": true,
+          "grade_evidence_status": "qualified"
+        },
+        {
+          "option_id": "inefficient_virgin",
+          "synthetic_cost_units": 130,
+          "synthetic_energy_units": 90,
+          "synthetic_impact_units": 110,
+          "qualified_output_units": 120,
+          "provenance_complete": true,
+          "grade_evidence_status": "qualified"
+        },
+        {
+          "option_id": "unverified_reuse",
+          "synthetic_cost_units": 60,
+          "synthetic_energy_units": 30,
+          "synthetic_impact_units": 25,
+          "qualified_output_units": 100,
+          "provenance_complete": false,
+          "grade_evidence_status": "missing"
+        },
+        {
+          "option_id": "downcycled_fiber",
+          "synthetic_cost_units": 40,
+          "synthetic_energy_units": 25,
+          "synthetic_impact_units": 20,
+          "qualified_output_units": 60,
+          "provenance_complete": true,
+          "grade_evidence_status": "qualified"
+        }
+      ],
+      "expected_feasible_option_ids": [
+        "inefficient_virgin",
+        "reclaimed_certified",
+        "virgin_certified"
+      ],
+      "expected_pareto_option_ids": [
+        "reclaimed_certified",
+        "virgin_certified"
+      ],
+      "expected_assertions": [
+        "The verifier applies qualified-output, provenance and grade-evidence gates before Pareto comparison.",
+        "Virgin and reclaimed options are both retained because their synthetic cost, energy, impact and output trade-offs are non-dominated.",
+        "The inefficient virgin route is feasible but dominated by the more efficient virgin route."
+      ],
+      "negative_controls": [
+        "Unverified reused material must not enter the feasible set because its synthetic impact and energy numbers look attractive.",
+        "Do not turn synthetic impact units into a real carbon-footprint claim."
+      ]
+    }
+  ]
+}
