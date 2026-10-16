@@ -31,6 +31,9 @@ pub struct ProcessingDelay {
 }
 
 /// Additional delay before the job's inputs or specialist preparation are ready.
+/// Increase declared per-job energy and/or water in one scenario. A zero
+/// increment is permitted for one resource, but not for both. A resource
+/// increase does not implicitly change job duration.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProcessResourceShock {
     pub job_id: String,
