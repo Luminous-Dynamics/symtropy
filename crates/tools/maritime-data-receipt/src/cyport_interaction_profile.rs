@@ -300,7 +300,27 @@ fn record_field<'a>(
 }
 
 fn parse_mdy_date(value: &str, path: &str) -> Result<String, String> {
-    let date_part = value.split_ascii_whitespace().next().unwrap_or_default();
+    let mut tokens = value.split_ascii_whitespace();
+    let date_part = tokens.next().unwrap_or_default();
+    if let Some(time_part) = tokens.next() {
+        let mut time_components = time_part.split(':');
+        let hour = time_components
+            .next()
+            .ok_or_else(|| format!("{path}: invalid hour in time {time_part:?}"))?
+            .parse::<u32>()
+            .map_err(|_| format!("{path}: invalid hour in time {time_part:?}"))?;
+        let minute = time_components
+            .next()
+            .ok_or_else(|| format!("{path}: invalid minute in time {time_part:?}"))?
+            .parse::<u32>()
+            .map_err(|_| format!("{path}: invalid minute in time {time_part:?}"))?;
+        if time_components.next().is_some() || hour > 23 || minute > 59 {
+            return Err(format!("{path}: invalid HH:MM time {time_part:?}"));
+        }
+        if tokens.next().is_some() {
+            return Err(format!("{path}: unexpected trailing date/time components in {value:?}"));
+        }
+    }
     let mut pieces = date_part.split('/');
     let month = pieces
         .next()
@@ -420,7 +440,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         let impact = impact_raw
             .parse::<u64>()
             .map_err(|_| format!("CSV row {} has invalid non-negative integer total_impact {impact_raw:?}", row_index + 2))?;
-        if impact == 0.0 {
+        if impact == 0 {
             counts.zero_total_impact_rows += 1;
         } else {
             counts.nonzero_total_impact_rows += 1;
