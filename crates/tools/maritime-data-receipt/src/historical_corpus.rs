@@ -346,8 +346,17 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             {
                 return Err(format!("{path}: pinned interaction CSV Git blob ID and byte length do not match the audited source tree"));
             }
-            if !field_text(source, "resource_identifier", &path)?.contains("Tropical_cyclone_interaction/interaction_data.csv") {
-                return Err(format!("{path}.resource_identifier: must identify the pinned interaction CSV path"));
+            let resource_identifier = field_text(source, "resource_identifier", &path)?;
+            for identity_component in [
+                "Tropical_cyclone_interaction/interaction_data.csv",
+                "git_blob_sha1=21beb5b7673918143a0ab108b03acc3cccaeb330",
+                "bytes=643047",
+            ] {
+                if !resource_identifier.contains(identity_component) {
+                    return Err(format!(
+                        "{path}.resource_identifier: missing pinned source identity component {identity_component:?}"
+                    ));
+                }
             }
             if license_status != "readme_declares_cc_by_4_0" {
                 return Err(format!("{path}.license_status: declared CC BY 4.0 status must remain explicit"));
@@ -822,6 +831,16 @@ mod tests {
             Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("Git blob ID and byte length do not match"));
+    }
+
+    #[test]
+    fn cyport_resource_identifier_must_bind_blob_and_size() {
+        let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
+        root["sources"][1]["resource_identifier"] = Value::String(
+            "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3:Tropical_cyclone_interaction/interaction_data.csv".to_owned()
+        );
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(evaluate_bytes(&changed).unwrap_err().contains("missing pinned source identity component"));
     }
 
     #[test]
