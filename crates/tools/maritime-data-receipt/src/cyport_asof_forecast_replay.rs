@@ -411,7 +411,7 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
     }
 
     let digest = Sha256::digest(bytes);
-    let contract_sha256 = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    let contract_sha256: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     Ok(ReplayContractReport {
         status: "ASOF_REPLAY_POLICY_VALIDATED_NOT_REPLAYED",
         contract_sha256,
