@@ -252,6 +252,114 @@ fn binned_sah_and_median_preserve_exact_query_candidate_sets() {
 }
 
 #[test]
+fn both_builders_match_exact_oracle_on_seeded_nonuniform_degenerate_corpus() {
+    let mut geometry_state = 0x534D_5452_4F50_5955u64;
+    let triangle_count = 512usize;
+    let mut triangles = Vec::with_capacity(triangle_count);
+
+    for index in 0..triangle_count {
+        let a = SVector::<f64, 3>::from([
+            deterministic_coord(&mut geometry_state),
+            deterministic_coord(&mut geometry_state),
+            deterministic_coord(&mut geometry_state),
+        ]);
+        let b = SVector::<f64, 3>::from([
+            deterministic_coord(&mut geometry_state),
+            deterministic_coord(&mut geometry_state),
+            deterministic_coord(&mut geometry_state),
+        ]);
+        let mut c = SVector::<f64, 3>::from([
+            deterministic_coord(&mut geometry_state),
+            deterministic_coord(&mut geometry_state),
+            deterministic_coord(&mut geometry_state),
+        ]);
+
+        // Keep explicit negative controls in both construction strategies.
+        if index % 11 == 0 {
+            c = a;
+        } else if index % 13 == 0 {
+            c[0] = a[0] + 100.0;
+        }
+        triangles.push(Triangle { vertices: [a, b, c] });
+    }
+
+    let median = TriangleMesh::with_bvh_strategy(
+        triangles.clone(),
+        MeshBvhBuildStrategy::Median,
+    );
+    let sah = TriangleMesh::with_bvh_strategy(
+        triangles,
+        MeshBvhBuildStrategy::BinnedSah { bin_count: 16 },
+    );
+
+    // Probe the populated geometry, empty space, small boxes, broad boxes, and
+    // anisotropic boxes. All query data is deterministic and independent of
+    // either BVH's output.
+    let half_extents = [
+        [0.0, 0.0, 0.0],
+        [0.001, 0.001, 0.001],
+        [0.1, 0.1, 0.1],
+        [1.0, 0.1, 3.0],
+        [3.0, 3.0, 3.0],
+        [25.0, 25.0, 25.0],
+    ];
+    let mut query_state = 0x4256_484F_5241_434Cull64;
+    for query_index in 0..384usize {
+        let center = if query_index % 3 != 2 {
+            let triangle_index = query_index.wrapping_mul(73) % median.triangles.len();
+            let triangle = &median.triangles[triangle_index];
+            (triangle.vertices[0] + triangle.vertices[1] + triangle.vertices[2]) / 3.0
+        } else {
+            SVector::<f64, 3>::from([
+                deterministic_coord(&mut query_state),
+                deterministic_coord(&mut query_state),
+                deterministic_coord(&mut query_state),
+            ])
+        };
+        let extent = half_extents[query_index % half_extents.len()];
+        let query = Aabb {
+            min: SVector::<f64, 3>::from([
+                center[0] - extent[0],
+                center[1] - extent[1],
+                center[2] - extent[2],
+            ]),
+            max: SVector::<f64, 3>::from([
+                center[0] + extent[0],
+                center[1] + extent[1],
+                center[2] + extent[2],
+            ]),
+        };
+
+        let expected: Vec<usize> = median
+            .triangles
+            .iter()
+            .enumerate()
+            .filter_map(|(index, triangle)| {
+                overlaps(&exact_vertex_aabb(triangle), &query).then_some(index)
+            })
+            .collect();
+
+        let mut median_candidates = median.query_overlap(&query);
+        let mut sah_candidates = sah.query_overlap(&query);
+        median_candidates.sort_unstable();
+        sah_candidates.sort_unstable();
+
+        assert_eq!(
+            median_candidates, expected,
+            "median differs from independent oracle for seeded query {query_index}"
+        );
+        assert_eq!(
+            sah_candidates, expected,
+            "SAH differs from independent oracle for seeded query {query_index}"
+        );
+        assert_eq!(
+            median_candidates, sah_candidates,
+            "construction strategies disagree for seeded query {query_index}"
+        );
+    }
+}
+
+#[test]
 fn instrumented_overlap_query_matches_hot_path_and_counts_traversal_work() {
     let mesh = TriangleMesh::with_bvh_strategy(
         grid_mesh(29, 23).triangles,
