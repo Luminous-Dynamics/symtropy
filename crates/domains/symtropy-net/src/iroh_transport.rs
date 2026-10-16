@@ -1,103 +1,55 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Iroh transport — direct P2P via QUIC (Magicsock NAT traversal).
+//! Planned Iroh direct-P2P backend — currently an in-memory scaffold.
 //!
-//! Uses Iroh's QUIC-based networking for <50ms latency peer connections.
-//! NAT traversal is handled automatically by Magicsock — no STUN/TURN
-//! configuration needed in most cases.
+//! **This module does not open an Iroh/QUIC endpoint.** Its current methods only
+//! manipulate local queues. The Magicsock, NAT traversal, peer discovery,
+//! streaming, and datagram descriptions below are future integration notes, not
+//! capabilities of this implementation.
 //!
-//! This is the **preferred transport for native (desktop/server) builds**.
-//! For WASM/browser builds, use `RelayTransport` (WebSocket fallback).
-//!
-//! # Architecture
+//! # Intended future architecture (not implemented here)
 //!
 //! ```text
 //! IrohTransport
-//!   └→ IrohBridgeHandle (from symthaea::swarm::iroh)
-//!        └→ IrohBridgeActor (async tokio task)
-//!             └→ Iroh Endpoint (QUIC + Magicsock)
-//!                  ├→ Reliable streams (authority messages)
-//!                  └→ Unreliable datagrams (physics state)
+//!   └→ IrohBridgeHandle (possible reuse from symthaea::swarm::iroh)
+//!        └→ IrohBridgeActor (future async adapter)
+//!             └→ Iroh Endpoint (future QUIC + Magicsock endpoint)
+//!                  ├→ Reliable streams (planned authority messages)
+//!                  └→ Unreliable datagrams (planned physics state)
 //! ```
 //!
-//! # Integration with Symthaea
+//! # Possible integration with Symthaea
 //!
-//! Symthaea's Iroh module (`symthaea/src/swarm/iroh/`) provides:
-//! - `IrohBridgeHandle` — sync-safe handle for the game tick loop
-//! - `IrohBridgeActor` — async actor managing connections
-//! - `TensorStream` — bidirectional streaming (we reuse for physics)
-//! - `HybridHandshake` — trust-gated peer verification
+//! Symthaea's separate `symthaea/src/swarm/iroh/` tree contains candidate
+//! components such as `IrohBridgeHandle`, `IrohBridgeActor`, `TensorStream`,
+//! and `HybridHandshake`. This crate does not depend on that module today.
 //!
-//! Symtropy wraps this in the `Transport` trait so the game code
-//! doesn't know or care whether it's using Iroh, WebRTC, or loopback.
+//! # Current source status (2026-10-11): scaffold, not a network transport
 //!
-//! # Honest status (verified 2026-07-04): this is a stub, not a transport
+//! There is no `iroh` dependency in this crate's `Cargo.toml`, no QUIC endpoint,
+//! no Magicsock, no NAT traversal, no peer discovery, and no bytes cross a process
+//! boundary. `send()`/`broadcast()` only append to an in-memory `Vec`; `poll()`
+//! drains another in-memory `Vec`; `connect()` only changes a Boolean. The unit
+//! tests exercise this queue plumbing through injected events and payloads, not P2P
+//! connectivity, latency, NAT traversal, or trust-gated handshakes.
 //!
-//! **Nothing in this file talks to the network.** There is no `iroh`
-//! dependency in this crate's `Cargo.toml`, no QUIC endpoint, no
-//! Magicsock, no NAT traversal, no discovery, and no bytes ever cross a
-//! process boundary. `IrohTransport` is an in-process queue:
-//! `send()`/`broadcast()` push into an `outbox: Vec<...>` and `poll()`
-//! drains an `inbox: Vec<PeerMessage>` — both are ordinary in-memory
-//! `Vec`s that nothing outside this struct ever reads from or writes to
-//! (the `inject_*`/`drain_outbox` methods exist for a future bridge actor
-//! to call, but no such actor exists yet). `connect()` just flips a bool;
-//! it never joins any swarm. The 4 unit tests below pass because they
-//! call `inject_peer_connected`/`inject_message` directly — they exercise
-//! the queue plumbing, not any P2P connectivity.
+//! A substantial Iroh integration exists in the separate `symthaea` crate, but
+//! it is not exposed as a small reusable API that this crate can depend on without
+//! pulling in unrelated engine dependencies. A proper integration remains a
+//! separate task requiring connection lifecycle, protocol negotiation, discovery,
+//! authentication/peer verification, and multi-process testing.
 //!
-//! What *does* exist, and is real: a substantial (~2,143 LOC across
-//! `bridge.rs`/`mod.rs`/`streaming.rs`/`ticket.rs`) Iroh integration in
-//! the separate `symthaea` crate at `symthaea/src/swarm/iroh/`, built on
-//! a real, patched `iroh = "0.97"` dependency
-//! (`symthaea/Cargo.toml:379,1912`, patch at
-//! `symthaea/patches/iroh/iroh/`). It provides `IrohBridgeHandle` /
-//! `IrohBridgeActor` and does real QUIC endpoint setup, connection
-//! lifecycle, and streaming — but it lives inside `symthaea`'s `swarm`
-//! module, gated behind `symthaea`'s own feature flags, and is not
-//! exposed as a small, reusable library API that `symtropy-net` could
-//! cleanly depend on today.
-//!
-//! Wiring this transport for real is **not** a small bolt-on:
-//! - Depending on the full `symthaea` crate just to reach `swarm::iroh`
-//!   would be architecturally wrong (a physics/game-networking crate
-//!   pulling in an entire consciousness engine).
-//! - The alternative — depending directly on `iroh` and writing a fresh
-//!   endpoint/connect/accept/discovery loop against Iroh's real API,
-//!   independent of `symthaea::swarm::iroh` — is genuine, non-trivial
-//!   async networking work requiring real understanding of Iroh's
-//!   `Endpoint`, ALPN protocol negotiation, `NodeAddr`/discovery, and
-//!   connection lifecycle, plus real multi-process testing.
-//! - Either path is scoped as its own follow-up task, not something to
-//!   rush alongside unrelated fixes. A half-wired transport that *looks*
-//!   connected while silently dropping every packet would be strictly
-//!   worse than this honestly-labeled stub.
-//!
-//! Until that follow-up lands, `LoopbackTransport` (single-process,
-//! in-memory) is the only transport in this crate proven to move bytes
-//! between peers, and (with the `webrtc` feature, fixed 2026-07-04)
-//! `RelayTransport` compiles and can reach a real WebSocket signaling
-//! server, though it hasn't been validated end-to-end against one.
+//! Until that work lands, `LoopbackTransport` is the only transport here proven
+//! to move bytes between peers within one process. `RelayTransport` (feature
+//! `ws-relay`; legacy alias `webrtc`) is an experimental custom JSON WebSocket
+//! relay that requires a compatible service and is not live-server-qualified.
 
 use crate::peer::PeerId;
 use crate::transport::{Channel, PeerMessage, Transport, TransportEvent};
 
-/// Iroh-backed transport using QUIC for direct P2P connections.
-///
-/// **This is a stub — see the module-level doc comment above for the
-/// full, honest breakdown of what is and isn't real here.** In short:
-/// every method below only touches in-memory `Vec` queues on `self`;
-/// nothing here talks to Iroh, QUIC, or the network. It will be wired to
-/// a real Iroh transport in a dedicated follow-up.
-///
-/// The integration path (still true, still future work):
-/// 1. Symtropy enables `symthaea/swarm` feature, or `symtropy-net`
-///    depends on `iroh` directly and gets its own endpoint code.
-/// 2. Creates `IrohBridgeHandle` + `IrohBridgeActor` at startup (or the
-///    equivalent fresh endpoint/actor if built directly on `iroh`).
-/// 3. Wraps the handle in `IrohTransport`.
-/// 4. Passes to `NetworkSession<IrohTransport>`.
-/// 5. Game loop calls `session.tick()` — physics flows over QUIC.
+/// Planned Iroh transport API. The current implementation is an in-memory
+/// test scaffold; it does not send over QUIC or cross a process boundary.
+/// See the module-level status notes before treating it as a network transport.
 pub struct IrohTransport {
     local_id: PeerId,
     peers: Vec<PeerId>,
