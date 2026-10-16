@@ -323,11 +323,17 @@ fn evaluate_policy(
                 })?
         }
         ProductionPolicy::ForecastBatch => {
-            round_up_to_batch(scenario.forecast_units, scenario.batch_size_units)
-                .ok_or_else(|| DemandError::ArithmeticOverflow {
+            // A forecast cannot override already-confirmed orders. Batch-round
+            // the larger of the forecast and the committed order book.
+            let signal = scenario
+                .forecast_units
+                .max(scenario.confirmed_order_units);
+            round_up_to_batch(signal, scenario.batch_size_units).ok_or_else(|| {
+                DemandError::ArithmeticOverflow {
                     scenario_id: scenario.id.clone(),
                     field: "forecast-batch rounding",
-                })?
+                }
+            })?
         }
         ProductionPolicy::ReuseInventoryFirst => scenario
             .confirmed_order_units
@@ -739,4 +745,21 @@ mod tests {
             assert_eq!(outcome.unsold_new_per_10_000_fulfilled_units, None);
         }
     }
+
+    #[test]
+    fn forecast_batch_never_plans_below_already_confirmed_orders() {
+        let mut case = scenario("forecast-undercalls-orders");
+        case.forecast_units = 2;
+        case.confirmed_order_units = 9;
+        case.batch_size_units = 4;
+        let report = evaluate_demand_corpus(&corpus(vec![case])).unwrap();
+        let forecast = report.scenario_results[0]
+            .policy_outcomes
+            .iter()
+            .find(|item| item.policy == ProductionPolicy::ForecastBatch)
+            .unwrap();
+        assert_eq!(forecast.planned_new_production_units, 12);
+        assert!(forecast.planned_new_production_units >= 9);
+    }
+
 }
