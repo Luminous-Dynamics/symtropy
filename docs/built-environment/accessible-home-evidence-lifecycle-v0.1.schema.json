@@ -143,6 +143,7 @@
       "additionalProperties": false,
       "required": [
         "claim_id",
+        "assertion_key",
         "scope_ref",
         "bindings",
         "evidence_state",
@@ -203,6 +204,9 @@
         "note": {
           "type": "string",
           "minLength": 1
+        },
+        "assertion_key": {
+          "$ref": "#/$defs/id"
         }
       }
     },

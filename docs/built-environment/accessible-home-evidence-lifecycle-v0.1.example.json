@@ -47,7 +47,8 @@
       "review_due": "2027-03-01T00:00:00Z",
       "supersedes_claim_id": null,
       "expected_currentness": "needs_revalidation",
-      "note": "The claim describes furniture-r1; the synthetic event changes that facet to furniture-r2."
+      "note": "The claim describes furniture-r1; the synthetic event changes that facet to furniture-r2.",
+      "assertion_key": "night-route-clearance"
     },
     {
       "claim_id": "visitor-alert-path",
@@ -69,7 +70,8 @@
       "review_due": "2027-04-01T00:00:00Z",
       "supersedes_claim_id": null,
       "expected_currentness": "current",
-      "note": "The fixture event changes furniture only; these bound revisions remain current."
+      "note": "The fixture event changes furniture only; these bound revisions remain current.",
+      "assertion_key": "visitor-alert-delivery"
     },
     {
       "claim_id": "kitchen-control-review",
@@ -87,7 +89,8 @@
       "review_due": "2026-10-01T00:00:00Z",
       "supersedes_claim_id": null,
       "expected_currentness": "expired",
-      "note": "This synthetic claim is past review_due at evaluation_time; past verification does not imply currentness."
+      "note": "This synthetic claim is past review_due at evaluation_time; past verification does not imply currentness.",
+      "assertion_key": "kitchen-control-operation"
     }
   ],
   "change_events": [
