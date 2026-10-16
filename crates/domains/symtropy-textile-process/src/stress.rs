@@ -19,7 +19,10 @@ use crate::scheduler::{
 };
 
 pub const MAX_STRESS_SCENARIOS: usize = 32;
-pub const STRESS_SCOPE_NOTE: &str = "Stress-corpus counts and percentiles describe the enumerated scenarios; they do not estimate real-world probabilities or prove factory savings.";
+pub const STRESS_SCOPE_NOTE: &str = concat!(
+    "Stress-corpus counts and percentiles describe the enumerated scenarios; ",
+    "they do not estimate real-world probabilities or prove factory savings."
+);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProcessingDelay {
@@ -467,7 +470,13 @@ fn calculate_gap(
     }
 
     Ok(ObjectiveGap {
-        late_jobs: gap(metrics.late_jobs, optima.minimum_late_jobs, scenario_id, rule, "late_jobs")?,
+        late_jobs: gap(
+            metrics.late_jobs,
+            optima.minimum_late_jobs,
+            scenario_id,
+            rule,
+            "late_jobs",
+        )?,
         total_tardiness_ticks: gap(
             metrics.total_tardiness_ticks,
             optima.minimum_total_tardiness_ticks,
@@ -475,9 +484,27 @@ fn calculate_gap(
             rule,
             "total_tardiness_ticks",
         )?,
-        makespan_tick: gap(metrics.makespan_tick, optima.minimum_makespan_tick, scenario_id, rule, "makespan_tick")?,
-        energy_units: gap(metrics.energy_units, optima.minimum_energy_units, scenario_id, rule, "energy_units")?,
-        water_units: gap(metrics.water_units, optima.minimum_water_units, scenario_id, rule, "water_units")?,
+        makespan_tick: gap(
+            metrics.makespan_tick,
+            optima.minimum_makespan_tick,
+            scenario_id,
+            rule,
+            "makespan_tick",
+        )?,
+        energy_units: gap(
+            metrics.energy_units,
+            optima.minimum_energy_units,
+            scenario_id,
+            rule,
+            "energy_units",
+        )?,
+        water_units: gap(
+            metrics.water_units,
+            optima.minimum_water_units,
+            scenario_id,
+            rule,
+            "water_units",
+        )?,
         setup_duration_ticks: gap(
             metrics.setup_duration_ticks,
             optima.minimum_setup_duration_ticks,
