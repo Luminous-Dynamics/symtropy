@@ -612,7 +612,7 @@ fn free_fall_trajectory_obeys_constant_velocity_boost_metamorphism() {
                     let observed_velocity_shift = boosted_body.linear_velocity_mps[axis]
                         - reference_body.linear_velocity_mps[axis];
                     assert!(
-                        (observed_velocity_shift - boost).abs() < 1.0e-5,
+                        (observed_velocity_shift - *boost).abs() < 1.0e-5,
                         "{backend} velocity violated constant-velocity boost relation on axis {axis}, step {}: observed={observed_velocity_shift}, expected={boost}",
                         reference_sample.step
                     );
