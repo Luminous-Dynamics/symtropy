@@ -546,6 +546,52 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         })
     }).collect();
 
+    let mut evidence_gap_triage: Vec<Value> = objectives.iter().map(|objective| {
+        let mut unknown_candidate_ids = BTreeSet::new();
+        let mut unknown_evidence = Vec::new();
+        for scenario in &scenarios {
+            for (candidate_id, candidate) in &scenario.candidates {
+                let observation = &candidate.outcomes[&objective.id];
+                if observation.status == "unknown" {
+                    unknown_candidate_ids.insert(candidate_id.clone());
+                    unknown_evidence.push(json!({
+                        "scenario_id": scenario.id,
+                        "candidate_id": candidate_id,
+                        "evidence_ref": observation.evidence_ref
+                    }));
+                }
+            }
+        }
+        let frontier_change_count = objective_leverage.iter()
+            .find(|entry| entry["objective_id"] == objective.id)
+            .and_then(|entry| entry["frontier_membership_change_count"].as_u64())
+            .unwrap_or(0);
+        json!({
+            "objective_id": objective.id,
+            "unit": objective.unit,
+            "unknown_observation_count": unknown_evidence.len(),
+            "unknown_candidate_ids": unknown_candidate_ids.into_iter().collect::<Vec<_>>(),
+            "unknown_evidence": unknown_evidence,
+            "frontier_membership_change_count_if_known_interval_is_swept": frontier_change_count,
+            "priority_interpretation": "triage heuristic only; does not include probabilities, stakeholder utility weights, measurement cost, or causal information gain"
+        })
+    }).collect();
+    evidence_gap_triage.sort_by(|left, right| {
+        let left_leverage = left["frontier_membership_change_count_if_known_interval_is_swept"].as_u64().unwrap_or(0);
+        let right_leverage = right["frontier_membership_change_count_if_known_interval_is_swept"].as_u64().unwrap_or(0);
+        let leverage_order = right_leverage.cmp(&left_leverage);
+        if leverage_order != std::cmp::Ordering::Equal {
+            return leverage_order;
+        }
+        let left_unknown = left["unknown_observation_count"].as_u64().unwrap_or(0);
+        let right_unknown = right["unknown_observation_count"].as_u64().unwrap_or(0);
+        let unknown_order = right_unknown.cmp(&left_unknown);
+        if unknown_order != std::cmp::Ordering::Equal {
+            return unknown_order;
+        }
+        left["objective_id"].as_str().cmp(&right["objective_id"].as_str())
+    });
+
     let excluded_from_pareto: Vec<Value> = statuses.iter()
         .filter(|(id, status)| status.as_str() != "feasible_under_declared_assumptions" || !robust_outcomes.contains_key(*id))
         .map(|(id, status)| json!({
@@ -581,6 +627,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
             "stable_frontier_ids": stable_frontier_ids,
             "frontier_membership_uncertain_ids": frontier_membership_uncertain_ids,
             "objective_measurement_leverage": objective_leverage,
+            "evidence_gap_triage": evidence_gap_triage,
             "caveat": "Optimistic endpoint values for different objectives may come from different scenarios and may not be jointly attainable. Use this only to triage follow-up measurement; it is not a causal estimate or formal value-of-information calculation."
         },
         "methodology": {
@@ -729,6 +776,14 @@ mod tests {
         assert_eq!(candidate["status"], "not_evaluable");
         assert!(!receipt["pareto_front_ids"].as_array().unwrap().iter().any(|id| id == "unknown"));
         assert_eq!(candidate["outcome_envelopes"][0]["conservative_worst_case"], Value::Null);
+        let triage = receipt["decision_sensitivity"]["evidence_gap_triage"].as_array().unwrap();
+        let quality_gap = triage.iter().find(|entry| entry["objective_id"] == "visitor_quality").unwrap();
+        assert_eq!(quality_gap["unknown_observation_count"], 2);
+        assert_eq!(quality_gap["unknown_candidate_ids"], json!(["unknown"]));
+        assert_eq!(
+            quality_gap["priority_interpretation"],
+            "triage heuristic only; does not include probabilities, stakeholder utility weights, measurement cost, or causal information gain"
+        );
     }
 
     #[test]

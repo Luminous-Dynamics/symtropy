@@ -28,7 +28,7 @@ It rejects unpaired candidate sets, missing constraints/outcomes/bounds, unit mi
 
 Benchmark targets and proposed acceptance criteria: [benchmark targets v0.1](../../docs/research/joy-worlds/benchmark-targets-v0.1.md).
 
-The receipt includes **endpoint sensitivity**: conservative versus optimistic-envelope Pareto fronts, stable/uncertain membership, and one-objective-at-a-time frontier leverage. This helps prioritize follow-up measurement but is not formal expected value of information because it uses no probability distributions, stakeholder utility function or measurement costs. Optimistic values across objectives may come from different scenarios and need not be jointly attainable.
+The receipt also includes evidence-gap triage per objective: it names unknown observation counts, candidate IDs and evidence references alongside the known-interval frontier-leverage signal. This can surface where evidence is missing without converting missing data to a numeric value. The receipt includes **endpoint sensitivity**: conservative versus optimistic-envelope Pareto fronts, stable/uncertain membership, and one-objective-at-a-time frontier leverage. This helps prioritize follow-up measurement but is not formal expected value of information because it uses no probability distributions, stakeholder utility function or measurement costs. Optimistic values across objectives may come from different scenarios and need not be jointly attainable.
 
 ## Reproducible synthetic performance benchmark
 
