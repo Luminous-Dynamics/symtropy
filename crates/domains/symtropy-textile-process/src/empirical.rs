@@ -227,7 +227,7 @@ pub fn validate_trial(trial: &Trial) -> Result<(), ValidationErrors> {
                 "$.profile_strata[{index}] must use lowercase profile-id characters"
             ));
         }
-        if !strata.insert(profile) {
+        if !strata.insert(profile.clone()) {
             errors.push(format!("$.profile_strata contains duplicate '{profile}'"));
         }
     }
@@ -344,10 +344,16 @@ pub fn validate_trial(trial: &Trial) -> Result<(), ValidationErrors> {
             match &record.evidence.inventory_issue_receipt_ref {
                 Some(receipt) if !receipt.trim().is_empty() => {}
                 _ if trial.synthetic_only => errors.push(format!(
-                    "{path}.evidence.inventory_issue_receipt_ref is required when stock is issued, including in fixtures"
+                    concat!(
+                        "{path}.evidence.inventory_issue_receipt_ref is required ",
+                        "when stock is issued, including in fixtures"
+                    )
                 )),
                 _ => errors.push(format!(
-                    "{path}.evidence.inventory_issue_receipt_ref is required when existing inventory is issued"
+                    concat!(
+                        "{path}.evidence.inventory_issue_receipt_ref is required ",
+                        "when existing inventory is issued"
+                    )
                 )),
             }
         }
@@ -383,7 +389,10 @@ pub fn validate_trial(trial: &Trial) -> Result<(), ValidationErrors> {
     for (pair_id, members) in &pairs {
         if members.len() != 2 {
             errors.push(format!(
-                "$.records pair_id '{pair_id}' has {} rows; exactly 2 are required for this paired v0.1 protocol",
+                concat!(
+                    "$.records pair_id '{pair_id}' has {} rows; ",
+                    "exactly 2 are required for this paired v0.1 protocol"
+                ),
                 members.len()
             ));
             continue;
@@ -424,7 +433,10 @@ pub fn validate_trial(trial: &Trial) -> Result<(), ValidationErrors> {
         // differing preregistered periods. Keep source row indices in error paths.
         if left.window_days != right.window_days {
             errors.push(format!(
-                "$.records[{left_index}] and $.records[{right_index}] in {pair_path} have different windows"
+                concat!(
+                    "$.records[{left_index}] and $.records[{right_index}] in ",
+                    "{pair_path} have different windows"
+                )
             ));
         }
     }
@@ -447,7 +459,9 @@ fn require_text(errors: &mut Vec<String>, path: &str, value: &str) {
 fn check_sum(errors: &mut Vec<String>, path: &str, expected: u64, values: &[u64]) {
     match checked_sum(values) {
         Some(actual) if actual == expected => {}
-        Some(actual) => errors.push(format!("{path} ledger mismatch: expected {expected}, accounted {actual}")),
+        Some(actual) => errors.push(format!(
+            "{path} ledger mismatch: expected {expected}, accounted {actual}"
+        )),
         None => errors.push(format!("{path} ledger arithmetic overflows u64")),
     }
 }
@@ -511,12 +525,12 @@ fn is_semver(value: &str) -> bool {
 
 fn is_profile_id(value: &str) -> bool {
     let bytes = value.as_bytes();
-    !bytes.is_empty()
-        && bytes[0].is_ascii_lowercase().then_some(true).unwrap_or(false)
-            || (!bytes.is_empty() && bytes[0].is_ascii_digit())
-        && bytes.iter().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'_' || *byte == b'-'
-        })
+    if bytes.is_empty() || !(bytes[0].is_ascii_lowercase() || bytes[0].is_ascii_digit()) {
+        return false;
+    }
+    bytes.iter().all(|byte| {
+        byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'_' || *byte == b'-'
+    })
 }
 
 fn looks_like_rfc3339(value: &str) -> bool {
@@ -536,7 +550,9 @@ mod tests {
     use super::*;
 
     const EXAMPLE: &str =
-        include_str!("../../../../docs/ops/fixtures/textile_empirical_evaluation_v0_1/trial.example.json");
+        include_str!(
+            "../../../../docs/ops/fixtures/textile_empirical_evaluation_v0_1/trial.example.json"
+        );
 
     fn parsed_example() -> serde_json::Value {
         serde_json::from_str(EXAMPLE).expect("committed synthetic example is valid JSON")
@@ -624,7 +640,9 @@ mod tests {
         let input = serde_json::to_string(&value).unwrap();
         let err = validate_trial_json(&input).unwrap_err();
         assert!(err.errors.iter().any(|message| message.contains("finite and non-negative")));
-        assert!(err.errors.iter().any(|message| message.contains("evidence_refs must not be empty")));
+        assert!(err.errors.iter().any(|message| {
+            message.contains("evidence_refs must not be empty")
+        }));
     }
 
     #[test]
