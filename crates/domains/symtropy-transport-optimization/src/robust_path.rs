@@ -72,6 +72,13 @@ pub enum FifoRobustSelectionError {
     MissingCandidateScenario { path_id: String, scenario_id: String },
     UnexpectedCandidateScenario { path_id: String, scenario_id: String },
     TopologyChangedAcrossScenarios { path_id: String, scenario_id: String },
+    CandidateEndpointsDiffer {
+        path_id: String,
+        expected_origin_node_id: String,
+        expected_destination_node_id: String,
+        actual_origin_node_id: String,
+        actual_destination_node_id: String,
+    },
     NoQualifiedCandidatePath,
     PathEvaluation {
         path_id: String,
@@ -104,6 +111,16 @@ impl fmt::Display for FifoRobustSelectionError {
             Self::TopologyChangedAcrossScenarios { path_id, scenario_id } => write!(
                 formatter,
                 "candidate path {path_id} changes edge/node topology under scenario {scenario_id}"
+            ),
+            Self::CandidateEndpointsDiffer {
+                path_id,
+                expected_origin_node_id,
+                expected_destination_node_id,
+                actual_origin_node_id,
+                actual_destination_node_id,
+            } => write!(
+                formatter,
+                "candidate path {path_id} connects {actual_origin_node_id} to {actual_destination_node_id}, expected {expected_origin_node_id} to {expected_destination_node_id}"
             ),
             Self::NoQualifiedCandidatePath => {
                 formatter.write_str("no candidate is feasible and evidence-qualified across every scenario")
@@ -274,6 +291,7 @@ pub fn select_robust_fifo_path(
 
     let mut scores = Vec::new();
     let mut rejected_path_scenarios = Vec::new();
+    let mut common_endpoints: Option<(String, String)> = None;
 
     for candidate in sorted_paths {
         let mut candidate_by_scenario = BTreeMap::new();
@@ -317,6 +335,30 @@ pub fn select_robust_fifo_path(
                 }
             } else {
                 previous_topology = Some(topology);
+            }
+        }
+
+        // Candidate paths are compared for one common OD pair. Without this
+        // check a "robust" result could merely terminate at a closer destination.
+        if let Some(first_scenario_id) = scenario_kinds.keys().next() {
+            let first_path = candidate_by_scenario[first_scenario_id];
+            if let (Some(first_leg), Some(last_leg)) =
+                (first_path.legs.first(), first_path.legs.last())
+            {
+                let actual = (first_leg.from_node_id.clone(), last_leg.to_node_id.clone());
+                if let Some((expected_origin, expected_destination)) = &common_endpoints {
+                    if actual.0 != *expected_origin || actual.1 != *expected_destination {
+                        return Err(FifoRobustSelectionError::CandidateEndpointsDiffer {
+                            path_id: candidate.path_id.clone(),
+                            expected_origin_node_id: expected_origin.clone(),
+                            expected_destination_node_id: expected_destination.clone(),
+                            actual_origin_node_id: actual.0,
+                            actual_destination_node_id: actual.1,
+                        });
+                    }
+                } else {
+                    common_endpoints = Some(actual);
+                }
             }
         }
 
@@ -633,6 +675,20 @@ mod tests {
         assert!(matches!(
             select_robust_fifo_path(&scenario_set(), &[candidate], 100, 50),
             Err(FifoRobustSelectionError::TopologyChangedAcrossScenarios { .. })
+        ));
+    }
+
+    #[test]
+    fn candidates_for_different_destinations_cannot_be_compared() {
+        let path_a = candidate("A", 100, 500, 120, 50);
+        let mut path_b = candidate("B", 130, 180, 200, 50);
+        for scenario in &mut path_b.scenario_paths {
+            scenario.legs[0].to_node_id = "other-destination".into();
+        }
+
+        assert!(matches!(
+            select_robust_fifo_path(&scenario_set(), &[path_a, path_b], 100, 50),
+            Err(FifoRobustSelectionError::CandidateEndpointsDiffer { .. })
         ));
     }
 
