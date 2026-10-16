@@ -1165,6 +1165,93 @@ mod tests {
         assert_eq!(test.unique_port_ids, Some(3));
     }
 
+    const FROZEN_SPLIT_MANIFEST: &[u8] =
+        include_bytes!("../../../../docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json");
+
+    #[test]
+    fn frozen_cyclone_split_manifest_has_consistent_totals_and_boundaries() {
+        let report = validate_and_report_split_manifest(FROZEN_SPLIT_MANIFEST)
+            .expect("frozen split manifest should validate");
+        assert_eq!(report.status, "EPISODE_SPLIT_MANIFEST_VALIDATED_NOT_SOURCE_RECOMPUTED");
+        assert_eq!(report.episode_count, 90);
+        assert_eq!(report.interaction_row_count, 1_927);
+        let train = report.split_summaries.iter().find(|summary| summary.split == "train").unwrap();
+        assert_eq!(train.storm_count, 59);
+        assert_eq!(train.interaction_rows, 1_471);
+        assert_eq!(train.unique_port_ids, None);
+        assert_eq!(train.first_event_start, "2015-05-06");
+        assert_eq!(train.last_event_start, "2020-11-13");
+        let calibration = report.split_summaries.iter().find(|summary| summary.split == "calibration").unwrap();
+        assert_eq!(calibration.storm_count, 13);
+        assert_eq!(calibration.interaction_rows, 308);
+        let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
+        assert_eq!(test.storm_count, 18);
+        assert_eq!(test.interaction_rows, 148);
+        assert!(!report.source_bytes_compared);
+        assert!(!report.predictive_validation_performed);
+    }
+
+    #[test]
+    fn split_manifest_digest_binds_exact_bytes() {
+        let first = validate_and_report_split_manifest(FROZEN_SPLIT_MANIFEST).unwrap();
+        let second = validate_and_report_split_manifest(FROZEN_SPLIT_MANIFEST).unwrap();
+        assert_eq!(first.manifest_sha256, second.manifest_sha256);
+        let changed = [FROZEN_SPLIT_MANIFEST, &b"\n"[..]].concat();
+        let third = validate_and_report_split_manifest(&changed).unwrap();
+        assert_ne!(first.manifest_sha256, third.manifest_sha256);
+        assert_eq!(first.episode_count, third.episode_count);
+    }
+
+    #[test]
+    fn duplicate_cyclone_id_is_rejected() {
+        let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
+        let first_sid = root["episodes"][0]["sid"].clone();
+        root["episodes"][1]["sid"] = first_sid;
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("duplicate cyclone ID"));
+    }
+
+    #[test]
+    fn assigning_a_storm_to_the_wrong_temporal_split_is_rejected() {
+        let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
+        root["episodes"][0]["split"] = Value::String("test".to_owned());
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("split_manifest.episodes[0].split"));
+    }
+
+    #[test]
+    fn episode_row_count_drift_is_rejected() {
+        let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
+        root["episodes"][0]["interaction_rows"] = Value::Number(serde_json::Number::from(28));
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("split summary drift"));
+    }
+
+    #[test]
+    fn mutable_or_incorrect_source_blob_is_rejected() {
+        let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
+        root["source"]["git_blob_sha1"] = Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("does not match expected"));
+    }
+
+    #[test]
+    fn manifest_must_disclose_that_public_data_is_not_a_blind_holdout() {
+        let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
+        root["policy"]["external_holdout_caveat"] = Value::String("blind test".to_owned());
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("public-data holdout limitations"));
+    }
+
+    #[test]
+    fn a_synthetic_profile_cannot_claim_a_pinned_source_split_match() {
+        let profile = profile_bytes(SYNTHETIC_FIXTURE).unwrap();
+        let (_, manifest) = parse_episode_split_manifest(FROZEN_SPLIT_MANIFEST).unwrap();
+        assert!(compare_episode_manifest_to_profile(&manifest, &profile)
+            .unwrap_err()
+            .contains("source identity must match pinned CyPort Git blob"));
+    }
+
     #[test]
     fn empty_git_blob_hash_matches_git_object_vector() {
         assert_eq!(git_blob_sha1(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391");
