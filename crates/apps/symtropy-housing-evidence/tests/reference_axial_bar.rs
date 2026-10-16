@@ -274,6 +274,7 @@ fn analytical_axial_bar_survives_deterministic_scaling_sweep() {
             tolerance
         ));
         assert!(close_relative(result.stress_pa, reference.stress_pa, tolerance));
+        assert!(close_relative(result.reaction_n, reference.reaction_n, tolerance));
 
         let mut changed_modulus = base.clone();
         changed_modulus["inputs"]["elastic_modulus_Pa"] =
@@ -285,6 +286,7 @@ fn analytical_axial_bar_survives_deterministic_scaling_sweep() {
             tolerance
         ));
         assert!(close_relative(result.stress_pa, reference.stress_pa, tolerance));
+        assert!(close_relative(result.reaction_n, reference.reaction_n, tolerance));
 
         let mut changed_width = base.clone();
         changed_width["inputs"]["section_width_m"] = serde_json::json!(width * factor);
@@ -297,6 +299,7 @@ fn analytical_axial_bar_survives_deterministic_scaling_sweep() {
             reference.extension_m / factor,
             tolerance
         ));
+        assert!(close_relative(result.reaction_n, reference.reaction_n, tolerance));
 
         let mut changed_height = base.clone();
         changed_height["inputs"]["section_height_m"] = serde_json::json!(height * factor);
@@ -310,5 +313,6 @@ fn analytical_axial_bar_survives_deterministic_scaling_sweep() {
             reference.extension_m / factor,
             tolerance
         ));
+        assert!(close_relative(result.reaction_n, reference.reaction_n, tolerance));
     }
 }
