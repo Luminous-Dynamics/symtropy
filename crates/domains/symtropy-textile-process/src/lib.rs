@@ -98,6 +98,8 @@ pub struct DominanceWitness {
 /// The complete report. All vectors are returned in lexical order.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ComparisonReport {
+    /// Stable identifier supplied by the caller for the objective/period/scope manifest.
+    pub comparison_id: String,
     pub frontier: Vec<String>,
     pub dominated: Vec<DominanceWitness>,
     pub dispositions: Vec<CandidateDisposition>,
@@ -131,7 +133,9 @@ impl fmt::Display for ComparisonError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyComparisonId => write!(f, "comparison ID must not be empty"),
-            Self::TooFewObjectives => write!(f, "at least two objectives are required for Pareto comparison"),
+            Self::TooFewObjectives => {
+                write!(f, "at least two objectives are required for Pareto comparison")
+            }
             Self::EmptyObjectiveId => write!(f, "objective ID must not be empty"),
             Self::EmptyObjectiveUnit { objective_id } => {
                 write!(f, "objective '{objective_id}' has an empty unit")
@@ -171,10 +175,16 @@ impl fmt::Display for ComparisonError {
                 write!(f, "candidate '{candidate_id}' repeats objective '{objective_id}'")
             }
             Self::ObjectiveUnitMismatch { candidate_id, objective_id } => {
-                write!(f, "candidate '{candidate_id}' unit disagrees for objective '{objective_id}'")
+                write!(
+                    f,
+                    "candidate '{candidate_id}' unit disagrees for objective '{objective_id}'"
+                )
             }
             Self::ObjectiveScaleMismatch { candidate_id, objective_id } => {
-                write!(f, "candidate '{candidate_id}' scale disagrees for objective '{objective_id}'")
+                write!(
+                    f,
+                    "candidate '{candidate_id}' scale disagrees for objective '{objective_id}'"
+                )
             }
             Self::MissingObjectiveValue { candidate_id, objective_id } => {
                 write!(f, "feasible candidate '{candidate_id}' lacks objective '{objective_id}'")
@@ -400,6 +410,7 @@ pub fn compare_candidates(
     dominated.sort();
 
     Ok(ComparisonReport {
+        comparison_id: comparison_id.to_owned(),
         frontier,
         dominated,
         dispositions,
@@ -639,7 +650,11 @@ mod tests {
         let a = candidate("a", [100, 100, 100]);
         let b = candidate("b", [110, 100, 100]);
         let c = candidate("c", [80, 90, 80]);
-        let left = compare_candidates("fixture-6", &objectives(), &[a.clone(), b.clone(), c.clone()])
+        let left = compare_candidates(
+            "fixture-6",
+            &objectives(),
+            &[a.clone(), b.clone(), c.clone()],
+        )
             .unwrap();
         let right = compare_candidates("fixture-6", &objectives(), &[c, a, b]).unwrap();
         assert_eq!(left, right);
