@@ -400,6 +400,11 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
                 reference.maximum_stress_pa,
                 tolerance
             ));
+            assert!(close_relative(
+                result.reaction_magnitude_n,
+                reference.reaction_magnitude_n,
+                tolerance
+            ));
 
             let mut changed_width = base.clone();
             changed_width["inputs"]["section_width_m"] =
@@ -424,6 +429,11 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
             assert!(close_relative(
                 result.maximum_moment_nm,
                 reference.maximum_moment_nm,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.reaction_magnitude_n,
+                reference.reaction_magnitude_n,
                 tolerance
             ));
 
