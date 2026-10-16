@@ -20,7 +20,7 @@ For each measurement outcome, posterior utility numerator is calculated without 
 
 The best feasible decision for each possible outcome maximizes that numerator. Gross EVSI is expected-after-measurement utility minus baseline utility converted to the common PPM-squared denominator. Net EVSI subtracts measurement cost on that denominator. Numerators are reported as decimal strings to preserve exact integers across JSON clients. Tie-breaking is deterministic by lexicographic decision ID.
 
-Expected-value calculations are emitted only for calibrated_empirical or reviewed_expert_elicitation probability bases. Those labels describe the caller's declared model basis; this crate does not validate whether calibration or elicitation is actually sufficient.
+Expected-value calculations are emitted only for calibrated_empirical or reviewed_expert_elicitation probability bases, and those actions must carry non-empty probability-model/version and calibration or reviewed-elicitation evidence references. Those labels and references are caller-declared: the crate does not fetch, authenticate or validate the calibration report or the sufficiency of the expert elicitation. Synthetic probability inputs remain synthetic-only even if their arithmetic is exact.
 
 ## Contract
 
@@ -29,6 +29,7 @@ Expected-value calculations are emitted only for calibrated_empirical or reviewe
 - Every measurement action's likelihood matrix must define the same outcome IDs for every world and each world's likelihood row must sum to PPM.
 - A measurement marked hard-infeasible or with inconsistent hard-gate metadata is blocked and receives no numeric score.
 - An unjustified probability basis returns not_estimable with no numeric EVSI. The calculator does not quietly assume a uniform prior.
+- Evidence-backed probability bases without both a stable model/version reference and a calibration or review-evidence reference return not_estimable. References are copied into the result, but are never authenticated by this crate.
 - A synthetic-fixture probability basis produces arithmetic results only for mechanics tests and is labelled synthetic_fixture_only.
 - Outputs are sorted by stable IDs. Input collection order does not affect result order or integer results.
 - Arithmetic uses checked wide-integer operations. Nutrient/resource hard constraints must remain outside utility scoring; this kernel does not decide whether those constraints are legitimate.
@@ -41,4 +42,4 @@ Expected-value calculations are emitted only for calibrated_empirical or reviewe
 
 ## Validation boundary
 
-The suite includes a deterministic 100-case two-world comparison against a closed-form oracle, in addition to named hand-calculated and negative-control cases. All generated cases remain synthetic. Passing them would establish arithmetic/contract behavior for those fixtures, not calibrated probabilities, correct local production forecasts, crop suitability, food safety or real-world benefit. See AGRI-VOI-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1661) for proposed oracle, regret, calibration, performance and field-validation benchmarks.
+The suite includes a deterministic 100-case two-world comparison against a closed-form oracle, in addition to named hand-calculated and negative-control cases. A dedicated gate verifies that missing probability-model/evidence references prevent an evidence-backed score from being emitted. All generated cases remain synthetic. Passing them would establish arithmetic/contract behavior for those fixtures, not calibrated probabilities, correct local production forecasts, crop suitability, food safety or real-world benefit. See AGRI-VOI-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1661) for proposed oracle, regret, calibration, performance and field-validation benchmarks.
