@@ -54,7 +54,7 @@ The initial Rust unit tests cover:
 10. supersession cycles;
 11. order-independent resolution.
 
-These tests exercise the resolver in isolation. They do **not yet parse or execute** the 19 synthetic cases in the existing CSV. That integration requires adding source-corpus ingestion time, evidence qualification, and exact clause provenance to the fixture contract, then mapping each case's expected clause result to a reviewed rule predicate. Do not mark the CSV corpus "executable" until those links exist and the fixtures are manually checked against admitted source artifacts.
+A separate integration test now parses the 19-row CSV and checks its 17-column header, row widths, unique IDs, date-field shape, official source URLs, explicit nonclaims, and selected policy-scope / temporal / cancellation negative controls. This is **structural integrity only**: the CSV cases are not yet semantically executed against policy predicates, and the test does not qualify source rights or transcription correctness. Semantic integration requires corpus-ingestion time, evidence qualification, exact clause provenance, and a reviewed mapping from each case to a rule predicate. Do not mark the CSV corpus "executable" until those links exist and fixtures are manually checked against admitted source artifacts.
 
 ## Benchmark ladder
 
