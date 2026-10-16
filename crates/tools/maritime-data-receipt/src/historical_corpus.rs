@@ -379,6 +379,9 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
                     "rights_or_license_evidence",
                     "component_level_terms_snapshot",
                     "raw_vs_derived_field_map",
+                    "source_git_blob_sha1",
+                    "declared_resource_byte_length",
+                    "git_blob_sha1_recomputation",
                 ],
                 &format!("{path}.required_capture_fields"),
             )?;
