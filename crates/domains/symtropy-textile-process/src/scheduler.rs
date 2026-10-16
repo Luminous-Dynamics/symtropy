@@ -1270,6 +1270,169 @@ mod tests {
         assert!(water <= problem.water_budget_units);
     }
 
+
+    fn independent_tiny_oracle(problem: &ScheduleProblem) -> BTreeSet<ScheduleMetrics> {
+        fn visit_orders(
+            problem: &ScheduleProblem,
+            prefix: &mut Vec<usize>,
+            remaining: &mut Vec<usize>,
+            results: &mut BTreeSet<ScheduleMetrics>,
+        ) {
+            if remaining.is_empty() {
+                let mut states: Vec<MachineState> = problem
+                    .machines
+                    .iter()
+                    .map(|machine| MachineState {
+                        available_tick: machine.available_tick,
+                        setup_family: machine.initial_setup_family.clone(),
+                    })
+                    .collect();
+                let mut finishes = vec![None; problem.jobs.len()];
+                visit_machine_assignments(
+                    problem,
+                    prefix,
+                    0,
+                    &mut states,
+                    &mut finishes,
+                    0,
+                    0,
+                    0,
+                    results,
+                );
+                return;
+            }
+
+            for index in 0..remaining.len() {
+                let job_index = remaining.remove(index);
+                prefix.push(job_index);
+                visit_orders(problem, prefix, remaining, results);
+                prefix.pop();
+                remaining.insert(index, job_index);
+            }
+        }
+
+        fn visit_machine_assignments(
+            problem: &ScheduleProblem,
+            order: &[usize],
+            position: usize,
+            states: &mut [MachineState],
+            finishes: &mut [Option<u64>],
+            energy_units: u64,
+            water_units: u64,
+            setup_ticks: u64,
+            results: &mut BTreeSet<ScheduleMetrics>,
+        ) {
+            if position == order.len() {
+                if energy_units > problem.energy_budget_units
+                    || water_units > problem.water_budget_units
+                    || finishes.iter().any(Option::is_none)
+                {
+                    return;
+                }
+                let mut late_jobs = 0_u64;
+                let mut tardiness_ticks = 0_u64;
+                let mut makespan_tick = 0_u64;
+                for (index, job) in problem.jobs.iter().enumerate() {
+                    let finish = finishes[index].expect("all jobs scheduled");
+                    makespan_tick = makespan_tick.max(finish);
+                    if finish > job.due_tick {
+                        late_jobs += 1;
+                        tardiness_ticks += finish - job.due_tick;
+                    }
+                }
+                results.insert(ScheduleMetrics {
+                    late_jobs,
+                    total_tardiness_ticks: tardiness_ticks,
+                    makespan_tick,
+                    energy_units,
+                    water_units,
+                    setup_duration_ticks: setup_ticks,
+                });
+                return;
+            }
+
+            let job_index = order[position];
+            let job = &problem.jobs[job_index];
+            for (machine_index, machine) in problem.machines.iter().enumerate() {
+                if !job.required_capabilities.is_subset(&machine.capabilities) {
+                    continue;
+                }
+                let state = &states[machine_index];
+                let (setup_duration, setup_energy, setup_water) =
+                    if state.setup_family == job.setup_family {
+                        (0_u64, 0_u64, 0_u64)
+                    } else {
+                        let Some(edge) = problem.setup_transitions.iter().find(|edge| {
+                            edge.machine_id == machine.id
+                                && edge.from_family == state.setup_family
+                                && edge.to_family == job.setup_family
+                        }) else {
+                            continue;
+                        };
+                        (edge.duration_ticks, edge.energy_units, edge.water_units)
+                    };
+
+                let next_energy = energy_units + job.energy_units + setup_energy;
+                let next_water = water_units + job.water_units + setup_water;
+                let next_setup_ticks = setup_ticks + setup_duration;
+                if next_energy > problem.energy_budget_units
+                    || next_water > problem.water_budget_units
+                {
+                    continue;
+                }
+                let setup_finish = state.available_tick + setup_duration;
+                let process_start = job.release_tick.max(setup_finish);
+                let finish = process_start + job.processing_ticks;
+                if job.hard_finish_by_tick.is_some_and(|latest| finish > latest) {
+                    continue;
+                }
+
+                let old_state = state.clone();
+                let old_finish = finishes[job_index];
+                states[machine_index] = MachineState {
+                    available_tick: finish,
+                    setup_family: job.setup_family.clone(),
+                };
+                finishes[job_index] = Some(finish);
+                visit_machine_assignments(
+                    problem,
+                    order,
+                    position + 1,
+                    states,
+                    finishes,
+                    next_energy,
+                    next_water,
+                    next_setup_ticks,
+                    results,
+                );
+                states[machine_index] = old_state;
+                finishes[job_index] = old_finish;
+            }
+        }
+
+        let mut remaining: Vec<usize> = (0..problem.jobs.len()).collect();
+        let mut prefix = Vec::with_capacity(problem.jobs.len());
+        let mut results = BTreeSet::new();
+        visit_orders(problem, &mut prefix, &mut remaining, &mut results);
+        results
+    }
+
+    fn oracle_dominates(left: &ScheduleMetrics, right: &ScheduleMetrics) -> bool {
+        let all_no_worse = left.late_jobs <= right.late_jobs
+            && left.total_tardiness_ticks <= right.total_tardiness_ticks
+            && left.makespan_tick <= right.makespan_tick
+            && left.energy_units <= right.energy_units
+            && left.water_units <= right.water_units
+            && left.setup_duration_ticks <= right.setup_duration_ticks;
+        let one_better = left.late_jobs < right.late_jobs
+            || left.total_tardiness_ticks < right.total_tardiness_ticks
+            || left.makespan_tick < right.makespan_tick
+            || left.energy_units < right.energy_units
+            || left.water_units < right.water_units
+            || left.setup_duration_ticks < right.setup_duration_ticks;
+        all_no_worse && one_better
+    }
+
     #[test]
     fn exhaustive_solver_returns_feasible_frontier_for_decorative_garment() {
         let problem = sample_problem();
@@ -1401,6 +1564,61 @@ mod tests {
             solve_exhaustive(&problem),
             Err(ScheduleError::NoFeasibleSchedule)
         ));
+    }
+
+
+    #[test]
+    fn exhaustive_frontier_matches_independent_permutation_and_assignment_oracle() {
+        let problem = sample_problem();
+        let report = solve_exhaustive(&problem).expect("fixture is feasible");
+        let oracle_scores = independent_tiny_oracle(&problem);
+        assert!(!oracle_scores.is_empty());
+
+        let expected_frontier: BTreeSet<ScheduleMetrics> = oracle_scores
+            .iter()
+            .filter(|candidate| {
+                !oracle_scores.iter().any(|other| {
+                    other != *candidate && oracle_dominates(other, candidate)
+                })
+            })
+            .cloned()
+            .collect();
+        let actual_frontier: BTreeSet<ScheduleMetrics> = report
+            .pareto_frontier
+            .iter()
+            .map(|candidate| candidate.metrics.clone())
+            .collect();
+        assert_eq!(actual_frontier, expected_frontier);
+
+        let expected_optima = ObjectiveOptima {
+            minimum_late_jobs: oracle_scores.iter().map(|score| score.late_jobs).min().unwrap(),
+            minimum_total_tardiness_ticks: oracle_scores
+                .iter()
+                .map(|score| score.total_tardiness_ticks)
+                .min()
+                .unwrap(),
+            minimum_makespan_tick: oracle_scores
+                .iter()
+                .map(|score| score.makespan_tick)
+                .min()
+                .unwrap(),
+            minimum_energy_units: oracle_scores
+                .iter()
+                .map(|score| score.energy_units)
+                .min()
+                .unwrap(),
+            minimum_water_units: oracle_scores
+                .iter()
+                .map(|score| score.water_units)
+                .min()
+                .unwrap(),
+            minimum_setup_duration_ticks: oracle_scores
+                .iter()
+                .map(|score| score.setup_duration_ticks)
+                .min()
+                .unwrap(),
+        };
+        assert_eq!(report.objective_optima, expected_optima);
     }
 
 }
