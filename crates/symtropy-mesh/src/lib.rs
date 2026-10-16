@@ -67,6 +67,22 @@ pub struct MeshBvhNode {
     pub triangle_idx: Option<usize>,
 }
 
+/// Deterministic operation counters for one BVH overlap query.
+///
+/// Counters are intended for diagnostics and benchmark attribution; use
+/// TriangleMesh::query_overlap for the uninstrumented hot path.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MeshBvhQueryStats {
+    /// Number of node AABBs tested, including misses.
+    pub bounds_tested: usize,
+    /// Intersecting internal nodes whose children were visited.
+    pub overlapping_internal_nodes: usize,
+    /// Intersecting leaves, each corresponding to a returned triangle candidate.
+    pub overlapping_leaves: usize,
+    /// Number of returned triangle indices.
+    pub candidate_count: usize,
+}
+
 /// Strategy used to construct a triangle-mesh BVH.
 ///
 /// `Median` preserves the default deterministic longest-axis median split.
@@ -413,6 +429,46 @@ impl TriangleMesh {
             }
         }
         result
+    }
+
+    /// Query overlap while collecting traversal-work counters.
+    ///
+    /// The returned counters do not alter candidate semantics. This method is
+    /// intended for diagnostics and benchmarks, not as a substitute for the
+    /// lower-overhead query_overlap hot path.
+    pub fn query_overlap_with_stats(
+        &self,
+        query_aabb: &Aabb<3>,
+    ) -> (Vec<usize>, MeshBvhQueryStats) {
+        let mut result = Vec::new();
+        let mut stats = MeshBvhQueryStats::default();
+        let mut stack = Vec::new();
+        if let Some(root) = self.root_idx {
+            stack.push(root);
+        }
+
+        while let Some(idx) = stack.pop() {
+            let node = &self.bvh_nodes[idx];
+            stats.bounds_tested += 1;
+            if !node.aabb.overlaps(query_aabb) {
+                continue;
+            }
+
+            if let Some(tri_idx) = node.triangle_idx {
+                stats.overlapping_leaves += 1;
+                result.push(tri_idx);
+            } else {
+                stats.overlapping_internal_nodes += 1;
+                if let Some(l) = node.left {
+                    stack.push(l);
+                }
+                if let Some(r) = node.right {
+                    stack.push(r);
+                }
+            }
+        }
+        stats.candidate_count = result.len();
+        (result, stats)
     }
 }
 
