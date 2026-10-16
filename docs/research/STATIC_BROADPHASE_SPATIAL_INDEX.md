@@ -20,6 +20,17 @@ Replace the cached-entry linear scan with a deterministic median-split AABB hier
 
 The tree uses the existing `arrayvec` dependency for a small inline traversal stack. The builder is balanced by median split; practical depth is logarithmic. Cache rebuild cost and steady-state query cost must both be measured; this change does not presume that the tree wins every scene.
 
+## Known limitation: kinematic churn
+
+The current world cache groups Static and Kinematic entries. `PhysicsWorld::body_mut` conservatively marks the cached structure dirty for either type, so moving one Kinematic body can currently cause all cached Static entries to be re-described and the entire hierarchy to rebuild on the next step. The spatial tree improves steady-state query pruning, but it does not remove that invalidation cost.
+
+The next architectural experiment should separate:
+- **Persistent static index:** rebuilt only when Static geometry is inserted, removed, or mutated.
+- **Kinematic active set/index:** refreshed for the moving Kinematic population on declared updates, then queried against the static index and other active bodies.
+- **Explicit invalidation reasons:** distinguish static topology/geometry dirtiness from kinematic transform changes instead of reusing one dirty flag.
+
+Do not implement that split without lifecycle tests for body removal, type transitions, transform mutation, and deterministic pair output. Benchmark coherent kinematic motion and mass kinematic churn as distinct temporal families. A static-heavy win under zero kinematic motion is not enough to justify the architecture.
+
 ## Correctness evidence added
 
 A fixed-seed test builds a 2,048-entry mixed Static/Kinematic cache and compares 256 queries against an independent linear scan. The query corpus includes queries centered on stored entries, randomly placed queries, guaranteed far-empty-space controls, varied radii, and asymmetric collision masks. The test also checks the full-binary-tree node-count and one-leaf-per-entry invariants.
