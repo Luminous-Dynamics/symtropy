@@ -375,7 +375,7 @@ pub fn compare_portfolios_v1(
             add_blocker(
                 &mut blockers,
                 PortfolioComparisonBlockerCodeV1::EmptyCandidateId,
-                Some(&candidate.candidate_id),
+                Some(candidate.candidate_id.as_str()),
                 "candidate identity is empty",
             );
         }
@@ -383,7 +383,7 @@ pub fn compare_portfolios_v1(
             add_blocker(
                 &mut blockers,
                 PortfolioComparisonBlockerCodeV1::CandidateScopeMismatch,
-                Some(&candidate.candidate_id),
+                Some(candidate.candidate_id.as_str()),
                 "candidate scope does not match comparison scope",
             );
         }
@@ -391,7 +391,7 @@ pub fn compare_portfolios_v1(
             add_blocker(
                 &mut blockers,
                 PortfolioComparisonBlockerCodeV1::CandidatePeriodMismatch,
-                Some(&candidate.candidate_id),
+                Some(candidate.candidate_id.as_str()),
                 "candidate period does not match comparison period",
             );
         }
@@ -402,7 +402,7 @@ pub fn compare_portfolios_v1(
                     add_blocker(
                         &mut blockers,
                         PortfolioComparisonBlockerCodeV1::FeasibleCandidateHasBlockers,
-                        Some(&candidate.candidate_id),
+                        Some(candidate.candidate_id.as_str()),
                         "a feasible candidate cannot carry unresolved hard-blocker references",
                     );
                 }
@@ -410,7 +410,7 @@ pub fn compare_portfolios_v1(
                     add_blocker(
                         &mut blockers,
                         PortfolioComparisonBlockerCodeV1::CandidateMissingEvidence,
-                        Some(&candidate.candidate_id),
+                        Some(candidate.candidate_id.as_str()),
                         "a feasible candidate requires evidence references",
                     );
                 }
@@ -418,7 +418,7 @@ pub fn compare_portfolios_v1(
                     add_blocker(
                         &mut blockers,
                         PortfolioComparisonBlockerCodeV1::BlankEvidenceReference,
-                        Some(&candidate.candidate_id),
+                        Some(candidate.candidate_id.as_str()),
                         "evidence references must not be blank",
                     );
                 }
@@ -431,7 +431,7 @@ pub fn compare_portfolios_v1(
                         add_blocker(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::DuplicateCandidateObjective,
-                            Some(&candidate.candidate_id),
+                            Some(candidate.candidate_id.as_str()),
                             "candidate objective IDs must be unique",
                         );
                     }
@@ -446,7 +446,7 @@ pub fn compare_portfolios_v1(
                         add_blocker(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::MissingObjectiveValue,
-                            Some(&candidate.candidate_id),
+                            Some(candidate.candidate_id.as_str()),
                             &format!("candidate is missing objective {}", objective.objective_id),
                         );
                     }
@@ -460,7 +460,7 @@ pub fn compare_portfolios_v1(
                         add_blocker(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::UnexpectedCandidateObjective,
-                            Some(&candidate.candidate_id),
+                            Some(candidate.candidate_id.as_str()),
                             &format!("candidate supplied undeclared objective {}", value.objective_id),
                         );
                         continue;
@@ -469,7 +469,7 @@ pub fn compare_portfolios_v1(
                         add_blocker(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::EmptyCandidateObjectiveUnit,
-                            Some(&candidate.candidate_id),
+                            Some(candidate.candidate_id.as_str()),
                             &format!("objective {} has an empty unit", value.objective_id),
                         );
                     }
@@ -477,7 +477,7 @@ pub fn compare_portfolios_v1(
                         add_blocker(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::CandidateObjectiveUnitMismatch,
-                            Some(&candidate.candidate_id),
+                            Some(candidate.candidate_id.as_str()),
                             &format!("objective {} unit does not match its definition", value.objective_id),
                         );
                     }
@@ -485,7 +485,7 @@ pub fn compare_portfolios_v1(
                         add_blocker(
                             &mut blockers,
                             PortfolioComparisonBlockerCodeV1::CandidateObjectiveScaleMismatch,
-                            Some(&candidate.candidate_id),
+                            Some(candidate.candidate_id.as_str()),
                             &format!("objective {} scale does not match its definition", value.objective_id),
                         );
                     }
@@ -499,7 +499,7 @@ pub fn compare_portfolios_v1(
                     add_blocker(
                         &mut blockers,
                         PortfolioComparisonBlockerCodeV1::CandidateMissingBlocker,
-                        Some(&candidate.candidate_id),
+                        Some(candidate.candidate_id.as_str()),
                         "infeasible and unassessed candidates require non-empty blocker references",
                     );
                 }
@@ -507,7 +507,7 @@ pub fn compare_portfolios_v1(
                     add_blocker(
                         &mut blockers,
                         PortfolioComparisonBlockerCodeV1::NonFeasibleCandidateHasObjectiveValues,
-                        Some(&candidate.candidate_id),
+                        Some(candidate.candidate_id.as_str()),
                         "a non-feasible candidate must not provide scoreable objective values",
                     );
                 }
@@ -822,6 +822,37 @@ mod tests {
         assert!(report.blockers.iter().any(|item| {
             item.code == PortfolioComparisonBlockerCodeV1::DuplicateObjectiveId
         }));
+    }
+
+    #[test]
+    fn strict_dominance_is_irreflexive_and_asymmetric() {
+        let definitions = vec![
+            objective("cost", PortfolioObjectiveDirectionV1::Minimize, "minor_unit"),
+            objective("delivered", PortfolioObjectiveDirectionV1::Maximize, "gram"),
+        ];
+        let axes: Vec<_> = definitions.iter().collect();
+        let better = [1_i128, 9_i128];
+        let worse = [2_i128, 8_i128];
+
+        assert!(!dominates(&better, &better, &axes));
+        assert!(dominates(&better, &worse, &axes));
+        assert!(!dominates(&worse, &better, &axes));
+    }
+
+    #[test]
+    fn strict_dominance_is_transitive_for_mixed_objective_directions() {
+        let definitions = vec![
+            objective("cost", PortfolioObjectiveDirectionV1::Minimize, "minor_unit"),
+            objective("delivered", PortfolioObjectiveDirectionV1::Maximize, "gram"),
+        ];
+        let axes: Vec<_> = definitions.iter().collect();
+        let a = [1_i128, 9_i128];
+        let b = [2_i128, 8_i128];
+        let c = [3_i128, 7_i128];
+
+        assert!(dominates(&a, &b, &axes));
+        assert!(dominates(&b, &c, &axes));
+        assert!(dominates(&a, &c, &axes));
     }
 
     #[test]
