@@ -125,6 +125,87 @@ fn bench_spatial_queries(c: &mut Criterion) {
 }
 
 
+fn naive_full_population_count(points: &[SpatialPoint]) -> usize {
+    let radius_squared = QUERY_RADIUS * QUERY_RADIUS;
+    let mut matched = 0_usize;
+    for center in points {
+        matched += points
+            .iter()
+            .filter(|point| {
+                let dx = point.x - center.x;
+                let dy = point.y - center.y;
+                dx * dx + dy * dy <= radius_squared
+            })
+            .count();
+    }
+    matched
+}
+
+fn indexed_full_population_count(
+    points: &[SpatialPoint],
+    index: &SpatialGrid2d,
+) -> (usize, usize) {
+    let radius_squared = QUERY_RADIUS * QUERY_RADIUS;
+    let mut matched = 0_usize;
+    let mut candidates_seen = 0_usize;
+    for center in points {
+        let candidates = index
+            .query_radius_candidates([center.x, center.y], QUERY_RADIUS)
+            .expect("finite benchmark query");
+        candidates_seen += candidates.len();
+        matched += candidates
+            .iter()
+            .filter(|point| {
+                let dx = point.x - center.x;
+                let dy = point.y - center.y;
+                dx * dx + dy * dy <= radius_squared
+            })
+            .count();
+    }
+    (matched, candidates_seen)
+}
+
+/// Full-population neighborhood pass. Naive reference scans are limited to
+/// 1k/10k populations; the 100k run reports only the measured indexed workload
+/// because the equivalent all-pairs scan requires ten billion distance checks.
+fn bench_full_population_rebuild(c: &mut Criterion) {
+    let mut group = c.benchmark_group("spatial_grid_full_population_rebuild");
+    group.sample_size(10).measurement_time(Duration::from_secs(2));
+    for count in [1_000_usize, 10_000, 100_000] {
+        for (density, spacing) in [("sparse", 20.0), ("dense", 1.0)] {
+            let input = points(count, spacing);
+            let initial_index = SpatialGrid2d::new(input.iter().copied(), CELL_SIZE).unwrap();
+            let (indexed_count, _) = indexed_full_population_count(&input, &initial_index);
+
+            if count <= 10_000 {
+                let naive_count = naive_full_population_count(&input);
+                assert_eq!(
+                    indexed_count, naive_count,
+                    "indexed full-population results must match naive reference"
+                );
+                group.bench_function(
+                    BenchmarkId::new("naive_full_population", format!("{density}_{count}")),
+                    |bench| {
+                        bench.iter(|| black_box(naive_full_population_count(&input)));
+                    },
+                );
+            }
+
+            group.bench_function(
+                BenchmarkId::new("rebuild_grid_full_population", format!("{density}_{count}")),
+                |bench| {
+                    bench.iter(|| {
+                        let index =
+                            SpatialGrid2d::new(input.iter().copied(), CELL_SIZE).unwrap();
+                        black_box(indexed_full_population_count(&input, &index))
+                    });
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
 /// Measures the per-tick case: rebuild the grid from moving positions, then
 /// answer a batch of neighborhood queries. This prevents query-only results
 /// from hiding the cost of maintaining a derived index.
@@ -188,6 +269,7 @@ criterion_group!(
     benches,
     bench_grid_build,
     bench_spatial_queries,
-    bench_rebuild_plus_queries
+    bench_rebuild_plus_queries,
+    bench_full_population_rebuild
 );
 criterion_main!(benches);
