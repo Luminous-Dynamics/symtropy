@@ -626,6 +626,7 @@ fn simply_supported_similarity_control_detects_missing_span_power_mutants() {
     let inertia = inputs["second_moment_area_m4"].as_f64().unwrap();
     let scale = 2.0_f64;
     let cases = base["load_cases"].as_array().expect("load_cases array");
+    assert_eq!(cases.len(), 2, "both simple-span load families are required");
 
     for (case_index, load_case) in cases.iter().enumerate() {
         let (mutant_base, mutant_scaled) = if case_index == 0 {
