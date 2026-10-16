@@ -1,0 +1,557 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+#![forbid(unsafe_code)]
+
+//! Strict local profiler for the pinned CyPort port-cyclone interaction CSV.
+//!
+//! This utility inventories and validates source structure only. It does not
+//! fit a model, infer causality, validate recovery predictions, or authorize
+//! physical/operational decisions. The source dataset is deliberately not
+//! copied into this repository; callers provide a local file.
+
+use serde::Serialize;
+use sha1::{Digest as Sha1Digest, Sha1};
+use std::collections::{BTreeMap, BTreeSet};
+use std::env;
+use std::fs;
+
+const MAX_CSV_BYTES: usize = 5 * 1024 * 1024;
+const PINNED_BYTES: usize = 643_047;
+const PINNED_GIT_BLOB_SHA1: &str = "21beb5b7673918143a0ab108b03acc3cccaeb330";
+const PINNED_REVISION: &str = "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3";
+
+const EXPECTED_HEADER: &[&str] = &[
+    "ID", "SID", "PID", "port", "PORT_LON", "PORT_LAT", "start_date", "end_date",
+    "start_recovery_date", "end_recovery_date", "total_impact", "total_impact_value",
+    "max_impact", "day_of_recover", "DD", "CCD", "BCD", "SSHS", "SSHS_1", "SSHS_2",
+    "SSHS_3", "SSHS_4", "SSHS_5", "IF_LANDFALL_CLOSE2PORT", "IF_LANDFALL", "WIND",
+    "PRESSURE", "DISTANCE", "Wind_speed", "Surge_height", "Rainfall", "Port_ranking",
+    "D_normal", "D_cyclone", "C_normal", "C_cyclone", "B_normal", "B_cyclone",
+    "E_normal", "E_cyclone", "Seaport", "Pop_C", "Pop_Tract", "PCT_Pov", "WF",
+    "PCT_TA", "PCT_ACEW", "PCT_TI", "PCT_SV", "SL", "Railway_Length",
+    "Highway_Length", "Dock_Count", "Coast_Gulf_of_Mexico", "Coast_Atlantic",
+    "Coast_Pacific",
+];
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct CyPortInteractionReport {
+    status: &'static str,
+    source_id: &'static str,
+    source_revision: &'static str,
+    source_path: &'static str,
+    source_git_blob_sha1_expected: &'static str,
+    source_git_blob_sha1_observed: String,
+    source_sha256_observed: String,
+    source_byte_length: usize,
+    pinned_source_identity_verified: bool,
+    column_count: usize,
+    data_row_count: usize,
+    unique_interaction_ids: usize,
+    duplicate_interaction_id_rows: usize,
+    unique_storm_ids: usize,
+    unique_port_ids: usize,
+    unique_storm_port_pairs: usize,
+    duplicate_storm_port_pair_rows: usize,
+    zero_total_impact_rows: usize,
+    nonzero_total_impact_rows: usize,
+    start_recovery_date_sentinel_rows: usize,
+    end_recovery_date_sentinel_rows: usize,
+    day_of_recover_sentinel_rows: usize,
+    earliest_event_start: String,
+    latest_event_start: String,
+    earliest_event_end: String,
+    latest_event_end: String,
+    data_capture_persisted: bool,
+    model_validation_performed: bool,
+    physical_simulation_performed: bool,
+    claim_ceiling: &'static str,
+}
+
+#[derive(Default)]
+struct ProfileCounts {
+    ids: BTreeSet<String>,
+    storm_ids: BTreeSet<String>,
+    port_ids: BTreeSet<String>,
+    storm_port_pairs: BTreeSet<(String, String)>,
+    duplicate_id_rows: usize,
+    duplicate_pair_rows: usize,
+    zero_total_impact_rows: usize,
+    nonzero_total_impact_rows: usize,
+    start_recovery_sentinels: usize,
+    end_recovery_sentinels: usize,
+    day_of_recover_sentinels: usize,
+    event_starts: Vec<String>,
+    event_ends: Vec<String>,
+}
+
+fn parse_csv(bytes: &[u8]) -> Result<Vec<Vec<String>>, String> {
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut row: Vec<String> = Vec::new();
+    let mut field = Vec::<u8>::new();
+    let mut in_quotes = false;
+    let mut after_quote = false;
+    let mut index = 0usize;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if in_quotes {
+            if byte == b'"' {
+                if bytes.get(index + 1) == Some(&b'"') {
+                    field.push(b'"');
+                    index += 1;
+                } else {
+                    in_quotes = false;
+                    after_quote = true;
+                }
+            } else {
+                field.push(byte);
+            }
+        } else if after_quote {
+            match byte {
+                b',' => {
+                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    after_quote = false;
+                }
+                b'\n' => {
+                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    push_nonblank_row(&mut rows, std::mem::take(&mut row));
+                    after_quote = false;
+                }
+                b'\r' if bytes.get(index + 1) == Some(&b'\n') => {
+                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    push_nonblank_row(&mut rows, std::mem::take(&mut row));
+                    index += 1;
+                    after_quote = false;
+                }
+                _ => {
+                    return Err(format!(
+                        "CSV row {}, column {}: unexpected byte after closing quote",
+                        rows.len() + 1,
+                        row.len() + 1
+                    ));
+                }
+            }
+        } else {
+            match byte {
+                b'"' if field.is_empty() => in_quotes = true,
+                b'"' => {
+                    return Err(format!(
+                        "CSV row {}, column {}: quote inside unquoted field",
+                        rows.len() + 1,
+                        row.len() + 1
+                    ));
+                }
+                b',' => {
+                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                }
+                b'\n' => {
+                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    push_nonblank_row(&mut rows, std::mem::take(&mut row));
+                }
+                b'\r' if bytes.get(index + 1) == Some(&b'\n') => {
+                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    push_nonblank_row(&mut rows, std::mem::take(&mut row));
+                    index += 1;
+                }
+                b'\r' => {
+                    return Err(format!(
+                        "CSV row {}, column {}: standalone carriage return is unsupported",
+                        rows.len() + 1,
+                        row.len() + 1
+                    ));
+                }
+                _ => field.push(byte),
+            }
+        }
+        index += 1;
+    }
+
+    if in_quotes {
+        return Err("CSV ends inside a quoted field".to_owned());
+    }
+    if after_quote || !field.is_empty() || !row.is_empty() {
+        row.push(decode_field(field, rows.len(), row.len())?);
+        push_nonblank_row(&mut rows, row);
+    }
+    if rows.is_empty() {
+        return Err("CSV is empty".to_owned());
+    }
+    Ok(rows)
+}
+
+fn decode_field(bytes: Vec<u8>, row: usize, column: usize) -> Result<String, String> {
+    String::from_utf8(bytes).map_err(|error| {
+        format!(
+            "CSV row {}, column {} is not valid UTF-8: {error}",
+            row + 1,
+            column + 1
+        )
+    })
+}
+
+fn push_nonblank_row(rows: &mut Vec<Vec<String>>, row: Vec<String>) {
+    if !(row.len() == 1 && row[0].is_empty()) {
+        rows.push(row);
+    }
+}
+
+fn git_blob_sha1(bytes: &[u8]) -> String {
+    let header = format!("blob {}\0", bytes.len());
+    let mut hasher = Sha1::new();
+    hasher.update(header.as_bytes());
+    hasher.update(bytes);
+    let digest = hasher.finalize();
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn is_sentinel(value: &str) -> bool {
+    let value = value.trim();
+    value.is_empty() || value == "0" || value.eq_ignore_ascii_case("NA") || value.eq_ignore_ascii_case("N/A")
+}
+
+fn column_index(header: &[String], name: &str) -> Result<usize, String> {
+    header
+        .iter()
+        .position(|field| field == name)
+        .ok_or_else(|| format!("required CyPort column {name:?} is missing"))
+}
+
+fn parse_mdy_date(value: &str, path: &str) -> Result<String, String> {
+    let date_part = value.split_ascii_whitespace().next().unwrap_or_default();
+    let mut pieces = date_part.split('/');
+    let month = pieces
+        .next()
+        .ok_or_else(|| format!("{path}: invalid month/day/year date"))?
+        .parse::<u32>()
+        .map_err(|_| format!("{path}: invalid month"))?;
+    let day = pieces
+        .next()
+        .ok_or_else(|| format!("{path}: invalid month/day/year date"))?
+        .parse::<u32>()
+        .map_err(|_| format!("{path}: invalid day"))?;
+    let year = pieces
+        .next()
+        .ok_or_else(|| format!("{path}: invalid month/day/year date"))?
+        .parse::<u32>()
+        .map_err(|_| format!("{path}: invalid year"))?;
+    if pieces.next().is_some() {
+        return Err(format!("{path}: unexpected date components"));
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => 0,
+    };
+    if year == 0 || day == 0 || day > max_day {
+        return Err(format!("{path}: impossible calendar date {value:?}"));
+    }
+    Ok(format!("{year:04}-{month:02}-{day:02}"))
+}
+
+fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
+    if bytes.len() > MAX_CSV_BYTES {
+        return Err(format!("CyPort interaction CSV exceeds the {}-byte limit", MAX_CSV_BYTES));
+    }
+    if bytes.len() == PINNED_BYTES {
+        let observed_blob = git_blob_sha1(bytes);
+        if observed_blob != PINNED_GIT_BLOB_SHA1 {
+            return Err(format!(
+                "CSV has the pinned resource byte length but Git blob SHA-1 mismatch: expected {PINNED_GIT_BLOB_SHA1}, observed {observed_blob}"
+            ));
+        }
+    }
+
+    let rows = parse_csv(bytes)?;
+    let header = &rows[0];
+    if header.len() != EXPECTED_HEADER.len() {
+        return Err(format!(
+            "CyPort header has {} columns; expected {}",
+            header.len(),
+            EXPECTED_HEADER.len()
+        ));
+    }
+    let mut seen_headers = BTreeSet::new();
+    for (index, expected) in EXPECTED_HEADER.iter().enumerate() {
+        if header[index] != *expected {
+            return Err(format!(
+                "CyPort header column {} mismatch: expected {:?}, got {:?}",
+                index + 1,
+                expected,
+                header[index]
+            ));
+        }
+        if !seen_headers.insert(header[index].clone()) {
+            return Err(format!("duplicate header name {:?}", header[index]));
+        }
+    }
+
+    let indexes = BTreeMap::from([
+        ("ID", column_index(header, "ID")?),
+        ("SID", column_index(header, "SID")?),
+        ("PID", column_index(header, "PID")?),
+        ("port", column_index(header, "port")?),
+        ("start_date", column_index(header, "start_date")?),
+        ("end_date", column_index(header, "end_date")?),
+        ("start_recovery_date", column_index(header, "start_recovery_date")?),
+        ("end_recovery_date", column_index(header, "end_recovery_date")?),
+        ("total_impact", column_index(header, "total_impact")?),
+        ("day_of_recover", column_index(header, "day_of_recover")?),
+    ]);
+    let records = &rows[1..];
+    if records.is_empty() {
+        return Err("CyPort interaction CSV has a header but no data rows".to_owned());
+    }
+    let mut counts = ProfileCounts::default();
+
+    for (row_index, record) in records.iter().enumerate() {
+        if record.len() != header.len() {
+            return Err(format!(
+                "CSV data row {} has {} fields; expected {}",
+                row_index + 2,
+                record.len(),
+                header.len()
+            ));
+        }
+        let value = |name: &str| -> &str { &record[indexes[name]] };
+        for name in ["ID", "SID", "PID", "port"] {
+            if is_sentinel(value(name)) {
+                return Err(format!("CSV row {} has missing required identity field {name}", row_index + 2));
+            }
+        }
+
+        let id = value("ID").to_owned();
+        if !counts.ids.insert(id) {
+            counts.duplicate_id_rows += 1;
+        }
+        let storm = value("SID").to_owned();
+        let port_id = value("PID").to_owned();
+        counts.storm_ids.insert(storm.clone());
+        counts.port_ids.insert(port_id.clone());
+        if !counts.storm_port_pairs.insert((storm, port_id)) {
+            counts.duplicate_pair_rows += 1;
+        }
+
+        let impact = value("total_impact")
+            .parse::<f64>()
+            .map_err(|_| format!("CSV row {} has invalid total_impact {:?}", row_index + 2, value("total_impact")))?;
+        if !impact.is_finite() || impact < 0.0 {
+            return Err(format!("CSV row {} has non-finite or negative total_impact", row_index + 2));
+        }
+        if impact == 0.0 {
+            counts.zero_total_impact_rows += 1;
+        } else {
+            counts.nonzero_total_impact_rows += 1;
+        }
+
+        let start = parse_mdy_date(value("start_date"), &format!("row {} start_date", row_index + 2))?;
+        let end = parse_mdy_date(value("end_date"), &format!("row {} end_date", row_index + 2))?;
+        if end < start {
+            return Err(format!(
+                "CSV row {} ends before its start date ({start} > {end})",
+                row_index + 2
+            ));
+        }
+        counts.event_starts.push(start);
+        counts.event_ends.push(end);
+
+        if is_sentinel(value("start_recovery_date")) {
+            counts.start_recovery_sentinels += 1;
+        } else {
+            let _ = parse_mdy_date(value("start_recovery_date"), &format!("row {} start_recovery_date", row_index + 2))?;
+        }
+        if is_sentinel(value("end_recovery_date")) {
+            counts.end_recovery_sentinels += 1;
+        } else {
+            let _ = parse_mdy_date(value("end_recovery_date"), &format!("row {} end_recovery_date", row_index + 2))?;
+        }
+        if is_sentinel(value("day_of_recover")) {
+            counts.day_of_recover_sentinels += 1;
+        }
+    }
+
+    counts.event_starts.sort();
+    counts.event_ends.sort();
+    let observed_blob_sha1 = git_blob_sha1(bytes);
+    let pinned_source_identity_verified =
+        bytes.len() == PINNED_BYTES && observed_blob_sha1 == PINNED_GIT_BLOB_SHA1;
+
+    if pinned_source_identity_verified {
+        let expected = [
+            ("data rows", records.len(), 1_927usize),
+            ("unique storms", counts.storm_ids.len(), 90usize),
+            ("unique ports", counts.port_ids.len(), 122usize),
+            ("unique interaction IDs", counts.ids.len(), 1_927usize),
+            ("unique storm-port pairs", counts.storm_port_pairs.len(), 1_927usize),
+            ("zero-impact rows", counts.zero_total_impact_rows, 1_654usize),
+            ("nonzero-impact rows", counts.nonzero_total_impact_rows, 273usize),
+            ("start-recovery sentinels", counts.start_recovery_sentinels, 1_650usize),
+            ("end-recovery sentinels", counts.end_recovery_sentinels, 1_650usize),
+            ("recovery-day sentinels", counts.day_of_recover_sentinels, 1_650usize),
+        ];
+        for (name, actual, target) in expected {
+            if actual != target {
+                return Err(format!(
+                    "pinned CyPort profile drift for {name}: expected {target}, observed {actual}"
+                ));
+            }
+        }
+        if counts.duplicate_id_rows != 0 || counts.duplicate_pair_rows != 0 {
+            return Err("pinned CyPort profile contains duplicate interaction IDs or storm-port pairs".to_owned());
+        }
+        if counts.event_starts.first().map(String::as_str) != Some("2015-05-06")
+            || counts.event_starts.last().map(String::as_str) != Some("2023-10-22")
+            || counts.event_ends.first().map(String::as_str) != Some("2015-05-06")
+            || counts.event_ends.last().map(String::as_str) != Some("2023-10-23")
+        {
+            return Err("pinned CyPort event date range differs from the inspected source profile".to_owned());
+        }
+    }
+
+    let status = if pinned_source_identity_verified {
+        "PINNED_SOURCE_PROFILED_NOT_MODEL_VALIDATED"
+    } else {
+        "SCHEMA_VALID_PROFILE_NOT_PINNED"
+    };
+    Ok(CyPortInteractionReport {
+        status,
+        source_id: "cyport_us_port_tropical_cyclone_resilience",
+        source_revision: PINNED_REVISION,
+        source_path: "Tropical_cyclone_interaction/interaction_data.csv",
+        source_git_blob_sha1_expected: PINNED_GIT_BLOB_SHA1,
+        source_git_blob_sha1_observed: observed_blob_sha1,
+        source_sha256_observed: super::sha256_bytes(bytes),
+        source_byte_length: bytes.len(),
+        pinned_source_identity_verified,
+        column_count: header.len(),
+        data_row_count: records.len(),
+        unique_interaction_ids: counts.ids.len(),
+        duplicate_interaction_id_rows: counts.duplicate_id_rows,
+        unique_storm_ids: counts.storm_ids.len(),
+        unique_port_ids: counts.port_ids.len(),
+        unique_storm_port_pairs: counts.storm_port_pairs.len(),
+        duplicate_storm_port_pair_rows: counts.duplicate_pair_rows,
+        zero_total_impact_rows: counts.zero_total_impact_rows,
+        nonzero_total_impact_rows: counts.nonzero_total_impact_rows,
+        start_recovery_date_sentinel_rows: counts.start_recovery_sentinels,
+        end_recovery_date_sentinel_rows: counts.end_recovery_sentinels,
+        day_of_recover_sentinel_rows: counts.day_of_recover_sentinels,
+        earliest_event_start: counts.event_starts[0].clone(),
+        latest_event_start: counts.event_starts[counts.event_starts.len() - 1].clone(),
+        earliest_event_end: counts.event_ends[0].clone(),
+        latest_event_end: counts.event_ends[counts.event_ends.len() - 1].clone(),
+        data_capture_persisted: false,
+        model_validation_performed: false,
+        physical_simulation_performed: false,
+        claim_ceiling: "Local source-structure and profile check only; no prediction, causal inference, physical simulation, model validation or operational claim.",
+    })
+}
+
+pub(super) fn run_cli(csv_path: &str) -> Result<(), String> {
+    let metadata = fs::metadata(csv_path)
+        .map_err(|error| format!("cannot stat CyPort interaction CSV {csv_path}: {error}"))?;
+    if metadata.len() > MAX_CSV_BYTES as u64 {
+        return Err(format!("CyPort interaction CSV exceeds the {}-byte limit", MAX_CSV_BYTES));
+    }
+    let bytes = fs::read(csv_path)
+        .map_err(|error| format!("cannot read CyPort interaction CSV {csv_path}: {error}"))?;
+    let report = profile_bytes(&bytes)?;
+    println!(
+        "{}",
+        serde_json::to_string(&report).map_err(|error| format!("cannot serialize CyPort profile: {error}"))?
+    );
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SYNTHETIC_FIXTURE: &[u8] =
+        include_bytes!("../tests/fixtures/cyport-interaction-profile-synthetic.csv");
+
+    #[test]
+    fn synthetic_fixture_profiles_without_claiming_source_identity() {
+        let report = profile_bytes(SYNTHETIC_FIXTURE).expect("synthetic fixture should profile");
+        assert_eq!(report.status, "SCHEMA_VALID_PROFILE_NOT_PINNED");
+        assert_eq!(report.column_count, 56);
+        assert_eq!(report.data_row_count, 4);
+        assert_eq!(report.unique_storm_ids, 2);
+        assert_eq!(report.unique_port_ids, 3);
+        assert_eq!(report.unique_storm_port_pairs, 4);
+        assert_eq!(report.zero_total_impact_rows, 2);
+        assert_eq!(report.nonzero_total_impact_rows, 2);
+        assert_eq!(report.start_recovery_date_sentinel_rows, 2);
+        assert!(!report.pinned_source_identity_verified);
+        assert!(!report.data_capture_persisted);
+        assert!(!report.model_validation_performed);
+        assert!(!report.physical_simulation_performed);
+    }
+
+    #[test]
+    fn empty_git_blob_hash_matches_git_object_vector() {
+        assert_eq!(git_blob_sha1(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391");
+    }
+
+    #[test]
+    fn pinned_length_with_wrong_git_blob_identity_fails_closed() {
+        let bytes = vec![b'x'; PINNED_BYTES];
+        let error = profile_bytes(&bytes).unwrap_err();
+        assert!(error.contains("Git blob SHA-1 mismatch"));
+    }
+
+    #[test]
+    fn header_drift_is_rejected() {
+        let mut bytes = SYNTHETIC_FIXTURE.to_vec();
+        let marker = b"PORT_LON";
+        let position = bytes.windows(marker.len()).position(|window| window == marker).unwrap();
+        bytes[position] = b'X';
+        assert!(profile_bytes(&bytes).unwrap_err().contains("header column"));
+    }
+
+    #[test]
+    fn ragged_data_row_is_rejected() {
+        let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
+        let last_line = text.lines().last().unwrap();
+        let truncated = last_line.split(',').take(10).collect::<Vec<_>>().join(",");
+        let changed = format!("{}\n{}\n", text.lines().take(4).collect::<Vec<_>>().join("\n"), truncated);
+        assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("fields; expected"));
+    }
+
+    #[test]
+    fn unbalanced_quoted_field_is_rejected() {
+        let bytes = b"ID,SID\n1,\"unterminated";
+        assert!(parse_csv(bytes).unwrap_err().contains("inside a quoted field"));
+    }
+
+    #[test]
+    fn duplicate_interaction_ids_are_counted_for_schema_fixture() {
+        let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
+        let mut rows: Vec<String> = text.lines().map(str::to_owned).collect();
+        let first = rows[1].clone();
+        let mut second_fields: Vec<String> = first.split(',').map(str::to_owned).collect();
+        second_fields[0] = "1".to_owned();
+        rows[2] = second_fields.join(",");
+        let changed = rows.join("\n") + "\n";
+        let report = profile_bytes(changed.as_bytes()).unwrap();
+        assert_eq!(report.duplicate_interaction_id_rows, 1);
+    }
+
+    #[test]
+    fn impossible_event_date_is_rejected() {
+        let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
+        let changed = text.replacen("10/1/2022", "2/31/2022", 1);
+        assert_ne!(text, changed);
+        assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("impossible calendar date"));
+    }
+
+    #[test]
+    fn zero_sentinel_is_not_reported_as_a_recovery_time() {
+        let report = profile_bytes(SYNTHETIC_FIXTURE).unwrap();
+        assert_eq!(report.start_recovery_date_sentinel_rows, 2);
+        assert_eq!(report.end_recovery_date_sentinel_rows, 2);
+        assert_eq!(report.day_of_recover_sentinel_rows, 2);
+    }
+}
