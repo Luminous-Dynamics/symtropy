@@ -28,6 +28,8 @@ Each profile declares a functional unit, intended service, named value/function 
 5. Deadstock or runway samples have uncertain blends or adhesives. Uncertainty must remain visible and block unsupported recycling claims.
 6. Heritage/archive garments may use conservation years or controlled exhibition days as the service unit. Do not require physical wear cycles or prescribe wearing fragile/historic items.
 7. Bridal/ceremonial pieces can prioritize fit, cultural meaning, alteration, passing on and preservation. These should be named dimensions, not collapsed into “wears per dollar.”
+8. **Unsold runway/sample inventory:** compare reusing existing samples, preorder/made-to-order, small batch, and forecast-driven production. Record stockouts, lead time and accepted demand as well as unsold quantity; neither zero stock nor zero surplus is a universal optimum.
+9. **Overproduction prevention:** report unsold garments, deadstock fabric and samples per accepted functional unit, plus stockout/late-delivery cost. Do not count donation or reallocation as avoided impact without evidence of a real second use.
 
 ## Evidence basis and limits
 
