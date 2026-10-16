@@ -163,3 +163,7 @@ See [the housing-engineering benchmark and conformance program](../../../docs/bu
 ## Analytical axial-bar reference fixture
 
 The repository also includes [`axial-bar-linear-static-v1.json`](../../../docs/built-environment/benchmarks/axial-bar-linear-static-v1.json) and `tests/reference_axial_bar.rs`. This synthetic case checks rectangular area, axial stress, free-end extension and support reaction using closed-form equations; it rejects non-positive inputs and inconsistent declared area, and checks load/length/modulus/section scaling relationships. This is a second analytical benchmark only—not a solver qualification, design approval or evidence of physical validation. The next analytical extension is a simply supported beam with point-load and distributed-load cases.
+
+## Simply supported beam reference fixtures
+
+[`simply-supported-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json) and `tests/reference_simply_supported_beam.rs` cover two simple-span analytical load cases: a midpoint point load and a uniform distributed load. The tests check maximum deflection, bending moment, extreme-fiber stress and support reaction; geometry consistency, non-positive inputs and declared load/span scaling are also checked. This is analytical verification plumbing only. The next major assurance milestone is an independent result checker that recomputes verdicts from pinned criteria and raw outputs before a finite-element solver is considered for any bounded comparison.
