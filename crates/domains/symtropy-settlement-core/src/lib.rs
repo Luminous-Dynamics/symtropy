@@ -569,19 +569,10 @@ fn validate_input(
         }
     }
 
-    let declared_supply_pools: BTreeSet<(ResourceKind, String)> = input
-        .resource_supplies
-        .iter()
-        .map(|supply| (supply.resource_kind, supply.allocation_pool_id.clone()))
-        .collect();
     let mut demand_ids = BTreeSet::new();
     for demand in &input.resource_demands {
         valid_identifier(&demand.demand_id, "demand ID")?;
         valid_identifier(&demand.allocation_pool_id, "resource allocation pool ID")?;
-        if !declared_supply_pools.contains(&(demand.resource_kind, demand.allocation_pool_id.clone())) {
-            // Missing supply is a legitimate modeled shortage; a same-kind
-            // supply in a different pool is not an implicit substitute.
-        }
         if !components.contains_key(&demand.consumer_component) {
             return Err(SettlementError(format!(
                 "demand {} references missing consumer {}",
@@ -766,11 +757,13 @@ fn allocate_resources(
                 .ok_or_else(|| SettlementError("resource consumer state missing".into()))?;
             let mut sources = Vec::new();
             let mut allocated = 0_u64;
+            // Snapshot before the demand consumes any hypothetical upper-bound
+            // capacity from unknown supplies.
+            let unresolved_before_demand = unresolved_remaining;
             let outcome = match consumer_state {
                 ComponentState::Failed => DemandOutcome::ConsumerUnavailable,
                 ComponentState::Unknown { .. } => DemandOutcome::ConsumerStateUnknown,
                 ComponentState::Available => {
-                    let unresolved_before_demand = unresolved_remaining;
                     for supply in &supplies {
                         let Some(remaining) = known_remaining.get_mut(&supply.supply_id) else {
                             continue;
