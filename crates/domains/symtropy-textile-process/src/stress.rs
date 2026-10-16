@@ -823,6 +823,10 @@ mod tests {
                 .and_then(|shock| shock.energy_budget_units),
             Some(0)
         );
+        assert_eq!(
+            report.scenario_results[3].exact_outcome,
+            ScenarioExactOutcome::NoFeasibleSchedule
+        );
         assert_eq!(report.scenario_count, 6);
         assert_eq!(report.exact_feasible_scenarios, 3);
         assert_eq!(report.exact_no_schedule_scenarios, 3);
@@ -1102,6 +1106,91 @@ mod tests {
         assert!(matches!(
             evaluate_stress_corpus(&fixture_problem(), &corpus),
             Err(StressHarnessError::EmptyUtilityBudgetShock { .. })
+        ));
+    }
+
+
+    #[test]
+    fn invalid_process_resource_shocks_fail_closed() {
+        let duplicate = StressCorpus {
+            id: "duplicate-resource-shock".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![StressScenario {
+                id: "duplicate".to_owned(),
+                fixture_ref: "fixture:stress:duplicate-resource".to_owned(),
+                processing_delays: vec![],
+                process_resource_shocks: vec![
+                    ProcessResourceShock {
+                        job_id: "ceremonial-repair".to_owned(),
+                        additional_energy_units: 1,
+                        additional_water_units: 0,
+                    },
+                    ProcessResourceShock {
+                        job_id: "ceremonial-repair".to_owned(),
+                        additional_energy_units: 0,
+                        additional_water_units: 1,
+                    },
+                ],
+                release_delays: vec![],
+                utility_budget_shock: None,
+                machine_availability_delays: vec![],
+            }],
+        };
+        assert!(matches!(
+            evaluate_stress_corpus(&fixture_problem(), &duplicate),
+            Err(StressHarnessError::DuplicateJobResourceShock { .. })
+        ));
+
+        let empty = StressCorpus {
+            id: "empty-resource-shock".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![StressScenario {
+                id: "empty".to_owned(),
+                fixture_ref: "fixture:stress:empty-resource".to_owned(),
+                processing_delays: vec![],
+                process_resource_shocks: vec![ProcessResourceShock {
+                    job_id: "ceremonial-repair".to_owned(),
+                    additional_energy_units: 0,
+                    additional_water_units: 0,
+                }],
+                release_delays: vec![],
+                utility_budget_shock: None,
+                machine_availability_delays: vec![],
+            }],
+        };
+        assert!(matches!(
+            evaluate_stress_corpus(&fixture_problem(), &empty),
+            Err(StressHarnessError::EmptyProcessResourceShock { .. })
+        ));
+    }
+
+    #[test]
+    fn process_resource_shock_arithmetic_overflow_is_rejected() {
+        let mut problem = fixture_problem();
+        problem.jobs[0].energy_units = u64::MAX;
+        let corpus = StressCorpus {
+            id: "resource-overflow".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![StressScenario {
+                id: "energy-overflow".to_owned(),
+                fixture_ref: "fixture:stress:resource-overflow".to_owned(),
+                processing_delays: vec![],
+                process_resource_shocks: vec![ProcessResourceShock {
+                    job_id: "ceremonial-repair".to_owned(),
+                    additional_energy_units: 1,
+                    additional_water_units: 0,
+                }],
+                release_delays: vec![],
+                utility_budget_shock: None,
+                machine_availability_delays: vec![],
+            }],
+        };
+        assert!(matches!(
+            evaluate_stress_corpus(&problem, &corpus),
+            Err(StressHarnessError::ProcessResourceOverflow {
+                resource: "energy",
+                ..
+            })
         ));
     }
 
