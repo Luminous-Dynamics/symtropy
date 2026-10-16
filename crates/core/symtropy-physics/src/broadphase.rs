@@ -747,8 +747,8 @@ mod tests {
                 Point::new([0.5, 0.0, 0.0]),
                 Box::new(Sphere::unit()),
             ),
-            kinematic(BodyHandle(2).0, Point::new([0.25, 0.0, 0.0])),
-            kinematic(BodyHandle(3).0, Point::new([1.0, 0.0, 0.0])),
+            kinematic(2, Point::new([0.25, 0.0, 0.0])),
+            kinematic(3, Point::new([1.0, 0.0, 0.0])),
         ];
 
         let mut static_bp = StaticBroadphase::new();
