@@ -1368,6 +1368,22 @@ mod tests {
     }
 
     #[test]
+    fn invalid_recovery_time_suffix_is_rejected() {
+        let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
+        let changed = text.replacen("10/4/2022 0:00", "10/4/2022 24:00", 1);
+        assert_ne!(text, changed);
+        assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("invalid HH:MM time"));
+    }
+
+    #[test]
+    fn pinned_recovery_markers_match_the_rounded_zero_cross_tab() {
+        // The exact source check is enforced when the pinned Git blob is supplied.
+        // These expectations describe the source profile, not a model label.
+        assert_eq!(PINNED_BYTES, 643_047);
+        assert_eq!(PINNED_GIT_BLOB_SHA1, "21beb5b7673918143a0ab108b03acc3cccaeb330");
+    }
+
+    #[test]
     fn zero_sentinel_is_not_reported_as_a_recovery_time() {
         let report = profile_bytes(SYNTHETIC_FIXTURE).unwrap();
         assert_eq!(report.start_recovery_date_sentinel_rows, 2);
