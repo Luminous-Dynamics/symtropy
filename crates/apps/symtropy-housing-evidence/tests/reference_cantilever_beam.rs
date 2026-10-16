@@ -214,7 +214,8 @@ fn analytical_reference_obeys_mechanical_scaling_invariants() {
 
     let mut double_modulus = base.clone();
     double_modulus["inputs"]["elastic_modulus_Pa"] = serde_json::json!(400_000_000_000.0);
-    let modulus_result = evaluate_reference(&double_modulus).expect("positive doubled modulus is valid");
+    let modulus_result =
+        evaluate_reference(&double_modulus).expect("positive doubled modulus is valid");
     assert!(close_relative(
         modulus_result.deflection_m,
         reference.deflection_m / 2.0,
@@ -229,7 +230,8 @@ fn analytical_reference_obeys_mechanical_scaling_invariants() {
     let mut double_width = base.clone();
     double_width["inputs"]["section_width_m"] = serde_json::json!(0.192);
     double_width["inputs"]["second_moment_area_m4"] = serde_json::json!(0.000016);
-    let width_result = evaluate_reference(&double_width).expect("consistent doubled width is valid");
+    let width_result =
+        evaluate_reference(&double_width).expect("consistent doubled width is valid");
     assert!(close_relative(
         width_result.inertia_m4,
         reference.inertia_m4 * 2.0,
@@ -250,7 +252,8 @@ fn analytical_reference_obeys_mechanical_scaling_invariants() {
     double_depth["inputs"]["section_depth_m"] = serde_json::json!(0.2);
     double_depth["inputs"]["second_moment_area_m4"] = serde_json::json!(0.000064);
     double_depth["inputs"]["extreme_fiber_distance_m"] = serde_json::json!(0.1);
-    let depth_result = evaluate_reference(&double_depth).expect("consistent doubled depth is valid");
+    let depth_result =
+        evaluate_reference(&double_depth).expect("consistent doubled depth is valid");
     assert!(close_relative(
         depth_result.inertia_m4,
         reference.inertia_m4 * 8.0,
