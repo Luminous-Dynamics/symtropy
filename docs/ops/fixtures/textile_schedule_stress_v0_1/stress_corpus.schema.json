@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://luminousdynamics.io/schemas/textile-schedule-stress-v0-1.json",
+  "$id": "urn:luminous-dynamics:textile-schedule-stress:v0.1",
   "title": "Textile schedule stress corpus v0.1",
   "description": "A versioned synthetic or measured perturbation corpus for the bounded textile schedule stress harness. References do not authenticate evidence.",
   "type": "object",
