@@ -41,6 +41,7 @@ The Rust tests in `adaptive_resilience.rs` exercise:
 - dependency edges referencing undeclared nodes;
 - perturbations extending beyond the declared horizon;
 - duplicate trace identifiers;
+- a fixed-seed, 256-case integer-trajectory corpus compared against a test oracle that does not call production metric helpers;
 - unknown/indeterminate evidence cases that cannot acquire a quantitative projection.
 
 This is a **starter corpus**, not full falsification coverage. Rust execution still requires the exact-head workflow; no pass is implied by source inspection.
