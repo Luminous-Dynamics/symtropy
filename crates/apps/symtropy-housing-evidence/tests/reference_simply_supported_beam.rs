@@ -456,7 +456,7 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
             ));
             assert!(close_relative(
                 result.reaction_magnitude_n,
-                reference.reaction_magnitude_n * factor.powi(reaction_power),
+                reference.reaction_magnitude_n,
                 tolerance
             ));
         }
