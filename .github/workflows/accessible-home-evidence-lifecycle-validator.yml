@@ -1,0 +1,68 @@
+name: Accessible home evidence lifecycle validator
+
+on:
+  pull_request:
+    paths:
+      - "tools/accessible-home-evidence-lifecycle-validator/**"
+      - "docs/built-environment/accessible-home-evidence-lifecycle-v0.1*"
+      - "docs/built-environment/accessible-home-benchmark-plan-v0.1.md"
+      - ".github/workflows/accessible-home-evidence-lifecycle-validator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/accessible-home-evidence-lifecycle-validator/**"
+      - "docs/built-environment/accessible-home-evidence-lifecycle-v0.1*"
+      - "docs/built-environment/accessible-home-benchmark-plan-v0.1.md"
+      - ".github/workflows/accessible-home-evidence-lifecycle-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accessible-home-evidence-lifecycle-validator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Format, replay and synthetic mutation tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Normalize formatting in ephemeral runner workspace
+        run: cargo fmt --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml
+      - name: Confirm normalized formatting
+        run: cargo fmt --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- --check
+      - name: Run semantic negative controls
+        run: cargo test --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml
+      - name: Replay committed synthetic fixture
+        run: |
+          cargo run --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- \
+            --input docs/built-environment/accessible-home-evidence-lifecycle-v0.1.example.json \
+            --output /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"facet_count": 4' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"claim_count": 3' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"event_count": 1' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"path_count": 3' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"validator_version": "accessible-home-evidence-lifecycle-validator/0.1.0"' /tmp/accessible-home-lifecycle-receipt.json
+
+      - name: Run reproducible benchmark smoke test
+        run: |
+          cargo run --release --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml --bin accessible-home-evidence-lifecycle-benchmark -- --claims 1000 --events 100 --paths 100 --warmup 1 --iterations 3 > /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"synthetic_only": true' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"claims": 1000' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"events": 100' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"paths": 100' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"validated_claim_count": 1000' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -Eq '"input_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -Eq '"receipt_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-lifecycle-benchmark.json
+          grep -q '"timed_iterations": 3' /tmp/accessible-home-lifecycle-benchmark.json
+      - name: Preserve synthetic benchmark smoke report
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessible-home-lifecycle-benchmark-smoke
+          path: /tmp/accessible-home-lifecycle-benchmark.json
+          if-no-files-found: error
+          retention-days: 7
