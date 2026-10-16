@@ -971,6 +971,37 @@ mod tests {
     }
 
     #[test]
+    fn contradictory_derived_input_is_blocked_even_if_outputs_follow_geometry() {
+        let mut benchmark: Value =
+            serde_json::from_str(AXIAL_FIXTURE).expect("valid analytical fixture");
+        benchmark["inputs"]["cross_section_area_m2"] = json!(0.006);
+        let altered_fixture =
+            serde_json::to_string_pretty(&benchmark).expect("serialize altered fixture");
+        let outputs = outputs_from_fixture(&altered_fixture, "default");
+        let (root, record_path, pin) = setup_case_for_fixture(
+            &altered_fixture,
+            "default",
+            outputs,
+            "CLAIMED_PASS",
+            None,
+        );
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(report.issues.iter().any(|issue| {
+            issue.contains("derived benchmark input")
+                && issue.contains("cross_section_area_m2")
+        }));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
     fn independent_checker_matches_valid_reference_outputs() {
         let (root, record_path, pin) = setup_case(outputs_from_fixture(AXIAL_FIXTURE, "default"), "CLAIMED_PASS", None);
         let report = validate_paths(
