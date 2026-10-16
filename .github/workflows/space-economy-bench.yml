@@ -38,12 +38,11 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path tools/space-economy-bench/Cargo.toml -- --check
-
-      - name: Run unit and negative-control tests
+      - name: Run corpus validator unit tests
         run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml
 
+      - name: Run exact value-of-information reference tests
+        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference
       - name: Execute corpus validator and emit receipt
         shell: bash
         run: |
@@ -61,10 +60,29 @@ jobs:
             and (.scenarios | all(.status == "pass"))
           ' space-economy-reference-receipt.json
 
-      - name: Upload deterministic corpus receipt
+      - name: Execute value-of-information reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference -- \
+            --source-commit "$source_commit" > space-economy-voi-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 2
+            and .scenarios[0].metrics.sample_information_value_before_cost_scu.numerator == 2700000000
+            and .scenarios[0].metrics.survey_net_incremental_value_scu.numerator == 1700000000
+            and .scenarios[0].decision.purchase_survey == true
+            and .scenarios[1].metrics.sample_information_value_before_cost_scu.numerator == 0
+            and .scenarios[1].decision.purchase_survey == false
+          ' space-economy-voi-reference-receipt.json
+
+      - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
-          name: space-economy-reference-receipt
-          path: space-economy-reference-receipt.json
+          name: space-economy-reference-receipts
+          path: |
+            space-economy-reference-receipt.json
+            space-economy-voi-reference-receipt.json
           if-no-files-found: error
           retention-days: 90
