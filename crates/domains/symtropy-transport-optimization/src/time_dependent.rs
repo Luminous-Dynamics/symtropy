@@ -74,6 +74,7 @@ pub enum ArrivalFunctionError {
     NonFifoArrivalTimes,
     DepartureOutsideEvidenceValidity,
     DepartureOutsideFunctionDomain,
+    TimeProfileMismatch,
     ArithmeticOverflow,
 }
 
@@ -110,6 +111,8 @@ impl fmt::Display for ArrivalFunctionError {
                 formatter.write_str("departure time falls outside the evidence validity interval"),
             Self::DepartureOutsideFunctionDomain =>
                 formatter.write_str("departure time falls outside the declared arrival-function domain"),
+            Self::TimeProfileMismatch =>
+                formatter.write_str("query and arrival-function time profiles do not match"),
             Self::ArithmeticOverflow =>
                 formatter.write_str("arrival-time interpolation overflowed"),
         }
@@ -212,7 +215,12 @@ impl FifoArrivalTimeFunctionV1 {
         &self,
         departure_epoch_seconds: u64,
         knowledge_cutoff_epoch_seconds: u64,
+        query_time_profile_id: &str,
     ) -> Result<ArrivalTimeEstimateV1, ArrivalFunctionError> {
+        if query_time_profile_id != self.evidence.time_profile_id {
+            return Err(ArrivalFunctionError::TimeProfileMismatch);
+        }
+
         let published_at = self
             .evidence
             .source_published_at_epoch_seconds
@@ -340,17 +348,17 @@ mod tests {
     fn evaluates_exact_endpoints_and_interpolates_fractional_seconds_conservatively() {
         let function = function(&[(100, 151), (200, 252), (300, 360)]).unwrap();
 
-        let first = function.arrival_at(100, 55).unwrap();
+        let first = function.arrival_at(100, 55, "UTC_UNIX_SECONDS_V1").unwrap();
         assert_eq!(first.arrival_epoch_seconds, 151);
         assert_eq!(first.travel_seconds, 51);
 
         // Halfway through [100, 200], the linear arrival is 201.5 seconds;
         // integer ceiling yields 202 rather than silently rounding down.
-        let middle = function.arrival_at(150, 55).unwrap();
+        let middle = function.arrival_at(150, 55, "UTC_UNIX_SECONDS_V1").unwrap();
         assert_eq!(middle.arrival_epoch_seconds, 202);
         assert_eq!(middle.travel_seconds, 52);
 
-        let last = function.arrival_at(300, 55).unwrap();
+        let last = function.arrival_at(300, 55, "UTC_UNIX_SECONDS_V1").unwrap();
         assert_eq!(last.arrival_epoch_seconds, 360);
         assert_eq!(last.travel_seconds, 60);
     }
@@ -359,7 +367,7 @@ mod tests {
     fn later_departures_never_arrive_earlier_for_a_valid_fifo_function() {
         let function = function(&[(100, 140), (200, 240), (300, 390)]).unwrap();
         let arrivals = (100..=300)
-            .map(|departure| function.arrival_at(departure, 55).unwrap().arrival_epoch_seconds)
+            .map(|departure| function.arrival_at(departure, 55, "UTC_UNIX_SECONDS_V1").unwrap().arrival_epoch_seconds)
             .collect::<Vec<_>>();
         assert!(arrivals.windows(2).all(|pair| pair[0] <= pair[1]));
     }
@@ -397,14 +405,14 @@ mod tests {
         let function = function(&[(100, 151), (200, 252)]).unwrap();
 
         assert_eq!(
-            function.arrival_at(150, 49),
+            function.arrival_at(150, 49, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::NotKnownAtCutoff)
         );
         assert_eq!(
-            function.arrival_at(150, 54),
+            function.arrival_at(150, 54, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::NotKnownAtCutoff)
         );
-        assert_eq!(function.arrival_at(150, 55).unwrap().arrival_epoch_seconds, 202);
+        assert_eq!(function.arrival_at(150, 55, "UTC_UNIX_SECONDS_V1").unwrap().arrival_epoch_seconds, 202);
     }
 
     #[test]
@@ -419,7 +427,7 @@ mod tests {
             ],
         ).unwrap();
         assert_eq!(
-            missing_publication.arrival_at(150, 100),
+            missing_publication.arrival_at(150, 100, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::MissingPublicationTime)
         );
 
@@ -436,7 +444,7 @@ mod tests {
             ],
         ).unwrap();
         assert_eq!(
-            unqualified.arrival_at(150, 100),
+            unqualified.arrival_at(150, 100, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::UnqualifiedEvidence {
                 reason: "source-use terms not reviewed".into(),
             })
@@ -447,19 +455,19 @@ mod tests {
     fn interpolation_does_not_extrapolate_outside_function_or_evidence_horizon() {
         let function = function(&[(100, 151), (200, 252)]).unwrap();
         assert_eq!(
-            function.arrival_at(99, 55),
+            function.arrival_at(99, 55, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::DepartureOutsideEvidenceValidity)
         );
         assert_eq!(
-            function.arrival_at(201, 55),
+            function.arrival_at(201, 55, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::DepartureOutsideFunctionDomain)
         );
         assert_eq!(
-            function.arrival_at(2_999, 55),
+            function.arrival_at(2_999, 55, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::DepartureOutsideFunctionDomain)
         );
         assert_eq!(
-            function.arrival_at(3_000, 55),
+            function.arrival_at(3_000, 55, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::DepartureOutsideEvidenceValidity)
         );
     }
@@ -514,10 +522,19 @@ mod tests {
     }
 
     #[test]
+    fn mismatched_time_profile_is_rejected_before_interpolation() {
+        let function = function(&[(100, 151), (200, 252)]).unwrap();
+        assert_eq!(
+            function.arrival_at(150, 55, "LOCAL_WALL_CLOCK_UNSPECIFIED"),
+            Err(ArrivalFunctionError::TimeProfileMismatch)
+        );
+    }
+
+    #[test]
     fn interpolation_is_input_immutable_and_deterministic() {
         let forward = function(&[(100, 150), (200, 270), (300, 330)]).unwrap();
         let reversed = function(&[(100, 150), (200, 270), (300, 330)]).unwrap();
         assert_eq!(forward, reversed);
-        assert_eq!(forward.arrival_at(175, 55), reversed.arrival_at(175, 55));
+        assert_eq!(forward.arrival_at(175, 55, "UTC_UNIX_SECONDS_V1"), reversed.arrival_at(175, 55, "UTC_UNIX_SECONDS_V1"));
     }
 }
