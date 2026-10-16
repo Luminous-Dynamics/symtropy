@@ -590,12 +590,18 @@ impl<const D: usize> ConsciousnessField<D> {
         for (handle, pos) in positions {
             let effect = leakage.total_effect_at(pos);
             if let Some(entity) = self.entities.get_mut(handle) {
+                if !effect.is_finite() {
+                    // Reject non-finite source values and mark this tick invalid.
+                    self.ledger.record_regeneration(effect);
+                    continue;
+                }
                 if effect > 0.0 {
                     let available_before = entity.energy.available;
                     entity.energy.regenerate(effect);
-                    // Record only the energy that actually reached the reservoir
-                    // (not the requested amount discarded by the capacity cap).
-                    let accepted = (entity.energy.available - available_before).max(0.0);
+                    // Record only the observed reservoir delta, not the requested
+                    // amount discarded by the capacity cap. Keep NaN visible so
+                    // the checked ledger rejects it instead of masking it with max().
+                    let accepted = entity.energy.available - available_before;
                     self.ledger.record_regeneration(accepted);
                 } else if effect < 0.0 {
                     let consumed = entity.energy.consume(effect.abs());
