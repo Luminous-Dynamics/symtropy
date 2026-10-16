@@ -524,6 +524,18 @@ mod tests {
             NewtonsPerMeter::try_from_si(f64::INFINITY).unwrap_err().kind,
             StructuralReferenceErrorKind::NonFiniteInput
         );
+        assert_eq!(
+            SquareMeters::try_from_si(0.0).unwrap_err().kind,
+            StructuralReferenceErrorKind::NonPositiveInput
+        );
+        assert_eq!(
+            FourthMomentOfArea::try_from_si(-1.0).unwrap_err().kind,
+            StructuralReferenceErrorKind::NonPositiveInput
+        );
+        assert_eq!(
+            NewtonMeters::try_from_si(f64::NEG_INFINITY).unwrap_err().kind,
+            StructuralReferenceErrorKind::NonFiniteInput
+        );
     }
 
     #[test]
