@@ -196,7 +196,7 @@ fn validate_date(value: &JsonValue, path: &str) -> Result<(), String> {
     }
 }
 
-fn validate_un captured_artifact(root: &JsonValue, path: &str) -> Result<(), String> {
+fn validate_uncaptured_artifact(root: &JsonValue, path: &str) -> Result<(), String> {
     let capture_status = field_text(root, "capture_status", path)?;
     if capture_status != "not_captured" {
         return Err(format!("{path}.capture_status: only not_captured is allowed in registry v0.1"));
@@ -320,7 +320,7 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
         _ => return Err(format!("{path}.source_id: unknown source identifier {source_id:?}")),
     }
 
-    validate_un captured_artifact(source, &path)?;
+    validate_uncaptured_artifact(source, &path)?;
 
     Ok(HistoricalSourceSummary {
         source_id,
