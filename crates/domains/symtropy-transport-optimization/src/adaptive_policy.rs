@@ -430,7 +430,7 @@ fn validate_scenario_option(
     demand_id: &str,
     path_id: &str,
     option: &FifoAdaptiveRouteScenarioOptionV1,
-) -> Result<(PreparedAdaptiveScenario, Vec<(String, String, String)>, BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, u64, QuantityUnit)>>), FifoAdaptivePolicyErrorV1> {
+) -> Result<(PreparedAdaptiveScenario, Vec<(String, String, String)>, BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, Option<String>, u64, QuantityUnit)>>), FifoAdaptivePolicyErrorV1> {
     let fail = |reason| FifoAdaptivePolicyErrorV1::InvalidRouteScenario {
         demand_id: demand_id.to_owned(),
         path_id: path_id.to_owned(),
