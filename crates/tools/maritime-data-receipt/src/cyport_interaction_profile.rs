@@ -745,7 +745,11 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 counts.nonzero_impact_all_recovery_fields_present,
                 273usize,
             ),
-            ("no-impact-window marker triplets", counts.zero_impact_all_recovery_sentinels, 1_650usize),
+            (
+                "no-impact-window marker triplets",
+                counts.zero_impact_all_recovery_sentinels,
+                1_650usize,
+            ),
             (
                 "recorded impact-window marker triplets",
                 counts.zero_impact_all_recovery_fields_present
@@ -1161,7 +1165,10 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
         ("train", "earliest event start on or before 2020-12-31"),
         ("calibration", "earliest event start during calendar year 2021"),
         ("test", "earliest event start on or after 2022-01-01"),
-        ("leakage_rule", "Every port-interaction row associated with one SID belongs to exactly one split. No row-level or port-row randomization is permitted."),
+        (
+            "leakage_rule",
+            "Every port-interaction row associated with one SID belongs to exactly one split. No row-level or port-row randomization is permitted.",
+        ),
     ];
     for (key, expected) in expected_policy {
         super::expect_text(
@@ -1293,7 +1300,9 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
     ))
 }
 
-fn validate_and_report_split_manifest(bytes: &[u8]) -> Result<SplitManifestValidationReport, String> {
+fn validate_and_report_split_manifest(
+    bytes: &[u8],
+) -> Result<SplitManifestValidationReport, String> {
     let (_root, manifest) = parse_episode_split_manifest(bytes)?;
     Ok(SplitManifestValidationReport {
         status: "EPISODE_SPLIT_MANIFEST_VALIDATED_NOT_SOURCE_RECOMPUTED",
@@ -1318,7 +1327,9 @@ fn compare_episode_manifest_to_profile(
     profile: &CyPortInteractionReport,
 ) -> Result<(), String> {
     if !profile.pinned_source_identity_verified {
-        return Err("source identity must match pinned CyPort Git blob before split comparison".to_owned());
+        return Err(
+            "source identity must match pinned CyPort Git blob before split comparison".to_owned(),
+        );
     }
     if manifest.episodes.len() != profile.episode_groups.len() {
         return Err(format!(
@@ -1327,7 +1338,12 @@ fn compare_episode_manifest_to_profile(
             manifest.episodes.len()
         ));
     }
-    for (index, (expected, actual)) in manifest.episodes.iter().zip(&profile.episode_groups).enumerate() {
+    for (index, (expected, actual)) in manifest
+        .episodes
+        .iter()
+        .zip(&profile.episode_groups)
+        .enumerate()
+    {
         if expected.storm_id != actual.storm_id
             || expected.first_event_start != actual.first_event_start
             || expected.last_event_start != actual.last_event_start
@@ -1361,12 +1377,16 @@ fn compare_episode_manifest_to_profile(
 
 pub(super) fn validate_episode_split_manifest_cli(manifest_path: &str) -> Result<(), String> {
     let metadata = fs::metadata(manifest_path)
-        .map_err(|error| format!("cannot stat CyPort episode split manifest {manifest_path}: {error}"))?;
+        .map_err(|error| {
+            format!("cannot stat CyPort episode split manifest {manifest_path}: {error}")
+        })?;
     if metadata.len() > MAX_SPLIT_MANIFEST_BYTES as u64 {
         return Err(format!("CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
     }
     let bytes = fs::read(manifest_path)
-        .map_err(|error| format!("cannot read CyPort episode split manifest {manifest_path}: {error}"))?;
+        .map_err(|error| {
+            format!("cannot read CyPort episode split manifest {manifest_path}: {error}")
+        })?;
     let report = validate_and_report_split_manifest(&bytes)?;
     println!(
         "{}",
@@ -1412,7 +1432,9 @@ pub(super) fn verify_episode_split_cli(csv_path: &str, manifest_path: &str) -> R
     println!(
         "{}",
         serde_json::to_string(&report)
-            .map_err(|error| format!("cannot serialize source-to-split verification report: {error}"))?
+            .map_err(|error| {
+                format!("cannot serialize source-to-split verification report: {error}")
+            })?
     );
     Ok(())
 }
@@ -1428,7 +1450,8 @@ pub(super) fn run_cli(csv_path: &str) -> Result<(), String> {
     let report = profile_bytes(&bytes)?;
     println!(
         "{}",
-        serde_json::to_string(&report).map_err(|error| format!("cannot serialize CyPort profile: {error}"))?
+        serde_json::to_string(&report)
+            .map_err(|error| format!("cannot serialize CyPort profile: {error}"))?
     );
     Ok(())
 }
@@ -1525,7 +1548,11 @@ mod tests {
         assert_eq!(train.unique_port_ids, None);
         assert_eq!(train.first_event_start.as_deref(), Some("2015-05-06"));
         assert_eq!(train.last_event_start.as_deref(), Some("2020-11-13"));
-        let calibration = report.split_summaries.iter().find(|summary| summary.split == "calibration").unwrap();
+        let calibration = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "calibration")
+            .unwrap();
         assert_eq!(calibration.storm_count, 13);
         assert_eq!(calibration.interaction_rows, 308);
         let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
