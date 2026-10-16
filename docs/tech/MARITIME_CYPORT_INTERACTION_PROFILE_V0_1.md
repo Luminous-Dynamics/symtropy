@@ -51,11 +51,13 @@ The `total_impact` column is zero for 85.83% of rows and nonzero for 14.17%. The
 
 For any explicitly defined binary experiment, report the confusion matrix, positive-class precision/recall, PR-AUC, specificity, and episode-clustered uncertainty; include calibration only when probabilities are emitted and evaluated. Preserve the ordinal/count severity information in `total_impact` and continuous proxy fields such as `total_impact_value` and `max_impact`. Compare at least a simple baseline and a zero-aware/hurdle-style model, but do not treat the published metrics as independent ground truth if derived from the same observations. Source paper definitions: [impact-window method and normal-traffic cases](https://www.researchgate.net/publication/395969987_US_Port_Disruptions_under_Tropical_Cyclones_Resilience_Analysis_by_Harnessing_Multiple-Source_Dataset) and [rounding/excess-zero discussion](https://www.researchgate.net/publication/395969987_US_Port_Disruptions_under_Tropical_Cyclones_Resilience_Analysis_by_Harnessing_Multiple-Source_Dataset).
 
+The executable source profile now keeps three distinct states separate: (1) no impact window recorded (all markers sentinel-coded with rounded impact zero), (2) impact-window recovery markers present (all markers present, regardless of rounded impact), and (3) malformed/mixed marker triplet. It also records any nonzero rounded impact with all markers missing as a separate contradiction state; the pinned source has zero of those cases. This prevents “missing recovery markers” from being used as a catch-all for every uncertainty.
+
 The inspected row cross-tab is:
 - 1,650 records have `total_impact=0` plus all three recovery fields set to zero/NA.
 - 4 records have `total_impact=0` but all three recovery fields present; they also have nonzero `total_impact_value`, `max_impact` and `day_of_recover`.
 - 273 records have nonzero `total_impact` and all three recovery fields present.
-- No mixed sentinel triplets occur in the pinned table.
+- No mixed sentinel triplets occur in the pinned table. There are also no nonzero-rounded-impact rows with all three recovery markers missing; the profiler tracks that condition separately from a partial/mixed triplet.
 
 That 4-row exception is why zero cannot be blindly translated to “no disruption”. Given the paper's rounding rule and nonzero impact proxies, these rows may represent small positive unrounded impact that rounded down to zero. That is a plausible interpretation, not a row-level label to silently assume.
 
