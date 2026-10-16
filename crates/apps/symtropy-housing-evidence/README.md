@@ -159,3 +159,7 @@ The schema and verifier are versioned together. If the schema changes, its match
 ## Benchmark and conformance program
 
 See [the housing-engineering benchmark and conformance program](../../../docs/built-environment/benchmark-conformance-program.md) for the proposed B0–B5 benchmark ladder, analytical and metamorphic test portfolio, measurable acceptance targets, negative controls, uncertainty expectations, and the next implementation sequence. Numerical targets marked candidate require approval for the exact benchmark; they are not universal engineering or code limits. Current cantilever tests remain analytical reference checks, not FEM validation or building certification.
+
+## Analytical axial-bar reference fixture
+
+The repository also includes [`axial-bar-linear-static-v1.json`](../../../docs/built-environment/benchmarks/axial-bar-linear-static-v1.json) and `tests/reference_axial_bar.rs`. This synthetic case checks rectangular area, axial stress, free-end extension and support reaction using closed-form equations; it rejects non-positive inputs and inconsistent declared area, and checks load/length/modulus/section scaling relationships. This is a second analytical benchmark only—not a solver qualification, design approval or evidence of physical validation. The next analytical extension is a simply supported beam with point-load and distributed-load cases.
