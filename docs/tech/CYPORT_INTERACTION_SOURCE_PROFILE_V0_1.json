@@ -54,7 +54,8 @@
         "total_impact_value (impact in vessel counts)",
         "max_impact (maximum impact)",
         "day_of_recover (recovery duration in days)"
-      ]
+      ],
+      "modeling_caution": "Do not use total_impact == 0 alone as a no-disruption label. For the target defined as total_impact > 0, 273/1927 rows are positive; four additional zero-rounded rows retain recovery markers and nonzero total_impact_value/max_impact/day_of_recover."
     },
     "recovery_sentinels": {
       "start_recovery_date_zero_or_na_rows": 1650,
@@ -67,6 +68,13 @@
         "nonzero_total_impact_with_all_three_recovery_fields_present": 273,
         "mixed_sentinel_triplets": 0,
         "interpretation": "The four zero-valued total_impact rows with recovery timestamps also have nonzero total_impact_value, max_impact, and day_of_recover. Since total_impact is rounded, zero cannot safely be equated with no detected disruption. Treat the three recovery fields as one coherent marker triplet, and validate exact semantics against the source construction method."
+      },
+      "reported_marker_state": {
+        "no_impact_window_recorded_rows": 1650,
+        "impact_window_recovery_markers_present_rows": 277,
+        "mixed_triplet_rows": 0,
+        "definition": "Presence-based source-derived state only: all three recovery fields are either sentinel-coded or present. The source paper links absent impact windows to normal traffic; this registry does not claim independent physical ground truth.",
+        "modeling_implication": "Treat impact-window detection and rounded impact magnitude as separate targets. A four-row class has total_impact rounded to zero but recovery markers present and other impact proxies nonzero."
       }
     },
     "temporal_coverage_by_start_year": {
@@ -108,6 +116,18 @@
       "split_manifest_path": "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json",
       "raw_source_recomputed_split_verification": "Not executed by Rust; summary derived independently from pinned CSV during source inspection.",
       "warning": "The dataset is public, so this partition is reproducible, not a secret blind holdout against models already trained on this dataset."
+    },
+    "evaluation_notes": {
+      "independent_episode_count": 90,
+      "split_unit": "SID cyclone",
+      "train_rows": 1471,
+      "calibration_rows": 308,
+      "test_rows": 148,
+      "test_nonzero_rounded_total_impact_rows": 25,
+      "test_zero_rounded_total_impact_rows": 123,
+      "test_impact_window_markers_present_rows": 26,
+      "test_no_impact_window_recorded_rows": 122,
+      "warning": "These counts describe the frozen public-data split. The test partition is not a secret blind holdout, and any performance result needs storm-clustered uncertainty."
     }
   },
   "header_fields": [
