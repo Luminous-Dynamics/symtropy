@@ -596,12 +596,9 @@ impl<const D: usize> ConsciousnessField<D> {
                     continue;
                 }
                 if effect > 0.0 {
-                    let available_before = entity.energy.available;
-                    entity.energy.regenerate(effect);
-                    // Record only the observed reservoir delta, not the requested
-                    // amount discarded by the capacity cap. Keep NaN visible so
-                    // the checked ledger rejects it instead of masking it with max().
-                    let accepted = entity.energy.available - available_before;
+                    // The reservoir is the authority on accepted energy; do not
+                    // infer the transfer by subtracting mutable state snapshots.
+                    let accepted = entity.energy.regenerate(effect);
                     self.ledger.record_regeneration(accepted);
                 } else if effect < 0.0 {
                     let consumed = entity.energy.consume(effect.abs());
