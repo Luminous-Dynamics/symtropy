@@ -14,7 +14,7 @@ This slice takes the individually qualified route options for several demands, e
 2. **Individually capacity-qualified:** that path's mapped resources can fit its operation intervals against the supplied capacity evidence.
 3. **Jointly feasible:** all selected demand paths can coexist, without double-spending shared physical capacity, in every declared scenario.
 
-A route's capacity snapshot is keyed by explicit resource kind/ID, evidence ID, provenance, revision, validity, units and capacity limit. If two selected demands describe the same resource with inconsistent snapshots in one scenario, their combination is rejected rather than choosing whichever limit is more convenient.
+A capacity snapshot is keyed by explicit resource kind/ID, evidence ID, provenance, revision, validity, units and capacity limit. Two selected demands may use different records for the same resource only when those records have disjoint validity intervals and each operation window is covered by its own record. Distinct records with overlapping validity intervals—or the same evidence ID with conflicting contents—make the combination invalid rather than allowing the solver to choose the convenient limit.
 
 ## 2. Exact small-instance selection contract
 
@@ -23,7 +23,7 @@ Inputs are the per-demand reports from the capacity-qualified route selector. Al
 For every cartesian combination of one option per demand, the selector:
 - checks the combined half-open operation intervals `[start, end)` against each physical resource's shared limit;
 - treats end events as occurring before start events at the same timestamp, so adjacent uses do not collide;
-- requires one consistent evidence fingerprint for a given physical resource in a scenario;
+- rejects different capacity-evidence fingerprints for one physical resource when their validity intervals overlap; adjacent time-disjoint snapshots may serve sequential jobs;
 - scores only combinations that are feasible under *every* declared scenario; and
 - retains aggregate rejection counts and up to 32 deterministic representative failure witnesses.
 
@@ -55,7 +55,7 @@ These are designed contract cases, not measured performance. No tests or compila
 | PF0 — finite portfolio oracle | Exhaustively enumerate tiny portfolios and compare selected choices/objectives with a separate reference implementation | 100% agreement for every feasible combination in the test domain |
 | PF1 — resource capacity | Two or more demands share a resource with capacity (C); sweep assignment units and overlap boundaries | Zero over-capacity portfolios accepted |
 | PF2 — half-open interval edges | End/start equal timestamps, one-second overlap, nested intervals and zero-width/reversed windows | Adjacent intervals never conflict; every positive overlap is accounted for |
-| PF3 — evidence consistency | Mutate digest, evidence ID, revision, validity, source record, capacity limit or unit between demands | Zero inconsistent snapshots accepted in one scenario |
+| PF3 — evidence consistency | Mutate digest, evidence ID, revision, validity, source record, capacity limit or unit between overlapping validity intervals | Zero inconsistent snapshots accepted; disjoint validity windows may serve sequential jobs |
 | PF4 — scenario completeness | Make a portfolio feasible nominally but infeasible in one stress/replay scenario | Zero partial-scenario portfolios selected |
 | PF5 — determinism | Permute demand, route-option, scenario and evidence-record order | Identical choices, objective values, rejection counts and ordered witnesses |
 | PF6 — arithmetic and complexity | Test (u64) addition/multiplication bounds and combinations just under/over the configured cap | Overflow always fails closed; no unbounded implicit search |
