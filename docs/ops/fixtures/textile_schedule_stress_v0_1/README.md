@@ -4,7 +4,7 @@ This directory defines a machine-readable fixture format and one **synthetic**
 example for the bounded schedule stress harness.
 
 - stress_corpus.schema.json: JSON Schema draft 2020-12 contract.
-- stress_corpus.example.json: one qualified heritage-repair job with five cases:
+- stress_corpus.example.json: one qualified heritage-repair job with six cases:
   nominal, increased processing time, delayed input readiness, energy curtailment,
   and a specialist cell unavailable too long to meet the hard finish window.
 
@@ -19,6 +19,8 @@ measurements.
 - Nominal: exact reference finds a feasible schedule.
 - Slow repair: still feasible, with higher tardiness relative to the soft due tick.
 - Late specialist input: feasible if it remains inside the hard finish window.
+- Water-intensive finishing: no feasible schedule; process water exceeds the
+  declared budget.
 - Energy curtailed to zero: no feasible schedule; process energy alone exceeds
   the declared hard budget.
 - Specialist cell unavailable until tick 8: no feasible schedule; the finish
