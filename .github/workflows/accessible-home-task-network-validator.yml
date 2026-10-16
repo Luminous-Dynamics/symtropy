@@ -4,13 +4,13 @@ on:
   pull_request:
     paths:
       - "tools/accessible-home-task-network-validator/**"
-      - "docs/built-environment/accessible-home-task-network-v0.2*"
+      - "docs/built-environment/accessible-home-task-network-v0.*"
       - ".github/workflows/accessible-home-task-network-validator.yml"
   push:
     branches: [main]
     paths:
       - "tools/accessible-home-task-network-validator/**"
-      - "docs/built-environment/accessible-home-task-network-v0.2*"
+      - "docs/built-environment/accessible-home-task-network-v0.*"
       - ".github/workflows/accessible-home-task-network-validator.yml"
   workflow_dispatch:
 
@@ -23,24 +23,29 @@ concurrency:
 
 jobs:
   validate:
-    name: Format, semantic mutation tests, synthetic receipt
+    name: Format, semantic mutation tests, versioned synthetic receipts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Normalize Rust formatting in the ephemeral runner workspace
+      - name: Normalize formatting in runner workspace
         run: cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
-      - name: Confirm normalized formatting
+      - name: Confirm formatted workspace parses cleanly
         run: cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --check
-      - name: Run semantic and negative-control tests
+      - name: Run all semantic and negative-control tests
         run: cargo test --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
-      - name: Evaluate the committed synthetic fixture
+      - name: Evaluate v0.2 baseline fixture
         run: |
-          cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- \
-            --input docs/built-environment/accessible-home-task-network-v0.2.example.json \
-            --output /tmp/accessible-home-task-network-report.json
-          grep -q '"node_count": 5' /tmp/accessible-home-task-network-report.json
-          grep -q '"edge_count": 5' /tmp/accessible-home-task-network-report.json
-          grep -q '"path_count": 2' /tmp/accessible-home-task-network-report.json
-          grep -q '"failure_mode_count": 1' /tmp/accessible-home-task-network-report.json
+          cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --input docs/built-environment/accessible-home-task-network-v0.2.example.json --output /tmp/accessible-home-v02-report.json
+          grep -q '"node_count": 5' /tmp/accessible-home-v02-report.json
+          grep -q '"edge_count": 5' /tmp/accessible-home-v02-report.json
+          grep -q '"path_count": 2' /tmp/accessible-home-v02-report.json
+          grep -q '"failure_mode_count": 1' /tmp/accessible-home-v02-report.json
+      - name: Evaluate v0.3 typed-constraint fixture
+        run: |
+          cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --input docs/built-environment/accessible-home-task-network-v0.3.example.json --output /tmp/accessible-home-v03-report.json
+          grep -q '"constraint_count": 3' /tmp/accessible-home-v03-report.json
+          grep -q '"path_count": 2' /tmp/accessible-home-v03-report.json
+          grep -q '"preference_conflict_count": 1' /tmp/accessible-home-v03-report.json
+          grep -q '"hard_constraints_satisfied_for_fixture": 2' /tmp/accessible-home-v03-report.json

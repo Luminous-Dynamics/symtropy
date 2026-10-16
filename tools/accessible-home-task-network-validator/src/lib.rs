@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Versioned typed-constraint evaluator.
+pub mod v03;
+
 pub const VALIDATOR_VERSION: &str = "accessible-home-task-network-validator/0.1.0";
 const FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.2.example.json");
 
@@ -743,5 +746,60 @@ mod tests {
         let second = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
         assert_eq!(first, second);
         assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
+    }
+}
+
+
+/// Dispatches supported synthetic network schema versions to their matching
+/// fail-closed evaluator. Reports are returned as JSON only when expectation
+/// checks succeed.
+pub fn evaluate_any_bytes(input: &[u8]) -> Result<serde_json::Value, Vec<String>> {
+    let header: serde_json::Value = serde_json::from_slice(input)
+        .map_err(|error| vec![format!("invalid network JSON: {error}")])?;
+    let schema_version = header.get("schema_version")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| vec!["schema_version must be a string".to_owned()])?;
+
+    match schema_version {
+        "0.2.0" => {
+            let report = evaluate_bytes(input)?;
+            serde_json::to_value(report)
+                .map_err(|error| vec![format!("could not serialize v0.2 receipt: {error}")])
+        }
+        "0.3.0" => {
+            let report = v03::evaluate_bytes(input)?;
+            serde_json::to_value(report)
+                .map_err(|error| vec![format!("could not serialize v0.3 receipt: {error}")])
+        }
+        other => Err(vec![format!("unsupported schema_version '{other}'")]),
+    }
+}
+
+
+#[cfg(test)]
+mod version_dispatch_tests {
+    use super::*;
+
+    const V02_FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.2.example.json");
+    const V03_FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.3.example.json");
+
+    #[test]
+    fn cli_dispatch_accepts_v02_network_contract() {
+        let report = evaluate_any_bytes(V02_FIXTURE.as_bytes()).expect("v0.2 fixture should dispatch");
+        assert_eq!(report["path_count"].as_u64(), Some(2));
+    }
+
+    #[test]
+    fn cli_dispatch_accepts_v03_typed_constraints_contract() {
+        let report = evaluate_any_bytes(V03_FIXTURE.as_bytes()).expect("v0.3 fixture should dispatch");
+        assert_eq!(report["constraint_count"].as_u64(), Some(3));
+        assert_eq!(report["path_count"].as_u64(), Some(2));
+    }
+
+    #[test]
+    fn cli_dispatch_rejects_unknown_schema_version() {
+        let invalid = br#"{"schema_version":"99.0.0"}"#;
+        let error = evaluate_any_bytes(invalid).unwrap_err().join("\n");
+        assert!(error.contains("unsupported schema_version"));
     }
 }

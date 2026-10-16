@@ -1,0 +1,910 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Typed constraint semantics for the synthetic resident task-network v0.3 contract.
+//! Constraint findings remain visible; preferences are not silently turned into hard gates.
+
+use super::{Assessment, Condition, Edge, EdgeRelation, EvidenceState, FailureMode, GoalState, Node, NodeKind};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+
+pub const VALIDATOR_VERSION: &str = "accessible-home-task-network-validator/0.2.0";
+const FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.3.example.json");
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Network {
+    pub schema_version: String,
+    pub fixture_kind: String,
+    pub network_id: String,
+    pub claim_boundary: String,
+    pub goal: Goal,
+    pub nodes: Vec<Node>,
+    pub edges: Vec<Edge>,
+    pub paths: Vec<Path>,
+    pub failure_modes: Vec<FailureMode>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Goal {
+    pub id: String,
+    pub resident_statement: String,
+    pub observable_outcome: String,
+    pub constraints: Vec<GoalConstraint>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct GoalConstraint {
+    pub id: String,
+    pub kind: ConstraintKind,
+    pub statement: String,
+    pub applies_when: Vec<Condition>,
+    pub source_ref: String,
+    pub review_with: String,
+    pub note: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ConstraintKind {
+    Hard,
+    Preference,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ConstraintDisposition {
+    SatisfiedForFixture,
+    Conflicted,
+    Unresolved,
+    NotApplicable,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ConstraintFinding {
+    pub constraint_id: String,
+    pub disposition: ConstraintDisposition,
+    pub evidence_state: EvidenceState,
+    pub evidence_ref: String,
+    pub review_with: String,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Path {
+    pub id: String,
+    pub title: String,
+    pub condition: Condition,
+    pub node_ids: Vec<String>,
+    pub edge_ids: Vec<String>,
+    pub constraint_findings: Vec<ConstraintFinding>,
+    pub expected_assessment: Assessment,
+    pub success_condition: String,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ConstraintFindingReceipt {
+    pub constraint_id: String,
+    pub constraint_kind: ConstraintKind,
+    pub disposition: ConstraintDisposition,
+    pub evidence_state: EvidenceState,
+    pub evidence_ref: String,
+    pub review_with: String,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct PathResult {
+    pub path_id: String,
+    pub condition: Condition,
+    pub assessment: Assessment,
+    pub expected_assessment: Assessment,
+    pub applicable_hard_constraint_count: usize,
+    pub hard_constraints_satisfied_for_fixture: usize,
+    pub hard_constraint_conflict_count: usize,
+    pub hard_constraint_unresolved_count: usize,
+    pub preference_conflict_count: usize,
+    pub preference_unresolved_count: usize,
+    pub constraint_findings: Vec<ConstraintFindingReceipt>,
+    pub required_node_count: usize,
+    pub edge_count: usize,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct FailureModeResult {
+    pub failure_mode_id: String,
+    pub trigger: Condition,
+    pub activated_path_ids: Vec<String>,
+    pub actual_goal_state: GoalState,
+    pub expected_goal_state: GoalState,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ValidationReport {
+    pub report_schema_version: String,
+    pub validator_version: String,
+    pub network_id: String,
+    pub schema_version: String,
+    pub fixture_kind: String,
+    pub input_sha256: String,
+    pub node_count: usize,
+    pub edge_count: usize,
+    pub constraint_count: usize,
+    pub path_count: usize,
+    pub failure_mode_count: usize,
+    pub path_results: Vec<PathResult>,
+    pub failure_mode_results: Vec<FailureModeResult>,
+    pub claim_limit: String,
+}
+
+/// Only emits a receipt if graph consistency, constraint coverage, derived path states,
+/// and failure-mode expectations agree. Any mismatch fails closed.
+pub fn evaluate_bytes(input: &[u8]) -> Result<ValidationReport, Vec<String>> {
+    let network: Network = serde_json::from_slice(input)
+        .map_err(|error| vec![format!("invalid v0.3 network JSON/shape: {error}")])?;
+    let mut errors = validate_structure(&network);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let node_by_id: BTreeMap<&str, &Node> = network.nodes.iter().map(|node| (node.id.as_str(), node)).collect();
+    let edge_by_id: BTreeMap<&str, &Edge> = network.edges.iter().map(|edge| (edge.id.as_str(), edge)).collect();
+    let path_by_id: BTreeMap<&str, &Path> = network.paths.iter().map(|path| (path.id.as_str(), path)).collect();
+    let constraint_by_id: BTreeMap<&str, &GoalConstraint> = network.goal.constraints.iter()
+        .map(|constraint| (constraint.id.as_str(), constraint)).collect();
+
+    let path_results: Vec<PathResult> = network.paths.iter().map(|path| {
+        let assessment = assess_path(path, &node_by_id, &edge_by_id, &constraint_by_id);
+        if assessment != path.expected_assessment {
+            errors.push(format!(
+                "path '{}' expected {:?}, evaluator produced {:?}",
+                path.id, path.expected_assessment, assessment
+            ));
+        }
+
+        let mut applicable_hard_constraint_count = 0;
+        let mut hard_constraints_satisfied_for_fixture = 0;
+        let mut hard_constraint_conflict_count = 0;
+        let mut hard_constraint_unresolved_count = 0;
+        let mut preference_conflict_count = 0;
+        let mut preference_unresolved_count = 0;
+
+        let constraint_findings: Vec<ConstraintFindingReceipt> = path.constraint_findings.iter().filter_map(|finding| {
+            let constraint = constraint_by_id.get(finding.constraint_id.as_str()).copied()?;
+            let applies = constraint.applies_when.contains(&path.condition);
+            if !applies || finding.disposition == ConstraintDisposition::NotApplicable {
+                return Some(ConstraintFindingReceipt {
+                    constraint_id: finding.constraint_id.clone(),
+                    constraint_kind: constraint.kind,
+                    disposition: finding.disposition,
+                    evidence_state: finding.evidence_state,
+                    evidence_ref: finding.evidence_ref.clone(),
+                    review_with: finding.review_with.clone(),
+                    note: finding.note.clone(),
+                });
+            }
+
+            let fully_evidenced = finding.evidence_state == EvidenceState::VerifiedForDeclaredScope;
+            match constraint.kind {
+                ConstraintKind::Hard => {
+                    applicable_hard_constraint_count += 1;
+                    if finding.disposition == ConstraintDisposition::SatisfiedForFixture && fully_evidenced {
+                        hard_constraints_satisfied_for_fixture += 1;
+                    } else if finding.disposition == ConstraintDisposition::Conflicted
+                        && matches!(finding.evidence_state, EvidenceState::VerifiedForDeclaredScope | EvidenceState::KnownBarrier)
+                    {
+                        hard_constraint_conflict_count += 1;
+                    } else {
+                        hard_constraint_unresolved_count += 1;
+                    }
+                }
+                ConstraintKind::Preference => {
+                    if finding.disposition == ConstraintDisposition::Conflicted
+                        && matches!(finding.evidence_state, EvidenceState::VerifiedForDeclaredScope | EvidenceState::KnownBarrier)
+                    {
+                        preference_conflict_count += 1;
+                    } else if finding.disposition != ConstraintDisposition::SatisfiedForFixture || !fully_evidenced {
+                        preference_unresolved_count += 1;
+                    }
+                }
+            }
+
+            Some(ConstraintFindingReceipt {
+                constraint_id: finding.constraint_id.clone(),
+                constraint_kind: constraint.kind,
+                disposition: finding.disposition,
+                evidence_state: finding.evidence_state,
+                evidence_ref: finding.evidence_ref.clone(),
+                review_with: finding.review_with.clone(),
+                note: finding.note.clone(),
+            })
+        }).collect();
+
+        PathResult {
+            path_id: path.id.clone(),
+            condition: path.condition,
+            assessment,
+            expected_assessment: path.expected_assessment,
+            applicable_hard_constraint_count,
+            hard_constraints_satisfied_for_fixture,
+            hard_constraint_conflict_count,
+            hard_constraint_unresolved_count,
+            preference_conflict_count,
+            preference_unresolved_count,
+            constraint_findings,
+            required_node_count: path.node_ids.iter()
+                .filter_map(|id| node_by_id.get(id.as_str()))
+                .filter(|node| node.required)
+                .count(),
+            edge_count: path.edge_ids.len(),
+        }
+    }).collect();
+
+    let assessments: BTreeMap<&str, Assessment> = path_results.iter()
+        .map(|result| (result.path_id.as_str(), result.assessment))
+        .collect();
+    let failure_mode_results: Vec<FailureModeResult> = network.failure_modes.iter().map(|failure| {
+        let actual_goal_state = assess_failure_mode(failure, &path_by_id, &assessments);
+        if actual_goal_state != failure.expected_goal_state {
+            errors.push(format!(
+                "failure mode '{}' expected {:?}, evaluator produced {:?}",
+                failure.id, failure.expected_goal_state, actual_goal_state
+            ));
+        }
+        FailureModeResult {
+            failure_mode_id: failure.id.clone(),
+            trigger: failure.trigger,
+            activated_path_ids: failure.activated_path_ids.clone(),
+            actual_goal_state,
+            expected_goal_state: failure.expected_goal_state,
+        }
+    }).collect();
+
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    Ok(ValidationReport {
+        report_schema_version: "0.2.0".to_owned(),
+        validator_version: VALIDATOR_VERSION.to_owned(),
+        network_id: network.network_id,
+        schema_version: network.schema_version,
+        fixture_kind: network.fixture_kind,
+        input_sha256: hex_sha256(input),
+        node_count: network.nodes.len(),
+        edge_count: network.edges.len(),
+        constraint_count: network.goal.constraints.len(),
+        path_count: network.paths.len(),
+        failure_mode_count: network.failure_modes.len(),
+        path_results,
+        failure_mode_results,
+        claim_limit: "SYNTHETIC CONTRACT ONLY: this receipt validates internal consistency of declared fixture data. Resident constraints are typed and compared to path findings, but declared evidence is not independently proven; nothing here establishes real-home accessibility, usability, dimensions, device function, security, life-safety, suitability, or legal compliance.".to_owned(),
+    })
+}
+
+fn validate_structure(network: &Network) -> Vec<String> {
+    let mut errors = Vec::new();
+    if network.schema_version != "0.3.0" {
+        errors.push(format!("unsupported schema_version '{}'", network.schema_version));
+    }
+    if network.fixture_kind != "synthetic_task_network" {
+        errors.push("fixture_kind must be synthetic_task_network; real-home evidence is not accepted".to_owned());
+    }
+    if !valid_id(&network.network_id) {
+        errors.push(format!("invalid network id '{}'", network.network_id));
+    }
+    if network.claim_boundary.trim().is_empty()
+        || !network.claim_boundary.to_ascii_lowercase().contains("synthetic")
+    {
+        errors.push("claim_boundary must explicitly describe synthetic scope".to_owned());
+    }
+    require_text(&mut errors, "goal.id", &network.goal.id);
+    require_text(&mut errors, "goal.resident_statement", &network.goal.resident_statement);
+    require_text(&mut errors, "goal.observable_outcome", &network.goal.observable_outcome);
+    if network.goal.constraints.is_empty() {
+        errors.push("goal must declare at least one typed constraint".to_owned());
+    }
+    if network.nodes.is_empty() || network.edges.is_empty() || network.paths.is_empty() {
+        errors.push("network must have nodes, edges and paths".to_owned());
+    }
+
+    let mut all_ids = BTreeSet::new();
+    register_id(&mut errors, &mut all_ids, "network", &network.network_id);
+    register_id(&mut errors, &mut all_ids, "goal", &network.goal.id);
+
+    for constraint in &network.goal.constraints {
+        register_id(&mut errors, &mut all_ids, "constraint", &constraint.id);
+        require_text(&mut errors, &format!("constraint '{}' statement", constraint.id), &constraint.statement);
+        require_text(&mut errors, &format!("constraint '{}' source_ref", constraint.id), &constraint.source_ref);
+        require_text(&mut errors, &format!("constraint '{}' review_with", constraint.id), &constraint.review_with);
+        require_text(&mut errors, &format!("constraint '{}' note", constraint.id), &constraint.note);
+        if constraint.applies_when.is_empty() {
+            errors.push(format!("constraint '{}' must declare applies_when", constraint.id));
+        }
+        for (index, condition) in constraint.applies_when.iter().enumerate() {
+            if constraint.applies_when[..index].contains(condition) {
+                errors.push(format!("constraint '{}' repeats applies_when condition", constraint.id));
+            }
+        }
+    }
+
+    for node in &network.nodes {
+        register_id(&mut errors, &mut all_ids, "node", &node.id);
+        require_text(&mut errors, &format!("node '{}' title", node.id), &node.title);
+        require_text(&mut errors, &format!("node '{}' evidence_ref", node.id), &node.evidence_ref);
+        require_text(&mut errors, &format!("node '{}' review_with", node.id), &node.review_with);
+        require_text(&mut errors, &format!("node '{}' note", node.id), &node.note);
+    }
+    for edge in &network.edges {
+        register_id(&mut errors, &mut all_ids, "edge", &edge.id);
+        require_text(&mut errors, &format!("edge '{}' from", edge.id), &edge.from);
+        require_text(&mut errors, &format!("edge '{}' to", edge.id), &edge.to);
+        require_text(&mut errors, &format!("edge '{}' evidence_ref", edge.id), &edge.evidence_ref);
+        require_text(&mut errors, &format!("edge '{}' review_with", edge.id), &edge.review_with);
+        require_text(&mut errors, &format!("edge '{}' note", edge.id), &edge.note);
+        if matches!(edge.relation, EdgeRelation::Fallback | EdgeRelation::Recovery)
+            && edge.trigger == Condition::Normal
+        {
+            errors.push(format!("fallback/recovery edge '{}' needs a non-normal trigger", edge.id));
+        }
+    }
+    for path in &network.paths {
+        register_id(&mut errors, &mut all_ids, "path", &path.id);
+        require_text(&mut errors, &format!("path '{}' title", path.id), &path.title);
+        require_text(&mut errors, &format!("path '{}' success_condition", path.id), &path.success_condition);
+        require_text(&mut errors, &format!("path '{}' note", path.id), &path.note);
+    }
+    for failure in &network.failure_modes {
+        register_id(&mut errors, &mut all_ids, "failure mode", &failure.id);
+        require_text(&mut errors, &format!("failure mode '{}' title", failure.id), &failure.title);
+        require_text(&mut errors, &format!("failure mode '{}' note", failure.id), &failure.note);
+    }
+    if !errors.is_empty() {
+        return errors;
+    }
+
+    let node_by_id: BTreeMap<&str, &Node> = network.nodes.iter().map(|node| (node.id.as_str(), node)).collect();
+    let edge_by_id: BTreeMap<&str, &Edge> = network.edges.iter().map(|edge| (edge.id.as_str(), edge)).collect();
+    let path_by_id: BTreeMap<&str, &Path> = network.paths.iter().map(|path| (path.id.as_str(), path)).collect();
+    let constraint_by_id: BTreeMap<&str, &GoalConstraint> = network.goal.constraints.iter()
+        .map(|constraint| (constraint.id.as_str(), constraint)).collect();
+
+    for edge in &network.edges {
+        if !node_by_id.contains_key(edge.from.as_str()) {
+            errors.push(format!("edge '{}' has dangling from-node '{}'", edge.id, edge.from));
+        }
+        if !node_by_id.contains_key(edge.to.as_str()) {
+            errors.push(format!("edge '{}' has dangling to-node '{}'", edge.id, edge.to));
+        }
+    }
+
+    let mut used_nodes = BTreeSet::new();
+    let mut used_edges = BTreeSet::new();
+    for path in &network.paths {
+        if path.node_ids.len() < 2 {
+            errors.push(format!("path '{}' must contain at least two ordered nodes", path.id));
+        }
+        if path.edge_ids.len() + 1 != path.node_ids.len() {
+            errors.push(format!("path '{}' must name exactly one edge between each adjacent node pair", path.id));
+        }
+        if !unique(&path.node_ids) {
+            errors.push(format!("path '{}' repeats a node id", path.id));
+        }
+        if !unique(&path.edge_ids) {
+            errors.push(format!("path '{}' repeats an edge id", path.id));
+        }
+        for id in &path.node_ids {
+            used_nodes.insert(id.as_str());
+            if !node_by_id.contains_key(id.as_str()) {
+                errors.push(format!("path '{}' references missing node '{}'", path.id, id));
+            }
+        }
+        for id in &path.edge_ids {
+            used_edges.insert(id.as_str());
+            if !edge_by_id.contains_key(id.as_str()) {
+                errors.push(format!("path '{}' references missing edge '{}'", path.id, id));
+            }
+        }
+        if let Some(last_id) = path.node_ids.last() {
+            if let Some(last_node) = node_by_id.get(last_id.as_str()) {
+                if last_node.kind != NodeKind::Outcome {
+                    errors.push(format!("path '{}' must end at an outcome node", path.id));
+                }
+            }
+        }
+        for index in 0..path.edge_ids.len().min(path.node_ids.len().saturating_sub(1)) {
+            let Some(edge) = edge_by_id.get(path.edge_ids[index].as_str()) else { continue };
+            if edge.from != path.node_ids[index] || edge.to != path.node_ids[index + 1] {
+                errors.push(format!(
+                    "path '{}' edge '{}' does not connect ordered nodes '{}' -> '{}'",
+                    path.id, edge.id, path.node_ids[index], path.node_ids[index + 1]
+                ));
+            }
+            if edge.trigger != Condition::Normal && edge.trigger != path.condition {
+                errors.push(format!("path '{}' contains edge '{}' with incompatible trigger", path.id, edge.id));
+            }
+            if matches!(edge.relation, EdgeRelation::Fallback | EdgeRelation::Recovery)
+                && edge.trigger != path.condition
+            {
+                errors.push(format!("path '{}' fallback/recovery edge '{}' must match path condition", path.id, edge.id));
+            }
+        }
+
+        let mut seen_findings = BTreeSet::new();
+        for finding in &path.constraint_findings {
+            require_text(&mut errors, &format!("path '{}' finding constraint_id", path.id), &finding.constraint_id);
+            require_text(&mut errors, &format!("path '{}' finding evidence_ref", path.id), &finding.evidence_ref);
+            require_text(&mut errors, &format!("path '{}' finding review_with", path.id), &finding.review_with);
+            require_text(&mut errors, &format!("path '{}' finding note", path.id), &finding.note);
+            if !seen_findings.insert(finding.constraint_id.as_str()) {
+                errors.push(format!("path '{}' repeats constraint finding '{}'", path.id, finding.constraint_id));
+            }
+            let Some(constraint) = constraint_by_id.get(finding.constraint_id.as_str()) else {
+                errors.push(format!("path '{}' references unknown constraint '{}'", path.id, finding.constraint_id));
+                continue;
+            };
+            let applies = constraint.applies_when.contains(&path.condition);
+            if applies && finding.disposition == ConstraintDisposition::NotApplicable {
+                errors.push(format!("path '{}' marks applicable constraint '{}' not_applicable", path.id, constraint.id));
+            }
+            if !applies && finding.disposition != ConstraintDisposition::NotApplicable {
+                errors.push(format!("path '{}' must mark out-of-condition constraint '{}' not_applicable", path.id, constraint.id));
+            }
+            if applies
+                && finding.evidence_state == EvidenceState::KnownBarrier
+                && finding.disposition != ConstraintDisposition::Conflicted
+            {
+                errors.push(format!(
+                    "path '{}' must label known-barrier evidence for constraint '{}' as conflicted",
+                    path.id, constraint.id
+                ));
+            }
+        }
+        if seen_findings.len() != constraint_by_id.len() {
+            errors.push(format!(
+                "path '{}' must provide exactly one finding for each of {} constraints",
+                path.id, constraint_by_id.len()
+            ));
+        }
+        for constraint_id in constraint_by_id.keys() {
+            if !seen_findings.contains(constraint_id) {
+                errors.push(format!("path '{}' is missing finding for constraint '{}'", path.id, constraint_id));
+            }
+        }
+    }
+
+    for node in &network.nodes {
+        if !used_nodes.contains(node.id.as_str()) {
+            errors.push(format!("node '{}' is not used by any path", node.id));
+        }
+    }
+    for edge in &network.edges {
+        if !used_edges.contains(edge.id.as_str()) {
+            errors.push(format!("edge '{}' is not used by any path", edge.id));
+        }
+    }
+
+    for failure in &network.failure_modes {
+        if failure.activated_path_ids.is_empty() {
+            errors.push(format!("failure mode '{}' must activate at least one path", failure.id));
+        }
+        if !unique(&failure.affected_node_ids) {
+            errors.push(format!("failure mode '{}' repeats an affected node", failure.id));
+        }
+        if !unique(&failure.activated_path_ids) {
+            errors.push(format!("failure mode '{}' repeats an activated path", failure.id));
+        }
+        let mut activated = BTreeSet::new();
+        for path_id in &failure.activated_path_ids {
+            let Some(path) = path_by_id.get(path_id.as_str()) else {
+                errors.push(format!("failure mode '{}' references missing path '{}'", failure.id, path_id));
+                continue;
+            };
+            activated.insert(path.id.as_str());
+            if path.condition != failure.trigger {
+                errors.push(format!("failure mode '{}' trigger does not match activated path '{}'", failure.id, path.id));
+            }
+        }
+        for node_id in &failure.affected_node_ids {
+            if !node_by_id.contains_key(node_id.as_str()) {
+                errors.push(format!("failure mode '{}' references missing node '{}'", failure.id, node_id));
+                continue;
+            }
+            let appears_on_degraded_primary = network.paths.iter().any(|path| {
+                !activated.contains(path.id.as_str())
+                    && path.condition != failure.trigger
+                    && path.node_ids.iter().any(|id| id == node_id)
+            });
+            if !appears_on_degraded_primary {
+                errors.push(format!(
+                    "failure mode '{}' affected node '{}' does not occur on a non-activated path",
+                    failure.id, node_id
+                ));
+            }
+        }
+    }
+    errors
+}
+
+fn assess_path(
+    path: &Path,
+    nodes: &BTreeMap<&str, &Node>,
+    edges: &BTreeMap<&str, &Edge>,
+    constraints: &BTreeMap<&str, &GoalConstraint>,
+) -> Assessment {
+    let mut has_required_barrier = false;
+    let mut has_required_gap = false;
+
+    for node_id in &path.node_ids {
+        if let Some(node) = nodes.get(node_id.as_str()).copied() {
+            if node.required {
+                match node.evidence_state {
+                    EvidenceState::KnownBarrier => has_required_barrier = true,
+                    EvidenceState::VerifiedForDeclaredScope => {}
+                    _ => has_required_gap = true,
+                }
+            }
+        }
+    }
+    // Every edge explicitly included in a candidate path is required in v0.3.
+    for edge_id in &path.edge_ids {
+        if let Some(edge) = edges.get(edge_id.as_str()).copied() {
+            match edge.evidence_state {
+                EvidenceState::KnownBarrier => has_required_barrier = true,
+                EvidenceState::VerifiedForDeclaredScope => {}
+                _ => has_required_gap = true,
+            }
+        }
+    }
+    for finding in &path.constraint_findings {
+        let Some(constraint) = constraints.get(finding.constraint_id.as_str()).copied() else { continue };
+        if constraint.kind != ConstraintKind::Hard || !constraint.applies_when.contains(&path.condition) {
+            continue;
+        }
+        if finding.evidence_state == EvidenceState::KnownBarrier
+            || (finding.disposition == ConstraintDisposition::Conflicted
+                && finding.evidence_state == EvidenceState::VerifiedForDeclaredScope)
+        {
+            has_required_barrier = true;
+        } else if finding.disposition == ConstraintDisposition::SatisfiedForFixture
+            && finding.evidence_state == EvidenceState::VerifiedForDeclaredScope
+        {
+            // Explicitly evidenced satisfaction is the only passing hard-constraint state.
+        } else {
+            has_required_gap = true;
+        }
+    }
+
+    if has_required_barrier {
+        Assessment::BlockedByDeclaredBarrier
+    } else if has_required_gap {
+        Assessment::NotEvaluable
+    } else {
+        Assessment::EvidenceCompleteForFixture
+    }
+}
+
+fn assess_failure_mode(
+    failure: &FailureMode,
+    paths: &BTreeMap<&str, &Path>,
+    assessments: &BTreeMap<&str, Assessment>,
+) -> GoalState {
+    let states: Vec<Assessment> = failure.activated_path_ids.iter()
+        .filter_map(|id| paths.get(id.as_str()).and_then(|_| assessments.get(id.as_str()).copied()))
+        .collect();
+    if states.iter().any(|state| *state == Assessment::EvidenceCompleteForFixture) {
+        GoalState::CandidatePathAvailableForFixture
+    } else if states.iter().any(|state| *state == Assessment::NotEvaluable) {
+        GoalState::NotEvaluable
+    } else {
+        GoalState::NoCandidatePathProven
+    }
+}
+
+fn register_id(errors: &mut Vec<String>, all_ids: &mut BTreeSet<String>, kind: &str, id: &str) {
+    if !valid_id(id) {
+        errors.push(format!("{kind} id '{id}' is invalid"));
+    }
+    if !all_ids.insert(id.to_owned()) {
+        errors.push(format!("duplicate global id '{id}' ({kind})"));
+    }
+}
+
+fn require_text(errors: &mut Vec<String>, label: &str, value: &str) {
+    if value.trim().is_empty() {
+        errors.push(format!("{label} must be non-empty"));
+    }
+}
+
+fn unique(values: &[String]) -> bool {
+    let mut seen = BTreeSet::new();
+    values.iter().all(|value| seen.insert(value.as_str()))
+}
+
+fn valid_id(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.is_empty() || bytes.len() > 80 {
+        return false;
+    }
+    if !(bytes[0].is_ascii_lowercase() || bytes[0].is_ascii_digit()) {
+        return false;
+    }
+    bytes.iter().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+}
+
+fn hex_sha256(input: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let digest = Sha256::digest(input);
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn fixture_value() -> Value {
+        serde_json::from_str(FIXTURE).expect("v0.3 fixture must be valid JSON")
+    }
+
+    fn evaluate_value(value: &Value) -> Result<ValidationReport, Vec<String>> {
+        let bytes = serde_json::to_vec(value).expect("test fixture serializes");
+        evaluate_bytes(&bytes)
+    }
+
+    fn finding_mut<'a>(value: &'a mut Value, path_id: &str, constraint_id: &str) -> &'a mut Value {
+        value["paths"].as_array_mut().expect("paths array")
+            .iter_mut()
+            .find(|path| path["id"].as_str() == Some(path_id))
+            .expect("path exists")["constraint_findings"].as_array_mut().expect("constraint findings")
+            .iter_mut()
+            .find(|finding| finding["constraint_id"].as_str() == Some(constraint_id))
+            .expect("finding exists")
+    }
+
+    #[test]
+    fn baseline_exposes_independent_path_and_preference_dimensions() {
+        let report = evaluate_bytes(FIXTURE.as_bytes()).expect("baseline expectations should match");
+        assert_eq!(report.schema_version, "0.3.0");
+        assert_eq!(report.constraint_count, 3);
+        assert_eq!(report.path_results[0].assessment, Assessment::NotEvaluable);
+        assert_eq!(report.path_results[0].preference_conflict_count, 1);
+        assert_eq!(report.path_results[0].hard_constraint_unresolved_count, 0);
+        assert_eq!(report.path_results[1].assessment, Assessment::EvidenceCompleteForFixture);
+        assert_eq!(report.path_results[1].hard_constraints_satisfied_for_fixture, 2);
+        assert_eq!(report.path_results[1].preference_conflict_count, 0);
+        assert_eq!(report.failure_mode_results[0].actual_goal_state, GoalState::CandidatePathAvailableForFixture);
+        assert!(report.claim_limit.contains("not independently proven"));
+    }
+
+    #[test]
+    fn exhaustive_hard_constraint_disposition_evidence_matrix_fails_closed() {
+        let dispositions = [
+            "satisfied_for_fixture",
+            "conflicted",
+            "unresolved",
+            "not_applicable",
+        ];
+        let evidence_states = [
+            "verified_for_declared_scope",
+            "known_barrier",
+            "unknown",
+            "proposed",
+            "needs_site_measurement",
+            "needs_professional_review",
+        ];
+        let mut accepted = 0_usize;
+        let mut rejected = 0_usize;
+
+        for disposition in dispositions {
+            for evidence_state in evidence_states {
+                let mut value = fixture_value();
+                let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+                finding["disposition"] = serde_json::json!(disposition);
+                finding["evidence_state"] = serde_json::json!(evidence_state);
+
+                let structurally_invalid = disposition == "not_applicable"
+                    || (evidence_state == "known_barrier" && disposition != "conflicted");
+                if structurally_invalid {
+                    assert!(
+                        evaluate_value(&value).is_err(),
+                        "invalid combination unexpectedly accepted: {disposition}/{evidence_state}"
+                    );
+                    rejected += 1;
+                    continue;
+                }
+
+                let expected = if evidence_state == "known_barrier"
+                    || (disposition == "conflicted" && evidence_state == "verified_for_declared_scope")
+                {
+                    "blocked_by_declared_barrier"
+                } else if disposition == "satisfied_for_fixture"
+                    && evidence_state == "verified_for_declared_scope"
+                {
+                    "evidence_complete_for_fixture"
+                } else {
+                    "not_evaluable"
+                };
+                value["paths"][1]["expected_assessment"] = serde_json::json!(expected);
+                value["failure_modes"][0]["expected_goal_state"] = serde_json::json!(match expected {
+                    "blocked_by_declared_barrier" => "no_candidate_path_proven",
+                    "evidence_complete_for_fixture" => "candidate_path_available_for_fixture",
+                    _ => "not_evaluable",
+                });
+
+                let report = evaluate_value(&value)
+                    .unwrap_or_else(|errors| panic!("valid combination {disposition}/{evidence_state} failed: {}", errors.join("; ")));
+                assert_eq!(
+                    serde_json::to_value(report.path_results[1].assessment).unwrap(),
+                    serde_json::json!(expected),
+                    "wrong assessment for {disposition}/{evidence_state}"
+                );
+                accepted += 1;
+            }
+        }
+        assert_eq!(accepted, 16);
+        assert_eq!(rejected, 8);
+    }
+
+    #[test]
+    fn hard_constraint_conflict_blocks_its_path() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["disposition"] = serde_json::json!("conflicted");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("expected EvidenceCompleteForFixture"));
+    }
+
+    #[test]
+    fn unresolved_hard_constraint_keeps_path_not_evaluable() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["disposition"] = serde_json::json!("unresolved");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("expected EvidenceCompleteForFixture"));
+    }
+
+    #[test]
+    fn satisfied_but_unverified_hard_constraint_is_not_a_pass() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["evidence_state"] = serde_json::json!("unknown");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("expected EvidenceCompleteForFixture"));
+    }
+
+    #[test]
+    fn preference_conflict_is_reported_without_becoming_a_hard_blocker() {
+        let mut value = fixture_value();
+        value["nodes"].as_array_mut().unwrap()
+            .iter_mut().filter(|node| node["id"].as_str() == Some("network-service") || node["id"].as_str() == Some("mobile-notification"))
+            .for_each(|node| node["evidence_state"] = serde_json::json!("verified_for_declared_scope"));
+        value["edges"].as_array_mut().unwrap()
+            .iter_mut().filter(|edge| edge["id"].as_str() == Some("network-to-mobile"))
+            .for_each(|edge| edge["evidence_state"] = serde_json::json!("verified_for_declared_scope"));
+        value["paths"].as_array_mut().unwrap()
+            .iter_mut().find(|path| path["id"].as_str() == Some("primary-network-path")).unwrap()["expected_assessment"] =
+            serde_json::json!("evidence_complete_for_fixture");
+        let report = evaluate_value(&value).expect("preference conflict does not block path qualification");
+        let primary = &report.path_results[0];
+        assert_eq!(primary.assessment, Assessment::EvidenceCompleteForFixture);
+        assert_eq!(primary.preference_conflict_count, 1);
+        assert_eq!(primary.hard_constraints_satisfied_for_fixture, 1);
+    }
+
+    #[test]
+    fn missing_constraint_finding_is_rejected() {
+        let mut value = fixture_value();
+        value["paths"][0]["constraint_findings"].as_array_mut().unwrap().remove(0);
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("must provide exactly one finding"));
+    }
+
+    #[test]
+    fn duplicate_constraint_finding_is_rejected() {
+        let mut value = fixture_value();
+        let copy = value["paths"][0]["constraint_findings"][0].clone();
+        value["paths"][0]["constraint_findings"].as_array_mut().unwrap().push(copy);
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("repeats constraint finding"));
+    }
+
+    #[test]
+    fn unknown_constraint_reference_is_rejected() {
+        let mut value = fixture_value();
+        value["paths"][0]["constraint_findings"][0]["constraint_id"] = serde_json::json!("missing-constraint");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("references unknown constraint"));
+    }
+
+    #[test]
+    fn out_of_condition_finding_must_be_not_applicable() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "primary-network-path", "offline-notification-path");
+        finding["disposition"] = serde_json::json!("satisfied_for_fixture");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("must mark out-of-condition constraint"));
+    }
+
+    #[test]
+    fn applicable_finding_cannot_be_not_applicable() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["disposition"] = serde_json::json!("not_applicable");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("marks applicable constraint"));
+    }
+
+    #[test]
+    fn duplicated_constraint_ids_are_rejected() {
+        let mut value = fixture_value();
+        let duplicate = value["goal"]["constraints"][0]["id"].clone();
+        value["goal"]["constraints"][1]["id"] = duplicate;
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("duplicate global id"));
+    }
+
+    #[test]
+    fn known_barrier_evidence_cannot_be_claimed_satisfied() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["evidence_state"] = serde_json::json!("known_barrier");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("must label known-barrier evidence"));
+    }
+
+    #[test]
+    fn preference_unresolved_is_visible_and_non_gating() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "tactile-notification-preference");
+        finding["disposition"] = serde_json::json!("unresolved");
+        finding["evidence_state"] = serde_json::json!("unknown");
+        let report = evaluate_value(&value).expect("preference uncertainty should not hard-block");
+        assert_eq!(report.path_results[1].assessment, Assessment::EvidenceCompleteForFixture);
+        assert_eq!(report.path_results[1].preference_unresolved_count, 1);
+    }
+
+    #[test]
+    fn preference_conflict_does_not_count_as_a_hard_constraint_conflict() {
+        let report = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
+        assert_eq!(report.path_results[0].hard_constraint_conflict_count, 0);
+        assert_eq!(report.path_results[0].preference_conflict_count, 1);
+    }
+
+    #[test]
+    fn unknown_evidence_state_is_rejected() {
+        let mut value = fixture_value();
+        let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+        finding["evidence_state"] = serde_json::json!("probably_safe");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("invalid v0.3 network JSON/shape"));
+    }
+
+    #[test]
+    fn missing_constraint_cannot_be_mistaken_for_satisfied() {
+        let mut value = fixture_value();
+        value["goal"]["constraints"].as_array_mut().unwrap().remove(1);
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("unknown constraint"));
+    }
+
+    #[test]
+    fn receipt_is_deterministic_for_identical_input_bytes() {
+        let first = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
+        let second = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
+        assert_eq!(first, second);
+        assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
+        assert_eq!(first.input_sha256, hex_sha256(FIXTURE.as_bytes()));
+    }
+}
