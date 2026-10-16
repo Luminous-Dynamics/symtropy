@@ -305,16 +305,24 @@ fn both_builders_match_exact_oracle_on_seeded_nonuniform_degenerate_corpus() {
     ];
     let mut query_state = 0x4256_484F_5241_434C_u64;
     for query_index in 0..384usize {
-        let center = if query_index % 3 != 2 {
-            let triangle_index = query_index.wrapping_mul(73) % median.triangles.len();
-            let triangle = &median.triangles[triangle_index];
-            (triangle.vertices[0] + triangle.vertices[1] + triangle.vertices[2]) / 3.0
-        } else {
-            SVector::<f64, 3>::from([
+        let center = match query_index % 4 {
+            0 | 1 => {
+                let triangle_index = query_index.wrapping_mul(73) % median.triangles.len();
+                let triangle = &median.triangles[triangle_index];
+                (triangle.vertices[0] + triangle.vertices[1] + triangle.vertices[2]) / 3.0
+            }
+            2 => SVector::<f64, 3>::from([
                 deterministic_coord(&mut query_state),
                 deterministic_coord(&mut query_state),
                 deterministic_coord(&mut query_state),
-            ])
+            ]),
+            // Guaranteed empty-space negative control, far beyond the seeded
+            // mesh's coordinate range and the elongated-triangle extension.
+            _ => SVector::<f64, 3>::from([
+                1_000_000.0 + query_index as f64,
+                -1_000_000.0,
+                500_000.0,
+            ]),
         };
         let extent = half_extents[query_index % half_extents.len()];
         let query = Aabb {
