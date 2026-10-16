@@ -689,6 +689,75 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_hard_constraint_disposition_evidence_matrix_fails_closed() {
+        let dispositions = [
+            "satisfied_for_fixture",
+            "conflicted",
+            "unresolved",
+            "not_applicable",
+        ];
+        let evidence_states = [
+            "verified_for_declared_scope",
+            "known_barrier",
+            "unknown",
+            "proposed",
+            "needs_site_measurement",
+            "needs_professional_review",
+        ];
+        let mut accepted = 0_usize;
+        let mut rejected = 0_usize;
+
+        for disposition in dispositions {
+            for evidence_state in evidence_states {
+                let mut value = fixture_value();
+                let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
+                finding["disposition"] = serde_json::json!(disposition);
+                finding["evidence_state"] = serde_json::json!(evidence_state);
+
+                let structurally_invalid = disposition == "not_applicable"
+                    || (evidence_state == "known_barrier" && disposition != "conflicted");
+                if structurally_invalid {
+                    assert!(
+                        evaluate_value(&value).is_err(),
+                        "invalid combination unexpectedly accepted: {disposition}/{evidence_state}"
+                    );
+                    rejected += 1;
+                    continue;
+                }
+
+                let expected = if evidence_state == "known_barrier"
+                    || (disposition == "conflicted" && evidence_state == "verified_for_declared_scope")
+                {
+                    "blocked_by_declared_barrier"
+                } else if disposition == "satisfied_for_fixture"
+                    && evidence_state == "verified_for_declared_scope"
+                {
+                    "evidence_complete_for_fixture"
+                } else {
+                    "not_evaluable"
+                };
+                value["paths"][1]["expected_assessment"] = serde_json::json!(expected);
+                value["failure_modes"][0]["expected_goal_state"] = serde_json::json!(match expected {
+                    "blocked_by_declared_barrier" => "no_candidate_path_proven",
+                    "evidence_complete_for_fixture" => "candidate_path_available_for_fixture",
+                    _ => "not_evaluable",
+                });
+
+                let report = evaluate_value(&value)
+                    .unwrap_or_else(|errors| panic!("valid combination {disposition}/{evidence_state} failed: {}", errors.join("; ")));
+                assert_eq!(
+                    serde_json::to_value(report.path_results[1].assessment).unwrap(),
+                    serde_json::json!(expected),
+                    "wrong assessment for {disposition}/{evidence_state}"
+                );
+                accepted += 1;
+            }
+        }
+        assert_eq!(accepted, 16);
+        assert_eq!(rejected, 8);
+    }
+
+    #[test]
     fn hard_constraint_conflict_blocks_its_path() {
         let mut value = fixture_value();
         let finding = finding_mut(&mut value, "local-fallback-path", "offline-notification-path");
