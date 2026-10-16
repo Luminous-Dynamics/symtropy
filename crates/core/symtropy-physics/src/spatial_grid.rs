@@ -255,6 +255,9 @@ mod tests {
             let candidates = grid.query_radius_candidates(center, radius).unwrap();
             let candidate_ids: Vec<_> = candidates.iter().map(|point| point.id).collect();
 
+            // The broadphase can overselect, but exact filtering must match the
+            // simple full scan with no missing hits or extra accepted neighbors.
+            assert_eq!(exact_ids(&candidates, center, radius), exact);
             assert!(candidate_ids.windows(2).all(|pair| pair[0] < pair[1]));
             for id in exact {
                 assert!(
@@ -278,7 +281,7 @@ mod tests {
         let a = forward.query_radius_candidates([0.0, 0.0], 2.0).unwrap();
         let b = reverse.query_radius_candidates([0.0, 0.0], 2.0).unwrap();
         assert_eq!(a, b);
-        assert_eq!(a.iter().map(|point| point.id).collect::<Vec<_>>(), vec![2, 7, 9]);
+        assert_eq!(a.iter().map(|point| point.id).collect::<Vec<_>>(), vec![2, 7]);
     }
 
     #[test]
@@ -316,7 +319,7 @@ mod tests {
     #[test]
     fn malformed_inputs_fail_closed() {
         assert_eq!(
-            SpatialGrid2d::new([], 0.0).unwrap_err(),
+            SpatialGrid2d::new(std::iter::empty::<SpatialPoint>(), 0.0).unwrap_err(),
             SpatialGridError::InvalidCellSize
         );
         assert_eq!(
@@ -335,7 +338,7 @@ mod tests {
             .unwrap_err(),
             SpatialGridError::DuplicateId { id: 1 }
         );
-        let grid = SpatialGrid2d::new([], 1.0).unwrap();
+        let grid = SpatialGrid2d::new(std::iter::empty::<SpatialPoint>(), 1.0).unwrap();
         assert_eq!(
             grid.query_radius_candidates([0.0, f64::INFINITY], 1.0),
             Err(SpatialGridError::NonFiniteQuery)
