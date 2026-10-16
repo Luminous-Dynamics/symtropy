@@ -20,7 +20,7 @@ The build-time field is explicitly a single sample. Repeat the whole command in 
 
 - The conservative baseline contract permits false positives but never false negatives. The tight-leaf experiment strengthens the query contract: each leaf stores its triangle's exact vertex AABB, and `query_overlap` must return exactly the set of triangle vertex AABBs that overlap the query.
 - Results contain no duplicate or out-of-range triangle indices.
-- A fixed-seed nonuniform 512-triangle corpus (including zero-area and elongated triangles) is checked against an independent O(N) triangle-AABB overlap oracle across 256 queries with point-like through broad boxes; exact candidate-set equality and valid unique indices are asserted.
+- A fixed-seed nonuniform 512-triangle corpus (including zero-area and elongated triangles) is checked against an independent O(N) triangle-AABB overlap oracle across 256 queries with point-like through broad boxes; exact candidate-set equality and valid unique indices are asserted. A second 384-query test runs both median and binned-SAH builders against the same independent oracle on seeded geometry, including populated-triangle queries, empty-space samples, point-like/small/broad boxes, and anisotropic extents. The two construction strategies must each match the oracle exactly and each other.
 - Every BVH leaf bound is tested against the exact min/max of that triangle's three vertices.
 - Transformed mesh queries are conservative under translation and rotation.
 - Degenerate triangles, empty meshes, large coordinate magnitudes, and near-coplanar contacts are covered before changing predicate or narrowphase logic.
