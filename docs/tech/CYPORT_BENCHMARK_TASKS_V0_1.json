@@ -11,7 +11,8 @@
   },
   "split_manifest": {
     "path": "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json",
-    "policy_id": "cyport_sid_chronological_split_v0_1",
+    "schema_id": "luminous.symtropy.maritime.cyport-episode-split",
+    "schema_version": "0.1.0",
     "split_unit": "SID",
     "splits": [
       {
