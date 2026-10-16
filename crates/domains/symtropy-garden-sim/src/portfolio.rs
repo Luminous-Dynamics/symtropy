@@ -967,8 +967,10 @@ mod tests {
     #[test]
     fn one_hundred_seeded_scenarios_match_independent_exhaustive_oracle() {
         for case_index in 0..100 {
+            let case_seed = u64::try_from(case_index)
+                .expect("case index is bounded by the 100-case corpus");
             let request = generated_request(
-                0x5eed_u64.wrapping_add(case_index as u64 * 7919),
+                0x5eed_u64.wrapping_add(case_seed * 7919),
                 case_index,
             );
             let expected = reference_frontier(&request);
@@ -1047,7 +1049,10 @@ mod tests {
             *state = state
                 .wrapping_mul(6_364_136_223_846_793_005)
                 .wrapping_add(1_442_695_040_888_963_407);
-            let other = (*state as usize) % (index + 1);
+            let width = u64::try_from(index + 1)
+                .expect("test permutation width fits into u64");
+            let other = usize::try_from(*state % width)
+                .expect("permutation remainder fits into usize");
             items.swap(index, other);
         }
     }
