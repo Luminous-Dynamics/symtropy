@@ -37,12 +37,10 @@ impl Layout {
     }
 }
 
-impl MeshBvhBuildStrategy {
-    fn label(self) -> &'static str {
-        match self {
-            Self::Median => "median",
-            Self::BinnedSah { .. } => "binned_sah",
-        }
+fn strategy_label(strategy: MeshBvhBuildStrategy) -> &'static str {
+    match strategy {
+        MeshBvhBuildStrategy::Median => "median",
+        MeshBvhBuildStrategy::BinnedSah { .. } => "binned_sah",
     }
 }
 
@@ -241,7 +239,7 @@ fn print_measurement(layout: Layout, requested_triangles: usize, m: &Measurement
         layout.label(),
         requested_triangles,
         requested_triangles,
-        m.strategy.label(),
+        strategy_label(m.strategy),
         m.build_ms,
         QUERY_COUNT,
         QUERY_REPEATS,
