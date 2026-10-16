@@ -1,0 +1,71 @@
+name: Wood Products Corpus Validator
+
+on:
+  push:
+    branches: ["feat/wood-products-lifecycle-bench-v0-1"]
+    paths:
+      - "docs/tech/wood-products-benchmark-corpus-v0.1.json"
+      - "tools/wood-products-bench/**"
+      - ".github/workflows/wood-products-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/wood-products-benchmark-corpus-v0.1.json"
+      - "tools/wood-products-bench/**"
+      - ".github/workflows/wood-products-bench.yml"
+      - "docs/tech/WOOD_PRODUCTS_LIFECYCLE_REFERENCE_BENCHMARK_SUITE_V0_1.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wood-products-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/wood-products-bench/Cargo.toml -- --check
+
+      - name: Run corpus validator tests
+        run: cargo test --manifest-path tools/wood-products-bench/Cargo.toml
+
+      - name: Execute validator and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wood-products-bench/Cargo.toml -- \
+            docs/tech/wood-products-benchmark-corpus-v0.1.json \
+            --source-commit "$source_commit" > wood-products-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 6
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.scenarios | all(.status == "pass"))
+          ' wood-products-reference-receipt.json
+
+      - name: Upload deterministic validation receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: wood-products-reference-receipt
+          path: wood-products-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90
