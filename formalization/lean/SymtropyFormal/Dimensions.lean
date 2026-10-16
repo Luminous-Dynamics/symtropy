@@ -78,10 +78,14 @@ def forceDim : PhysicalDimension :=
   PhysicalDimension.div (PhysicalDimension.mul massDim lengthDim)
     (PhysicalDimension.pow timeDim 2)
 def pressureDim : PhysicalDimension := PhysicalDimension.div forceDim areaDim
-def youngsModulusDim : PhysicalDimension := pressureDim
+/-- SI dimension of elastic modulus / pressure: kg m^-1 s^-2. -/
+def youngsModulusDim : PhysicalDimension := ⟨-1, 1, -2, 0, 0, 0, 0⟩
 def stressDim : PhysicalDimension := PhysicalDimension.div forceDim areaDim
-def bendingMomentDim : PhysicalDimension := PhysicalDimension.mul forceDim lengthDim
+/-- SI dimension of moment: N m = kg m^2 s^-2. -/
+def bendingMomentDim : PhysicalDimension := ⟨2, 1, -2, 0, 0, 0, 0⟩
 def lineLoadDim : PhysicalDimension := PhysicalDimension.div forceDim lengthDim
+/-- Independently declared SI dimension for a support reaction force. -/
+def supportReactionDim : PhysicalDimension := ⟨1, 1, -2, 0, 0, 0, 0⟩
 
 /-! ## Dimensional homogeneity for the engineering contracts -/
 
@@ -116,13 +120,10 @@ theorem axialStress_dimensions :
     stressDim = youngsModulusDim := by decide
 
 theorem bendingMoment_dimensions :
-    bendingMomentDim =
-      PhysicalDimension.div
-        (PhysicalDimension.mul forceDim (PhysicalDimension.pow lengthDim 2))
-        lengthDim := by decide
+    PhysicalDimension.mul forceDim lengthDim = bendingMomentDim := by decide
 
 theorem supportReaction_dimensions :
-    forceDim = forceDim := by decide
+    forceDim = supportReactionDim := by decide
 
 /-! ## Negative control: a missing length power must not masquerade as deflection -/
 
