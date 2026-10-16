@@ -1194,7 +1194,10 @@ mod tests {
             assert_eq!(operation.functional_unit_id, job.functional_unit_id);
             assert!(job.required_capabilities.is_subset(&machine.capabilities));
             assert!(job.required_gates.iter().all(|gate| {
-                matches!(&gate.outcome, GateOutcome::Pass { evidence_ref } if !evidence_ref.trim().is_empty())
+                match &gate.outcome {
+                    GateOutcome::Pass { evidence_ref } => !evidence_ref.trim().is_empty(),
+                    GateOutcome::Fail { .. } | GateOutcome::Unknown { .. } => false,
+                }
             }));
 
             let expected_from = machine_family
