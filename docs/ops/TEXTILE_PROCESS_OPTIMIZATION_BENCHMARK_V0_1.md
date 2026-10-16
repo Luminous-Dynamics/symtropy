@@ -33,6 +33,43 @@ The result should be a **feasible Pareto frontier plus a traceable explanation o
 | One opaque “green score” | Feasibility gates + named objectives + Pareto alternatives | Expose trade-offs and uncertainty; do not turn missing evidence into zero impact. |
 | One company’s perfect local optimum | Evidence-linked multi-party coordination | Retain the lot/process lineage and confidential boundaries while assessing supply continuity and circular loops. |
 
+## 3. Garment-aware service and care profiles
+
+The process benchmark must not assume all clothing behaves like an everyday T-shirt. Use the versioned profile contract in [Garment Use Profiles v0.1](fixtures/garment_use_profiles_v0_1/README.md) for at least:
+
+- everyday basics and workwear;
+- rental and seasonal occasionwear;
+- couture/decorative garments with beads, sequins, dense embroidery, metallic threads, appliqué, adhesives or fragile trims;
+- bridal, cultural and ceremonial garments that may be altered, passed on or preserved;
+- performance/stage costumes whose service unit is a performance run;
+- modular decorative garments designed for detachable trims or alternate styling;
+- deadstock, runway samples and one-off pieces with unknown blends/finishes;
+- historical, archive and exhibition garments whose service may be conservation years or controlled exhibition days rather than wear cycles.
+
+### No frequency penalty
+
+A low use frequency is a descriptor, not a negative score. A garment used once a year may deliver a distinct ceremony, artistic performance, cultural role, collectible value or historical record. The system should not treat any of those as interchangeable with high-frequency utility clothing, nor declare them environmentally superior by assigning arbitrary cultural value.
+
+Each profile must predeclare its intended service, functional unit, quality/appearance constraints, care burden, decoration/material risks, possible circulation paths and whether specialist assessment is required. Compare alternatives only under functionally comparable units, or report the comparison as unresolved. Do not automatically divide a garment's impact by an assumed number of wears.
+
+### Decorative construction and rare-use care
+
+The model should track detachable versus permanently bonded components, material blends and adhesives, repairability, inspection needs, care method, storage/handling risks, and credible next-life routes. More decoration is not automatically bad; a removable module is not automatically recyclable; and a claimed resale/rental route is not equivalent to an observed second use.
+
+For collection-level/heritage items, condition, controlled handling, storage and display exposure can matter more than laundering or wear count. Conservation references are profiles to be assessed by qualified owners, not universal care prescriptions for ordinary clothing. See the Canadian Conservation Institute's [textile and costume guidelines](https://www.canada.ca/en/conservation-institute/services/preventive-conservation/guidelines-collections/textiles-costumes.html) and National Museums Scotland's [textile packing guidance](https://www.nms.ac.uk/our-impact/national-work/training-and-guidance-for-museums/collections-care/object-packing/how-to-pack-textiles).
+
+### Additional synthetic challenge cases
+
+Extend the existing ten-case corpus with at least:
+
+11. **Rare-use couture:** an embellished gown is worn infrequently, with fragile beadwork and specialist storage/repair requirements. Low use frequency must not itself lower its assessed value or trigger a universal penalty.
+12. **Rental occasionwear:** compare a rental pathway with owner purchase using actual cleaning, transport, packaging, damage, repair, and use-count data. No universal rental break-even number is assumed.
+13. **Modular statement garment:** detachable trims expand possible styling and repair, but material separation and recycling claims remain blocked until the specific modules and output grades are evidenced.
+14. **Deadstock/runway sample:** blend, coating or adhesive composition is unknown. Preserve design and provenance value while blocking unsupported material-safety or recycling claims.
+15. **Performance costume:** evaluate completed performance runs, fit/movement constraints, quick changes and repair/cleaning burden rather than generic daily wear cycles.
+16. **Heritage/archive garment:** use a declared conservation/exhibition service unit, condition observations and specialist review. Do not require the garment to be worn to have measurable service value.
+17. **Ceremonial/bridal garment:** compare alteration, lending, inheritance, resale and preservation pathways without collapsing cultural significance into an invented numeric score.
+
 ## 4. Initial process boundary
 
 The first model should be small enough to verify and broad enough to expose real trade-offs. Begin with batch or lot-level operations such as preparation, spinning (if in scope), weaving/knitting/nonwoven formation, dyeing/finishing as abstracted process families, cutting/sewing, inspection, rework, repair, sorting and recovery.
@@ -146,8 +183,8 @@ Public datasets are an initial evidence base, not proof of factory-wide optimiza
 
 ## 9. First implementation sequence
 
-1. **Completed in source, awaiting exact-head validation:** freeze the scenario schema, ten synthetic contract cases and an independent correctness oracle; add the `symtropy-textile-process` dependency-free Rust crate to the workspace.
-2. **Implemented but not yet CI-qualified:** typed objective directions/units/scales, evidence-bearing objective values, hard-gate outcomes (`Pass`, `Fail`, `Unknown`), deterministic feasible/incomplete/blocked classification, Pareto frontier and deterministic domination witnesses, plus exact integer mass closure at one declared process boundary. A seeded independent exhaustive oracle checks 100 synthetic scenarios × 16 candidates × 4 objectives. A small example makes a hard-gate false-green visible.
+1. **Completed in source, awaiting exact-head validation:** freeze the original ten process-contract cases and an independent correctness oracle; add the dependency-free `symtropy-textile-process` crate and versioned garment-use profile fixtures for decorative and rare-use garments.
+2. **Implemented but not yet CI-qualified:** typed objective directions/units/scales, evidence-bearing objective values, hard-gate outcomes (`Pass`, `Fail`, `Unknown`), deterministic feasible/incomplete/blocked classification, Pareto frontier and deterministic domination witnesses, exact integer mass closure at one declared process boundary, and garment use/care profiles including specialist decoration risks. A seeded independent exhaustive oracle checks 100 synthetic scenarios × 16 candidates × 4 objectives. A small example makes a hard-gate false-green visible.
 3. **Next:** add numerical process-operation and schedule models (durations, setup families, machine eligibility, due windows and utility envelopes) with tiny exhaustive scheduling fixtures. Do not alter Symtropy's core rigid-body semantics or represent missing resource/effluent data as zero.
 4. Compare a simple incumbent dispatch rule, earliest-due-date, shortest-processing-time, and exact solutions on tiny instances before multi-objective heuristics. Freeze time and compute budgets.
 5. Add a Mycelix-facing assessment receipt referencing immutable lot/process/evidence IDs, uncertainty and objective-contract identity without importing confidential source data.
