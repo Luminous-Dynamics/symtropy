@@ -82,7 +82,7 @@ pub enum UnknownCause {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "state", rename_all = "snake_case")]
+#[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ComponentState {
     Available,
     Failed,
@@ -1402,6 +1402,11 @@ mod tests {
         nested["components"][0]["unreviewed_capacity_override"] =
             serde_json::json!(999_999_u64);
         assert!(serde_json::from_value::<ScenarioInput>(nested).is_err());
+
+        let mut state = serde_json::to_value(fixture()).unwrap();
+        state["components"][0]["observed_state"]["unreviewed_override"] =
+            serde_json::json!(true);
+        assert!(serde_json::from_value::<ScenarioInput>(state).is_err());
     }
 
     #[test]
