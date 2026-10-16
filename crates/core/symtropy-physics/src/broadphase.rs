@@ -1056,6 +1056,54 @@ mod tests {
     }
 
     #[test]
+    fn incremental_crossover_boundary_matches_bruteforce_for_mixed_active_types() {
+        use symtropy_math::Transform;
+
+        for active_count in [48usize, 49, 50, 51] {
+            let mut bodies = Vec::with_capacity(6 + active_count);
+            for index in 0..6usize {
+                bodies.push(RigidBody::<3>::static_body(
+                    BodyHandle(index),
+                    Point::new([index as f64 * 0.2, 0.0, 0.0]),
+                    Box::new(Sphere::unit()),
+                ));
+            }
+            for index in 0..active_count {
+                let handle = BodyHandle(6 + index);
+                let position = Point::new([
+                    (index % 4) as f64 * 0.2,
+                    (index % 3) as f64 * 0.2,
+                    0.0,
+                ]);
+                let body = if index % 2 == 0 {
+                    RigidBody::<3>::new(
+                        handle,
+                        BodyType::Kinematic,
+                        Transform::from_translation(position),
+                        Box::new(Sphere::unit()),
+                        0.0,
+                        SVector::zeros(),
+                    )
+                } else {
+                    RigidBody::<3>::dynamic_sphere(handle, position, 1.0, 1.0)
+                };
+                bodies.push(body);
+            }
+
+            let mut static_bp = StaticBroadphase::new();
+            static_bp.rebuild(&bodies);
+            let mut actual = find_pairs_incremental(&bodies, &static_bp);
+            let mut expected = find_pairs_brute(&bodies);
+            actual.sort_unstable_by_key(|pair| (pair.0, pair.1));
+            expected.sort_unstable_by_key(|pair| (pair.0, pair.1));
+            assert_eq!(
+                actual, expected,
+                "crossover path changed pair semantics with {active_count} active bodies"
+            );
+        }
+    }
+
+    #[test]
     fn incremental_mixed_body_corpora_match_bruteforce() {
         // Exercise the incremental branch below its active-body crossover.
         // Multiple deterministic seeds, scene sizes, and collision masks guard
