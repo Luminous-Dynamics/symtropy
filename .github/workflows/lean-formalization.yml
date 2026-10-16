@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out exact revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate contract, unit and dimensionless-group mappings
         shell: bash
         run: |
@@ -46,7 +46,14 @@ jobs:
               "Pa":[-1,1,-2,0,0,0,0],
               "N*m":[2,1,-2,0,0,0,0],
               "N/m":[0,1,-2,0,0,0,0]
-            })
+            }) and
+            ([.contracts[].candidate_rust_mapping.api] | unique | length == 5) and
+            ([.contracts[].candidate_rust_mapping.source_path] | unique ==
+              ["crates/apps/symtropy-housing-evidence/src/structural_reference.rs"]) and
+            ([.contracts[] | .candidate_rust_mapping.status] | all(. == "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED")) and
+            ([.contracts[] | .candidate_rust_mapping.refinement_status] | all(. == "NOT_ESTABLISHED")) and
+            ([.contracts[] | .candidate_rust_mapping.outputs | length] | all(. > 0)) and
+            (.rust_refinement_status == "NOT_ESTABLISHED")
           ' formalization/lean/contracts.json >/dev/null
 
           while IFS= read -r theorem; do
@@ -73,7 +80,7 @@ jobs:
             fi
           done < <(jq -r '.contracts[].inputs_and_outputs[]' formalization/lean/contracts.json | sort -u)
       - name: Build pinned Lean project and audit theorem namespace
-        uses: leanprover/lean-action@v1
+        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
         with:
           lake-package-directory: formalization/lean
           use-mathlib-cache: true
