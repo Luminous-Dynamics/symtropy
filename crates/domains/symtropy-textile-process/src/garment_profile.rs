@@ -100,6 +100,20 @@ pub enum DecorationRisk {
     DetachableModularTrim,
 }
 
+/// Production strategy for a garment profile; not a guarantee of supply capacity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ProductionStrategy {
+    MadeToOrder,
+    PreorderOrDemandSignal,
+    SmallBatch,
+    ForecastDrivenBatch,
+    RentalOrSharedInventory,
+    OneOffArtisanal,
+    CommissionedOrCeremonial,
+    RepairOrAlterationFirst,
+    ReuseExistingSample,
+}
+
 /// Permitted or intended second-life route; does not imply qualification.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum CirculationRoute {
@@ -112,6 +126,8 @@ pub enum CirculationRoute {
     ArchiveOrMuseumCollection,
     ExhibitionOrDisplay,
     TransformIntoAnotherArticle,
+    DonationOrCommunityTransfer,
+    UnsoldInventoryReallocation,
     QualifiedMaterialRecovery,
 }
 
@@ -126,6 +142,7 @@ pub struct GarmentUseProfile {
     pub value_dimensions: Vec<ValueDimension>,
     pub decoration_risks: Vec<DecorationRisk>,
     pub specialist_assessment_required: bool,
+    pub production_strategies: Vec<ProductionStrategy>,
     pub care_constraints: Vec<CareConstraint>,
     pub circulation_routes: Vec<CirculationRoute>,
 }
@@ -139,6 +156,7 @@ pub enum GarmentProfileError {
     MissingValueDimensions,
     DuplicateValueDimension(ValueDimension),
     DuplicateDecorationRisk(DecorationRisk),
+    DuplicateProductionStrategy(ProductionStrategy),
     DuplicateCareConstraint(CareConstraint),
     DuplicateCirculationRoute(CirculationRoute),
 }
@@ -159,6 +177,9 @@ impl fmt::Display for GarmentProfileError {
             }
             Self::DuplicateDecorationRisk(value) => {
                 write!(f, "duplicate decoration/material risk: {value:?}")
+            }
+            Self::DuplicateProductionStrategy(value) => {
+                write!(f, "duplicate production strategy: {value:?}")
             }
             Self::DuplicateCareConstraint(value) => {
                 write!(f, "duplicate care constraint: {value:?}")
@@ -197,6 +218,10 @@ impl GarmentUseProfile {
         ensure_unique(
             self.decoration_risks.iter().copied(),
             GarmentProfileError::DuplicateDecorationRisk,
+        )?;
+        ensure_unique(
+            self.production_strategies.iter().copied(),
+            GarmentProfileError::DuplicateProductionStrategy,
         )?;
         ensure_unique(
             self.care_constraints.iter().copied(),
@@ -257,6 +282,11 @@ mod tests {
             ],
             decoration_risks: vec![DecorationRisk::Beadwork, DecorationRisk::MetallicThread],
             specialist_assessment_required: true,
+            production_strategies: vec![
+                ProductionStrategy::MadeToOrder,
+                ProductionStrategy::OneOffArtisanal,
+                ProductionStrategy::ReuseExistingSample,
+            ],
             care_constraints: vec![
                 CareConstraint::SpotCleanOnly,
                 CareConstraint::PaddedOrFlatStorage,
@@ -292,6 +322,11 @@ mod tests {
             ],
             decoration_risks: vec![DecorationRisk::HistoricOrDegradingMaterial],
             specialist_assessment_required: true,
+            production_strategies: vec![
+                ProductionStrategy::CommissionedOrCeremonial,
+                ProductionStrategy::MadeToOrder,
+                ProductionStrategy::RepairOrAlterationFirst,
+            ],
             care_constraints: vec![
                 CareConstraint::HandSupportDuringHandling,
                 CareConstraint::PaddedOrFlatStorage,
@@ -325,6 +360,10 @@ mod tests {
                 DecorationRisk::MixedMaterialTrim,
             ],
             specialist_assessment_required: false,
+            production_strategies: vec![
+                ProductionStrategy::RentalOrSharedInventory,
+                ProductionStrategy::ReuseExistingSample,
+            ],
             care_constraints: vec![
                 CareConstraint::RemoveDetachableEmbellishmentsBeforeCleaning,
                 CareConstraint::RepairByQualifiedEmbellishmentSpecialist,
@@ -354,6 +393,11 @@ mod tests {
             ],
             decoration_risks: vec![DecorationRisk::DetachableModularTrim],
             specialist_assessment_required: false,
+            production_strategies: vec![
+                ProductionStrategy::MadeToOrder,
+                ProductionStrategy::SmallBatch,
+                ProductionStrategy::RepairOrAlterationFirst,
+            ],
             care_constraints: vec![
                 CareConstraint::RemoveDetachableEmbellishmentsBeforeCleaning,
                 CareConstraint::SpotCleanOnly,
@@ -378,6 +422,40 @@ mod tests {
 
         assert_eq!(profile.validate(), Ok(()));
         assert!(profile.specialist_assessment_required);
+    }
+
+    #[test]
+    fn production_strategy_distinguishes_one_off_from_forecast_batch() {
+        let mut profile = couture_profile();
+        assert!(profile
+            .production_strategies
+            .contains(&ProductionStrategy::OneOffArtisanal));
+        profile.profile_id = "DEADSTOCK-RUNWAY-SAMPLE-01".into();
+        profile.archetype = GarmentArchetype::DeadstockOrRunwaySample;
+        profile.production_strategies = vec![
+            ProductionStrategy::ReuseExistingSample,
+            ProductionStrategy::PreorderOrDemandSignal,
+        ];
+        profile.circulation_routes.push(CirculationRoute::UnsoldInventoryReallocation);
+
+        assert_eq!(profile.validate(), Ok(()));
+        assert!(!profile
+            .production_strategies
+            .contains(&ProductionStrategy::ForecastDrivenBatch));
+    }
+
+    #[test]
+    fn duplicate_production_strategy_is_rejected() {
+        let mut profile = couture_profile();
+        profile
+            .production_strategies
+            .push(ProductionStrategy::MadeToOrder);
+        assert_eq!(
+            profile.validate(),
+            Err(GarmentProfileError::DuplicateProductionStrategy(
+                ProductionStrategy::MadeToOrder
+            ))
+        );
     }
 
     #[test]
