@@ -41,13 +41,13 @@ These are software gates; use synthetic fixtures and mutation tests.
 | Replay determinism | 100% exact | Same bytes and pinned build yield the same result and receipt |
 | Public fixture privacy | 0 real payloads | No resident identity, address, actual floorplan, personal notes or raw sensitive evidence in public examples |
 
-The draft Rust evaluator adds a synthetic 1,000-claim / 1,000-path correctness stress test. It is a scale smoke test, not yet a timing benchmark, and it has not been reported as passed.
+The draft Rust evaluator includes a synthetic 1,000-claim / 1,000-path correctness stress test and a separate benchmark binary that generates an exact 10,000-claim / 1,000-event / 1,000-path workload, reports median/p95 timings and binds results to an input digest. Neither has been reported as passed; the benchmark records OS/architecture while compiler version, CPU details and peak RSS must be captured externally alongside the run.
 
 ### Tier 1 — Larger-scale replay and auditability
 
 Run only after Tier 0 passes. Publish machine, OS, compiler, build mode, input generator version, input byte count, claim/event/path counts, wall-clock time, peak RSS, receipt hash and run status.
 
-- **Proposed target:** 10,000 claims, 1,000 ordered change events and 1,000 paths replay in under 1 second and under 256 MiB peak RSS on a named reference machine.
+- **Proposed target:** 10,000 claims, 1,000 ordered change events and 1,000 paths replay in under 1 second and under 256 MiB peak RSS on a named reference machine. The benchmark binary times only evaluate_bytes, checks deterministic receipts across iterations, and reports minimum/median/p95/maximum time and input byte count/hash. Use /usr/bin/time -v or an equivalent for peak RSS, and archive rustc --version --verbose, CPU details and the exact release-build command.
 - Repeat each run at least 30 times; report median and p95, not only the fastest run.
 - Measure cold and warm runs separately; never compare unlike build modes.
 - The target is a hypothesis until a baseline is actually measured. Do not claim it is met because a small fixture passes.
