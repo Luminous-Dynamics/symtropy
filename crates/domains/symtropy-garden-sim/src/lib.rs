@@ -10,6 +10,8 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+pub mod portfolio;
+
 /// Serialize exact integers as decimal strings so JSON consumers that use
 /// IEEE-754 numbers (for example, JavaScript) do not silently round quantities.
 fn serialize_u64_as_string<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
