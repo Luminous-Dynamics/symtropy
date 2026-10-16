@@ -41,7 +41,9 @@ The current unit fixture creates two routes and three paired scenarios:
 
 With the departure at second 100, Route A arrives at 200 in nominal conditions but at 600 in the disruption scenario. Route B arrives at 230 nominally and no later than 300 across its three declared scenarios. The minimax selector therefore chooses B. This demonstrates a mechanism only; the times are synthetic and not a performance or benefit claim.
 
-The test suite also checks scenario-order and candidate-order invariance, preservation of path rejection when a future-observed profile leaks into a scenario, missing/unknown scenario rejection, topology and common origin/destination consistency, and manifest/nominal requirements. Eight synthetic robust-selector tests are authored; they have not yet been run.
+The test suite also checks scenario-order and candidate-order invariance, preservation of path rejection when a future-observed profile leaks into a scenario, missing/unknown scenario rejection, topology and common origin/destination consistency, and manifest/nominal requirements. Nine synthetic robust-selector tests are authored, including an independent exhaustive reference over 64 toy candidate paths and all declared scenarios; they have not yet been run.
+
+The 64-path reference test enumerates nominal and two disruption travel times in a tiny integer domain, computes nominal and worst-case scores with a separate slow score table, and checks the production selector against both chosen IDs and every reported score. This validates the finite minimax selection contract for that fixture space only; it is not a runtime benchmark or evidence of real-world route benefit.
 
 ## 4. Benchmark ladder
 
