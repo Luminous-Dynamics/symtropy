@@ -94,7 +94,7 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["status", "reason"},
+          "required": ["status", "reason"],
           "properties": {
             "status": {"const": "not_applicable"},
             "reason": {"type": "string", "minLength": 1}
