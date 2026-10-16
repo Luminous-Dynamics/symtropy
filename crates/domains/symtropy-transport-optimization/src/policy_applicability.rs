@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! Fail-closed, bitemporal selection of transport-policy rule versions.
+//! Fail-closed, multi-temporal selection of transport-policy rule versions.
 //!
 //! A rule is selectable only when it was publicly published and present in the
 //! replay corpus by the query's knowledge cutoff, and when it was effective at
@@ -400,7 +400,7 @@ mod tests {
             "v2", 50, 55, 20, None,
             PolicyScope::lock_system(PolicyLockSystem::Panamax), &["v1"],
         );
-        let book = PolicyRuleBook::new(vec![new, old]).expect("valid bitemporal rule book");
+        let book = PolicyRuleBook::new(vec![new, old]).expect("valid multi-temporal rule book");
 
         assert_eq!(resolved_version(book.resolve(&query(
             60, 40, PolicyScope::lock_system(PolicyLockSystem::Panamax),
@@ -416,7 +416,7 @@ mod tests {
         let old = qualified_rule("v1", 10, 11, 12, None, scope.clone(), &[]);
         // Public since time 20, but absent from this replay corpus until time 50.
         let late_ingested = qualified_rule("v2", 20, 50, 20, None, scope.clone(), &["v1"]);
-        let book = PolicyRuleBook::new(vec![old, late_ingested]).expect("valid bitemporal history");
+        let book = PolicyRuleBook::new(vec![old, late_ingested]).expect("valid multi-temporal history");
 
         assert_eq!(resolved_version(book.resolve(&query(60, 40, scope.clone()))), "v1");
         assert_eq!(resolved_version(book.resolve(&query(60, 50, scope))), "v2");
