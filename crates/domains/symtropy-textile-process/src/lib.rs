@@ -14,6 +14,7 @@
 //! and evidence references supplied here are caller-owned assertions.
 
 pub mod demand;
+pub mod empirical;
 pub mod garment_profile;
 pub mod scheduler;
 pub mod stress;
