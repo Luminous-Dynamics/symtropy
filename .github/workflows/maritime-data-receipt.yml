@@ -17,6 +17,7 @@ on:
       - 'docs/tech/MARITIME_ADAPTIVE_RESILIENCE_V0_1.md'
       - 'docs/tech/MARITIME_ADAPTIVE_RESILIENCE_V0_1.json'
       - 'docs/tech/MARITIME_RESILIENCE_BENCHMARKS_V0_1.md'
+      - 'docs/tech/MARITIME_RESILIENCE_FALSIFICATION_V0_1.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.gitignore'
