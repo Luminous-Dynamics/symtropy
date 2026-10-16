@@ -9,6 +9,7 @@ mod forecast_applicability;
 mod disruption_rehearsal;
 mod adaptive_resilience;
 mod historical_corpus;
+mod cyport_interaction_profile;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -717,6 +718,15 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--profile-cyport-interactions") {
+        let csv_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --profile-cyport-interactions <interaction-data-csv-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for CyPort interaction profiling".to_owned());
+        }
+        return cyport_interaction_profile::run_cli(&csv_path);
+    }
     if first_arg.as_deref() == Some("--validate-historical-corpus-manifest") {
         let manifest_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-historical-corpus-manifest <manifest-json-path>".to_owned()
