@@ -156,6 +156,8 @@ pub struct ResourceSupply {
     pub supply_id: String,
     /// Explicitly scopes which demands may compete for this supply.
     pub allocation_pool_id: String,
+    /// Higher values are preferred before demand allocation; ties use supply ID.
+    pub allocation_priority: u16,
     pub source_component: ComponentId,
     pub resource_kind: ResourceKind,
     pub capacity_units: u64,
@@ -726,13 +728,18 @@ fn allocate_resources(
     }
 
     for (kind, pool_id) in resource_pools {
-        let supplies: Vec<&ResourceSupply> = input
+        let mut supplies: Vec<&ResourceSupply> = input
             .resource_supplies
             .iter()
             .filter(|supply| {
                 supply.resource_kind == kind && supply.allocation_pool_id == pool_id
             })
             .collect();
+        supplies.sort_by(|a, b| {
+            b.allocation_priority
+                .cmp(&a.allocation_priority)
+                .then_with(|| a.supply_id.cmp(&b.supply_id))
+        });
         let demands: Vec<&ResourceDemand> = input
             .resource_demands
             .iter()
@@ -994,6 +1001,7 @@ mod tests {
                 ResourceSupply {
                     supply_id: "grid-energy".into(),
                     allocation_pool_id: "electrical-common".into(),
+                    allocation_priority: 100,
                     source_component: id("grid"),
                     resource_kind: ResourceKind::ElectricalEnergy,
                     capacity_units: 100,
@@ -1002,6 +1010,7 @@ mod tests {
                 ResourceSupply {
                     supply_id: "backup-energy".into(),
                     allocation_pool_id: "electrical-common".into(),
+                    allocation_priority: 10,
                     source_component: id("backup"),
                     resource_kind: ResourceKind::ElectricalEnergy,
                     capacity_units: 80,
@@ -1010,6 +1019,7 @@ mod tests {
                 ResourceSupply {
                     supply_id: "reservoir-water".into(),
                     allocation_pool_id: "potable-water".into(),
+                    allocation_priority: 100,
                     source_component: id("reservoir"),
                     resource_kind: ResourceKind::PotableWater,
                     capacity_units: 100,
@@ -1096,6 +1106,15 @@ mod tests {
             CLAIM_CEILING,
             "the synthetic claim boundary must remain visible"
         );
+    }
+
+    #[test]
+    fn declared_supply_priority_not_lexicographic_id_controls_source_choice() {
+        let report = evaluate_scenario(&fixture()).unwrap();
+        let clinic = demand(&report, "clinic-power");
+        assert_eq!(clinic.allocated_known_units, 60);
+        assert_eq!(clinic.sources.len(), 1);
+        assert_eq!(clinic.sources[0].supply_id, "grid-energy");
     }
 
     #[test]
