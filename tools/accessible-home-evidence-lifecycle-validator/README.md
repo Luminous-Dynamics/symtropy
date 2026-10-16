@@ -13,6 +13,19 @@ cargo test --manifest-path tools/accessible-home-evidence-lifecycle-validator/Ca
 cargo run --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- \
   --input docs/built-environment/accessible-home-evidence-lifecycle-v0.1.example.json \
   --output /tmp/accessible-home-lifecycle-receipt.json
+
+# Reproducible timing report (release build; fixture generation excluded from timed interval)
+cargo run --release --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml \
+  --bin accessible-home-evidence-lifecycle-benchmark -- \
+  --claims 10000 --events 1000 --paths 1000 --warmup 3 --iterations 30 \
+  > /tmp/accessible-home-lifecycle-benchmark.json
+
+# Record environment and peak RSS separately
+rustc --version --verbose > /tmp/accessible-home-rustc-version.txt
+/usr/bin/time -v cargo run --release --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml \
+  --bin accessible-home-evidence-lifecycle-benchmark -- \
+  --claims 10000 --events 1000 --paths 1000 --warmup 3 --iterations 30 \
+  > /tmp/accessible-home-lifecycle-benchmark-with-time.json
 ```
 
 Invalid JSON, unknown fields, unknown references, unsupported versions, conflicting current claims,
@@ -59,3 +72,12 @@ measure clearances, simulate a resident, validate evacuation, assess assistive t
 compliance, or qualify any home or safety system. Real projects still require the resident's informed
 direction, field measurement, appropriate professional review, jurisdiction-specific requirements and
 privacy safeguards. A successful receipt is never a certificate.
+
+
+## Reproducible performance evidence
+
+The benchmark binary generates only synthetic lifecycle data. It reports exact input size and SHA-256, validator version, OS/architecture, warmup/timed iteration counts, minimum/median/p95/maximum evaluator time, claim throughput, and output counts. Fixture generation is excluded from the timed interval; every timed replay must reproduce the same receipt.
+
+The binary cannot portably measure peak RSS or reliably embed the Rust compiler version. Collect these separately with rustc --version --verbose and /usr/bin/time -v (or an equivalent OS-specific tool), and preserve those files beside the JSON result. Record CPU model, available memory, power mode, Cargo command, commit SHA and whether the build is release/debug. Do not compare timing reports from unlike environments without qualification.
+
+The target 10,000 claims / 1,000 change events / 1,000 paths under 1 second and 256 MiB is still a proposed target. Run at least 30 timed iterations after warmup and report median/p95; do not claim it is met until the receipt and environment evidence are archived.
