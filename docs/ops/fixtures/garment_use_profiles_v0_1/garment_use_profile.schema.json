@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/ops/fixtures/garment_use_profiles_v0_1/garment_use_profile.schema.json",
+  "title": "Garment use, care, decorative detail and conservation profiles",
+  "description": "Synthetic profile contract for functional assessment of everyday, occasion, couture, ceremonial, performance, modular, deadstock and archive garments. Not a lifecycle impact model.",
+  "type": "object",
+  "required": [
+    "benchmark_id",
+    "version",
+    "evidence_status",
+    "profiles"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "TEXTILE-GARMENT-USE"
+    },
+    "version": {
+      "const": "0.1"
+    },
+    "evidence_status": {
+      "const": "synthetic_contract_profiles"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "archetype",
+        "use_pattern",
+        "functional_unit_basis",
+        "functional_unit_definition",
+        "intended_service",
+        "value_dimensions",
+        "decoration_risks",
+        "specialist_assessment_required",
+        "production_strategies",
+        "care_constraints",
+        "circulation_routes",
+        "evaluation_rule"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]+(?:-[A-Z0-9]+)*$"
+        },
+        "archetype": {
+          "enum": [
+            "everyday",
+            "workwear",
+            "occasionwear",
+            "couture_or_decorative",
+            "ceremonial_or_heritage",
+            "performance_or_costume",
+            "archive_or_display",
+            "modular_decorative",
+            "deadstock_or_runway_sample"
+          ]
+        },
+        "use_pattern": {
+          "enum": [
+            "frequent",
+            "seasonal",
+            "occasional",
+            "event_specific",
+            "performance_schedule",
+            "display_rotation",
+            "archive_preservation"
+          ]
+        },
+        "functional_unit_basis": {
+          "enum": [
+            "wear_and_care_cycles",
+            "distinct_events",
+            "performance_runs",
+            "exhibition_days",
+            "conservation_years",
+            "custom"
+          ]
+        },
+        "functional_unit_definition": {
+          "type": "string",
+          "minLength": 12
+        },
+        "intended_service": {
+          "type": "string",
+          "minLength": 12
+        },
+        "value_dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "protection_or_utility",
+              "fit_and_comfort",
+              "aesthetic_expression",
+              "cultural_or_ceremonial_meaning",
+              "historical_evidence",
+              "performance_function",
+              "identity_or_belonging",
+              "collectability",
+              "accessibility_and_ease_of_use"
+            ]
+          }
+        },
+        "decoration_risks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "beadwork",
+              "sequins",
+              "dense_embroidery",
+              "metallic_thread",
+              "feathers_or_natural_trim",
+              "applique_or_patchwork",
+              "mixed_material_trim",
+              "adhesive_bonded_decoration",
+              "color_sensitive_surface",
+              "historic_or_degrading_material",
+              "unknown_blend_or_deadstock_composition",
+              "detachable_modular_trim"
+            ]
+          }
+        },
+        "specialist_assessment_required": {
+          "type": "boolean"
+        },
+        "care_constraints": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "machine_washable",
+              "professional_cleaning",
+              "spot_clean_only",
+              "no_wet_cleaning",
+              "remove_detachable_embellishments_before_cleaning",
+              "hand_support_during_handling",
+              "padded_or_flat_storage",
+              "light_and_humidity_controlled_storage",
+              "pest_inspection",
+              "specialist_conservation_review",
+              "repair_by_qualified_embellishment_specialist"
+            ]
+          }
+        },
+        "circulation_routes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "owner_retained",
+              "repair_and_return",
+              "alteration_or_restyling",
+              "rental_or_costume_hire",
+              "lending_or_shared_wardrobe",
+              "resale",
+              "archive_or_museum_collection",
+              "exhibition_or_display",
+              "transform_into_another_article",
+              "qualified_material_recovery",
+              "donation_or_community_transfer",
+              "unsold_inventory_reallocation"
+            ]
+          }
+        },
+        "evaluation_rule": {
+          "const": "use_frequency_is_not_a_value_proxy"
+        },
+        "production_strategies": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "made_to_order",
+              "preorder_or_demand_signal",
+              "small_batch",
+              "forecast_driven_batch",
+              "rental_or_shared_inventory",
+              "one_off_artisanal",
+              "commissioned_or_ceremonial",
+              "repair_or_alteration_first",
+              "reuse_existing_sample"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
