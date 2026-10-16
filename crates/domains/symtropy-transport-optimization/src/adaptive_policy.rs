@@ -427,7 +427,7 @@ fn validate_scenario_option(
     demand_id: &str,
     path_id: &str,
     option: &FifoAdaptiveRouteScenarioOptionV1,
-) -> Result<(PreparedAdaptiveScenario, Vec<(String, Vec<(String, String, String)>)>, BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, u64, QuantityUnit)>>), FifoAdaptivePolicyErrorV1> {
+) -> Result<(PreparedAdaptiveScenario, Vec<(String, String, String)>, BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, u64, QuantityUnit)>>), FifoAdaptivePolicyErrorV1> {
     let fail = |reason| FifoAdaptivePolicyErrorV1::InvalidRouteScenario {
         demand_id: demand_id.to_owned(),
         path_id: path_id.to_owned(),
@@ -543,22 +543,19 @@ fn validate_scenario_option(
             units: receipt.capacity_units,
         });
     }
-    if report.resources.len() != resources.iter().map(|use_| &use_.key).collect::<BTreeSet<_>>().len() {
-        return Err(fail("capacity report contains an unused or duplicated resource summary"));
+    let referenced_summary_keys = report.assignments.iter()
+        .map(|receipt| (receipt.resource_kind, receipt.resource_id.clone(), receipt.evidence_id.clone()))
+        .collect::<BTreeSet<_>>();
+    let reported_summary_keys = report.resources.iter()
+        .map(|summary| (summary.resource_kind, summary.resource_id.clone(), summary.evidence_id.clone()))
+        .collect::<BTreeSet<_>>();
+    if report.resources.len() != reported_summary_keys.len()
+        || reported_summary_keys != referenced_summary_keys
+    {
+        return Err(fail("capacity report contains an unused, duplicated, or unreferenced resource-evidence summary"));
     }
     topology_by_edge.extend(path_topology(estimate));
-    let signature = binding_signature.into_iter().map(|(edge, mut values)| {
-        values.sort();
-        let simplified = values.into_iter().map(|(crosswalk, resource, digest, scope, units, unit)| {
-            (crosswalk, resource, digest, scope, units, unit)
-        }).collect();
-        (edge, simplified)
-    }).collect::<BTreeMap<_, _>>()
-        .into_iter()
-        .map(|(edge, bindings)| (edge, bindings.into_iter().map(|(crosswalk, resource, digest, _scope, units, unit)| {
-            (crosswalk, resource, digest, units, unit)
-        }).collect::<Vec<_>>())
-        .collect::<Vec<_>>();
+    let signature = binding_signature.into_iter().collect::<BTreeMap<_, _>>();
 
     Ok((PreparedAdaptiveScenario { path_estimate: estimate.clone(), resources }, topology_by_edge, signature))
 }
@@ -727,7 +724,7 @@ pub fn select_adaptive_robust_transport_policy(
             }
             let mut by_scenario = BTreeMap::new();
             let mut expected_topology: Option<Vec<(String, String, String)>> = None;
-            let mut expected_signature: Option<BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, u64, QuantityUnit)>>> = None;
+            let mut expected_signature: Option<BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, u64, QuantityUnit)>>> = None;
             let mut endpoints: Option<(String, String)> = None;
             for option in &alternative.scenario_options {
                 if by_scenario.contains_key(&option.scenario_id) {
@@ -1120,13 +1117,12 @@ mod tests {
             }],
             evidence: vec![ScheduledCapacityEvidenceV1 {
                 budget_id: evidence_id,
-                budget: super::super::CargoTransferEquipmentCapacity {
-                    equipment_id: resource_id.into(),
-                    terminal_id: "terminal-adaptive-test".into(),
-                    capacity_scope_id: "scope-adaptive-test".into(),
-                    capacity_units: 1,
-                    capacity_unit: QuantityUnit::Shipments,
-                },
+                resource_kind: CargoTransferCapacityResourceKind::TransferEdge,
+                resource_id: resource_id.into(),
+                terminal_id: None,
+                capacity_scope_id: "scope-adaptive-test".into(),
+                capacity_units: 1,
+                capacity_unit: QuantityUnit::Shipments,
                 authority_id: "resource-owner".into(),
                 authority_profile_id: "resource-profile-v1".into(),
                 source_record_id: format!("capacity-source-{resource_id}-{scenario_id}"),
