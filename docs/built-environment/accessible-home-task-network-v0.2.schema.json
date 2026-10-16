@@ -264,6 +264,7 @@
         "title",
         "condition",
         "node_ids",
+        "edge_ids",
         "expected_assessment",
         "success_condition",
         "note"
@@ -297,6 +298,14 @@
         "note": {
           "type": "string",
           "minLength": 1
+        },
+        "edge_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
         }
       }
     },
