@@ -31,12 +31,12 @@ Use opaque scope IDs and version IDs for facets such as furniture placement, doo
 Each facet has a current revision. A change event lists explicit facet_id, from_revision_id, and to_revision_id. Events must form a causal sequence: a change cannot claim to move from a revision other than the currently known revision for that facet.
 
 ### Evidence claims
-Each claim has an opaque ID, source/reference, reviewer role, observation time, optional review-due deadline, scope reference, evidence state, and a binding to each facet revision on which the claim depends. The binding is what decides whether the claim is still current.
+Each claim has an opaque ID and an assertion_key identifying the proposition being assessed within its scope, plus source/reference, reviewer role, observation time, optional review-due deadline, evidence state, and bindings to the facet revisions on which it depends. Conflict detection compares claims only when both scope_ref and assertion_key match; distinct assertions about the same room or system must not conflict merely because their evidence states differ. The bindings decide whether each claim is still current.
 
 A claim becomes **needs_revalidation** when any bound facet changes. Changes to a separate facet that the claim does not depend on must not invalidate it without an explicit dependency. This avoids both unsafe stickiness and needless global invalidation.
 
 ### Supersession
-A newer claim may supersede an older claim, preserving the old claim and the reason. A supersession chain must be acyclic. If two incompatible claims both purport to be current and neither supersedes the other, the conflict remains unresolved; the evaluator must not arbitrarily pick the latest timestamp as truth.
+A newer claim may supersede an older claim with the same scope_ref and assertion_key, preserving the old claim and the reason. A supersession chain must be acyclic. If two incompatible claims with the same scope_ref and assertion_key both purport to be current and neither supersedes the other, the conflict remains unresolved; the evaluator must not arbitrarily pick the latest timestamp as truth. Claims with different assertion_key values are distinct propositions and are evaluated separately.
 
 ### Path dependencies
 A path references required evidence claims. It is evaluated only from current claims whose scope bindings match current facet versions and whose review windows have not lapsed under the declared policy.
@@ -68,7 +68,7 @@ These are synthetic decision rules. They do not prove the underlying claim is tr
 - A path depending on one stale required claim becomes not-evaluable even if the old claim was fixture-complete.
 - A currently declared hard barrier still blocks even if another independent required claim is stale.
 - A stale old known-barrier claim alone does not determine the current path state.
-- Cyclic supersession, duplicate event IDs, unknown facets, unknown claim references, and conflicting current claim lineages fail closed.
+- Cyclic supersession, duplicate event IDs, unknown facets, unknown claim references, and conflicting current claim lineages fail closed. Distinct assertions within one scope must not conflict solely because their evidence states differ.
 - Replaying an identical event sequence is deterministic; changing event order where causality matters produces an error, not a silently different result.
 
 ## Benchmark targets
