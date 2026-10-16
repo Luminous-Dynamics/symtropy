@@ -473,9 +473,41 @@ pub fn find_pairs_incremental<const D: usize>(
         }
     }
 
-    // Dynamic–static pairs (linear scan against cached static AABB entries)
+    // Dynamic–cached pairs (linear scan against cached Static/Kinematic entries).
     for dyn_entry in &dynamic {
         pairs.extend(static_bp.query_against(dyn_entry));
+    }
+
+    // The cached partition also contains Kinematic bodies. The reference
+    // broadphase permits Static–Kinematic and Kinematic–Kinematic pairs, even
+    // though Static–Static pairs are excluded. Compare each kinematic entry
+    // against the cached partition; for Kinematic–Kinematic, use handle order
+    // to visit each unordered pair once. Without this pass the incremental
+    // path silently omits these pairs whenever it is selected.
+    for kinematic in static_bp
+        .entries
+        .iter()
+        .filter(|entry| entry.body_type == BodyType::Kinematic)
+    {
+        for other in &static_bp.entries {
+            if other.handle == kinematic.handle {
+                continue;
+            }
+            if other.body_type == BodyType::Kinematic && other.handle < kinematic.handle {
+                continue;
+            }
+
+            let group_ok = (kinematic.collision_group & other.collision_mask != 0)
+                && (other.collision_group & kinematic.collision_mask != 0);
+            if group_ok && kinematic.aabb.overlaps(&other.aabb) {
+                let (ha, hb) = (kinematic.handle, other.handle);
+                if ha < hb {
+                    pairs.push(BroadphasePair(ha, hb));
+                } else {
+                    pairs.push(BroadphasePair(hb, ha));
+                }
+            }
+        }
     }
 
     pairs.sort_unstable_by_key(|p| (p.0, p.1));
@@ -686,6 +718,57 @@ mod tests {
         assert_eq!(
             incremental, standard,
             "incremental must match standard broadphase"
+        );
+    }
+
+    #[test]
+    fn incremental_includes_static_kinematic_and_kinematic_kinematic_pairs() {
+        use crate::body::BodyType;
+        use symtropy_math::Transform;
+
+        let kinematic = |handle, position| {
+            RigidBody::<3>::new(
+                BodyHandle(handle),
+                BodyType::Kinematic,
+                Transform::from_translation(position),
+                Box::new(Sphere::unit()),
+                0.0,
+                SVector::zeros(),
+            )
+        };
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::static_body(
+                BodyHandle(1),
+                Point::new([0.5, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+            kinematic(BodyHandle(2).0, Point::new([0.25, 0.0, 0.0])),
+            kinematic(BodyHandle(3).0, Point::new([1.0, 0.0, 0.0])),
+        ];
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let mut incremental = find_pairs_incremental(&bodies, &static_bp);
+        let mut reference = find_pairs_brute(&bodies);
+        incremental.sort_unstable_by_key(|p| (p.0, p.1));
+        reference.sort_unstable_by_key(|p| (p.0, p.1));
+
+        let expected = vec![
+            BroadphasePair(BodyHandle(0), BodyHandle(2)),
+            BroadphasePair(BodyHandle(0), BodyHandle(3)),
+            BroadphasePair(BodyHandle(1), BodyHandle(2)),
+            BroadphasePair(BodyHandle(1), BodyHandle(3)),
+            BroadphasePair(BodyHandle(2), BodyHandle(3)),
+        ];
+        assert_eq!(reference, expected, "reference contract changed unexpectedly");
+        assert_eq!(
+            incremental, reference,
+            "incremental path must preserve all allowed pairs involving kinematics"
         );
     }
 
