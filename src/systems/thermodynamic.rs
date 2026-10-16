@@ -308,6 +308,17 @@ mod tests {
         assert_eq!(reservoir.regenerated_this_tick, 10.0);
     }
 
+    struct CountingReservoir {
+        calls: usize,
+    }
+
+    impl EnergyAcceptor for CountingReservoir {
+        fn accept_energy(&mut self, offered: f64) -> f64 {
+            self.calls += 1;
+            offered.min(5.0)
+        }
+    }
+
     #[test]
     fn invalid_well_offer_does_not_debit_or_call_recipient() {
         for (regen_rate, remaining, capacity) in [
@@ -319,15 +330,12 @@ mod tests {
         ] {
             let mut well = EnergyWell::new(regen_rate, 10.0, capacity);
             well.remaining = remaining;
-            let mut called = false;
-            let accepted = transfer_well_energy(&mut well, &mut |_: f64| {
-                called = true;
-                5.0
-            });
+            let mut recipient = CountingReservoir { calls: 0 };
+            let accepted = transfer_well_energy(&mut well, &mut recipient);
 
             assert_eq!(accepted, 0.0);
             assert_eq!(well.remaining, remaining);
-            assert!(!called);
+            assert_eq!(recipient.calls, 0);
         }
     }
 }
