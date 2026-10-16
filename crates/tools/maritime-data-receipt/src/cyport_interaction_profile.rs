@@ -303,7 +303,10 @@ fn git_blob_sha1(bytes: &[u8]) -> String {
 
 fn is_sentinel(value: &str) -> bool {
     let value = value.trim();
-    value.is_empty() || value == "0" || value.eq_ignore_ascii_case("NA") || value.eq_ignore_ascii_case("N/A")
+    value.is_empty()
+        || value == "0"
+        || value.eq_ignore_ascii_case("NA")
+        || value.eq_ignore_ascii_case("N/A")
 }
 
 fn column_index(header: &[String], name: &str) -> Result<usize, String> {
@@ -450,7 +453,10 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         }
         for name in ["ID", "SID", "PID", "port"] {
             if is_sentinel(record_field(record, &indexes, name, row_index + 2)?) {
-                return Err(format!("CSV row {} has missing required identity field {name}", row_index + 2));
+                return Err(format!(
+                    "CSV row {} has missing required identity field {name}",
+                    row_index + 2
+                ));
             }
         }
 
@@ -469,15 +475,26 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         let impact_raw = record_field(record, &indexes, "total_impact", row_index + 2)?;
         let impact = impact_raw
             .parse::<u64>()
-            .map_err(|_| format!("CSV row {} has invalid non-negative integer total_impact {impact_raw:?}", row_index + 2))?;
+            .map_err(|_| {
+                format!(
+                    "CSV row {} has invalid non-negative integer total_impact {impact_raw:?}",
+                    row_index + 2
+                )
+            })?;
         if impact == 0 {
             counts.zero_total_impact_rows += 1;
         } else {
             counts.nonzero_total_impact_rows += 1;
         }
 
-        let start = parse_mdy_date(record_field(record, &indexes, "start_date", row_index + 2)?, &format!("row {} start_date", row_index + 2))?;
-        let end = parse_mdy_date(record_field(record, &indexes, "end_date", row_index + 2)?, &format!("row {} end_date", row_index + 2))?;
+        let start = parse_mdy_date(
+            record_field(record, &indexes, "start_date", row_index + 2)?,
+            &format!("row {} start_date", row_index + 2),
+        )?;
+        let end = parse_mdy_date(
+            record_field(record, &indexes, "end_date", row_index + 2)?,
+            &format!("row {} end_date", row_index + 2),
+        )?;
         if end < start {
             return Err(format!(
                 "CSV row {} ends before its start date ({start} > {end})",
@@ -508,25 +525,42 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         if start_recovery_sentinel {
             counts.start_recovery_sentinels += 1;
         } else {
-            let _ = parse_mdy_date(start_recovery, &format!("row {} start_recovery_date", row_index + 2))?;
+            let _ = parse_mdy_date(
+                start_recovery,
+                &format!("row {} start_recovery_date", row_index + 2),
+            )?;
         }
         if end_recovery_sentinel {
             counts.end_recovery_sentinels += 1;
         } else {
-            let _ = parse_mdy_date(end_recovery, &format!("row {} end_recovery_date", row_index + 2))?;
+            let _ = parse_mdy_date(
+                end_recovery,
+                &format!("row {} end_recovery_date", row_index + 2),
+            )?;
         }
         if duration_sentinel {
             counts.day_of_recover_sentinels += 1;
         } else {
             let duration = recovery_duration.parse::<u64>().map_err(|_| {
-                format!("CSV row {} has invalid non-negative integer day_of_recover {recovery_duration:?}", row_index + 2)
+                format!(
+                    "CSV row {} has invalid non-negative integer day_of_recover {recovery_duration:?}",
+                    row_index + 2
+                )
             })?;
             if duration == 0 {
-                return Err(format!("CSV row {} has a zero recovery duration that was not recognized as a sentinel", row_index + 2));
+                return Err(format!(
+                    "CSV row {} has a zero recovery duration that was not recognized as a sentinel",
+                    row_index + 2
+                ));
             }
         }
 
-        let (no_impact_window_recorded, impact_window_markers_present, mixed_marker_state, nonzero_impact_without_markers) =
+        let (
+            no_impact_window_recorded,
+            impact_window_markers_present,
+            mixed_marker_state,
+            nonzero_impact_without_markers,
+        ) =
             match (start_recovery_sentinel, end_recovery_sentinel, duration_sentinel) {
                 (true, true, true) if impact == 0 => {
                     counts.zero_impact_all_recovery_sentinels += 1;
@@ -627,9 +661,11 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         summary.zero_total_impact_rows += group.zero_total_impact_rows;
         summary.nonzero_total_impact_rows += group.nonzero_total_impact_rows;
         summary.no_impact_window_recorded_rows += group.no_impact_window_recorded_rows;
-        summary.impact_window_recovery_markers_present_rows += group.impact_window_recovery_markers_present_rows;
+        summary.impact_window_recovery_markers_present_rows +=
+            group.impact_window_recovery_markers_present_rows;
         summary.mixed_recovery_field_state_rows += group.mixed_recovery_field_state_rows;
-        summary.nonzero_impact_without_recovery_markers_rows += group.nonzero_impact_without_recovery_markers_rows;
+        summary.nonzero_impact_without_recovery_markers_rows +=
+            group.nonzero_impact_without_recovery_markers_rows;
     }
     let split_summaries: Vec<SplitSummary> = split_names
         .iter()
@@ -672,9 +708,11 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 zero_total_impact_rows: summary.zero_total_impact_rows,
                 nonzero_total_impact_rows: summary.nonzero_total_impact_rows,
                 no_impact_window_recorded_rows: summary.no_impact_window_recorded_rows,
-                impact_window_recovery_markers_present_rows: summary.impact_window_recovery_markers_present_rows,
+                impact_window_recovery_markers_present_rows: summary
+                    .impact_window_recovery_markers_present_rows,
                 mixed_recovery_field_state_rows: summary.mixed_recovery_field_state_rows,
-                nonzero_impact_without_recovery_markers_rows: summary.nonzero_impact_without_recovery_markers_rows,
+                nonzero_impact_without_recovery_markers_rows: summary
+                    .nonzero_impact_without_recovery_markers_rows,
             }
         })
         .collect();
@@ -692,13 +730,34 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             ("unique storm-port pairs", counts.storm_port_pairs.len(), 1_927usize),
             ("zero-impact rows", counts.zero_total_impact_rows, 1_654usize),
             ("nonzero-impact rows", counts.nonzero_total_impact_rows, 273usize),
-            ("zero-impact rows with all recovery sentinels", counts.zero_impact_all_recovery_sentinels, 1_650usize),
-            ("zero-impact rows with all recovery fields present", counts.zero_impact_all_recovery_fields_present, 4usize),
-            ("nonzero-impact rows with all recovery fields present", counts.nonzero_impact_all_recovery_fields_present, 273usize),
+            (
+                "zero-impact rows with all recovery sentinels",
+                counts.zero_impact_all_recovery_sentinels,
+                1_650usize,
+            ),
+            (
+                "zero-impact rows with all recovery fields present",
+                counts.zero_impact_all_recovery_fields_present,
+                4usize,
+            ),
+            (
+                "nonzero-impact rows with all recovery fields present",
+                counts.nonzero_impact_all_recovery_fields_present,
+                273usize,
+            ),
             ("no-impact-window marker triplets", counts.zero_impact_all_recovery_sentinels, 1_650usize),
-            ("recorded impact-window marker triplets", counts.zero_impact_all_recovery_fields_present + counts.nonzero_impact_all_recovery_fields_present, 277usize),
+            (
+                "recorded impact-window marker triplets",
+                counts.zero_impact_all_recovery_fields_present
+                    + counts.nonzero_impact_all_recovery_fields_present,
+                277usize,
+            ),
             ("mixed recovery-field states", counts.mixed_recovery_field_states, 0usize),
-            ("nonzero impact without recovery markers", counts.nonzero_impact_without_recovery_markers, 0usize),
+            (
+                "nonzero impact without recovery markers",
+                counts.nonzero_impact_without_recovery_markers,
+                0usize,
+            ),
             ("start-recovery sentinels", counts.start_recovery_sentinels, 1_650usize),
             ("end-recovery sentinels", counts.end_recovery_sentinels, 1_650usize),
             ("recovery-day sentinels", counts.day_of_recover_sentinels, 1_650usize),
@@ -711,7 +770,10 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             }
         }
         if counts.duplicate_id_rows != 0 || counts.duplicate_pair_rows != 0 {
-            return Err("pinned CyPort profile contains duplicate interaction IDs or storm-port pairs".to_owned());
+            return Err(
+                "pinned CyPort profile contains duplicate interaction IDs or storm-port pairs"
+                    .to_owned(),
+            );
         }
         let expected_splits = [
             ("train", 59usize, 1_471usize, 122usize),
@@ -733,11 +795,42 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             }
         }
         let expected_split_outcomes = [
-            ("train", 59usize, 1_471usize, 1_266usize, 205usize, 1_263usize, 208usize, 0usize, 0usize),
-            ("calibration", 13usize, 308usize, 265usize, 43usize, 265usize, 43usize, 0usize, 0usize),
+            (
+                "train",
+                59usize,
+                1_471usize,
+                1_266usize,
+                205usize,
+                1_263usize,
+                208usize,
+                0usize,
+                0usize,
+            ),
+            (
+                "calibration",
+                13usize,
+                308usize,
+                265usize,
+                43usize,
+                265usize,
+                43usize,
+                0usize,
+                0usize,
+            ),
             ("test", 18usize, 148usize, 123usize, 25usize, 122usize, 26usize, 0usize, 0usize),
         ];
-        for (name, storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed, nonzero_without_markers) in expected_split_outcomes {
+        for (
+            name,
+            storms,
+            rows,
+            zero_impact,
+            nonzero_impact,
+            no_window,
+            markers_present,
+            mixed,
+            nonzero_without_markers,
+        ) in expected_split_outcomes
+        {
             let actual = split_outcome_summaries
                 .iter()
                 .find(|summary| summary.split == name)
@@ -752,8 +845,21 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 actual.mixed_recovery_field_state_rows,
                 actual.nonzero_impact_without_recovery_markers_rows,
             );
-            if observed != (storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed, nonzero_without_markers) {
-                return Err(format!("pinned CyPort {name} impact-state split drift: observed {observed:?}"));
+            if observed
+                != (
+                    storms,
+                    rows,
+                    zero_impact,
+                    nonzero_impact,
+                    no_window,
+                    markers_present,
+                    mixed,
+                    nonzero_without_markers,
+                )
+            {
+                return Err(format!(
+                    "pinned CyPort {name} impact-state split drift: observed {observed:?}"
+                ));
             }
         }
         if counts.event_starts.first().map(String::as_str) != Some("2015-05-06")
@@ -761,7 +867,9 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             || counts.event_ends.first().map(String::as_str) != Some("2015-05-06")
             || counts.event_ends.last().map(String::as_str) != Some("2023-10-23")
         {
-            return Err("pinned CyPort event date range differs from the inspected source profile".to_owned());
+            return Err(
+                "pinned CyPort event date range differs from the inspected source profile".to_owned(),
+            );
         }
     }
 
@@ -791,13 +899,16 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         zero_total_impact_rows: counts.zero_total_impact_rows,
         nonzero_total_impact_rows: counts.nonzero_total_impact_rows,
         zero_impact_all_recovery_sentinels_rows: counts.zero_impact_all_recovery_sentinels,
-        zero_impact_all_recovery_fields_present_rows: counts.zero_impact_all_recovery_fields_present,
-        nonzero_impact_all_recovery_fields_present_rows: counts.nonzero_impact_all_recovery_fields_present,
+        zero_impact_all_recovery_fields_present_rows: counts
+            .zero_impact_all_recovery_fields_present,
+        nonzero_impact_all_recovery_fields_present_rows: counts
+            .nonzero_impact_all_recovery_fields_present,
         no_impact_window_recorded_rows: counts.zero_impact_all_recovery_sentinels,
         impact_window_recovery_markers_present_rows: counts.zero_impact_all_recovery_fields_present
             + counts.nonzero_impact_all_recovery_fields_present,
         mixed_recovery_field_state_rows: counts.mixed_recovery_field_states,
-        nonzero_impact_without_recovery_markers_rows: counts.nonzero_impact_without_recovery_markers,
+        nonzero_impact_without_recovery_markers_rows: counts
+            .nonzero_impact_without_recovery_markers,
         start_recovery_date_sentinel_rows: counts.start_recovery_sentinels,
         end_recovery_date_sentinel_rows: counts.end_recovery_sentinels,
         day_of_recover_sentinel_rows: counts.day_of_recover_sentinels,
@@ -980,7 +1091,9 @@ fn compute_split_summaries(episodes: &[StormEpisodeSplit]) -> Result<Vec<SplitSu
 
 fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitManifest), String> {
     if bytes.len() > MAX_SPLIT_MANIFEST_BYTES {
-        return Err(format!("CyPort episode split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
+        return Err(format!(
+            "CyPort episode split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"
+        ));
     }
     let root = super::parse_strict(bytes)?;
     super::exact_keys(&root, SPLIT_ROOT_KEYS, "split_manifest")?;
@@ -1130,17 +1243,33 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
         "split_manifest.total_interaction_rows",
     )?;
     if declared_rows != computed_rows || computed_rows != 1_927 {
-        return Err(format!("split manifest row count mismatch: episodes sum to {computed_rows}, declared {declared_rows}"));
+        return Err(format!(
+            "split manifest row count mismatch: episodes sum to {computed_rows}, declared {declared_rows}"
+        ));
     }
 
     let summaries_json = super::field(&root, "split_summary", "split_manifest")?;
-    super::exact_keys(summaries_json, &["train", "calibration", "test"], "split_manifest.split_summary")?;
+    super::exact_keys(
+        summaries_json,
+        &["train", "calibration", "test"],
+        "split_manifest.split_summary",
+    )?;
     let computed_summaries = compute_split_summaries(&episodes)?;
     for summary in &computed_summaries {
         let actual = super::field(summaries_json, summary.split, "split_manifest.split_summary")?;
-        super::exact_keys(actual, SPLIT_SUMMARY_KEYS, &format!("split_manifest.split_summary.{}", summary.split))?;
-        let actual_storms = super::integer(super::field(actual, "storms", summary.split)?, "split_summary.storms")?;
-        let actual_rows = super::integer(super::field(actual, "interaction_rows", summary.split)?, "split_summary.interaction_rows")?;
+        super::exact_keys(
+            actual,
+            SPLIT_SUMMARY_KEYS,
+            &format!("split_manifest.split_summary.{}", summary.split),
+        )?;
+        let actual_storms = super::integer(
+            super::field(actual, "storms", summary.split)?,
+            "split_summary.storms",
+        )?;
+        let actual_rows = super::integer(
+            super::field(actual, "interaction_rows", summary.split)?,
+            "split_summary.interaction_rows",
+        )?;
         let actual_first = manifest_text(actual, "first_event_start", summary.split)?;
         let actual_last = manifest_text(actual, "last_event_start", summary.split)?;
         if actual_storms != summary.storm_count as u64
@@ -1339,7 +1468,11 @@ mod tests {
     fn empty_synthetic_splits_report_unknown_date_bounds_not_panics() {
         let report = profile_bytes(SYNTHETIC_FIXTURE).expect("synthetic fixture should profile");
         let train = report.split_summaries.iter().find(|summary| summary.split == "train").unwrap();
-        let calibration = report.split_summaries.iter().find(|summary| summary.split == "calibration").unwrap();
+        let calibration = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "calibration")
+            .unwrap();
         let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
         assert_eq!(train.storm_count, 0);
         assert_eq!(train.first_event_start, None);
@@ -1419,7 +1552,9 @@ mod tests {
         let first_sid = root["episodes"][0]["sid"].clone();
         root["episodes"][1]["sid"] = first_sid;
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("duplicate cyclone ID"));
+        assert!(validate_and_report_split_manifest(&changed)
+            .unwrap_err()
+            .contains("duplicate cyclone ID"));
     }
 
     #[test]
@@ -1427,7 +1562,9 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["episodes"][0]["split"] = Value::String("test".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("split_manifest.episodes[0].split"));
+        assert!(validate_and_report_split_manifest(&changed)
+            .unwrap_err()
+            .contains("split_manifest.episodes[0].split"));
     }
 
     #[test]
@@ -1435,13 +1572,16 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["episodes"][0]["interaction_rows"] = Value::Number(serde_json::Number::from(28));
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("row count mismatch"));
+        assert!(validate_and_report_split_manifest(&changed)
+            .unwrap_err()
+            .contains("row count mismatch"));
     }
 
     #[test]
     fn mutable_or_incorrect_source_blob_is_rejected() {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
-        root["source"]["git_blob_sha1"] = Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        root["source"]["git_blob_sha1"] =
+            Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(validate_and_report_split_manifest(&changed).is_err());
     }
@@ -1451,7 +1591,9 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["policy"]["external_holdout_caveat"] = Value::String("blind test".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("public-data holdout limitations"));
+        assert!(validate_and_report_split_manifest(&changed)
+            .unwrap_err()
+            .contains("public-data holdout limitations"));
     }
 
     #[test]
@@ -1489,7 +1631,11 @@ mod tests {
         let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
         let last_line = text.lines().last().unwrap();
         let truncated = last_line.split(',').take(10).collect::<Vec<_>>().join(",");
-        let changed = format!("{}\n{}\n", text.lines().take(4).collect::<Vec<_>>().join("\n"), truncated);
+        let changed = format!(
+            "{}\n{}\n",
+            text.lines().take(4).collect::<Vec<_>>().join("\n"),
+            truncated
+        );
         assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("fields; expected"));
     }
 
@@ -1517,7 +1663,9 @@ mod tests {
         let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
         let changed = text.replacen("10/1/2022", "2/31/2022", 1);
         assert_ne!(text, changed);
-        assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("impossible calendar date"));
+        assert!(profile_bytes(changed.as_bytes())
+            .unwrap_err()
+            .contains("impossible calendar date"));
     }
 
     #[test]
