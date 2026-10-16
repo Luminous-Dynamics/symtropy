@@ -204,8 +204,6 @@ pub enum ScheduleError {
     DuplicateTransition { machine_id: String, from_family: String, to_family: String },
     NoEligibleMachine { job_id: String },
     MissingSetupTransition { machine_id: String, from_family: String, to_family: String },
-    ProcessEnergyOverBudget,
-    ProcessWaterOverBudget,
     ArithmeticOverflow { field: &'static str },
     TooManyJobsForExhaustive { actual: usize, maximum: usize },
     TooManyMachinesForExhaustive { actual: usize, maximum: usize },
@@ -589,12 +587,9 @@ fn prepare(problem: &ScheduleProblem) -> Result<PreparedProblem, ScheduleError> 
         }
     }
 
-    if base_energy_units > problem.energy_budget_units {
-        return Err(ScheduleError::ProcessEnergyOverBudget);
-    }
-    if base_water_units > problem.water_budget_units {
-        return Err(ScheduleError::ProcessWaterOverBudget);
-    }
+    // Resource over-budget is a feasibility outcome, not a malformed input.
+    // The search/dispatch loops use the same hard budget checks and will
+    // respectively return NoFeasibleSchedule or NoFeasibleDispatch.
 
     let known_machines: BTreeSet<&str> = machines.iter().map(|item| item.id.as_str()).collect();
     let mut transitions = BTreeMap::new();
@@ -1792,6 +1787,24 @@ mod tests {
         assert_eq!(operation.process_start_tick, 22);
         assert_eq!(operation.finish_tick, 25);
         independently_validate_candidate(&problem, &report.pareto_frontier[0]);
+    }
+
+
+    #[test]
+    fn process_resource_budget_shortfall_is_infeasible_not_malformed_input() {
+        let mut problem = sample_problem();
+        problem.energy_budget_units = 5; // Process inputs alone total six units.
+
+        assert!(matches!(
+            solve_exhaustive(&problem),
+            Err(ScheduleError::NoFeasibleSchedule)
+        ));
+        assert!(matches!(
+            dispatch_schedule(&problem, DispatchRule::LeastSlack),
+            Err(ScheduleError::NoFeasibleDispatch {
+                rule: DispatchRule::LeastSlack
+            })
+        ));
     }
 
 }
