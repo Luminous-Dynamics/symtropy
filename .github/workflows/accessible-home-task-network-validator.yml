@@ -1,0 +1,44 @@
+name: Accessible home task-network semantic validator
+
+on:
+  pull_request:
+    paths:
+      - "tools/accessible-home-task-network-validator/**"
+      - "docs/built-environment/accessible-home-task-network-v0.2*"
+      - ".github/workflows/accessible-home-task-network-validator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/accessible-home-task-network-validator/**"
+      - "docs/built-environment/accessible-home-task-network-v0.2*"
+      - ".github/workflows/accessible-home-task-network-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accessible-home-task-network-validator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Format, semantic mutation tests, synthetic receipt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --check
+      - name: Run semantic and negative-control tests
+        run: cargo test --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
+      - name: Evaluate the committed synthetic fixture
+        run: |
+          cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- \
+            --input docs/built-environment/accessible-home-task-network-v0.2.example.json \
+            --output /tmp/accessible-home-task-network-report.json
+          grep -q '"node_count": 5' /tmp/accessible-home-task-network-report.json
+          grep -q '"edge_count": 5' /tmp/accessible-home-task-network-report.json
+          grep -q '"path_count": 2' /tmp/accessible-home-task-network-report.json
+          grep -q '"failure_mode_count": 1' /tmp/accessible-home-task-network-report.json
