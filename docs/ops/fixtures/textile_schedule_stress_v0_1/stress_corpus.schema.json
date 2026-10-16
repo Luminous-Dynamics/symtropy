@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/textile-schedule-stress-v0-1.json",
+  "title": "Textile schedule stress corpus v0.1",
+  "description": "A versioned synthetic or measured perturbation corpus for the bounded textile schedule stress harness. References do not authenticate evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "corpus_version",
+    "synthetic_only",
+    "interpretation_boundary",
+    "baseline_problem",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "synthetic_only": {
+      "type": "boolean"
+    },
+    "interpretation_boundary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline_problem": {
+      "$ref": "#/$defs/problem"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nonNegative": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positive": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "outcome"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "outcome": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "evidence_ref"
+              ],
+              "properties": {
+                "status": {
+                  "const": "pass"
+                },
+                "evidence_ref": {
+                  "$ref": "#/$defs/nonEmpty"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "evidence_ref"
+              ],
+              "properties": {
+                "status": {
+                  "const": "fail"
+                },
+                "evidence_ref": {
+                  "$ref": "#/$defs/nonEmpty"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "reason"
+              ],
+              "properties": {
+                "status": {
+                  "const": "unknown"
+                },
+                "reason": {
+                  "$ref": "#/$defs/nonEmpty"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "profile_id",
+        "functional_unit_id",
+        "setup_family",
+        "required_capabilities",
+        "release_tick",
+        "due_tick",
+        "hard_finish_by_tick",
+        "processing_ticks",
+        "energy_units",
+        "water_units",
+        "process_evidence_ref",
+        "required_gates"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "profile_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "functional_unit_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "setup_family": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "required_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmpty"
+          }
+        },
+        "release_tick": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "due_tick": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "hard_finish_by_tick": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonNegative"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "processing_ticks": {
+          "$ref": "#/$defs/positive"
+        },
+        "energy_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "water_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "process_evidence_ref": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "required_gates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/gate"
+          }
+        }
+      }
+    },
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capabilities",
+        "initial_setup_family",
+        "available_tick",
+        "capability_evidence_ref"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmpty"
+          }
+        },
+        "initial_setup_family": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "available_tick": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "capability_evidence_ref": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "setup_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "machine_id",
+        "from_family",
+        "to_family",
+        "duration_ticks",
+        "energy_units",
+        "water_units",
+        "evidence_ref"
+      ],
+      "properties": {
+        "machine_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "from_family": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "to_family": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "duration_ticks": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "energy_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "water_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "time_unit_id",
+        "energy_unit_id",
+        "water_unit_id",
+        "energy_budget_units",
+        "water_budget_units",
+        "jobs",
+        "machines",
+        "setup_transitions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "time_unit_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "energy_unit_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "water_unit_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "energy_budget_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "water_budget_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "jobs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/job"
+          }
+        },
+        "machines": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/machine"
+          }
+        },
+        "setup_transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/setup_transition"
+          }
+        }
+      }
+    },
+    "processing_delay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "additional_ticks"
+      ],
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "additional_ticks": {
+          "$ref": "#/$defs/positive"
+        }
+      }
+    },
+    "release_delay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "additional_ticks"
+      ],
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "additional_ticks": {
+          "$ref": "#/$defs/positive"
+        }
+      }
+    },
+    "machine_availability_delay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "machine_id",
+        "unavailable_until_tick"
+      ],
+      "properties": {
+        "machine_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "unavailable_until_tick": {
+          "$ref": "#/$defs/nonNegative"
+        }
+      }
+    },
+    "utility_budget_shock": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "energy_budget_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "water_budget_units": {
+          "$ref": "#/$defs/nonNegative"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "energy_budget_units"
+          ]
+        },
+        {
+          "required": [
+            "water_budget_units"
+          ]
+        }
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "fixture_ref",
+        "processing_delays",
+        "release_delays",
+        "utility_budget_shock",
+        "machine_availability_delays"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "fixture_ref": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "processing_delays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/processing_delay"
+          }
+        },
+        "release_delays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/release_delay"
+          }
+        },
+        "utility_budget_shock": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/utility_budget_shock"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "machine_availability_delays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/machine_availability_delay"
+          }
+        }
+      }
+    }
+  }
+}
