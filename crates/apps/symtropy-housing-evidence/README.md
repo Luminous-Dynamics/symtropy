@@ -174,6 +174,7 @@ The experimental `--validate-benchmark-result` command compares an evaluator's m
 
 - [`benchmark-result.schema.json`](../../../docs/built-environment/benchmark-result.schema.json)
 - [`benchmark-result-output.schema.json`](../../../docs/built-environment/benchmark-result-output.schema.json)
+- [`benchmark-result-report.schema.json`](../../../docs/built-environment/benchmark-result-report.schema.json)
 - [`benchmark-conformance-program.md`](../../../docs/built-environment/benchmark-conformance-program.md)
 
 Example invocation:
