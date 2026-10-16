@@ -1234,19 +1234,41 @@ mod tests {
 
     #[test]
     fn capacity_is_shared_only_when_intervals_do_not_overlap() {
-        let d1 = demand(
+        let mut d1 = demand(
             "demand-1",
             vec![("early".into(), 100, 100, "bridge".into(), "bridge".into())],
             "origin-1",
             "dest-1",
         );
-        let d2 = demand_at(
+        let mut d2 = demand_at(
             "demand-2",
             vec![("later".into(), 100, 100, "bridge".into(), "bridge".into())],
             "origin-2",
             "dest-2",
             200,
         );
+        for path in &mut d1.selection.qualified_paths {
+            for scenario in &mut path.scenario_capacity {
+                for receipt in &mut scenario.report.assignments {
+                    receipt.evidence_valid_until_epoch_seconds = 200;
+                }
+            }
+        }
+        for path in &mut d2.selection.qualified_paths {
+            for scenario in &mut path.scenario_capacity {
+                for receipt in &mut scenario.report.assignments {
+                    receipt.evidence_id = "snapshot-bridge-v2".into();
+                    receipt.source_record_id = "record-bridge-v2".into();
+                    receipt.source_record_digest = "e".repeat(64);
+                    receipt.evidence_revision = 2;
+                    receipt.supersedes_revision = Some(1);
+                    receipt.evidence_valid_from_epoch_seconds = 200;
+                }
+                for summary in &mut scenario.report.resources {
+                    summary.evidence_id = "snapshot-bridge-v2".into();
+                }
+            }
+        }
         let report = select_joint_robust_transport_portfolio(&[d1, d2], 1).unwrap();
         assert_eq!(report.feasible_combinations_found, 1);
         assert_eq!(report.infeasible_combinations_found, 0);
