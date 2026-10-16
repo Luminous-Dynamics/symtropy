@@ -58,7 +58,8 @@
       "processing_delays": [],
       "release_delays": [],
       "utility_budget_shock": null,
-      "machine_availability_delays": []
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
     },
     {
       "id": "slow-repair",
@@ -71,7 +72,8 @@
       ],
       "release_delays": [],
       "utility_budget_shock": null,
-      "machine_availability_delays": []
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
     },
     {
       "id": "specialist-material-arrives-late",
@@ -84,6 +86,22 @@
         }
       ],
       "utility_budget_shock": null,
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
+    },
+    {
+      "id": "water-intensive-finish",
+      "fixture_ref": "fixture:stress:water-intensive-finish",
+      "processing_delays": [],
+      "process_resource_shocks": [
+        {
+          "job_id": "ceremonial-repair",
+          "additional_energy_units": 0,
+          "additional_water_units": 4
+        }
+      ],
+      "release_delays": [],
+      "utility_budget_shock": null,
       "machine_availability_delays": []
     },
     {
@@ -94,7 +112,8 @@
       "utility_budget_shock": {
         "energy_budget_units": 0
       },
-      "machine_availability_delays": []
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
     },
     {
       "id": "cell-unavailable-too-long",
@@ -107,7 +126,8 @@
           "machine_id": "heritage-repair-cell",
           "unavailable_until_tick": 8
         }
-      ]
+      ],
+      "process_resource_shocks": []
     }
   ]
 }
