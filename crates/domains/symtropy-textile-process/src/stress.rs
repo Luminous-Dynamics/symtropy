@@ -47,12 +47,20 @@ pub struct MachineAvailabilityDelay {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UtilityBudgetShock {
+    /// A revised hard budget; it may tighten or preserve, never loosen, the baseline cap.
+    pub energy_budget_units: Option<u64>,
+    pub water_budget_units: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StressScenario {
     pub id: String,
     /// Stable fixture or signed manifest reference; not authentication.
     pub fixture_ref: String,
     pub processing_delays: Vec<ProcessingDelay>,
     pub release_delays: Vec<JobReleaseDelay>,
+    pub utility_budget_shock: Option<UtilityBudgetShock>,
     pub machine_availability_delays: Vec<MachineAvailabilityDelay>,
 }
 
@@ -165,6 +173,9 @@ pub enum StressHarnessError {
     UnknownJobInReleaseDelay { scenario_id: String, job_id: String },
     ZeroReleaseDelay { scenario_id: String, job_id: String },
     ReleaseDelayOverflow { scenario_id: String, job_id: String },
+    EmptyUtilityBudgetShock { scenario_id: String },
+    LoosenedEnergyBudget { scenario_id: String },
+    LoosenedWaterBudget { scenario_id: String },
     EmptyMachineIdInDelay { scenario_id: String },
     DuplicateMachineDelay { scenario_id: String, machine_id: String },
     UnknownMachineInDelay { scenario_id: String, machine_id: String },
@@ -318,6 +329,36 @@ pub fn evaluate_stress_corpus(
                     scenario_id: scenario.id.clone(),
                     job_id: shock.job_id.clone(),
                 })?;
+        }
+
+        if let Some(shock) = &scenario.utility_budget_shock {
+            if shock.energy_budget_units.is_none() && shock.water_budget_units.is_none() {
+                return Err(StressHarnessError::EmptyUtilityBudgetShock {
+                    scenario_id: scenario.id.clone(),
+                });
+            }
+            if shock
+                .energy_budget_units
+                .is_some_and(|budget| budget > baseline.energy_budget_units)
+            {
+                return Err(StressHarnessError::LoosenedEnergyBudget {
+                    scenario_id: scenario.id.clone(),
+                });
+            }
+            if shock
+                .water_budget_units
+                .is_some_and(|budget| budget > baseline.water_budget_units)
+            {
+                return Err(StressHarnessError::LoosenedWaterBudget {
+                    scenario_id: scenario.id.clone(),
+                });
+            }
+            if let Some(budget) = shock.energy_budget_units {
+                perturbed.energy_budget_units = budget;
+            }
+            if let Some(budget) = shock.water_budget_units {
+                perturbed.water_budget_units = budget;
+            }
         }
 
         let mut changed_machines = BTreeSet::new();
@@ -628,6 +669,7 @@ mod tests {
             fixture_ref: format!("fixture:stress:{id}"),
             processing_delays,
             release_delays: vec![],
+            utility_budget_shock: None,
             machine_availability_delays,
         }
     }
@@ -655,6 +697,18 @@ mod tests {
                         job_id: "ceremonial-repair".to_owned(),
                         additional_ticks: 2,
                     }],
+                    utility_budget_shock: None,
+                    machine_availability_delays: vec![],
+                },
+                StressScenario {
+                    id: "energy-curtailed".to_owned(),
+                    fixture_ref: "fixture:stress:energy-curtailed".to_owned(),
+                    processing_delays: vec![],
+                    release_delays: vec![],
+                    utility_budget_shock: Some(UtilityBudgetShock {
+                        energy_budget_units: Some(0),
+                        water_budget_units: None,
+                    }),
                     machine_availability_delays: vec![],
                 },
                 scenario(
@@ -671,9 +725,9 @@ mod tests {
         let report = evaluate_stress_corpus(&fixture_problem(), &corpus)
             .expect("the tiny stress corpus is valid");
 
-        assert_eq!(report.scenario_count, 4);
+        assert_eq!(report.scenario_count, 5);
         assert_eq!(report.exact_feasible_scenarios, 3);
-        assert_eq!(report.exact_no_schedule_scenarios, 1);
+        assert_eq!(report.exact_no_schedule_scenarios, 2);
         assert_eq!(report.rule_summaries.len(), 4);
         assert!(report.rule_summaries.iter().all(|summary| {
             summary.plans_found_on_feasible_scenarios == 3
@@ -681,10 +735,10 @@ mod tests {
                 && summary.total_tardiness_ticks.p95.is_some()
         }));
         assert_eq!(
-            report.scenario_results[3].exact_outcome,
+            report.scenario_results[4].exact_outcome,
             ScenarioExactOutcome::NoFeasibleSchedule
         );
-        assert!(report.scenario_results[3]
+        assert!(report.scenario_results[4]
             .dispatch_results
             .iter()
             .all(|result| !result.plan_found));
@@ -838,6 +892,7 @@ mod tests {
                     job_id: "ceremonial-repair".to_owned(),
                     additional_ticks: 1,
                 }],
+                utility_budget_shock: None,
                 machine_availability_delays: vec![],
             }],
         };
@@ -900,6 +955,53 @@ mod tests {
             summary.plans_found_on_feasible_scenarios == 0
                 && summary.feasible_scenarios_missed == 1
         }));
+    }
+
+
+    #[test]
+    fn utility_budget_shock_cannot_loosen_the_declared_cap() {
+        let corpus = StressCorpus {
+            id: "relaxed-budget-rejected".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![StressScenario {
+                id: "more-energy-than-baseline".to_owned(),
+                fixture_ref: "fixture:stress:invalid-relaxed-budget".to_owned(),
+                processing_delays: vec![],
+                release_delays: vec![],
+                utility_budget_shock: Some(UtilityBudgetShock {
+                    energy_budget_units: Some(5),
+                    water_budget_units: None,
+                }),
+                machine_availability_delays: vec![],
+            }],
+        };
+        assert!(matches!(
+            evaluate_stress_corpus(&fixture_problem(), &corpus),
+            Err(StressHarnessError::LoosenedEnergyBudget { .. })
+        ));
+    }
+
+    #[test]
+    fn empty_utility_budget_shock_is_rejected() {
+        let corpus = StressCorpus {
+            id: "empty-budget-shock".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![StressScenario {
+                id: "empty-budget".to_owned(),
+                fixture_ref: "fixture:stress:empty-budget".to_owned(),
+                processing_delays: vec![],
+                release_delays: vec![],
+                utility_budget_shock: Some(UtilityBudgetShock {
+                    energy_budget_units: None,
+                    water_budget_units: None,
+                }),
+                machine_availability_delays: vec![],
+            }],
+        };
+        assert!(matches!(
+            evaluate_stress_corpus(&fixture_problem(), &corpus),
+            Err(StressHarnessError::EmptyUtilityBudgetShock { .. })
+        ));
     }
 
 }
