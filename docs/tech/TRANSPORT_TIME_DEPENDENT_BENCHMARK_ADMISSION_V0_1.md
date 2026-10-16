@@ -17,8 +17,9 @@ The first Rust primitive implements piecewise-linear **FIFO arrival-time functio
 - Publication time, source observation time and repository-ingestion time remain distinct; the function is available only if it was public and present in the replay corpus at the declared cutoff.
 - Query time-profile identity must match exactly. UTC Unix seconds and local wall-clock schedules are not silently mixed.
 - Unqualified evidence produces an explicit error, not a usable travel time.
+- `evaluate_fifo_path` composes legs by carrying each arrival forward and adding explicit per-leg handling/dwell delays. It checks node continuity, repeated-edge use, time profile and cutoff at every leg.
 
-This is deliberately **not** a complete time-dependent VRP solver. It does not handle non-FIFO profiles, explicit waiting/transfer schedules, probabilistic travel times, or full path-level composition yet. Those require their own contracts and negative controls; they must not be coerced into the FIFO scalar function.
+This is deliberately **not** a complete time-dependent VRP solver. It does not handle non-FIFO profiles, scheduled departures/connection waiting, probabilistic travel times, or capacity-coupled path scheduling yet. Explicit `pre_leg_delay_seconds` is a caller-supplied deterministic delay; it is not permission to invent a timetable connection or wait for an unavailable service. These unsupported cases fail or remain out of scope rather than being coerced into the FIFO scalar function.
 
 ## 2. External benchmark source inventory
 
