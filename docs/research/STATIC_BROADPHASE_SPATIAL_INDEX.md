@@ -24,7 +24,7 @@ The tree uses the existing `arrayvec` dependency for a small inline traversal st
 
 A fixed-seed test builds a 2,048-entry mixed Static/Kinematic cache and compares 256 queries against an independent linear scan. The query corpus includes queries centered on stored entries, randomly placed queries, guaranteed far-empty-space controls, varied radii, and asymmetric collision masks. The test also checks the full-binary-tree node-count and one-leaf-per-entry invariants.
 
-The existing mixed-body differential test (from the prerequisite kinematic-pair repair) continues to compare full incremental pair sets against brute force across 40 deterministic scene/seed combinations.
+The existing mixed-body differential test (from the prerequisite kinematic-pair repair) continues to compare full incremental pair sets against brute force across 40 deterministic scene/seed combinations. A threshold-boundary regression also compares against brute force at 48, 49, 50, and 51 combined Dynamic + Kinematic bodies, exercising both sides of the current small-N/LBVH policy switch.
 
 These are committed tests, not reported passes: neither targeted Cargo tests nor the benchmark has been executed in this session.
 
