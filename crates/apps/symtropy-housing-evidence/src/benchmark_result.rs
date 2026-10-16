@@ -323,6 +323,12 @@ fn expected_outputs(
     if !supported {
         return Err(format!("unsupported analytical benchmark {benchmark_id:?}"));
     }
+    if benchmark.get("status").and_then(Value::as_str) != Some("analytical_reference_only") {
+        return Err(
+            "supported benchmark fixture must explicitly declare analytical_reference_only"
+                .to_string(),
+        );
+    }
 
     let expected_object = if let Some(cases) = benchmark.get("load_cases").and_then(Value::as_array) {
         let mut matching = cases.iter().filter(|item| {
