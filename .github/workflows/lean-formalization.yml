@@ -34,24 +34,36 @@ jobs:
             (.contracts | length == 5) and
             ([.contracts[].theorems[]] | unique | length == 28) and
             (.negative_controls | length == 1) and
-            (.dimension_system.unit_dimension_vectors | keys | length == 7)
+            (.dimension_system.unit_dimension_vectors | keys | sort) ==
+              (.dimension_system.unit_theorems | keys | sort) and
+            ([.dimension_system.unit_theorems[]] | unique | length == 7) and
+            (.dimension_system.unit_dimension_vectors == {
+              "m":[1,0,0,0,0,0,0],
+              "m^2":[2,0,0,0,0,0,0],
+              "m^4":[4,0,0,0,0,0,0],
+              "N":[1,1,-2,0,0,0,0],
+              "Pa":[-1,1,-2,0,0,0,0],
+              "N*m":[2,1,-2,0,0,0,0],
+              "N/m":[0,1,-2,0,0,0,0]
+            })
           ' formalization/lean/contracts.json >/dev/null
 
           while IFS= read -r theorem; do
             short="${theorem##*.}"
             if ! grep -REq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal; then
-              echo "::error::Contract theorem missing from Lean source: ${theorem}"
+              echo "::error::Declared theorem missing from Lean source: ${theorem}"
               exit 1
             fi
-          done < <(jq -r '.contracts[].theorems[]' formalization/lean/contracts.json)
+          done < <(
+            jq -r '.contracts[].theorems[], .dimension_system.unit_theorems[], .negative_controls[].theorem' formalization/lean/contracts.json
+          )
 
-          while IFS= read -r theorem; do
-            short="${theorem##*.}"
-            if ! grep -REq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal; then
-              echo "::error::Negative-control theorem missing from Lean source: ${theorem}"
-              exit 1
-            fi
-          done < <(jq -r '.negative_controls[].theorem' formalization/lean/contracts.json)
+          declared_count=$(grep -REh '^theorem ' formalization/lean/SymtropyFormal | wc -l)
+          expected_count=$(jq '([.contracts[].theorems[], .dimension_system.unit_theorems[], .negative_controls[].theorem] | unique | length)' formalization/lean/contracts.json)
+          if [ "$declared_count" -ne "$expected_count" ]; then
+            echo "::error::Expected $expected_count mapped theorem declarations, found $declared_count"
+            exit 1
+          fi
 
           while IFS= read -r unit; do
             if ! jq -e --arg unit "$unit" '.dimension_system.unit_dimension_vectors | has($unit)' formalization/lean/contracts.json >/dev/null; then
@@ -59,16 +71,6 @@ jobs:
               exit 1
             fi
           done < <(jq -r '.contracts[].inputs_and_outputs[]' formalization/lean/contracts.json | sort -u)
-
-          declared_count=$(grep -REh '^theorem ' formalization/lean/SymtropyFormal | wc -l)
-          expected_count=$((
-            $(jq '[.contracts[].theorems[]] | unique | length' formalization/lean/contracts.json) +
-            $(jq '[.negative_controls[].theorem] | unique | length' formalization/lean/contracts.json)
-          ))
-          if [ "$declared_count" -ne "$expected_count" ]; then
-            echo "::error::Expected $expected_count mapped theorem declarations, found $declared_count"
-            exit 1
-          fi
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@v1
         with:

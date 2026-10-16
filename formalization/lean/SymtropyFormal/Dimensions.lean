@@ -134,4 +134,32 @@ def cantileverMissingLengthPowerDim : PhysicalDimension :=
 theorem cantilever_missing_length_power_is_not_length :
     cantileverMissingLengthPowerDim ≠ lengthDim := by decide
 
+/-! ## Unit-catalogue anchors
+
+These kernel-checked identities state the canonical exponent vector for each
+unit label used in contracts.json. CI separately checks the manifest labels and
+vector values, so unit-schema changes require a reviewed versioned update.
+-/
+
+theorem unit_m_vector :
+    lengthDim = ⟨1, 0, 0, 0, 0, 0, 0⟩ := by decide
+
+theorem unit_m2_vector :
+    areaDim = ⟨2, 0, 0, 0, 0, 0, 0⟩ := by decide
+
+theorem unit_m4_vector :
+    secondMomentAreaDim = ⟨4, 0, 0, 0, 0, 0, 0⟩ := by decide
+
+theorem unit_N_vector :
+    forceDim = ⟨1, 1, -2, 0, 0, 0, 0⟩ := by decide
+
+theorem unit_Pa_vector :
+    youngsModulusDim = ⟨-1, 1, -2, 0, 0, 0, 0⟩ := by decide
+
+theorem unit_Nm_vector :
+    bendingMomentDim = ⟨2, 1, -2, 0, 0, 0, 0⟩ := by decide
+
+theorem unit_N_per_m_vector :
+    lineLoadDim = ⟨0, 1, -2, 0, 0, 0, 0⟩ := by decide
+
 end SymtropyFormal

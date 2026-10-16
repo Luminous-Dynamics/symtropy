@@ -291,7 +291,16 @@
       "amount_of_substance",
       "luminous_intensity"
     ],
-    "note": "Exponent vectors are dimensions, not conversion factors. SI-scaled values still need a trusted unit-normalization layer."
+    "note": "Exponent vectors are dimensions, not conversion factors. SI-scaled values still need a trusted unit-normalization layer.",
+    "unit_theorems": {
+      "m": "SymtropyFormal.unit_m_vector",
+      "m^2": "SymtropyFormal.unit_m2_vector",
+      "m^4": "SymtropyFormal.unit_m4_vector",
+      "N": "SymtropyFormal.unit_N_vector",
+      "Pa": "SymtropyFormal.unit_Pa_vector",
+      "N*m": "SymtropyFormal.unit_Nm_vector",
+      "N/m": "SymtropyFormal.unit_N_per_m_vector"
+    }
   },
   "negative_controls": [
     {
