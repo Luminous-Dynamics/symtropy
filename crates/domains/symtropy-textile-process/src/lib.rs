@@ -315,7 +315,7 @@ pub fn compare_candidates(
         let failed: Vec<String> = candidate
             .gates
             .iter()
-            .filter_map(|gate| match gate.outcome {
+            .filter_map(|gate| match &gate.outcome {
                 GateOutcome::Fail { .. } => Some(gate.id.clone()),
                 _ => None,
             })
@@ -323,7 +323,7 @@ pub fn compare_candidates(
         let unknown: Vec<String> = candidate
             .gates
             .iter()
-            .filter_map(|gate| match gate.outcome {
+            .filter_map(|gate| match &gate.outcome {
                 GateOutcome::Unknown { .. } => Some(gate.id.clone()),
                 _ => None,
             })
