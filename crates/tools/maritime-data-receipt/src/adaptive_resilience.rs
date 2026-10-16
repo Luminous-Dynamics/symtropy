@@ -1061,7 +1061,7 @@ mod tests {
             let mut streak = 0_usize;
             let mut expected_recovery = None;
             for (index, rate) in rates.iter().enumerate() {
-                if *rate as f64 / demand as f64 < floor {
+                if (*rate as f64) / (demand as f64) < floor {
                     saw_breach = true;
                     streak = 0;
                 } else if saw_breach {
