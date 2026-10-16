@@ -156,7 +156,7 @@ fn validate_url(value: &JsonValue, path: &str, allow_http: bool) -> Result<(), S
     let valid_scheme = uri.starts_with("https://")
         || (allow_http && uri.starts_with("http://"));
     if !valid_scheme || uri.ends_with("://") {
-        return Err(format!("{path}: expected a non-empty HTTPS URI"));
+        return Err(format!("{path}: expected a non-empty HTTP(S) URI allowed by policy"));
     }
     Ok(())
 }
@@ -224,8 +224,7 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
 
     let source_id = field_text(source, "source_id", &path)?.to_owned();
     let source_kind = field_text(source, "source_kind", &path)?.to_owned();
-    let publisher = nonempty_text(super::field(source, "publisher", &path)?, &format!("{path}.publisher"))?;
-    let _ = publisher;
+    nonempty_text(super::field(source, "publisher", &path)?, &format!("{path}.publisher"))?;
     validate_url(super::field(source, "landing_uri", &path)?, &format!("{path}.landing_uri"), false)?;
     validate_url(super::field(source, "metadata_uri", &path)?, &format!("{path}.metadata_uri"), false)?;
     nonempty_text(super::field(source, "resource_path", &path)?, &format!("{path}.resource_path"))?;
@@ -633,7 +632,7 @@ mod tests {
         let second = evaluate_bytes(FIXTURE).unwrap();
         assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
         assert_eq!(first.manifest_sha256, super::super::sha256_bytes(FIXTURE));
-        let changed = [FIXTURE, b"\n"].concat();
+        let changed = [FIXTURE, &b"\n"[..]].concat();
         assert_ne!(evaluate_bytes(&changed).unwrap().manifest_sha256, first.manifest_sha256);
     }
 
