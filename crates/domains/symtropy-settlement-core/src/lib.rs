@@ -13,6 +13,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::{error::Error, fmt};
 
+pub mod timeline;
+
 pub const SETTLEMENT_SCHEMA_VERSION: u32 = 1;
 pub const CLAIM_CEILING: &str =
     "synthetic_dependency_and_resource_allocation_only_not_physical_model";
