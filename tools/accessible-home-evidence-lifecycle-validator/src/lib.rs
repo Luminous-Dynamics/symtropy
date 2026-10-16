@@ -173,7 +173,7 @@ fn parse_time(value: &str, field: &str, errors: &mut Vec<String>) -> Option<Date
 fn valid_id(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 80
-        && value.as_bytes()[0].is_ascii_lowercase().then_some(true).unwrap_or_else(|| value.as_bytes()[0].is_ascii_digit())
+        && (value.as_bytes()[0].is_ascii_lowercase() || value.as_bytes()[0].is_ascii_digit())
         && value.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         && !value.ends_with('-')
         && !value.contains("--")
@@ -281,7 +281,7 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
             }
         }
         if let Some(observed) = parse_time(&claim.observed_at, &format!("claim {} observed_at", claim.claim_id), &mut errors) {
-            if evaluation_time.as_ref().is_some_and(|end| observed > end.clone()) {
+            if evaluation_time.as_ref().is_some_and(|end| observed > (*end).clone()) {
                 errors.push(format!("claim {:?} is observed after evaluation_time", claim.claim_id));
             }
         }
@@ -340,7 +340,7 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
         }
         let event_time = parse_time(&event.occurred_at, &format!("event {} occurred_at", event.event_id), &mut errors);
         if let Some(time) = event_time {
-            if evaluation_time.as_ref().is_some_and(|end| time > end.clone()) {
+            if evaluation_time.as_ref().is_some_and(|end| time > (*end).clone()) {
                 errors.push(format!("event {:?} occurs after evaluation_time", event.event_id));
             }
             if last_event_time.is_some_and(|previous| time < previous) {
@@ -739,6 +739,14 @@ mod tests {
         value["claim_boundary"] = json!("Synthetic fixture with an explicitly altered boundary note, still not a real assessment.");
         let second = evaluate_value(&value).expect("altered synthetic fixture remains internally valid");
         assert_ne!(first.input_sha256, second.input_sha256);
+    }
+
+    #[test]
+    fn missing_nullable_contract_field_is_rejected() {
+        let mut value = fixture_value();
+        value["claims"][0].as_object_mut().unwrap().remove("review_due");
+        let errors = evaluate_value(&value).expect_err("required nullable fields must still be present");
+        assert!(has_error(&errors, "review_due"));
     }
 
     #[test]
