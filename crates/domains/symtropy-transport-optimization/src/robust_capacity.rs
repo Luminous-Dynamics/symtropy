@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::{
-    CargoTransferCapacityResourceKind, FifoRobustPathScoreV1,
+    CargoTransferCapacityResourceKind, FifoPathEstimateV1, FifoRobustPathScoreV1,
     FifoRobustPathSelectionReportV1, FifoPathScenarioKindV1, QuantityUnit,
     ScheduledCapacityAssignmentV1, ScheduledCapacityEvidenceV1, ScheduledCapacityPlanError,
     ScheduledCapacityPolicyV1, ScheduledCapacityReportV1, validate_scheduled_capacity_plan,
@@ -173,6 +173,55 @@ fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+fn path_estimate_is_self_consistent(
+    estimate: &FifoPathEstimateV1,
+) -> bool {
+    if estimate.legs.is_empty()
+        || estimate.origin_node_id.trim().is_empty()
+        || estimate.destination_node_id.trim().is_empty()
+        || estimate.time_profile_id.trim().is_empty()
+        || estimate.initial_departure_epoch_seconds > estimate.final_arrival_epoch_seconds
+        || estimate.legs.first().is_none_or(|leg| leg.from_node_id != estimate.origin_node_id)
+        || estimate.legs.last().is_none_or(|leg| leg.to_node_id != estimate.destination_node_id)
+    {
+        return false;
+    }
+
+    let mut current_node = estimate.origin_node_id.as_str();
+    let mut current_time = estimate.initial_departure_epoch_seconds;
+    let mut seen_edges = BTreeSet::new();
+    for leg in &estimate.legs {
+        if leg.edge_id.trim().is_empty()
+            || leg.from_node_id.trim().is_empty()
+            || leg.to_node_id.trim().is_empty()
+            || leg.from_node_id != current_node
+            || !seen_edges.insert(leg.edge_id.as_str())
+            || leg.estimate.time_profile_id != estimate.time_profile_id
+            || leg.estimate.knowledge_cutoff_epoch_seconds
+                != estimate.knowledge_cutoff_epoch_seconds
+        {
+            return false;
+        }
+        let Some(expected_departure) = current_time.checked_add(leg.pre_leg_delay_seconds) else {
+            return false;
+        };
+        if leg.estimate.departure_epoch_seconds != expected_departure
+            || leg.estimate.arrival_epoch_seconds < leg.estimate.departure_epoch_seconds
+            || leg.estimate.travel_seconds
+                != leg.estimate.arrival_epoch_seconds - leg.estimate.departure_epoch_seconds
+        {
+            return false;
+        }
+        current_time = leg.estimate.arrival_epoch_seconds;
+        current_node = leg.to_node_id.as_str();
+    }
+
+    current_time == estimate.final_arrival_epoch_seconds
+        && estimate.final_arrival_epoch_seconds
+            .checked_sub(estimate.initial_departure_epoch_seconds)
+            == Some(estimate.total_elapsed_seconds)
+}
+
 fn validate_selection_report(
     selection: &FifoRobustPathSelectionReportV1,
 ) -> Result<(Vec<String>, String), FifoRobustCapacitySelectionErrorV1> {
@@ -248,6 +297,7 @@ fn validate_selection_report(
                 || observation.path_estimate.final_arrival_epoch_seconds
                     != observation.final_arrival_epoch_seconds
                 || observation.path_estimate.total_elapsed_seconds != observation.elapsed_seconds
+                || !path_estimate_is_self_consistent(&observation.path_estimate)
             {
                 return Err(FifoRobustCapacitySelectionErrorV1::InvalidSelectionReport(
                     "observation does not match the scenario inventory or its path estimate",
@@ -992,6 +1042,22 @@ mod tests {
         )
         .unwrap();
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn malformed_empty_path_estimate_is_rejected_before_capacity_scoring() {
+        let mut travel = travel_report();
+        travel.scores[0].observations[0].path_estimate.legs.clear();
+        let plans = plans_from_report(&travel);
+        assert!(matches!(
+            select_capacity_qualified_robust_fifo_path(
+                &travel,
+                &plans,
+                EVALUATION_TIME,
+                &policy(),
+            ),
+            Err(FifoRobustCapacitySelectionErrorV1::InvalidSelectionReport(_))
+        ));
     }
 
     #[test]
