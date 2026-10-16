@@ -5,7 +5,6 @@
 //! trials. Structural JSON Schema validation remains a separate validation layer:
 //! this module enforces the trial's arithmetic and pairing invariants after parse.
 
-use serde::de::Deserializer;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -135,16 +134,14 @@ pub struct EvidenceRefs {
     pub production_ledger_ref: String,
     pub quality_record_ref: String,
     pub demand_closeout_ref: String,
-    #[serde(deserialize_with = "deserialize_nullable_string")]
-    pub inventory_issue_receipt_ref: Option<String>,
+    pub inventory_issue_receipt_ref: NullableString,
 }
 
-fn deserialize_nullable_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Option::<String>::deserialize(deserializer)
-}
+/// A required JSON field whose value may be either a string or explicit null.
+/// The wrapper is distinct from Option<String> so an omitted field fails to parse.
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(transparent)]
+pub struct NullableString(pub Option<String>);
 
 /// All validation findings are stable, human-readable paths/messages. Validation
 /// fails closed: a report is returned only when every hard invariant is satisfied.
@@ -356,7 +353,7 @@ pub fn validate_trial(trial: &Trial) -> Result<(), ValidationErrors> {
         );
 
         if record.existing_inventory_issued_units > 0 {
-            match &record.evidence.inventory_issue_receipt_ref {
+            match &record.evidence.inventory_issue_receipt_ref.0 {
                 Some(receipt) if !receipt.trim().is_empty() => {}
                 _ if trial.synthetic_only => errors.push(format!(
                     concat!(
@@ -498,7 +495,7 @@ fn validate_evidence(errors: &mut Vec<String>, path: &str, evidence: &EvidenceRe
     ] {
         require_text(errors, &format!("{path}.evidence.{name}"), value);
     }
-    if let Some(receipt) = &evidence.inventory_issue_receipt_ref {
+    if let Some(receipt) = &evidence.inventory_issue_receipt_ref.0 {
         require_text(
             errors,
             &format!("{path}.evidence.inventory_issue_receipt_ref"),
