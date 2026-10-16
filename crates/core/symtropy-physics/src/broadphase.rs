@@ -731,7 +731,6 @@ mod tests {
 
     #[test]
     fn incremental_includes_static_kinematic_and_kinematic_kinematic_pairs() {
-        use crate::body::BodyType;
         use symtropy_math::Transform;
 
         let kinematic = |handle, position| {
