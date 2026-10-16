@@ -653,6 +653,32 @@ mod tests {
     }
 
     #[test]
+    fn numerical_solver_without_convergence_is_blocked_even_when_values_match() {
+        let (root, record_path, pin) = setup_case(correct_outputs(), "CLAIMED_PASS", None);
+        let record_bytes = fs::read(&record_path).expect("read record");
+        let mut record: Value =
+            serde_json::from_slice(&record_bytes).expect("parse result record");
+        record["execution"]["execution_kind"] = json!("NUMERICAL_SOLVER");
+        record["execution"]["convergence_status"] = json!("NOT_CONVERGED");
+        fs::write(
+            &record_path,
+            serde_json::to_vec_pretty(&record).expect("serialize changed record"),
+        )
+        .expect("write changed record");
+
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(!report.execution_completed);
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
     fn raw_output_byte_mutation_is_detected() {
         let (root, record_path, pin) = setup_case(correct_outputs(), "CLAIMED_PASS", None);
         fs::write(root.join("raw-outputs.json"), b"{\"tampered\":true}")
