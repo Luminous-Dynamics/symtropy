@@ -54,6 +54,10 @@ struct CyPortInteractionReport {
     duplicate_storm_port_pair_rows: usize,
     zero_total_impact_rows: usize,
     nonzero_total_impact_rows: usize,
+    zero_impact_all_recovery_sentinels_rows: usize,
+    zero_impact_all_recovery_fields_present_rows: usize,
+    nonzero_impact_all_recovery_fields_present_rows: usize,
+    mixed_recovery_field_state_rows: usize,
     start_recovery_date_sentinel_rows: usize,
     end_recovery_date_sentinel_rows: usize,
     day_of_recover_sentinel_rows: usize,
@@ -118,6 +122,10 @@ struct ProfileCounts {
     duplicate_pair_rows: usize,
     zero_total_impact_rows: usize,
     nonzero_total_impact_rows: usize,
+    zero_impact_all_recovery_sentinels: usize,
+    zero_impact_all_recovery_fields_present: usize,
+    nonzero_impact_all_recovery_fields_present: usize,
+    mixed_recovery_field_states: usize,
     start_recovery_sentinels: usize,
     end_recovery_sentinels: usize,
     day_of_recover_sentinels: usize,
@@ -410,11 +418,8 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
 
         let impact_raw = record_field(record, &indexes, "total_impact", row_index + 2)?;
         let impact = impact_raw
-            .parse::<f64>()
-            .map_err(|_| format!("CSV row {} has invalid total_impact {impact_raw:?}", row_index + 2))?;
-        if !impact.is_finite() || impact < 0.0 {
-            return Err(format!("CSV row {} has non-finite or negative total_impact", row_index + 2));
-        }
+            .parse::<u64>()
+            .map_err(|_| format!("CSV row {} has invalid non-negative integer total_impact {impact_raw:?}", row_index + 2))?;
         if impact == 0.0 {
             counts.zero_total_impact_rows += 1;
         } else {
@@ -444,18 +449,39 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             _ => group.last_event_start = Some(start),
         }
 
-        if is_sentinel(record_field(record, &indexes, "start_recovery_date", row_index + 2)?) {
+        let start_recovery = record_field(record, &indexes, "start_recovery_date", row_index + 2)?;
+        let end_recovery = record_field(record, &indexes, "end_recovery_date", row_index + 2)?;
+        let recovery_duration = record_field(record, &indexes, "day_of_recover", row_index + 2)?;
+        let start_recovery_sentinel = is_sentinel(start_recovery);
+        let end_recovery_sentinel = is_sentinel(end_recovery);
+        let duration_sentinel = is_sentinel(recovery_duration);
+        if start_recovery_sentinel {
             counts.start_recovery_sentinels += 1;
         } else {
-            let _ = parse_mdy_date(record_field(record, &indexes, "start_recovery_date", row_index + 2)?, &format!("row {} start_recovery_date", row_index + 2))?;
+            let _ = parse_mdy_date(start_recovery, &format!("row {} start_recovery_date", row_index + 2))?;
         }
-        if is_sentinel(record_field(record, &indexes, "end_recovery_date", row_index + 2)?) {
+        if end_recovery_sentinel {
             counts.end_recovery_sentinels += 1;
         } else {
-            let _ = parse_mdy_date(record_field(record, &indexes, "end_recovery_date", row_index + 2)?, &format!("row {} end_recovery_date", row_index + 2))?;
+            let _ = parse_mdy_date(end_recovery, &format!("row {} end_recovery_date", row_index + 2))?;
         }
-        if is_sentinel(record_field(record, &indexes, "day_of_recover", row_index + 2)?) {
+        if duration_sentinel {
             counts.day_of_recover_sentinels += 1;
+        } else {
+            let duration = recovery_duration.parse::<u64>().map_err(|_| {
+                format!("CSV row {} has invalid non-negative integer day_of_recover {recovery_duration:?}", row_index + 2)
+            })?;
+            if duration == 0 {
+                return Err(format!("CSV row {} has a zero recovery duration that was not recognized as a sentinel", row_index + 2));
+            }
+        }
+
+        match (start_recovery_sentinel, end_recovery_sentinel, duration_sentinel) {
+            (true, true, true) if impact == 0 => counts.zero_impact_all_recovery_sentinels += 1,
+            (true, true, true) => counts.mixed_recovery_field_states += 1,
+            (false, false, false) if impact == 0 => counts.zero_impact_all_recovery_fields_present += 1,
+            (false, false, false) => counts.nonzero_impact_all_recovery_fields_present += 1,
+            _ => counts.mixed_recovery_field_states += 1,
         }
     }
 
@@ -551,6 +577,10 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             ("unique storm-port pairs", counts.storm_port_pairs.len(), 1_927usize),
             ("zero-impact rows", counts.zero_total_impact_rows, 1_654usize),
             ("nonzero-impact rows", counts.nonzero_total_impact_rows, 273usize),
+            ("zero-impact rows with all recovery sentinels", counts.zero_impact_all_recovery_sentinels, 1_650usize),
+            ("zero-impact rows with all recovery fields present", counts.zero_impact_all_recovery_fields_present, 4usize),
+            ("nonzero-impact rows with all recovery fields present", counts.nonzero_impact_all_recovery_fields_present, 273usize),
+            ("mixed recovery-field states", counts.mixed_recovery_field_states, 0usize),
             ("start-recovery sentinels", counts.start_recovery_sentinels, 1_650usize),
             ("end-recovery sentinels", counts.end_recovery_sentinels, 1_650usize),
             ("recovery-day sentinels", counts.day_of_recover_sentinels, 1_650usize),
@@ -618,6 +648,10 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         duplicate_storm_port_pair_rows: counts.duplicate_pair_rows,
         zero_total_impact_rows: counts.zero_total_impact_rows,
         nonzero_total_impact_rows: counts.nonzero_total_impact_rows,
+        zero_impact_all_recovery_sentinels_rows: counts.zero_impact_all_recovery_sentinels,
+        zero_impact_all_recovery_fields_present_rows: counts.zero_impact_all_recovery_fields_present,
+        nonzero_impact_all_recovery_fields_present_rows: counts.nonzero_impact_all_recovery_fields_present,
+        mixed_recovery_field_state_rows: counts.mixed_recovery_field_states,
         start_recovery_date_sentinel_rows: counts.start_recovery_sentinels,
         end_recovery_date_sentinel_rows: counts.end_recovery_sentinels,
         day_of_recover_sentinel_rows: counts.day_of_recover_sentinels,
@@ -1141,6 +1175,10 @@ mod tests {
         assert_eq!(report.unique_storm_port_pairs, 4);
         assert_eq!(report.zero_total_impact_rows, 2);
         assert_eq!(report.nonzero_total_impact_rows, 2);
+        assert_eq!(report.zero_impact_all_recovery_sentinels_rows, 2);
+        assert_eq!(report.zero_impact_all_recovery_fields_present_rows, 0);
+        assert_eq!(report.nonzero_impact_all_recovery_fields_present_rows, 2);
+        assert_eq!(report.mixed_recovery_field_state_rows, 0);
         assert_eq!(report.start_recovery_date_sentinel_rows, 2);
         assert!(!report.pinned_source_identity_verified);
         assert!(!report.data_capture_persisted);
