@@ -34,9 +34,10 @@ The repository README declares [CC BY 4.0](https://creativecommons.org/licenses/
 | Event-end coverage | 6 May 2015 – 23 October 2023 |
 | `total_impact == 0` | 1,654 rows (85.83%) |
 | `total_impact != 0` | 273 rows (14.17%) |
-| Recovery-start zero/NA sentinels | 1,650 rows |
-| Recovery-end zero/NA sentinels | 1,650 rows |
-| `day_of_recover` zero/NA sentinels | 1,650 rows |
+| Zero impact + all three recovery fields sentinel | 1,650 rows |
+| Zero impact + all three recovery fields present | 4 rows |
+| Nonzero impact + all three recovery fields present | 273 rows |
+| Mixed recovery-field sentinel triplets | 0 rows |
 
 The broader CyPort release is described as covering 145 principal U.S. ports and 90 tropical cyclones. The interaction table itself contains 122 unique port IDs; these figures refer to different scopes and should not be conflated.
 
@@ -44,17 +45,30 @@ The observed start-year row counts are 2015: 105; 2016: 117; 2017: 287; 2018: 19
 
 ## 3. Three important scientific implications
 
-### A. Class imbalance is an immediate benchmark issue
+### A. Treat this as an excess-zero / severity problem, not a raw-accuracy problem
 
-The `total_impact` column is zero for 85.83% of rows and nonzero for 14.17%. A model that always predicts zero would look accurate under raw accuracy alone while failing to identify most disruption-positive examples.
+The `total_impact` column is zero for 85.83% of rows and nonzero for 14.17%. The paper defines total impact as equivalent days of vessel activity lost and explains that originally non-integral impact values are rounded to the nearest integer for count-model analysis. The paper also describes cases with no detected impact window as ports whose vessel traffic remained within the normal range. These semantics matter: an all-zero predictor could obtain 85.83% accuracy on the *rounded* `total_impact > 0` classification while missing every nonzero value. Yet zero is not a guaranteed no-impact label, as the row cross-tab below demonstrates.
 
-For any binary experiment built from an explicitly defined target, report the confusion matrix, positive-class precision/recall, PR-AUC, specificity, calibration if probabilities are actually emitted, and episode-clustered uncertainty. Preserve the full target semantics: the observed nonzero `total_impact` values range from 1 to 10, so collapsing them into a binary label loses severity information. A positive/nonpositive classification should be a declared secondary task, not a silent reinterpretation of the source field.
+For any explicitly defined binary experiment, report the confusion matrix, positive-class precision/recall, PR-AUC, specificity, and episode-clustered uncertainty; include calibration only when probabilities are emitted and evaluated. Preserve the ordinal/count severity information in `total_impact` and continuous proxy fields such as `total_impact_value` and `max_impact`. Compare at least a simple baseline and a zero-aware/hurdle-style model, but do not treat the published metrics as independent ground truth if derived from the same observations. Source paper definitions: [impact-window method and normal-traffic cases](https://www.researchgate.net/publication/395969987_US_Port_Disruptions_under_Tropical_Cyclones_Resilience_Analysis_by_Harnessing_Multiple-Source_Dataset) and [rounding/excess-zero discussion](https://www.researchgate.net/publication/395969987_US_Port_Disruptions_under_Tropical_Cyclones_Resilience_Analysis_by_Harnessing_Multiple-Source_Dataset).
 
-### B. Recovery sentinel values are not self-interpreting labels
+The inspected row cross-tab is:
+- 1,650 records have `total_impact=0` plus all three recovery fields set to zero/NA.
+- 4 records have `total_impact=0` but all three recovery fields present; they also have nonzero `total_impact_value`, `max_impact` and `day_of_recover`.
+- 273 records have nonzero `total_impact` and all three recovery fields present.
+- No mixed sentinel triplets occur in the pinned table.
 
-1,650 rows carry a zero-or-NA sentinel in the recovery-start, recovery-end and day-of-recovery fields. The source profile shows what is present, but does not establish why each value is absent. It may be associated with no detected impact, an unavailable recovery label, or the source's event-window/coding rules.
+That 4-row exception is why zero cannot be blindly translated to “no disruption”. Given the paper's rounding rule and nonzero impact proxies, these rows may represent small positive unrounded impact that rounded down to zero. That is a plausible interpretation, not a row-level label to silently assume.
 
-Do **not** rewrite these sentinels as a recovery time of zero. Do **not** automatically label all of them as right-censored either. Inspect the [interaction data description](https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/Tropical_cyclone_interaction/Interaction%20Data%20Descrptions.pdf), paper definitions, and source-generation logic; then encode the defensible meanings as distinct states. When observation truly ends before recovery is observed, use an explicit censoring record with its observation-window end.
+### B. Interpret recovery markers as a coherent triplet
+
+The paper describes `start_recovery_date` and `end_recovery_date` as markers from the constructed resilience curve and `day_of_recover` as recovery duration in days. It describes no detected impact window as normal vessel traffic during the cyclone. These definitions are more informative than an untyped missing-value policy, but exact row-level coding should still be validated against the source's construction procedure.
+
+Do **not** rewrite sentinels to a recovery time of zero and do **not** automatically label all absent recovery markers as right-censored. The pinned data has a consistent pattern of all three fields present or all three sentinel-coded. Preserve that as a triplet state:
+- `recovery_markers_present`: all three markers are present and individually valid;
+- `no_recovery_markers`: all three are sentinel-coded, with semantics to be resolved from the source pipeline and impact fields;
+- `mixed_recovery_marker_state`: a data-quality exception; reject or isolate instead of imputing.
+
+Only call an outcome right-censored where the source's observation window truly ends before recovery can be observed, and retain the actual observation-window end. The data's exposure start/end are not themselves evidence of the recovery observation cutoff.
 
 ### C. Storm-level dependence determines the validation split
 
