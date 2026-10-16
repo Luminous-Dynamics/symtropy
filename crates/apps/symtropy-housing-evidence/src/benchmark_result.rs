@@ -352,6 +352,11 @@ fn require_derived_input(
     computed: f64,
     tolerance: f64,
 ) -> Result<(), String> {
+    if !computed.is_finite() || computed <= 0.0 {
+        return Err(format!(
+            "equation-derived benchmark input {name:?} is not finite and positive"
+        ));
+    }
     let declared = inputs
         .get(name)
         .and_then(Value::as_f64)
@@ -530,8 +535,15 @@ fn expected_outputs(
         _ => unreachable!("supported benchmark checked above"),
     };
 
-    if calculated.is_empty() || calculated.values().any(|value| !value.is_finite()) {
-        return Err("derived benchmark reference outputs must be finite and non-empty".to_string());
+    if calculated.is_empty()
+        || calculated
+            .values()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+    {
+        return Err(
+            "derived benchmark reference outputs must be finite, positive, and non-empty"
+                .to_string(),
+        );
     }
     let declared = declared_expected
         .as_object()
@@ -1033,6 +1045,38 @@ mod tests {
         assert_eq!(report.independent_result_status, "BLOCKED");
         assert_eq!(report.declared_status_consistent, None);
         assert!(report.issues.iter().any(|issue| issue.contains("benchmark oracle drift")));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
+    fn overflowed_derived_geometry_is_blocked() {
+        let mut benchmark: Value =
+            serde_json::from_str(AXIAL_FIXTURE).expect("valid analytical fixture");
+        benchmark["inputs"]["section_width_m"] = json!(1.0e308);
+        benchmark["inputs"]["section_height_m"] = json!(1.0e100);
+        let altered_fixture =
+            serde_json::to_string_pretty(&benchmark).expect("serialize altered fixture");
+        let outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
+        let (root, record_path, pin) = setup_case_for_fixture(
+            &altered_fixture,
+            "default",
+            outputs,
+            "CLAIMED_PASS",
+            None,
+        );
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(report.issues.iter().any(|issue| {
+            issue.contains("equation-derived benchmark input")
+                && issue.contains("cross_section_area_m2")
+        }));
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
