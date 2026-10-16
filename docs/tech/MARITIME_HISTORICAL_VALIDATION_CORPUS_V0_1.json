@@ -48,7 +48,8 @@
         "attribution_text",
         "dataset_sheet_and_column_inventory",
         "time_resolution_and_missingness_profile"
-      ]
+      ],
+      "last_modified_date": null
     },
     {
       "source_id": "bts_port_throughput_metrics",
