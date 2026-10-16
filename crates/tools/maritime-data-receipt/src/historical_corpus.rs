@@ -810,8 +810,7 @@ mod tests {
     #[test]
     fn duplicate_source_ids_are_rejected() {
         let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
-        let first_id = root["sources"][0]["source_id"].clone();
-        root["sources"][1]["source_id"] = first_id;
+        root["sources"][1] = root["sources"][0].clone();
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("duplicate source ID"));
     }
