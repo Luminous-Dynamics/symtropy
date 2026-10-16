@@ -217,6 +217,7 @@ struct AdaptiveResourceKey {
 struct AdaptiveEvidenceFingerprint {
     evidence_id: String,
     capacity_scope_id: String,
+    terminal_id: Option<String>,
     capacity_limit_units: u64,
     capacity_unit: QuantityUnit,
     authority_id: String,
@@ -410,6 +411,7 @@ fn evidence_fingerprint(
     AdaptiveEvidenceFingerprint {
         evidence_id: receipt.evidence_id.clone(),
         capacity_scope_id: summary.capacity_scope_id.clone(),
+        terminal_id: receipt.terminal_id.clone(),
         capacity_limit_units: summary.capacity_limit_units,
         capacity_unit: summary.capacity_unit,
         authority_id: receipt.authority_id.clone(),
