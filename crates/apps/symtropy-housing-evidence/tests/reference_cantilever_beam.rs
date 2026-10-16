@@ -386,3 +386,47 @@ fn analytical_cantilever_survives_deterministic_scaling_sweep() {
         ));
     }
 }
+
+
+#[test]
+fn analytical_cantilever_obeys_load_span_modulus_interactions() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("baseline case is valid");
+    let inputs = &base["inputs"];
+    let load = inputs["load_N"].as_f64().unwrap();
+    let span = inputs["span_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+
+    for load_factor in [0.5_f64, 2.0] {
+        for span_factor in [0.5_f64, 2.0] {
+            for modulus_factor in [0.5_f64, 2.0] {
+                let mut changed = base.clone();
+                changed["inputs"]["load_N"] = serde_json::json!(load * load_factor);
+                changed["inputs"]["span_m"] = serde_json::json!(span * span_factor);
+                changed["inputs"]["elastic_modulus_Pa"] =
+                    serde_json::json!(modulus * modulus_factor);
+                let result = evaluate_reference(&changed)
+                    .expect("combined load/span/modulus transformation is valid");
+                assert!(close_relative(
+                    result.deflection_m,
+                    reference.deflection_m * load_factor * span_factor.powi(3)
+                        / modulus_factor,
+                    tolerance
+                ));
+                assert!(close_relative(
+                    result.support_stress_pa,
+                    reference.support_stress_pa * load_factor * span_factor,
+                    tolerance
+                ));
+                assert!(close_relative(
+                    result.inertia_m4,
+                    reference.inertia_m4,
+                    tolerance
+                ));
+            }
+        }
+    }
+}
