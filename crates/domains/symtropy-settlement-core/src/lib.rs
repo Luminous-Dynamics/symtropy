@@ -151,6 +151,8 @@ impl ResourceKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceSupply {
     pub supply_id: String,
+    /// Explicitly scopes which demands may compete for this supply.
+    pub allocation_pool_id: String,
     pub source_component: ComponentId,
     pub resource_kind: ResourceKind,
     pub capacity_units: u64,
@@ -161,6 +163,8 @@ pub struct ResourceSupply {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceDemand {
     pub demand_id: String,
+    /// Must match a declared allocation pool; resource pools never merge implicitly.
+    pub allocation_pool_id: String,
     pub consumer_component: ComponentId,
     pub resource_kind: ResourceKind,
     pub requested_units: u64,
@@ -550,6 +554,7 @@ fn validate_input(
                 supply.supply_id, supply.source_component
             )));
         }
+        valid_identifier(&supply.allocation_pool_id, "resource allocation pool ID")?;
         if !supply_ids.insert(supply.supply_id.clone()) {
             return Err(SettlementError(format!(
                 "duplicate supply ID {}",
@@ -564,9 +569,19 @@ fn validate_input(
         }
     }
 
+    let declared_supply_pools: BTreeSet<(ResourceKind, String)> = input
+        .resource_supplies
+        .iter()
+        .map(|supply| (supply.resource_kind, supply.allocation_pool_id.clone()))
+        .collect();
     let mut demand_ids = BTreeSet::new();
     for demand in &input.resource_demands {
         valid_identifier(&demand.demand_id, "demand ID")?;
+        valid_identifier(&demand.allocation_pool_id, "resource allocation pool ID")?;
+        if !declared_supply_pools.contains(&(demand.resource_kind, demand.allocation_pool_id.clone())) {
+            // Missing supply is a legitimate modeled shortage; a same-kind
+            // supply in a different pool is not an implicit substitute.
+        }
         if !components.contains_key(&demand.consumer_component) {
             return Err(SettlementError(format!(
                 "demand {} references missing consumer {}",
@@ -694,28 +709,32 @@ fn allocate_resources(
     effective_states: &BTreeMap<ComponentId, ComponentState>,
 ) -> Result<Vec<ResourceAllocation>, SettlementError> {
     let mut outcomes = Vec::with_capacity(input.resource_demands.len());
-    let mut resource_kinds = BTreeSet::new();
+    let mut resource_pools = BTreeSet::<(ResourceKind, String)>::new();
     for supply in &input.resource_supplies {
-        resource_kinds.insert(supply.resource_kind);
+        resource_pools.insert((supply.resource_kind, supply.allocation_pool_id.clone()));
     }
     for demand in &input.resource_demands {
-        resource_kinds.insert(demand.resource_kind);
+        resource_pools.insert((demand.resource_kind, demand.allocation_pool_id.clone()));
     }
 
-    for kind in resource_kinds {
+    for (kind, pool_id) in resource_pools {
         let supplies: Vec<&ResourceSupply> = input
             .resource_supplies
             .iter()
-            .filter(|supply| supply.resource_kind == kind)
+            .filter(|supply| {
+                supply.resource_kind == kind && supply.allocation_pool_id == pool_id
+            })
             .collect();
         let demands: Vec<&ResourceDemand> = input
             .resource_demands
             .iter()
-            .filter(|demand| demand.resource_kind == kind)
+            .filter(|demand| {
+                demand.resource_kind == kind && demand.allocation_pool_id == pool_id
+            })
             .collect();
 
         let mut known_remaining = BTreeMap::<String, u64>::new();
-        let mut unresolved_potential = 0_u64;
+        let mut unresolved_remaining = 0_u64;
         for supply in &supplies {
             let available = supply.capacity_units - supply.protected_reserve_units;
             let source_state = effective_states
@@ -727,7 +746,7 @@ fn allocate_resources(
                 }
                 ComponentState::Failed => {}
                 ComponentState::Unknown { .. } => {
-                    unresolved_potential = unresolved_potential
+                    unresolved_remaining = unresolved_remaining
                         .checked_add(available)
                         .ok_or_else(|| SettlementError("unknown resource total overflow".into()))?;
                 }
@@ -751,6 +770,7 @@ fn allocate_resources(
                 ComponentState::Failed => DemandOutcome::ConsumerUnavailable,
                 ComponentState::Unknown { .. } => DemandOutcome::ConsumerStateUnknown,
                 ComponentState::Available => {
+                    let unresolved_before_demand = unresolved_remaining;
                     for supply in &supplies {
                         let Some(remaining) = known_remaining.get_mut(&supply.supply_id) else {
                             continue;
@@ -774,12 +794,20 @@ fn allocate_resources(
                         DemandOutcome::FullySatisfied
                     } else if allocated >= demand.minimum_units {
                         DemandOutcome::MinimumSatisfied
-                    } else if unresolved_potential
-                        >= demand.minimum_units.saturating_sub(allocated)
-                    {
-                        DemandOutcome::Indeterminate
                     } else {
-                        DemandOutcome::Shortfall
+                        // Unknown capacity is not allocated or represented as available.
+                        // For the best-case status test, however, the upper bound is
+                        // a shared pool: evaluate it in the declared demand priority
+                        // order and do not let the same unknown units make several
+                        // incompatible demands all appear individually feasible.
+                        let possible_gap = demand.minimum_units - allocated;
+                        let potentially_coverable = unresolved_remaining.min(possible_gap);
+                        unresolved_remaining -= potentially_coverable;
+                        if potentially_coverable == possible_gap {
+                            DemandOutcome::Indeterminate
+                        } else {
+                            DemandOutcome::Shortfall
+                        }
                     }
                 }
             };
@@ -792,7 +820,7 @@ fn allocate_resources(
                 requested_units: demand.requested_units,
                 minimum_units: demand.minimum_units,
                 allocated_known_units: allocated,
-                unresolved_potential_units: unresolved_potential,
+                unresolved_potential_units: unresolved_before_demand,
                 sources,
                 outcome,
             });
@@ -915,6 +943,7 @@ mod tests {
             resource_supplies: vec![
                 ResourceSupply {
                     supply_id: "grid-energy".into(),
+                    allocation_pool_id: "electrical-common".into(),
                     source_component: id("grid"),
                     resource_kind: ResourceKind::ElectricalEnergy,
                     capacity_units: 100,
@@ -922,6 +951,7 @@ mod tests {
                 },
                 ResourceSupply {
                     supply_id: "backup-energy".into(),
+                    allocation_pool_id: "electrical-common".into(),
                     source_component: id("backup"),
                     resource_kind: ResourceKind::ElectricalEnergy,
                     capacity_units: 80,
@@ -929,6 +959,7 @@ mod tests {
                 },
                 ResourceSupply {
                     supply_id: "reservoir-water".into(),
+                    allocation_pool_id: "potable-water".into(),
                     source_component: id("reservoir"),
                     resource_kind: ResourceKind::PotableWater,
                     capacity_units: 100,
@@ -938,6 +969,7 @@ mod tests {
             resource_demands: vec![
                 ResourceDemand {
                     demand_id: "clinic-power".into(),
+                    allocation_pool_id: "electrical-common".into(),
                     consumer_component: id("clinic-cooling"),
                     resource_kind: ResourceKind::ElectricalEnergy,
                     requested_units: 60,
@@ -946,6 +978,7 @@ mod tests {
                 },
                 ResourceDemand {
                     demand_id: "pump-power".into(),
+                    allocation_pool_id: "electrical-common".into(),
                     consumer_component: id("pump"),
                     resource_kind: ResourceKind::ElectricalEnergy,
                     requested_units: 50,
@@ -954,6 +987,7 @@ mod tests {
                 },
                 ResourceDemand {
                     demand_id: "water-supply".into(),
+                    allocation_pool_id: "potable-water".into(),
                     consumer_component: id("water-service"),
                     resource_kind: ResourceKind::PotableWater,
                     requested_units: 50,
