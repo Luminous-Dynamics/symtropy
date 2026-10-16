@@ -8,7 +8,7 @@ This crate is intentionally not a factory simulator or process controller. It ev
 
 The stress module evaluates explicit processing-time delays, input-release delays,
 and pre-horizon machine-availability shocks against both the bounded exact solver
-and all three dispatch baselines. The result preserves each fixture reference,
+and all four dispatch rules. The result preserves each fixture reference,
 exact feasibility outcome, concrete heuristic plan (if found), profile/service
 identifiers, and per-objective gaps. This is an equally enumerated stress corpus,
 not an estimate of real-world disruption probabilities. Full protocol and
