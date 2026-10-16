@@ -25,12 +25,17 @@ A Rust loader/validator must enforce checked arithmetic and fail closed if any o
 
 The JSON Schema only validates structure; it does not authenticate evidence, confirm calibration, enforce cross-record pairing, reconcile arithmetic, prove randomization, or estimate treatment effects.
 
-## Required implementation sequence
+## Implementation status and next steps
 
-1. Add a Rust parser/loader that reports path-specific failures and rejects unknown fields.
-2. Add cross-field and cross-record invariants with overflow/negative-control tests.
-3. Run an independent Draft 2020-12 validator over this fixture and invalid fixtures.
-4. Add a report generator with profile-stratified absolute effects, uncertainty intervals, missingness, assignment deviations, and sensitivity analysis.
-5. Evaluate against redacted real records only after privacy, data-rights, unit definitions, and the analysis plan are reviewed independently.
+The stacked draft branch `feat/textile-trial-validator-v0-1` now contains a typed Rust parser and fail-closed cross-field validation in `src/empirical.rs`. It rejects unknown/missing required fields, invalid or duplicate profile/record identifiers, arithmetic overflow and unclosed ledgers, incomplete/mismatched policy pairs, diverging frozen order/forecast inputs, issue records without receipts, and invalid measured-resource values. Missing and not-applicable measurements remain explicit states. Negative-control tests are authored but have not been executed.
+
+Remaining steps:
+
+1. Run an independent JSON Schema Draft 2020-12 validator over valid and deliberately invalid fixtures.
+2. Run `cargo test -p symtropy-textile-process`, `cargo fmt --all -- --check`, and Clippy on the exact commit.
+3. Add a report generator with profile-stratified absolute effects, uncertainty intervals, missingness, assignment deviations, and sensitivity analysis.
+4. Evaluate redacted real records only after privacy, data-rights, unit definitions, and the analysis plan are reviewed independently.
+
+The typed loader validates structure and arithmetic, not cryptographic authenticity, randomization, causal effects, physical downstream use, or lifecycle claims.
 
 Never label the synthetic example as a benchmark result. It exists to make the intended data shape and accounting boundaries inspectable.
