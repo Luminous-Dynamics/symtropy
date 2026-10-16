@@ -94,6 +94,7 @@ pub struct ScheduleProblem {
 pub struct ScheduledOperation {
     pub job_id: String,
     pub profile_id: String,
+    pub functional_unit_id: String,
     pub machine_id: String,
     pub setup_from_family: String,
     pub setup_to_family: String,
@@ -121,6 +122,9 @@ pub struct ScheduleMetrics {
 /// One representative schedule for a unique objective vector.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScheduleCandidate {
+    pub problem_id: String,
+    pub energy_unit_id: String,
+    pub water_unit_id: String,
     pub operations: Vec<ScheduledOperation>,
     pub metrics: ScheduleMetrics,
 }
@@ -142,6 +146,8 @@ pub struct ObjectiveOptima {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExhaustiveReport {
     pub problem_id: String,
+    pub energy_unit_id: String,
+    pub water_unit_id: String,
     pub pareto_frontier: Vec<ScheduleCandidate>,
     pub objective_optima: ObjectiveOptima,
     /// Number of feasible complete assignments/orderings visited, including
@@ -209,6 +215,8 @@ impl Error for ScheduleError {}
 #[derive(Clone)]
 struct PreparedProblem {
     id: String,
+    energy_unit_id: String,
+    water_unit_id: String,
     energy_budget_units: u64,
     water_budget_units: u64,
     jobs: Vec<TextileJob>,
@@ -310,7 +318,9 @@ pub fn solve_exhaustive(problem: &ScheduleProblem) -> Result<ExhaustiveReport, S
     pareto_frontier.sort_by(|left, right| left.metrics.cmp(&right.metrics));
 
     Ok(ExhaustiveReport {
-        problem_id: prepared.id,
+        problem_id: prepared.id.clone(),
+        energy_unit_id: prepared.energy_unit_id.clone(),
+        water_unit_id: prepared.water_unit_id.clone(),
         pareto_frontier,
         objective_optima,
         complete_schedules,
@@ -655,6 +665,8 @@ fn prepare(problem: &ScheduleProblem) -> Result<PreparedProblem, ScheduleError> 
 
     Ok(PreparedProblem {
         id: problem.id.clone(),
+        energy_unit_id: problem.energy_unit_id.clone(),
+        water_unit_id: problem.water_unit_id.clone(),
         energy_budget_units: problem.energy_budget_units,
         water_budget_units: problem.water_budget_units,
         jobs,
@@ -725,6 +737,7 @@ fn make_operation(
     Ok(ScheduledOperation {
         job_id: job.id.clone(),
         profile_id: job.profile_id.clone(),
+        functional_unit_id: job.functional_unit_id.clone(),
         machine_id: machine.id.clone(),
         setup_from_family: state.setup_family.clone(),
         setup_to_family: job.setup_family.clone(),
@@ -800,6 +813,9 @@ fn make_candidate(
     });
 
     Ok(Some(ScheduleCandidate {
+        problem_id: problem.id.clone(),
+        energy_unit_id: problem.energy_unit_id.clone(),
+        water_unit_id: problem.water_unit_id.clone(),
         operations,
         metrics: ScheduleMetrics {
             late_jobs,
@@ -1130,6 +1146,130 @@ mod tests {
         }
     }
 
+
+    fn independently_validate_candidate(
+        problem: &ScheduleProblem,
+        candidate: &ScheduleCandidate,
+    ) {
+        assert_eq!(candidate.problem_id, problem.id);
+        assert_eq!(candidate.energy_unit_id, problem.energy_unit_id);
+        assert_eq!(candidate.water_unit_id, problem.water_unit_id);
+
+        let jobs: BTreeMap<&str, &TextileJob> = problem
+            .jobs
+            .iter()
+            .map(|item| (item.id.as_str(), item))
+            .collect();
+        let machines: BTreeMap<&str, &Machine> = problem
+            .machines
+            .iter()
+            .map(|item| (item.id.as_str(), item))
+            .collect();
+        let mut seen_jobs = BTreeSet::new();
+        let mut machine_finish: BTreeMap<String, u64> = BTreeMap::new();
+        let mut machine_family: BTreeMap<String, String> = problem
+            .machines
+            .iter()
+            .map(|machine| {
+                (
+                    machine.id.clone(),
+                    machine.initial_setup_family.clone(),
+                )
+            })
+            .collect();
+        let mut energy = 0_u64;
+        let mut water = 0_u64;
+        let mut late_jobs = 0_u64;
+        let mut tardiness = 0_u64;
+        let mut makespan = 0_u64;
+        let mut setup_ticks = 0_u64;
+
+        for operation in &candidate.operations {
+            assert!(seen_jobs.insert(operation.job_id.as_str()));
+            let job = jobs.get(operation.job_id.as_str()).expect("known job");
+            let machine = machines
+                .get(operation.machine_id.as_str())
+                .expect("known machine");
+            assert_eq!(operation.profile_id, job.profile_id);
+            assert_eq!(operation.functional_unit_id, job.functional_unit_id);
+            assert!(job.required_capabilities.is_subset(&machine.capabilities));
+            assert!(job.required_gates.iter().all(|gate| {
+                matches!(&gate.outcome, GateOutcome::Pass { evidence_ref } if !evidence_ref.trim().is_empty())
+            }));
+
+            let expected_from = machine_family
+                .get(&machine.id)
+                .expect("machine has current setup family");
+            assert_eq!(&operation.setup_from_family, expected_from);
+            assert_eq!(operation.setup_to_family, job.setup_family);
+            let (expected_setup, expected_energy, expected_water) =
+                if operation.setup_from_family == operation.setup_to_family {
+                    (0_u64, 0_u64, 0_u64)
+                } else {
+                    let transition = problem
+                        .setup_transitions
+                        .iter()
+                        .find(|transition| {
+                            transition.machine_id == machine.id
+                                && transition.from_family == operation.setup_from_family
+                                && transition.to_family == operation.setup_to_family
+                        })
+                        .expect("non-identical setup has declared transition evidence");
+                    assert!(!transition.evidence_ref.trim().is_empty());
+                    (
+                        transition.duration_ticks,
+                        transition.energy_units,
+                        transition.water_units,
+                    )
+                };
+            assert_eq!(operation.setup_duration_ticks, expected_setup);
+            assert_eq!(operation.setup_energy_units, expected_energy);
+            assert_eq!(operation.setup_water_units, expected_water);
+
+            let previous_finish = machine_finish
+                .get(&machine.id)
+                .copied()
+                .unwrap_or(machine.available_tick);
+            assert_eq!(operation.setup_start_tick, previous_finish);
+            assert_eq!(
+                operation.setup_finish_tick,
+                operation.setup_start_tick + expected_setup
+            );
+            assert_eq!(
+                operation.process_start_tick,
+                job.release_tick.max(operation.setup_finish_tick)
+            );
+            assert_eq!(
+                operation.finish_tick,
+                operation.process_start_tick + job.processing_ticks
+            );
+            assert!(job
+                .hard_finish_by_tick
+                .is_none_or(|latest| operation.finish_tick <= latest));
+
+            machine_finish.insert(machine.id.clone(), operation.finish_tick);
+            machine_family.insert(machine.id.clone(), job.setup_family.clone());
+            energy += job.energy_units + expected_energy;
+            water += job.water_units + expected_water;
+            setup_ticks += expected_setup;
+            makespan = makespan.max(operation.finish_tick);
+            if operation.finish_tick > job.due_tick {
+                late_jobs += 1;
+                tardiness += operation.finish_tick - job.due_tick;
+            }
+        }
+
+        assert_eq!(seen_jobs.len(), problem.jobs.len());
+        assert_eq!(energy, candidate.metrics.energy_units);
+        assert_eq!(water, candidate.metrics.water_units);
+        assert_eq!(setup_ticks, candidate.metrics.setup_duration_ticks);
+        assert_eq!(makespan, candidate.metrics.makespan_tick);
+        assert_eq!(late_jobs, candidate.metrics.late_jobs);
+        assert_eq!(tardiness, candidate.metrics.total_tardiness_ticks);
+        assert!(energy <= problem.energy_budget_units);
+        assert!(water <= problem.water_budget_units);
+    }
+
     #[test]
     fn exhaustive_solver_returns_feasible_frontier_for_decorative_garment() {
         let problem = sample_problem();
@@ -1148,6 +1288,9 @@ mod tests {
                     && operation.finish_tick <= 8
             })
         }));
+        for candidate in &report.pareto_frontier {
+            independently_validate_candidate(&problem, candidate);
+        }
         for (index, left) in report.pareto_frontier.iter().enumerate() {
             for right in report.pareto_frontier.iter().skip(index + 1) {
                 assert!(!dominates(&left.metrics, &right.metrics));
@@ -1222,6 +1365,7 @@ mod tests {
             let first = dispatch_schedule(&problem, rule).expect("fixture dispatch should work");
             let second = dispatch_schedule(&problem, rule).expect("same fixture should work");
             assert_eq!(first, second);
+            independently_validate_candidate(&problem, &first);
             assert!(first.operations.iter().all(|operation| {
                 problem
                     .jobs
@@ -1232,4 +1376,31 @@ mod tests {
             }));
         }
     }
+
+    #[test]
+    fn input_order_does_not_change_exact_report() {
+        let problem = sample_problem();
+        let first = solve_exhaustive(&problem).expect("fixture is feasible");
+        let mut reversed = problem.clone();
+        reversed.jobs.reverse();
+        reversed.machines.reverse();
+        reversed.setup_transitions.reverse();
+        let second = solve_exhaustive(&reversed).expect("reordered fixture is feasible");
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn hard_finish_window_cannot_be_traded_for_a_better_objective() {
+        let mut problem = sample_problem();
+        problem.jobs.iter_mut()
+            .find(|job| job.id == "beaded-occasion-garment")
+            .expect("decorative job exists")
+            .hard_finish_by_tick = Some(2);
+
+        assert!(matches!(
+            solve_exhaustive(&problem),
+            Err(ScheduleError::NoFeasibleSchedule)
+        ));
+    }
+
 }
