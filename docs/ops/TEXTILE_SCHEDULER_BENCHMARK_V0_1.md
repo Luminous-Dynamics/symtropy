@@ -41,7 +41,7 @@ authenticate the underlying measurements.
    gate; no objective trade-off can override it.
 5. **Resource budgets are hard.** The total process-plus-setup energy and water
    for one planning horizon must not exceed the caller-declared budgets.
-6. **Units do not silently convert.** Every problem declares energy and water
+6. **Units do not silently convert.** Every problem declares time, energy, and water
    unit IDs. Profile and functional-unit IDs stay attached to each job. The
    scheduler does not compare cultural, aesthetic, ceremonial, conservation,
    or service value by an invented common scalar.
@@ -135,7 +135,7 @@ unsold inventory are measured at the declared boundary.
 For every fixture, lock and report:
 - benchmark and scenario IDs, revision, input SHA-256, and scheduler version;
 - job and machine counts, eligible machine edges, setup matrix coverage;
-- all unit IDs and budget values;
+- all time/resource unit IDs and budget values;
 - the number of blocked or unknown gates (expected to prevent the run);
 - hard-deadline and resource-budget compliance;
 - every objective value, exact frontier or heuristic rule, node count, runtime,
