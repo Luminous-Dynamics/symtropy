@@ -33,6 +33,6 @@ jobs:
       - name: Format
         run: cargo fmt --manifest-path crates/domains/symtropy-measurement-planner/Cargo.toml -- --check
       - name: Test
-        run: cargo test --manifest-path crates/domains/symtropy-measurement-planner/Cargo.toml
+        run: cargo test --manifest-path crates/domains/symtropy-measurement-planner/Cargo.toml --locked
       - name: Clippy
-        run: cargo clippy --manifest-path crates/domains/symtropy-measurement-planner/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path crates/domains/symtropy-measurement-planner/Cargo.toml --locked --all-targets -- -D warnings
