@@ -687,7 +687,7 @@ pub fn select_capacity_qualified_robust_fifo_path(
         nominal_best_path_id,
         robust_best_path_id,
         optimality_scope: "ExactMinimaxOverTravelQualifiedPathsThatPassMappedCapacityInEveryDeclaredScenario",
-        candidate_path_count: selection.scores.len(),
+        candidate_path_count: selection.candidate_path_count,
         capacity_qualified_path_count: qualified_paths.len(),
         qualified_paths,
         rejected_path_scenarios,
