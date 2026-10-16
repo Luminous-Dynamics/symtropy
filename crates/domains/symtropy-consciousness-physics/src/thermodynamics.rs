@@ -606,6 +606,51 @@ mod tests {
     }
 
     #[test]
+    fn every_flow_category_rejects_negative_or_non_finite_values() {
+        let mut ledger = ThermodynamicLedger::new();
+
+        assert_eq!(
+            ledger.try_record_action(-1.0, 0.5),
+            Err(LedgerInputError::NegativeFlow)
+        );
+        assert_eq!(
+            ledger.try_record_dissipation(-1.0),
+            Err(LedgerInputError::NegativeFlow)
+        );
+        assert_eq!(
+            ledger.try_record_regeneration(-1.0),
+            Err(LedgerInputError::NegativeFlow)
+        );
+        assert_eq!(
+            ledger.try_record_external_sink(-1.0),
+            Err(LedgerInputError::NegativeFlow)
+        );
+        assert_eq!(
+            ledger.try_record_regeneration(f64::NAN),
+            Err(LedgerInputError::NonFiniteValue)
+        );
+        assert_eq!(
+            ledger.try_record_external_sink(f64::INFINITY),
+            Err(LedgerInputError::NonFiniteValue)
+        );
+        assert_eq!(
+            ledger.try_record_phi_change(f64::NEG_INFINITY),
+            Err(LedgerInputError::NonFiniteValue)
+        );
+
+        assert_eq!(ledger.energy_in, 0.0);
+        assert_eq!(ledger.energy_out, 0.0);
+        assert_eq!(ledger.energy_regenerated, 0.0);
+        assert_eq!(ledger.energy_removed, 0.0);
+        assert_eq!(ledger.phi_change_total, 0.0);
+        assert_eq!(ledger.invalid_flow_count, 7);
+        let balance = ledger.tick_balance();
+        assert!(!balance.inputs_valid);
+        assert_eq!(balance.invalid_flow_count, 7);
+        assert!(balance.conservation_error.is_infinite());
+    }
+
+    #[test]
     fn non_finite_and_out_of_range_phi_are_rejected() {
         let mut ledger = ThermodynamicLedger::new();
         assert_eq!(
