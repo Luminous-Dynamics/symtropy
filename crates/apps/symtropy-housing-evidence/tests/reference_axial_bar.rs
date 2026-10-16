@@ -204,7 +204,8 @@ fn analytical_axial_reference_obeys_mechanical_scaling_invariants() {
     let mut double_width = base.clone();
     double_width["inputs"]["section_width_m"] = serde_json::json!(0.1);
     double_width["inputs"]["cross_section_area_m2"] = serde_json::json!(0.01);
-    let width_result = evaluate_reference(&double_width).expect("consistent doubled width is valid");
+    let width_result =
+        evaluate_reference(&double_width).expect("consistent doubled width is valid");
     assert!(close_relative(width_result.area_m2, reference.area_m2 * 2.0, tolerance));
     assert!(close_relative(width_result.stress_pa, reference.stress_pa / 2.0, tolerance));
     assert!(close_relative(
