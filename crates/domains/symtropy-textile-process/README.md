@@ -2,7 +2,7 @@
 
 Dependency-free primitives for the first Textile Process Optimization Benchmark slice.
 
-This crate is intentionally not a factory simulator or process controller. It evaluates already-declared candidate objective values and evidence-bearing hard gates. It does not predict quality, calculate energy/water use, authenticate evidence, perform lifecycle assessment, schedule actual process operations, or control equipment.
+This crate is intentionally not a factory simulator or process controller. It evaluates already-declared candidate objective values and evidence-bearing hard gates. It does not predict quality, calculate environmental impacts from first principles, authenticate evidence, perform lifecycle assessment, or control equipment. The scheduling module produces planning outputs from caller-supplied durations, resource quantities, and evidence; it is not a factory simulator or equipment controller.
 
 ## Run locally
 
