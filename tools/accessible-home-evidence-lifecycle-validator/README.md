@@ -22,10 +22,12 @@ cargo run --release --manifest-path tools/accessible-home-evidence-lifecycle-val
 
 # Record environment and peak RSS separately
 rustc --version --verbose > /tmp/accessible-home-rustc-version.txt
-/usr/bin/time -v cargo run --release --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml \
-  --bin accessible-home-evidence-lifecycle-benchmark -- \
+cargo build --release --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml \
+  --bin accessible-home-evidence-lifecycle-benchmark
+/usr/bin/time -v target/release/accessible-home-evidence-lifecycle-benchmark \
   --claims 10000 --events 1000 --paths 1000 --warmup 3 --iterations 30 \
-  > /tmp/accessible-home-lifecycle-benchmark-with-time.json
+  > /tmp/accessible-home-lifecycle-benchmark-with-time.json \
+  2> /tmp/accessible-home-lifecycle-time.txt
 ```
 
 Invalid JSON, unknown fields, unknown references, unsupported versions, conflicting current claims,
