@@ -508,6 +508,28 @@ mod tests {
         include_bytes!("../tests/fixtures/synthetic-asof-feature-receipt.json");
 
     #[test]
+    fn json_schema_is_valid_and_matches_the_receipt_contract() {
+        let schema = include_str!("../../../../docs/tech/CYPORT_ASOF_FEATURE_RECEIPT_V0_1.schema.json");
+        let value: serde_json::Value =
+            serde_json::from_str(schema).expect("receipt schema must be valid JSON");
+        assert_eq!(
+            value["properties"]["schema_id"]["const"],
+            serde_json::Value::String(SCHEMA_ID.to_owned())
+        );
+        assert_eq!(
+            value["properties"]["schema_version"]["const"],
+            serde_json::Value::String(SCHEMA_VERSION.to_owned())
+        );
+        assert_eq!(
+            value["$defs"]["feature"]["required"]
+                .as_array()
+                .expect("feature required fields must be an array")
+                .len(),
+            FEATURE_KEYS.len()
+        );
+    }
+
+    #[test]
     fn synthetic_evidence_receipt_passes_metadata_checks_only() {
         let facts = validate_receipt(RECEIPT).expect("synthetic receipt metadata should validate");
         assert_eq!(facts.features.len(), 1);
