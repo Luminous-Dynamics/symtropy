@@ -24,7 +24,7 @@ This program is informed by [NASA-STD-7009B](https://standards.nasa.gov/standard
 | B4 — Integrated housing workflow | Does the evidence chain remain correct across model changes and adapters? | IFC/unit/identity checks, dependency invalidation, cross-tool conformance, clean reruns, qualified review | Automatic statutory approval |
 | B5 — Monitored deployment | Do predictions and installed outcomes remain consistent over time? | Commissioning, inspection/maintenance observations, drift and incident feedback, controlled change process | Universal safety for unobserved buildings |
 
-The cantilever and axial-bar tests are B1 seeds, not a B2 FEM campaign, B3 validation, or B4 housing workflow. The axial-bar fixture and tests now exercise uniform axial stress, extension and support reaction, derive area from geometry, reject inconsistent declared area, and test mechanical scaling. The simply-supported beam suite now includes a midpoint point load and a uniform distributed load, with closed-form deflection, bending moment, stress and reaction oracles plus invalid-input and scaling controls. These all remain B1 analytical checks; the next major step is an independent result checker and then numerical/FEM verification.
+The cantilever, axial-bar and simply-supported-beam suites are B1 seeds, not a B2 FEM campaign, B3 validation, or B4 housing workflow. The axial-bar fixture/tests exercise uniform axial stress, extension and support reaction, derive area from geometry, reject inconsistent area, and test mechanical scaling. The simply-supported beam suite covers both midpoint point load and uniform distributed load, with closed-form deflection, bending moment, stress and reaction oracles plus invalid-input and scaling controls. These remain analytical checks; the next major step is an independent result checker and then numerical/FEM verification.
 
 ## Initial benchmark portfolio
 
@@ -87,13 +87,12 @@ Required negative tests include a fake runner declaring PASS while output values
 ## Sequenced implementation
 
 1. Close B1 consistency gaps: enforce $c=h/2$, $I=bh^3/12$, finite outputs, explicit units and current scaling invariants.
-2. Add axial-bar and simply-supported beam references with equations, assumptions, dimensional checks, positive controls and mutation controls.
-3. Specify the gate-execution schema before implementing a runner: bind criteria/evaluator identities and record invocation, termination and raw outputs.
-4. Implement an independent checker; test a fake runner that claims pass for wrong output.
-5. Run a solver spike as a separate process; pin the solver build and license path, parse outputs independently, check equilibrium, compare references and perform mesh refinement.
-6. Establish B3 validation using traceable physical observations not used for calibration, including measurement uncertainty and a bounded validation domain.
-7. Build a versioned cross-tool conformance corpus with identical cases, expected outcomes and reports across supported tool/OS builds.
-8. Require independent engineering review before extending scope: assumptions, validity domain, uncertainty, thresholds and evidence gaps.
+2. Specify a versioned benchmark-result record binding benchmark/case digests, invocation, evaluator identity, termination/convergence state, raw output digests, extracted values and case-specific acceptance criteria.
+3. Implement an independent checker that recomputes verdicts from pinned criteria and outputs; test a fake runner that declares pass while reporting incorrect values.
+4. Run a solver spike as a separate process; pin the solver build and license path, parse outputs independently, check equilibrium, compare the three analytical reference families and perform mesh refinement.
+5. Establish B3 validation using traceable physical observations not used for calibration, including measurement uncertainty and a bounded validation domain.
+6. Build a versioned cross-tool conformance corpus with identical cases, expected outcomes and reports across supported tool/OS builds.
+7. Require independent engineering review before extending scope: assumptions, validity domain, uncertainty, thresholds and evidence gaps.
 
 ## Stop conditions
 
