@@ -13,6 +13,9 @@ use bevy::prelude::{Component, Resource, Vec3};
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::world::PhysicsCallback;
+use symtropy_physics_diff_core::{
+    BodyObservation, ObservationError, ObservationFrame, RunIdentity,
+};
 
 pub use manipulator::{
     Manipulator8D, ManipulatorTarget, manipulator_motor_system, spawn_manipulator_8d,
@@ -80,6 +83,54 @@ pub struct RapierBodyState {
     pub linear_velocity: [Real; 3],
     pub angular_velocity: [Real; 3],
     pub is_sleeping: bool,
+}
+
+/// Errors encountered while converting Rapier state into a common observation frame.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RapierObservationError {
+    /// A live Rapier body has no declared scenario-level semantic identity.
+    MissingSemanticBodyId { handle: RigidBodyHandle },
+    /// The frame failed common-schema validation.
+    InvalidObservation(ObservationError),
+}
+
+impl fmt::Display for RapierObservationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingSemanticBodyId { handle } => {
+                write!(f, "Rapier body {handle:?} has no semantic identity mapping")
+            }
+            Self::InvalidObservation(error) => {
+                write!(f, "Rapier observation is invalid: {error}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for RapierObservationError {}
+
+impl From<ObservationError> for RapierObservationError {
+    fn from(value: ObservationError) -> Self {
+        Self::InvalidObservation(value)
+    }
+}
+
+impl RapierBodyState {
+    /// Convert engine state into the common observation schema.
+    ///
+    /// The semantic ID must come from the declared scenario mapping. It is deliberately
+    /// not inferred from this body's Rapier handle or insertion order.
+    pub fn to_observation(&self, semantic_body_id: impl Into<String>) -> BodyObservation {
+        let mut observation = BodyObservation::new(
+            semantic_body_id,
+            self.translation.map(|value| value as f64),
+            self.rotation_wxyz.map(|value| value as f64),
+            self.linear_velocity.map(|value| value as f64),
+            self.angular_velocity.map(|value| value as f64),
+        );
+        observation.sleeping = Some(self.is_sleeping);
+        observation
+    }
 }
 
 /// The Rapier-based physics bridge.
@@ -309,6 +360,34 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
         Ok(())
     }
 
+    /// Capture a common-schema frame from the current Rapier world state.
+    ///
+    /// Every live body must have a caller-declared scenario identity. This method never
+    /// derives one from arena slots, generations, or insertion order. Contact and energy
+    /// summaries remain absent until equivalent extraction semantics are qualified.
+    pub fn observation_frame(
+        &self,
+        bodies: &RigidBodySet,
+        identity: RunIdentity,
+        step_index: u64,
+        simulation_time_seconds: f64,
+        semantic_body_ids: &HashMap<RigidBodyHandle, String>,
+    ) -> Result<ObservationFrame, RapierObservationError> {
+        let mut frame = ObservationFrame::new(identity, step_index, simulation_time_seconds);
+        for state in self.post_step(bodies) {
+            let semantic_body_id = semantic_body_ids.get(&state.handle).ok_or(
+                RapierObservationError::MissingSemanticBodyId {
+                    handle: state.handle,
+                },
+            )?;
+            frame
+                .bodies
+                .push(state.to_observation(semantic_body_id.clone()));
+        }
+        frame.validate()?;
+        Ok(frame)
+    }
+
     /// Read back the latest body state after `step`; no cached/stale copy is used.
     pub fn post_step(&self, bodies: &RigidBodySet) -> Vec<RapierBodyState> {
         bodies
@@ -353,6 +432,7 @@ pub fn add_sphere_to_rapier(
 mod tests {
     use super::*;
     use symtropy_physics::world::NoOpCallback;
+    use symtropy_physics_diff_core::RunIdentity;
 
     struct TestWorld {
         bodies: RigidBodySet,
@@ -496,6 +576,63 @@ mod tests {
         assert!(state.linear_velocity[1] < 0.0);
         assert!((state.rotation_wxyz[0] - 1.0).abs() < 1.0e-6);
         assert!(!state.is_sleeping);
+
+        let semantic_body_ids =
+            std::collections::HashMap::from([(handle, "falling-sphere/main".to_owned())]);
+        let frame = bridge
+            .observation_frame(
+                &world.bodies,
+                RunIdentity::new(
+                    "free-fall",
+                    "sha256:free-fall-fixture",
+                    "rapier3d",
+                    "0.18",
+                    "default",
+                    "sha256:default-config",
+                    1.0 / 60.0,
+                ),
+                1,
+                1.0 / 60.0,
+                &semantic_body_ids,
+            )
+            .expect("valid scenario mapping produces an observation frame");
+        assert_eq!(frame.bodies[0].semantic_body_id, "falling-sphere/main");
+        assert_eq!(frame.bodies[0].sleeping, Some(false));
+        assert_eq!(frame.validate(), Ok(()));
+    }
+
+    #[test]
+    fn rapier_observation_frame_rejects_missing_semantic_identity() {
+        let bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut world = TestWorld::new();
+        world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![0.0, 10.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
+        );
+
+        let result = bridge.observation_frame(
+            &world.bodies,
+            RunIdentity::new(
+                "free-fall",
+                "sha256:free-fall-fixture",
+                "rapier3d",
+                "0.18",
+                "default",
+                "sha256:default-config",
+                1.0 / 60.0,
+            ),
+            0,
+            0.0,
+            &std::collections::HashMap::new(),
+        );
+
+        let handle = world.bodies.iter().next().expect("body inserted").0;
+        assert_eq!(
+            result,
+            Err(RapierObservationError::MissingSemanticBodyId { handle }),
+        );
     }
 
     #[test]
