@@ -260,11 +260,7 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
     )?;
     expect_array_contains_all(
         &capture_fields,
-        &[
-            "retrieval_timestamp_utc",
-            "exact_response_byte_length",
-            "exact_response_sha256",
-        ],
+        &["retrieval_timestamp_utc"],
         &format!("{path}.required_capture_fields"),
     )?;
     if described.is_empty() || limitations.is_empty() {
@@ -296,6 +292,11 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             if field_text(source, "access_level", &path)? != "public_repository" {
                 return Err(format!("{path}.access_level: expected public_repository"));
             }
+            expect_array_contains_all(
+                &capture_fields,
+                &["exact_resource_byte_length", "exact_resource_sha256", "rights_or_license_evidence"],
+                &format!("{path}.required_capture_fields"),
+            )?;
         }
         "bts_port_throughput_metrics" => {
             if source_kind != "government_port_performance_dataset" {
@@ -316,6 +317,11 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             if field_text(source, "access_level", &path)? != "public" {
                 return Err(format!("{path}.access_level: expected public"));
             }
+            expect_array_contains_all(
+                &capture_fields,
+                &["exact_response_byte_length", "exact_response_sha256", "license_metadata_snapshot"],
+                &format!("{path}.required_capture_fields"),
+            )?;
         }
         _ => return Err(format!("{path}.source_id: unknown source identifier {source_id:?}")),
     }
@@ -732,7 +738,8 @@ mod tests {
     #[test]
     fn duplicate_source_ids_are_rejected() {
         let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
-        root["sources"][1]["source_id"] = root["sources"][0]["source_id"].clone();
+        let first_id = root["sources"][0]["source_id"].clone();
+        root["sources"][1]["source_id"] = first_id;
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("duplicate source ID"));
     }
