@@ -6,6 +6,7 @@
 **Panama artifact admission:** [TRANSPORT-DATA-PANAMA-001 #1677](https://github.com/Luminous-Dynamics/symtropy/issues/1677)  
 **Provisional machine-readable transcription (not qualified data):** [TRANSPORT_PANAMA_EVENT_TIMELINE_PROVISIONAL_V0_1.csv](TRANSPORT_PANAMA_EVENT_TIMELINE_PROVISIONAL_V0_1.csv)  
 **November prospective evaluation (draft):** [TRANSPORT_PANAMA_2026_PROSPECTIVE_EVAL_V0_1.md](TRANSPORT_PANAMA_2026_PROSPECTIVE_EVAL_V0_1.md)  
+**Reservation-policy replay rules (draft):** [TRANSPORT_PANAMA_POLICY_RULES_V0_1.md](TRANSPORT_PANAMA_POLICY_RULES_V0_1.md)  
 **Benchmark contract:** [TRANSPORT_BENCHMARK_LADDER_V0_1.md](TRANSPORT_BENCHMARK_LADDER_V0_1.md)  
 **Global source discovery:** [GLOBAL_TRANSPORT_DATA_COVERAGE_V0_1.md](GLOBAL_TRANSPORT_DATA_COVERAGE_V0_1.md)
 
@@ -142,6 +143,21 @@ The Canal's [official Gatun Lake water-level download](https://evtms-rpts.pancan
 ### Current evidence boundary
 
 The 2026 rows in the provisional CSV are a separate `event_id` from the 2023–24 drought record. August and September figures are retroactive aggregate observations, while the October 15 slot policy is a prospective announcement. All 63 rows remain marked as not acquired/hash-frozen, with source-use rights unreviewed except that the Gatun history link is explicitly blocked pending written permission. None is yet a qualified artifact pack or a model forecast result.
+
+## E. Reservation-policy rules and 2027 Long-Term Slot Allocation (LoTSA)
+
+A new event dimension is emerging: **the allocation rules themselves change over time**. A-31 modifies Neopanamax multiple/consecutive bookings and segment allocation; A-35 clarifies that the Panamax consecutive-date restriction does not apply across different booking periods; A-30 changes special handling of cancelled slots and distinguishes NetZero slot swaps from substitutions. These rules affect eligibility and allocation, not physical canal capacity.
+
+[ A-37-2026, published 5 October ](https://pancanal.com/wp-content/uploads/2026/10/ADV-37-2026-Long-Term-Slot-Allocation-Program-2027-and-Modification-to-Transit-Reservation-System-tariffs.pdf) adds a 2027 LoTSA booking horizon from 3 January to 3 April. It schedules the Neopanamax competition for 17 November 2026 and the Panamax sealed-bid competition for 24 November; the new Panamax pilot and existing Neopanamax program each offer an average of three slots per day. The same advisory changes the late-cancellation surcharge threshold from seven to four days effective 15 October 2026.
+
+This suggests a new, bounded benchmark: **replay public rule eligibility and policy chronology before attempting to model actual outcomes**. Use [TRANSPORT-POLICY-001 #1681](https://github.com/Luminous-Dynamics/symtropy/issues/1681) and [TRANSPORT_PANAMA_POLICY_RULES_V0_1.md](TRANSPORT_PANAMA_POLICY_RULES_V0_1.md). In particular:
+- the 17/24 November competition dates are not the 2027 booking/transit horizon;
+- the Neopanamax multiple/consecutive-date rule must not leak into Panamax;
+- A-35's cross-period exception does not erase same-period restrictions;
+- slot minima, quotas, bidding, cancellation rules, draft limits and physical transit capacity are separate constraints;
+- public rule text cannot reveal private requests, bids, customer rankings or actual award outcomes.
+
+Golden-case target: 100% of manually reviewed rule-conformance fixtures correct, zero rules used before their known-at time or outside their effective scope, zero quota/unit violations, deterministic output under ordering permutations, and every unparsed exception explicitly unsupported. Do not claim fairer access or better service until actual request/award/outcome data and an appropriate evaluation design exist.
 
 ## Benchmark protocol for whichever event passes qualification
 
