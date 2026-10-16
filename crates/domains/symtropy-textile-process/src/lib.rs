@@ -1,5 +1,3 @@
-pub mod garment_profile;
-
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
@@ -14,6 +12,8 @@ pub mod garment_profile;
 //!
 //! A caller must not translate synthetic inputs into factory claims. All values
 //! and evidence references supplied here are caller-owned assertions.
+
+pub mod garment_profile;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
