@@ -24,7 +24,8 @@ pub enum GateOutcome {
     Unknown { reason: String },
 }
 
-/// A required quality, safety, conservation, or process gate.
+/// A required pre-dispatch readiness gate, such as process qualification,
+/// material compatibility, safety authorization, or conservation approval.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GateEvidence {
     pub id: String,
@@ -51,6 +52,8 @@ pub struct TextileJob {
     pub energy_units: u64,
     pub water_units: u64,
     pub process_evidence_ref: String,
+    /// Preconditions for releasing the job to scheduling. Post-run product
+    /// acceptance must be measured separately; a planned finish is not acceptance.
     pub required_gates: Vec<GateEvidence>,
 }
 
@@ -1038,9 +1041,9 @@ mod tests {
 
     fn passing_gate() -> GateEvidence {
         GateEvidence {
-            id: "surface-quality".to_owned(),
+            id: "process-readiness".to_owned(),
             outcome: GateOutcome::Pass {
-                evidence_ref: "fixture:surface-quality-pass".to_owned(),
+                evidence_ref: "fixture:process-readiness-pass".to_owned(),
             },
         }
     }
@@ -1474,7 +1477,7 @@ mod tests {
     fn failed_gate_blocks_scheduling_instead_of_being_traded_away() {
         let mut problem = sample_problem();
         problem.jobs[0].required_gates[0].outcome = GateOutcome::Fail {
-            evidence_ref: "fixture:failed-inspection".to_owned(),
+            evidence_ref: "fixture:failed-readiness-check".to_owned(),
         };
 
         assert!(matches!(
