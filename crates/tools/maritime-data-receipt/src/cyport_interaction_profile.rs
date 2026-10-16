@@ -60,6 +60,7 @@ struct CyPortInteractionReport {
     no_impact_window_recorded_rows: usize,
     impact_window_recovery_markers_present_rows: usize,
     mixed_recovery_field_state_rows: usize,
+    nonzero_impact_without_recovery_markers_rows: usize,
     start_recovery_date_sentinel_rows: usize,
     end_recovery_date_sentinel_rows: usize,
     day_of_recover_sentinel_rows: usize,
@@ -107,6 +108,7 @@ struct SplitOutcomeSummary {
     no_impact_window_recorded_rows: usize,
     impact_window_recovery_markers_present_rows: usize,
     mixed_recovery_field_state_rows: usize,
+    nonzero_impact_without_recovery_markers_rows: usize,
 }
 
 #[derive(Default)]
@@ -120,6 +122,7 @@ struct StormAccumulator {
     no_impact_window_recorded_rows: usize,
     impact_window_recovery_markers_present_rows: usize,
     mixed_recovery_field_state_rows: usize,
+    nonzero_impact_without_recovery_markers_rows: usize,
 }
 
 #[derive(Default)]
@@ -134,6 +137,7 @@ struct SplitAccumulator {
     no_impact_window_recorded_rows: usize,
     impact_window_recovery_markers_present_rows: usize,
     mixed_recovery_field_state_rows: usize,
+    nonzero_impact_without_recovery_markers_rows: usize,
 }
 
 #[derive(Default)]
@@ -151,6 +155,7 @@ struct ProfileCounts {
     zero_impact_all_recovery_fields_present: usize,
     nonzero_impact_all_recovery_fields_present: usize,
     mixed_recovery_field_states: usize,
+    nonzero_impact_without_recovery_markers: usize,
     start_recovery_sentinels: usize,
     end_recovery_sentinels: usize,
     day_of_recover_sentinels: usize,
@@ -521,27 +526,27 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             }
         }
 
-        let (no_impact_window_recorded, impact_window_markers_present, mixed_marker_state) =
+        let (no_impact_window_recorded, impact_window_markers_present, mixed_marker_state, nonzero_impact_without_markers) =
             match (start_recovery_sentinel, end_recovery_sentinel, duration_sentinel) {
                 (true, true, true) if impact == 0 => {
                     counts.zero_impact_all_recovery_sentinels += 1;
-                    (true, false, false)
+                    (true, false, false, false)
                 }
                 (true, true, true) => {
-                    counts.mixed_recovery_field_states += 1;
-                    (false, false, true)
+                    counts.nonzero_impact_without_recovery_markers += 1;
+                    (false, false, false, true)
                 }
                 (false, false, false) if impact == 0 => {
                     counts.zero_impact_all_recovery_fields_present += 1;
-                    (false, true, false)
+                    (false, true, false, false)
                 }
                 (false, false, false) => {
                     counts.nonzero_impact_all_recovery_fields_present += 1;
-                    (false, true, false)
+                    (false, true, false, false)
                 }
                 _ => {
                     counts.mixed_recovery_field_states += 1;
-                    (false, false, true)
+                    (false, false, true, false)
                 }
             };
         let group = counts.storm_groups.get_mut(&storm)
@@ -555,8 +560,12 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             group.no_impact_window_recorded_rows += 1;
         } else if impact_window_markers_present {
             group.impact_window_recovery_markers_present_rows += 1;
-        } else if mixed_marker_state {
+        }
+        if mixed_marker_state {
             group.mixed_recovery_field_state_rows += 1;
+        }
+        if nonzero_impact_without_markers {
+            group.nonzero_impact_without_recovery_markers_rows += 1;
         }
     }
 
@@ -620,6 +629,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         summary.no_impact_window_recorded_rows += group.no_impact_window_recorded_rows;
         summary.impact_window_recovery_markers_present_rows += group.impact_window_recovery_markers_present_rows;
         summary.mixed_recovery_field_state_rows += group.mixed_recovery_field_state_rows;
+        summary.nonzero_impact_without_recovery_markers_rows += group.nonzero_impact_without_recovery_markers_rows;
     }
     let split_summaries: Vec<SplitSummary> = split_names
         .iter()
@@ -664,6 +674,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 no_impact_window_recorded_rows: summary.no_impact_window_recorded_rows,
                 impact_window_recovery_markers_present_rows: summary.impact_window_recovery_markers_present_rows,
                 mixed_recovery_field_state_rows: summary.mixed_recovery_field_state_rows,
+                nonzero_impact_without_recovery_markers_rows: summary.nonzero_impact_without_recovery_markers_rows,
             }
         })
         .collect();
@@ -687,6 +698,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             ("no-impact-window marker triplets", counts.zero_impact_all_recovery_sentinels, 1_650usize),
             ("recorded impact-window marker triplets", counts.zero_impact_all_recovery_fields_present + counts.nonzero_impact_all_recovery_fields_present, 277usize),
             ("mixed recovery-field states", counts.mixed_recovery_field_states, 0usize),
+            ("nonzero impact without recovery markers", counts.nonzero_impact_without_recovery_markers, 0usize),
             ("start-recovery sentinels", counts.start_recovery_sentinels, 1_650usize),
             ("end-recovery sentinels", counts.end_recovery_sentinels, 1_650usize),
             ("recovery-day sentinels", counts.day_of_recover_sentinels, 1_650usize),
@@ -721,11 +733,11 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             }
         }
         let expected_split_outcomes = [
-            ("train", 59usize, 1_471usize, 1_266usize, 205usize, 1_263usize, 208usize, 0usize),
-            ("calibration", 13usize, 308usize, 265usize, 43usize, 265usize, 43usize, 0usize),
-            ("test", 18usize, 148usize, 123usize, 25usize, 122usize, 26usize, 0usize),
+            ("train", 59usize, 1_471usize, 1_266usize, 205usize, 1_263usize, 208usize, 0usize, 0usize),
+            ("calibration", 13usize, 308usize, 265usize, 43usize, 265usize, 43usize, 0usize, 0usize),
+            ("test", 18usize, 148usize, 123usize, 25usize, 122usize, 26usize, 0usize, 0usize),
         ];
-        for (name, storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed) in expected_split_outcomes {
+        for (name, storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed, nonzero_without_markers) in expected_split_outcomes {
             let actual = split_outcome_summaries
                 .iter()
                 .find(|summary| summary.split == name)
@@ -738,8 +750,9 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 actual.no_impact_window_recorded_rows,
                 actual.impact_window_recovery_markers_present_rows,
                 actual.mixed_recovery_field_state_rows,
+                actual.nonzero_impact_without_recovery_markers_rows,
             );
-            if observed != (storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed) {
+            if observed != (storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed, nonzero_without_markers) {
                 return Err(format!("pinned CyPort {name} impact-state split drift: observed {observed:?}"));
             }
         }
@@ -784,6 +797,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         impact_window_recovery_markers_present_rows: counts.zero_impact_all_recovery_fields_present
             + counts.nonzero_impact_all_recovery_fields_present,
         mixed_recovery_field_state_rows: counts.mixed_recovery_field_states,
+        nonzero_impact_without_recovery_markers_rows: counts.nonzero_impact_without_recovery_markers,
         start_recovery_date_sentinel_rows: counts.start_recovery_sentinels,
         end_recovery_date_sentinel_rows: counts.end_recovery_sentinels,
         day_of_recover_sentinel_rows: counts.day_of_recover_sentinels,
@@ -1522,6 +1536,37 @@ mod tests {
         assert_eq!(report.zero_impact_all_recovery_fields_present_rows, 1);
         assert_eq!(report.no_impact_window_recorded_rows, 2);
         assert_eq!(report.impact_window_recovery_markers_present_rows, 3);
+    }
+
+    #[test]
+    fn nonzero_impact_without_recovery_markers_is_not_mislabeled_mixed() {
+        let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
+        let target = text.lines().nth(2).unwrap();
+        let changed_line = target.replacen(",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,", ",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,", 1);
+        let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
+        let fields: Vec<&str> = target.split(',').collect();
+        let mut owned: Vec<String> = fields.iter().map(|x| x.to_string()).collect();
+        owned[10] = "1".to_owned();
+        owned[8] = "0".to_owned();
+        owned[9] = "0".to_owned();
+        owned[13] = "0".to_owned();
+        lines[2] = owned.join(",");
+        let changed = lines.join("\n") + "\n";
+        let report = profile_bytes(changed.as_bytes()).unwrap();
+        assert_eq!(report.nonzero_impact_without_recovery_markers_rows, 1);
+        assert_eq!(report.mixed_recovery_field_state_rows, 0);
+        let test = report.split_outcome_summaries.iter().find(|x| x.split == "test").unwrap();
+        assert_eq!(test.nonzero_impact_without_recovery_markers_rows, 1);
+    }
+
+    #[test]
+    fn partially_present_recovery_triplet_is_counted_as_mixed() {
+        let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
+        let changed = text.replacen("10/4/2022 0:00", "0", 1);
+        assert_ne!(text, changed);
+        let report = profile_bytes(changed.as_bytes()).unwrap();
+        assert_eq!(report.mixed_recovery_field_state_rows, 1);
+        assert_eq!(report.nonzero_impact_without_recovery_markers_rows, 0);
     }
 
     #[test]
