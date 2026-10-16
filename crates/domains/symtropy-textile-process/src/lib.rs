@@ -14,6 +14,7 @@
 //! and evidence references supplied here are caller-owned assertions.
 
 pub mod garment_profile;
+pub mod scheduler;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
