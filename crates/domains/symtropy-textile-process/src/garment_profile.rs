@@ -23,6 +23,8 @@ pub enum GarmentArchetype {
     CeremonialOrHeritage,
     PerformanceOrCostume,
     ArchiveOrDisplay,
+    ModularDecorative,
+    DeadstockOrRunwaySample,
 }
 
 /// Expected pattern of service; no ordering implies greater or lesser value.
@@ -81,6 +83,23 @@ pub enum CareConstraint {
     RepairByQualifiedEmbellishmentSpecialist,
 }
 
+/// Decoration/material features that can change care, repair, or recovery needs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum DecorationRisk {
+    Beadwork,
+    Sequins,
+    DenseEmbroidery,
+    MetallicThread,
+    FeathersOrNaturalTrim,
+    AppliqueOrPatchwork,
+    MixedMaterialTrim,
+    AdhesiveBondedDecoration,
+    ColorSensitiveSurface,
+    HistoricOrDegradingMaterial,
+    UnknownBlendOrDeadstockComposition,
+    DetachableModularTrim,
+}
+
 /// Permitted or intended second-life route; does not imply qualification.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum CirculationRoute {
@@ -105,6 +124,8 @@ pub struct GarmentUseProfile {
     pub functional_unit: FunctionalUnitBasis,
     pub intended_service: String,
     pub value_dimensions: Vec<ValueDimension>,
+    pub decoration_risks: Vec<DecorationRisk>,
+    pub specialist_assessment_required: bool,
     pub care_constraints: Vec<CareConstraint>,
     pub circulation_routes: Vec<CirculationRoute>,
 }
@@ -117,6 +138,7 @@ pub enum GarmentProfileError {
     EmptyCustomFunctionalUnit,
     MissingValueDimensions,
     DuplicateValueDimension(ValueDimension),
+    DuplicateDecorationRisk(DecorationRisk),
     DuplicateCareConstraint(CareConstraint),
     DuplicateCirculationRoute(CirculationRoute),
 }
@@ -134,6 +156,9 @@ impl fmt::Display for GarmentProfileError {
             }
             Self::DuplicateValueDimension(value) => {
                 write!(f, "duplicate value/function dimension: {value:?}")
+            }
+            Self::DuplicateDecorationRisk(value) => {
+                write!(f, "duplicate decoration/material risk: {value:?}")
             }
             Self::DuplicateCareConstraint(value) => {
                 write!(f, "duplicate care constraint: {value:?}")
@@ -168,6 +193,10 @@ impl GarmentUseProfile {
         ensure_unique(
             self.value_dimensions.iter().copied(),
             GarmentProfileError::DuplicateValueDimension,
+        )?;
+        ensure_unique(
+            self.decoration_risks.iter().copied(),
+            GarmentProfileError::DuplicateDecorationRisk,
         )?;
         ensure_unique(
             self.care_constraints.iter().copied(),
@@ -226,6 +255,8 @@ mod tests {
                 ValueDimension::Collectability,
                 ValueDimension::FitAndComfort,
             ],
+            decoration_risks: vec![DecorationRisk::Beadwork, DecorationRisk::MetallicThread],
+            specialist_assessment_required: true,
             care_constraints: vec![
                 CareConstraint::SpotCleanOnly,
                 CareConstraint::PaddedOrFlatStorage,
@@ -259,6 +290,8 @@ mod tests {
                 ValueDimension::HistoricalEvidence,
                 ValueDimension::CulturalOrCeremonialMeaning,
             ],
+            decoration_risks: vec![DecorationRisk::HistoricOrDegradingMaterial],
+            specialist_assessment_required: true,
             care_constraints: vec![
                 CareConstraint::HandSupportDuringHandling,
                 CareConstraint::PaddedOrFlatStorage,
@@ -287,6 +320,11 @@ mod tests {
                 ValueDimension::AestheticExpression,
                 ValueDimension::AccessibilityAndEaseOfUse,
             ],
+            decoration_risks: vec![
+                DecorationRisk::DetachableModularTrim,
+                DecorationRisk::MixedMaterialTrim,
+            ],
+            specialist_assessment_required: false,
             care_constraints: vec![
                 CareConstraint::RemoveDetachableEmbellishmentsBeforeCleaning,
                 CareConstraint::RepairByQualifiedEmbellishmentSpecialist,
@@ -299,6 +337,58 @@ mod tests {
         };
         assert_eq!(profile.validate(), Ok(()));
         assert!(profile.has_non_wear_service_unit());
+    }
+
+    #[test]
+    fn decorative_garment_can_declare_high_repairability_and_modularity() {
+        let profile = GarmentUseProfile {
+            profile_id: "MODULAR-STATEMENT-GARMENT-01".into(),
+            archetype: GarmentArchetype::ModularDecorative,
+            use_pattern: UsePattern::Occasional,
+            functional_unit: FunctionalUnitBasis::DistinctEvents,
+            intended_service: "distinct styled appearances with detachable decorative modules".into(),
+            value_dimensions: vec![
+                ValueDimension::AestheticExpression,
+                ValueDimension::IdentityOrBelonging,
+            ],
+            decoration_risks: vec![DecorationRisk::DetachableModularTrim],
+            specialist_assessment_required: false,
+            care_constraints: vec![
+                CareConstraint::RemoveDetachableEmbellishmentsBeforeCleaning,
+                CareConstraint::SpotCleanOnly,
+            ],
+            circulation_routes: vec![
+                CirculationRoute::AlterationOrRestyling,
+                CirculationRoute::RepairAndReturn,
+                CirculationRoute::TransformIntoAnotherArticle,
+            ],
+        };
+
+        assert_eq!(profile.validate(), Ok(()));
+        assert_eq!(profile.use_pattern, UsePattern::Occasional);
+    }
+
+    #[test]
+    fn unknown_deadstock_composition_can_require_specialist_assessment() {
+        let mut profile = couture_profile();
+        profile.archetype = GarmentArchetype::DeadstockOrRunwaySample;
+        profile.decoration_risks = vec![DecorationRisk::UnknownBlendOrDeadstockComposition];
+        profile.specialist_assessment_required = true;
+
+        assert_eq!(profile.validate(), Ok(()));
+        assert!(profile.specialist_assessment_required);
+    }
+
+    #[test]
+    fn duplicate_decoration_risks_are_rejected() {
+        let mut profile = couture_profile();
+        profile.decoration_risks.push(DecorationRisk::Beadwork);
+        assert_eq!(
+            profile.validate(),
+            Err(GarmentProfileError::DuplicateDecorationRisk(
+                DecorationRisk::Beadwork
+            ))
+        );
     }
 
     #[test]
