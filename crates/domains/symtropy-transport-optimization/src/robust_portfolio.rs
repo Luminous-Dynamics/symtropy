@@ -1221,7 +1221,7 @@ mod tests {
             (("alternate-1", "alternate-2"), true, 145_u64, 285_u64),
         ];
         let expected = reference.iter()
-            .filter(|(_, feasible, _, _)| *feasible)
+            .filter(|entry| entry.1)
             .min_by(|a, b| (a.2, a.3, a.3, a.0).cmp(&(b.2, b.3, b.3, b.0)))
             .expect("the reference has feasible portfolios");
         assert_eq!(
