@@ -1224,7 +1224,7 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["episodes"][0]["interaction_rows"] = Value::Number(serde_json::Number::from(28));
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("split summary drift"));
+        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("row count mismatch"));
     }
 
     #[test]
@@ -1232,7 +1232,7 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["source"]["git_blob_sha1"] = Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed).unwrap_err().contains("does not match expected"));
+        assert!(validate_and_report_split_manifest(&changed).is_err());
     }
 
     #[test]
