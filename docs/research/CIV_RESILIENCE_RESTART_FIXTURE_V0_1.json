@@ -1,0 +1,202 @@
+{
+  "schema_version": "civ-resilience-restart-fixture/0.1",
+  "title": "CIV-RES-IND-001 hand-checkable reference corpus",
+  "status": "proposed synthetic fixture; not executable or physically validated",
+  "claim_ceiling": "Tests only the declared abstract accounting rules. It is not a site model, process recipe, safety case, or evidence of real-world resilience.",
+  "units": {
+    "time": "discrete_step",
+    "power_budget": "synthetic_energy_unit_per_step",
+    "service": "synthetic_service_unit_per_step",
+    "production": "conforming_reference_unit_per_step"
+  },
+  "reference_rules": {
+    "service_allocation_order": [
+      "water",
+      "sanitation",
+      "food_preservation"
+    ],
+    "service_demands_per_step": {
+      "water": 2,
+      "sanitation": 1,
+      "food_preservation": 1
+    },
+    "workshop_energy_required_per_reference_unit": 2,
+    "max_conforming_reference_units_per_step": 1,
+    "production_allowed_only_if": [
+      "all service demands in the current step are met",
+      "machine_operational",
+      "controller_available",
+      "material_grade_matches",
+      "calibration_valid",
+      "inspection_route_valid",
+      "human_authorization_present"
+    ],
+    "unknown_precondition_means": "blocked; never assume true",
+    "future_information_rule": "A policy at step t may use only observations available at or before t. Hidden event schedule and scenario identifiers are not policy inputs.",
+    "step_boundary_rule": "Repairs, imports and verified capacity completed during step t become available no earlier than the explicitly declared next availability step."
+  },
+  "scenarios": [
+    {
+      "id": "S00_NOMINAL",
+      "description": "Nominal operation; all declared gates are satisfied.",
+      "power_budget_by_step": [6, 6, 6],
+      "preconditions": {
+        "machine_operational": true,
+        "controller_available_from_step": 0,
+        "material_grade_matches": true,
+        "calibration_valid": true,
+        "inspection_route_valid": true,
+        "human_authorization_present": true
+      },
+      "expected": {
+        "service_delivery_by_step": [
+          {"water": 2, "sanitation": 1, "food_preservation": 1},
+          {"water": 2, "sanitation": 1, "food_preservation": 1},
+          {"water": 2, "sanitation": 1, "food_preservation": 1}
+        ],
+        "conforming_output_by_step": [1, 1, 1],
+        "total_conforming_output": 3,
+        "first_step_all_service_floors_met": 0,
+        "blocked_production_steps": []
+      }
+    },
+    {
+      "id": "S01_POWER_SHORTFALL_THEN_RECOVERY",
+      "description": "Step 0 has insufficient power for all essential service demand; nonessential production must not take priority.",
+      "power_budget_by_step": [3, 6, 6],
+      "preconditions": {
+        "machine_operational": true,
+        "controller_available_from_step": 0,
+        "material_grade_matches": true,
+        "calibration_valid": true,
+        "inspection_route_valid": true,
+        "human_authorization_present": true
+      },
+      "expected": {
+        "service_delivery_by_step": [
+          {"water": 2, "sanitation": 1, "food_preservation": 0},
+          {"water": 2, "sanitation": 1, "food_preservation": 1},
+          {"water": 2, "sanitation": 1, "food_preservation": 1}
+        ],
+        "conforming_output_by_step": [0, 1, 1],
+        "total_conforming_output": 2,
+        "first_step_all_service_floors_met": 1,
+        "food_preservation_unmet_units": 1,
+        "blocked_production_steps": [0]
+      }
+    },
+    {
+      "id": "S02_COMMON_MODE_OUTAGE",
+      "description": "A declared common-mode outage removes the shared power supply for the first step. Duplicate downstream equipment does not create power.",
+      "power_budget_by_step": [0, 6, 6],
+      "preconditions": {
+        "machine_operational": true,
+        "controller_available_from_step": 0,
+        "material_grade_matches": true,
+        "calibration_valid": true,
+        "inspection_route_valid": true,
+        "human_authorization_present": true
+      },
+      "expected": {
+        "service_delivery_by_step": [
+          {"water": 0, "sanitation": 0, "food_preservation": 0},
+          {"water": 2, "sanitation": 1, "food_preservation": 1},
+          {"water": 2, "sanitation": 1, "food_preservation": 1}
+        ],
+        "conforming_output_by_step": [0, 1, 1],
+        "total_conforming_output": 2,
+        "first_step_all_service_floors_met": 1,
+        "blocked_production_steps": [0]
+      }
+    },
+    {
+      "id": "S03_CONTROLLER_ARRIVES_AT_STEP_2",
+      "description": "All other production prerequisites exist, but the controller is not available until step 2. Future imports may not be consumed early.",
+      "power_budget_by_step": [6, 6, 6, 6],
+      "preconditions": {
+        "machine_operational": true,
+        "controller_available_from_step": 2,
+        "material_grade_matches": true,
+        "calibration_valid": true,
+        "inspection_route_valid": true,
+        "human_authorization_present": true
+      },
+      "expected": {
+        "service_floors_met_by_step": [true, true, true, true],
+        "conforming_output_by_step": [0, 0, 1, 1],
+        "total_conforming_output": 2,
+        "first_step_all_service_floors_met": 0,
+        "first_conforming_output_step": 2,
+        "blocked_production_steps": [0, 1]
+      }
+    },
+    {
+      "id": "S04_CALIBRATION_UNKNOWN_OR_INVALID",
+      "description": "The machine operates, but the calibration reference is invalid. The production route cannot claim conformity.",
+      "power_budget_by_step": [6, 6, 6],
+      "preconditions": {
+        "machine_operational": true,
+        "controller_available_from_step": 0,
+        "material_grade_matches": true,
+        "calibration_valid": false,
+        "inspection_route_valid": true,
+        "human_authorization_present": true
+      },
+      "expected": {
+        "service_floors_met_by_step": [true, true, true],
+        "conforming_output_by_step": [0, 0, 0],
+        "total_conforming_output": 0,
+        "blocked_production_steps": [
+          {"step": 0, "reason": "calibration_valid=false"},
+          {"step": 1, "reason": "calibration_valid=false"},
+          {"step": 2, "reason": "calibration_valid=false"}
+        ]
+      },
+      "negative_control": {
+        "forged_claim": "conforming_output_by_step=[1,1,1]",
+        "expected_verifier_disposition": "reject"
+      }
+    },
+    {
+      "id": "S05_MATERIAL_GRADE_MISMATCH",
+      "description": "A geometrically manufacturable candidate uses a material lot that does not meet the declared functional requirement.",
+      "power_budget_by_step": [6, 6, 6],
+      "preconditions": {
+        "machine_operational": true,
+        "controller_available_from_step": 0,
+        "material_grade_matches": false,
+        "calibration_valid": true,
+        "inspection_route_valid": true,
+        "human_authorization_present": true
+      },
+      "expected": {
+        "service_floors_met_by_step": [true, true, true],
+        "conforming_output_by_step": [0, 0, 0],
+        "total_conforming_output": 0,
+        "blocked_production_steps": [
+          {"step": 0, "reason": "material_grade_matches=false"},
+          {"step": 1, "reason": "material_grade_matches=false"},
+          {"step": 2, "reason": "material_grade_matches=false"}
+        ]
+      },
+      "negative_control": {
+        "forged_claim": "conforming_output_by_step=[1,1,1]",
+        "expected_verifier_disposition": "reject"
+      }
+    }
+  ],
+  "causality_pair": {
+    "id": "S06_FUTURE_BLINDNESS",
+    "description": "Two campaigns have identical observations through step 1 but different hidden disruptions at step 2.",
+    "shared_observations_through_step": 1,
+    "left_hidden_event_at_step_2": "controller failure",
+    "right_hidden_event_at_step_2": "no controller failure",
+    "expected": "For the same deterministic policy version, actions through step 1 must be identical. The policy must not receive the scenario ID or hidden event schedule."
+  },
+  "verification_notes": [
+    "Every value is synthetic and unit-scoped; do not interpret these numbers as plant capacities or engineering recommendations.",
+    "The expected outcomes are hand-computed from the reference rules and must be recomputed independently before implementation claims are made.",
+    "The fixture measures declared semantics only; it does not calibrate simulator fidelity or predict physical plant behavior.",
+    "A policy may return blocked, unknown, infeasible, or human-review-required outcomes. It must not silently relax service floors or qualification requirements."
+  ]
+}
