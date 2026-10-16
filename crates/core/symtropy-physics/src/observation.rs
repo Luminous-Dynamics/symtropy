@@ -184,8 +184,9 @@ mod tests {
         let mut world = PhysicsWorld::<3>::new(SVector::<f64, 3>::zeros());
         let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
         let body = world.body_mut(handle).expect("body exists");
-        body.transform.rotation =
-            Rotor::from_matrix(SMatrix::<f64, 3, 3>::from_diagonal(&SVector::<f64, 3>::new(1.0, 1.0, -1.0)));
+        body.transform.rotation = Rotor::from_matrix(SMatrix::<f64, 3, 3>::from_diagonal(
+            &SVector::<f64, 3>::new(1.0, 1.0, -1.0),
+        ));
         let ids = HashMap::from([(handle, "scenario/ball-a".to_owned())]);
 
         assert_eq!(
