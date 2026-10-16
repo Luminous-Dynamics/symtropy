@@ -1624,4 +1624,24 @@ mod tests {
         assert_eq!(report.objective_optima, expected_optima);
     }
 
+
+    #[test]
+    fn hard_resource_budget_cannot_be_traded_for_delivery() {
+        let mut problem = sample_problem();
+        // The jobs consume six energy units before any setup. The decorative
+        // changeover needs additional evidenced energy, so this budget is infeasible.
+        problem.energy_budget_units = 6;
+
+        assert!(matches!(
+            solve_exhaustive(&problem),
+            Err(ScheduleError::NoFeasibleSchedule)
+        ));
+        assert!(matches!(
+            dispatch_schedule(&problem, DispatchRule::EarliestDue),
+            Err(ScheduleError::NoFeasibleDispatch {
+                rule: DispatchRule::EarliestDue
+            })
+        ));
+    }
+
 }
