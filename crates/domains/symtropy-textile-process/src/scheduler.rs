@@ -739,12 +739,15 @@ fn make_operation(
     state: &MachineState,
     transition: TransitionUse,
 ) -> Result<ScheduledOperation, ScheduleError> {
+    // This v0.1 model uses non-anticipatory setups: a machine may not
+    // start a changeover for a job before the job's declared release tick.
+    let setup_start_tick = state.available_tick.max(job.release_tick);
     let setup_finish_tick = checked_add(
-        state.available_tick,
+        setup_start_tick,
         transition.duration_ticks,
         "setup finish tick",
     )?;
-    let process_start_tick = job.release_tick.max(setup_finish_tick);
+    let process_start_tick = setup_finish_tick;
     let finish_tick = checked_add(
         process_start_tick,
         job.processing_ticks,
@@ -757,7 +760,7 @@ fn make_operation(
         machine_id: machine.id.clone(),
         setup_from_family: state.setup_family.clone(),
         setup_to_family: job.setup_family.clone(),
-        setup_start_tick: state.available_tick,
+        setup_start_tick,
         setup_finish_tick,
         process_start_tick,
         finish_tick,
@@ -1257,14 +1260,14 @@ mod tests {
                 .get(&machine.id)
                 .copied()
                 .unwrap_or(machine.available_tick);
-            assert_eq!(operation.setup_start_tick, previous_finish);
+            assert_eq!(operation.setup_start_tick, previous_finish.max(job.release_tick));
             assert_eq!(
                 operation.setup_finish_tick,
                 operation.setup_start_tick + expected_setup
             );
             assert_eq!(
                 operation.process_start_tick,
-                job.release_tick.max(operation.setup_finish_tick)
+                operation.setup_finish_tick
             );
             assert_eq!(
                 operation.finish_tick,
@@ -1407,8 +1410,9 @@ mod tests {
                 {
                     continue;
                 }
-                let setup_finish = state.available_tick + setup_duration;
-                let process_start = job.release_tick.max(setup_finish);
+                let setup_start = state.available_tick.max(job.release_tick);
+                let setup_finish = setup_start + setup_duration;
+                let process_start = setup_finish;
                 let finish = process_start + job.processing_ticks;
                 if job.hard_finish_by_tick.is_some_and(|latest| finish > latest) {
                     continue;
@@ -1721,6 +1725,32 @@ mod tests {
             .expect("the same hard constraints admit deterministic dispatch");
         independently_validate_candidate(&problem, &dispatched);
         assert_eq!(dispatched.operations[0].machine_id, "conservation-bench");
+    }
+
+
+    #[test]
+    fn sequence_dependent_setup_does_not_start_before_job_release() {
+        let mut problem = sample_problem();
+        let mut decorative = problem
+            .jobs
+            .iter()
+            .find(|job| job.id == "beaded-occasion-garment")
+            .expect("decorative job exists")
+            .clone();
+        decorative.release_tick = 20;
+        decorative.due_tick = 25;
+        decorative.hard_finish_by_tick = Some(25);
+        problem.jobs = vec![decorative];
+        problem.machines.retain(|machine| machine.id == "cell-a");
+
+        let report = solve_exhaustive(&problem)
+            .expect("non-anticipatory changeover still meets declared hard finish");
+        let operation = &report.pareto_frontier[0].operations[0];
+        assert_eq!(operation.setup_start_tick, 20);
+        assert_eq!(operation.setup_finish_tick, 22);
+        assert_eq!(operation.process_start_tick, 22);
+        assert_eq!(operation.finish_tick, 25);
+        independently_validate_candidate(&problem, &report.pareto_frontier[0]);
     }
 
 }
