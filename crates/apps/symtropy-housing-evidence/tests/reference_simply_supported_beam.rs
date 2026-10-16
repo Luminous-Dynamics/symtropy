@@ -202,7 +202,8 @@ fn analytical_simply_supported_beam_obeys_load_and_span_scaling() {
         .as_f64()
         .expect("relative_tolerance");
 
-    let point_reference = evaluate_reference(&base, &base["load_cases"][0]).expect("point baseline");
+    let point_reference =
+        evaluate_reference(&base, &base["load_cases"][0]).expect("point baseline");
     let uniform_reference =
         evaluate_reference(&base, &base["load_cases"][1]).expect("uniform baseline");
 
@@ -210,9 +211,21 @@ fn analytical_simply_supported_beam_obeys_load_and_span_scaling() {
     doubled_load["load_cases"][0]["load_N"] = serde_json::json!(10000.0);
     let point_double = evaluate_reference(&doubled_load, &doubled_load["load_cases"][0])
         .expect("doubled point load");
-    assert!(close_relative(point_double.deflection_m, point_reference.deflection_m * 2.0, tolerance));
-    assert!(close_relative(point_double.maximum_stress_pa, point_reference.maximum_stress_pa * 2.0, tolerance));
-    assert!(close_relative(point_double.reaction_magnitude_n, point_reference.reaction_magnitude_n * 2.0, tolerance));
+    assert!(close_relative(
+        point_double.deflection_m,
+        point_reference.deflection_m * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        point_double.maximum_stress_pa,
+        point_reference.maximum_stress_pa * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        point_double.reaction_magnitude_n,
+        point_reference.reaction_magnitude_n * 2.0,
+        tolerance
+    ));
 
     let mut doubled_uniform = base.clone();
     doubled_uniform["load_cases"][1]["load_N_per_m"] = serde_json::json!(2000.0);
@@ -240,8 +253,16 @@ fn analytical_simply_supported_beam_obeys_load_and_span_scaling() {
     let point_span = evaluate_reference(&doubled_span, &doubled_span["load_cases"][0])
         .expect("point load with doubled span");
     assert!(close_relative(point_span.deflection_m, point_reference.deflection_m * 8.0, tolerance));
-    assert!(close_relative(point_span.maximum_moment_nm, point_reference.maximum_moment_nm * 2.0, tolerance));
-    assert!(close_relative(point_span.reaction_magnitude_n, point_reference.reaction_magnitude_n, tolerance));
+    assert!(close_relative(
+        point_span.maximum_moment_nm,
+        point_reference.maximum_moment_nm * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        point_span.reaction_magnitude_n,
+        point_reference.reaction_magnitude_n,
+        tolerance
+    ));
 
     let uniform_span = evaluate_reference(&doubled_span, &doubled_span["load_cases"][1])
         .expect("uniform load with doubled span");
