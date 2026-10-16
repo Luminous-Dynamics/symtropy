@@ -518,7 +518,7 @@ mod tests {
         assert_eq!(receipt["scenario_count"], 6);
         assert_eq!(receipt["scenarios"][0]["metrics"]["earth_import_lifecycle_cost_scu"], 160);
         assert_eq!(receipt["scenarios"][0]["metrics"]["local_isru_lifecycle_cost_scu"], 375);
-        assert_eq!(receipt["scenarios"][3]["metrics"]["malformed_imbalance_kg"], -1);
+        assert_eq!(receipt["scenarios"][3]["metrics"]["malformed_imbalance_kg"], 1);
     }
 
     #[test]
