@@ -405,10 +405,16 @@ impl ThermodynamicLedger {
     /// How much energy does it cost to maintain consciousness?
     /// Returns None if no Phi change this tick.
     pub fn joules_per_phi(&self) -> Option<f64> {
-        if self.phi_change_total < 1e-15 {
+        if self.invalid_flow_count > 0
+            || !self.phi_energy_integral.is_finite()
+            || self.phi_energy_integral < 0.0
+            || !self.phi_change_total.is_finite()
+            || self.phi_change_total < 1e-15
+        {
             return None;
         }
-        Some(self.phi_energy_integral / self.phi_change_total)
+        let ratio = self.phi_energy_integral / self.phi_change_total;
+        ratio.is_finite().then_some(ratio)
     }
 
     /// Minimum thermodynamic cost of processing `bits` of information.
@@ -695,6 +701,20 @@ mod tests {
         let result = ledger.tick_balance();
         assert!(!result.inputs_valid);
         assert!(result.conservation_error.is_infinite());
+    }
+
+    #[test]
+    fn joules_per_phi_is_unavailable_after_invalid_flow() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_action(2.0, 0.5);
+        ledger.record_phi_change(0.1);
+        assert!(ledger.joules_per_phi().is_some());
+
+        assert_eq!(
+            ledger.try_record_regeneration(-1.0),
+            Err(LedgerInputError::NegativeFlow)
+        );
+        assert!(ledger.joules_per_phi().is_none());
     }
 
     #[test]
