@@ -732,6 +732,19 @@ mod tests {
         let report = evaluate_stress_corpus(&fixture_problem(), &corpus)
             .expect("the tiny stress corpus is valid");
 
+        assert_eq!(report.baseline_problem, fixture_problem());
+        assert_eq!(
+            report.scenario_results[2].scenario.release_delays[0].job_id,
+            "ceremonial-repair"
+        );
+        assert_eq!(
+            report.scenario_results[3]
+                .scenario
+                .utility_budget_shock
+                .as_ref()
+                .and_then(|shock| shock.energy_budget_units),
+            Some(0)
+        );
         assert_eq!(report.scenario_count, 5);
         assert_eq!(report.exact_feasible_scenarios, 3);
         assert_eq!(report.exact_no_schedule_scenarios, 2);
