@@ -1655,4 +1655,58 @@ mod tests {
         ));
     }
 
+
+    #[test]
+    fn archive_display_job_requires_conservation_capability_and_retains_service_unit() {
+        let problem = ScheduleProblem {
+            id: "archive-display-treatment".to_owned(),
+            energy_unit_id: "energy-unit-v0".to_owned(),
+            water_unit_id: "water-unit-v0".to_owned(),
+            energy_budget_units: 2,
+            water_budget_units: 1,
+            jobs: vec![TextileJob {
+                id: "archive-support-preparation".to_owned(),
+                profile_id: "archive-display-v0".to_owned(),
+                functional_unit_id: "conservation-year-v0".to_owned(),
+                setup_family: "conservation".to_owned(),
+                required_capabilities: ["conservation-safe", "low-light"]
+                    .iter()
+                    .map(|value| (*value).to_owned())
+                    .collect(),
+                release_tick: 20,
+                due_tick: 30,
+                hard_finish_by_tick: Some(25),
+                processing_ticks: 4,
+                energy_units: 2,
+                water_units: 1,
+                process_evidence_ref: "fixture:archive-procedure-v1".to_owned(),
+                required_gates: vec![GateEvidence {
+                    id: "conservation-authorization".to_owned(),
+                    outcome: GateOutcome::Pass {
+                        evidence_ref: "fixture:conservator-authorization".to_owned(),
+                    },
+                }],
+            }],
+            machines: vec![
+                machine("general-line", &["sew"], "standard"),
+                machine("conservation-bench", &["conservation-safe", "low-light"], "conservation"),
+            ],
+            setup_transitions: vec![],
+        };
+
+        let exact = solve_exhaustive(&problem).expect("qualified conservation job is feasible");
+        assert_eq!(exact.complete_schedules, 1);
+        assert_eq!(exact.pareto_frontier.len(), 1);
+        independently_validate_candidate(&problem, &exact.pareto_frontier[0]);
+        let operation = &exact.pareto_frontier[0].operations[0];
+        assert_eq!(operation.machine_id, "conservation-bench");
+        assert_eq!(operation.profile_id, "archive-display-v0");
+        assert_eq!(operation.functional_unit_id, "conservation-year-v0");
+
+        let dispatched = dispatch_schedule(&problem, DispatchRule::EarliestDue)
+            .expect("the same hard constraints admit deterministic dispatch");
+        independently_validate_candidate(&problem, &dispatched);
+        assert_eq!(dispatched.operations[0].machine_id, "conservation-bench");
+    }
+
 }
