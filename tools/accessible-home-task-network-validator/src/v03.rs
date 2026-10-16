@@ -702,13 +702,13 @@ mod tests {
     fn preference_conflict_is_reported_without_becoming_a_hard_blocker() {
         let mut value = fixture_value();
         value["nodes"].as_array_mut().unwrap()
-            .iter_mut().filter(|node| node["id"] == "network-service" || node["id"] == "mobile-notification")
+            .iter_mut().filter(|node| node["id"].as_str() == Some("network-service") || node["id"].as_str() == Some("mobile-notification"))
             .for_each(|node| node["evidence_state"] = serde_json::json!("verified_for_declared_scope"));
         value["edges"].as_array_mut().unwrap()
-            .iter_mut().filter(|edge| edge["id"] == "network-to-mobile")
+            .iter_mut().filter(|edge| edge["id"].as_str() == Some("network-to-mobile"))
             .for_each(|edge| edge["evidence_state"] = serde_json::json!("verified_for_declared_scope"));
         value["paths"].as_array_mut().unwrap()
-            .iter_mut().find(|path| path["id"] == "primary-network-path").unwrap()["expected_assessment"] =
+            .iter_mut().find(|path| path["id"].as_str() == Some("primary-network-path")).unwrap()["expected_assessment"] =
             serde_json::json!("evidence_complete_for_fixture");
         let report = evaluate_value(&value).expect("preference conflict does not block path qualification");
         let primary = &report.path_results[0];
