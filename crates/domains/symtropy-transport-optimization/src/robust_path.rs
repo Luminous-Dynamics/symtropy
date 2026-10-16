@@ -553,29 +553,26 @@ mod tests {
         b_disrupted_travel: u64,
         knowledge_time: u64,
     ) -> FifoRobustCandidatePathV1 {
-        let (edge, from, to) = match path_id {
-            "A" => ("corridor-a", "origin", "destination"),
-            "B" => ("corridor-b", "origin", "destination"),
-            _ => ("other-corridor", "origin", "destination"),
-        };
+        let edge = format!("corridor-{}", path_id.to_ascii_lowercase());
+        let (from, to) = ("origin", "destination");
         FifoRobustCandidatePathV1 {
             path_id: path_id.into(),
             scenario_paths: vec![
                 FifoScenarioCandidatePathV1 {
                     scenario_id: "nominal".into(),
-                    legs: vec![leg(edge, from, to, function(
+                    legs: vec![leg(&edge, from, to, function(
                         &format!("{path_id}-nominal"), nominal_travel, knowledge_time
                     ))],
                 },
                 FifoScenarioCandidatePathV1 {
                     scenario_id: "corridor-a-disrupted".into(),
-                    legs: vec![leg(edge, from, to, function(
+                    legs: vec![leg(&edge, from, to, function(
                         &format!("{path_id}-a-disrupted"), a_disrupted_travel, knowledge_time
                     ))],
                 },
                 FifoScenarioCandidatePathV1 {
                     scenario_id: "corridor-b-disrupted".into(),
-                    legs: vec![leg(edge, from, to, function(
+                    legs: vec![leg(&edge, from, to, function(
                         &format!("{path_id}-b-disrupted"), b_disrupted_travel, knowledge_time
                     ))],
                 },
@@ -678,6 +675,49 @@ mod tests {
             select_robust_fifo_path(&scenario_set(), &[candidate], 100, 50),
             Err(FifoRobustSelectionError::TopologyChangedAcrossScenarios { .. })
         ));
+    }
+
+    #[test]
+    fn minimax_and_nominal_choices_match_independent_exhaustive_reference() {
+        let mut candidates = Vec::new();
+        let mut reference = Vec::new();
+
+        for nominal in 1_u64..=4 {
+            for a_disrupted in 1_u64..=4 {
+                for b_disrupted in 1_u64..=4 {
+                    let path_id = format!("p-{nominal}-{a_disrupted}-{b_disrupted}");
+                    let worst = nominal.max(a_disrupted).max(b_disrupted);
+                    candidates.push(candidate(
+                        &path_id, nominal, a_disrupted, b_disrupted, 50
+                    ));
+                    reference.push((path_id, nominal + 100, worst + 100));
+                }
+            }
+        }
+
+        // Independent, deliberately slow score table; do not call production
+        // scenario resolution or score helpers.
+        let nominal_best = reference.iter()
+            .min_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(&b.0)))
+            .expect("reference candidates exist");
+        let minimax_best = reference.iter()
+            .min_by(|a, b| a.2.cmp(&b.2).then_with(|| a.0.cmp(&b.0)))
+            .expect("reference candidates exist");
+        let report = select_robust_fifo_path(
+            &scenario_set(), &candidates, 100, 50
+        ).unwrap();
+
+        assert_eq!(report.candidate_path_count, 64);
+        assert_eq!(report.qualified_path_count, 64);
+        assert_eq!(report.nominal_best_path_id, nominal_best.0);
+        assert_eq!(report.robust_best_path_id, minimax_best.0);
+        for score in &report.scores {
+            let expected = reference.iter()
+                .find(|row| row.0 == score.path_id)
+                .expect("score maps to reference");
+            assert_eq!(score.nominal_arrival_epoch_seconds, expected.1);
+            assert_eq!(score.worst_case_arrival_epoch_seconds, expected.2);
+        }
     }
 
     #[test]
