@@ -309,7 +309,7 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
             evaluate_reference(&base, base_case).expect("baseline load case is valid");
         for factor in factors {
             let mut changed_load = base.clone();
-            if case_index == 0 {
+            if base_case["load_type"].as_str() == Some("point_load_midspan") {
                 let load = base_case["load_N"].as_f64().unwrap();
                 changed_load["load_cases"][case_index]["load_N"] =
                     serde_json::json!(load * factor);
@@ -351,7 +351,8 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
                 &changed_span["load_cases"][case_index],
             )
             .expect("scaled span is valid");
-            let (deflection_power, moment_power, reaction_power) = if case_index == 0 {
+            let (deflection_power, moment_power, reaction_power) =
+                if base_case["load_type"].as_str() == Some("point_load_midspan") {
                 (3, 1, 0)
             } else {
                 (4, 2, 1)
