@@ -37,7 +37,7 @@ These are budgets to measure—not claims about current performance. First recor
 | Oracle agreement on frozen small cases | 100% exact |
 | Hard-gate false accepts in adversarial synthetic corpus | 0 |
 
-Timing protocol: at least 30 repetitions after warm-up in an optimized build; publish p50/p95, median frontier size, candidate/objective counts, peak memory, machine/toolchain, raw measurements and corpus digest. Report cold-start separately if it matters to the deployment. Keep noisy absolute timing out of correctness gates unless runs use stable dedicated hardware; correctness and hard-gate checks must always run.
+Timing protocol: run `cargo bench --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bench portfolio_frontier` in an optimized build. The dependency-light harness warms up 5 times, records 30 repetitions, and prints sorted raw nanosecond samples, p50/p95, workload dimensions and an explicitly non-cryptographic output fingerprint. Record `rustc --version`, OS/kernel, CPU, commit SHA, peak process memory (measured externally), and the benchmark output with the corpus/seed. Report cold-start separately if it matters to the deployment. Keep noisy absolute timing out of correctness gates unless runs use stable dedicated hardware; correctness and hard-gate checks must always run.
 
 The current implementation uses pairwise dominance and is therefore approximately O(N²M) in candidate count N and objective count M. The target workload makes this explicit; do not claim suitability for very large portfolios without measurement. If a future algorithm changes, it must match the exact oracle and preserve deterministic reports before performance improvements are accepted.
 
