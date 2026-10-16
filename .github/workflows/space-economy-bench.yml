@@ -1,6 +1,12 @@
 name: Space Economy Corpus Validator
 
 on:
+  push:
+    branches: ["feat/space-economy-benchmark-suite-v0-1"]
+    paths:
+      - "docs/tech/space-economy-benchmark-corpus-v0.1.json"
+      - "tools/space-economy-bench/**"
+      - ".github/workflows/space-economy-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
