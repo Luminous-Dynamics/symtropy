@@ -167,3 +167,26 @@ The repository also includes [`axial-bar-linear-static-v1.json`](../../../docs/b
 ## Simply supported beam reference fixtures
 
 [`simply-supported-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json) and `tests/reference_simply_supported_beam.rs` cover two simple-span analytical load cases: a midpoint point load and a uniform distributed load. The tests check maximum deflection, bending moment, extreme-fiber stress and support reaction; geometry consistency, non-positive inputs and declared load/span scaling are also checked. This is analytical verification plumbing only. The next major assurance milestone is an independent result checker that recomputes verdicts from pinned criteria and raw outputs before a finite-element solver is considered for any bounded comparison.
+
+## Independent analytical benchmark result checker
+
+The experimental `--validate-benchmark-result` command compares an evaluator's machine-readable numeric-output artifact to the case-specific expected outputs in a benchmark fixture whose exact bytes are pinned outside the result package. Its record and output contracts are defined by:
+
+- [`benchmark-result.schema.json`](../../../docs/built-environment/benchmark-result.schema.json)
+- [`benchmark-result-output.schema.json`](../../../docs/built-environment/benchmark-result-output.schema.json)
+- [`benchmark-conformance-program.md`](../../../docs/built-environment/benchmark-conformance-program.md)
+
+Example invocation:
+
+```text
+housing-evidence-verify --validate-benchmark-result benchmark.json \
+  --record execution-record.json \
+  --benchmark-sha256 <trusted-benchmark-sha256> \
+  --artifact-root ./benchmark-artifacts
+```
+
+The execution record binds the benchmark ID/case, benchmark digest, producer-declared outcome, declared exit/termination/convergence state, evaluator identity, and the relative path/SHA-256 of the parsed numeric-output artifact. The checker reads those artifact bytes, validates the output schema, enforces exact output-quantity coverage and units, rejects duplicate quantities, and compares finite numeric values with the pinned case-specific tolerance. A fake runner that declares `CLAIMED_PASS` for incorrect numerical values returns `REFERENCE_MISMATCH` and a failing process exit code, even when the output artifact's digest matches.
+
+Supported reference IDs are the repository's cantilever, axial-bar and simply-supported-beam fixtures. Single-case fixtures use case ID `default`; the simply-supported-beam fixture uses its explicit load-case IDs. Unknown benchmarks or quantities are blocked.
+
+**Important boundary:** this is a prototype result comparator, not a runner. Evaluator identity, execution status and convergence metadata are producer-declared, not authenticated attestations. The checker compares parsed numeric outputs, not arbitrary solver stdout/stderr, and does not prove that the evaluator actually executed, validate a finite-element solver generally, or establish physical/code safety. The benchmark SHA-256 pin and tolerance must come from a trusted controlled channel. Rust tests were added for a matching case, false `CLAIMED_PASS`, unpinned benchmark, output-byte tampering, and duplicate output quantities; their results remain subject to the exact-head CI run.
