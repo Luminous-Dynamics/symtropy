@@ -493,7 +493,7 @@ fn baseline_utility(
         let replace = match &best {
             None => true,
             Some((best_id, best_total)) => {
-                total > *best_total || (total == *best_total && decision.decision_id < *best_id)
+                total > *best_total || (total == *best_total && decision.decision_id.as_str() < best_id.as_str())
             }
         };
         if replace {
@@ -795,7 +795,7 @@ fn compare_measurement(
                 None => true,
                 Some((best_id, best_utility)) => {
                     joint_utility > *best_utility
-                        || (joint_utility == *best_utility && decision.decision_id < *best_id)
+                        || (joint_utility == *best_utility && decision.decision_id.as_str() < best_id.as_str())
                 }
             };
             if replace {
