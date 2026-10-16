@@ -172,16 +172,40 @@ fn seeded_nonuniform_and_degenerate_mesh_matches_bruteforce_overlap_oracle() {
         );
 
         // Independent O(N) oracle; the BVH is not used to derive expected
-        // candidates. False positives are allowed, false negatives are not.
-        for (triangle_index, triangle) in mesh.triangles.iter().enumerate() {
-            if overlaps(&exact_vertex_aabb(triangle), &query) {
-                assert!(
-                    candidate_set.contains(&triangle_index),
-                    "seeded oracle false negative: query {query_index}, triangle {triangle_index}"
-                );
-            }
-        }
+        // candidates. For this AABB query API, leaf bounds are exact triangle
+        // vertex AABBs, so the candidate set should match the oracle exactly.
+        let expected_set: std::collections::HashSet<usize> = mesh
+            .triangles
+            .iter()
+            .enumerate()
+            .filter_map(|(triangle_index, triangle)| {
+                overlaps(&exact_vertex_aabb(triangle), &query).then_some(triangle_index)
+            })
+            .collect();
+
+        assert_eq!(
+            candidate_set, expected_set,
+            "BVH candidates differ from exact triangle-AABB oracle for query {query_index}"
+        );
     }
+}
+
+#[test]
+fn bvh_leaf_bounds_are_exact_vertex_aabbs() {
+    let mesh = grid_mesh(17, 11);
+    let mut leaf_count = 0usize;
+
+    for node in &mesh.bvh_nodes {
+        let Some(triangle_index) = node.triangle_idx else {
+            continue;
+        };
+        leaf_count += 1;
+        let expected = exact_vertex_aabb(&mesh.triangles[triangle_index]);
+        assert_eq!(node.aabb.min, expected.min, "leaf min bound is not tight");
+        assert_eq!(node.aabb.max, expected.max, "leaf max bound is not tight");
+    }
+
+    assert_eq!(leaf_count, mesh.triangles.len(), "every triangle needs exactly one leaf");
 }
 
 #[test]
