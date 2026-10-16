@@ -57,6 +57,16 @@ Report scenario-specific regressions rather than only a geometric mean. Keep cor
 - Report distributions and per-scenario regressions; a single mean can conceal tail latency or a correctness failure.
 - Treat benchmark outputs as implementation measurements, not as proof of physical validity or workload-wide superiority.
 
+## Provisional numeric project targets (not industry standards)
+
+Freeze these targets before testing candidates; revise only with written rationale after the first baseline is captured.
+
+- **Correctness is absolute:** zero broadphase false negatives against a brute-force oracle for the tested AABB semantics; zero duplicate or out-of-range candidates. A speedup cannot compensate for one missed candidate.
+- **Coverage before optimization claims:** at least 3 geometry families (uniform grid, clustered, and adversarial long-thin or high-overlap), with at least 30 held-out deterministic seeds/query traces per family. The current harness covers only grid geometry.
+- **First performance bar:** target at least 15% lower p95 *batch-mean* query latency or 25% fewer candidate triangles on at least 2 held-out families versus the same-commit median-split baseline. Treat these as screening targets, not guarantees.
+- **Regression budget:** no more than 5% p95 batch-mean latency regression on any predeclared critical family without an explicitly accepted trade-off; report build/refit cost and memory separately.
+- **Adaptive selection:** require at least 10% improvement over the best fixed policy on a predeclared held-out cost metric, with a 95% paired confidence interval excluding zero across independent run pairs. If not, keep the simpler fixed policy.
+
 ## Acceptance
 
 An optimization is accepted only when it has a reproducible improvement on a declared target workload, no correctness-gate regressions, a comparison against the prior commit and at least one credible alternative, and an explicit statement of workload limitations. Performance numbers without hardware/toolchain/commit provenance are not an acceptance result.
