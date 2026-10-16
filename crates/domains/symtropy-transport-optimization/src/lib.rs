@@ -20,6 +20,8 @@ use std::fmt;
 
 mod capacity_window;
 pub use capacity_window::*;
+mod time_dependent;
+pub use time_dependent::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode {
