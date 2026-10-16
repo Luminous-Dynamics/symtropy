@@ -330,50 +330,178 @@ fn expected_outputs(
         );
     }
 
-    let expected_object = if let Some(cases) = benchmark.get("load_cases").and_then(Value::as_array) {
-        let mut matching = cases.iter().filter(|item| {
-            item.get("case_id").and_then(Value::as_str) == Some(case_id)
-        });
-        let Some(selected) = matching.next() else {
-            return Err(format!("benchmark has no load case {case_id:?}"));
-        };
-        if matching.next().is_some() {
-            return Err(format!("benchmark duplicates load case ID {case_id:?}"));
-        }
-        selected
-            .get("expected")
-            .ok_or_else(|| format!("benchmark case {case_id:?} has no expected outputs"))?
-    } else {
-        if case_id != "default" {
-            return Err(format!(
-                "single-case benchmark requires case_id "default", not {case_id:?}"
-            ));
-        }
-        benchmark
-            .get("expected")
-            .ok_or_else(|| "single-case benchmark has no expected outputs".to_string())?
-    };
-
     let tolerance = benchmark["acceptance"]["relative_tolerance"]
         .as_f64()
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "benchmark relative_tolerance must be finite and non-negative".to_string())?;
+    let inputs = benchmark
+        .get("inputs")
+        .ok_or_else(|| "benchmark inputs must be an object".to_string())?;
+    let read_positive = |object: &Value, key: &str| -> Result<f64, String> {
+        let value = object
+            .get(key)
+            .and_then(Value::as_f64)
+            .ok_or_else(|| format!("benchmark input {key:?} must be numeric"))?;
+        if !value.is_finite() || value <= 0.0 {
+            return Err(format!("benchmark input {key:?} must be finite and positive"));
+        }
+        Ok(value)
+    };
+
+    let (calculated, declared_expected): (BTreeMap<String, f64>, &Value) = match benchmark_id {
+        "structural/cantilever-beam-linear-static/v1" => {
+            if case_id != "default" {
+                return Err(format!(
+                    "single-case benchmark requires case_id \"default\", not {case_id:?}"
+                ));
+            }
+            let load = read_positive(inputs, "load_N")?;
+            let span = read_positive(inputs, "span_m")?;
+            let modulus = read_positive(inputs, "elastic_modulus_Pa")?;
+            let width = read_positive(inputs, "section_width_m")?;
+            let depth = read_positive(inputs, "section_depth_m")?;
+            let inertia = width * depth.powi(3) / 12.0;
+            let fiber = depth / 2.0;
+            let values = BTreeMap::from([
+                ("second_moment_area_m4".to_string(), inertia),
+                (
+                    "free_end_deflection_m".to_string(),
+                    load * span.powi(3) / (3.0 * modulus * inertia),
+                ),
+                (
+                    "support_maximum_bending_stress_Pa".to_string(),
+                    load * span * fiber / inertia,
+                ),
+            ]);
+            let expected = benchmark
+                .get("expected")
+                .ok_or_else(|| "cantilever benchmark expected object is missing".to_string())?;
+            (values, expected)
+        }
+        "structural/axial-bar-linear-static/v1" => {
+            if case_id != "default" {
+                return Err(format!(
+                    "single-case benchmark requires case_id \"default\", not {case_id:?}"
+                ));
+            }
+            let load = read_positive(inputs, "load_N")?;
+            let length = read_positive(inputs, "length_m")?;
+            let modulus = read_positive(inputs, "elastic_modulus_Pa")?;
+            let width = read_positive(inputs, "section_width_m")?;
+            let height = read_positive(inputs, "section_height_m")?;
+            let area = width * height;
+            let values = BTreeMap::from([
+                ("cross_section_area_m2".to_string(), area),
+                ("axial_stress_Pa".to_string(), load / area),
+                (
+                    "free_end_extension_m".to_string(),
+                    load * length / (modulus * area),
+                ),
+                ("support_reaction_magnitude_N".to_string(), load),
+            ]);
+            let expected = benchmark
+                .get("expected")
+                .ok_or_else(|| "axial-bar benchmark expected object is missing".to_string())?;
+            (values, expected)
+        }
+        "structural/simply-supported-beam-linear-static/v1" => {
+            let load_cases = benchmark
+                .get("load_cases")
+                .and_then(Value::as_array)
+                .ok_or_else(|| "simply-supported benchmark load_cases must be an array".to_string())?;
+            let mut matching = load_cases.iter().filter(|item| {
+                item.get("case_id").and_then(Value::as_str) == Some(case_id)
+            });
+            let selected = matching
+                .next()
+                .ok_or_else(|| format!("benchmark has no load case {case_id:?}"))?;
+            if matching.next().is_some() {
+                return Err(format!("benchmark duplicates load case ID {case_id:?}"));
+            }
+            let span = read_positive(inputs, "span_m")?;
+            let modulus = read_positive(inputs, "elastic_modulus_Pa")?;
+            let width = read_positive(inputs, "section_width_m")?;
+            let depth = read_positive(inputs, "section_depth_m")?;
+            let inertia = width * depth.powi(3) / 12.0;
+            let fiber = depth / 2.0;
+            let (deflection, moment, reaction) =
+                match selected.get("load_type").and_then(Value::as_str) {
+                    Some("point_load_midspan") => {
+                        let load = read_positive(selected, "load_N")?;
+                        (
+                            load * span.powi(3) / (48.0 * modulus * inertia),
+                            load * span / 4.0,
+                            load / 2.0,
+                        )
+                    }
+                    Some("uniform_distributed_load") => {
+                        let load_per_m = read_positive(selected, "load_N_per_m")?;
+                        (
+                            5.0 * load_per_m * span.powi(4) / (384.0 * modulus * inertia),
+                            load_per_m * span.powi(2) / 8.0,
+                            load_per_m * span / 2.0,
+                        )
+                    }
+                    Some(other) => return Err(format!("unsupported load_type {other:?}")),
+                    None => return Err("load case load_type must be a string".to_string()),
+                };
+            let values = BTreeMap::from([
+                ("maximum_deflection_m".to_string(), deflection),
+                ("maximum_bending_moment_Nm".to_string(), moment),
+                (
+                    "maximum_bending_stress_Pa".to_string(),
+                    moment * fiber / inertia,
+                ),
+                ("support_reaction_magnitude_N".to_string(), reaction),
+            ]);
+            let expected = selected
+                .get("expected")
+                .ok_or_else(|| format!("load case {case_id:?} has no expected object"))?;
+            (values, expected)
+        }
+        _ => unreachable!("supported benchmark checked above"),
+    };
+
+    if calculated.is_empty() || calculated.values().any(|value| !value.is_finite()) {
+        return Err("derived benchmark reference outputs must be finite and non-empty".to_string());
+    }
+    let declared = declared_expected
+        .as_object()
+        .ok_or_else(|| "benchmark expected outputs must be an object".to_string())?;
+    if declared.len() != calculated.len() {
+        return Err(format!(
+            "benchmark oracle declares {} outputs but equations derive {}",
+            declared.len(),
+            calculated.len()
+        ));
+    }
 
     let mut expected = BTreeMap::new();
-    let Some(object) = expected_object.as_object() else {
-        return Err("benchmark expected outputs must be an object".to_string());
-    };
-    for (quantity, raw_value) in object {
-        let unit = unit_for_quantity(quantity)
+    for (quantity, calculated_value) in calculated {
+        let unit = unit_for_quantity(&quantity)
             .ok_or_else(|| format!("unsupported expected quantity {quantity:?}"))?;
-        let value = raw_value
-            .as_f64()
+        let declared_value = declared
+            .get(&quantity)
+            .and_then(Value::as_f64)
             .filter(|value| value.is_finite())
-            .ok_or_else(|| format!("expected output {quantity:?} must be finite numeric"))?;
-        expected.insert(quantity.clone(), ExpectedOutput { value, unit });
+            .ok_or_else(|| format!("benchmark oracle omits finite numeric value for {quantity:?}"))?;
+        let allowed_error = tolerance * calculated_value.abs().max(f64::MIN_POSITIVE);
+        let actual_error = (declared_value - calculated_value).abs();
+        if actual_error > allowed_error {
+            return Err(format!(
+                "benchmark oracle drift for {quantity:?}: declared {declared_value}, equation-derived {calculated_value}, allowed error {allowed_error}"
+            ));
+        }
+        expected.insert(
+            quantity,
+            ExpectedOutput {
+                value: calculated_value,
+                unit,
+            },
+        );
     }
-    if expected.is_empty() {
-        return Err("benchmark expected output set must not be empty".to_string());
+    if declared.keys().any(|quantity| !expected.contains_key(quantity)) {
+        return Err("benchmark oracle declares an unexpected output quantity".to_string());
     }
     Ok((expected, tolerance))
 }
