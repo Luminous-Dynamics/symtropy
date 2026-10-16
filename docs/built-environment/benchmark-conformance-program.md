@@ -78,18 +78,20 @@ These are properties of the stated idealized equations. They must not be applied
 
 ## Gate-execution record and independent checking
 
-Each invocation should record benchmark ID/version, case and artifact digests, solver/evaluator identity and exact executable/container digest, architecture/configuration, structured arguments, input digests, start/end times, exit/termination/convergence state, raw output digests, parser identity/version, output values and units, expected values, applied criteria, residuals, uncertainty and known limitations.
+A first, deliberately bounded prototype is implemented in `crates/apps/symtropy-housing-evidence/src/benchmark_result.rs`, exposed as `--validate-benchmark-result`. Its contracts are `benchmark-result.schema.json` and `benchmark-result-output.schema.json`. It binds benchmark/case identity, the exact benchmark digest, producer-declared status, evaluator identity, declared exit/termination/convergence state, and the SHA-256 of a machine-readable numeric-output artifact.
 
-A future independent checker must reopen the result artifacts, validate schema and units, recompute the benchmark verdict against externally pinned criteria and report mismatches. It must not copy a runner's declared result string. An attestation can bind identity to a record; it does not establish physical truth or scientific correctness.
+The checker reopens and hashes that numeric-output file, validates its schema, rejects duplicate or unknown quantities and unit mismatches, checks exact output coverage, and compares each finite value against the externally pinned reference fixture with that case's tolerance. For the supported cantilever, axial-bar and simply-supported-beam reference cases, a fixture can be checked without trusting the producer's status field. A deliberately false `CLAIMED_PASS` with numerically wrong outputs produces `REFERENCE_MISMATCH` and a failing command exit code. A matching file digest does not rescue bad values.
 
-Required negative tests include a fake runner declaring PASS while output values are wrong; absent/stale/non-converged output; mismatched criteria; truncated result data; and a valid artifact hash paired with an incorrect numerical result. Until independent execution and result checking exists, the effective engineering result remains NOT_REPRODUCED.
+The prototype is intentionally not a complete execution attestation. It checks parsed numeric outputs, not arbitrary raw solver stdout/stderr, and does not authenticate that the named executable ran, bind the output to a structured invocation/environment/input closure, or establish that a parser faithfully extracted the tool's original output. Evaluator identity and execution/convergence metadata are still producer-declared. An attestation can bind identity to a record but does not establish physical truth or scientific correctness.
+
+The next execution record revision should add exact argument vector, controlled environment, all input/configuration digests, OS/architecture, start/end time, raw stdout/stderr digests, parser binary/version, result-file digests, residuals and uncertainty. Negative tests must additionally cover absent/stale/non-converged output, mismatched criteria, truncated output, unexpected solver termination, invalid units and a valid artifact hash paired with a numerically false result. Until authenticated execution, solver-specific parsing/verification and qualified review exist, an engineering conclusion remains `NOT_REPRODUCED`.
 
 ## Sequenced implementation
 
-1. Close B1 consistency gaps: enforce $c=h/2$, $I=bh^3/12$, finite outputs, explicit units and current scaling invariants.
-2. Specify a versioned benchmark-result record binding benchmark/case digests, invocation, evaluator identity, termination/convergence state, raw output digests, extracted values and case-specific acceptance criteria.
-3. Implement an independent checker that recomputes verdicts from pinned criteria and outputs; test a fake runner that declares pass while reporting incorrect values.
-4. Run a solver spike as a separate process; pin the solver build and license path, parse outputs independently, check equilibrium, compare the three analytical reference families and perform mesh refinement.
+1. Complete and verify the B1 reference suite: maintain geometry consistency, finite outputs, explicit units, and metamorphic invariants for cantilever, axial-bar and simple-span load cases.
+2. Extend the benchmark-result record with a pinned structured invocation, complete input/configuration digests, controlled environment, timestamps, and raw stdout/stderr + parser provenance.
+3. Add a versioned solver adapter process that emits these execution records and a separately testable parser. Pin the solver build and resolve licensing before packaging; a declared zero exit code is insufficient.
+4. Run the solver spike against all three analytical families, check equilibrium and residuals, test negative controls, and perform mesh refinement. Keep the reference checker separate from the solver/producer path.
 5. Establish B3 validation using traceable physical observations not used for calibration, including measurement uncertainty and a bounded validation domain.
 6. Build a versioned cross-tool conformance corpus with identical cases, expected outcomes and reports across supported tool/OS builds.
 7. Require independent engineering review before extending scope: assumptions, validity domain, uncertainty, thresholds and evidence gaps.
