@@ -1,19 +1,19 @@
 # Accessible Home Evidence Lifecycle Validator
 
 Standalone Rust replay and semantic validator for the **synthetic-only** lifecycle contract in
-\`docs/built-environment/accessible-home-evidence-lifecycle-v0.1.example.json\`.
+`docs/built-environment/accessible-home-evidence-lifecycle-v0.1.example.json`.
 
 ## Run locally
 
 From the repository root:
 
-\`\`\`sh
+```sh
 cargo fmt --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- --check
 cargo test --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml
 cargo run --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- \
   --input docs/built-environment/accessible-home-evidence-lifecycle-v0.1.example.json \
   --output /tmp/accessible-home-lifecycle-receipt.json
-\`\`\`
+```
 
 Invalid JSON, unknown fields, unknown references, unsupported versions, conflicting current claims,
 supersession cycles, invalid event order, stale revision starts, expectation mismatches and expired
