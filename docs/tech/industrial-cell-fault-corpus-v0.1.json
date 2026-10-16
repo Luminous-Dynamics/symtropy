@@ -1,0 +1,38 @@
+{
+  "schema": "luminous.space-industrial-cell-fault-corpus/v0.1",
+  "fixture_class": "synthetic_software_contract",
+  "claim_ceiling": "No lunar/Mars process, robot, or physical qualification is established.",
+  "scenarios": [
+    {
+      "id": "LEDGER-DUPLICATE-EVENT",
+      "target": "energy-ledger",
+      "injection": "Append a new sequence that reuses an accepted event ID.",
+      "expected_outcome": "reject",
+      "invariants": ["state_unchanged", "history_unchanged"]
+    },
+    {
+      "id": "LEDGER-STALE-SEQUENCE",
+      "target": "energy-ledger",
+      "injection": "Append a unique event ID with a non-monotonic sequence.",
+      "expected_outcome": "reject",
+      "invariants": ["state_unchanged", "history_unchanged"]
+    },
+    {
+      "id": "INVENTORY-OVERDRAW",
+      "target": "inventory-ledger",
+      "injection": "Consume more synthetic feedstock than the initial balance.",
+      "expected_outcome": "reject",
+      "invariants": ["state_unchanged", "history_unchanged"]
+    }
+  ],
+  "explicitly_not_covered": [
+    "lost communications",
+    "sensor faults",
+    "route obstruction",
+    "tool wear",
+    "material contamination",
+    "thermal rejection",
+    "physical robot stop/recovery",
+    "lunar or Mars process qualification"
+  ]
+}

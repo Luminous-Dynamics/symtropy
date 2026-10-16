@@ -1,0 +1,131 @@
+name: Industrial Cell Reference Example
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "crates/domains/symtropy-bootstrap/**"
+      - "**/*.rs"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "rustfmt.toml"
+      - ".rustfmt.toml"
+      - "scripts/verify-industrial-cell-reference.sh"
+      - "docs/tech/industrial-cell-fault-corpus-v0.1.json"
+      - "docs/tech/AUTONOMOUS_SPACE_INDUSTRIAL_CELL_REFERENCE_CAMPAIGN_V0_1.md"
+      - "docs/tech/AUTONOMOUS_SPACE_INDUSTRIAL_CELL_STANDARDS_CROSSWALK_V0_1.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/bootstrap-reference-example.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: industrial-cell-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-example:
+    name: Execute deterministic synthetic reference
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check repository Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Execute reference and independently verify frozen fault corpus
+        run: bash scripts/verify-industrial-cell-reference.sh
+
+      - name: Write content-bound reference receipt
+        shell: bash
+        run: |
+          manifest_sha256="$(sha256sum docs/tech/industrial-cell-fault-corpus-v0.1.json | cut -d ' ' -f 1)"
+          verifier_sha256="$(sha256sum scripts/verify-industrial-cell-reference.sh | cut -d ' ' -f 1)"
+          reference_sha256="$(sha256sum crates/domains/symtropy-bootstrap/examples/industrial_cell_reference.rs | cut -d ' ' -f 1)"
+          source_commit="${{ github.event.pull_request.head.sha || github.sha }}"
+          tested_checkout_commit="$(git rev-parse HEAD)"
+          if [[ "$tested_checkout_commit" != "$source_commit" ]]; then
+            echo "FAIL: tested checkout is not the declared source commit" >&2
+            echo "source_commit=$source_commit" >&2
+            echo "tested_checkout_commit=$tested_checkout_commit" >&2
+            exit 1
+          fi
+          event_commit="$GITHUB_SHA"
+          git_ref="$GITHUB_REF"
+          cat > industrial-cell-reference-receipt.json <<EOF
+          {
+            "schema": "luminous.space-industrial-cell-reference-receipt/v0.1",
+            "fixture_class": "synthetic_software_contract",
+            "source_repository": "$GITHUB_REPOSITORY",
+            "source_commit_sha": "$source_commit",
+            "tested_checkout_commit_sha": "$tested_checkout_commit",
+            "event_commit_sha": "$event_commit",
+            "git_ref": "$git_ref",
+            "toolchain": "rustc 1.96.0",
+            "checks": {
+              "rustfmt_workspace": "pass",
+              "industrial_cell_reference": "pass",
+              "frozen_fault_corpus": "pass"
+            },
+            "workflow": {
+              "run_id": "$GITHUB_RUN_ID",
+              "run_attempt": "$GITHUB_RUN_ATTEMPT",
+              "run_url": "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            },
+            "scenario_manifest": {
+              "path": "docs/tech/industrial-cell-fault-corpus-v0.1.json",
+              "sha256": "$manifest_sha256"
+            },
+            "verifier": {
+              "path": "scripts/verify-industrial-cell-reference.sh",
+              "sha256": "$verifier_sha256"
+            },
+            "reference_program": {
+              "path": "crates/domains/symtropy-bootstrap/examples/industrial_cell_reference.rs",
+              "sha256": "$reference_sha256"
+            },
+            "result": "PASS_SYNTHETIC_REFERENCE_CONTRACTS",
+            "claim_ceiling": "No lunar or Mars process, robot, or physical qualification is established."
+          }
+          EOF
+          jq -e '
+            .schema == "luminous.space-industrial-cell-reference-receipt/v0.1"
+            and .fixture_class == "synthetic_software_contract"
+            and (.source_commit_sha | test("^[0-9a-f]{40}$|^[0-9a-f]{64}$"))
+            and (.tested_checkout_commit_sha | test("^[0-9a-f]{40}$"))
+            and .source_commit_sha == .tested_checkout_commit_sha
+            and (.scenario_manifest.sha256 | test("^[0-9a-f]{64}$"))
+            and (.verifier.sha256 | test("^[0-9a-f]{64}$"))
+            and (.reference_program.sha256 | test("^[0-9a-f]{64}$"))
+            and .checks.rustfmt_workspace == "pass"
+            and .checks.industrial_cell_reference == "pass"
+            and .checks.frozen_fault_corpus == "pass"
+            and .claim_ceiling == "No lunar or Mars process, robot, or physical qualification is established."
+          ' industrial-cell-reference-receipt.json >/dev/null
+          sha256sum industrial-cell-reference-receipt.json | tee industrial-cell-reference-receipt.sha256
+
+      - name: Upload content-bound reference receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: industrial-cell-reference-receipt-${{ github.sha }}
+          path: |
+            industrial-cell-reference-receipt.json
+            industrial-cell-reference-receipt.sha256
+          if-no-files-found: error
+          retention-days: 90

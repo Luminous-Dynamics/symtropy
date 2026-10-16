@@ -1,0 +1,18 @@
+[package]
+name = "symtropy-bootstrap-persistence"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Journal-first durable execution lifecycle adapter for Symtropy bootstrap"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+symtropy-bootstrap = { path = "../symtropy-bootstrap" }
+symtropy-game-state = { path = "../symtropy-game-state" }
+symtropy-persistence = { path = "../symtropy-persistence" }
+ring = "0.17.14"
+rusqlite = { version = "0.37.0", features = ["bundled"] }
+serde_json = "1.0"
