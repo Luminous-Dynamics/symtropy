@@ -1,0 +1,270 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+//! Analytical reference checks for simple-span beam load cases.
+//! They do not validate an FEM solver or a construction design.
+
+use serde_json::Value;
+
+const CASE: &str = include_str!(
+    "../../../../docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json"
+);
+
+#[derive(Debug, Clone, Copy)]
+struct BeamResult {
+    inertia_m4: f64,
+    deflection_m: f64,
+    maximum_moment_nm: f64,
+    maximum_stress_pa: f64,
+    reaction_magnitude_n: f64,
+}
+
+fn close_relative(actual: f64, expected: f64, tolerance: f64) -> bool {
+    actual.is_finite()
+        && expected.is_finite()
+        && tolerance.is_finite()
+        && tolerance >= 0.0
+        && (actual - expected).abs() <= tolerance * expected.abs().max(f64::MIN_POSITIVE)
+}
+
+fn positive(object: &Value, name: &str) -> Result<f64, String> {
+    let value = object
+        .get(name)
+        .and_then(Value::as_f64)
+        .ok_or_else(|| format!("{name} must be numeric"))?;
+    if !value.is_finite() || value <= 0.0 {
+        return Err(format!("{name} must be finite and greater than zero"));
+    }
+    Ok(value)
+}
+
+fn evaluate_reference(case: &Value, load_case: &Value) -> Result<BeamResult, String> {
+    let inputs = case
+        .get("inputs")
+        .ok_or_else(|| "inputs must be an object".to_string())?;
+    let span = positive(inputs, "span_m")?;
+    let modulus = positive(inputs, "elastic_modulus_Pa")?;
+    let width = positive(inputs, "section_width_m")?;
+    let depth = positive(inputs, "section_depth_m")?;
+    let declared_inertia = positive(inputs, "second_moment_area_m4")?;
+    let declared_extreme_fiber_distance = positive(inputs, "extreme_fiber_distance_m")?;
+    let tolerance = case["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
+
+    let inertia = width * depth.powi(3) / 12.0;
+    let extreme_fiber_distance = depth / 2.0;
+    if !close_relative(inertia, declared_inertia, tolerance) {
+        return Err(format!(
+            "declared second moment of area {declared_inertia} disagrees with geometry-derived value {inertia}"
+        ));
+    }
+    if !close_relative(
+        extreme_fiber_distance,
+        declared_extreme_fiber_distance,
+        tolerance,
+    ) {
+        return Err(format!(
+            "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with geometry-derived value {extreme_fiber_distance}"
+        ));
+    }
+
+    let (deflection, maximum_moment, reaction) =
+        match load_case.get("load_type").and_then(Value::as_str) {
+            Some("point_load_midspan") => {
+                let load = positive(load_case, "load_N")?;
+                (
+                    load * span.powi(3) / (48.0 * modulus * inertia),
+                    load * span / 4.0,
+                    load / 2.0,
+                )
+            }
+            Some("uniform_distributed_load") => {
+                let load_per_m = positive(load_case, "load_N_per_m")?;
+                (
+                    5.0 * load_per_m * span.powi(4) / (384.0 * modulus * inertia),
+                    load_per_m * span.powi(2) / 8.0,
+                    load_per_m * span / 2.0,
+                )
+            }
+            Some(other) => return Err(format!("unsupported load_type {other:?}")),
+            None => return Err("load_type must be a string".to_string()),
+        };
+    let stress = maximum_moment * extreme_fiber_distance / inertia;
+
+    for (name, value) in [
+        ("maximum deflection", deflection),
+        ("maximum moment", maximum_moment),
+        ("maximum stress", stress),
+        ("support reaction", reaction),
+    ] {
+        if !value.is_finite() {
+            return Err(format!("computed {name} is not finite"));
+        }
+    }
+
+    Ok(BeamResult {
+        inertia_m4: inertia,
+        deflection_m: deflection,
+        maximum_moment_nm: maximum_moment,
+        maximum_stress_pa: stress,
+        reaction_magnitude_n: reaction,
+    })
+}
+
+fn assert_matches_expected(actual: BeamResult, expected: &Value, tolerance: f64) {
+    for (name, value, expected_value) in [
+        (
+            "section inertia",
+            actual.inertia_m4,
+            expected["second_moment_area_m4"].as_f64().unwrap_or(actual.inertia_m4),
+        ),
+        (
+            "maximum deflection",
+            actual.deflection_m,
+            expected["maximum_deflection_m"].as_f64().unwrap(),
+        ),
+        (
+            "maximum bending moment",
+            actual.maximum_moment_nm,
+            expected["maximum_bending_moment_Nm"].as_f64().unwrap(),
+        ),
+        (
+            "maximum bending stress",
+            actual.maximum_stress_pa,
+            expected["maximum_bending_stress_Pa"].as_f64().unwrap(),
+        ),
+        (
+            "support reaction magnitude",
+            actual.reaction_magnitude_n,
+            expected["support_reaction_magnitude_N"].as_f64().unwrap(),
+        ),
+    ] {
+        assert!(
+            close_relative(value, expected_value, tolerance),
+            "{name} mismatch: actual={value}, expected={expected_value}"
+        );
+    }
+}
+
+#[test]
+fn analytical_simply_supported_beam_matches_both_load_oracles() {
+    let case: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    assert_eq!(
+        case["status"].as_str(),
+        Some("analytical_reference_only"),
+        "reference fixture must not imply construction approval"
+    );
+    let tolerance = case["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let cases = case["load_cases"].as_array().expect("load_cases array");
+    assert_eq!(cases.len(), 2, "both predeclared load cases are required");
+
+    for load_case in cases {
+        let id = load_case["case_id"].as_str().expect("case_id");
+        let actual = evaluate_reference(&case, load_case)
+            .unwrap_or_else(|error| panic!("{id} should evaluate: {error}"));
+        assert_matches_expected(actual, &load_case["expected"], tolerance);
+    }
+}
+
+#[test]
+fn analytical_simply_supported_beam_rejects_invalid_geometry_and_loads() {
+    let base: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    for (name, bad_value) in [
+        ("span_m", 0.0),
+        ("elastic_modulus_Pa", -1.0),
+        ("section_width_m", 0.0),
+        ("section_depth_m", -0.2),
+        ("second_moment_area_m4", 0.0),
+        ("extreme_fiber_distance_m", -0.1),
+    ] {
+        let mut invalid = base.clone();
+        invalid["inputs"][name] = serde_json::json!(bad_value);
+        assert!(
+            evaluate_reference(&invalid, &invalid["load_cases"][0]).is_err(),
+            "{name}={bad_value} should be rejected"
+        );
+    }
+
+    let mut bad_point = base.clone();
+    bad_point["load_cases"][0]["load_N"] = serde_json::json!(0.0);
+    assert!(evaluate_reference(&bad_point, &bad_point["load_cases"][0]).is_err());
+
+    let mut bad_uniform = base.clone();
+    bad_uniform["load_cases"][1]["load_N_per_m"] = serde_json::json!(-1.0);
+    assert!(evaluate_reference(&bad_uniform, &bad_uniform["load_cases"][1]).is_err());
+
+    let mut inconsistent = base.clone();
+    inconsistent["inputs"]["second_moment_area_m4"] = serde_json::json!(0.00007);
+    assert!(evaluate_reference(&inconsistent, &inconsistent["load_cases"][0]).is_err());
+}
+
+#[test]
+fn analytical_simply_supported_beam_obeys_load_and_span_scaling() {
+    let base: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+
+    let point_reference = evaluate_reference(&base, &base["load_cases"][0]).expect("point baseline");
+    let uniform_reference =
+        evaluate_reference(&base, &base["load_cases"][1]).expect("uniform baseline");
+
+    let mut doubled_load = base.clone();
+    doubled_load["load_cases"][0]["load_N"] = serde_json::json!(10000.0);
+    let point_double = evaluate_reference(&doubled_load, &doubled_load["load_cases"][0])
+        .expect("doubled point load");
+    assert!(close_relative(point_double.deflection_m, point_reference.deflection_m * 2.0, tolerance));
+    assert!(close_relative(point_double.maximum_stress_pa, point_reference.maximum_stress_pa * 2.0, tolerance));
+    assert!(close_relative(point_double.reaction_magnitude_n, point_reference.reaction_magnitude_n * 2.0, tolerance));
+
+    let mut doubled_uniform = base.clone();
+    doubled_uniform["load_cases"][1]["load_N_per_m"] = serde_json::json!(2000.0);
+    let uniform_double =
+        evaluate_reference(&doubled_uniform, &doubled_uniform["load_cases"][1])
+            .expect("doubled uniform load");
+    assert!(close_relative(
+        uniform_double.deflection_m,
+        uniform_reference.deflection_m * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        uniform_double.maximum_stress_pa,
+        uniform_reference.maximum_stress_pa * 2.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        uniform_double.reaction_magnitude_n,
+        uniform_reference.reaction_magnitude_n * 2.0,
+        tolerance
+    ));
+
+    let mut doubled_span = base.clone();
+    doubled_span["inputs"]["span_m"] = serde_json::json!(8.0);
+    let point_span = evaluate_reference(&doubled_span, &doubled_span["load_cases"][0])
+        .expect("point load with doubled span");
+    assert!(close_relative(point_span.deflection_m, point_reference.deflection_m * 8.0, tolerance));
+    assert!(close_relative(point_span.maximum_moment_nm, point_reference.maximum_moment_nm * 2.0, tolerance));
+    assert!(close_relative(point_span.reaction_magnitude_n, point_reference.reaction_magnitude_n, tolerance));
+
+    let uniform_span = evaluate_reference(&doubled_span, &doubled_span["load_cases"][1])
+        .expect("uniform load with doubled span");
+    assert!(close_relative(
+        uniform_span.deflection_m,
+        uniform_reference.deflection_m * 16.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        uniform_span.maximum_moment_nm,
+        uniform_reference.maximum_moment_nm * 4.0,
+        tolerance
+    ));
+    assert!(close_relative(
+        uniform_span.reaction_magnitude_n,
+        uniform_reference.reaction_magnitude_n * 2.0,
+        tolerance
+    ));
+}
