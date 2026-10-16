@@ -509,7 +509,9 @@ mod tests {
 
     #[test]
     fn json_schema_is_valid_and_matches_the_receipt_contract() {
-        let schema = include_str!("../../../../docs/tech/CYPORT_ASOF_FEATURE_RECEIPT_V0_1.schema.json");
+        let schema = include_str!(
+            "../../../../docs/tech/CYPORT_ASOF_FEATURE_RECEIPT_V0_1.schema.json"
+        );
         let value: serde_json::Value =
             serde_json::from_str(schema).expect("receipt schema must be valid JSON");
         assert_eq!(
