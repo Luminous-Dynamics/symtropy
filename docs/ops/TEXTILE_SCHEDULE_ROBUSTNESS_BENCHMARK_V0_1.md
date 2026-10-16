@@ -32,8 +32,8 @@ baseline problem against deterministic perturbation cases. Supported shocks:
   preparation or another readiness precondition;
 - machine unavailable until an explicit tick in the shared time unit.
 
-The harness runs the bounded exact solver and all three deterministic dispatch
-baselines for every case. This establishes four different outcomes:
+The harness runs the bounded exact solver and all four deterministic dispatch
+rules for every case. This establishes four different outcomes:
 1. the exact reference finds a feasible schedule;
 2. the exact reference finds no feasible schedule under the hard constraints;
 3. exact evaluation fails due to an invalid fixture or declared bound;
