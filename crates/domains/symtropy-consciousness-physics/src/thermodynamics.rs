@@ -1,20 +1,22 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Thermodynamic closure: unifying consciousness energy and physics energy.
+//! Thermodynamic closure and local energy-flow diagnostics for the consciousness-physics system.
 //!
-//! This module implements the novel Joules-per-Phi energy accounting system.
-//! Every action costs physical energy from the consciousness budget. Collision
-//! impulses dissipate energy as heat. The total energy is tracked and conserved.
+//! The ledger distinguishes action costs, regenerative inflows, heat dissipation,
+//! and explicit sinks. Its residual is a local flow diagnostic only: without a
+//! declared system boundary, storage deltas, and every external input/output, it
+//! must not be interpreted as proof of whole-system energy conservation.
 //!
-//! # Key Quantities
+//! # Key quantities
 //!
-//! - **Landauer bound**: minimum energy per bit of information processing
-//!   (k_B * T * ln(2) ≈ 2.87 × 10⁻²¹ J at body temperature 310K)
-//! - **Joules-per-Phi**: novel metric — how many Joules does it cost to
-//!   maintain a given Φ level? No one has published this.
-//! - **Conservation error**: measures violation of energy conservation law.
-//!   Should remain < 1% for a valid simulation.
+//! - **Landauer bound**: minimum energy per bit of information processing.
+//! - **Joules-per-Phi**: an exploratory ratio of Phi-weighted action cost to Phi change.
+//! - **Local flow residual**: a bookkeeping diagnostic over the flow categories
+//!   recorded here, not a validated physical conservation error.
+//!
+//! These software invariants do not establish that the simulation's physical
+//! model or coefficients are empirically calibrated.
 
 /// Landauer bound at body temperature (310K): k_B * T * ln(2).
 /// Minimum energy to erase one bit of information.
@@ -134,24 +136,49 @@ impl Default for ThermodynamicConstants {
     }
 }
 
-/// Thermodynamic ledger: tracks energy flow through the consciousness-physics system.
+/// Errors from checked energy-ledger updates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LedgerInputError {
+    /// A value or computed accumulator was NaN or infinite.
+    NonFiniteValue,
+    /// An energy flow was negative; flow directions have separate methods.
+    NegativeFlow,
+    /// Phi was outside its normalized [0, 1] domain.
+    PhiOutOfRange,
+    /// Adding this update would overflow a finite accumulator.
+    ArithmeticOverflow,
+}
+
+/// Ledger for local energy-flow diagnostics.
+///
+/// energy_in retains its historical meaning as recorded action/consumption cost.
+/// Regeneration and external sinks are separate from heat dissipation. Public flow
+/// fields remain for compatibility; tick_balance checks numeric domains before
+/// reporting a valid local residual.
 #[derive(Debug, Clone)]
 pub struct ThermodynamicLedger {
-    /// Total energy input this tick (forces applied, work done).
+    /// Recorded action/consumption costs this tick (legacy field name).
     pub energy_in: f64,
-    /// Total energy output this tick (dissipated as heat via damping/friction).
+    /// Energy converted to heat through friction, damping, collision, etc.
     pub energy_out: f64,
-    /// Phi-weighted energy integral: Σ(energy_i × phi_i) across all entities.
-    /// Used to compute Joules-per-Phi.
+    /// Positive energy accepted from explicit regenerative sources this tick.
+    pub energy_regenerated: f64,
+    /// Positive energy removed through explicit sinks (not necessarily heat).
+    pub energy_removed: f64,
+    /// Phi-weighted action-cost integral: Σ(action_cost_i × phi_i).
     pub phi_energy_integral: f64,
     /// Total Phi change this tick: Σ|Δphi_i|.
     pub phi_change_total: f64,
-    /// Cumulative energy consumed across all ticks.
+    /// Cumulative action/consumption cost across ticks.
     pub lifetime_energy: f64,
-    /// Cumulative conservation error across all ticks.
+    /// Cumulative absolute local flow residual; infinity after any invalid tick.
     pub lifetime_error: f64,
     /// Number of ticks processed.
     pub tick_count: u64,
+    /// Number of rejected or invalid flow updates in the current tick.
+    pub invalid_flow_count: u64,
+    /// Number of rejected or invalid flow updates across finalized ticks.
+    pub lifetime_invalid_flow_count: u64,
 }
 
 impl ThermodynamicLedger {
@@ -159,58 +186,207 @@ impl ThermodynamicLedger {
         Self {
             energy_in: 0.0,
             energy_out: 0.0,
+            energy_regenerated: 0.0,
+            energy_removed: 0.0,
             phi_energy_integral: 0.0,
             phi_change_total: 0.0,
             lifetime_energy: 0.0,
             lifetime_error: 0.0,
             tick_count: 0,
+            invalid_flow_count: 0,
+            lifetime_invalid_flow_count: 0,
         }
     }
 
-    /// Record an energy-consuming action.
-    ///
-    /// `energy_cost` is the Joules consumed.
-    /// `phi` is the entity's current consciousness level.
-    pub fn record_action(&mut self, energy_cost: f64, phi: f64) {
-        self.energy_in += energy_cost;
-        self.phi_energy_integral += energy_cost * phi;
+    fn reject<T>(&mut self, error: LedgerInputError) -> Result<T, LedgerInputError> {
+        self.invalid_flow_count = self.invalid_flow_count.saturating_add(1);
+        Err(error)
     }
 
-    /// Record energy dissipated (friction, damping, collision heat).
+    /// Compatibility wrapper: invalid input is rejected and invalidates this tick.
+    /// Use try_record_action when the caller needs an error value.
+    pub fn record_action(&mut self, energy_cost: f64, phi: f64) {
+        let _ = self.try_record_action(energy_cost, phi);
+    }
+
+    pub fn try_record_action(
+        &mut self,
+        energy_cost: f64,
+        phi: f64,
+    ) -> Result<(), LedgerInputError> {
+        if !energy_cost.is_finite() || !phi.is_finite() {
+            return self.reject(LedgerInputError::NonFiniteValue);
+        }
+        if energy_cost < 0.0 {
+            return self.reject(LedgerInputError::NegativeFlow);
+        }
+        if !(0.0..=1.0).contains(&phi) {
+            return self.reject(LedgerInputError::PhiOutOfRange);
+        }
+        let next_in = self.energy_in + energy_cost;
+        let weighted = energy_cost * phi;
+        let next_phi_integral = self.phi_energy_integral + weighted;
+        if !weighted.is_finite() || !next_in.is_finite() || !next_phi_integral.is_finite() {
+            return self.reject(LedgerInputError::ArithmeticOverflow);
+        }
+        self.energy_in = next_in;
+        self.phi_energy_integral = next_phi_integral;
+        Ok(())
+    }
+
+    /// Record non-negative energy dissipated as heat.
     pub fn record_dissipation(&mut self, energy: f64) {
-        self.energy_out += energy;
+        let _ = self.try_record_dissipation(energy);
+    }
+
+    pub fn try_record_dissipation(&mut self, energy: f64) -> Result<(), LedgerInputError> {
+        if !energy.is_finite() {
+            return self.reject(LedgerInputError::NonFiniteValue);
+        }
+        if energy < 0.0 {
+            return self.reject(LedgerInputError::NegativeFlow);
+        }
+        let next = self.energy_out + energy;
+        if !next.is_finite() {
+            return self.reject(LedgerInputError::ArithmeticOverflow);
+        }
+        self.energy_out = next;
+        Ok(())
+    }
+
+    /// Record positive inflow from a regeneration/source mechanism.
+    pub fn record_regeneration(&mut self, energy: f64) {
+        let _ = self.try_record_regeneration(energy);
+    }
+
+    pub fn try_record_regeneration(&mut self, energy: f64) -> Result<(), LedgerInputError> {
+        if !energy.is_finite() {
+            return self.reject(LedgerInputError::NonFiniteValue);
+        }
+        if energy < 0.0 {
+            return self.reject(LedgerInputError::NegativeFlow);
+        }
+        let next = self.energy_regenerated + energy;
+        if !next.is_finite() {
+            return self.reject(LedgerInputError::ArithmeticOverflow);
+        }
+        self.energy_regenerated = next;
+        Ok(())
+    }
+
+    /// Record a positive flow explicitly removed through a sink or system boundary.
+    /// This is not automatically classified as heat dissipation.
+    pub fn record_external_sink(&mut self, energy: f64) {
+        let _ = self.try_record_external_sink(energy);
+    }
+
+    pub fn try_record_external_sink(&mut self, energy: f64) -> Result<(), LedgerInputError> {
+        if !energy.is_finite() {
+            return self.reject(LedgerInputError::NonFiniteValue);
+        }
+        if energy < 0.0 {
+            return self.reject(LedgerInputError::NegativeFlow);
+        }
+        let next = self.energy_removed + energy;
+        if !next.is_finite() {
+            return self.reject(LedgerInputError::ArithmeticOverflow);
+        }
+        self.energy_removed = next;
+        Ok(())
     }
 
     /// Record a change in Phi for an entity.
     pub fn record_phi_change(&mut self, delta_phi: f64) {
-        self.phi_change_total += delta_phi.abs();
+        let _ = self.try_record_phi_change(delta_phi);
     }
 
-    /// Finalize this tick: compute conservation error and accumulate.
+    pub fn try_record_phi_change(&mut self, delta_phi: f64) -> Result<(), LedgerInputError> {
+        if !delta_phi.is_finite() {
+            return self.reject(LedgerInputError::NonFiniteValue);
+        }
+        let next = self.phi_change_total + delta_phi.abs();
+        if !next.is_finite() {
+            return self.reject(LedgerInputError::ArithmeticOverflow);
+        }
+        self.phi_change_total = next;
+        Ok(())
+    }
+
+    /// Finalize the tick and calculate a local flow residual.
+    ///
+    /// The residual is not proof of whole-system conservation. Any rejected or
+    /// invalid numeric flow marks the result invalid and returns an infinite
+    /// residual rather than a zero/error-free result.
     pub fn tick_balance(&mut self) -> TickBalance {
-        let balance = self.energy_in - self.energy_out;
-        let error = balance.abs();
+        let fields_valid = [
+            self.energy_in,
+            self.energy_out,
+            self.energy_regenerated,
+            self.energy_removed,
+            self.phi_energy_integral,
+            self.phi_change_total,
+        ]
+        .into_iter()
+        .all(|value| value.is_finite() && value >= 0.0);
+
+        if !fields_valid && self.invalid_flow_count == 0 {
+            self.invalid_flow_count = 1;
+        }
+
+        let raw_balance =
+            self.energy_in + self.energy_regenerated - self.energy_out - self.energy_removed;
+        let raw_scale = (self.energy_in + self.energy_regenerated)
+            .max(self.energy_out + self.energy_removed)
+            .max(1e-15);
+        if (!raw_balance.is_finite() || !raw_scale.is_finite()) && self.invalid_flow_count == 0 {
+            self.invalid_flow_count = 1;
+        }
+        let inputs_valid = fields_valid
+            && raw_balance.is_finite()
+            && raw_scale.is_finite()
+            && self.invalid_flow_count == 0;
+        let reported_balance = if raw_balance.is_finite() {
+            raw_balance
+        } else {
+            f64::INFINITY
+        };
+        let error = reported_balance.abs();
+        let residual = if inputs_valid {
+            error / raw_scale
+        } else {
+            f64::INFINITY
+        };
+
         self.lifetime_energy += self.energy_in;
-        self.lifetime_error += error;
-        self.tick_count += 1;
+        if inputs_valid {
+            self.lifetime_error += error;
+        } else {
+            self.lifetime_error = f64::INFINITY;
+        }
+        self.lifetime_invalid_flow_count = self
+            .lifetime_invalid_flow_count
+            .saturating_add(self.invalid_flow_count);
+        self.tick_count = self.tick_count.saturating_add(1);
 
         let result = TickBalance {
             energy_in: self.energy_in,
             energy_out: self.energy_out,
-            balance,
-            conservation_error: if self.energy_in > 1e-15 {
-                error / self.energy_in
-            } else {
-                0.0
-            },
+            energy_regenerated: self.energy_regenerated,
+            energy_removed: self.energy_removed,
+            balance: reported_balance,
+            conservation_error: residual,
+            inputs_valid,
+            invalid_flow_count: self.invalid_flow_count,
             joules_per_phi: self.joules_per_phi(),
         };
 
-        // Reset per-tick accumulators
         self.energy_in = 0.0;
         self.energy_out = 0.0;
+        self.energy_regenerated = 0.0;
+        self.energy_removed = 0.0;
         self.phi_energy_integral = 0.0;
         self.phi_change_total = 0.0;
+        self.invalid_flow_count = 0;
 
         result
     }
@@ -238,8 +414,15 @@ impl ThermodynamicLedger {
         energy >= Self::landauer_floor(bits)
     }
 
-    /// Lifetime conservation error rate.
+    /// Lifetime local-flow residual rate. Returns infinity after invalid input;
+    /// it does not certify conservation of the whole simulated system.
     pub fn lifetime_error_rate(&self) -> f64 {
+        if self.lifetime_invalid_flow_count > 0
+            || !self.lifetime_energy.is_finite()
+            || !self.lifetime_error.is_finite()
+        {
+            return f64::INFINITY;
+        }
         if self.lifetime_energy < 1e-15 {
             return 0.0;
         }
@@ -253,17 +436,26 @@ impl Default for ThermodynamicLedger {
     }
 }
 
-/// Result of a single tick's energy balance.
+/// Result of a single tick's energy-flow bookkeeping.
 #[derive(Debug, Clone)]
 pub struct TickBalance {
-    /// Total energy consumed this tick.
+    /// Action/consumption costs this tick (legacy field name).
     pub energy_in: f64,
-    /// Total energy dissipated this tick.
+    /// Energy converted to heat.
     pub energy_out: f64,
-    /// Net energy balance (should be near zero for conservation).
+    /// Regenerative inflow.
+    pub energy_regenerated: f64,
+    /// Energy explicitly removed through sinks.
+    pub energy_removed: f64,
+    /// Local residual: action cost + regeneration - heat - explicit sinks.
+    /// This is not a whole-system conservation proof.
     pub balance: f64,
-    /// Fractional conservation error [0, 1].
+    /// Legacy-named local residual fraction. Infinity means invalid bookkeeping.
     pub conservation_error: f64,
+    /// True only when this tick's numeric flow inputs are valid; not a physics proof.
+    pub inputs_valid: bool,
+    /// Number of invalid/rejected numeric flow updates this tick.
+    pub invalid_flow_count: u64,
     /// Joules per unit Phi this tick (None if no Phi change).
     pub joules_per_phi: Option<f64>,
 }
@@ -376,6 +568,84 @@ mod tests {
 
         let rate = ledger.lifetime_error_rate();
         assert!((rate - 0.1).abs() < 1e-10, "error rate = {}", rate);
+    }
+
+    #[test]
+    fn regeneration_and_external_sinks_are_not_heat_dissipation() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_action(100.0, 0.5);
+        ledger.record_regeneration(20.0);
+        ledger.record_dissipation(110.0);
+        ledger.record_external_sink(10.0);
+        let balance = ledger.tick_balance();
+
+        assert!(balance.inputs_valid);
+        assert_eq!(balance.energy_in, 100.0);
+        assert_eq!(balance.energy_regenerated, 20.0);
+        assert_eq!(balance.energy_out, 110.0);
+        assert_eq!(balance.energy_removed, 10.0);
+        assert_eq!(balance.balance, 0.0);
+        assert_eq!(balance.conservation_error, 0.0);
+    }
+
+    #[test]
+    fn rejected_negative_flow_fails_tick_closed_without_mutation() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_dissipation(4.0);
+        assert_eq!(
+            ledger.try_record_dissipation(-1.0),
+            Err(LedgerInputError::NegativeFlow)
+        );
+        assert_eq!(ledger.energy_out, 4.0);
+
+        let balance = ledger.tick_balance();
+        assert!(!balance.inputs_valid);
+        assert_eq!(balance.invalid_flow_count, 1);
+        assert!(balance.conservation_error.is_infinite());
+        assert!(ledger.lifetime_error_rate().is_infinite());
+    }
+
+    #[test]
+    fn non_finite_and_out_of_range_phi_are_rejected() {
+        let mut ledger = ThermodynamicLedger::new();
+        assert_eq!(
+            ledger.try_record_action(1.0, f64::NAN),
+            Err(LedgerInputError::NonFiniteValue)
+        );
+        assert_eq!(
+            ledger.try_record_action(1.0, 1.01),
+            Err(LedgerInputError::PhiOutOfRange)
+        );
+        assert_eq!(ledger.energy_in, 0.0);
+        assert_eq!(ledger.phi_energy_integral, 0.0);
+        assert_eq!(ledger.invalid_flow_count, 2);
+        let result = ledger.tick_balance();
+        assert!(!result.inputs_valid);
+        assert!(result.conservation_error.is_infinite());
+    }
+
+    #[test]
+    fn accumulator_overflow_is_rejected_transactionally() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.energy_in = f64::MAX;
+        assert_eq!(
+            ledger.try_record_action(f64::MAX, 0.5),
+            Err(LedgerInputError::ArithmeticOverflow)
+        );
+        assert_eq!(ledger.energy_in, f64::MAX);
+        let result = ledger.tick_balance();
+        assert!(!result.inputs_valid);
+        assert!(result.conservation_error.is_infinite());
+    }
+
+    #[test]
+    fn zero_flows_remain_a_valid_empty_diagnostic() {
+        let mut ledger = ThermodynamicLedger::new();
+        let result = ledger.tick_balance();
+        assert!(result.inputs_valid);
+        assert_eq!(result.invalid_flow_count, 0);
+        assert_eq!(result.balance, 0.0);
+        assert_eq!(result.conservation_error, 0.0);
     }
 
     #[test]
