@@ -28,3 +28,11 @@ Evidence references are identifiers, not authentication. The calling system must
 ## Not yet implemented
 
 A process-operation model, resource-constrained schedule simulator, incumbent dispatch baselines, factory-data connectors, objective uncertainty propagation, lifecycle-impact calculator and Mycelix evidence receipt are future steps. The authored unit tests include a seeded independent exhaustive Pareto oracle, but no test execution or CI pass is claimed until exact-head checks finish.
+
+
+## Scheduling
+
+This crate includes a bounded single-stage scheduler with capability checks,
+release/due windows, evidence-backed sequence-dependent setup costs, hard
+energy/water budgets, deterministic dispatch baselines, and an exhaustive
+Pareto oracle for tiny instances. Benchmark contract: docs/ops/TEXTILE_SCHEDULER_BENCHMARK_V0_1.md.
