@@ -28,6 +28,8 @@ It rejects unpaired candidate sets, missing constraints/outcomes, unit mismatche
 
 Benchmark targets and proposed acceptance criteria: [benchmark targets v0.1](../../docs/research/joy-worlds/benchmark-targets-v0.1.md).
 
+The receipt includes **endpoint sensitivity**: conservative versus optimistic-envelope Pareto fronts, stable/uncertain membership, and one-objective-at-a-time frontier leverage. This helps prioritize follow-up measurement but is not formal expected value of information because it uses no probability distributions, stakeholder utility function or measurement costs. Optimistic values across objectives may come from different scenarios and need not be jointly attainable.
+
 ## Reproducible synthetic performance benchmark
 
 Generate a 10,000 candidate-scenario-pair workload with eight dimensions and collect seven timing samples. The benchmark emits the exact input SHA-256, input byte size, all timing samples, median and nearest-rank p95:

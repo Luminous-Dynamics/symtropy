@@ -326,6 +326,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
 
     let mut candidate_results = Vec::new();
     let mut robust_outcomes: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
+    let mut optimistic_outcomes: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
     let mut statuses: BTreeMap<String, String> = BTreeMap::new();
     let mut failed_by_candidate: BTreeMap<String, Vec<Value>> = BTreeMap::new();
     let mut unknown_by_candidate: BTreeMap<String, Vec<Value>> = BTreeMap::new();
@@ -402,6 +403,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         let mut all_robust_known = true;
         let mut outcome_envelopes = Vec::new();
         let mut candidate_robust = BTreeMap::new();
+        let mut candidate_optimistic = BTreeMap::new();
 
         for objective in &objectives {
             let observations: Vec<&Observation> = scenarios
@@ -455,6 +457,9 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
             if let Some(value) = worst_case {
                 candidate_robust.insert(objective.id.clone(), value);
             }
+            if let Some(value) = best_case {
+                candidate_optimistic.insert(objective.id.clone(), value);
+            }
             outcome_envelopes.push(json!({
                 "objective_id": objective.id,
                 "direction": objective.direction,
@@ -467,6 +472,7 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
 
         if candidate_status == "feasible_under_declared_assumptions" && all_robust_known {
             robust_outcomes.insert(candidate_id.clone(), candidate_robust);
+            optimistic_outcomes.insert(candidate_id.clone(), candidate_optimistic);
         }
         unknown_by_candidate.insert(candidate_id.clone(), {
             let mut items = unknown_constraints.clone();
@@ -513,6 +519,45 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         }
     }
 
+    let optimistic_frontier_ids = compute_frontier_ids(&optimistic_outcomes, &objectives);
+    let conservative_set: BTreeSet<String> = pareto_front_ids.iter().cloned().collect();
+    let optimistic_set: BTreeSet<String> = optimistic_frontier_ids.iter().cloned().collect();
+    let stable_frontier_ids: Vec<String> = conservative_set.intersection(&optimistic_set).cloned().collect();
+    let frontier_membership_uncertain_ids: Vec<String> = conservative_set
+        .symmetric_difference(&optimistic_set)
+        .cloned()
+        .collect();
+
+    // Single-objective endpoint sweeps identify which measurements can change
+    // frontier membership while all other dimensions remain at their conservative
+    // envelope. This is a non-probabilistic triage proxy, not formal expected VOI.
+    let objective_leverage: Vec<Value> = objectives.iter().map(|objective| {
+        let mut hybrid_outcomes = robust_outcomes.clone();
+        for (candidate_id, vector) in hybrid_outcomes.iter_mut() {
+            if let Some(optimistic_value) = optimistic_outcomes
+                .get(candidate_id)
+                .and_then(|outcomes| outcomes.get(&objective.id))
+            {
+                vector.insert(objective.id.clone(), *optimistic_value);
+            }
+        }
+        let hybrid_frontier_ids = compute_frontier_ids(&hybrid_outcomes, &objectives);
+        let hybrid_set: BTreeSet<String> = hybrid_frontier_ids.iter().cloned().collect();
+        let changed: Vec<String> = conservative_set.symmetric_difference(&hybrid_set).cloned().collect();
+        let newly_admitted: Vec<String> = hybrid_set.difference(&conservative_set).cloned().collect();
+        let removed: Vec<String> = conservative_set.difference(&hybrid_set).cloned().collect();
+        json!({
+            "objective_id": objective.id,
+            "unit": objective.unit,
+            "interpretation": "endpoint-sensitivity heuristic; not expected value of information",
+            "frontier_membership_change_count": changed.len(),
+            "changed_candidate_ids": changed,
+            "newly_admitted_candidate_ids": newly_admitted,
+            "removed_candidate_ids": removed,
+            "single_objective_optimistic_frontier_ids": hybrid_frontier_ids
+        })
+    }).collect();
+
     let excluded_from_pareto: Vec<Value> = statuses.iter()
         .filter(|(id, status)| status.as_str() != "feasible_under_declared_assumptions" || !robust_outcomes.contains_key(*id))
         .map(|(id, status)| json!({
@@ -541,10 +586,20 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
         "pareto_front_ids": pareto_front_ids,
         "dominated_feasible_ids": dominated_feasible_ids,
         "excluded_from_pareto": excluded_from_pareto,
+        "decision_sensitivity": {
+            "method": "endpoint-envelope Pareto sensitivity; no probabilities, stakeholder utility weights or measurement costs are assumed",
+            "conservative_frontier_ids": pareto_front_ids,
+            "optimistic_envelope_frontier_ids": optimistic_frontier_ids,
+            "stable_frontier_ids": stable_frontier_ids,
+            "frontier_membership_uncertain_ids": frontier_membership_uncertain_ids,
+            "objective_measurement_leverage": objective_leverage,
+            "caveat": "Optimistic endpoint values for different objectives may come from different scenarios and may not be jointly attainable. Use this only to triage follow-up measurement; it is not a causal estimate or formal value-of-information calculation."
+        },
         "methodology": {
             "hard_constraints": "A single fail in any declared scenario makes a candidate infeasible; any unresolved required constraint or outcome makes it not_evaluable unless a known failure already makes it infeasible.",
             "aggregation": "Conservative envelope uses lower bounds for maximize dimensions and upper bounds for minimize dimensions across all scenarios.",
             "ranking": "Pareto dominance only; no weighted aggregate score is constructed. Objective-specific dominance_tolerance values are expressed in each declared unit; there is no hidden universal epsilon.",
+            "decision_sensitivity": "Reports conservative-vs-optimistic envelope frontier changes and one-objective-at-a-time endpoint sensitivity. This is a non-probabilistic evidence-priority heuristic, not expected value of information.",
             "paired_comparison": "Every scenario must contain the same candidate IDs with consistent names and declared objective units.",
             "ordering": "Candidate and objective IDs are emitted deterministically in lexical order; scenario results retain input order.",
             "evidence": "Evidence references are carried through, but are not independently authenticated by this engine."
@@ -555,6 +610,22 @@ pub fn compare_scenarios_json(raw: &str) -> Result<Value, Vec<String>> {
             "Pareto-front membership is not a universal recommendation or a license to proceed."
         ]
     }))
+}
+
+fn compute_frontier_ids(
+    outcomes: &BTreeMap<String, BTreeMap<String, f64>>,
+    objectives: &[Objective],
+) -> Vec<String> {
+    let ids: Vec<String> = outcomes.keys().cloned().collect();
+    ids.iter()
+        .filter(|candidate_id| {
+            !ids.iter().any(|other_id| {
+                other_id != *candidate_id
+                    && dominates(&outcomes[*other_id], &outcomes[*candidate_id], objectives)
+            })
+        })
+        .cloned()
+        .collect()
 }
 
 fn dominates(a: &BTreeMap<String, f64>, b: &BTreeMap<String, f64>, objectives: &[Objective]) -> bool {
@@ -865,6 +936,44 @@ mod tests {
                 "independent Pareto oracle mismatch for encoded fixture {encoded} with values {values:?}"
             );
         }
+    }
+
+    #[test]
+    fn endpoint_sensitivity_identifies_frontier_changing_measurements() {
+        let mut raw: Value = serde_json::from_str(&mini_fixture(&[(5, 5), (6, 6), (0, 10)])).unwrap();
+        for scenario in raw["scenarios"].as_array_mut().unwrap() {
+            let candidate = scenario["candidates"].as_array_mut().unwrap()
+                .iter_mut()
+                .find(|candidate| candidate["id"] == "A").unwrap();
+            candidate["outcomes"]["quality"]["lower_bound"] = json!(1);
+            candidate["outcomes"]["quality"]["upper_bound"] = json!(10);
+            candidate["outcomes"]["water"]["lower_bound"] = json!(1);
+            candidate["outcomes"]["water"]["upper_bound"] = json!(10);
+        }
+
+        let receipt = compare_scenarios_json(&raw.to_string()).unwrap();
+        assert_eq!(receipt["decision_sensitivity"]["conservative_frontier_ids"], json!(["B"]));
+        assert_eq!(receipt["decision_sensitivity"]["optimistic_envelope_frontier_ids"], json!(["A"]));
+        assert_eq!(receipt["decision_sensitivity"]["frontier_membership_uncertain_ids"], json!(["A", "B"]));
+
+        let leverage = receipt["decision_sensitivity"]["objective_measurement_leverage"].as_array().unwrap();
+        assert_eq!(leverage.len(), 2);
+        assert!(leverage.iter().all(|entry| entry["frontier_membership_change_count"].as_u64().unwrap() > 0));
+        assert_eq!(
+            receipt["decision_sensitivity"]["method"],
+            "endpoint-envelope Pareto sensitivity; no probabilities, stakeholder utility weights or measurement costs are assumed"
+        );
+    }
+
+    #[test]
+    fn endpoint_sensitivity_never_reintroduces_infeasible_candidates() {
+        let receipt = compare_scenarios_json(&fixture()).unwrap();
+        assert!(!receipt["decision_sensitivity"]["conservative_frontier_ids"].as_array().unwrap()
+            .iter().any(|id| id == "unsafe"));
+        assert!(!receipt["decision_sensitivity"]["optimistic_envelope_frontier_ids"].as_array().unwrap()
+            .iter().any(|id| id == "unsafe"));
+        assert!(receipt["excluded_from_pareto"].as_array().unwrap()
+            .iter().any(|entry| entry["candidate_id"] == "unsafe" && entry["status"] == "infeasible"));
     }
 
     #[test]

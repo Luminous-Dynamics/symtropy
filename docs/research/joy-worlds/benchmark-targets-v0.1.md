@@ -17,6 +17,23 @@ The target suite should combine a small set of explicit negative controls with b
 
 Sources: [NIST Combinatorial Testing](https://www.nist.gov/programs-projects/combinatorial-testing) · [NIST SP 800-142, Practical Combinatorial Testing](https://csrc.nist.gov/pubs/sp/800/142/final) · [Rust proptest documentation](https://docs.rs/crate/proptest/latest). The current tests use dependency-free exhaustive loops; a future property-testing dependency is optional, not required to claim these exhaustive cases.
 
+## New paradigm: measure what can change the decision
+
+Optimizing model detail is not enough. The next experiment should target uncertainty that could change which options are considered non-dominated. The comparator now reports:
+- conservative and optimistic-envelope Pareto frontiers;
+- candidates whose frontier membership changes between those endpoint views;
+- one-objective-at-a-time endpoint leverage (which declared measurement dimension moves frontier membership when shifted from conservative to optimistic);
+- stable membership and a clear caveat that different optimistic endpoints may come from different scenarios.
+
+This is a **measurement-priority heuristic**, not formal value of information. A formal expected value of information calculation would additionally require defensible joint probability distributions, a locally approved utility/decision rule, measurement cost, and a defined decision horizon. We must not invent these from the synthetic fixture.
+
+### New benchmark gates
+
+| Gate | Benchmark | Proposed acceptance target | Method |
+|---|---|---|---|
+| B9: endpoint sensitivity | Frontier membership is computed separately from conservative and optimistic envelopes; one-objective-at-a-time leverage results are reproducible | 100% agreement with an independent reference on targeted tests; hard-infeasible candidates remain excluded in every frontier | Synthetic test where interval endpoints provably flip frontier membership plus negative controls |
+| B10: measurement prioritization integrity | Report heuristic status and warn that optimistic objective endpoints may not be jointly attainable | No output labels the heuristic as expected VOI, causal impact or probability | Schema assertions and report review; formal VOI is a separate future feature |
+
 ## Benchmark ladder
 
 | Gate | Benchmark | Acceptance target | Measurement method |
