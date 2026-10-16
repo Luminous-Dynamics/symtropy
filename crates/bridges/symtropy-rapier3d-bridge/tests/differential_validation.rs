@@ -681,6 +681,35 @@ fn isolated_free_fall_is_invariant_to_body_mass() {
 }
 
 #[test]
+fn analytical_free_fall_velocity_matches_closed_form_for_both_engines() {
+    let scenario = free_fall_at_dt(0.01);
+    let expected_velocity = [
+        scenario.bodies[0].linear_velocity_mps[0]
+            + scenario.gravity_mps2[0] * scenario.dt_s * scenario.steps as f64,
+        scenario.bodies[0].linear_velocity_mps[1]
+            + scenario.gravity_mps2[1] * scenario.dt_s * scenario.steps as f64,
+        scenario.bodies[0].linear_velocity_mps[2]
+            + scenario.gravity_mps2[2] * scenario.dt_s * scenario.steps as f64,
+    ];
+
+    for (backend, trace) in [
+        ("native", run_native_scenario_3d(&scenario).unwrap()),
+        ("Rapier", run_rapier_scenario_3d(&scenario).unwrap()),
+    ] {
+        let observed = &trace.final_sample().unwrap().bodies[0].linear_velocity_mps;
+        for axis in 0..3 {
+            let error = (observed[axis] - expected_velocity[axis]).abs();
+            assert!(
+                error < 2.0e-4,
+                "{backend} free-fall velocity disagrees with v(t)=v0+g*t on axis {axis}: observed={}, expected={}, error={error}",
+                observed[axis],
+                expected_velocity[axis]
+            );
+        }
+    }
+}
+
+#[test]
 fn native_and_rapier_keep_a_sphere_near_resting_contact() {
     let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
     for (backend, trace) in [
