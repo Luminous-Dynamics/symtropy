@@ -80,3 +80,8 @@ The event model is deterministic; it does not imply that real systems are determ
 - NIST, Community Resilience Planning Guide Volume II: dependencies and cascading effects. https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1190v2.pdf
 - NASA, Environmental Control and Life Support Systems: multiple coupled life-support functions and explicit resource recovery boundaries. https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/
 - Azadi et al. (2025), urban digital twins and socio-technical integration. https://doi.org/10.3390/smartcities8010032
+
+
+### Same-tick event boundary
+
+Events at one tick are applied in their unique sequence order and the settlement is evaluated once after the tick's entire event batch. If a component is marked Failed and then Available again at the same tick, the snapshot sees the final state only; the transient failure duration is not represented by this version. A scenario that needs the failure to affect service must place it on a separate tick or wait for a finer-grained event clock. Resource inflows within the same tick are accumulated and capacity-checked in sequence before demand allocation.
