@@ -37,7 +37,7 @@ These are software gates; use synthetic fixtures and mutation tests.
 | Unrelated invalidation | 0 | A claim depending only on an unchanged facet remains current |
 | Barrier precedence | 100% | A current hard barrier blocks even when another required claim is stale |
 | Stale barrier semantics | 100% fail-closed | A barrier tied only to the old configuration does not certify or automatically block the new configuration; current path becomes not evaluable |
-| Contradiction handling | 100% explicit | Conflicting current claims are unresolved; timestamps alone do not decide truth |
+| Contradiction handling | 100% explicit | Conflicting current claims with the same scope and assertion key are unresolved; distinct assertions do not conflict and timestamps alone do not decide truth |
 | Replay determinism | 100% exact | Same bytes and pinned build yield the same result and receipt |
 | Public fixture privacy | 0 real payloads | No resident identity, address, actual floorplan, personal notes or raw sensitive evidence in public examples |
 
