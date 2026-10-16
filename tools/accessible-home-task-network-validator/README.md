@@ -7,6 +7,7 @@ Standalone Rust semantic validator for the **synthetic** v0.2 resident task-netw
 From the repository root:
 
 ```sh
+cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
 cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --check
 cargo test --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
 cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- \
