@@ -10,6 +10,8 @@
 //!
 //! Usage:
 //!   housing-evidence-verify <manifest.json>
+//!   housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json>
+//!       --benchmark-sha256 <trusted-sha256-pin> --artifact-root <directory>
 //!       [--expected-claims <requirements.json>]
 //!       [--expected-claims-sha256 <sha256-pinned-out-of-band>]
 //!       [--artifact-root <directory>]
@@ -23,6 +25,7 @@
 //! Artifact URIs used by a PASS manifest must be safe, relative paths beneath
 //! --artifact-root. Remote retrieval is intentionally not supported.
 
+mod benchmark_result;
 mod home_design_brief;
 mod jurisdiction_registry;
 mod layout_candidate;
@@ -203,6 +206,54 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("rule evaluation receipt validation failed: {error}");
+                ExitCode::from(2)
+            }
+        };
+    }
+
+
+    if args.first().map(String::as_str) == Some("--validate-benchmark-result") {
+        if args.len() != 8
+            || args.get(2).map(String::as_str) != Some("--record")
+            || args.get(4).map(String::as_str) != Some("--benchmark-sha256")
+            || args.get(6).map(String::as_str) != Some("--artifact-root")
+            || !args.get(5).is_some_and(|value| {
+                value.len() == 64
+                    && value.bytes().all(|byte| {
+                        byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+                    })
+            })
+        {
+            eprintln!(
+                "Usage: housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json> --benchmark-sha256 <trusted-sha256-pin> --artifact-root <directory>"
+            );
+            return ExitCode::from(2);
+        }
+
+        return match benchmark_result::validate_paths(
+            Path::new(&args[1]),
+            Path::new(&args[3]),
+            &args[5],
+            Path::new(&args[7]),
+        ) {
+            Ok(report) => {
+                let accepted = report.independent_result_status == "REFERENCE_MATCH"
+                    && report.declared_status_consistent == Some(true);
+                match serde_json::to_string_pretty(&report) {
+                    Ok(output) => println!("{output}"),
+                    Err(error) => {
+                        eprintln!("failed to serialize benchmark result report: {error}");
+                        return ExitCode::from(2);
+                    }
+                }
+                if accepted {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(2)
+                }
+            }
+            Err(error) => {
+                eprintln!("benchmark result verification failed: {error}");
                 ExitCode::from(2)
             }
         };
@@ -393,6 +444,7 @@ fn usage() -> String {
         "       housing-evidence-verify --validate-jurisdiction-registry <registry.json>",
         "       housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json> --scope-profile-sha256 <trusted-sha256-pin>",
         "       housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>",
+        "       housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json> --benchmark-sha256 <trusted-sha256-pin> --artifact-root <directory>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
         "  [--artifact-root <directory>] [--require-pass]",
