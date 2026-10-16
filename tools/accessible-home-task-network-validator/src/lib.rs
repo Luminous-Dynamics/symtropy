@@ -566,7 +566,7 @@ mod tests {
 
     fn change_evidence(value: &mut Value, node_id: &str, state: &str) {
         let nodes = value["nodes"].as_array_mut().expect("nodes array");
-        let node = nodes.iter_mut().find(|node| node["id"] == node_id).expect("node exists");
+        let node = nodes.iter_mut().find(|node| node["id"].as_str() == Some(node_id)).expect("node exists");
         node["evidence_state"] = Value::String(state.to_owned());
     }
 
@@ -626,7 +626,8 @@ mod tests {
     #[test]
     fn duplicate_ids_across_different_entity_kinds_are_rejected() {
         let mut value = fixture_value();
-        value["edges"][0]["id"] = value["nodes"][0]["id"].clone();
+        let colliding_id = value["nodes"][0]["id"].clone();
+        value["edges"][0]["id"] = colliding_id;
         let error = evaluate_value(&value).unwrap_err().join("\n");
         assert!(error.contains("duplicate global id"));
     }
@@ -666,7 +667,7 @@ mod tests {
     #[test]
     fn outcome_must_terminate_each_path() {
         let mut value = fixture_value();
-        value["nodes"][3]["kind"] = Value::String("outcome".to_owned());
+        value["nodes"][4]["kind"] = Value::String("action".to_owned());
         let error = evaluate_value(&value).unwrap_err().join("\n");
         assert!(error.contains("must end at an outcome node"));
     }
@@ -695,7 +696,7 @@ mod tests {
     fn optional_unknown_node_does_not_make_a_path_fail() {
         let mut value = fixture_value();
         let node = value["nodes"].as_array_mut().unwrap()
-            .iter_mut().find(|node| node["id"] == "local-tactile-signal").unwrap();
+            .iter_mut().find(|node| node["id"].as_str() == Some("local-tactile-signal")).unwrap();
         node["required"] = Value::Bool(false);
         node["evidence_state"] = Value::String("unknown".to_owned());
         let report = evaluate_value(&value).expect("optional node is advisory in this contract");
