@@ -92,19 +92,6 @@ fn number_field(value: &Value, key: &str, path: &str, errors: &mut Vec<String>) 
     }
 }
 
-fn optional_number_field(value: &Value, key: &str, path: &str, fallback: f64, errors: &mut Vec<String>) -> Option<f64> {
-    match value.get(key) {
-        None | Some(Value::Null) => Some(fallback),
-        Some(raw) => match raw.as_f64() {
-            Some(number) if number.is_finite() => Some(number),
-            _ => {
-                errors.push(format!("{path}.{key}: expected a finite number when present"));
-                None
-            }
-        },
-    }
-}
-
 fn parse_observation(
     raw: &Value,
     objective: &Objective,
@@ -139,9 +126,10 @@ fn parse_observation(
     }
 
     let value = number_field(raw, "value", path, errors);
-    let fallback = value.unwrap_or(0.0);
-    let lower_bound = optional_number_field(raw, "lower_bound", path, fallback, errors);
-    let upper_bound = optional_number_field(raw, "upper_bound", path, fallback, errors);
+    // A missing interval must never silently imply zero uncertainty. Exact
+    // point estimates must explicitly set lower_bound == value == upper_bound.
+    let lower_bound = number_field(raw, "lower_bound", path, errors);
+    let upper_bound = number_field(raw, "upper_bound", path, errors);
     if let (Some(value), Some(lower), Some(upper)) = (value, lower_bound, upper_bound) {
         if lower > value || value > upper || lower > upper {
             errors.push(format!(
@@ -620,8 +608,12 @@ fn compute_frontier_ids(
     ids.iter()
         .filter(|candidate_id| {
             !ids.iter().any(|other_id| {
-                other_id != *candidate_id
-                    && dominates(&outcomes[*other_id], &outcomes[*candidate_id], objectives)
+                if other_id == *candidate_id {
+                    return false;
+                }
+                let other = outcomes.get(other_id).expect("IDs were collected from this map");
+                let candidate = outcomes.get(*candidate_id).expect("IDs were collected from this map");
+                dominates(other, candidate, objectives)
             })
         })
         .cloned()
@@ -772,7 +764,237 @@ mod tests {
     }
 
     #[test]
+    fn rejects_missing_uncertainty_bounds_instead_of_treating_estimate_as_exact() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        raw["scenarios"][0]["candidates"][0]["outcomes"]["visitor_quality"]
+            .as_object_mut().unwrap().remove("lower_bound");
+        let errors = compare_scenarios_json(&raw.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("lower_bound: expected a finite JSON number")));
+    }
+
+    #[test]
     fn rejects_invalid_uncertainty_bounds() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        raw["scenarios"][0]["candidates"][0]["outcomes"]["visitor_quality"]["lower_bound"] = json!(33.0);
+        let errors = compare_scenarios_json(&raw.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("bounds must satisfy")));
+    }
+
+    #[test]
+    fn receipt_binds_exact_input_bytes_with_sha256() {
+        let raw = fixture();
+        let receipt = compare_scenarios_json(&raw).unwrap();
+        let expected = format!("{:x}", Sha256::digest(raw.as_bytes()));
+        assert_eq!(receipt["input_sha256"], expected);
+        assert_eq!(receipt["input_bytes"].as_u64(), Some(raw.len() as u64));
+    }
+
+    #[test]
+    fn receipt_is_deterministic_for_identical_input() {
+        let raw = fixture();
+        let first = compare_scenarios_json(&raw).unwrap().to_string();
+        let second = compare_scenarios_json(&raw).unwrap().to_string();
+        assert_eq!(first, second);
+    }
+
+
+    fn mini_candidate(id: &str, quality: i64, water: i64) -> Value {
+        json!({
+            "id": id,
+            "name": format!("Candidate {id}"),
+            "constraint_checks": [
+                {"id":"rights","status":"pass","evidence_ref":format!("synthetic://mini/{id}/rights")},
+                {"id":"safety","status":"pass","evidence_ref":format!("synthetic://mini/{id}/safety")}
+            ],
+            "outcomes": {
+                "quality": {
+                    "status":"known","value":quality,"lower_bound":quality,"upper_bound":quality,
+                    "unit":"points","evidence_ref":format!("synthetic://mini/{id}/quality")
+                },
+                "water": {
+                    "status":"known","value":water,"lower_bound":water,"upper_bound":water,
+                    "unit":"m3/year","evidence_ref":format!("synthetic://mini/{id}/water")
+                }
+            }
+        })
+    }
+
+    fn mini_fixture(values: &[(i64, i64); 3]) -> String {
+        let candidates = vec![
+            mini_candidate("A", values[0].0, values[0].1),
+            mini_candidate("B", values[1].0, values[1].1),
+            mini_candidate("C", values[2].0, values[2].1)
+        ];
+        json!({
+            "schema_version":"0.1.0",
+            "artifact_id":"test.bounded-pareto-oracle",
+            "status":"synthetic_fixture",
+            "non_claims":["Bounded mathematical fixture only."],
+            "required_hard_constraints":["rights","safety"],
+            "objective_dimensions":[
+                {"id":"quality","unit":"points","direction":"maximize","dominance_tolerance":0.0},
+                {"id":"water","unit":"m3/year","direction":"minimize","dominance_tolerance":0.0}
+            ],
+            "scenarios":[
+                {"id":"base","assumptions_ref":"synthetic://mini/base","candidates":candidates.clone()},
+                {"id":"stress","assumptions_ref":"synthetic://mini/stress","candidates":candidates}
+            ]
+        }).to_string()
+    }
+
+    #[test]
+    fn all_81_four_constraint_state_combinations_fail_closed() {
+        let states = ["pass", "fail", "unknown"];
+        for encoded in 0_u32..81 {
+            let mut remainder = encoded;
+            let mut state_vector = ["pass"; 4];
+            for state in &mut state_vector {
+                *state = states[(remainder % 3) as usize];
+                remainder /= 3;
+            }
+
+            let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+            let constraints = [
+                "rights_and_access",
+                "safety_case",
+                "resource_envelope",
+                "ecological_capacity"
+            ];
+            for (index, constraint_id) in constraints.iter().enumerate() {
+                let candidate = raw["scenarios"][0]["candidates"].as_array_mut().unwrap()
+                    .iter_mut()
+                    .find(|candidate| candidate["id"] == "baseline").unwrap();
+                let check = candidate["constraint_checks"].as_array_mut().unwrap()
+                    .iter_mut()
+                    .find(|check| check["id"] == *constraint_id).unwrap();
+                check["status"] = json!(state_vector[index]);
+            }
+
+            let receipt = compare_scenarios_json(&raw.to_string())
+                .unwrap_or_else(|errors| panic!("constraint combination {encoded} rejected: {errors:?}"));
+            let candidate = receipt["candidate_results"].as_array().unwrap()
+                .iter().find(|candidate| candidate["candidate_id"] == "baseline").unwrap();
+            let expected = if state_vector.contains(&"fail") {
+                "infeasible"
+            } else if state_vector.contains(&"unknown") {
+                "not_evaluable"
+            } else {
+                "feasible_under_declared_assumptions"
+            };
+            assert_eq!(candidate["status"], expected, "constraint states {state_vector:?}");
+            let in_front = receipt["pareto_front_ids"].as_array().unwrap()
+                .iter().any(|id| id == "baseline");
+            assert_eq!(
+                in_front,
+                expected == "feasible_under_declared_assumptions",
+                "frontier constraint leak for state vector {state_vector:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn bounded_exhaustive_pareto_agrees_with_independent_oracle() {
+        // Exhaust all 3^6 assignments of three candidate quality/water pairs.
+        // The reference front is computed directly from the source values,
+        // independently of the engine's aggregation and dominates helper.
+        for encoded in 0_u32..729 {
+            let mut remainder = encoded;
+            let mut digits = [0_i64; 6];
+            for digit in &mut digits {
+                *digit = (remainder % 3) as i64;
+                remainder /= 3;
+            }
+            let values = [
+                (digits[0], digits[1]),
+                (digits[2], digits[3]),
+                (digits[4], digits[5]),
+            ];
+            let receipt = compare_scenarios_json(&mini_fixture(&values))
+                .unwrap_or_else(|errors| panic!("fixture {encoded} rejected: {errors:?}"));
+
+            let ids = ["A", "B", "C"];
+            let mut expected = Vec::new();
+            for i in 0..3 {
+                let mut dominated = false;
+                for j in 0..3 {
+                    if i == j {
+                        continue;
+                    }
+                    let no_worse = values[j].0 >= values[i].0 && values[j].1 <= values[i].1;
+                    let strictly_better = values[j].0 > values[i].0 || values[j].1 < values[i].1;
+                    if no_worse && strictly_better {
+                        dominated = true;
+                        break;
+                    }
+                }
+                if !dominated {
+                    expected.push(ids[i]);
+                }
+            }
+            assert_eq!(
+                receipt["pareto_front_ids"],
+                json!(expected),
+                "independent Pareto oracle mismatch for encoded fixture {encoded} with values {values:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn endpoint_sensitivity_identifies_frontier_changing_measurements() {
+        let mut raw: Value = serde_json::from_str(&mini_fixture(&[(5, 5), (6, 6), (0, 10)])).unwrap();
+        for scenario in raw["scenarios"].as_array_mut().unwrap() {
+            let candidate = scenario["candidates"].as_array_mut().unwrap()
+                .iter_mut()
+                .find(|candidate| candidate["id"] == "A").unwrap();
+            candidate["outcomes"]["quality"]["lower_bound"] = json!(1);
+            candidate["outcomes"]["quality"]["upper_bound"] = json!(10);
+            candidate["outcomes"]["water"]["lower_bound"] = json!(1);
+            candidate["outcomes"]["water"]["upper_bound"] = json!(10);
+        }
+
+        let receipt = compare_scenarios_json(&raw.to_string()).unwrap();
+        assert_eq!(receipt["decision_sensitivity"]["conservative_frontier_ids"], json!(["B"]));
+        assert_eq!(receipt["decision_sensitivity"]["optimistic_envelope_frontier_ids"], json!(["A"]));
+        assert_eq!(receipt["decision_sensitivity"]["frontier_membership_uncertain_ids"], json!(["A", "B"]));
+
+        let leverage = receipt["decision_sensitivity"]["objective_measurement_leverage"].as_array().unwrap();
+        assert_eq!(leverage.len(), 2);
+        assert!(leverage.iter().all(|entry| entry["frontier_membership_change_count"].as_u64().unwrap() > 0));
+        assert_eq!(
+            receipt["decision_sensitivity"]["method"],
+            "endpoint-envelope Pareto sensitivity; no probabilities, stakeholder utility weights or measurement costs are assumed"
+        );
+    }
+
+    #[test]
+    fn endpoint_sensitivity_never_reintroduces_infeasible_candidates() {
+        let receipt = compare_scenarios_json(&fixture()).unwrap();
+        assert!(!receipt["decision_sensitivity"]["conservative_frontier_ids"].as_array().unwrap()
+            .iter().any(|id| id == "unsafe"));
+        assert!(!receipt["decision_sensitivity"]["optimistic_envelope_frontier_ids"].as_array().unwrap()
+            .iter().any(|id| id == "unsafe"));
+        assert!(receipt["excluded_from_pareto"].as_array().unwrap()
+            .iter().any(|entry| entry["candidate_id"] == "unsafe" && entry["status"] == "infeasible"));
+    }
+
+    #[test]
+    fn scenario_order_does_not_change_pareto_membership() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        let expected = compare_scenarios_json(&raw.to_string()).unwrap()["pareto_front_ids"].clone();
+        raw["scenarios"].as_array_mut().unwrap().reverse();
+        let actual = compare_scenarios_json(&raw.to_string()).unwrap()["pareto_front_ids"].clone();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn rejects_non_synthetic_input_by_default() {
+        let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
+        raw["status"] = json!("site_validated");
+        let errors = compare_scenarios_json(&raw.to_string()).unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("only explicitly labelled synthetic_fixture")));
+    }
+}
+
         let mut raw: Value = serde_json::from_str(&fixture()).unwrap();
         raw["scenarios"][0]["candidates"][0]["outcomes"]["visitor_quality"]["lower_bound"] = json!(33.0);
         let errors = compare_scenarios_json(&raw.to_string()).unwrap_err();
