@@ -4,6 +4,16 @@ Dependency-free primitives for the first Textile Process Optimization Benchmark 
 
 This crate is intentionally not a factory simulator or process controller. It evaluates already-declared candidate objective values and evidence-bearing hard gates. It does not predict quality, calculate environmental impacts from first principles, authenticate evidence, perform lifecycle assessment, or control equipment. The scheduling module produces planning outputs from caller-supplied durations, resource quantities, and evidence; it is not a factory simulator or equipment controller. Job readiness gates are preconditions; finished-product condition and quality acceptance must be measured separately and are never inferred from a planned finish. Each schedule also declares one shared time-unit ID alongside the energy and water unit IDs.
 
+## Robust stress evaluation
+
+The stress module evaluates explicit processing-time delays, input-release delays,
+and pre-horizon machine-availability shocks against both the bounded exact solver
+and all three dispatch baselines. The result preserves each fixture reference,
+exact feasibility outcome, concrete heuristic plan (if found), profile/service
+identifiers, and per-objective gaps. This is an equally enumerated stress corpus,
+not an estimate of real-world disruption probabilities. Full protocol and
+proposed acceptance targets: docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md.
+
 ## Run locally
 
 ```sh
