@@ -6,7 +6,7 @@ use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
 use symtropy_physics::PhysicsWorld;
 use symtropy_physics::broadphase::{
-    find_pairs, find_pairs_incremental, BroadphasePair, StaticBroadphase,
+    BroadphasePair, StaticBroadphase, find_pairs, find_pairs_incremental,
 };
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
@@ -298,9 +298,7 @@ fn static_heavy_fixture(
     (bodies, static_bp)
 }
 
-fn canonical_broadphase_pairs(
-    mut pairs: Vec<BroadphasePair>,
-) -> Vec<(BodyHandle, BodyHandle)> {
+fn canonical_broadphase_pairs(mut pairs: Vec<BroadphasePair>) -> Vec<(BodyHandle, BodyHandle)> {
     assert!(
         pairs.iter().all(|pair| pair.0 < pair.1),
         "broadphase pair handles must be normalized"
@@ -323,15 +321,13 @@ fn bench_broadphase_static_heavy_crossover(c: &mut Criterion) {
     ] {
         for static_count in [1_000usize, 10_000usize] {
             for dynamic_count in [8usize, 32usize] {
-                let (bodies, static_bp) =
-                    static_heavy_fixture(static_count, dynamic_count, layout);
+                let (bodies, static_bp) = static_heavy_fixture(static_count, dynamic_count, layout);
                 let full_pairs = canonical_broadphase_pairs(find_pairs(&bodies));
-                let incremental_pairs = canonical_broadphase_pairs(find_pairs_incremental(
-                    &bodies,
-                    &static_bp,
-                ));
+                let incremental_pairs =
+                    canonical_broadphase_pairs(find_pairs_incremental(&bodies, &static_bp));
                 assert_eq!(
-                    incremental_pairs, full_pairs,
+                    incremental_pairs,
+                    full_pairs,
                     "incremental/full-LBVH pair mismatch: {} static, {} dynamic, {} layout",
                     static_count,
                     dynamic_count,
