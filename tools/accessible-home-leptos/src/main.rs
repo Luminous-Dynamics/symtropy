@@ -187,7 +187,7 @@ fn App() -> impl IntoView {
                     <div><p class="eyebrow">"INTERSECTIONS MATTER"</p><h2 id="tensions-heading">"Catch conflicts before they become barriers."</h2><p class="section-lede">"Some useful adaptations interact. These are design questions to work through with the resident and qualified professionals, not automatic answers."</p></div>
                 </div>
                 <div class="tensions-list">{tension_cards}</div>
-                <button type="button" class="text-button" aria-expanded=move || if show_all_tensions.get() { "true" } else { "false" } on:click=move |_| show_all_tensions.update(|value| *value = !*value)>
+                <button type="button" class="text-button" aria-expanded=move || if show_all_tensions.get() { "true" } else { "false" } on:click=move |_| set_show_all_tensions.update(|value| *value = !*value)>
                     {move || if show_all_tensions.get() { "Hide all additional design tensions" } else { "Review all design tensions" }}<span aria-hidden="true">"⌄"</span>
                 </button>
                 <Show when=move || show_all_tensions.get()>
@@ -209,7 +209,7 @@ fn App() -> impl IntoView {
                     <div class="brief-panel">
                         <div class="brief-panel-head"><div><p class="eyebrow">"DESIGN BRIEF"</p><h3>"Your included prompts"</h3></div><span class="count-tag">{move || format!("{} items", included_ids.get().len())}</span></div>
                         <ul class="brief-list">{included_rows}</ul>
-                        <button type="button" class="button-primary" on:click=move |_| show_brief.update(|visible| *visible = !*visible)>
+                        <button type="button" class="button-primary" on:click=move |_| set_show_brief.update(|visible| *visible = !*visible)>
                             {move || if show_brief.get() { "Hide copy-ready brief" } else { "Generate copy-ready brief" }}<span aria-hidden="true">"→"</span>
                         </button>
                         <Show when=move || show_brief.get()>
