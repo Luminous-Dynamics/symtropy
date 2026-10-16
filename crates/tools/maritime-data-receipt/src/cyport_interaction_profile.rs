@@ -621,6 +621,473 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
     })
 }
 
+
+const MAX_SPLIT_MANIFEST_BYTES: usize = 500_000;
+const SPLIT_ROOT_KEYS: &[&str] = &[
+    "schema_id", "schema_version", "status", "source", "policy",
+    "split_summary", "total_unique_storms", "total_interaction_rows",
+    "outcomes_excluded_from_manifest", "episodes",
+];
+const SPLIT_SOURCE_KEYS: &[&str] = &[
+    "repository", "revision", "path", "git_blob_sha1", "byte_length",
+    "license_statement", "license_uri", "citation",
+];
+const SPLIT_POLICY_KEYS: &[&str] = &[
+    "split_unit", "date_basis", "train", "calibration", "test",
+    "leakage_rule", "external_holdout_caveat",
+];
+const SPLIT_SUMMARY_KEYS: &[&str] = &[
+    "storms", "interaction_rows", "first_event_start", "last_event_start",
+];
+const EPISODE_KEYS: &[&str] = &[
+    "sid", "first_event_start", "last_event_start", "interaction_rows", "split",
+];
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct SplitManifestValidationReport {
+    status: &'static str,
+    schema_id: &'static str,
+    schema_version: &'static str,
+    manifest_sha256: String,
+    manifest_byte_length: usize,
+    source_revision: &'static str,
+    source_path: &'static str,
+    source_git_blob_sha1: &'static str,
+    episode_count: usize,
+    interaction_row_count: u64,
+    split_summaries: Vec<SplitSummary>,
+    source_bytes_compared: bool,
+    predictive_validation_performed: bool,
+    claim_ceiling: &'static str,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct EpisodeSplitComparisonReport {
+    status: &'static str,
+    source_git_blob_sha1_observed: String,
+    source_sha256_observed: String,
+    source_byte_length: usize,
+    source_identity_verified: bool,
+    split_manifest_sha256: String,
+    split_manifest_byte_length: usize,
+    cyclone_groups_compared: usize,
+    interaction_rows_compared: usize,
+    split_summaries: Vec<SplitSummary>,
+    data_capture_persisted: bool,
+    predictive_validation_performed: bool,
+    claim_ceiling: &'static str,
+}
+
+struct ParsedSplitManifest {
+    sha256: String,
+    byte_length: usize,
+    episodes: Vec<StormEpisodeSplit>,
+    split_summaries: Vec<SplitSummary>,
+    total_interaction_rows: u64,
+}
+
+fn manifest_text<'a>(root: &'a JsonValue, key: &str, path: &str) -> Result<&'a str, String> {
+    super::text(super::field(root, key, path)?, &format!("{path}.{key}"))
+}
+
+fn valid_iso_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 10
+        || bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || !bytes.iter().enumerate().all(|(index, byte)| {
+            index == 4 || index == 7 || byte.is_ascii_digit()
+        })
+    {
+        return false;
+    }
+    let year = match value[0..4].parse::<u32>() {
+        Ok(value) if value > 0 => value,
+        _ => return false,
+    };
+    let month = match value[5..7].parse::<u32>() {
+        Ok(value) => value,
+        _ => return false,
+    };
+    let day = match value[8..10].parse::<u32>() {
+        Ok(value) => value,
+        _ => return false,
+    };
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => 0,
+    };
+    day > 0 && day <= max_day
+}
+
+fn split_from_iso_date(date: &str) -> Result<&'static str, String> {
+    if !valid_iso_date(date) {
+        return Err(format!("invalid canonical ISO date {date:?}"));
+    }
+    let year = date[0..4]
+        .parse::<u32>()
+        .map_err(|_| format!("invalid date year in {date:?}"))?;
+    Ok(if year <= 2020 {
+        "train"
+    } else if year == 2021 {
+        "calibration"
+    } else {
+        "test"
+    })
+}
+
+fn compute_split_summaries(episodes: &[StormEpisodeSplit]) -> Result<Vec<SplitSummary>, String> {
+    let names = ["train", "calibration", "test"];
+    let mut result = Vec::with_capacity(names.len());
+    for name in names {
+        let group: Vec<&StormEpisodeSplit> = episodes
+            .iter()
+            .filter(|episode| episode.split == name)
+            .collect();
+        let mut row_count = 0u64;
+        let mut first_dates = Vec::new();
+        let mut last_dates = Vec::new();
+        for episode in &group {
+            row_count = row_count
+                .checked_add(episode.interaction_rows as u64)
+                .ok_or_else(|| format!("split {name}: interaction row count overflow"))?;
+            first_dates.push(episode.first_event_start.as_str());
+            last_dates.push(episode.last_event_start.as_str());
+        }
+        first_dates.sort_unstable();
+        last_dates.sort_unstable();
+        let first = first_dates
+            .first()
+            .ok_or_else(|| format!("split {name} must contain at least one episode"))?;
+        let last = last_dates
+            .last()
+            .ok_or_else(|| format!("split {name} must contain at least one episode"))?;
+        result.push(SplitSummary {
+            split: match name {
+                "train" => "train",
+                "calibration" => "calibration",
+                _ => "test",
+            },
+            storm_count: group.len(),
+            interaction_rows: usize::try_from(row_count)
+                .map_err(|_| format!("split {name}: row count overflows platform size"))?,
+            unique_port_ids: 0,
+            first_event_start: first.to_string(),
+            last_event_start: last.to_string(),
+        });
+    }
+    Ok(result)
+}
+
+fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitManifest), String> {
+    if bytes.len() > MAX_SPLIT_MANIFEST_BYTES {
+        return Err(format!("CyPort episode split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
+    }
+    let root = super::parse_strict(bytes)?;
+    super::exact_keys(&root, SPLIT_ROOT_KEYS, "split_manifest")?;
+    super::expect_text(
+        super::field(&root, "schema_id", "split_manifest")?,
+        "split_manifest.schema_id",
+        "luminous.symtropy.maritime.cyport-episode-split",
+    )?;
+    super::expect_text(
+        super::field(&root, "schema_version", "split_manifest")?,
+        "split_manifest.schema_version",
+        "0.1.0",
+    )?;
+    super::expect_text(
+        super::field(&root, "status", "split_manifest")?,
+        "split_manifest.status",
+        "FROZEN_PRE_FIT_TEMPORAL_SPLIT_FROM_PINNED_SOURCE",
+    )?;
+    if !super::bool_value(
+        super::field(&root, "outcomes_excluded_from_manifest", "split_manifest")?,
+        "split_manifest.outcomes_excluded_from_manifest",
+    )? {
+        return Err("split_manifest.outcomes_excluded_from_manifest must remain true".to_owned());
+    }
+
+    let source = super::field(&root, "source", "split_manifest")?;
+    super::exact_keys(source, SPLIT_SOURCE_KEYS, "split_manifest.source")?;
+    super::expect_text(
+        super::field(source, "repository", "split_manifest.source")?,
+        "split_manifest.source.repository",
+        "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+    )?;
+    super::expect_text(
+        super::field(source, "revision", "split_manifest.source")?,
+        "split_manifest.source.revision",
+        PINNED_REVISION,
+    )?;
+    super::expect_text(
+        super::field(source, "path", "split_manifest.source")?,
+        "split_manifest.source.path",
+        "Tropical_cyclone_interaction/interaction_data.csv",
+    )?;
+    super::expect_text(
+        super::field(source, "git_blob_sha1", "split_manifest.source")?,
+        "split_manifest.source.git_blob_sha1",
+        PINNED_GIT_BLOB_SHA1,
+    )?;
+    if super::integer(
+        super::field(source, "byte_length", "split_manifest.source")?,
+        "split_manifest.source.byte_length",
+    )? != PINNED_BYTES as u64 {
+        return Err("split_manifest source byte length does not match the pinned CSV".to_owned());
+    }
+    super::expect_text(
+        super::field(source, "license_uri", "split_manifest.source")?,
+        "split_manifest.source.license_uri",
+        "https://creativecommons.org/licenses/by/4.0/",
+    )?;
+
+    let policy = super::field(&root, "policy", "split_manifest")?;
+    super::exact_keys(policy, SPLIT_POLICY_KEYS, "split_manifest.policy")?;
+    let expected_policy = [
+        ("split_unit", "cyclone SID"),
+        ("date_basis", "earliest start_date among all interaction rows belonging to the SID"),
+        ("train", "earliest event start on or before 2020-12-31"),
+        ("calibration", "earliest event start during calendar year 2021"),
+        ("test", "earliest event start on or after 2022-01-01"),
+        ("leakage_rule", "Every port-interaction row associated with one SID belongs to exactly one split. No row-level or port-row randomization is permitted."),
+    ];
+    for (key, expected) in expected_policy {
+        super::expect_text(
+            super::field(policy, key, "split_manifest.policy")?,
+            &format!("split_manifest.policy.{key}"),
+            expected,
+        )?;
+    }
+    let caveat = manifest_text(policy, "external_holdout_caveat", "split_manifest.policy")?;
+    if !caveat.contains("not a secret blind test") {
+        return Err("split_manifest must state public-data holdout limitations".to_owned());
+    }
+
+    let episodes_json = super::array(
+        super::field(&root, "episodes", "split_manifest")?,
+        "split_manifest.episodes",
+    )?;
+    if episodes_json.is_empty() {
+        return Err("split_manifest.episodes must not be empty".to_owned());
+    }
+    let mut episodes = Vec::with_capacity(episodes_json.len());
+    let mut storm_ids = BTreeSet::new();
+    let mut previous_sort_key: Option<(String, String)> = None;
+    let mut computed_rows = 0u64;
+    for (index, value) in episodes_json.iter().enumerate() {
+        let path = format!("split_manifest.episodes[{index}]");
+        super::exact_keys(value, EPISODE_KEYS, &path)?;
+        let storm_id = manifest_text(value, "sid", &path)?.to_owned();
+        if storm_id.trim().is_empty() || !storm_ids.insert(storm_id.clone()) {
+            return Err(format!("{path}.sid: empty or duplicate cyclone ID"));
+        }
+        let first = manifest_text(value, "first_event_start", &path)?.to_owned();
+        let last = manifest_text(value, "last_event_start", &path)?.to_owned();
+        if !valid_iso_date(&first) || !valid_iso_date(&last) || last < first {
+            return Err(format!("{path}: invalid or reverse event-start date range"));
+        }
+        let expected_split = split_from_iso_date(&first)?;
+        super::expect_text(
+            super::field(value, "split", &path)?,
+            &format!("{path}.split"),
+            expected_split,
+        )?;
+        let rows = super::integer(
+            super::field(value, "interaction_rows", &path)?,
+            &format!("{path}.interaction_rows"),
+        )?;
+        if rows == 0 {
+            return Err(format!("{path}.interaction_rows must be positive"));
+        }
+        computed_rows = computed_rows
+            .checked_add(rows)
+            .ok_or_else(|| "split manifest interaction row count overflow".to_owned())?;
+        let sort_key = (first.clone(), storm_id.clone());
+        if previous_sort_key.as_ref().is_some_and(|previous| previous > &sort_key) {
+            return Err(format!("{path}: episodes must be sorted by first date then cyclone ID"));
+        }
+        previous_sort_key = Some(sort_key);
+        episodes.push(StormEpisodeSplit {
+            storm_id,
+            first_event_start: first,
+            last_event_start: last,
+            split: expected_split,
+            interaction_rows: usize::try_from(rows)
+                .map_err(|_| format!("{path}.interaction_rows overflows platform size"))?,
+            unique_port_ids: 0,
+        });
+    }
+    if episodes.len() != 90 {
+        return Err(format!("split manifest: expected 90 cyclone groups, found {}", episodes.len()));
+    }
+    if super::integer(
+        super::field(&root, "total_unique_storms", "split_manifest")?,
+        "split_manifest.total_unique_storms",
+    )? != episodes.len() as u64 {
+        return Err("split_manifest.total_unique_storms does not match episode count".to_owned());
+    }
+    let declared_rows = super::integer(
+        super::field(&root, "total_interaction_rows", "split_manifest")?,
+        "split_manifest.total_interaction_rows",
+    )?;
+    if declared_rows != computed_rows || computed_rows != 1_927 {
+        return Err(format!("split manifest row count mismatch: episodes sum to {computed_rows}, declared {declared_rows}"));
+    }
+
+    let summaries_json = super::field(&root, "split_summary", "split_manifest")?;
+    super::exact_keys(summaries_json, &["train", "calibration", "test"], "split_manifest.split_summary")?;
+    let computed_summaries = compute_split_summaries(&episodes)?;
+    for summary in &computed_summaries {
+        let actual = super::field(summaries_json, summary.split, "split_manifest.split_summary")?;
+        super::exact_keys(actual, SPLIT_SUMMARY_KEYS, &format!("split_manifest.split_summary.{}", summary.split))?;
+        let actual_storms = super::integer(super::field(actual, "storms", summary.split)?, "split_summary.storms")?;
+        let actual_rows = super::integer(super::field(actual, "interaction_rows", summary.split)?, "split_summary.interaction_rows")?;
+        let actual_first = manifest_text(actual, "first_event_start", summary.split)?;
+        let actual_last = manifest_text(actual, "last_event_start", summary.split)?;
+        if actual_storms != summary.storm_count as u64
+            || actual_rows != summary.interaction_rows as u64
+            || actual_first != summary.first_event_start
+            || actual_last != summary.last_event_start
+        {
+            return Err(format!("split manifest summary drift for {}", summary.split));
+        }
+    }
+
+    Ok((
+        root,
+        ParsedSplitManifest {
+            sha256: super::sha256_bytes(bytes),
+            byte_length: bytes.len(),
+            episodes,
+            split_summaries: computed_summaries,
+            total_interaction_rows: computed_rows,
+        },
+    ))
+}
+
+fn validate_and_report_split_manifest(bytes: &[u8]) -> Result<SplitManifestValidationReport, String> {
+    let (_root, manifest) = parse_episode_split_manifest(bytes)?;
+    Ok(SplitManifestValidationReport {
+        status: "EPISODE_SPLIT_MANIFEST_VALIDATED_NOT_SOURCE_RECOMPUTED",
+        schema_id: "luminous.symtropy.maritime.cyport-episode-split",
+        schema_version: "0.1.0",
+        manifest_sha256: manifest.sha256,
+        manifest_byte_length: manifest.byte_length,
+        source_revision: PINNED_REVISION,
+        source_path: "Tropical_cyclone_interaction/interaction_data.csv",
+        source_git_blob_sha1: PINNED_GIT_BLOB_SHA1,
+        episode_count: manifest.episodes.len(),
+        interaction_row_count: manifest.total_interaction_rows,
+        split_summaries: manifest.split_summaries,
+        source_bytes_compared: false,
+        predictive_validation_performed: false,
+        claim_ceiling: "Frozen split-manifest structure and internal totals checked only; raw source bytes and all episode assignments have not been recomputed by this command.",
+    })
+}
+
+fn compare_episode_manifest_to_profile(
+    manifest: &ParsedSplitManifest,
+    profile: &CyPortInteractionReport,
+) -> Result<(), String> {
+    if !profile.pinned_source_identity_verified {
+        return Err("source identity must match pinned CyPort Git blob before split comparison".to_owned());
+    }
+    if manifest.episodes.len() != profile.episode_groups.len() {
+        return Err(format!(
+            "source/manifest cyclone count mismatch: {} vs {}",
+            profile.episode_groups.len(),
+            manifest.episodes.len()
+        ));
+    }
+    for (index, (expected, actual)) in manifest.episodes.iter().zip(&profile.episode_groups).enumerate() {
+        if expected != actual {
+            return Err(format!(
+                "CyPort episode split mismatch at sorted entry {index}: manifest SID {:?}, source SID {:?}",
+                expected.storm_id, actual.storm_id
+            ));
+        }
+    }
+    if manifest.total_interaction_rows as usize != profile.data_row_count {
+        return Err("source/manifest interaction row count mismatch".to_owned());
+    }
+    let comparable: Vec<(&str, usize, usize)> = manifest
+        .split_summaries
+        .iter()
+        .map(|summary| (summary.split, summary.storm_count, summary.interaction_rows))
+        .collect();
+    let source_comparable: Vec<(&str, usize, usize)> = profile
+        .split_summaries
+        .iter()
+        .map(|summary| (summary.split, summary.storm_count, summary.interaction_rows))
+        .collect();
+    if comparable != source_comparable {
+        return Err("source/manifest split summary mismatch".to_owned());
+    }
+    Ok(())
+}
+
+pub(super) fn validate_episode_split_manifest_cli(manifest_path: &str) -> Result<(), String> {
+    let metadata = fs::metadata(manifest_path)
+        .map_err(|error| format!("cannot stat CyPort episode split manifest {manifest_path}: {error}"))?;
+    if metadata.len() > MAX_SPLIT_MANIFEST_BYTES as u64 {
+        return Err(format!("CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
+    }
+    let bytes = fs::read(manifest_path)
+        .map_err(|error| format!("cannot read CyPort episode split manifest {manifest_path}: {error}"))?;
+    let report = validate_and_report_split_manifest(&bytes)?;
+    println!(
+        "{}",
+        serde_json::to_string(&report)
+            .map_err(|error| format!("cannot serialize split validation report: {error}"))?
+    );
+    Ok(())
+}
+
+pub(super) fn verify_episode_split_cli(csv_path: &str, manifest_path: &str) -> Result<(), String> {
+    let csv_metadata = fs::metadata(csv_path)
+        .map_err(|error| format!("cannot stat CyPort interaction CSV {csv_path}: {error}"))?;
+    if csv_metadata.len() > MAX_CSV_BYTES as u64 {
+        return Err(format!("CyPort interaction CSV exceeds the {}-byte limit", MAX_CSV_BYTES));
+    }
+    let manifest_metadata = fs::metadata(manifest_path)
+        .map_err(|error| format!("cannot stat CyPort split manifest {manifest_path}: {error}"))?;
+    if manifest_metadata.len() > MAX_SPLIT_MANIFEST_BYTES as u64 {
+        return Err(format!("CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
+    }
+    let csv_bytes = fs::read(csv_path)
+        .map_err(|error| format!("cannot read CyPort interaction CSV {csv_path}: {error}"))?;
+    let manifest_bytes = fs::read(manifest_path)
+        .map_err(|error| format!("cannot read CyPort split manifest {manifest_path}: {error}"))?;
+    let profile = profile_bytes(&csv_bytes)?;
+    let (_, manifest) = parse_episode_split_manifest(&manifest_bytes)?;
+    compare_episode_manifest_to_profile(&manifest, &profile)?;
+    let report = EpisodeSplitComparisonReport {
+        status: "PINNED_SOURCE_MATCHES_FROZEN_EPISODE_SPLIT_NOT_MODEL_VALIDATED",
+        source_git_blob_sha1_observed: profile.source_git_blob_sha1_observed,
+        source_sha256_observed: profile.source_sha256_observed,
+        source_byte_length: profile.source_byte_length,
+        source_identity_verified: profile.pinned_source_identity_verified,
+        split_manifest_sha256: manifest.sha256,
+        split_manifest_byte_length: manifest.byte_length,
+        cyclone_groups_compared: manifest.episodes.len(),
+        interaction_rows_compared: manifest.total_interaction_rows as usize,
+        split_summaries: manifest.split_summaries,
+        data_capture_persisted: false,
+        predictive_validation_performed: false,
+        claim_ceiling: "Pinned source-to-split reproducibility only; no predictive/causal validation, safety claim, or operational authority.",
+    };
+    println!(
+        "{}",
+        serde_json::to_string(&report)
+            .map_err(|error| format!("cannot serialize source-to-split verification report: {error}"))?
+    );
+    Ok(())
+}
+
 pub(super) fn run_cli(csv_path: &str) -> Result<(), String> {
     let metadata = fs::metadata(csv_path)
         .map_err(|error| format!("cannot stat CyPort interaction CSV {csv_path}: {error}"))?;
