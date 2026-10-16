@@ -309,6 +309,27 @@ pub fn validate_paths(
     })
 }
 
+fn require_derived_input(
+    inputs: &Value,
+    name: &str,
+    computed: f64,
+    tolerance: f64,
+) -> Result<(), String> {
+    let declared = inputs
+        .get(name)
+        .and_then(Value::as_f64)
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .ok_or_else(|| format!("derived benchmark input {name:?} must be finite and positive"))?;
+    let allowed_error = tolerance * computed.abs().max(f64::MIN_POSITIVE);
+    let actual_error = (declared - computed).abs();
+    if actual_error > allowed_error {
+        return Err(format!(
+            "derived benchmark input {name:?} contradicts primitive geometry: declared {declared}, equation-derived {computed}, allowed error {allowed_error}"
+        ));
+    }
+    Ok(())
+}
+
 fn expected_outputs(
     benchmark: &Value,
     benchmark_id: &str,
@@ -362,6 +383,8 @@ fn expected_outputs(
             let depth = read_positive(inputs, "section_depth_m")?;
             let inertia = width * depth.powi(3) / 12.0;
             let fiber = depth / 2.0;
+            require_derived_input(inputs, "second_moment_area_m4", inertia, tolerance)?;
+            require_derived_input(inputs, "extreme_fiber_distance_m", fiber, tolerance)?;
             let values = BTreeMap::from([
                 ("second_moment_area_m4".to_string(), inertia),
                 (
@@ -390,6 +413,7 @@ fn expected_outputs(
             let width = read_positive(inputs, "section_width_m")?;
             let height = read_positive(inputs, "section_height_m")?;
             let area = width * height;
+            require_derived_input(inputs, "cross_section_area_m2", area, tolerance)?;
             let values = BTreeMap::from([
                 ("cross_section_area_m2".to_string(), area),
                 ("axial_stress_Pa".to_string(), load / area),
@@ -424,6 +448,8 @@ fn expected_outputs(
             let depth = read_positive(inputs, "section_depth_m")?;
             let inertia = width * depth.powi(3) / 12.0;
             let fiber = depth / 2.0;
+            require_derived_input(inputs, "second_moment_area_m4", inertia, tolerance)?;
+            require_derived_input(inputs, "extreme_fiber_distance_m", fiber, tolerance)?;
             let (deflection, moment, reaction) =
                 match selected.get("load_type").and_then(Value::as_str) {
                     Some("point_load_midspan") => {
