@@ -2,7 +2,7 @@
 
 - **Status:** proposed verification program, not solver qualification or building-safety certification.
 - **Date:** 2026-10-16
-- **Initial scope:** analytical cantilever and axial-bar references, followed by the first static-linear solver-adapter spike.
+- **Initial scope:** analytical cantilever, axial-bar and simply-supported-beam references, followed by the first static-linear solver-adapter spike.
 - **Rule:** predeclare every metric and acceptance threshold for the exact benchmark, output quantity, numerical method and intended use.
 
 ## Paradigm shift: from a green test to an evidence vector
@@ -24,7 +24,7 @@ This program is informed by [NASA-STD-7009B](https://standards.nasa.gov/standard
 | B4 — Integrated housing workflow | Does the evidence chain remain correct across model changes and adapters? | IFC/unit/identity checks, dependency invalidation, cross-tool conformance, clean reruns, qualified review | Automatic statutory approval |
 | B5 — Monitored deployment | Do predictions and installed outcomes remain consistent over time? | Commissioning, inspection/maintenance observations, drift and incident feedback, controlled change process | Universal safety for unobserved buildings |
 
-The cantilever and axial-bar tests are B1 seeds, not a B2 FEM campaign, B3 validation, or B4 housing workflow. The axial-bar fixture and tests now exercise uniform axial stress, extension and support reaction, derive area from geometry, reject inconsistent declared area, and test mechanical scaling. The simply-supported beam remains an unimplemented next reference.
+The cantilever and axial-bar tests are B1 seeds, not a B2 FEM campaign, B3 validation, or B4 housing workflow. The axial-bar fixture and tests now exercise uniform axial stress, extension and support reaction, derive area from geometry, reject inconsistent declared area, and test mechanical scaling. The simply-supported beam suite now includes a midpoint point load and a uniform distributed load, with closed-form deflection, bending moment, stress and reaction oracles plus invalid-input and scaling controls. These all remain B1 analytical checks; the next major step is an independent result checker and then numerical/FEM verification.
 
 ## Initial benchmark portfolio
 
