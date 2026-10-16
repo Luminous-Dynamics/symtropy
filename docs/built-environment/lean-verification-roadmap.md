@@ -54,6 +54,8 @@ The catalogue at formalization/lean/contracts.json maps five contract IDs to 33 
 - Use the five declared Pi-like groups (section shape factor, axial strain, and three normalized beam deflections) as cross-scale metamorphic contracts.
 - The companion Rust reference tests on PR #1653 exercise five scale factors [0.5, 0.75, 1.25, 2, 4] for axial bars, cantilevers, and both simply-supported load families. These are authored tests; they are not counted as passed until CI reports the exact head successful.
 - Under the explicitly stated geometric-similarity transform, require normalized deflection/strain and stress invariance; point force scales as s^2, distributed load intensity as s, area as s^2, second moment of area as s^4, bending moment as s^3, and reaction as s^2.
+- Add sensitivity controls that deliberately remove required length powers from the axial, cantilever, and simply-supported formulas and require the normalized similarity checks to detect each mutant; the simply-supported control covers both midpoint point-load and uniform distributed-load cases.
+- These Rust controls are authored but remain unverified until the exact-head Rust CI run passes. Report valid cases and killed mutants separately; do not combine them into one pass rate.
 - Do not transfer these idealized linear-model similarities to nonlinear, buckling, thermal, fire, fatigue, material-scale, or other physics without additional assumptions and independent validation.
 
 ### F2 — Rust refinement/conformance
@@ -87,7 +89,7 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 | Contract coverage | 100% of declared theorem claims are mapped to one stable contract ID; zero duplicate theorem IDs | contract catalogue and CI mapping check |
 | Rust conformance | 100% of approved known-answer cases pass and all seeded mutations are rejected or blocked | per-case results and exact Rust head |
 | Property checks | all declared linear/cubic/quartic scaling metamorphisms pass over generated valid-domain inputs | reproducible seeds, counts and tolerances |
-| Dimensionless similarity | 100% of declared valid scale-transform cases preserve the relevant Pi-like groups at s = 0.5, 0.75, 1.25, 2 and 4; seeded dimensional mutants are rejected | per-family exact inputs, output ratios, tolerances and mutation controls |
+| Dimensionless similarity | 100% of declared valid scale-transform cases preserve the relevant Pi-like groups at s = 0.5, 0.75, 1.25, 2 and 4; 100% of the specific seeded missing-length-power mutants are killed | separate valid-case and mutation-case ledgers, exact inputs, output ratios, tolerances, and test revision |
 | Rust extraction/refinement | 100% of pure-kernel functions are extracted without stubbed behavior; every proof has no `sorry` and is checked against the pinned Lean kernel | exact Rust head, extractor/toolchain hashes, generated Lean source digest, refinement theorem and axiom audit |
 | Dimensional validity | zero unit-inconsistent contract bindings in the supported subset; every declared unit has a seven-base exponent vector | dimensional-homogeneity theorems, manifest mapping and CI consistency gate |
 | Numeric honesty | every real-arithmetic contract used by floating-point code has an explicit error budget or stays labelled MATHEMATICAL_ONLY | error budget + conditioning analysis |
