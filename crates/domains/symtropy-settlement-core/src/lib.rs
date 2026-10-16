@@ -107,6 +107,7 @@ impl ComponentState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Component {
     pub id: ComponentId,
     pub generation: u64,
@@ -118,6 +119,7 @@ pub struct Component {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Dependency {
     pub upstream_component: ComponentId,
     pub upstream_generation: u64,
@@ -149,6 +151,7 @@ impl ResourceKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourceSupply {
     pub supply_id: String,
     /// Explicitly scopes which demands may compete for this supply.
@@ -161,6 +164,7 @@ pub struct ResourceSupply {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourceDemand {
     pub demand_id: String,
     /// Must match a declared allocation pool; resource pools never merge implicitly.
@@ -174,6 +178,7 @@ pub struct ResourceDemand {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServiceFloor {
     pub floor_id: String,
     pub component_id: ComponentId,
@@ -184,6 +189,7 @@ pub struct ServiceFloor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScenarioInput {
     pub schema_version: u32,
     pub scenario_id: String,
@@ -233,12 +239,14 @@ pub enum DemandOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceAllocation {
     pub supply_id: String,
     pub units: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourceAllocation {
     pub demand_id: String,
     pub consumer_component: ComponentId,
@@ -263,6 +271,7 @@ pub enum FloorStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ComponentResult {
     pub component_id: ComponentId,
     pub generation: u64,
@@ -273,6 +282,7 @@ pub struct ComponentResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServiceFloorResult {
     pub floor_id: String,
     pub component_id: ComponentId,
@@ -284,6 +294,7 @@ pub struct ServiceFloorResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SettlementReportPayload {
     pub schema_version: u32,
     pub scenario_id: String,
@@ -295,6 +306,7 @@ pub struct SettlementReportPayload {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SettlementReport {
     pub payload: SettlementReportPayload,
     /// SHA-256 over compact JSON serialization of payload; integrity linkage,
@@ -1378,6 +1390,18 @@ mod tests {
                 "resource use must not cross declared capacity or protected reserve"
             );
         }
+    }
+
+    #[test]
+    fn input_contract_rejects_unknown_fields_at_top_level_and_nested_records() {
+        let mut top_level = serde_json::to_value(fixture()).unwrap();
+        top_level["unreviewed_field"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<ScenarioInput>(top_level).is_err());
+
+        let mut nested = serde_json::to_value(fixture()).unwrap();
+        nested["components"][0]["unreviewed_capacity_override"] =
+            serde_json::json!(999_999_u64);
+        assert!(serde_json::from_value::<ScenarioInput>(nested).is_err());
     }
 
     #[test]
