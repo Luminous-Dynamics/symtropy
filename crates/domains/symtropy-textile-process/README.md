@@ -106,4 +106,4 @@ Planning and synthetic stress results do not establish that a production policy 
 - `docs/ops/TEXTILE_EMPIRICAL_EVALUATION_PROTOCOL_V0_1.md`
 - `docs/ops/fixtures/textile_empirical_evaluation_v0_1/`
 
-The schema/example are a proposed contract only. No JSON loader, arithmetic cross-field validator, independent schema validation, or field evaluation is claimed yet. Physical inventory use requires an issue/transfer receipt; second use and lifecycle benefits need additional evidence.
+The stacked draft branch `feat/textile-trial-validator-v0-1` adds a typed Rust JSON loader and fail-closed cross-field validator for ledger closure, paired policy assignments, frozen input consistency, provenance shape, required issue receipts, and explicit missing-measurement states. It includes negative-control tests, but those tests have not been executed in this environment. Independent JSON Schema Draft 2020-12 validation, Rust test/fmt/Clippy runs, and field evaluation remain outstanding. The loader validates evidence-reference presence, not authenticity. Physical inventory use requires an issue/transfer receipt; second use and lifecycle benefits need additional evidence.
