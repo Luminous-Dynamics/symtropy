@@ -23,6 +23,9 @@ const OUTPUT_SCHEMA: &str =
 #[derive(Debug, Serialize)]
 pub struct BenchmarkResultReport {
     pub validator_version: String,
+    pub validator_binary_sha256: Option<String>,
+    pub record_schema_sha256: String,
+    pub output_schema_sha256: String,
     pub benchmark_sha256_actual: String,
     pub benchmark_pin_matches: bool,
     pub result_record_sha256: String,
@@ -65,6 +68,13 @@ pub fn validate_paths(
             "expected benchmark SHA-256 must be 64 lowercase hexadecimal characters".to_string(),
         );
     }
+
+    let validator_binary_sha256 = std::env::current_exe()
+        .ok()
+        .and_then(|path| fs::read(path).ok())
+        .map(|bytes| sha256_hex(&bytes));
+    let record_schema_sha256 = sha256_hex(RECORD_SCHEMA.as_bytes());
+    let output_schema_sha256 = sha256_hex(OUTPUT_SCHEMA.as_bytes());
 
     let benchmark_bytes = fs::read(benchmark_path)
         .map_err(|error| format!("cannot read {}: {error}", benchmark_path.display()))?;
@@ -112,17 +122,18 @@ pub fn validate_paths(
         issues.push("benchmark_id or case_id does not match the selected benchmark".to_string());
     }
 
-    let execution_completed = record
-        .get("execution")
-        .is_some_and(|execution| {
-            execution.get("exit_code").and_then(Value::as_i64) == Some(0)
-                && execution.get("termination_status").and_then(Value::as_str)
-                    == Some("COMPLETED")
-                && matches!(
-                    execution.get("convergence_status").and_then(Value::as_str),
-                    Some("CONVERGED" | "NOT_APPLICABLE")
-                )
-        });
+    let execution_completed = record.get("execution").is_some_and(|execution| {
+        let execution_kind = execution.get("execution_kind").and_then(Value::as_str);
+        let convergence_status = execution.get("convergence_status").and_then(Value::as_str);
+        let convergence_is_appropriate = matches!(
+            (execution_kind, convergence_status),
+            (Some("ANALYTICAL_REFERENCE"), Some("NOT_APPLICABLE"))
+                | (Some("NUMERICAL_SOLVER"), Some("CONVERGED"))
+        );
+        execution.get("exit_code").and_then(Value::as_i64) == Some(0)
+            && execution.get("termination_status").and_then(Value::as_str) == Some("COMPLETED")
+            && convergence_is_appropriate
+    });
     if !execution_completed {
         issues.push(
             "execution did not complete successfully or has no acceptable convergence state"
@@ -215,7 +226,8 @@ pub fn validate_paths(
         }
     }
 
-    let blocked = !benchmark_pin_matches
+    let blocked = validator_binary_sha256.is_none()
+        || !benchmark_pin_matches
         || !record_schema_valid
         || !record_benchmark_sha256_matches
         || !benchmark_identity_matches
@@ -250,6 +262,9 @@ pub fn validate_paths(
 
     Ok(BenchmarkResultReport {
         validator_version: env!("CARGO_PKG_VERSION").to_string(),
+        validator_binary_sha256,
+        record_schema_sha256,
+        output_schema_sha256,
         benchmark_sha256_actual,
         benchmark_pin_matches,
         result_record_sha256,
@@ -569,6 +584,7 @@ mod tests {
             "execution": {
                 "exit_code": 0,
                 "termination_status": "COMPLETED",
+                "execution_kind": "ANALYTICAL_REFERENCE",
                 "convergence_status": "NOT_APPLICABLE"
             },
             "raw_output_artifact": {
