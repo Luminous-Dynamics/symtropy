@@ -155,6 +155,7 @@ fn measure_single(label: &str, request: &PortfolioComparisonRequestV1) {
         p50 / 1_000,
         p95 / 1_000,
     );
+    println!("workload={label} sorted_samples_ns={samples:?}");
 }
 
 fn measure_batch(label: &str, requests: &[PortfolioComparisonRequestV1]) {
@@ -180,13 +181,14 @@ fn measure_batch(label: &str, requests: &[PortfolioComparisonRequestV1]) {
     let p50 = samples[14];
     let p95 = samples[28];
     println!(
-        "workload={label} scenarios={} candidates_per_scenario={} objectives_per_scenario={} repetitions=30 p50_ms={} p95_ms={} fingerprint_fnv1a64={fingerprint:016x}",
+        "workload={label} scenarios={} candidates_per_scenario={} objectives_per_scenario={} repetitions=30 p50_ms={} p95_ms={} sum_of_fnv1a64={fingerprint:016x}",
         requests.len(),
         requests.first().map_or(0, |request| request.candidates.len()),
         requests.first().map_or(0, |request| request.objectives.len()),
         p50 / 1_000_000,
         p95 / 1_000_000,
     );
+    println!("workload={label} sorted_samples_ns={samples:?}");
 }
 
 fn main() {
@@ -202,13 +204,9 @@ fn main() {
 
     let scenarios: Vec<_> = (0..100)
         .map(|index| {
-            let seed = 24_301_u64.wrapping_add(u64::try_from(index).expect("100-case benchmark batch index fits u64") * 7_919);
-            make_request(
-                100,
-                8,
-                seed,
-                format!("benchmark-batch-{index:03}"),
-            )
+            let batch_index = u64::try_from(index).expect("batch index fits u64");
+            let seed = 24_301_u64.wrapping_add(batch_index * 7_919);
+            make_request(100, 8, seed, format!("benchmark-batch-{index:03}"))
         })
         .collect();
     measure_batch("batch_100x100x8", &scenarios);
