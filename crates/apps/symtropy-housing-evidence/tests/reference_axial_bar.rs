@@ -235,3 +235,80 @@ fn analytical_axial_reference_obeys_mechanical_scaling_invariants() {
         tolerance
     ));
 }
+
+
+#[test]
+fn analytical_axial_bar_survives_deterministic_scaling_sweep() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("baseline case is valid");
+    let inputs = &base["inputs"];
+    let load = inputs["load_N"].as_f64().unwrap();
+    let length = inputs["length_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+    let width = inputs["section_width_m"].as_f64().unwrap();
+    let height = inputs["section_height_m"].as_f64().unwrap();
+    let area = inputs["cross_section_area_m2"].as_f64().unwrap();
+    let factors = [0.25_f64, 0.5, 0.75, 1.25, 2.0, 4.0];
+
+    for factor in factors {
+        let mut changed_load = base.clone();
+        changed_load["inputs"]["load_N"] = serde_json::json!(load * factor);
+        let result = evaluate_reference(&changed_load).expect("scaled load is valid");
+        assert!(close_relative(result.stress_pa, reference.stress_pa * factor, tolerance));
+        assert!(close_relative(
+            result.extension_m,
+            reference.extension_m * factor,
+            tolerance
+        ));
+        assert!(close_relative(result.reaction_n, reference.reaction_n * factor, tolerance));
+
+        let mut changed_length = base.clone();
+        changed_length["inputs"]["length_m"] = serde_json::json!(length * factor);
+        let result = evaluate_reference(&changed_length).expect("scaled length is valid");
+        assert!(close_relative(
+            result.extension_m,
+            reference.extension_m * factor,
+            tolerance
+        ));
+        assert!(close_relative(result.stress_pa, reference.stress_pa, tolerance));
+
+        let mut changed_modulus = base.clone();
+        changed_modulus["inputs"]["elastic_modulus_Pa"] =
+            serde_json::json!(modulus * factor);
+        let result = evaluate_reference(&changed_modulus).expect("scaled modulus is valid");
+        assert!(close_relative(
+            result.extension_m,
+            reference.extension_m / factor,
+            tolerance
+        ));
+        assert!(close_relative(result.stress_pa, reference.stress_pa, tolerance));
+
+        let mut changed_width = base.clone();
+        changed_width["inputs"]["section_width_m"] = serde_json::json!(width * factor);
+        changed_width["inputs"]["cross_section_area_m2"] = serde_json::json!(area * factor);
+        let result = evaluate_reference(&changed_width).expect("consistent scaled width is valid");
+        assert!(close_relative(result.area_m2, reference.area_m2 * factor, tolerance));
+        assert!(close_relative(result.stress_pa, reference.stress_pa / factor, tolerance));
+        assert!(close_relative(
+            result.extension_m,
+            reference.extension_m / factor,
+            tolerance
+        ));
+
+        let mut changed_height = base.clone();
+        changed_height["inputs"]["section_height_m"] = serde_json::json!(height * factor);
+        changed_height["inputs"]["cross_section_area_m2"] = serde_json::json!(area * factor);
+        let result =
+            evaluate_reference(&changed_height).expect("consistent scaled height is valid");
+        assert!(close_relative(result.area_m2, reference.area_m2 * factor, tolerance));
+        assert!(close_relative(result.stress_pa, reference.stress_pa / factor, tolerance));
+        assert!(close_relative(
+            result.extension_m,
+            reference.extension_m / factor,
+            tolerance
+        ));
+    }
+}
