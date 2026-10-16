@@ -5,6 +5,7 @@
 //! trials. Structural JSON Schema validation remains a separate validation layer:
 //! this module enforces the trial's arithmetic and pairing invariants after parse.
 
+use serde::de::Deserializer;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -134,7 +135,15 @@ pub struct EvidenceRefs {
     pub production_ledger_ref: String,
     pub quality_record_ref: String,
     pub demand_closeout_ref: String,
+    #[serde(deserialize_with = "deserialize_nullable_string")]
     pub inventory_issue_receipt_ref: Option<String>,
+}
+
+fn deserialize_nullable_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<String>::deserialize(deserializer)
 }
 
 /// All validation findings are stable, human-readable paths/messages. Validation
@@ -312,6 +321,12 @@ pub fn validate_trial(trial: &Trial) -> Result<(), ValidationErrors> {
                 record.other_existing_inventory_fates,
             ],
         );
+
+        if record.fulfilled_from_existing_units > record.existing_inventory_issued_units {
+            errors.push(format!(
+                "{path}.fulfilled_from_existing_units exceeds physically issued existing inventory"
+            ));
+        }
 
         let fulfilled = checked_sum(&[
             record.fulfilled_from_new_units,
@@ -611,6 +626,17 @@ mod tests {
     }
 
     #[test]
+    fn required_nullable_receipt_field_cannot_be_omitted() {
+        let mut value = parsed_example();
+        value["records"][1]["evidence"].as_object_mut().unwrap().remove(
+            "inventory_issue_receipt_ref",
+        );
+        let input = serde_json::to_string(&value).unwrap();
+        let err = validate_trial_json(&input).unwrap_err();
+        assert!(err.errors[0].contains("missing field"));
+    }
+
+    #[test]
     fn unknown_fields_are_rejected() {
         let mut value = parsed_example();
         value["unexpected_override"] = serde_json::json!(true);
@@ -627,7 +653,7 @@ mod tests {
         let input = serde_json::to_string(&value).unwrap();
         let trial = validate_trial_json(&input).expect("missingness is representable");
         assert!(matches!(
-            trial.records[0].resource_measurements.energy_kwh,
+            &trial.records[0].resource_measurements.energy_kwh,
             Measurement::Missing { .. }
         ));
     }
