@@ -282,3 +282,178 @@ fn analytical_simply_supported_beam_obeys_load_and_span_scaling() {
         tolerance
     ));
 }
+
+
+#[test]
+fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
+    let base: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let inputs = &base["inputs"];
+    let span = inputs["span_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+    let width = inputs["section_width_m"].as_f64().unwrap();
+    let depth = inputs["section_depth_m"].as_f64().unwrap();
+    let inertia = inputs["second_moment_area_m4"].as_f64().unwrap();
+    let fiber = inputs["extreme_fiber_distance_m"].as_f64().unwrap();
+    let factors = [0.25_f64, 0.5, 0.75, 1.25, 2.0, 4.0];
+
+    for (case_index, base_case) in base["load_cases"]
+        .as_array()
+        .expect("load_cases array")
+        .iter()
+        .enumerate()
+    {
+        let reference =
+            evaluate_reference(&base, base_case).expect("baseline load case is valid");
+        for factor in factors {
+            let mut changed_load = base.clone();
+            if case_index == 0 {
+                let load = base_case["load_N"].as_f64().unwrap();
+                changed_load["load_cases"][case_index]["load_N"] =
+                    serde_json::json!(load * factor);
+            } else {
+                let load = base_case["load_N_per_m"].as_f64().unwrap();
+                changed_load["load_cases"][case_index]["load_N_per_m"] =
+                    serde_json::json!(load * factor);
+            }
+            let result = evaluate_reference(
+                &changed_load,
+                &changed_load["load_cases"][case_index],
+            )
+            .expect("scaled load is valid");
+            assert!(close_relative(
+                result.deflection_m,
+                reference.deflection_m * factor,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_moment_nm,
+                reference.maximum_moment_nm * factor,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_stress_pa,
+                reference.maximum_stress_pa * factor,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.reaction_magnitude_n,
+                reference.reaction_magnitude_n * factor,
+                tolerance
+            ));
+
+            let mut changed_span = base.clone();
+            changed_span["inputs"]["span_m"] = serde_json::json!(span * factor);
+            let result = evaluate_reference(
+                &changed_span,
+                &changed_span["load_cases"][case_index],
+            )
+            .expect("scaled span is valid");
+            let (deflection_power, moment_power, reaction_power) = if case_index == 0 {
+                (3, 1, 0)
+            } else {
+                (4, 2, 1)
+            };
+            assert!(close_relative(
+                result.deflection_m,
+                reference.deflection_m * factor.powi(deflection_power),
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_moment_nm,
+                reference.maximum_moment_nm * factor.powi(moment_power),
+                tolerance
+            ));
+            assert!(close_relative(
+                result.reaction_magnitude_n,
+                reference.reaction_magnitude_n * factor.powi(reaction_power),
+                tolerance
+            ));
+
+            let mut changed_modulus = base.clone();
+            changed_modulus["inputs"]["elastic_modulus_Pa"] =
+                serde_json::json!(modulus * factor);
+            let result = evaluate_reference(
+                &changed_modulus,
+                &changed_modulus["load_cases"][case_index],
+            )
+            .expect("scaled modulus is valid");
+            assert!(close_relative(
+                result.deflection_m,
+                reference.deflection_m / factor,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_moment_nm,
+                reference.maximum_moment_nm,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_stress_pa,
+                reference.maximum_stress_pa,
+                tolerance
+            ));
+
+            let mut changed_width = base.clone();
+            changed_width["inputs"]["section_width_m"] =
+                serde_json::json!(width * factor);
+            changed_width["inputs"]["second_moment_area_m4"] =
+                serde_json::json!(inertia * factor);
+            let result = evaluate_reference(
+                &changed_width,
+                &changed_width["load_cases"][case_index],
+            )
+            .expect("consistent scaled width is valid");
+            assert!(close_relative(
+                result.deflection_m,
+                reference.deflection_m / factor,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_stress_pa,
+                reference.maximum_stress_pa / factor,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_moment_nm,
+                reference.maximum_moment_nm,
+                tolerance
+            ));
+
+            let mut changed_depth = base.clone();
+            changed_depth["inputs"]["section_depth_m"] =
+                serde_json::json!(depth * factor);
+            changed_depth["inputs"]["second_moment_area_m4"] =
+                serde_json::json!(inertia * factor.powi(3));
+            changed_depth["inputs"]["extreme_fiber_distance_m"] =
+                serde_json::json!(fiber * factor);
+            let result = evaluate_reference(
+                &changed_depth,
+                &changed_depth["load_cases"][case_index],
+            )
+            .expect("consistent scaled depth is valid");
+            assert!(close_relative(
+                result.deflection_m,
+                reference.deflection_m / factor.powi(3),
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_stress_pa,
+                reference.maximum_stress_pa / factor.powi(2),
+                tolerance
+            ));
+            assert!(close_relative(
+                result.maximum_moment_nm,
+                reference.maximum_moment_nm,
+                tolerance
+            ));
+            assert!(close_relative(
+                result.reaction_magnitude_n,
+                reference.reaction_magnitude_n * factor.powi(reaction_power),
+                tolerance
+            ));
+        }
+    }
+}
