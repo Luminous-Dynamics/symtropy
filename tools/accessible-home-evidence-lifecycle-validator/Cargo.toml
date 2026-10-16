@@ -1,0 +1,15 @@
+[package]
+name = "accessible-home-evidence-lifecycle-validator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Fail-closed replay and temporal validity checks for synthetic accessible-home evidence"
+
+[workspace]
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"

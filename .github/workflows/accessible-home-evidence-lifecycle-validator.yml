@@ -1,0 +1,45 @@
+name: Accessible home evidence lifecycle validator
+
+on:
+  pull_request:
+    paths:
+      - "tools/accessible-home-evidence-lifecycle-validator/**"
+      - "docs/built-environment/accessible-home-evidence-lifecycle-v0.1*"
+      - ".github/workflows/accessible-home-evidence-lifecycle-validator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/accessible-home-evidence-lifecycle-validator/**"
+      - "docs/built-environment/accessible-home-evidence-lifecycle-v0.1*"
+      - ".github/workflows/accessible-home-evidence-lifecycle-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accessible-home-evidence-lifecycle-validator-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Format, replay and synthetic mutation tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- --check
+      - name: Run semantic negative controls
+        run: cargo test --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml
+      - name: Replay committed synthetic fixture
+        run: |
+          cargo run --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- \
+            --input docs/built-environment/accessible-home-evidence-lifecycle-v0.1.example.json \
+            --output /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"facet_count": 4' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"claim_count": 3' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"event_count": 1' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"path_count": 3' /tmp/accessible-home-lifecycle-receipt.json
+          grep -q '"validator_version": "accessible-home-evidence-lifecycle-validator/0.1.0"' /tmp/accessible-home-lifecycle-receipt.json
