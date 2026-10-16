@@ -57,6 +57,8 @@ struct CyPortInteractionReport {
     zero_impact_all_recovery_sentinels_rows: usize,
     zero_impact_all_recovery_fields_present_rows: usize,
     nonzero_impact_all_recovery_fields_present_rows: usize,
+    no_impact_window_recorded_rows: usize,
+    impact_window_recovery_markers_present_rows: usize,
     mixed_recovery_field_state_rows: usize,
     start_recovery_date_sentinel_rows: usize,
     end_recovery_date_sentinel_rows: usize,
@@ -600,6 +602,8 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             ("zero-impact rows with all recovery sentinels", counts.zero_impact_all_recovery_sentinels, 1_650usize),
             ("zero-impact rows with all recovery fields present", counts.zero_impact_all_recovery_fields_present, 4usize),
             ("nonzero-impact rows with all recovery fields present", counts.nonzero_impact_all_recovery_fields_present, 273usize),
+            ("no-impact-window marker triplets", counts.zero_impact_all_recovery_sentinels, 1_650usize),
+            ("recorded impact-window marker triplets", counts.zero_impact_all_recovery_fields_present + counts.nonzero_impact_all_recovery_fields_present, 277usize),
             ("mixed recovery-field states", counts.mixed_recovery_field_states, 0usize),
             ("start-recovery sentinels", counts.start_recovery_sentinels, 1_650usize),
             ("end-recovery sentinels", counts.end_recovery_sentinels, 1_650usize),
@@ -671,6 +675,9 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         zero_impact_all_recovery_sentinels_rows: counts.zero_impact_all_recovery_sentinels,
         zero_impact_all_recovery_fields_present_rows: counts.zero_impact_all_recovery_fields_present,
         nonzero_impact_all_recovery_fields_present_rows: counts.nonzero_impact_all_recovery_fields_present,
+        no_impact_window_recorded_rows: counts.zero_impact_all_recovery_sentinels,
+        impact_window_recovery_markers_present_rows: counts.zero_impact_all_recovery_fields_present
+            + counts.nonzero_impact_all_recovery_fields_present,
         mixed_recovery_field_state_rows: counts.mixed_recovery_field_states,
         start_recovery_date_sentinel_rows: counts.start_recovery_sentinels,
         end_recovery_date_sentinel_rows: counts.end_recovery_sentinels,
@@ -1198,6 +1205,8 @@ mod tests {
         assert_eq!(report.zero_impact_all_recovery_sentinels_rows, 2);
         assert_eq!(report.zero_impact_all_recovery_fields_present_rows, 1);
         assert_eq!(report.nonzero_impact_all_recovery_fields_present_rows, 2);
+        assert_eq!(report.no_impact_window_recorded_rows, 2);
+        assert_eq!(report.impact_window_recovery_markers_present_rows, 3);
         assert_eq!(report.mixed_recovery_field_state_rows, 0);
         assert_eq!(report.start_recovery_date_sentinel_rows, 2);
         assert!(!report.pinned_source_identity_verified);
