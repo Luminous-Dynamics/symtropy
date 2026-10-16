@@ -22,7 +22,7 @@ A frozen problem declares:
 
 Each demand supplies route alternatives. An alternative gives one or more scenario-specific route estimates plus explicit edge-to-resource crosswalk bindings and capacity evidence. Missing route/scenario records mean unavailable, not zero travel time or unlimited capacity.
 
-The selector validates that the path estimate fits the frozen time/profile/knowledge contract; each path leg has an explicit crosswalk; the crosswalk is stable across the alternative's supplied scenarios; assigned intervals match the route leg's evaluated departure/arrival interval; and the existing scheduled-capacity validator accepts the evidence. It then checks shared capacity jointly across all simultaneously selected demands in each scenario.
+The selector validates that the path estimate fits the frozen time/profile/knowledge contract; each path leg has an explicit crosswalk; the crosswalk is stable across the alternative's supplied scenarios; assigned intervals match the route leg's evaluated departure/arrival interval; and the existing scheduled-capacity validator accepts the evidence. It then checks shared capacity jointly across all simultaneously selected demands in each scenario. To protect the recursive exact enumerator, it rejects problems above a hard limit of 512 demand × information-set decision nodes before route preparation; the caller-supplied policy-combination budget separately guards the cartesian search.
 
 At a policy information set, the same route ID is selected for every scenario in that set. Capacity feasibility is checked scenario-by-scenario after the policy choices are assembled. The function never assumes that individual route feasibility implies joint portfolio feasibility.
 
@@ -57,7 +57,7 @@ If nominal and delayed scenarios share the same information-set ID, a route avai
 
 Two demands can choose different information-set-dependent paths, but the route policy is rejected if their combined use overbooks the same resource in any scenario. Scenario adaptivity never overrides resource feasibility.
 
-The authored Rust tests cover these cases, jointly shared-resource selection, and explicit refusal when the full policy cartesian product exceeds its maximum combination budget. They have not been run.
+The eight authored Rust tests cover these cases, jointly shared-resource selection, an independent four-policy reference table, input-order invariance, explicit no-feasible-policy rejection with a capacity witness, the 512/513 decision-depth boundary, and refusal when the full policy cartesian product exceeds its maximum combination budget. They have not been run.
 
 ## 5. Benchmark ladder and target thresholds
 
@@ -70,7 +70,7 @@ The authored Rust tests cover these cases, jointly shared-resource selection, an
 | AP4 — joint resource capacity | Make scenario-adaptive choices collide on shared capacity in one scenario | Zero policy portfolios selected if any scenario overbooks a resource |
 | AP5 — evidence isolation | Future, stale, expired, conflicted, wrong-profile, wrong-unit or unqualified resource evidence | Zero invalid records accepted; failure witnesses preserved |
 | AP6 — determinism | Permute scenario, demand, route, evidence and resource-binding input order | Identical decisions, score vectors, and ordered failure witnesses |
-| AP7 — search bounds | Exact combination product at and just above the configured cap, plus checked arithmetic limits | Exact result only within the cap; explicit error outside it; overflow fails closed |
+| AP7 — search bounds | Decision-node counts at 512/513; combination product at and just above the configured cap; checked arithmetic limits | Explicit error above 512 decision nodes or above the combination cap; overflow fails closed |
 | AP8 — out-of-sample validation | Tune on pre-event data, evaluate on separate event holdouts, and compare adaptive/static policies with identical evidence cutoffs | Report outcomes per event; no leak from future evidence; disclose failures and static comparisons |
 | AP9 — operational scale | Vary demands × routes × information sets × scenarios × capacity intervals | Publish pinned-hardware throughput, p50/p95/max latency, memory, and exhaustive-search limits before setting budgets |
 
