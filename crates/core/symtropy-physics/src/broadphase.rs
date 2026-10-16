@@ -744,11 +744,7 @@ mod tests {
             )
         };
         let bodies = vec![
-            RigidBody::<3>::static_body(
-                BodyHandle(0),
-                Point::origin(),
-                Box::new(Sphere::unit()),
-            ),
+            RigidBody::<3>::static_body(BodyHandle(0), Point::origin(), Box::new(Sphere::unit())),
             RigidBody::<3>::static_body(
                 BodyHandle(1),
                 Point::new([0.5, 0.0, 0.0]),
@@ -756,12 +752,7 @@ mod tests {
             ),
             kinematic(2, Point::new([0.25, 0.0, 0.0])),
             kinematic(3, Point::new([1.0, 0.0, 0.0])),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(4),
-                Point::new([0.75, 0.0, 0.0]),
-                1.0,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(4), Point::new([0.75, 0.0, 0.0]), 1.0, 1.0),
         ];
 
         let mut static_bp = StaticBroadphase::new();
@@ -782,7 +773,10 @@ mod tests {
             BroadphasePair(BodyHandle(2), BodyHandle(4)),
             BroadphasePair(BodyHandle(3), BodyHandle(4)),
         ];
-        assert_eq!(reference, expected, "reference contract changed unexpectedly");
+        assert_eq!(
+            reference, expected,
+            "reference contract changed unexpectedly"
+        );
         assert_eq!(
             incremental, reference,
             "incremental path must preserve all allowed pairs involving kinematics"
@@ -836,9 +830,7 @@ mod tests {
                     0.0,
                     SVector::zeros(),
                 ),
-                BodyType::Dynamic => {
-                    RigidBody::<3>::dynamic_sphere(handle, position, radius, 1.0)
-                }
+                BodyType::Dynamic => RigidBody::<3>::dynamic_sphere(handle, position, radius, 1.0),
             };
 
             body.collision_group = 1 << (index % 3);
