@@ -1,6 +1,6 @@
 # Accessible Home Task Network Validator
 
-Standalone Rust semantic validator for the **synthetic** v0.2 resident task-network contract.
+Standalone Rust semantic validator for synthetic resident task-network contracts v0.2 and v0.3.
 
 ## Run
 
@@ -10,33 +10,41 @@ From the repository root:
 cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
 cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --check
 cargo test --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
+
 cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- \
   --input docs/built-environment/accessible-home-task-network-v0.2.example.json \
-  --output /tmp/accessible-home-task-network-report.json
+  --output /tmp/accessible-home-task-network-v02-report.json
+
+cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- \
+  --input docs/built-environment/accessible-home-task-network-v0.3.example.json \
+  --output /tmp/accessible-home-task-network-v03-report.json
 ```
 
-Malformed networks, unresolved references, broken paths, unsupported states, path expectation mismatches, or stale failure-mode expectations exit with code 2. If `--output` is omitted, the receipt is printed to stdout.
+The CLI dispatches on `schema_version`. Malformed networks, unresolved references, broken paths, unsupported states, path expectation mismatches, or stale failure-mode expectations exit with code 2. If `--output` is omitted, the receipt is printed to stdout.
 
-## What is checked
+## v0.2 validation
 
-- Strict typed JSON parsing rejects unsupported enum values and unknown object fields.
-- IDs are unique across goal, node, edge, path, failure-mode and network entities.
-- Edge endpoints, path node/edge references, edge ordering and path lengths resolve exactly.
-- Each path ends at an outcome node; every declared node and edge participates in a path.
-- Fallback/recovery edges require a non-normal trigger compatible with their path.
-- Failure triggers agree with activated path conditions; affected nodes belong to a non-activated primary path.
-- Path assessments are recomputed from evidence. Required barriers dominate; all required evidence gaps stay not-evaluable; optional node evidence is advisory. Edges in a path are considered required until an explicit advisory-edge field is added in a future schema.
-- Failure-mode expectations are recomputed from triggered path states.
-- The receipt includes SHA-256 of the exact input bytes and repeats the synthetic claim boundary.
+- Strict typed JSON parsing, cross-kind unique IDs, edge endpoints, path-node/edge references, order and length.
+- Each path ends at an outcome node; all declared nodes and edges participate in a path.
+- Fallback/recovery edges require compatible non-normal triggers.
+- Required task evidence is recomputed: a known barrier blocks; unknown/proposed/measurement/review-pending stays not-evaluable.
+- Failure-mode goal-state expectations are recomputed from activated paths.
 
-## Mutation corpus
+## v0.3 typed constraints
 
-Unit tests cover the valid baseline, all six evidence states, required-barrier precedence, optional evidence, duplicate cross-kind IDs, dangling endpoints/references, broken edge order/count, invalid goal endpoint, fallback trigger, required-evidence downgrade, stale goal-state claims, invalid enums, real-home fixture rejection, empty failure activation and deterministic receipts.
+- Each resident constraint has a stable ID, kind (`hard` or `preference`), condition applicability, source reference, reviewer and note.
+- Every path must supply exactly one finding per declared constraint.
+- A condition-inapplicable constraint must be `not_applicable`; an applicable constraint must have a substantive disposition.
+- A verified conflict with a hard constraint blocks that path; unresolved or insufficiently evidenced hard constraints make it not-evaluable.
+- Preference conflicts and unresolved preferences appear as separate path counts and complete findings. They do not silently become hard blockers or disappear into a scalar score.
+- The v0.3 receipt reports hard constraint counts separately from task evidence and preserves every constraint finding.
 
-## Known contract limitation
+## Mutation coverage
 
-In v0.2, resident constraints are prose strings rather than typed, path-specific dispositions. The validator deliberately does **not** infer that a path satisfies those constraints. A follow-on schema revision should give each constraint a stable ID and each path an explicit disposition/evidence record (satisfied for fixture, conflicted, or unresolved), then make unresolved hard constraints non-passing. Until then, `evidence_complete_for_fixture` means only that the nodes and edges on that synthetic path carry the declared complete evidence state.
+The v0.2 suite checks the baseline, all six evidence states, barrier precedence, optional evidence, duplicate IDs, dangling references, path order/count, outcome termination, fallback triggers, evidence downgrades and deterministic receipts. The v0.3 suite additionally checks typed constraint coverage, duplicate/unknown/missing findings, condition applicability, hard conflict and unresolved semantics, unverified satisfaction, preference conflict visibility/non-gating, malformed state rejection, and deterministic receipts.
 
-## Important boundary
+## Known limitations
 
-This validates consistency of the *declared synthetic graph*. It does not prove that an evidence claim is true; it does not simulate bodies, geometry, assistive technology, fire/egress, privacy, security, or real-world reliability; and it does not qualify or certify a real home. Human co-design, actual site measurement, local jurisdiction checks and qualified professional review remain separate.
+In v0.3, constraint declarations and dispositions are still **claims** made by the synthetic fixture. The validator checks that declarations are consistent and evidence states are not overstated; it cannot prove that a resident actually stated a preference, that the evidence is truthful, or that a physical route/device behaves as described. `evidence_complete_for_fixture` applies only to the synthetic model, not to a real home. Real use requires consented resident co-design, actual site measurements, current local regulations, and qualified accessibility/building/life-safety review.
+
+Do not store personal diagnoses or identifying resident data in fixtures. Use stable pseudonymous references and least-privilege access for any future real-project evidence store.
