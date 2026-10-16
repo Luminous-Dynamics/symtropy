@@ -568,7 +568,8 @@ fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
 
 #[test]
 fn free_fall_trajectory_obeys_constant_velocity_boost_metamorphism() {
-    let scenario = free_fall_at_dt(0.01);
+    let mut scenario = free_fall_at_dt(0.01);
+    scenario.sample_every_steps = 1;
     let velocity_boost = [1.25, -0.5, 0.75];
     let mut boosted = scenario.clone();
     for body in &mut boosted.bodies {
@@ -847,7 +848,8 @@ fn stack_trace_is_invariant_to_nonsemantic_body_insertion_order() {
 
 #[test]
 fn free_fall_trajectory_is_invariant_to_uniform_translation() {
-    let scenario = free_fall_at_dt(0.01);
+    let mut scenario = free_fall_at_dt(0.01);
+    scenario.sample_every_steps = 1;
     let translation = [100.0, 2.0, -50.0];
     let mut translated = scenario.clone();
     for body in &mut translated.bodies {
