@@ -81,6 +81,7 @@ pub struct RequiredNullableString(pub Option<String>);
 #[serde(deny_unknown_fields)]
 pub struct Claim {
     pub claim_id: String,
+    pub assertion_key: String,
     pub scope_ref: String,
     pub bindings: Vec<Binding>,
     pub evidence_state: EvidenceState,
@@ -256,6 +257,9 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
         .collect();
     for claim in &data.claims {
         push_unique_id(&mut claim_ids, &claim.claim_id, "claim", &mut errors);
+        if !valid_id(&claim.assertion_key) {
+            errors.push(format!("claim {:?} assertion_key does not match the stable synthetic ID pattern", claim.claim_id));
+        }
         if !is_synthetic_ref(&claim.scope_ref) || !is_synthetic_ref(&claim.source_ref) {
             errors.push(format!("claim {:?} must use synthetic:// scope and source references", claim.claim_id));
         }
@@ -295,9 +299,9 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
             if !claims_by_id.contains_key(old_id) {
                 errors.push(format!("claim {:?} supersedes unknown claim {:?}", claim.claim_id, old_id));
             } else if let Some(old) = claims_by_id.get(old_id) {
-                if old.scope_ref != claim.scope_ref {
+                if old.scope_ref != claim.scope_ref || old.assertion_key != claim.assertion_key {
                     errors.push(format!(
-                        "supersession {:?} -> {:?} must retain the same scope_ref",
+                        "supersession {:?} -> {:?} must retain the same scope_ref and assertion_key",
                         claim.claim_id, old_id
                     ));
                 }
@@ -472,10 +476,13 @@ fn derive_claim_results(
 
     // Same-scope current claims with incompatible declared states are unresolved.
     // Timestamps are not used to choose which conflicting claim is "true".
-    let mut claims_per_scope: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
+    let mut claims_per_scope: BTreeMap<(&str, &str), Vec<usize>> = BTreeMap::new();
     for (index, claim) in data.claims.iter().enumerate() {
         if results[index].currentness == Currentness::Current {
-            claims_per_scope.entry(claim.scope_ref.as_str()).or_default().push(index);
+            claims_per_scope
+                .entry((claim.scope_ref.as_str(), claim.assertion_key.as_str()))
+                .or_default()
+                .push(index);
         }
     }
     for indices in claims_per_scope.values() {
@@ -681,10 +688,26 @@ mod tests {
     }
 
     #[test]
+    fn distinct_assertions_in_one_scope_do_not_conflict() {
+        let mut value = fixture_value();
+        let mut independent = value["claims"][1].clone();
+        independent["claim_id"] = json!("visitor-power-status");
+        independent["assertion_key"] = json!("visitor-power-resilience");
+        independent["evidence_state"] = json!("known_barrier");
+        independent["expected_currentness"] = json!("current");
+        value["claims"].as_array_mut().unwrap().push(independent);
+        let report = evaluate_value(&value).expect("different assertions are not a contradiction");
+        assert_eq!(report.claim_results[1].currentness, Currentness::Current);
+        assert_eq!(report.claim_results[3].currentness, Currentness::Current);
+        assert_eq!(report.path_results[1].assessment, Assessment::EvidenceCompleteForFixture);
+    }
+
+    #[test]
     fn supersession_cycle_fails_closed() {
         let mut value = fixture_value();
         let shared_scope = value["claims"][1]["scope_ref"].clone();
         value["claims"][0]["scope_ref"] = shared_scope;
+        value["claims"][0]["assertion_key"] = value["claims"][1]["assertion_key"].clone();
         value["claims"][0]["supersedes_claim_id"] = json!("visitor-alert-path");
         value["claims"][1]["supersedes_claim_id"] = json!("night-route-clearance");
         let errors = evaluate_value(&value).expect_err("cycle must fail");
@@ -749,6 +772,7 @@ mod tests {
             }));
             value["claims"].as_array_mut().unwrap().push(json!({
                 "claim_id": claim_id,
+                "assertion_key": format!("scale-assertion-{suffix}"),
                 "scope_ref": scope_ref,
                 "bindings": [{
                     "facet_id": facet_id,
