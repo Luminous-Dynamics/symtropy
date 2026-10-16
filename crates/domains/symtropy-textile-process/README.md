@@ -15,7 +15,7 @@ unit IDs.
 ## Robust stress evaluation
 
 The stress module evaluates explicit processing-time delays, input-release delays,
-and pre-horizon machine-availability shocks against both the bounded exact solver
+utility-budget curtailment and pre-horizon machine-availability shocks against the bounded exact solver
 and all four dispatch rules. The result preserves each fixture reference,
 exact feasibility outcome, concrete heuristic plan (if found), profile/service
 identifiers, and per-objective gaps. This is an equally enumerated stress corpus,
