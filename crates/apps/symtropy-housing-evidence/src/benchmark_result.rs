@@ -1060,6 +1060,13 @@ mod tests {
         assert_eq!(report.independent_result_status, "REFERENCE_MATCH");
         assert_eq!(report.declared_status_consistent, Some(true));
         assert!(report.outputs_match_reference);
+        assert_eq!(
+            report.benchmark_id.as_deref(),
+            Some("structural/axial-bar-linear-static/v1")
+        );
+        assert_eq!(report.case_id.as_deref(), Some("default"));
+        assert_eq!(report.quantity_comparisons.len(), 4);
+        assert!(report.quantity_comparisons.iter().all(|item| item.within_tolerance));
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
@@ -1086,6 +1093,16 @@ mod tests {
         assert_eq!(report.declared_status_consistent, Some(false));
         assert!(!report.outputs_match_reference);
         assert!(report.raw_output_digest_matches);
+        let stress = report
+            .quantity_comparisons
+            .iter()
+            .find(|item| item.quantity == "axial_stress_Pa")
+            .expect("stress comparison must be auditable");
+        assert_eq!(stress.actual_value, Some(3_000_000.0));
+        assert_eq!(stress.expected_value, 2_400_000.0);
+        assert_eq!(stress.absolute_error, Some(600_000.0));
+        assert!(!stress.within_tolerance);
+        assert!(stress.allowed_error < 1e-4);
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
