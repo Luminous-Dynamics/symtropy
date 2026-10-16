@@ -41,4 +41,4 @@ Expected-value calculations are emitted only for calibrated_empirical or reviewe
 
 ## Validation boundary
 
-Tests use synthetic, hand-calculated cases only. Passing them would establish arithmetic/contract behavior for those fixtures, not calibrated probabilities, correct local production forecasts, crop suitability, food safety or real-world benefit. See AGRI-VOI-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1661) for proposed oracle, regret, calibration, performance and field-validation benchmarks.
+The suite includes a deterministic 100-case two-world comparison against a closed-form oracle, in addition to named hand-calculated and negative-control cases. All generated cases remain synthetic. Passing them would establish arithmetic/contract behavior for those fixtures, not calibrated probabilities, correct local production forecasts, crop suitability, food safety or real-world benefit. See AGRI-VOI-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1661) for proposed oracle, regret, calibration, performance and field-validation benchmarks.
