@@ -185,10 +185,11 @@ impl fmt::Display for StressHarnessError {
 
 impl Error for StressHarnessError {}
 
-const DISPATCH_RULES: [DispatchRule; 3] = [
+const DISPATCH_RULES: [DispatchRule; 4] = [
     DispatchRule::EarliestDue,
     DispatchRule::LowestSetup,
     DispatchRule::LowestEnergy,
+    DispatchRule::LeastSlack,
 ];
 
 /// Evaluate each stress scenario using a bounded exact solver and three
@@ -673,7 +674,7 @@ mod tests {
         assert_eq!(report.scenario_count, 4);
         assert_eq!(report.exact_feasible_scenarios, 3);
         assert_eq!(report.exact_no_schedule_scenarios, 1);
-        assert_eq!(report.rule_summaries.len(), 3);
+        assert_eq!(report.rule_summaries.len(), 4);
         assert!(report.rule_summaries.iter().all(|summary| {
             summary.plans_found_on_feasible_scenarios == 3
                 && summary.feasible_scenarios_missed == 0
@@ -877,8 +878,25 @@ mod tests {
         assert!(report.scenario_results[0]
             .dispatch_results
             .iter()
+            .filter(|result| result.rule != DispatchRule::LeastSlack)
             .all(|result| result.missed_feasible_schedule && !result.plan_found));
-        assert!(report.rule_summaries.iter().all(|summary| {
+        let least_slack = report.scenario_results[0]
+            .dispatch_results
+            .iter()
+            .find(|result| result.rule == DispatchRule::LeastSlack)
+            .expect("least-slack rule is evaluated");
+        assert!(least_slack.plan_found);
+        assert!(!least_slack.missed_feasible_schedule);
+        let least_slack_summary = report
+            .rule_summaries
+            .iter()
+            .find(|summary| summary.rule == DispatchRule::LeastSlack)
+            .expect("least-slack summary is present");
+        assert_eq!(least_slack_summary.plans_found_on_feasible_scenarios, 1);
+        assert_eq!(least_slack_summary.feasible_scenarios_missed, 0);
+        assert!(report.rule_summaries.iter().filter(|summary| {
+            summary.rule != DispatchRule::LeastSlack
+        }).all(|summary| {
             summary.plans_found_on_feasible_scenarios == 0
                 && summary.feasible_scenarios_missed == 1
         }));
