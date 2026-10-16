@@ -334,7 +334,11 @@ mod tests {
             let accepted = transfer_well_energy(&mut well, &mut recipient);
 
             assert_eq!(accepted, 0.0);
-            assert_eq!(well.remaining, remaining);
+            if remaining.is_nan() {
+                assert!(well.remaining.is_nan());
+            } else {
+                assert_eq!(well.remaining, remaining);
+            }
             assert_eq!(recipient.calls, 0);
         }
     }
