@@ -5,7 +5,8 @@
 **Tracking issue:** [TRANSPORT-POLICY-001 #1681](https://github.com/Luminous-Dynamics/symtropy/issues/1681)  
 **Source-admission gate:** [TRANSPORT-DATA-PANAMA-001 #1677](https://github.com/Luminous-Dynamics/symtropy/issues/1677)  
 **Historical replay:** [TRANSPORT-RES-005 #1671](https://github.com/Luminous-Dynamics/symtropy/issues/1671)  
-**Provisional row set:** [TRANSPORT_PANAMA_EVENT_TIMELINE_PROVISIONAL_V0_1.csv](TRANSPORT_PANAMA_EVENT_TIMELINE_PROVISIONAL_V0_1.csv)
+**Provisional row set:** [TRANSPORT_PANAMA_EVENT_TIMELINE_PROVISIONAL_V0_1.csv](TRANSPORT_PANAMA_EVENT_TIMELINE_PROVISIONAL_V0_1.csv)  
+**Synthetic golden fixtures (not actual awards):** [TRANSPORT_PANAMA_POLICY_GOLDEN_CASES_V0_1.csv](TRANSPORT_PANAMA_POLICY_GOLDEN_CASES_V0_1.csv)
 
 ## 1. Paradigm shift
 
