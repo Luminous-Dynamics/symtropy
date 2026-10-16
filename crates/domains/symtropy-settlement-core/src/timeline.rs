@@ -241,7 +241,9 @@ pub fn evaluate_timeline(
                     let maximum = stock_limits
                         .get(supply_id)
                         .copied()
-                        .ok_or_else(|| SettlementError("stock limit missing after validation".into()))?;
+                        .ok_or_else(|| {
+                            SettlementError("stock limit missing after validation".into())
+                        })?;
                     if next_stock > maximum {
                         return Err(SettlementError(format!(
                             "resource inflow {} exceeds maximum stock for {}",
@@ -384,11 +386,11 @@ fn validate_canonical_timeline(
     // dependency, resource-pool, reserve or service-floor semantics.
     evaluate_scenario(&input.initial_scenario)?;
 
-    let components: BTreeMap<&ComponentId, u64> = input
+    let components: BTreeMap<ComponentId, u64> = input
         .initial_scenario
         .components
         .iter()
-        .map(|component| (&component.id, component.generation))
+        .map(|component| (component.id.clone(), component.generation))
         .collect();
     let supplies: BTreeMap<&str, &super::ResourceSupply> = input
         .initial_scenario
@@ -637,7 +639,11 @@ mod tests {
                     available,
                 ),
             ],
-            dependencies: vec![edge("grid", "pump"), edge("backup", "pump"), edge("pump", "water-service")],
+            dependencies: vec![
+                edge("grid", "pump"),
+                edge("backup", "pump"),
+                edge("pump", "water-service"),
+            ],
             resource_supplies: vec![
                 ResourceSupply {
                     supply_id: "grid-energy".into(),
