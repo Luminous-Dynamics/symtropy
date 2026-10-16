@@ -546,6 +546,12 @@ mod tests {
     const AXIAL_FIXTURE: &str = include_str!(
         "../../../../docs/built-environment/benchmarks/axial-bar-linear-static-v1.json"
     );
+    const CANTILEVER_FIXTURE: &str = include_str!(
+        "../../../../docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json"
+    );
+    const SIMPLE_FIXTURE: &str = include_str!(
+        "../../../../docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json"
+    );
     static NEXT_DIR: AtomicU64 = AtomicU64::new(0);
 
     fn temp_dir() -> PathBuf {
@@ -564,17 +570,33 @@ mod tests {
         sha256_hex(&bytes)
     }
 
-    fn correct_outputs() -> Value {
+    fn outputs_from_fixture(fixture: &str, case_id: &str) -> Value {
+        let benchmark: Value = serde_json::from_str(fixture).expect("valid benchmark fixture");
+        let expected = if let Some(cases) = benchmark.get("load_cases").and_then(Value::as_array) {
+            cases
+                .iter()
+                .find(|item| item.get("case_id").and_then(Value::as_str) == Some(case_id))
+                .and_then(|item| item.get("expected"))
+                .expect("fixture has the requested expected load case")
+        } else {
+            assert_eq!(case_id, "default");
+            benchmark.get("expected").expect("fixture has expected outputs")
+        };
+        let outputs: Vec<Value> = expected
+            .as_object()
+            .expect("expected outputs object")
+            .iter()
+            .map(|(quantity, raw_value)| {
+                let value = raw_value.as_f64().expect("numeric expected value");
+                let unit = unit_for_quantity(quantity).expect("known output unit");
+                json!({ "quantity": quantity, "value": value, "unit": unit })
+            })
+            .collect();
         json!({
             "schema_version": "0.1.0",
-            "benchmark_id": "structural/axial-bar-linear-static/v1",
-            "case_id": "default",
-            "outputs": [
-                { "quantity": "cross_section_area_m2", "value": 0.005, "unit": "m^2" },
-                { "quantity": "axial_stress_Pa", "value": 2400000.0, "unit": "Pa" },
-                { "quantity": "free_end_extension_m", "value": 0.000036, "unit": "m" },
-                { "quantity": "support_reaction_magnitude_N", "value": 12000.0, "unit": "N" }
-            ]
+            "benchmark_id": benchmark["benchmark_id"],
+            "case_id": case_id,
+            "outputs": outputs
         })
     }
 
@@ -583,10 +605,30 @@ mod tests {
         declared_status: &str,
         override_output_digest: Option<&str>,
     ) -> (PathBuf, PathBuf, String) {
+        setup_case_for_fixture(
+            AXIAL_FIXTURE,
+            "default",
+            outputs,
+            declared_status,
+            override_output_digest,
+        )
+    }
+
+    fn setup_case_for_fixture(
+        fixture: &str,
+        case_id: &str,
+        mut outputs: Value,
+        declared_status: &str,
+        override_output_digest: Option<&str>,
+    ) -> (PathBuf, PathBuf, String) {
         let root = temp_dir();
         let benchmark_path = root.join("benchmark.json");
-        fs::write(&benchmark_path, AXIAL_FIXTURE.as_bytes()).expect("write benchmark fixture");
-        let benchmark_sha = sha256_hex(AXIAL_FIXTURE.as_bytes());
+        fs::write(&benchmark_path, fixture.as_bytes()).expect("write benchmark fixture");
+        let benchmark_sha = sha256_hex(fixture.as_bytes());
+        let benchmark: Value = serde_json::from_str(fixture).expect("parse benchmark fixture");
+        let benchmark_id = benchmark["benchmark_id"].as_str().expect("benchmark_id");
+        outputs["benchmark_id"] = json!(benchmark_id);
+        outputs["case_id"] = json!(case_id);
 
         let outputs_bytes = serde_json::to_vec_pretty(&outputs).expect("serialize raw outputs");
         let outputs_path = root.join("raw-outputs.json");
@@ -597,8 +639,8 @@ mod tests {
 
         let record = json!({
             "schema_version": "0.1.0",
-            "benchmark_id": "structural/axial-bar-linear-static/v1",
-            "case_id": "default",
+            "benchmark_id": benchmark_id,
+            "case_id": case_id,
             "benchmark_sha256": benchmark_sha,
             "declared_status": declared_status,
             "evaluator": {
@@ -627,8 +669,36 @@ mod tests {
     }
 
     #[test]
+    fn checker_matches_cantilever_and_both_simple_span_reference_cases() {
+        for (fixture, case_id) in [
+            (CANTILEVER_FIXTURE, "default"),
+            (SIMPLE_FIXTURE, "midpoint-point-load-v1"),
+            (SIMPLE_FIXTURE, "uniform-distributed-load-v1"),
+        ] {
+            let outputs = outputs_from_fixture(fixture, case_id);
+            let (root, record_path, pin) =
+                setup_case_for_fixture(fixture, case_id, outputs, "CLAIMED_PASS", None);
+            let report = validate_paths(
+                &root.join("benchmark.json"),
+                &record_path,
+                &pin,
+                &checker_pin(),
+                &root,
+            )
+            .expect("validation should produce a report");
+            assert_eq!(
+                report.independent_result_status,
+                "REFERENCE_MATCH",
+                "reference check failed for case {case_id}"
+            );
+            assert_eq!(report.declared_status_consistent, Some(true));
+            fs::remove_dir_all(root).expect("remove temp directory");
+        }
+    }
+
+    #[test]
     fn independent_checker_matches_valid_reference_outputs() {
-        let (root, record_path, pin) = setup_case(correct_outputs(), "CLAIMED_PASS", None);
+        let (root, record_path, pin) = setup_case(outputs_from_fixture(AXIAL_FIXTURE, "default"), "CLAIMED_PASS", None);
         let report = validate_paths(
             &root.join("benchmark.json"),
             &record_path,
@@ -645,8 +715,14 @@ mod tests {
 
     #[test]
     fn false_claimed_pass_is_rejected_even_when_output_digest_is_valid() {
-        let mut outputs = correct_outputs();
-        outputs["outputs"][1]["value"] = json!(3000000.0);
+        let mut outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
+        let stress = outputs["outputs"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item["quantity"] == "axial_stress_Pa")
+            .expect("axial stress output");
+        stress["value"] = json!(3000000.0);
         let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
         let report = validate_paths(
             &root.join("benchmark.json"),
@@ -745,7 +821,7 @@ mod tests {
 
     #[test]
     fn duplicate_output_quantity_cannot_satisfy_reference() {
-        let mut outputs = correct_outputs();
+        let mut outputs = outputs_from_fixture(AXIAL_FIXTURE, "default");
         let duplicate = outputs["outputs"][0].clone();
         outputs["outputs"].as_array_mut().unwrap().push(duplicate);
         let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
