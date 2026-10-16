@@ -28,7 +28,7 @@ The package under formalization/lean defines five closed-form equations:
 - Simply supported midpoint-load deflection, delta = F L^3 / (48 E I).
 - Simply supported uniform-load deflection, delta = 5 q L^4 / (384 E I).
 
-The catalogue at formalization/lean/contracts.json maps five contract IDs to fourteen theorem names and records assumptions, SI unit expectations, and explicit NOT_ESTABLISHED status for Rust linkage and benchmark linkage. Lean functions currently use real numbers, not a dimension-typed unit system. These are seed contracts, not complete engineering semantics.
+The catalogue at formalization/lean/contracts.json maps five contract IDs to twenty theorem names and records assumptions, SI unit expectations, and explicit NOT_ESTABLISHED status for Rust linkage and benchmark linkage. Lean functions currently use real numbers, not a dimension-typed unit system. These are seed contracts, not complete engineering semantics.
 
 ## Program of work
 
@@ -40,7 +40,7 @@ The catalogue at formalization/lean/contracts.json maps five contract IDs to fou
 - Preserve exact-head CI evidence; queued or skipped is not passed.
 
 ### F1 — Formal analytical benchmark contracts
-- Link these contracts to the pinned axial-bar, cantilever, and simply-supported-beam fixtures as those fixtures become available on the target branch.
+- Promote the candidate links to the pinned axial-bar, cantilever, and simply-supported-beam fixtures only after housing-evidence PR #1653 is merged and the fixtures are present on the target branch.
 - Extend coverage to reactions, bending moments, stress, geometry-derived section properties, sign conventions, and dimension analysis.
 - Give every theorem an explicit assumption list and stable contract ID.
 - Add counterexamples showing which preconditions matter; invalid physical inputs must produce an explicit rejection/block, not a plausible number.

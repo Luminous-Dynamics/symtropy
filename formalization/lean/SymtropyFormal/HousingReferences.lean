@@ -194,4 +194,41 @@ theorem simplySupportedUniformLoadDeflection_length_quartic_scaling
   field_simp [hden]
   <;> ring
 
+
+/-! ## Exact rational checks for candidate benchmark fixtures
+
+These values correspond to the candidate JSON fixtures on housing-evidence PR
+#1653. They are exact real-number identities, not executions of the Rust code.
+-/
+
+theorem rectangularSecondMoment_cantilever_fixture_value :
+    rectangularSecondMoment ((12 : ℝ) / 125) ((1 : ℝ) / 10) =
+      (1 : ℝ) / 125000 := by
+  norm_num [rectangularSecondMoment]
+
+theorem rectangularSecondMoment_simplySupported_fixture_value :
+    rectangularSecondMoment ((1 : ℝ) / 10) ((1 : ℝ) / 5) =
+      (1 : ℝ) / 15000 := by
+  norm_num [rectangularSecondMoment]
+
+theorem axialBar_fixture_extension_value :
+    axialExtension 12000 3 200000000000 ((1 : ℝ) / 200) =
+      (9 : ℝ) / 250000 := by
+  norm_num [axialExtension]
+
+theorem cantilever_fixture_tip_deflection_value :
+    cantileverTipDeflection 1000 2 200000000000 ((1 : ℝ) / 125000) =
+      (1 : ℝ) / 600 := by
+  norm_num [cantileverTipDeflection]
+
+theorem simplySupportedMidpoint_fixture_deflection_value :
+    simplySupportedMidpointDeflection 5000 4 200000000000
+      ((1 : ℝ) / 15000) = (1 : ℝ) / 2000 := by
+  norm_num [simplySupportedMidpointDeflection]
+
+theorem simplySupportedUniformLoad_fixture_deflection_value :
+    simplySupportedUniformLoadDeflection 1000 4 200000000000
+      ((1 : ℝ) / 15000) = (1 : ℝ) / 4000 := by
+  norm_num [simplySupportedUniformLoadDeflection]
+
 end SymtropyFormal

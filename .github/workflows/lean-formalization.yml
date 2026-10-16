@@ -32,7 +32,7 @@ jobs:
             .schema_version == "0.1.0" and
             .package == "SymtropyFormal" and
             (.contracts | length == 5) and
-            ([.contracts[].theorems[]] | unique | length == 14)
+            ([.contracts[].theorems[]] | unique | length == 20)
           ' formalization/lean/contracts.json >/dev/null
           while IFS= read -r theorem; do
             short="${theorem##*.}"

@@ -6,10 +6,10 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
 ## Scope of the first slice
 
 The module **SymtropyFormal.HousingReferences** defines five elementary closed-form
-reference equations and contains fourteen theorem declarations covering
+reference equations and contains twenty theorem declarations covering
 positivity and exact geometric/load scaling. The versioned
 **contracts.json** catalog maps each contract to its equation, assumptions,
-SI-normalized input/output units, and theorem identifiers.
+SI-normalized input/output units, theorem identifiers, and candidate fixture links. Six exact rational known-answer theorems mirror the declared housing examples on PR #1653, but fixture ingestion and Rust conformance are not wired yet.
 
 The initial project pins Lean 4.35.0 and an immutable Mathlib commit. CI builds
 the package, validates theorem-to-contract mapping, and audits the

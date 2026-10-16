@@ -13,13 +13,29 @@
         "depth": "m",
         "second_moment_of_area": "m^4"
       },
-      "assumptions": ["breadth > 0 and depth > 0 for positivity claim"],
+      "assumptions": [
+        "breadth > 0 and depth > 0 for positivity claim"
+      ],
       "theorems": [
         "SymtropyFormal.rectangularSecondMoment_pos",
-        "SymtropyFormal.rectangularSecondMoment_depth_scaling"
+        "SymtropyFormal.rectangularSecondMoment_depth_scaling",
+        "SymtropyFormal.rectangularSecondMoment_cantilever_fixture_value",
+        "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
-      "benchmark_link_status": "NOT_LINKED"
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/cantilever-beam-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        },
+        {
+          "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ]
     },
     {
       "id": "mechanics.axial_bar.extension.v1",
@@ -40,10 +56,18 @@
       "theorems": [
         "SymtropyFormal.axialExtension_pos",
         "SymtropyFormal.axialExtension_force_scaling",
-        "SymtropyFormal.axialExtension_length_scaling"
+        "SymtropyFormal.axialExtension_length_scaling",
+        "SymtropyFormal.axialBar_fixture_extension_value"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
-      "benchmark_link_status": "NOT_LINKED"
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/axial-bar-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/axial-bar-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ]
     },
     {
       "id": "mechanics.cantilever.tip_deflection.v1",
@@ -65,10 +89,18 @@
       "theorems": [
         "SymtropyFormal.cantileverTipDeflection_pos",
         "SymtropyFormal.cantileverTipDeflection_force_scaling",
-        "SymtropyFormal.cantileverTipDeflection_length_cubic_scaling"
+        "SymtropyFormal.cantileverTipDeflection_length_cubic_scaling",
+        "SymtropyFormal.cantilever_fixture_tip_deflection_value"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
-      "benchmark_link_status": "NOT_LINKED"
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/cantilever-beam-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ]
     },
     {
       "id": "mechanics.simply_supported.midpoint_point_load.v1",
@@ -90,10 +122,19 @@
       "theorems": [
         "SymtropyFormal.simplySupportedMidpointDeflection_pos",
         "SymtropyFormal.simplySupportedMidpointDeflection_force_scaling",
-        "SymtropyFormal.simplySupportedMidpointDeflection_length_cubic_scaling"
+        "SymtropyFormal.simplySupportedMidpointDeflection_length_cubic_scaling",
+        "SymtropyFormal.simplySupportedMidpoint_fixture_deflection_value"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
-      "benchmark_link_status": "NOT_LINKED"
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+          "case_id": "midpoint-point-load-v1",
+          "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ]
     },
     {
       "id": "mechanics.simply_supported.uniform_load.v1",
@@ -115,10 +156,19 @@
       "theorems": [
         "SymtropyFormal.simplySupportedUniformLoadDeflection_pos",
         "SymtropyFormal.simplySupportedUniformLoadDeflection_load_scaling",
-        "SymtropyFormal.simplySupportedUniformLoadDeflection_length_quartic_scaling"
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_length_quartic_scaling",
+        "SymtropyFormal.simplySupportedUniformLoad_fixture_deflection_value"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
-      "benchmark_link_status": "NOT_LINKED"
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+          "case_id": "uniform-distributed-load-v1",
+          "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ]
     }
   ]
 }
