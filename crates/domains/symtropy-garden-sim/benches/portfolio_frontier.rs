@@ -134,22 +134,33 @@ fn report_fingerprint(request: &PortfolioComparisonRequestV1) -> u64 {
     })
 }
 
+fn run_comparison(request: &PortfolioComparisonRequestV1) {
+    let report = compare_portfolios_v1(black_box(request));
+    assert_eq!(report.status, PortfolioComparisonStatusV1::Compared);
+    black_box((
+        report.frontier_candidate_ids.len(),
+        report.dominated_candidate_ids.len(),
+        report.dominance_witnesses.len(),
+        report.excluded_candidates.len(),
+    ));
+}
+
 fn measure_single(label: &str, request: &PortfolioComparisonRequestV1) {
+    let output_fingerprint = report_fingerprint(request);
     for _ in 0..5 {
-        black_box(report_fingerprint(request));
+        run_comparison(request);
     }
     let mut samples = Vec::with_capacity(30);
-    let mut fingerprint = 0_u64;
     for _ in 0..30 {
         let start = Instant::now();
-        fingerprint = fingerprint.wrapping_add(report_fingerprint(request));
+        run_comparison(request);
         samples.push(start.elapsed().as_nanos());
     }
     samples.sort_unstable();
     let p50 = samples[14];
     let p95 = samples[28];
     println!(
-        "workload={label} candidates={} objectives={} repetitions=30 p50_us={} p95_us={} sum_of_fnv1a64={fingerprint:016x}",
+        "workload={label} candidates={} objectives={} repetitions=30 p50_us={} p95_us={} output_fingerprint_fnv1a64={output_fingerprint:016x}",
         request.candidates.len(),
         request.objectives.len(),
         p50 / 1_000,
@@ -159,29 +170,28 @@ fn measure_single(label: &str, request: &PortfolioComparisonRequestV1) {
 }
 
 fn measure_batch(label: &str, requests: &[PortfolioComparisonRequestV1]) {
+    let output_fingerprint_sum = requests
+        .iter()
+        .map(report_fingerprint)
+        .fold(0_u64, u64::wrapping_add);
     for _ in 0..5 {
-        let total: u64 = requests
-            .iter()
-            .map(report_fingerprint)
-            .fold(0_u64, u64::wrapping_add);
-        black_box(total);
+        for request in requests {
+            run_comparison(request);
+        }
     }
     let mut samples = Vec::with_capacity(30);
-    let mut fingerprint = 0_u64;
     for _ in 0..30 {
         let start = Instant::now();
-        let total: u64 = requests
-            .iter()
-            .map(report_fingerprint)
-            .fold(0_u64, u64::wrapping_add);
-        fingerprint = fingerprint.wrapping_add(total);
+        for request in requests {
+            run_comparison(request);
+        }
         samples.push(start.elapsed().as_nanos());
     }
     samples.sort_unstable();
     let p50 = samples[14];
     let p95 = samples[28];
     println!(
-        "workload={label} scenarios={} candidates_per_scenario={} objectives_per_scenario={} repetitions=30 p50_ms={} p95_ms={} sum_of_fnv1a64={fingerprint:016x}",
+        "workload={label} scenarios={} candidates_per_scenario={} objectives_per_scenario={} repetitions=30 p50_ms={} p95_ms={} output_fingerprint_sum_fnv1a64={output_fingerprint_sum:016x}",
         requests.len(),
         requests.first().map_or(0, |request| request.candidates.len()),
         requests.first().map_or(0, |request| request.objectives.len()),
