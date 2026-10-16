@@ -201,6 +201,19 @@ impl ThermodynamicLedger {
         }
     }
 
+    fn flow_fields_valid(&self) -> bool {
+        [
+            self.energy_in,
+            self.energy_out,
+            self.energy_regenerated,
+            self.energy_removed,
+            self.phi_energy_integral,
+            self.phi_change_total,
+        ]
+        .into_iter()
+        .all(|value| value.is_finite() && value >= 0.0)
+    }
+
     fn reject<T>(&mut self, error: LedgerInputError) -> Result<T, LedgerInputError> {
         self.invalid_flow_count = self.invalid_flow_count.saturating_add(1);
         Err(error)
@@ -321,16 +334,7 @@ impl ThermodynamicLedger {
     /// invalid numeric flow marks the result invalid and returns an infinite
     /// residual rather than a zero/error-free result.
     pub fn tick_balance(&mut self) -> TickBalance {
-        let fields_valid = [
-            self.energy_in,
-            self.energy_out,
-            self.energy_regenerated,
-            self.energy_removed,
-            self.phi_energy_integral,
-            self.phi_change_total,
-        ]
-        .into_iter()
-        .all(|value| value.is_finite() && value >= 0.0);
+        let fields_valid = self.flow_fields_valid();
 
         if !fields_valid && self.invalid_flow_count == 0 {
             self.invalid_flow_count = 1;
@@ -406,9 +410,7 @@ impl ThermodynamicLedger {
     /// Returns None if no Phi change this tick.
     pub fn joules_per_phi(&self) -> Option<f64> {
         if self.invalid_flow_count > 0
-            || !self.phi_energy_integral.is_finite()
-            || self.phi_energy_integral < 0.0
-            || !self.phi_change_total.is_finite()
+            || !self.flow_fields_valid()
             || self.phi_change_total < 1e-15
         {
             return None;
@@ -432,7 +434,8 @@ impl ThermodynamicLedger {
     /// Lifetime local-flow residual rate. Returns infinity after invalid input;
     /// it does not certify conservation of the whole simulated system.
     pub fn lifetime_error_rate(&self) -> f64 {
-        if self.invalid_flow_count > 0
+        if !self.flow_fields_valid()
+            || self.invalid_flow_count > 0
             || self.lifetime_invalid_flow_count > 0
             || !self.lifetime_energy.is_finite()
             || !self.lifetime_error.is_finite()
@@ -725,6 +728,21 @@ mod tests {
         assert_eq!(result.invalid_flow_count, 0);
         assert_eq!(result.balance, 0.0);
         assert_eq!(result.conservation_error, 0.0);
+    }
+
+    #[test]
+    fn direct_invalid_public_state_fails_closed_in_derived_metrics() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_action(2.0, 0.5);
+        ledger.record_phi_change(0.1);
+        assert!(ledger.joules_per_phi().is_some());
+
+        // Public fields are retained for compatibility, so direct mutation must
+        // be detected too; the derived metrics must not silently look healthy.
+        ledger.energy_out = f64::NAN;
+        assert!(ledger.joules_per_phi().is_none());
+        assert!(ledger.lifetime_error_rate().is_infinite());
+        assert!(!ledger.tick_balance().inputs_valid);
     }
 
     #[test]
