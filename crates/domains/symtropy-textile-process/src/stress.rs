@@ -112,6 +112,8 @@ pub struct RuleScenarioResult {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScenarioResult {
+    /// Original shock inputs and fixture reference for audit/replay.
+    pub scenario: StressScenario,
     pub scenario_id: String,
     pub fixture_ref: String,
     pub exact_outcome: ScenarioExactOutcome,
@@ -144,6 +146,8 @@ pub struct RuleStressSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StressReport {
     pub problem_id: String,
+    /// Exact planning problem before any scenario perturbations.
+    pub baseline_problem: ScheduleProblem,
     pub corpus_id: String,
     pub corpus_version: String,
     pub scenario_count: usize,
@@ -459,6 +463,7 @@ pub fn evaluate_stress_corpus(
         }
 
         scenario_results.push(ScenarioResult {
+            scenario: scenario.clone(),
             scenario_id: scenario.id.clone(),
             fixture_ref: scenario.fixture_ref.clone(),
             exact_outcome: exact,
@@ -479,6 +484,7 @@ pub fn evaluate_stress_corpus(
 
     Ok(StressReport {
         problem_id: baseline.id.clone(),
+        baseline_problem: baseline.clone(),
         corpus_id: corpus.id.clone(),
         corpus_version: corpus.version.clone(),
         scenario_count: scenario_results.len(),
