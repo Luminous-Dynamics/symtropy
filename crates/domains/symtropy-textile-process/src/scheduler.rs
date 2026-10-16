@@ -83,6 +83,7 @@ pub struct SetupTransition {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScheduleProblem {
     pub id: String,
+    pub time_unit_id: String,
     pub energy_unit_id: String,
     pub water_unit_id: String,
     pub energy_budget_units: u64,
@@ -126,6 +127,7 @@ pub struct ScheduleMetrics {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScheduleCandidate {
     pub problem_id: String,
+    pub time_unit_id: String,
     pub energy_unit_id: String,
     pub water_unit_id: String,
     pub operations: Vec<ScheduledOperation>,
@@ -149,6 +151,7 @@ pub struct ObjectiveOptima {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExhaustiveReport {
     pub problem_id: String,
+    pub time_unit_id: String,
     pub energy_unit_id: String,
     pub water_unit_id: String,
     pub pareto_frontier: Vec<ScheduleCandidate>,
@@ -169,6 +172,7 @@ pub enum DispatchRule {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ScheduleError {
     EmptyProblemId,
+    EmptyTimeUnitId,
     EmptyEnergyUnitId,
     EmptyWaterUnitId,
     EmptyJobs,
@@ -218,6 +222,7 @@ impl Error for ScheduleError {}
 #[derive(Clone)]
 struct PreparedProblem {
     id: String,
+    time_unit_id: String,
     energy_unit_id: String,
     water_unit_id: String,
     energy_budget_units: u64,
@@ -322,6 +327,7 @@ pub fn solve_exhaustive(problem: &ScheduleProblem) -> Result<ExhaustiveReport, S
 
     Ok(ExhaustiveReport {
         problem_id: prepared.id.clone(),
+        time_unit_id: prepared.time_unit_id.clone(),
         energy_unit_id: prepared.energy_unit_id.clone(),
         water_unit_id: prepared.water_unit_id.clone(),
         pareto_frontier,
@@ -429,6 +435,9 @@ pub fn dispatch_schedule(
 fn prepare(problem: &ScheduleProblem) -> Result<PreparedProblem, ScheduleError> {
     if problem.id.trim().is_empty() {
         return Err(ScheduleError::EmptyProblemId);
+    }
+    if problem.time_unit_id.trim().is_empty() {
+        return Err(ScheduleError::EmptyTimeUnitId);
     }
     if problem.energy_unit_id.trim().is_empty() {
         return Err(ScheduleError::EmptyEnergyUnitId);
@@ -671,6 +680,7 @@ fn prepare(problem: &ScheduleProblem) -> Result<PreparedProblem, ScheduleError> 
 
     Ok(PreparedProblem {
         id: problem.id.clone(),
+        time_unit_id: problem.time_unit_id.clone(),
         energy_unit_id: problem.energy_unit_id.clone(),
         water_unit_id: problem.water_unit_id.clone(),
         energy_budget_units: problem.energy_budget_units,
@@ -820,6 +830,7 @@ fn make_candidate(
 
     Ok(Some(ScheduleCandidate {
         problem_id: problem.id.clone(),
+        time_unit_id: problem.time_unit_id.clone(),
         energy_unit_id: problem.energy_unit_id.clone(),
         water_unit_id: problem.water_unit_id.clone(),
         operations,
@@ -1116,6 +1127,7 @@ mod tests {
     fn sample_problem() -> ScheduleProblem {
         ScheduleProblem {
             id: "decorative-garment-sample".to_owned(),
+            time_unit_id: "minute-tick-v0".to_owned(),
             energy_unit_id: "energy-unit-v0".to_owned(),
             water_unit_id: "water-unit-v0".to_owned(),
             energy_budget_units: 12,
@@ -1163,6 +1175,7 @@ mod tests {
         candidate: &ScheduleCandidate,
     ) {
         assert_eq!(candidate.problem_id, problem.id);
+        assert_eq!(candidate.time_unit_id, problem.time_unit_id);
         assert_eq!(candidate.energy_unit_id, problem.energy_unit_id);
         assert_eq!(candidate.water_unit_id, problem.water_unit_id);
 
@@ -1660,6 +1673,7 @@ mod tests {
     fn archive_display_job_requires_conservation_capability_and_retains_service_unit() {
         let problem = ScheduleProblem {
             id: "archive-display-treatment".to_owned(),
+            time_unit_id: "minute-tick-v0".to_owned(),
             energy_unit_id: "energy-unit-v0".to_owned(),
             water_unit_id: "water-unit-v0".to_owned(),
             energy_budget_units: 2,
