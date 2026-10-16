@@ -45,7 +45,12 @@ authenticate the underlying measurements.
    unit IDs. Profile and functional-unit IDs stay attached to each job. The
    scheduler does not compare cultural, aesthetic, ceremonial, conservation,
    or service value by an invented common scalar.
-7. **Low-frequency use is not a production penalty.** A couture, beaded,
+7. **Readiness is not the same as output acceptance.** Job gates are pre-dispatch
+   preconditions (for example material compatibility, process qualification,
+   safety authorization, or conservation approval). Finished-product condition,
+   appearance, fit, functionality, and repair success are post-run observations.
+   A scheduled finish does not prove acceptance or a successful second use.
+8. **Low-frequency use is not a production penalty.** A couture, beaded,
    ceremonial, performance, rental, archive, or rare-use garment can be
    represented by its own profile, capabilities, hard gates, care process and
    declared functional unit. A garment's event count is not used as a proxy
