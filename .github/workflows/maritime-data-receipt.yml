@@ -18,6 +18,8 @@ on:
       - 'docs/tech/MARITIME_ADAPTIVE_RESILIENCE_V0_1.json'
       - 'docs/tech/MARITIME_RESILIENCE_BENCHMARKS_V0_1.md'
       - 'docs/tech/MARITIME_RESILIENCE_FALSIFICATION_V0_1.md'
+      - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.md'
+      - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.gitignore'
@@ -71,6 +73,9 @@ jobs:
 
       - name: Verify synthetic adaptive resilience trajectory contract
         run: cargo run --locked -p maritime-data-receipt -- --evaluate-adaptive-resilience docs/tech/MARITIME_ADAPTIVE_RESILIENCE_V0_1.json
+
+      - name: Validate prospective historical corpus source registry
+        run: cargo run --locked -p maritime-data-receipt -- --validate-historical-corpus-manifest docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json
 
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json

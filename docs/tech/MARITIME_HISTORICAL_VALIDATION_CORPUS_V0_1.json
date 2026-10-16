@@ -1,0 +1,212 @@
+{
+  "schema_id": "luminous.symtropy.maritime-historical-validation-corpus",
+  "schema_version": "0.1.0",
+  "registry_status": "prospective_sources_not_captured",
+  "claim_ceiling": "DATASET_DISCOVERY_AND_CORPUS_DESIGN_ONLY",
+  "data_capture_performed": false,
+  "model_validation_performed": false,
+  "sources": [
+    {
+      "source_id": "port_disruption_database",
+      "source_kind": "research_incident_dataset",
+      "publisher": "Jasper Verschuur (repository owner; dataset authorship requires review)",
+      "landing_uri": "https://github.com/jasperverschuur/Port_Disruption_database",
+      "metadata_uri": "https://github.com/jasperverschuur/Port_Disruption_database/blob/29cfb82b68bce25bc93df44a240913a6c3420ef1/README.md",
+      "immutable_revision": "29cfb82b68bce25bc93df44a240913a6c3420ef1",
+      "resource_path": "Port-disruption-database.xlsx",
+      "resource_identifier": "Port_Disruption_database@29cfb82b68bce25bc93df44a240913a6c3420ef1:Port-disruption-database.xlsx",
+      "last_modified_utc": null,
+      "access_level": "public_repository",
+      "license_status": "unverified",
+      "license_uri": null,
+      "capture_status": "not_captured",
+      "artifact_byte_length": null,
+      "artifact_sha256": null,
+      "captured_at_utc": null,
+      "intended_role": "primary_historical_event_candidate",
+      "described_content": [
+        "event and port identifiers with country, name, year and date",
+        "reported reduction, shutdown and recovery durations",
+        "coarse severity labels",
+        "vessel-activity time series for affected and unaffected ports"
+      ],
+      "known_limitations": [
+        "a repository presence does not establish redistribution rights",
+        "a public repository does not by itself grant a data licence",
+        "vessel activity is a proxy and must not be relabelled as cargo throughput or delivered service",
+        "operational definitions, time resolution, completeness and source provenance require inspection before scoring"
+      ],
+      "use_decision": "metadata_inspection_only_until_rights_and_terms_are_confirmed",
+      "required_capture_fields": [
+        "immutable_source_revision",
+        "resource_path",
+        "retrieval_timestamp_utc",
+        "retrieval_method",
+        "exact_resource_byte_length",
+        "exact_resource_sha256",
+        "rights_or_license_evidence",
+        "attribution_text",
+        "dataset_sheet_and_column_inventory",
+        "time_resolution_and_missingness_profile"
+      ],
+      "last_modified_date": null
+    },
+    {
+      "source_id": "cyport_us_port_tropical_cyclone_resilience",
+      "source_kind": "research_incident_dataset",
+      "publisher": "Chenchen Kuai and collaborators (dataset repository: ChenchenMobility)",
+      "landing_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+      "metadata_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/README.md",
+      "immutable_revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+      "resource_path": "Repository directories: All_time_data/ and Tropical_cyclone_interaction/",
+      "resource_identifier": "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+      "last_modified_utc": null,
+      "last_modified_date": null,
+      "access_level": "public_repository",
+      "license_status": "readme_declares_cc_by_4_0",
+      "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "capture_status": "not_captured",
+      "artifact_byte_length": null,
+      "artifact_sha256": null,
+      "captured_at_utc": null,
+      "intended_role": "primary_historical_tropical_cyclone_validation_candidate",
+      "described_content": [
+        "daily vessel counts at principal U.S. ports for 2015 through 2023",
+        "745704 commercial vessel origin-destination trajectories",
+        "1927 port-cyclone interaction records with exposure and port response metadata",
+        "meteorological and tide variables including storm-surge-related measurements",
+        "port characteristics and published resilience/network metrics"
+      ],
+      "known_limitations": [
+        "the overall README declares CC BY 4.0 but each included source component and any third-party material must be checked for separate terms and attribution requirements",
+        "the published scope focuses on U.S. principal ports and tropical cyclones, so it does not establish general validity for strikes, cyber incidents, equipment failures or global ports",
+        "port-cyclone interaction rows are not independent events; group all related ports, windows and derived records by cyclone episode before train/calibration/test splitting",
+        "published resilience metrics may be derived from the same base observations; recompute target metrics independently and do not treat derived columns as independent ground truth",
+        "inspect exact temporal granularity, field definitions, missingness, source lineage, revision policy and event-window selection before use"
+      ],
+      "use_decision": "primary_candidate_after_component_rights_and_schema_review",
+      "required_capture_fields": [
+        "immutable_source_revision",
+        "resource_path",
+        "retrieval_timestamp_utc",
+        "retrieval_method",
+        "exact_resource_byte_length",
+        "exact_resource_sha256",
+        "rights_or_license_evidence",
+        "attribution_text",
+        "component_level_terms_snapshot",
+        "dataset_sheet_and_column_inventory",
+        "temporal_resolution_and_missingness_profile",
+        "raw_vs_derived_field_map"
+      ]
+    },
+    {
+      "source_id": "bts_port_throughput_metrics",
+      "source_kind": "government_port_performance_dataset",
+      "publisher": "U.S. Bureau of Transportation Statistics",
+      "landing_uri": "https://data.transportation.gov/d/8sfc-juwb",
+      "metadata_uri": "https://catalog.data.gov/dataset/port-throughput-metrics",
+      "immutable_revision": null,
+      "resource_path": "Socrata dataset view 8sfc-juwb",
+      "resource_identifier": "https://data.transportation.gov/api/views/8sfc-juwb",
+      "last_modified_utc": null,
+      "access_level": "public",
+      "license_status": "catalog_declares_public_domain_label",
+      "license_uri": "http://www.usa.gov/publicdomain/label/1.0/",
+      "capture_status": "not_captured",
+      "artifact_byte_length": null,
+      "artifact_sha256": null,
+      "captured_at_utc": null,
+      "intended_role": "supplementary_baseline_context_not_event_truth",
+      "described_content": [
+        "summary of port throughput metrics"
+      ],
+      "known_limitations": [
+        "catalog metadata describes summary throughput metrics, not necessarily incident-level time series",
+        "temporal granularity and port coverage must be inspected from the actual resource before use",
+        "do not infer the onset, recovery, causal mechanism or counterfactual effect of a disruption from aggregate summary metrics alone",
+        "pin exact retrieved metadata and data bytes because an API view identifier does not freeze its contents"
+      ],
+      "use_decision": "candidate_for_baseline_context_after_capture_and_schema_review",
+      "required_capture_fields": [
+        "retrieval_timestamp_utc",
+        "exact_response_byte_length",
+        "exact_response_sha256",
+        "content_type",
+        "API_query_or_download_url",
+        "dataset_metadata_snapshot",
+        "license_metadata_snapshot",
+        "actual_time_granularity",
+        "actual_port_coverage",
+        "null_and_revision_profile"
+      ],
+      "last_modified_date": "2026-02-23"
+    }
+  ],
+  "corpus_design": {
+    "split_unit": "independent_disruption_episode",
+    "leakage_policy": "All ports, time points, revised reports and derived labels tied to one event remain in one split. Do not train on observations or reports published after the historical decision time being evaluated.",
+    "holdout_policy": "Freeze a temporal holdout before fitting or tuning. Use leave-one-port-out only when the independent port count and data support it.",
+    "minimum_pilot_targets": {
+      "independent_episodes": 10,
+      "distinct_disruption_classes": 3,
+      "separate_control_port_series_when_available": true
+    },
+    "broader_claim_targets": {
+      "independent_episodes": 30,
+      "temporally_held_out_evaluation_required": true,
+      "leave_one_port_out_when_supported": true
+    },
+    "baseline_models": [
+      "persistence_no_new_information",
+      "transparent_static_capacity_loss_and_recovery"
+    ],
+    "reported_metrics": [
+      "per_service_trajectory_error",
+      "integrated_unmet_service_error",
+      "disruption_onset_error",
+      "degradation_duration_error",
+      "observed_recovery_time_error",
+      "right_censored_recovery_count",
+      "coverage_by_hazard_and_port",
+      "missingness_and_revision_profile"
+    ],
+    "forbidden_inferences": [
+      "publicly accessible means redistributable",
+      "vessel activity equals cargo throughput",
+      "missing observation equals zero service",
+      "no observed recovery equals zero recovery time",
+      "summary throughput alone proves a disruption cause",
+      "synthetic test success proves historical predictive validity"
+    ]
+  },
+  "episode_record_contract": {
+    "required_fields": [
+      "episode_id",
+      "source_references",
+      "affected_entity_ids",
+      "control_entity_ids_or_unavailable_reason",
+      "hazard_class",
+      "event_time_start",
+      "event_time_end_or_unknown_reason",
+      "decision_time_cutoff",
+      "impact_definition",
+      "recovery_definition",
+      "observation_refs",
+      "label_quality",
+      "split_assignment"
+    ],
+    "time_semantics": "Distinguish event time, publication/issue time, retrieval time, and the earliest time the decision process could have known each fact.",
+    "censoring_semantics": "If recovery is not observed before the source window ends, record right_censored or unknown; never encode it as a recovery time of zero.",
+    "counterfactual_semantics": "An unaffected port is a candidate control, not automatically a valid counterfactual. Document matching variables, shared shocks, spillovers and exclusions."
+  },
+  "capture_gates": [
+    "A source must be pinned or captured with exact bytes before it can enter a scored corpus.",
+    "Rights, attribution and source-use restrictions must be resolved before redistributing source bytes or derived products where restrictions apply.",
+    "Every episode label must trace to source rows and a documented operational definition.",
+    "All observations for one episode are grouped before any train/calibration/test split.",
+    "All transformations preserve an input-to-output digest lineage and a reproducible command/configuration.",
+    "A source discovery record is never counted as a captured artifact or a validated observation.",
+    "No historical predictive claim is admitted until the baseline and held-out evaluation protocol are frozen."
+  ]
+}

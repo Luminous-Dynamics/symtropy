@@ -8,6 +8,7 @@ mod macro_connectivity;
 mod forecast_applicability;
 mod disruption_rehearsal;
 mod adaptive_resilience;
+mod historical_corpus;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -716,6 +717,15 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--validate-historical-corpus-manifest") {
+        let manifest_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-historical-corpus-manifest <manifest-json-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for historical corpus manifest verification".to_owned());
+        }
+        return historical_corpus::run_cli(&manifest_path);
+    }
     if first_arg.as_deref() == Some("--evaluate-adaptive-resilience") {
         let fixture_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --evaluate-adaptive-resilience <fixture-json-path>".to_owned()
