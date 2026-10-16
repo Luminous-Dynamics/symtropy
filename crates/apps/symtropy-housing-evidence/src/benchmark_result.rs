@@ -24,6 +24,7 @@ const OUTPUT_SCHEMA: &str =
 pub struct BenchmarkResultReport {
     pub validator_version: String,
     pub validator_binary_sha256: Option<String>,
+    pub checker_pin_matches: bool,
     pub record_schema_sha256: String,
     pub output_schema_sha256: String,
     pub benchmark_sha256_actual: String,
@@ -61,6 +62,7 @@ pub fn validate_paths(
     benchmark_path: &Path,
     record_path: &Path,
     expected_benchmark_sha256: &str,
+    expected_checker_sha256: &str,
     artifact_root: &Path,
 ) -> Result<BenchmarkResultReport, String> {
     if !is_sha256_hex(expected_benchmark_sha256) {
@@ -68,11 +70,18 @@ pub fn validate_paths(
             "expected benchmark SHA-256 must be 64 lowercase hexadecimal characters".to_string(),
         );
     }
+    if !is_sha256_hex(expected_checker_sha256) {
+        return Err(
+            "expected checker SHA-256 must be 64 lowercase hexadecimal characters".to_string(),
+        );
+    }
 
     let validator_binary_sha256 = std::env::current_exe()
         .ok()
         .and_then(|path| fs::read(path).ok())
         .map(|bytes| sha256_hex(&bytes));
+    let checker_pin_matches =
+        validator_binary_sha256.as_deref() == Some(expected_checker_sha256);
     let record_schema_sha256 = sha256_hex(RECORD_SCHEMA.as_bytes());
     let output_schema_sha256 = sha256_hex(OUTPUT_SCHEMA.as_bytes());
 
@@ -90,6 +99,14 @@ pub fn validate_paths(
         .map_err(|error| format!("{} is not valid JSON: {error}", record_path.display()))?;
 
     let mut issues = Vec::new();
+    if validator_binary_sha256.is_none() {
+        issues.push("cannot determine the running checker executable SHA-256".to_string());
+    } else if !checker_pin_matches {
+        issues.push(format!(
+            "checker executable does not match out-of-band SHA-256 pin (actual {})",
+            validator_binary_sha256.as_deref().unwrap_or_default()
+        ));
+    }
     if !benchmark_pin_matches {
         issues.push(format!(
             "benchmark bytes do not match the out-of-band SHA-256 pin (actual {benchmark_sha256_actual})"
@@ -227,6 +244,7 @@ pub fn validate_paths(
     }
 
     let blocked = validator_binary_sha256.is_none()
+        || !checker_pin_matches
         || !benchmark_pin_matches
         || !record_schema_valid
         || !record_benchmark_sha256_matches
@@ -263,6 +281,7 @@ pub fn validate_paths(
     Ok(BenchmarkResultReport {
         validator_version: env!("CARGO_PKG_VERSION").to_string(),
         validator_binary_sha256,
+        checker_pin_matches,
         record_schema_sha256,
         output_schema_sha256,
         benchmark_sha256_actual,
