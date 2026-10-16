@@ -53,7 +53,7 @@ The catalogue at formalization/lean/contracts.json maps five contract IDs to twe
 - Keep the mathematical proof, implementation test, analytical fixture, and execution receipt as distinct artifacts in the evidence chain.
 
 ### F3 — Floating-point and algorithmic bounds
-- Review formal floating-point libraries such as [FloatSpec](https://reservoir.lean-lang.org/%40Beneficial-AI-Foundation/FloatSpec) before adding a dependency. Establish bounds for rounding, cancellation, overflow, underflow, and ill-conditioned inputs; define when values must be rejected or marked inconclusive.
+- Review [FloatLib](https://github.com/lean-dojo/FloatLib) first as a candidate numerical-semantics dependency: its current main branch pins Lean v4.35.0, matching this prototype, and documents IEEE binary/decimal formats, rounding, and error-bound machinery. Compare [FloatSpec](https://reservoir.lean-lang.org/%40Beneficial-AI-Foundation/FloatSpec) as an alternative. Before integrating either, audit theorem placeholders/axioms, dependency pins, license, performance, and compatibility with the intended Rust f64 behavior. Establish bounds for rounding, cancellation, overflow, underflow, and ill-conditioned inputs; define when values must be rejected or marked inconclusive.
 - Move from identities over real numbers to a proved or bounded implementation relation only when the arithmetic model and compiler/runtime assumptions are explicit.
 - For iterative solvers, prove algorithmic properties separately from empirical convergence tests and mesh/time-step refinement studies.
 
@@ -85,7 +85,8 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 - [OpenAI math release](https://github.com/openai/math): a research corpus whose README distinguishes formalized from unformalized results. Import a specific result only after checking its Lean proof, dependencies, provenance and applicability; do not treat the release as a certified engineering library.
 - [Mathlib](https://github.com/leanprover-community/mathlib4): reusable mathematical foundations; keep the dependency revision pinned.
 - [Lean documentation](https://lean-lang.org/lean4/doc/): language and proof-development reference.
-- [FloatSpec](https://reservoir.lean-lang.org/%40Beneficial-AI-Foundation/FloatSpec): candidate research dependency for formal floating-point semantics, subject to compatibility and assurance review.
+- [FloatLib](https://github.com/lean-dojo/FloatLib): first candidate to evaluate for proved executable floating-point semantics and error bounds; version compatibility alone is not evidence of compatibility with Rust or of a verified Symtropy implementation.
+- [FloatSpec](https://reservoir.lean-lang.org/%40Beneficial-AI-Foundation/FloatSpec): alternative formal floating-point project; inspect outstanding proof placeholders before reuse.
 
 ## Definition of done for this prototype
 
