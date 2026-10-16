@@ -162,11 +162,11 @@ See [the housing-engineering benchmark and conformance program](../../../docs/bu
 
 ## Analytical axial-bar reference fixture
 
-The repository also includes [`axial-bar-linear-static-v1.json`](../../../docs/built-environment/benchmarks/axial-bar-linear-static-v1.json) and `tests/reference_axial_bar.rs`. This synthetic case checks rectangular area, axial stress, free-end extension and support reaction using closed-form equations; it rejects non-positive inputs and inconsistent declared area, and checks load/length/modulus/section scaling relationships. This is a second analytical benchmark only—not a solver qualification, design approval or evidence of physical validation. The next analytical extension is a simply supported beam with point-load and distributed-load cases.
+The repository includes [`axial-bar-linear-static-v1.json`](../../../docs/built-environment/benchmarks/axial-bar-linear-static-v1.json) and `tests/reference_axial_bar.rs`. This synthetic case checks rectangular area, axial stress, free-end extension and support reaction using closed-form equations; it rejects non-positive inputs and inconsistent declared area, and checks load/length/modulus/section scaling relationships. Together with the cantilever and simply supported beam, it is an analytical benchmark only—not a solver qualification, design approval or evidence of physical validation.
 
 ## Simply supported beam reference fixtures
 
-[`simply-supported-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json) and `tests/reference_simply_supported_beam.rs` cover two simple-span analytical load cases: a midpoint point load and a uniform distributed load. The tests check maximum deflection, bending moment, extreme-fiber stress and support reaction; geometry consistency, non-positive inputs and declared load/span scaling are also checked. This is analytical verification plumbing only. The next major assurance milestone is an independent result checker that recomputes verdicts from pinned criteria and raw outputs before a finite-element solver is considered for any bounded comparison.
+[`simply-supported-beam-linear-static-v1.json`](../../../docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json) and `tests/reference_simply_supported_beam.rs` cover two simple-span analytical load cases: a midpoint point load and a uniform distributed load. The tests check maximum deflection, bending moment, extreme-fiber stress and support reaction; geometry consistency, non-positive inputs and declared load/span scaling are also checked. This is analytical verification plumbing only. The result-checker prototype now compares the declared numeric output artifact with the fixture's pinned analytical outputs. The next milestone is authenticated execution and solver-specific parsing/provenance before a finite-element solver is considered for any bounded comparison.
 
 ## Independent analytical benchmark result checker
 
@@ -182,8 +182,10 @@ Example invocation:
 housing-evidence-verify --validate-benchmark-result benchmark.json \
   --record execution-record.json \
   --benchmark-sha256 <trusted-benchmark-sha256> \
+  --checker-sha256 <trusted-checker-sha256> \
   --artifact-root ./benchmark-artifacts
 ```
+
 
 The execution record binds the benchmark ID/case, benchmark digest, producer-declared outcome, declared exit/termination/execution-kind/convergence state, evaluator identity, and the relative path/SHA-256 of the parsed numeric-output artifact. The CLI also requires an out-of-band SHA-256 pin for the checker executable itself; the report records the checker binary digest and both embedded schema digests. Analytical-reference records must mark convergence `NOT_APPLICABLE`; numerical-solver records must explicitly declare `CONVERGED`, or the result is blocked. The checker reads those artifact bytes, validates the output schema, enforces exact output-quantity coverage and units, rejects duplicate quantities, and compares finite numeric values with the pinned case-specific tolerance. A fake runner that declares `CLAIMED_PASS` for incorrect numerical values returns `REFERENCE_MISMATCH` and a failing process exit code, even when the output artifact's digest matches.
 
