@@ -55,6 +55,22 @@ probability estimation. The machine availability shock is a pre-horizon
 availability shift; breakdowns occurring in the middle of active operations
 and re-entrant rescheduling remain future work.
 
+## Machine-readable fixture
+
+The JSON Schema and first synthetic manifest are in
+docs/ops/fixtures/textile_schedule_stress_v0_1/:
+- stress_corpus.schema.json (JSON Schema draft 2020-12);
+- stress_corpus.example.json (five scenarios including duration, input-release,
+  utility-curtailment and machine-availability cases);
+- README.md (expected classifications and explicit statement that no JSON loader
+  is wired into Rust yet).
+
+The typed Rust tests and the JSON fixture are parallel representations at this
+stage, not evidence of a parser round-trip. Before this fixture is treated as an
+executable corpus, add an independent schema-validation step and a loader round-
+trip test. Hash the exact fixture bytes for each measurement run and pin that
+digest with the run receipt.
+
 ## Locked test design
 
 The first fixture should include the following matched cases over the same
