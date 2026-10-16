@@ -316,3 +316,56 @@ fn analytical_axial_bar_survives_deterministic_scaling_sweep() {
         assert!(close_relative(result.reaction_n, reference.reaction_n, tolerance));
     }
 }
+
+
+#[test]
+fn analytical_axial_bar_obeys_load_length_modulus_area_interactions() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("baseline case is valid");
+    let inputs = &base["inputs"];
+    let load = inputs["load_N"].as_f64().unwrap();
+    let length = inputs["length_m"].as_f64().unwrap();
+    let modulus = inputs["elastic_modulus_Pa"].as_f64().unwrap();
+    let width = inputs["section_width_m"].as_f64().unwrap();
+    let area = inputs["cross_section_area_m2"].as_f64().unwrap();
+
+    for load_factor in [0.5_f64, 2.0] {
+        for length_factor in [0.5_f64, 2.0] {
+            for modulus_factor in [0.5_f64, 2.0] {
+                for area_factor in [0.5_f64, 2.0] {
+                    let mut changed = base.clone();
+                    changed["inputs"]["load_N"] = serde_json::json!(load * load_factor);
+                    changed["inputs"]["length_m"] =
+                        serde_json::json!(length * length_factor);
+                    changed["inputs"]["elastic_modulus_Pa"] =
+                        serde_json::json!(modulus * modulus_factor);
+                    changed["inputs"]["section_width_m"] =
+                        serde_json::json!(width * area_factor);
+                    changed["inputs"]["cross_section_area_m2"] =
+                        serde_json::json!(area * area_factor);
+                    let result = evaluate_reference(&changed)
+                        .expect("combined load/length/modulus/area transform is valid");
+                    assert!(close_relative(
+                        result.stress_pa,
+                        reference.stress_pa * load_factor / area_factor,
+                        tolerance
+                    ));
+                    assert!(close_relative(
+                        result.extension_m,
+                        reference.extension_m * load_factor * length_factor
+                            / (modulus_factor * area_factor),
+                        tolerance
+                    ));
+                    assert!(close_relative(
+                        result.reaction_n,
+                        reference.reaction_n * load_factor,
+                        tolerance
+                    ));
+                }
+            }
+        }
+    }
+}
