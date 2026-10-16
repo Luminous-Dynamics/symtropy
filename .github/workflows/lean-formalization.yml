@@ -19,12 +19,28 @@ permissions:
 
 jobs:
   prove:
-    name: Build proofs and audit axioms
+    name: Validate contracts, build proofs and audit axioms
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Check out exact revision
         uses: actions/checkout@v4
+      - name: Validate theorem-to-contract mapping
+        shell: bash
+        run: |
+          jq -e '
+            .schema_version == "0.1.0" and
+            .package == "SymtropyFormal" and
+            (.contracts | length == 5) and
+            ([.contracts[].theorems[]] | unique | length == 14)
+          ' formalization/lean/contracts.json >/dev/null
+          while IFS= read -r theorem; do
+            short="${theorem##*.}"
+            if ! grep -Eq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal/HousingReferences.lean; then
+              echo "::error::Contract theorem missing from Lean source: ${theorem}"
+              exit 1
+            fi
+          done < <(jq -r '.contracts[].theorems[]' formalization/lean/contracts.json)
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@v1
         with:

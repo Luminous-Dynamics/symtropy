@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1.0",
+  "package": "SymtropyFormal",
+  "status": "PROTOTYPE_PENDING_EXACT_HEAD_CI",
+  "unit_convention": "The future Rust binding layer must normalize the following SI units explicitly. Lean functions currently use real numbers and do not enforce physical dimensions.",
+  "contracts": [
+    {
+      "id": "geometry.rectangular_section.second_moment.v1",
+      "equation": "I = b * h^3 / 12",
+      "formal_definition": "SymtropyFormal.rectangularSecondMoment",
+      "inputs_and_outputs": {
+        "breadth": "m",
+        "depth": "m",
+        "second_moment_of_area": "m^4"
+      },
+      "assumptions": ["breadth > 0 and depth > 0 for positivity claim"],
+      "theorems": [
+        "SymtropyFormal.rectangularSecondMoment_pos",
+        "SymtropyFormal.rectangularSecondMoment_depth_scaling"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "NOT_LINKED"
+    },
+    {
+      "id": "mechanics.axial_bar.extension.v1",
+      "equation": "delta = F * L / (E * A)",
+      "formal_definition": "SymtropyFormal.axialExtension",
+      "inputs_and_outputs": {
+        "force": "N",
+        "length": "m",
+        "youngs_modulus": "Pa",
+        "area": "m^2",
+        "extension": "m"
+      },
+      "assumptions": [
+        "uniform linearly elastic bar",
+        "positive force and length for positivity claim",
+        "positive Young's modulus and area"
+      ],
+      "theorems": [
+        "SymtropyFormal.axialExtension_pos",
+        "SymtropyFormal.axialExtension_force_scaling",
+        "SymtropyFormal.axialExtension_length_scaling"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "NOT_LINKED"
+    },
+    {
+      "id": "mechanics.cantilever.tip_deflection.v1",
+      "equation": "delta = F * L^3 / (3 * E * I)",
+      "formal_definition": "SymtropyFormal.cantileverTipDeflection",
+      "inputs_and_outputs": {
+        "tip_force": "N",
+        "span": "m",
+        "youngs_modulus": "Pa",
+        "second_moment_of_area": "m^4",
+        "tip_deflection": "m"
+      },
+      "assumptions": [
+        "Euler-Bernoulli beam theory",
+        "linear static response and small deflection",
+        "cantilever with a tip point load",
+        "positive force, span, Young's modulus and second moment of area for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.cantileverTipDeflection_pos",
+        "SymtropyFormal.cantileverTipDeflection_force_scaling",
+        "SymtropyFormal.cantileverTipDeflection_length_cubic_scaling"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "NOT_LINKED"
+    },
+    {
+      "id": "mechanics.simply_supported.midpoint_point_load.v1",
+      "equation": "delta_mid = F * L^3 / (48 * E * I)",
+      "formal_definition": "SymtropyFormal.simplySupportedMidpointDeflection",
+      "inputs_and_outputs": {
+        "midpoint_force": "N",
+        "span": "m",
+        "youngs_modulus": "Pa",
+        "second_moment_of_area": "m^4",
+        "midspan_deflection": "m"
+      },
+      "assumptions": [
+        "Euler-Bernoulli beam theory",
+        "linear static response and small deflection",
+        "simply supported beam with a midpoint point load",
+        "positive force, span, Young's modulus and second moment of area for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.simplySupportedMidpointDeflection_pos",
+        "SymtropyFormal.simplySupportedMidpointDeflection_force_scaling",
+        "SymtropyFormal.simplySupportedMidpointDeflection_length_cubic_scaling"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "NOT_LINKED"
+    },
+    {
+      "id": "mechanics.simply_supported.uniform_load.v1",
+      "equation": "delta_mid = 5 * q * L^4 / (384 * E * I)",
+      "formal_definition": "SymtropyFormal.simplySupportedUniformLoadDeflection",
+      "inputs_and_outputs": {
+        "uniform_load_intensity": "N/m",
+        "span": "m",
+        "youngs_modulus": "Pa",
+        "second_moment_of_area": "m^4",
+        "midspan_deflection": "m"
+      },
+      "assumptions": [
+        "Euler-Bernoulli beam theory",
+        "linear static response and small deflection",
+        "simply supported beam with uniformly distributed load over the span",
+        "positive load intensity, span, Young's modulus and second moment of area for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_pos",
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_load_scaling",
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_length_quartic_scaling"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "NOT_LINKED"
+    }
+  ]
+}
