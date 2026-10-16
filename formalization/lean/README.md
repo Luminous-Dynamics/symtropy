@@ -5,16 +5,26 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
 
 ## Scope of the first slice
 
-The module **SymtropyFormal.HousingReferences** defines five elementary closed-form
-reference equations and contains twenty theorem declarations covering
-positivity and exact geometric/load scaling. The versioned
-**contracts.json** catalog maps each contract to its equation, assumptions,
-SI-normalized input/output units, theorem identifiers, and candidate fixture links. Six exact rational known-answer theorems mirror the declared housing examples on PR #1653, but fixture ingestion and Rust conformance are not wired yet.
+- **HousingReferences.lean** defines five elementary closed-form reference
+  equations and theorem declarations for positivity, exact scaling, and exact
+  rational known-answer values.
+- **Dimensions.lean** defines seven-SI-base dimension vectors and proves eight
+  dimensional-homogeneity identities for the equation families, stress, moment,
+  and reaction. It also includes a negative control showing that a deliberately
+  malformed cantilever expression has the wrong dimension.
+- **contracts.json** maps stable contract IDs to assumptions, input/output SI
+  units, theorem IDs, candidate housing fixture links, dimension status, and
+  negative controls.
 
-The initial project pins Lean 4.35.0 and an immutable Mathlib commit. CI builds
-the package, validates theorem-to-contract mapping, and audits the
-SymtropyFormal namespace for unapproved axioms/placeholders. A proof only
-counts as verified after that exact commit's workflow passes.
+The current numerical definitions accept untyped real numbers. The dimensional
+proofs validate equations in a separate exponent model; they do not yet make
+invalid Rust calls unrepresentable, enforce units in the runtime, or prove the
+Rust implementation computes these functions.
+
+The project pins Lean 4.35.0 and an immutable Mathlib commit. CI validates
+the theorem-to-contract mapping, builds the package, and audits the
+SymtropyFormal namespace for unapproved axioms/placeholders. No theorem counts
+as verified until that exact revision passes.
 
 ## Run locally
 
@@ -24,15 +34,25 @@ From the repository root:
     lake exe cache get
     lake build
 
+## Research basis
+
+The approach is informed by a published Lean formalization of dimensional
+analysis and the existing ATOMSLab/LeanDimensionalAnalysis project. That
+upstream package pins an older Lean release, so this prototype does not vendor
+its code without a compatibility review. Rust's `dimensioned` crate is another
+potential way to make unit errors unrepresentable in implementation types; it
+should be evaluated against Symtropy's existing API before introducing a
+production dependency.
+
 ## Trust boundary
 
-A successful Lean build means the stated propositions typecheck against the
-pinned Lean/Mathlib environment. It does not establish:
-- that a proposition fully captures the intended engineering assumptions;
-- that the Rust implementation computes the formal function;
+A successful Lean build only establishes that these exact propositions typecheck
+in the pinned Lean/Mathlib environment. It does not establish:
+- that the proposition captures all of the intended engineering assumptions;
+- that Rust values are bound to the same dimensions or the formulas are implemented correctly;
 - that binary floating-point arithmetic follows real-number identities exactly;
 - that a numerical solver converges or models actual materials correctly;
-- that measurements, boundary conditions, loads, or regulatory decisions are valid.
+- that loads, boundary conditions, measurements, building-code provisions, or safety decisions are valid.
 
-These require separate Rust conformance tests, floating-point error analysis,
+Those require separate implementation-conformance tests, numerical analysis,
 solver verification, empirical validation, and qualified engineering review.

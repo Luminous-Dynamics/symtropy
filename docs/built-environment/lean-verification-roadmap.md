@@ -28,7 +28,7 @@ The package under formalization/lean defines five closed-form equations:
 - Simply supported midpoint-load deflection, delta = F L^3 / (48 E I).
 - Simply supported uniform-load deflection, delta = 5 q L^4 / (384 E I).
 
-The catalogue at formalization/lean/contracts.json maps five contract IDs to twenty theorem names and records assumptions, SI unit expectations, and explicit NOT_ESTABLISHED status for Rust linkage and benchmark linkage. Lean functions currently use real numbers, not a dimension-typed unit system. These are seed contracts, not complete engineering semantics.
+The catalogue at formalization/lean/contracts.json maps five contract IDs to twenty-eight theorem names and records assumptions, SI unit expectations, and explicit NOT_ESTABLISHED status for Rust linkage and benchmark linkage. Lean functions currently use real numbers, not a dimension-typed unit system. These are seed contracts, not complete engineering semantics.
 
 ## Program of work
 
@@ -44,6 +44,11 @@ The catalogue at formalization/lean/contracts.json maps five contract IDs to twe
 - Extend coverage to reactions, bending moments, stress, geometry-derived section properties, sign conventions, and dimension analysis.
 - Give every theorem an explicit assumption list and stable contract ID.
 - Add counterexamples showing which preconditions matter; invalid physical inputs must produce an explicit rejection/block, not a plausible number.
+
+### F1.5 — Dimensional homogeneity
+- Check all supported closed-form equations against seven SI base dimensions represented as integer exponent vectors.
+- Keep a published negative-control corpus; for example, removing the cantilever's cubic length term must be rejected as dimensionally inconsistent.
+- Extend to thermal, fluid, energy and dynamics formulas only through explicit base-dimension definitions and reviewed unit mappings.
 
 ### F2 — Rust refinement/conformance
 - Add exact mappings from each formal definition to an existing or newly written Rust implementation; do not invent a link when no matching implementation exists.
@@ -84,6 +89,8 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 
 - [OpenAI math release](https://github.com/openai/math): a research corpus whose README distinguishes formalized from unformalized results. Import a specific result only after checking its Lean proof, dependencies, provenance and applicability; do not treat the release as a certified engineering library.
 - [Mathlib](https://github.com/leanprover-community/mathlib4): reusable mathematical foundations; keep the dependency revision pinned.
+- [LeanDimensionalAnalysis](https://github.com/ATOMSLab/LeanDimensionalAnalysis) and its [2025 paper](https://arxiv.org/abs/2509.13142): prior formal work on seven SI base dimensions and dimensional homogeneity; the upstream repository pins an older Lean release and is a research reference until compatibility is established.
+- [Rust dimensioned](https://docs.rs/dimensioned/latest/dimensioned/): candidate compile-time unit system to evaluate for the Rust implementation.
 - [Lean documentation](https://lean-lang.org/lean4/doc/): language and proof-development reference.
 - [FloatLib](https://github.com/lean-dojo/FloatLib): first candidate to evaluate for proved executable floating-point semantics and error bounds; version compatibility alone is not evidence of compatibility with Rust or of a verified Symtropy implementation.
 - [FloatSpec](https://reservoir.lean-lang.org/%40Beneficial-AI-Foundation/FloatSpec): alternative formal floating-point project; inspect outstanding proof placeholders before reuse.

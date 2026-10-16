@@ -25,22 +25,42 @@ jobs:
     steps:
       - name: Check out exact revision
         uses: actions/checkout@v4
-      - name: Validate theorem-to-contract mapping
+      - name: Validate theorem-to-contract mapping and negative controls
         shell: bash
         run: |
           jq -e '
             .schema_version == "0.1.0" and
             .package == "SymtropyFormal" and
             (.contracts | length == 5) and
-            ([.contracts[].theorems[]] | unique | length == 20)
+            ([.contracts[].theorems[]] | unique | length == 28) and
+            (.negative_controls | length == 1)
           ' formalization/lean/contracts.json >/dev/null
+
           while IFS= read -r theorem; do
             short="${theorem##*.}"
-            if ! grep -Eq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal/HousingReferences.lean; then
+            if ! grep -REq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal; then
               echo "::error::Contract theorem missing from Lean source: ${theorem}"
               exit 1
             fi
           done < <(jq -r '.contracts[].theorems[]' formalization/lean/contracts.json)
+
+          while IFS= read -r theorem; do
+            short="${theorem##*.}"
+            if ! grep -REq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal; then
+              echo "::error::Negative-control theorem missing from Lean source: ${theorem}"
+              exit 1
+            fi
+          done < <(jq -r '.negative_controls[].theorem' formalization/lean/contracts.json)
+
+          declared_count=$(grep -REh '^theorem ' formalization/lean/SymtropyFormal | wc -l)
+          expected_count=$((
+            $(jq '[.contracts[].theorems[]] | unique | length' formalization/lean/contracts.json) +
+            $(jq '[.negative_controls[].theorem] | unique | length' formalization/lean/contracts.json)
+          ))
+          if [ "$declared_count" -ne "$expected_count" ]; then
+            echo "::error::Expected $expected_count mapped theorem declarations, found $declared_count"
+            exit 1
+          fi
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@v1
         with:

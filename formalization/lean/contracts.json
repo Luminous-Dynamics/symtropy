@@ -20,7 +20,8 @@
         "SymtropyFormal.rectangularSecondMoment_pos",
         "SymtropyFormal.rectangularSecondMoment_depth_scaling",
         "SymtropyFormal.rectangularSecondMoment_cantilever_fixture_value",
-        "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value"
+        "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value",
+        "SymtropyFormal.rectangularSecondMoment_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -35,7 +36,8 @@
           "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
-      ]
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
     },
     {
       "id": "mechanics.axial_bar.extension.v1",
@@ -57,7 +59,9 @@
         "SymtropyFormal.axialExtension_pos",
         "SymtropyFormal.axialExtension_force_scaling",
         "SymtropyFormal.axialExtension_length_scaling",
-        "SymtropyFormal.axialBar_fixture_extension_value"
+        "SymtropyFormal.axialBar_fixture_extension_value",
+        "SymtropyFormal.axialExtension_dimensions",
+        "SymtropyFormal.supportReaction_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -67,7 +71,8 @@
           "fixture_path": "docs/built-environment/benchmarks/axial-bar-linear-static-v1.json",
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
-      ]
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
     },
     {
       "id": "mechanics.cantilever.tip_deflection.v1",
@@ -90,7 +95,9 @@
         "SymtropyFormal.cantileverTipDeflection_pos",
         "SymtropyFormal.cantileverTipDeflection_force_scaling",
         "SymtropyFormal.cantileverTipDeflection_length_cubic_scaling",
-        "SymtropyFormal.cantilever_fixture_tip_deflection_value"
+        "SymtropyFormal.cantilever_fixture_tip_deflection_value",
+        "SymtropyFormal.cantileverTipDeflection_dimensions",
+        "SymtropyFormal.axialStress_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -100,7 +107,8 @@
           "fixture_path": "docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json",
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
-      ]
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
     },
     {
       "id": "mechanics.simply_supported.midpoint_point_load.v1",
@@ -123,7 +131,11 @@
         "SymtropyFormal.simplySupportedMidpointDeflection_pos",
         "SymtropyFormal.simplySupportedMidpointDeflection_force_scaling",
         "SymtropyFormal.simplySupportedMidpointDeflection_length_cubic_scaling",
-        "SymtropyFormal.simplySupportedMidpoint_fixture_deflection_value"
+        "SymtropyFormal.simplySupportedMidpoint_fixture_deflection_value",
+        "SymtropyFormal.simplySupportedMidpointDeflection_dimensions",
+        "SymtropyFormal.axialStress_dimensions",
+        "SymtropyFormal.bendingMoment_dimensions",
+        "SymtropyFormal.supportReaction_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -134,7 +146,8 @@
           "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
-      ]
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
     },
     {
       "id": "mechanics.simply_supported.uniform_load.v1",
@@ -157,7 +170,11 @@
         "SymtropyFormal.simplySupportedUniformLoadDeflection_pos",
         "SymtropyFormal.simplySupportedUniformLoadDeflection_load_scaling",
         "SymtropyFormal.simplySupportedUniformLoadDeflection_length_quartic_scaling",
-        "SymtropyFormal.simplySupportedUniformLoad_fixture_deflection_value"
+        "SymtropyFormal.simplySupportedUniformLoad_fixture_deflection_value",
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_dimensions",
+        "SymtropyFormal.axialStress_dimensions",
+        "SymtropyFormal.bendingMoment_dimensions",
+        "SymtropyFormal.supportReaction_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -168,7 +185,35 @@
           "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
           "status": "CANDIDATE_ON_OPEN_PR_1653"
         }
-      ]
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED"
+    }
+  ],
+  "dimension_system": {
+    "representation": "Seven integer exponents (length, mass, time, electric current, thermodynamic temperature, amount of substance, luminous intensity). Multiplication adds exponents; division subtracts them; natural powers scale them.",
+    "base_order": [
+      "length",
+      "mass",
+      "time",
+      "electric_current",
+      "thermodynamic_temperature",
+      "amount_of_substance",
+      "luminous_intensity"
+    ],
+    "enforcement_status": "PROVED_DIMENSION_IDENTITIES_ONLY_NUMERIC_FUNCTION_ARGUMENTS_NOT_TYPE_ENFORCED",
+    "research": [
+      "https://arxiv.org/abs/2509.13142",
+      "https://github.com/ATOMSLab/LeanDimensionalAnalysis",
+      "https://docs.rs/dimensioned/latest/dimensioned/"
+    ]
+  },
+  "negative_controls": [
+    {
+      "id": "mechanics.cantilever.missing-length-power.v1",
+      "expression": "F * L / (E * I) is not a length-dimensional deflection",
+      "theorem": "SymtropyFormal.cantilever_missing_length_power_is_not_length",
+      "expectation": "REJECT_WRONG_DIMENSION",
+      "purpose": "Guard against accidental removal of the L^3 factor from the cantilever deflection equation."
     }
   ]
 }
