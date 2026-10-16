@@ -11,7 +11,7 @@
 //! Usage:
 //!   housing-evidence-verify <manifest.json>
 //!   housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json>
-//!       --benchmark-sha256 <trusted-sha256-pin> --artifact-root <directory>
+//!       --benchmark-sha256 <trusted-sha256-pin> --checker-sha256 <trusted-checker-sha256> --artifact-root <directory>
 //!       [--expected-claims <requirements.json>]
 //!       [--expected-claims-sha256 <sha256-pinned-out-of-band>]
 //!       [--artifact-root <directory>]
@@ -213,19 +213,22 @@ fn main() -> ExitCode {
 
 
     if args.first().map(String::as_str) == Some("--validate-benchmark-result") {
-        if args.len() != 8
+        if args.len() != 10
             || args.get(2).map(String::as_str) != Some("--record")
             || args.get(4).map(String::as_str) != Some("--benchmark-sha256")
-            || args.get(6).map(String::as_str) != Some("--artifact-root")
-            || !args.get(5).is_some_and(|value| {
-                value.len() == 64
-                    && value.bytes().all(|byte| {
-                        byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
-                    })
+            || args.get(6).map(String::as_str) != Some("--checker-sha256")
+            || args.get(8).map(String::as_str) != Some("--artifact-root")
+            || ![args.get(5), args.get(7)].into_iter().all(|value| {
+                value.is_some_and(|value| {
+                    value.len() == 64
+                        && value.bytes().all(|byte| {
+                            byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+                        })
+                })
             })
         {
             eprintln!(
-                "Usage: housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json> --benchmark-sha256 <trusted-sha256-pin> --artifact-root <directory>"
+                "Usage: housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json> --benchmark-sha256 <trusted-sha256-pin> --checker-sha256 <trusted-checker-sha256> --artifact-root <directory>"
             );
             return ExitCode::from(2);
         }
@@ -234,7 +237,8 @@ fn main() -> ExitCode {
             Path::new(&args[1]),
             Path::new(&args[3]),
             &args[5],
-            Path::new(&args[7]),
+            &args[7],
+            Path::new(&args[9]),
         ) {
             Ok(report) => {
                 let accepted = report.independent_result_status == "REFERENCE_MATCH"
@@ -444,7 +448,7 @@ fn usage() -> String {
         "       housing-evidence-verify --validate-jurisdiction-registry <registry.json>",
         "       housing-evidence-verify --validate-receipt <receipt.json> --registry <registry.json> --scope-profile-sha256 <trusted-sha256-pin>",
         "       housing-evidence-verify --validate-layout <candidate.json> --brief <brief.json>",
-        "       housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json> --benchmark-sha256 <trusted-sha256-pin> --artifact-root <directory>",
+        "       housing-evidence-verify --validate-benchmark-result <benchmark.json> --record <result-record.json> --benchmark-sha256 <trusted-sha256-pin> --checker-sha256 <trusted-checker-sha256> --artifact-root <directory>",
         "  [--expected-claims <requirements.json>]",
         "  [--expected-claims-sha256 <sha256-pinned-out-of-band>]",
         "  [--artifact-root <directory>] [--require-pass]",
