@@ -60,6 +60,7 @@ For scenarios where the physics equations warrant the transformation:
 - **Semantic insertion-order permutation:** exact trace equality only for backend profiles that claim deterministic replay and where construction order is declared non-semantic.
 - **Uniform coordinate translation:** translate the initial position by a known vector; require the trajectory to preserve that offset and velocities/sample times to remain invariant within declared numerical precision.
 - **Constant-velocity (Galilean) boost:** add a constant velocity vector to an isolated body; require the trajectory shift to equal that vector multiplied by elapsed simulation time, and the velocity shift to remain constant. Apply only where the modeled forces/contact constraints respect this symmetry.
+- **Mass invariance in ideal free fall:** vary mass across widely separated positive values with identical shape, initial state, gravity, and no contact/drag; require the trajectory to remain unchanged within the declared numerical precision.
 - **Frame / axis transformations:** add only when gravity, orientation, geometry, and all vectors are transformed consistently.
 - **Serialization/reload and replay:** compare canonical scenario digests before comparing outcomes.
 
