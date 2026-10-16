@@ -426,7 +426,7 @@ pub fn evaluate_stress_corpus(
 
     let exact_feasible_scenarios = scenario_results
         .iter()
-        .filter(|result| matches!(result.exact_outcome, ScenarioExactOutcome::Feasible { .. }))
+        .filter(|result| matches!(&result.exact_outcome, ScenarioExactOutcome::Feasible { .. }))
         .count();
     let exact_no_schedule_scenarios = scenario_results.len() - exact_feasible_scenarios;
     let rule_summaries = DISPATCH_RULES
@@ -524,7 +524,7 @@ fn summarize_rule(
     let selected: Vec<&ScheduleMetrics> = scenarios
         .iter()
         .filter_map(|scenario| {
-            if !matches!(scenario.exact_outcome, ScenarioExactOutcome::Feasible { .. }) {
+            if !matches!(&scenario.exact_outcome, ScenarioExactOutcome::Feasible { .. }) {
                 return None;
             }
             scenario
