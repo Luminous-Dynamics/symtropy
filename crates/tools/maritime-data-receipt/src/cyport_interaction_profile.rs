@@ -1189,14 +1189,14 @@ mod tests {
         let report = profile_bytes(SYNTHETIC_FIXTURE).expect("synthetic fixture should profile");
         assert_eq!(report.status, "SCHEMA_VALID_PROFILE_NOT_PINNED");
         assert_eq!(report.column_count, 56);
-        assert_eq!(report.data_row_count, 4);
+        assert_eq!(report.data_row_count, 5);
         assert_eq!(report.unique_storm_ids, 2);
-        assert_eq!(report.unique_port_ids, 3);
-        assert_eq!(report.unique_storm_port_pairs, 4);
-        assert_eq!(report.zero_total_impact_rows, 2);
+        assert_eq!(report.unique_port_ids, 4);
+        assert_eq!(report.unique_storm_port_pairs, 5);
+        assert_eq!(report.zero_total_impact_rows, 3);
         assert_eq!(report.nonzero_total_impact_rows, 2);
         assert_eq!(report.zero_impact_all_recovery_sentinels_rows, 2);
-        assert_eq!(report.zero_impact_all_recovery_fields_present_rows, 0);
+        assert_eq!(report.zero_impact_all_recovery_fields_present_rows, 1);
         assert_eq!(report.nonzero_impact_all_recovery_fields_present_rows, 2);
         assert_eq!(report.mixed_recovery_field_state_rows, 0);
         assert_eq!(report.start_recovery_date_sentinel_rows, 2);
@@ -1212,15 +1212,15 @@ mod tests {
         assert_eq!(report.episode_split_policy_id, EPISODE_SPLIT_POLICY_ID);
         assert_eq!(report.episode_groups.len(), 2);
         assert_eq!(report.episode_groups[0].storm_id, "SYNTHETIC_STORM_A");
-        assert_eq!(report.episode_groups[0].interaction_rows, 2);
+        assert_eq!(report.episode_groups[0].interaction_rows, 3);
         assert_eq!(report.episode_groups[0].split, "test");
         assert_eq!(report.episode_groups[1].storm_id, "SYNTHETIC_STORM_B");
         assert_eq!(report.episode_groups[1].interaction_rows, 2);
         assert_eq!(report.episode_groups[1].split, "test");
         let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
         assert_eq!(test.storm_count, 2);
-        assert_eq!(test.interaction_rows, 4);
-        assert_eq!(test.unique_port_ids, Some(3));
+        assert_eq!(test.interaction_rows, 5);
+        assert_eq!(test.unique_port_ids, Some(4));
     }
 
     const FROZEN_SPLIT_MANIFEST: &[u8] =
