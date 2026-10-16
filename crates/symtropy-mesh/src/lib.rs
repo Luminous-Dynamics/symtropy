@@ -107,11 +107,22 @@ impl TriangleMesh {
             }
         }
 
+        // Compute tight triangle bounds and centroids once. The old recursive
+        // builder recomputed bounding spheres at every tree level, which both
+        // enlarged leaf/query bounds and repeated square-root work O(n log n).
+        let triangle_aabbs: Vec<Aabb<3>> =
+            triangles.iter().map(Self::triangle_aabb).collect();
+        let triangle_centers: Vec<SVector<f64, 3>> = triangles
+            .iter()
+            .map(|tri| (tri.vertices[0] + tri.vertices[1] + tri.vertices[2]) / 3.0)
+            .collect();
+
         let mut bvh_nodes = Vec::new();
         let mut indices: Vec<usize> = (0..triangles.len()).collect();
         let root_idx = if !triangles.is_empty() {
             Some(Self::build_bvh_rec(
-                &triangles,
+                &triangle_aabbs,
+                &triangle_centers,
                 &mut indices,
                 &mut bvh_nodes,
             ))
@@ -128,17 +139,34 @@ impl TriangleMesh {
         }
     }
 
+    fn triangle_aabb(triangle: &Triangle) -> Aabb<3> {
+        let mut min = triangle.vertices[0];
+        let mut max = triangle.vertices[0];
+
+        for vertex in &triangle.vertices[1..] {
+            for axis in 0..3 {
+                if vertex[axis] < min[axis] {
+                    min[axis] = vertex[axis];
+                }
+                if vertex[axis] > max[axis] {
+                    max[axis] = vertex[axis];
+                }
+            }
+        }
+
+        Aabb { min, max }
+    }
+
     fn build_bvh_rec(
-        triangles: &[Triangle],
+        triangle_aabbs: &[Aabb<3>],
+        triangle_centers: &[SVector<f64, 3>],
         indices: &mut [usize],
         nodes: &mut Vec<MeshBvhNode>,
     ) -> usize {
         let n = indices.len();
-        let mut aabb = Aabb::empty();
-        for &idx in indices.iter() {
-            let (c, r) = triangles[idx].bounding_sphere();
-            aabb = aabb.union(&Aabb::from_sphere(&c.0, r));
-        }
+        let aabb = indices.iter().fold(Aabb::empty(), |bounds, &idx| {
+            bounds.union(&triangle_aabbs[idx])
+        });
 
         if n == 1 {
             let idx = nodes.len();
@@ -160,15 +188,24 @@ impl TriangleMesh {
             2
         };
 
-        indices.sort_by(|&a, &b| {
-            let ca = triangles[a].bounding_sphere().0[axis];
-            let cb = triangles[b].bounding_sphere().0[axis];
-            ca.partial_cmp(&cb).unwrap()
-        });
+        // Centroids were computed once during construction. total_cmp makes
+        // ordering deterministic even if a caller supplied non-finite data;
+        // this builder does not itself certify non-finite geometry as valid.
+        indices.sort_by(|&a, &b| triangle_centers[a][axis].total_cmp(&triangle_centers[b][axis]));
 
         let mid = n / 2;
-        let left_idx = Self::build_bvh_rec(triangles, &mut indices[..mid], nodes);
-        let right_idx = Self::build_bvh_rec(triangles, &mut indices[mid..], nodes);
+        let left_idx = Self::build_bvh_rec(
+            triangle_aabbs,
+            triangle_centers,
+            &mut indices[..mid],
+            nodes,
+        );
+        let right_idx = Self::build_bvh_rec(
+            triangle_aabbs,
+            triangle_centers,
+            &mut indices[mid..],
+            nodes,
+        );
 
         let idx = nodes.len();
         nodes.push(MeshBvhNode {

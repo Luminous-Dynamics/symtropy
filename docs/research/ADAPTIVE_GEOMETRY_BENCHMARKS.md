@@ -1,6 +1,6 @@
 # Adaptive geometry and mesh benchmark protocol
 
-Status: benchmark harness and conservative-query regression tests added. No speedup is claimed until results are measured against a baseline commit on the same hardware.
+Status: tight-triangle-AABB implementation experiment, differential correctness tests, and multi-family benchmark workload added. No speedup is claimed until results are measured against the baseline commit on the same hardware.
 
 ## Initial executable workload
 
@@ -12,22 +12,23 @@ cargo bench -p symtropy-mesh --bench bvh_queries
 SYMTROPY_BVH_BENCH_LARGE=1 cargo bench -p symtropy-mesh --bench bvh_queries
 ```
 
-The dependency-free harness currently measures a deterministic planar grid mesh at 10k and 100k triangles (1M is opt-in). It reports one build-time observation, then runs 7 repeats over the same 2,000-query corpus in different deterministic orders. Query latency percentiles are computed over means from batches of 25 queries, so they describe **batch-mean latency**, not individual-query p95/p99. Aggregate candidate counts and checksums must remain stable across repetitions; a mismatch aborts the run.
+The dependency-free harness measures three deterministic families—regular grid, clustered triangles, and long-thin triangles—at 10k and 100k triangles (1M is opt-in). Each family has 2,000 queries centered on populated triangles. It reports one build-time observation, then runs 7 repeats over the same query corpus in different deterministic orders. Query latency percentiles are computed over means from batches of 25 queries, so they describe **batch-mean latency**, not individual-query p95/p99. Aggregate candidate counts and checksums must remain stable across repetitions; a mismatch aborts the run.
 
 The build-time field is explicitly a single sample. Repeat the whole command in fresh processes and retain every raw output before concluding that build cost changed. This initial corpus is a reproducible smoke baseline, not representative of arbitrary geometry or a claim that the current algorithm is optimal.
 
 ## Geometry correctness gates
 
-- BVH broadphase may produce false positives but must not omit any triangle whose exact vertex AABB overlaps a query AABB.
+- The conservative baseline contract permits false positives but never false negatives. The tight-leaf experiment strengthens the query contract: each leaf stores its triangle's exact vertex AABB, and `query_overlap` must return exactly the set of triangle vertex AABBs that overlap the query.
 - Results contain no duplicate or out-of-range triangle indices.
-- A fixed-seed nonuniform 512-triangle corpus (including zero-area and elongated triangles) is checked against an independent O(N) triangle-AABB overlap oracle across 256 queries with point-like through broad boxes.
+- A fixed-seed nonuniform 512-triangle corpus (including zero-area and elongated triangles) is checked against an independent O(N) triangle-AABB overlap oracle across 256 queries with point-like through broad boxes; exact candidate-set equality and valid unique indices are asserted.
+- Every BVH leaf bound is tested against the exact min/max of that triangle's three vertices.
 - Transformed mesh queries are conservative under translation and rotation.
 - Degenerate triangles, empty meshes, large coordinate magnitudes, and near-coplanar contacts are covered before changing predicate or narrowphase logic.
 - Collision results stay finite; independently check against brute-force candidate scans or a separate reference implementation where feasible.
 
 ## Candidate optimization experiments
 
-1. **BVH construction:** current longest-axis median split versus binned surface-area heuristic (SAH), Morton/LBVH, and hybrid top-down / bottom-up construction.
+1. **Leaf bounds and BVH construction:** compare the previous sphere-expanded bounds with exact vertex AABBs; then compare longest-axis median split with binned surface-area heuristic (SAH), Morton/LBVH, and hybrid top-down / bottom-up construction.
 2. **Dynamic geometry:** measure refit cost and query quality over repeated deformations; rebuild only when traversal metrics justify it.
 3. **Query-aware optimization:** test hot-region weighting only against held-out query traces; compare against query-oblivious SAH.
 4. **Meshlets:** compare actual multi-cluster partitionings by triangle count, query candidates, cache locality, and cluster rebuild cost. A single-cluster prototype is not treated as a scalable implementation.
@@ -41,11 +42,11 @@ The build-time field is explicitly a single sample. Repeat the whole command in 
 - Small / medium / broad query boxes and queries concentrated in hot regions.
 - Collision workloads with many shapes, including edge and vertex contacts.
 
-The first harness only implements a planar grid. The remaining distributions are required before any claim about broad applicability; do not infer their performance from this grid result.
+The updated harness implements grid, clustered, and long-thin workloads. Uneven-density and high-overlap scenes, transformed queries, and dynamic/deforming geometry remain unimplemented benchmark families; do not infer their performance from these three static planar cases.
 
 ## Required metrics
 
-Build/refit time, query p50/p95/p99, candidate triangles per query, narrowphase invocation count, memory footprint, false-negative count, false-positive candidate ratio, and end-to-end simulation-step time. The current initial harness covers only single-sample build time, query batch-mean percentiles, candidates, and a checksum. Mark metrics as unavailable rather than imply they were measured.
+Build/refit time, query p50/p95/p99, candidate triangles per query, narrowphase invocation count, memory footprint, false-negative count, false-positive candidate ratio, and end-to-end simulation-step time. The current harness covers single-sample build time, query batch-mean percentiles, mean candidates, and checksums; tests cover exact AABB-oracle agreement. Peak memory, refit, narrowphase calls, false-positive ratios relative to exact narrowphase, and end-to-end step time are not yet measured. Mark unavailable metrics explicitly.
 
 Report scenario-specific regressions rather than only a geometric mean. Keep correctness tests independent of the optimized implementation and preserve negative controls.
 
@@ -63,7 +64,7 @@ Report scenario-specific regressions rather than only a geometric mean. Keep cor
 Freeze these targets before testing candidates; revise only with written rationale after the first baseline is captured.
 
 - **Correctness is absolute:** zero broadphase false negatives against a brute-force oracle for the tested AABB semantics; zero duplicate or out-of-range candidates. A speedup cannot compensate for one missed candidate.
-- **Coverage before optimization claims:** at least 3 geometry families (uniform grid, clustered, and adversarial long-thin or high-overlap), with at least 30 held-out deterministic seeds/query traces per family. The current harness covers only grid geometry.
+- **Coverage before optimization claims:** at least 3 geometry families (uniform grid, clustered, and adversarial long-thin or high-overlap), with at least 30 held-out deterministic seeds/query traces per family. The current harness contains the three initial families but currently uses one fixed construction per family; the held-out seed/query-trace corpus remains future work.
 - **First performance bar:** target at least 15% lower p95 *batch-mean* query latency or 25% fewer candidate triangles on at least 2 held-out families versus the same-commit median-split baseline. Treat these as screening targets, not guarantees.
 - **Regression budget:** no more than 5% p95 batch-mean latency regression on any predeclared critical family without an explicitly accepted trade-off; report build/refit cost and memory separately.
 - **Adaptive selection:** require at least 10% improvement over the best fixed policy on a predeclared held-out cost metric, with a 95% paired confidence interval excluding zero across independent run pairs. If not, keep the simpler fixed policy.
