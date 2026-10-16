@@ -85,14 +85,15 @@
       "sample_policy": "All source rows after strict triplet validation; quarantine mixed triplets. Never infer that a missing triplet means zero physical impact.",
       "permitted_feature_fields": [],
       "forbidden_feature_fields": [
-        "total_impact",
-        "total_impact_value",
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
         "max_impact",
         "start_recovery_date",
-        "end_recovery_date",
-        "day_of_recover",
-        "ID",
-        "SID"
+        "total_impact",
+        "total_impact_value"
       ],
       "metrics": [
         "PR-AUC",
@@ -122,14 +123,15 @@
       "sample_policy": "All valid rows; report positive-class counts and positive storm clusters. Do not silently relabel zero-rounded records as confirmed no-impact.",
       "permitted_feature_fields": [],
       "forbidden_feature_fields": [
-        "total_impact",
-        "total_impact_value",
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
         "max_impact",
         "start_recovery_date",
-        "end_recovery_date",
-        "day_of_recover",
-        "ID",
-        "SID"
+        "total_impact",
+        "total_impact_value"
       ],
       "metrics": [
         "PR-AUC",
@@ -160,14 +162,15 @@
       "sample_policy": "Score all rows and separately report rows with total_impact greater than zero; retain zeros to expose excess-zero behavior.",
       "permitted_feature_fields": [],
       "forbidden_feature_fields": [
-        "total_impact",
-        "total_impact_value",
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
         "max_impact",
         "start_recovery_date",
-        "end_recovery_date",
-        "day_of_recover",
-        "ID",
-        "SID"
+        "total_impact",
+        "total_impact_value"
       ],
       "metrics": [
         "MAE_all_rows",
@@ -198,14 +201,15 @@
       "sample_policy": "Descriptive distributions and provenance audit only. Defer predictive evaluation until the original curve construction, at-risk origin, and observation end are recorded.",
       "permitted_feature_fields": [],
       "forbidden_feature_fields": [
-        "total_impact",
-        "total_impact_value",
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
         "max_impact",
         "start_recovery_date",
-        "end_recovery_date",
-        "day_of_recover",
-        "ID",
-        "SID"
+        "total_impact",
+        "total_impact_value"
       ],
       "metrics": [
         "median_and_quantiles",
