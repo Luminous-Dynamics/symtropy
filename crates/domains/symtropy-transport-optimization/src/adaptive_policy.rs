@@ -17,7 +17,7 @@ use super::{
     CargoTransferCapacityResourceKind, FifoPathEstimateV1, FifoPathResourceUseV1,
     FifoPathScenarioKindV1, OperationWindowV1, QuantityUnit,
     ScheduledCapacityAssignmentV1, ScheduledCapacityEvidenceV1,
-    ScheduledCapacityPlanError, ScheduledCapacityPolicyV1, ScheduledCapacityReportV1,
+    ScheduledCapacityPolicyV1,
     ScheduledCapacityResourceSummaryV1, ScheduledCapacityAssignmentReceiptV1,
     validate_scheduled_capacity_plan,
 };
@@ -301,6 +301,9 @@ fn path_estimate_consistent(estimate: &FifoPathEstimateV1) -> bool {
             || !seen_edges.insert(leg.edge_id.as_str())
             || leg.estimate.time_profile_id != estimate.time_profile_id
             || leg.estimate.knowledge_cutoff_epoch_seconds != estimate.knowledge_cutoff_epoch_seconds
+            || !nonempty(&leg.estimate.function_id)
+            || !nonempty(&leg.estimate.source_record_id)
+            || !valid_sha256(&leg.estimate.source_record_sha256)
         {
             return false;
         }
@@ -1172,7 +1175,7 @@ mod tests {
         assert_eq!(report.worst_case_individual_elapsed_seconds, 120);
         assert_eq!(report.static_baseline_worst_case_individual_elapsed_seconds, Some(150));
         assert_eq!(report.adaptive_gain_in_worst_case_individual_seconds, Some(30));
-        assert_eq!(report.policies_checked, 9);
+        assert_eq!(report.policies_checked, 4);
     }
 
     #[test]
@@ -1190,6 +1193,34 @@ mod tests {
         assert_eq!(report.decision_choices.len(), 1);
         assert_eq!(report.decision_choices[0].path_id, "B");
         assert_eq!(report.worst_case_individual_elapsed_seconds, 160);
+    }
+
+
+    #[test]
+    fn route_that_is_available_only_after_revelation_is_not_chosen_early() {
+        let p = problem(vec![
+            scenario("no-alert", FifoPathScenarioKindV1::Nominal, "pre-alert"),
+            scenario("alert", FifoPathScenarioKindV1::Stress, "post-alert"),
+        ]);
+        let before = alternative("before", vec![
+            route_option("d1", "before", "no-alert", 100, "resource-before")
+        ]);
+        let adaptive = alternative("adaptive", vec![
+            route_option("d1", "adaptive", "no-alert", 130, "resource-adaptive"),
+            route_option("d1", "adaptive", "alert", 140, "resource-adaptive"),
+        ]);
+        let after = alternative("after", vec![
+            route_option("d1", "after", "alert", 110, "resource-after")
+        ]);
+        let report = select_adaptive_robust_transport_policy(
+            &p, &[demand("d1", vec![before, adaptive, after])], 9
+        ).unwrap();
+        let choices = report.decision_choices.iter()
+            .map(|choice| (choice.information_set_id.as_str(), choice.path_id.as_str()))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(choices["pre-alert"], "before");
+        assert_eq!(choices["post-alert"], "after");
+        assert_eq!(report.adaptive_gain_in_worst_case_individual_seconds, Some(30));
     }
 
     #[test]
