@@ -14,8 +14,8 @@ use std::error::Error;
 use std::fmt;
 
 use crate::scheduler::{
-    DispatchRule, ObjectiveOptima, ScheduleCandidate, ScheduleError, ScheduleMetrics,
-    ScheduleProblem, ScheduledOperation, dispatch_schedule, solve_exhaustive,
+    DispatchRule, ObjectiveOptima, ScheduleError, ScheduleMetrics, ScheduleProblem,
+    ScheduledOperation, dispatch_schedule, solve_exhaustive,
 };
 
 pub const MAX_STRESS_SCENARIOS: usize = 32;
