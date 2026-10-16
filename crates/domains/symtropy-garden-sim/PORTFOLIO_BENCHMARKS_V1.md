@@ -10,6 +10,10 @@ Do not compress ecological, resource, supply, affordability, diversity and other
 
 The comparer accepts **already-assessed** candidates. It does not authenticate evidence, calculate yields, determine food safety, authorize land, evaluate licenses, establish consent or calculate nutrient adequacy. Those are independent upstream contracts and hard gates. A feasibility enum is only as trustworthy as the upstream evidence and integration that supplied it.
 
+## Current authored synthetic coverage
+
+The current draft contains a hand-calculated two-objective oracle plus 100 seeded, reproducible four-objective scenarios checked against a separate exhaustive reference implementation. It also checks 1,000 deterministic input-order permutations and the irreflexive/asymmetric/transitive laws of strict dominance. These are authored tests; they are not reported as passing until exact-head CI succeeds. Before release, freeze a versioned input/output corpus and literal expected reports for an additional representative set so results can be independently replayed without relying on the test generator.
+
 ## Exact correctness gates
 
 1. **Hand-calculated oracle:** every frozen small case must match its manually enumerated feasible set, frontier, dominated set and dominance witnesses exactly.
