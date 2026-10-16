@@ -542,6 +542,35 @@ mod tests {
     }
 
     #[test]
+    fn artifact_digest_mismatch_is_rejected() {
+        let mut facts = validate_receipt(RECEIPT).expect("synthetic receipt should validate");
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system time should be after the Unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "symtropy-asof-receipt-{}-{stamp}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("temporary artifact root should be created");
+        fs::write(
+            root.join("artifact.bin"),
+            include_bytes!("../tests/fixtures/synthetic-asof-forecast.txt"),
+        )
+        .expect("temporary artifact should be written");
+        facts.features[0].relative_path = "artifact.bin".to_owned();
+        facts.features[0].sha256 = "0".repeat(64);
+        let result = verify_artifact_bytes(&facts, &root);
+        let _ = fs::remove_dir_all(&root);
+        assert!(
+            result
+                .unwrap_err()
+                .contains("artifact SHA-256 mismatch"),
+            "the verifier must reject a wrong artifact digest"
+        );
+    }
+
+    #[test]
     fn post_cutoff_feature_availability_is_rejected() {
         let mut value: Value = serde_json::from_slice(RECEIPT).expect("valid fixture JSON");
         value["features"][0]["feature_available_at_utc"] =
