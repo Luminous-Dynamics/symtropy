@@ -241,7 +241,7 @@ struct MachineState {
     setup_family: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct DispatchKey {
     primary: u64,
     secondary: u64,
