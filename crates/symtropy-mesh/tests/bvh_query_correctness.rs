@@ -252,6 +252,47 @@ fn binned_sah_and_median_preserve_exact_query_candidate_sets() {
 }
 
 #[test]
+fn binned_sah_degenerate_centroids_fall_back_without_losing_candidates() {
+    let p0 = SVector::<f64, 3>::from([0.0, 0.0, 0.0]);
+    let p1 = SVector::<f64, 3>::from([1.0, 0.0, 0.0]);
+    let p2 = SVector::<f64, 3>::from([1.0, 0.0, 1.0]);
+    let triangles = (0..64)
+        .map(|_| Triangle { vertices: [p0, p1, p2] })
+        .collect::<Vec<_>>();
+
+    // A zero bin request is clamped to the implementation minimum. All
+    // centroids coincide, so the builder must take its deterministic median
+    // fallback rather than produce an empty child or recurse without progress.
+    let mesh = TriangleMesh::with_bvh_strategy(
+        triangles.clone(),
+        MeshBvhBuildStrategy::BinnedSah { bin_count: 0 },
+    );
+    let repeated = TriangleMesh::with_bvh_strategy(
+        triangles,
+        MeshBvhBuildStrategy::BinnedSah { bin_count: 2 },
+    );
+
+    let intersects = Aabb {
+        min: SVector::<f64, 3>::from([0.25, -0.1, 0.25]),
+        max: SVector::<f64, 3>::from([0.75, 0.1, 0.75]),
+    };
+    let misses = Aabb {
+        min: SVector::<f64, 3>::from([10.0, 10.0, 10.0]),
+        max: SVector::<f64, 3>::from([11.0, 11.0, 11.0]),
+    };
+
+    let first = mesh.query_overlap(&intersects);
+    let second = repeated.query_overlap(&intersects);
+    assert_eq!(first.len(), 64);
+    assert_eq!(
+        first.into_iter().collect::<std::collections::HashSet<_>>(),
+        second.into_iter().collect::<std::collections::HashSet<_>>()
+    );
+    assert!(mesh.query_overlap(&misses).is_empty());
+    assert!(repeated.query_overlap(&misses).is_empty());
+}
+
+#[test]
 fn empty_spatial_query_returns_no_candidates() {
     let mesh = grid_mesh(2, 2);
     let query = Aabb {
