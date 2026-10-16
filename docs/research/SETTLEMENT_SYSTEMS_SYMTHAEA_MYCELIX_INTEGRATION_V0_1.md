@@ -273,3 +273,17 @@ The scenario, component, dependency, resource, service-floor and report structs 
 ### Explicit source-selection semantics
 
 Supply-source choice now uses an explicit `allocation_priority` on each supply record, descending, with the stable supply ID only as a tie-break. Canonical alphabetical order is no longer allowed to act as an undocumented allocation policy. This priority is a declared synthetic policy input, not a real-grid dispatch rule or a guarantee of physical source preference.
+
+
+## Temporal extension implementation note — 16 October 2026
+
+A separate stacked branch now implements the initial temporal vertical in `crates/domains/symtropy-settlement-core/src/timeline.rs`. It composes, rather than replaces, the static v1 evaluator:
+- inclusive bounded integer ticks and explicit event sequence;
+- versioned component-state changes and stock inflow events;
+- maximum-stock constraints;
+- per-tick invocation of the existing dependency/resource/floor evaluator;
+- exact per-supply ledger reconciliation and protected-reserve enforcement;
+- separate first-restoration and stable-recovery metrics per floor;
+- later non-Met ticks retained after the first completed stable window.
+
+This is a deterministic discrete-event ledger. Ticks do not represent physical minutes or hours; component-state changes and stock inflows are synthetic scenario facts. It models no calibrated physical equations or repair-crew state machine. The temporal branch is stacked on the synthetic core branch; it must remain unqualified until the exact-head checks for both branches run and the base core is reviewed.
