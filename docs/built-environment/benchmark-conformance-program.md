@@ -13,6 +13,8 @@ Evaluate separate questions: (1) contract integrity, (2) implementation verifica
 
 This program is informed by [NASA-STD-7009B](https://standards.nasa.gov/standard/NASA/NASA-STD-7009), currently listed as active, [NASA-HDBK-7009B](https://standards.nasa.gov/standard/NASA/NASA-HDBK-7009), and [ASME's VVUQ standards](https://www.asme.org/codes-standards/vvuq-standards). A [NIST report published on 5 October 2026](https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing) argues for harmonizing uncertainty quantification and metrology and scaling credibility effort to model influence and decision consequence. These sources inform the proposal; this program is not claiming compliance with their standards.
 
+Interoperability needs its own conformance gate. A [buildingSMART International IDS survey published in 2026](https://www.buildingsmart.org/ids-survey-results-2026/) found that the same Information Delivery Specification (IDS) can yield different checking results in different tools; 70% of respondents wanted some form of checker/authoring software certification. For Symtropy, the practical response is not to assume every checker is interchangeable: publish an explicit supported subset, a shared test corpus, expected diagnostics, and per-version conformance reports. An unsupported condition must report `UNSUPPORTED` or `BLOCKED`, never silently pass.
+
 ## Benchmark levels
 
 | Level | Question | Evidence required | Does not establish |
@@ -58,6 +60,7 @@ These targets are staged engineering targets, not universal code limits. Any can
 | Numerical convergence | **Candidate:** final successive-refinement change no greater than 1% for declared global outputs, with trend supported by enough meshes and a stated error model. | Singular/local stress values need separate treatment; one comparison is insufficient. |
 | Independent solver comparison | Predeclared per-output tolerances. A 1% global displacement/energy target may be evaluated after convergence and output mapping are justified. | Do not compare non-equivalent formulations, stress locations or boundaries. A second solver is corroboration, not infallible truth. |
 | Clean rerun | 100% of controlled reruns reproduce the verdict and artifact identities; numerical outputs agree within case-specific tolerances. | Pin environment and toolchain. Do not demand raw output byte identity from nondeterministic tools without justification. |
+| Cross-tool conformance | For the explicitly supported shared subset, 100% of checker implementations agree on verdicts across the pinned corpus; zero unresolved disagreements. | Report tool/version and diagnostic differences; unsupported feature paths must fail closed rather than pass. This is conformance, not certification. |
 | Uncertainty | Every high-consequence output declares input/measurement uncertainty, sensitivity assumptions, model-form limits and impact on the decision. | Set a project-specific uncertainty budget; no universal percentage. |
 | Empirical validation | Predeclare error metrics and acceptance bands relative to measurement uncertainty; use independent validation data where possible. | Show residuals, outliers, parameter ranges and domain gaps; do not reduce everything to mean error. |
 | Independent review | 100% of high-risk profiles and validity-domain statements receive explicit qualified review before external engineering use. | Identity, authority and signature trust are separate controls. |
@@ -109,3 +112,4 @@ A green B0/B1 suite must never be described as solver validation, building-code 
 - [ASME — Verification, Validation and Uncertainty Quantification](https://www.asme.org/codes-standards/vvuq-standards)
 - [NIST — Harmonizing uncertainty quantification and metrology practices (5 October 2026)](https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing)
 - [NIST — Reference benchmarks for verification and validation of multiphysics simulations](https://www.nist.gov/publications/b-c-engineering-statistics-and-reference-benchmark-approach-verification-and-validation)
+- [buildingSMART International — IDS survey results 2026: software conformance and certification](https://www.buildingsmart.org/ids-survey-results-2026/)
