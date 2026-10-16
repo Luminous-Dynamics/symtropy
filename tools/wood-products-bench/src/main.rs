@@ -400,16 +400,14 @@ fn validate_harvest_guard(v: &Value) -> Check<Value> {
         &format!("{at}.expected_feasible_option_ids"),
     )?;
     require_same_ids(&feasible, &expected, at)?;
+    let mut feasible_sorted = feasible.clone();
+    feasible_sorted.sort();
     Ok(json!({
         "scenario_id": at,
         "status": "pass",
         "metrics": {
             "option_count": options.len(),
-            "feasible_option_ids": {
-                let mut ids = feasible.clone();
-                ids.sort();
-                ids
-            }
+            "feasible_option_ids": feasible_sorted
         }
     }))
 }
