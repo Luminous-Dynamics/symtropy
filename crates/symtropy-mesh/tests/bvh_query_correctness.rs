@@ -7,7 +7,7 @@
 //! omit any triangle whose exact vertex AABB overlaps the query AABB.
 
 use nalgebra::SVector;
-use symtropy_mesh::{Triangle, TriangleMesh};
+use symtropy_mesh::{MeshBvhBuildStrategy, Triangle, TriangleMesh};
 use symtropy_physics::broadphase::Aabb;
 
 fn grid_mesh(width: usize, depth: usize) -> TriangleMesh {
@@ -206,6 +206,49 @@ fn bvh_leaf_bounds_are_exact_vertex_aabbs() {
     }
 
     assert_eq!(leaf_count, mesh.triangles.len(), "every triangle needs exactly one leaf");
+}
+
+#[test]
+fn binned_sah_and_median_preserve_exact_query_candidate_sets() {
+    let median_source = grid_mesh(32, 24);
+    let triangles = median_source.triangles.clone();
+    let median = TriangleMesh::with_bvh_strategy(
+        triangles.clone(),
+        MeshBvhBuildStrategy::Median,
+    );
+    let sah = TriangleMesh::with_bvh_strategy(
+        triangles,
+        MeshBvhBuildStrategy::BinnedSah { bin_count: 16 },
+    );
+
+    for qz in [-1.0, 0.0, 0.5, 4.5, 12.0, 23.5, 27.0] {
+        for qx in [-1.0, 0.0, 0.5, 8.5, 16.0, 31.5, 35.0] {
+            for half_extent in [0.0, 0.2, 1.0, 4.0] {
+                let query = Aabb {
+                    min: SVector::<f64, 3>::from([
+                        qx - half_extent,
+                        -0.25,
+                        qz - half_extent,
+                    ]),
+                    max: SVector::<f64, 3>::from([
+                        qx + half_extent,
+                        0.25,
+                        qz + half_extent,
+                    ]),
+                };
+                let median_candidates: std::collections::HashSet<usize> =
+                    median.query_overlap(&query).into_iter().collect();
+                let sah_candidates: std::collections::HashSet<usize> =
+                    sah.query_overlap(&query).into_iter().collect();
+
+                assert_eq!(
+                    sah_candidates,
+                    median_candidates,
+                    "SAH changed query semantics for ({qx}, {qz}, extent {half_extent})"
+                );
+            }
+        }
+    }
 }
 
 #[test]
