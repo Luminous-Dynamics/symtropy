@@ -28,15 +28,15 @@ References:
 
 ## Minimum acceptance ladder for a CalculiX spike
 
-1. **Reproduce the analytical oracle.** Transform the repository cantilever definition into a declared solver-specific input deck. Pin load, geometry, elastic modulus, section/element formulation, boundary conditions and units before execution. Parse tip displacement and support reactions independently from raw output.
+1. **Reproduce all analytical references within a bounded solver domain.** Transform each relevant repository reference into a declared solver-specific input deck. Pin load, geometry, elastic modulus, section/element formulation, boundary conditions and units before execution. Parse displacement, stress and support reactions independently from raw output, then feed the parsed numbers to the pinned reference checker. Preserve the analytical implementation as a separate oracle.
 2. **Test element formulations separately.** Compare a beam-element model with a solid-element model; do not compare stresses at incompatible locations or compare a beam section's recovered stress to a solid's singular/local peak without an agreed mapping.
 3. **Check equilibrium and sign conventions.** Sum support reactions against applied force/moment, declare tolerance beforehand, and fail on absent or incomplete result records.
-4. **Add independent cases.** At minimum: axial bar, simply supported beam, cantilever with a second load case, and one-dimensional mesh refinement. Include an analytical oracle for every case and an independent benchmark for any broader claim.
+4. **Expand independent numerical cases beyond the elementary fixtures.** Add a cantilever second load case and one-dimensional mesh refinement, then suitable beam/solid formulations and independently published reference FEM cases. Include an analytical oracle where available and a clearly stated independent benchmark for any broader claim.
 5. **Add negative controls.** Wrong units, missing/duplicated constraints, disconnected nodes, unsupported element/property, missing material data, altered load, truncated result file, non-zero exit, timeout, and non-converged analysis must never yield a pass-shaped output.
 6. **Repeat for convergence and perturbations.** Declare mesh-convergence criteria and sensitivity checks before observing results. A single matching result does not validate the solver or the whole physical domain.
 7. **Obtain independent review.** A qualified structural engineer reviews element selection, load-path assumptions, restraint idealization, material properties, stress recovery and interpretation before the adapter is considered usable for an engineering pilot.
 
-The existing cantilever fixture is a scalar analytical reference, not a full FEM verification suite. Even a successful reproduction would establish only that a specific model/toolchain/output agrees with that reference within a predeclared tolerance.
+The repository now has three analytical reference families: a cantilever, an axially loaded bar, and a simply supported beam with midpoint point-load and uniform distributed-load cases. The [benchmark-conformance program](benchmark-conformance-program.md) defines their limitations and the broader B0–B5 verification/validation ladder. The prototype `--validate-benchmark-result` checker independently compares a hashed numeric-output artifact to each pinned reference and rejects inconsistent declared pass claims. It is not yet a solver runner or authenticated execution attestation. Passing these reference tests would establish only that a specific analytical model/output agrees with its expected values; it does not validate an FEM solver or real building.
 
 ## Adapter execution contract
 
