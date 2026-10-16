@@ -161,6 +161,8 @@ struct Measurement {
     p95_query_us: f64,
     p99_query_us: f64,
     mean_candidates: f64,
+    mean_bounds_tested: f64,
+    mean_internal_node_hits: f64,
     checksum: usize,
     /// Canonical (sorted) exact candidate indices for every query, collected
     /// outside timed regions and compared across build strategies.
@@ -188,14 +190,21 @@ fn measure_strategy(
     // Correctness evidence is deliberately outside the timing loop. Aggregate
     // counts and sum-based checksums can collide; compare canonical exact index
     // sets per query before publishing any median-vs-SAH timing rows.
-    let canonical_candidates: Vec<Vec<usize>> = queries
-        .iter()
-        .map(|query| {
-            let mut candidates = mesh.query_overlap(black_box(query));
-            candidates.sort_unstable();
-            candidates
-        })
-        .collect();
+    let mut total_bounds_tested = 0usize;
+    let mut total_internal_node_hits = 0usize;
+    let mut canonical_candidates = Vec::with_capacity(queries.len());
+    for query in queries {
+        let (mut candidates, stats) = mesh.query_overlap_with_stats(black_box(query));
+        total_bounds_tested += stats.bounds_tested;
+        total_internal_node_hits += stats.overlapping_internal_nodes;
+        assert_eq!(stats.candidate_count, candidates.len());
+        assert_eq!(stats.overlapping_leaves, candidates.len());
+        candidates.sort_unstable();
+        canonical_candidates.push(candidates);
+    }
+    let mean_bounds_tested = total_bounds_tested as f64 / queries.len() as f64;
+    let mean_internal_node_hits =
+        total_internal_node_hits as f64 / queries.len() as f64;
 
     let mut batch_mean_query_us =
         Vec::with_capacity(QUERY_REPEATS * (QUERY_COUNT / QUERY_BATCH_SIZE));
@@ -246,6 +255,8 @@ fn measure_strategy(
         p99_query_us: quantile(&batch_mean_query_us, 0.99),
         mean_candidates: expected_candidates.expect("at least one repeat") as f64
             / QUERY_COUNT as f64,
+        mean_bounds_tested,
+        mean_internal_node_hits,
         checksum: expected_checksum.expect("at least one repeat"),
         canonical_candidates,
     }
@@ -253,7 +264,7 @@ fn measure_strategy(
 
 fn print_measurement(layout: Layout, requested_triangles: usize, m: &Measurement) {
     println!(
-        "{},{},{},{},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{}",
+        "{},{},{},{},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{}",
         layout.label(),
         requested_triangles,
         requested_triangles,
@@ -266,6 +277,8 @@ fn print_measurement(layout: Layout, requested_triangles: usize, m: &Measurement
         m.p95_query_us,
         m.p99_query_us,
         m.mean_candidates,
+        m.mean_bounds_tested,
+        m.mean_internal_node_hits,
         m.checksum,
     );
 }
@@ -316,7 +329,7 @@ fn run_pair(layout: Layout, requested_triangles: usize, reverse_order: bool) {
 
 fn main() {
     println!(
-        "layout,requested_triangles,actual_triangles,strategy,build_ms_single_sample,queries_per_repeat,repeats,mean_batch_query_us,p50_batch_query_us,p95_batch_query_us,p99_batch_query_us,mean_candidates,checksum"
+        "layout,requested_triangles,actual_triangles,strategy,build_ms_single_sample,queries_per_repeat,repeats,mean_batch_query_us,p50_batch_query_us,p95_batch_query_us,p99_batch_query_us,mean_candidates,mean_bounds_tested,mean_internal_node_hits,checksum"
     );
 
     for (size_index, triangle_count) in [10_000, 100_000].into_iter().enumerate() {
