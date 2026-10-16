@@ -2,6 +2,7 @@
 # It is not intended for manual editing.
 version = 4
 
+
 [[package]]
 name = "itoa"
 version = "1.0.18"
@@ -76,6 +77,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-measurement-planner"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "syn"
 version = "2.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -97,11 +106,3 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
-
-[[package]]
-name = "symtropy-measurement-planner"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
