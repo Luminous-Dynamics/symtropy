@@ -38,7 +38,7 @@ jobs:
       - name: Evaluate v0.2 baseline fixture
         run: |
           cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml --             --input docs/built-environment/accessible-home-task-network-v0.2.example.json             --output /tmp/accessible-home-v02-report.json
-          grep -q '"scenario_count": 1' /tmp/accessible-home-v02-report.json || grep -q '"scenario_count": 9' /tmp/accessible-home-v02-report.json
+          grep -q '"scenario_count": 9' /tmp/accessible-home-v02-report.json
       - name: Evaluate v0.3 typed-constraint fixture
         run: |
           cargo run --manifest-path tools/accessible-home-task-network-validator/Cargo.toml --             --input docs/built-environment/accessible-home-task-network-v0.3.example.json             --output /tmp/accessible-home-v03-report.json
