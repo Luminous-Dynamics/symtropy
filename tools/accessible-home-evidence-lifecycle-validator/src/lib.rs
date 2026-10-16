@@ -706,8 +706,9 @@ mod tests {
     fn supersession_cycle_fails_closed() {
         let mut value = fixture_value();
         let shared_scope = value["claims"][1]["scope_ref"].clone();
+        let shared_assertion = value["claims"][1]["assertion_key"].clone();
         value["claims"][0]["scope_ref"] = shared_scope;
-        value["claims"][0]["assertion_key"] = value["claims"][1]["assertion_key"].clone();
+        value["claims"][0]["assertion_key"] = shared_assertion;
         value["claims"][0]["supersedes_claim_id"] = json!("visitor-alert-path");
         value["claims"][1]["supersedes_claim_id"] = json!("night-route-clearance");
         let errors = evaluate_value(&value).expect_err("cycle must fail");
