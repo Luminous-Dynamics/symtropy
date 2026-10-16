@@ -61,7 +61,7 @@
       "metadata_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/README.md",
       "immutable_revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
       "resource_path": "Tropical_cyclone_interaction/interaction_data.csv",
-      "resource_identifier": "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3:Tropical_cyclone_interaction/interaction_data.csv",
+      "resource_identifier": "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3:Tropical_cyclone_interaction/interaction_data.csv#git_blob_sha1=21beb5b7673918143a0ab108b03acc3cccaeb330;bytes=643047",
       "last_modified_utc": null,
       "last_modified_date": null,
       "access_level": "public_repository",
