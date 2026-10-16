@@ -770,6 +770,159 @@ mod tests {
     }
 
     #[test]
+    fn equal_objective_vectors_remain_distinct_frontier_alternatives() {
+        let report = compare_candidates(
+            "fixture-equal-vectors",
+            &objectives(),
+            &[
+                candidate("alternative-a", [100, 100, 100]),
+                candidate("alternative-b", [100, 100, 100]),
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(report.frontier, vec!["alternative-a", "alternative-b"]);
+        assert!(report.dominated.is_empty());
+    }
+
+    #[test]
+    fn seeded_frontiers_match_independent_exhaustive_oracle() {
+        let specs = vec![
+            ObjectiveSpec {
+                id: "energy".into(),
+                unit: "kWh/unit".into(),
+                scale: 100,
+                direction: Direction::Minimize,
+            },
+            ObjectiveSpec {
+                id: "throughput".into(),
+                unit: "units/hour".into(),
+                scale: 10,
+                direction: Direction::Maximize,
+            },
+            ObjectiveSpec {
+                id: "water".into(),
+                unit: "L/unit".into(),
+                scale: 100,
+                direction: Direction::Minimize,
+            },
+            ObjectiveSpec {
+                id: "yield".into(),
+                unit: "fraction".into(),
+                scale: 10_000,
+                direction: Direction::Maximize,
+            },
+        ];
+
+        // Fixed LCG: no external RNG dependency and identical corpus on every run.
+        let mut state = 0x5eed_cafe_u64;
+        for scenario in 0..100 {
+            let vectors: Vec<[i64; 4]> = (0..16)
+                .map(|_| {
+                    std::array::from_fn(|_| {
+                        state = state
+                            .wrapping_mul(6_364_136_223_846_793_005)
+                            .wrapping_add(1_442_695_040_888_963_407);
+                        ((state >> 32) % 101) as i64
+                    })
+                })
+                .collect();
+
+            let candidates: Vec<CandidateEvaluation> = vectors
+                .iter()
+                .enumerate()
+                .map(|(index, vector)| CandidateEvaluation {
+                    id: format!("scenario-{scenario:03}-candidate-{index:02}"),
+                    gates: vec![GateCheck {
+                        id: "product-quality".into(),
+                        outcome: GateOutcome::Pass {
+                            evidence_ref: format!("oracle:scenario-{scenario}:quality-{index}"),
+                        },
+                    }],
+                    values: specs
+                        .iter()
+                        .zip(vector)
+                        .map(|(spec, value_ticks)| ObjectiveValue {
+                            objective_id: spec.id.clone(),
+                            value_ticks: *value_ticks,
+                            unit: spec.unit.clone(),
+                            scale: spec.scale,
+                            evidence_ref: format!(
+                                "oracle:scenario-{scenario}:candidate-{index}:{}",
+                                spec.id
+                            ),
+                        })
+                        .collect(),
+                })
+                .collect();
+
+            // Independent exhaustive oracle: operate directly on [i64; 4] vectors
+            // and explicit directions rather than calling production `dominates`.
+            let oracle_dominates = |left: &[i64; 4], right: &[i64; 4]| {
+                let mut strictly_better = false;
+                for dimension in 0..4 {
+                    let (no_worse, strictly) = match specs[dimension].direction {
+                        Direction::Minimize => (
+                            left[dimension] <= right[dimension],
+                            left[dimension] < right[dimension],
+                        ),
+                        Direction::Maximize => (
+                            left[dimension] >= right[dimension],
+                            left[dimension] > right[dimension],
+                        ),
+                    };
+                    if !no_worse {
+                        return false;
+                    }
+                    strictly_better |= strictly;
+                }
+                strictly_better
+            };
+
+            let mut expected_frontier = Vec::new();
+            let mut expected_dominated = Vec::new();
+            for (target_index, target) in vectors.iter().enumerate() {
+                let target_id = format!("scenario-{scenario:03}-candidate-{target_index:02}");
+                let mut witnesses: Vec<String> = vectors
+                    .iter()
+                    .enumerate()
+                    .filter(|(other_index, _)| *other_index != target_index)
+                    .filter(|(_, other)| oracle_dominates(other, target))
+                    .map(|(other_index, _)| {
+                        format!("scenario-{scenario:03}-candidate-{other_index:02}")
+                    })
+                    .collect();
+                witnesses.sort();
+
+                if let Some(dominator_id) = witnesses.first() {
+                    expected_dominated.push(DominanceWitness {
+                        dominator_id: dominator_id.clone(),
+                        dominated_id: target_id,
+                    });
+                } else {
+                    expected_frontier.push(target_id);
+                }
+            }
+            expected_frontier.sort();
+            expected_dominated.sort();
+
+            let actual = compare_candidates(
+                &format!("oracle-scenario-{scenario:03}"),
+                &specs,
+                &candidates,
+            )
+            .unwrap();
+
+            assert_eq!(actual.frontier, expected_frontier, "scenario {scenario}");
+            assert_eq!(actual.dominated, expected_dominated, "scenario {scenario}");
+            assert_eq!(
+                actual.comparison_id,
+                format!("oracle-scenario-{scenario:03}")
+            );
+        }
+    }
+
+    #[test]
     fn empty_hard_gates_are_not_implicitly_admitted() {
         let mut missing_gate = candidate("no-gates", [100, 100, 100]);
         missing_gate.gates.clear();
