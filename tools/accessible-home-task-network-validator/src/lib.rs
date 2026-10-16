@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Versioned typed-constraint evaluator.
+pub mod v03;
+
 pub const VALIDATOR_VERSION: &str = "accessible-home-task-network-validator/0.1.0";
 const FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.2.example.json");
 
@@ -743,5 +746,31 @@ mod tests {
         let second = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
         assert_eq!(first, second);
         assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
+    }
+}
+
+
+/// Dispatches supported synthetic network schema versions to their matching
+/// fail-closed evaluator. Reports are returned as JSON only when expectation
+/// checks succeed.
+pub fn evaluate_any_bytes(input: &[u8]) -> Result<serde_json::Value, Vec<String>> {
+    let header: serde_json::Value = serde_json::from_slice(input)
+        .map_err(|error| vec![format!("invalid network JSON: {error}")])?;
+    let schema_version = header.get("schema_version")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| vec!["schema_version must be a string".to_owned()])?;
+
+    match schema_version {
+        "0.2.0" => {
+            let report = evaluate_fixture_bytes(input).map_err(|error| vec![error])?;
+            serde_json::to_value(report)
+                .map_err(|error| vec![format!("could not serialize v0.2 receipt: {error}")])
+        }
+        "0.3.0" => {
+            let report = v03::evaluate_bytes(input)?;
+            serde_json::to_value(report)
+                .map_err(|error| vec![format!("could not serialize v0.3 receipt: {error}")])
+        }
+        other => Err(vec![format!("unsupported schema_version '{other}'")]),
     }
 }
