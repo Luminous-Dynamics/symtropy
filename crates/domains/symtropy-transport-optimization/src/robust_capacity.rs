@@ -95,6 +95,7 @@ pub enum FifoRobustCapacitySelectionErrorV1 {
     DuplicateCapacityPlan { path_id: String, scenario_id: String },
     UnknownCapacityPlanPath { path_id: String },
     UnknownCapacityPlanScenario { scenario_id: String },
+    NoCapacityQualifiedCandidate,
 }
 
 impl fmt::Display for FifoRobustCapacitySelectionErrorV1 {
@@ -112,6 +113,7 @@ impl fmt::Display for FifoRobustCapacitySelectionErrorV1 {
             Self::UnknownCapacityPlanScenario { scenario_id } => {
                 write!(f, "capacity plan references undeclared scenario {scenario_id}")
             }
+            Self::NoCapacityQualifiedCandidate => f.write_str("no travel-qualified candidate passes mapped capacity in every scenario"),
         }
     }
 }
@@ -449,7 +451,7 @@ pub fn select_capacity_qualified_robust_fifo_path(
     evaluation_time_epoch_seconds: u64,
     policy: &ScheduledCapacityPolicyV1,
 ) -> Result<FifoRobustCapacitySelectionReportV1, FifoRobustCapacitySelectionErrorV1> {
-    let (scenario_ids, nominal_id) = validate_selection_report(selection)?;
+    let (scenario_ids, _nominal_id) = validate_selection_report(selection)?;
     let path_scores = selection
         .scores
         .iter()
@@ -594,9 +596,7 @@ pub fn select_capacity_qualified_robust_fifo_path(
     }
 
     if qualified_paths.is_empty() {
-        return Err(FifoRobustCapacitySelectionErrorV1::InvalidSelectionReport(
-            "no candidate path is capacity-qualified in every scenario",
-        ));
+        return Err(FifoRobustCapacitySelectionErrorV1::NoCapacityQualifiedCandidate);
     }
     qualified_paths.sort_by(|a, b| a.path_score.path_id.cmp(&b.path_score.path_id));
     rejected_path_scenarios.sort_by(|a, b| {
@@ -752,10 +752,11 @@ mod tests {
                 let mut evidence = Vec::new();
                 for leg in &observation.path_estimate.legs {
                     let budget_id = format!("budget-{}-{}-{}", score.path_id, observation.scenario_id, leg.edge_id);
-                    let units = if score.path_id == "B" && observation.scenario_id == "stress" {
-                        2
-                    } else {
+                    let units = if score.path_id == "B" { 2 } else { 1 };
+                    let capacity_limit = if score.path_id == "B" && observation.scenario_id == "stress" {
                         1
+                    } else {
+                        units
                     };
                     let assignment = ScheduledCapacityAssignmentV1 {
                         assignment_id: format!("assignment-{}-{}-{}", score.path_id, observation.scenario_id, leg.edge_id),
@@ -784,7 +785,7 @@ mod tests {
                         resource_id: format!("physical-resource-{}", leg.edge_id),
                         terminal_id: None,
                         capacity_scope_id: "scope-fixture".into(),
-                        capacity_units: 1,
+                        capacity_units: capacity_limit,
                         capacity_unit: QuantityUnit::Shipments,
                         authority_id: "fixture-owner".into(),
                         authority_profile_id: "fixture-capacity-authority-v1".into(),
@@ -811,6 +812,13 @@ mod tests {
             }
         }
         plans
+    }
+
+    fn allow_path_b_capacity(plans: &mut [FifoScenarioCapacityPlanV1]) {
+        let plan = plans.iter_mut()
+            .find(|plan| plan.path_id == "B" && plan.scenario_id == "stress")
+            .expect("path B stress plan exists");
+        plan.evidence[0].capacity_units = 2;
     }
 
     fn travel_report() -> FifoRobustPathSelectionReportV1 {
@@ -852,6 +860,7 @@ mod tests {
     fn every_leg_requires_an_explicit_resource_binding() {
         let travel = travel_report();
         let mut plans = plans_from_report(&travel);
+        allow_path_b_capacity(&mut plans);
         plans.iter_mut()
             .find(|plan| plan.path_id == "A" && plan.scenario_id == "stress")
             .unwrap()
@@ -879,6 +888,7 @@ mod tests {
     fn resource_window_must_match_the_evaluated_leg() {
         let travel = travel_report();
         let mut plans = plans_from_report(&travel);
+        allow_path_b_capacity(&mut plans);
         let use_ = &mut plans.iter_mut()
             .find(|plan| plan.path_id == "A" && plan.scenario_id == "nominal")
             .unwrap()
@@ -905,6 +915,7 @@ mod tests {
     fn edge_cannot_remap_to_a_different_physical_resource_in_a_stress_scenario() {
         let travel = travel_report();
         let mut plans = plans_from_report(&travel);
+        allow_path_b_capacity(&mut plans);
         let use_ = &mut plans.iter_mut()
             .find(|plan| plan.path_id == "A" && plan.scenario_id == "stress")
             .unwrap()
@@ -934,6 +945,7 @@ mod tests {
     fn stale_capacity_evidence_cannot_qualify_a_route() {
         let travel = travel_report();
         let mut plans = plans_from_report(&travel);
+        allow_path_b_capacity(&mut plans);
         plans.iter_mut()
             .find(|plan| plan.path_id == "A" && plan.scenario_id == "nominal")
             .unwrap()
