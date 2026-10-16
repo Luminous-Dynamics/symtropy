@@ -32,6 +32,10 @@ Malformed networks, unresolved references, broken paths, unsupported states, pat
 
 Unit tests cover the valid baseline, all six evidence states, required-barrier precedence, optional evidence, duplicate cross-kind IDs, dangling endpoints/references, broken edge order/count, invalid goal endpoint, fallback trigger, required-evidence downgrade, stale goal-state claims, invalid enums, real-home fixture rejection, empty failure activation and deterministic receipts.
 
+## Known contract limitation
+
+In v0.2, resident constraints are prose strings rather than typed, path-specific dispositions. The validator deliberately does **not** infer that a path satisfies those constraints. A follow-on schema revision should give each constraint a stable ID and each path an explicit disposition/evidence record (satisfied for fixture, conflicted, or unresolved), then make unresolved hard constraints non-passing. Until then, `evidence_complete_for_fixture` means only that the nodes and edges on that synthetic path carry the declared complete evidence state.
+
 ## Important boundary
 
 This validates consistency of the *declared synthetic graph*. It does not prove that an evidence claim is true; it does not simulate bodies, geometry, assistive technology, fire/egress, privacy, security, or real-world reliability; and it does not qualify or certify a real home. Human co-design, actual site measurement, local jurisdiction checks and qualified professional review remain separate.
