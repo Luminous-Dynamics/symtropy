@@ -56,7 +56,7 @@ authenticate the underlying measurements.
    declared functional unit. A garment's event count is not used as a proxy
    for its worth.
 
-The current code models aggregate utility budgets across a planning horizon;
+A companion robustness contract is now defined in TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md; it compares duration, job-release and machine-availability shocks with the exact reference and dispatch baselines. Synthetic scenario summaries are not real-world probabilities. The current code models aggregate utility budgets across a planning horizon;
 it does not yet enforce time-indexed utility peaks. The time unit is explicit,
 and all time fields in one problem use that shared unit. Setups are
 non-anticipatory in v0.1: setup starts no earlier than both machine availability
