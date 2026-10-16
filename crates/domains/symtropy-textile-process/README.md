@@ -91,5 +91,7 @@ release/due/hard-finish windows, evidence-backed sequence-dependent setups, hard
 energy/water budgets, four deterministic dispatch rules (EarliestDue, LowestSetup,
 LowestEnergy, LeastSlack), and an exhaustive Pareto oracle for tiny instances.
 The robustness harness evaluates processing, input-release, utility-budget and
-machine-availability shocks against the exact reference. Contracts: docs/ops/TEXTILE_SCHEDULER_BENCHMARK_V0_1.md
-and docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md.
+machine-availability shocks against the exact reference. Contracts:
+docs/ops/TEXTILE_SCHEDULER_BENCHMARK_V0_1.md,
+docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md, and
+docs/ops/TEXTILE_DEMAND_SURPLUS_BENCHMARK_V0_1.md.
