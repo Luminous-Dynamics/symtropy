@@ -567,6 +567,62 @@ fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
 }
 
 #[test]
+fn free_fall_trajectory_obeys_constant_velocity_boost_metamorphism() {
+    let scenario = free_fall_at_dt(0.01);
+    let velocity_boost = [1.25, -0.5, 0.75];
+    let mut boosted = scenario.clone();
+    for body in &mut boosted.bodies {
+        for (axis, boost) in velocity_boost.iter().enumerate() {
+            body.linear_velocity_mps[axis] += *boost;
+        }
+    }
+    boosted.scenario_id = format!("{}-boosted", scenario.scenario_id);
+
+    let native = run_native_scenario_3d(&scenario).unwrap();
+    let native_boosted = run_native_scenario_3d(&boosted).unwrap();
+    let rapier = run_rapier_scenario_3d(&scenario).unwrap();
+    let rapier_boosted = run_rapier_scenario_3d(&boosted).unwrap();
+
+    for (backend, reference, boosted_trace) in [
+        ("native", &native, &native_boosted),
+        ("Rapier", &rapier, &rapier_boosted),
+    ] {
+        assert_eq!(reference.samples.len(), boosted_trace.samples.len());
+        for (reference_sample, boosted_sample) in
+            reference.samples.iter().zip(&boosted_trace.samples)
+        {
+            assert_eq!(reference_sample.step, boosted_sample.step);
+            assert_eq!(reference_sample.time_s, boosted_sample.time_s);
+            for (reference_body, boosted_body) in reference_sample
+                .bodies
+                .iter()
+                .zip(&boosted_sample.bodies)
+            {
+                assert_eq!(reference_body.body_id, boosted_body.body_id);
+                for (axis, boost) in velocity_boost.iter().enumerate() {
+                    let observed_position_shift =
+                        boosted_body.position_m[axis] - reference_body.position_m[axis];
+                    let expected_position_shift = *boost * reference_sample.time_s;
+                    assert!(
+                        (observed_position_shift - expected_position_shift).abs() < 2.0e-4,
+                        "{backend} position violated constant-velocity boost relation on axis {axis}, step {}: observed={observed_position_shift}, expected={expected_position_shift}",
+                        reference_sample.step
+                    );
+
+                    let observed_velocity_shift = boosted_body.linear_velocity_mps[axis]
+                        - reference_body.linear_velocity_mps[axis];
+                    assert!(
+                        (observed_velocity_shift - boost).abs() < 1.0e-5,
+                        "{backend} velocity violated constant-velocity boost relation on axis {axis}, step {}: observed={observed_velocity_shift}, expected={boost}",
+                        reference_sample.step
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn native_and_rapier_keep_a_sphere_near_resting_contact() {
     let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
     for (backend, trace) in [
