@@ -16,8 +16,8 @@ use rapier3d::prelude::*;
 use symtropy_physics::validation::{
     BodyObservation3d, PHYSICS_SCENARIO_SCHEMA_VERSION, PHYSICS_TRACE_SCHEMA_VERSION,
     PhysicsBackendDescriptor, PhysicsSample3d, PhysicsScenario3d, PhysicsTrace3d, ScenarioBody3d,
-    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId, compare_traces_3d,
-    run_native_scenario_3d,
+    ScenarioBodyType, ScenarioShape3d, ScenarioValidationError, ValidationBodyId,
+    compare_traces_3d, run_native_scenario_3d,
 };
 use symtropy_physics::world::NoOpCallback;
 use symtropy_rapier3d_bridge::RapierPhysicsBridge;
@@ -262,6 +262,144 @@ fn free_fall_scenario() -> PhysicsScenario3d {
     }
 }
 
+/// Build a free-fall scenario whose total simulated duration is exactly one
+/// second. The semi-implicit integrator's position error should decrease as
+/// the fixed timestep is refined; the analytical trajectory is independent of
+/// either engine implementation.
+fn free_fall_at_dt(dt_s: f64) -> PhysicsScenario3d {
+    let mut scenario = free_fall_scenario();
+    scenario.scenario_id = format!("analytical-free-fall-dt-{dt_s:.6}");
+    scenario.dt_s = dt_s;
+    scenario.steps = (1.0 / dt_s).round() as u64;
+    scenario.sample_every_steps = scenario.steps;
+    scenario
+}
+
+fn analytical_free_fall_position_error(
+    scenario: &PhysicsScenario3d,
+    trace: &PhysicsTrace3d,
+) -> f64 {
+    let body = &scenario.bodies[0];
+    let time_s = scenario.dt_s * scenario.steps as f64;
+    let initial_y = body.position_m[1];
+    let initial_vy = body.linear_velocity_mps[1];
+    let gravity_y = scenario.gravity_mps2[1];
+    let expected_y = initial_y + initial_vy * time_s + 0.5 * gravity_y * time_s * time_s;
+    (trace.final_sample().unwrap().bodies[0].position_m[1] - expected_y).abs()
+}
+
+fn assert_free_fall_converges(
+    coarse_scenario: &PhysicsScenario3d,
+    coarse_trace: &PhysicsTrace3d,
+    fine_scenario: &PhysicsScenario3d,
+    fine_trace: &PhysicsTrace3d,
+    backend: &str,
+) {
+    let coarse_error = analytical_free_fall_position_error(coarse_scenario, coarse_trace);
+    let fine_error = analytical_free_fall_position_error(fine_scenario, fine_trace);
+    assert!(coarse_error.is_finite() && fine_error.is_finite());
+    assert!(
+        coarse_error > 1.0e-3,
+        "{backend} coarse error unexpectedly vanished: {coarse_error}"
+    );
+    assert!(
+        fine_error < coarse_error * 0.65,
+        "{backend} did not converge under dt refinement: coarse={coarse_error}, fine={fine_error}"
+    );
+}
+
+/// Contact scenarios use a finite axis-aligned cuboid floor, within the shared
+/// v0.1 shape domain. The floor's top surface is y=0.
+fn contact_scenario(
+    scenario_id: &str,
+    sphere_y: f64,
+    sphere_vx: f64,
+    friction: f64,
+    restitution: f64,
+    steps: u64,
+    dt_s: f64,
+    sample_every_steps: u64,
+) -> PhysicsScenario3d {
+    let material =
+        |id, body_type, shape, position_m, linear_velocity_mps, mass_kg| ScenarioBody3d {
+            id: ValidationBodyId(id),
+            body_type,
+            shape,
+            position_m,
+            linear_velocity_mps,
+            mass_kg,
+            friction,
+            restitution,
+        };
+    PhysicsScenario3d {
+        schema_version: PHYSICS_SCENARIO_SCHEMA_VERSION,
+        scenario_id: scenario_id.to_owned(),
+        gravity_mps2: [0.0, -9.81, 0.0],
+        dt_s,
+        steps,
+        sample_every_steps,
+        bodies: vec![
+            material(
+                1,
+                ScenarioBodyType::Static,
+                ScenarioShape3d::Cuboid {
+                    half_extents_m: [5.0, 0.5, 5.0],
+                },
+                [0.0, -0.5, 0.0],
+                [0.0, 0.0, 0.0],
+                0.0,
+            ),
+            material(
+                2,
+                ScenarioBodyType::Dynamic,
+                ScenarioShape3d::Sphere { radius_m: 0.5 },
+                [0.0, sphere_y, 0.0],
+                [sphere_vx, 0.0, 0.0],
+                1.0,
+            ),
+        ],
+    }
+}
+
+fn final_body(trace: &PhysicsTrace3d, id: ValidationBodyId) -> &BodyObservation3d {
+    trace
+        .final_sample()
+        .expect("trace has a final sample")
+        .bodies
+        .iter()
+        .find(|body| body.body_id == id)
+        .expect("trace contains the requested validation body")
+}
+
+fn post_contact_peak_y(trace: &PhysicsTrace3d, id: ValidationBodyId, after_time_s: f64) -> f64 {
+    trace
+        .samples
+        .iter()
+        .filter(|sample| sample.time_s >= after_time_s)
+        .filter_map(|sample| {
+            sample
+                .bodies
+                .iter()
+                .find(|body| body.body_id == id)
+                .map(|body| body.position_m[1])
+        })
+        .fold(f64::NEG_INFINITY, f64::max)
+}
+
+fn assert_restitution_is_observable(
+    inelastic: &PhysicsTrace3d,
+    bouncy: &PhysicsTrace3d,
+    backend: &str,
+) {
+    let inelastic_peak = post_contact_peak_y(inelastic, ValidationBodyId(2), 0.60);
+    let bouncy_peak = post_contact_peak_y(bouncy, ValidationBodyId(2), 0.60);
+    assert!(inelastic_peak.is_finite() && bouncy_peak.is_finite());
+    assert!(
+        bouncy_peak > inelastic_peak + 0.20,
+        "{backend} restitution response too small: low={inelastic_peak}, high={bouncy_peak}"
+    );
+}
+
 #[test]
 fn rapier_adapter_executes_common_free_fall_scenario() {
     let trace = run_rapier_scenario_3d(&free_fall_scenario()).unwrap();
@@ -284,13 +422,35 @@ fn native_and_rapier_share_identity_schedule_and_finite_metrics() {
     assert_eq!(metrics.compared_bodies, 3);
     assert_eq!(metrics.left_non_finite_observations, 0);
     assert_eq!(metrics.right_non_finite_observations, 0);
-    assert!(metrics.max_position_error_m.is_finite());
-    assert!(metrics.max_linear_velocity_error_mps.is_finite());
+    assert_eq!(metrics.finite_comparison_pairs, metrics.compared_bodies);
+    assert!(metrics.has_complete_finite_coverage());
+    assert!(
+        metrics
+            .max_position_error_m
+            .expect("finite comparison coverage")
+            .is_finite()
+    );
+    assert!(
+        metrics
+            .max_linear_velocity_error_mps
+            .expect("finite comparison coverage")
+            .is_finite()
+    );
 
     // Broad sanity envelope only. This is deliberately not promoted as a
     // physical-accuracy threshold or solver qualification result.
-    assert!(metrics.max_position_error_m < 0.01);
-    assert!(metrics.max_linear_velocity_error_mps < 0.01);
+    assert!(
+        metrics
+            .max_position_error_m
+            .expect("finite comparison coverage")
+            < 0.01
+    );
+    assert!(
+        metrics
+            .max_linear_velocity_error_mps
+            .expect("finite comparison coverage")
+            < 0.01
+    );
 }
 
 #[test]
@@ -327,3 +487,509 @@ fn adapter_rejects_values_that_overflow_reference_precision() {
         Err(RapierValidationError::OutsideReferenceRange("position_m.x"))
     );
 }
+
+#[test]
+fn analytical_free_fall_position_error_converges_for_both_engines() {
+    let coarse_scenario = free_fall_at_dt(0.02);
+    let fine_scenario = free_fall_at_dt(0.01);
+
+    let coarse_native = run_native_scenario_3d(&coarse_scenario).unwrap();
+    let fine_native = run_native_scenario_3d(&fine_scenario).unwrap();
+    assert_free_fall_converges(
+        &coarse_scenario,
+        &coarse_native,
+        &fine_scenario,
+        &fine_native,
+        "native",
+    );
+
+    let coarse_rapier = run_rapier_scenario_3d(&coarse_scenario).unwrap();
+    let fine_rapier = run_rapier_scenario_3d(&fine_scenario).unwrap();
+    assert_free_fall_converges(
+        &coarse_scenario,
+        &coarse_rapier,
+        &fine_scenario,
+        &fine_rapier,
+        "Rapier",
+    );
+}
+
+fn assert_first_order_convergence(backend: &str, observations: &[(f64, f64)]) {
+    assert_eq!(observations.len(), 3);
+    for pair in observations.windows(2) {
+        let (coarse_dt, coarse_error) = pair[0];
+        let (fine_dt, fine_error) = pair[1];
+        assert!(
+            coarse_error.is_finite()
+                && fine_error.is_finite()
+                && coarse_error > 0.0
+                && fine_error > 0.0,
+            "{backend} produced an invalid analytical error pair: coarse={coarse_error}, fine={fine_error}"
+        );
+        let observed_order = (coarse_error / fine_error).ln() / (coarse_dt / fine_dt).ln();
+        assert!(
+            (observed_order - 1.0).abs() <= 0.2,
+            "{backend} free-fall error order deviated from the declared first-order expectation: dt {coarse_dt}->{fine_dt}, error {coarse_error}->{fine_error}, observed order={observed_order}"
+        );
+    }
+}
+
+#[test]
+fn analytical_free_fall_observes_first_order_convergence_for_both_engines() {
+    // The semi-implicit stepping path has first-order position error on this
+    // constant-acceleration fixture. Three timestep levels let us estimate the
+    // observed order instead of merely checking that one error is smaller.
+    let native_observations: Vec<_> = [0.04, 0.02, 0.01]
+        .into_iter()
+        .map(|dt_s| {
+            let scenario = free_fall_at_dt(dt_s);
+            let trace = run_native_scenario_3d(&scenario).unwrap();
+            (
+                dt_s,
+                analytical_free_fall_position_error(&scenario, &trace),
+            )
+        })
+        .collect();
+    assert_first_order_convergence("native", &native_observations);
+
+    let rapier_observations: Vec<_> = [0.04, 0.02, 0.01]
+        .into_iter()
+        .map(|dt_s| {
+            let scenario = free_fall_at_dt(dt_s);
+            let trace = run_rapier_scenario_3d(&scenario).unwrap();
+            (
+                dt_s,
+                analytical_free_fall_position_error(&scenario, &trace),
+            )
+        })
+        .collect();
+    assert_first_order_convergence("Rapier", &rapier_observations);
+}
+
+#[test]
+fn free_fall_trajectory_obeys_constant_velocity_boost_metamorphism() {
+    let mut scenario = free_fall_at_dt(0.01);
+    scenario.sample_every_steps = 1;
+    let velocity_boost = [1.25, -0.5, 0.75];
+    let mut boosted = scenario.clone();
+    for body in &mut boosted.bodies {
+        for (axis, boost) in velocity_boost.iter().enumerate() {
+            body.linear_velocity_mps[axis] += *boost;
+        }
+    }
+    boosted.scenario_id = format!("{}-boosted", scenario.scenario_id);
+
+    let native = run_native_scenario_3d(&scenario).unwrap();
+    let native_boosted = run_native_scenario_3d(&boosted).unwrap();
+    let rapier = run_rapier_scenario_3d(&scenario).unwrap();
+    let rapier_boosted = run_rapier_scenario_3d(&boosted).unwrap();
+
+    for (backend, reference, boosted_trace) in [
+        ("native", &native, &native_boosted),
+        ("Rapier", &rapier, &rapier_boosted),
+    ] {
+        assert_eq!(reference.samples.len(), boosted_trace.samples.len());
+        for (reference_sample, boosted_sample) in
+            reference.samples.iter().zip(&boosted_trace.samples)
+        {
+            assert_eq!(reference_sample.step, boosted_sample.step);
+            assert_eq!(reference_sample.time_s, boosted_sample.time_s);
+            for (reference_body, boosted_body) in reference_sample
+                .bodies
+                .iter()
+                .zip(&boosted_sample.bodies)
+            {
+                assert_eq!(reference_body.body_id, boosted_body.body_id);
+                for (axis, boost) in velocity_boost.iter().enumerate() {
+                    let observed_position_shift =
+                        boosted_body.position_m[axis] - reference_body.position_m[axis];
+                    let expected_position_shift = *boost * reference_sample.time_s;
+                    assert!(
+                        (observed_position_shift - expected_position_shift).abs() < 2.0e-4,
+                        "{backend} position violated constant-velocity boost relation on axis {axis}, step {}: observed={observed_position_shift}, expected={expected_position_shift}",
+                        reference_sample.step
+                    );
+
+                    let observed_velocity_shift = boosted_body.linear_velocity_mps[axis]
+                        - reference_body.linear_velocity_mps[axis];
+                    assert!(
+                        (observed_velocity_shift - *boost).abs() < 1.0e-5,
+                        "{backend} velocity violated constant-velocity boost relation on axis {axis}, step {}: observed={observed_velocity_shift}, expected={boost}",
+                        reference_sample.step
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn isolated_free_fall_is_invariant_to_body_mass() {
+    // In Newtonian uniform gravity without contact or drag, inertial mass does
+    // not change the trajectory. Compare every saved state, not only endpoints.
+    let mut light = free_fall_at_dt(0.01);
+    light.sample_every_steps = 1;
+    light.bodies[0].mass_kg = 0.25;
+    light.scenario_id = "mass-invariance-light-v0".to_owned();
+
+    let mut heavy = light.clone();
+    heavy.bodies[0].mass_kg = 25.0;
+    heavy.scenario_id = "mass-invariance-heavy-v0".to_owned();
+
+    for (backend, light_trace, heavy_trace) in [
+        (
+            "native",
+            run_native_scenario_3d(&light).unwrap(),
+            run_native_scenario_3d(&heavy).unwrap(),
+        ),
+        (
+            "Rapier",
+            run_rapier_scenario_3d(&light).unwrap(),
+            run_rapier_scenario_3d(&heavy).unwrap(),
+        ),
+    ] {
+        assert_eq!(light_trace.samples.len(), heavy_trace.samples.len());
+        for (light_sample, heavy_sample) in
+            light_trace.samples.iter().zip(&heavy_trace.samples)
+        {
+            assert_eq!(light_sample.step, heavy_sample.step);
+            assert_eq!(light_sample.time_s, heavy_sample.time_s);
+            let light_body = &light_sample.bodies[0];
+            let heavy_body = &heavy_sample.bodies[0];
+            assert_eq!(light_body.body_id, heavy_body.body_id);
+
+            for axis in 0..3 {
+                let position_delta =
+                    (light_body.position_m[axis] - heavy_body.position_m[axis]).abs();
+                assert!(
+                    position_delta < 2.0e-4,
+                    "{backend} free-fall position depended on mass at step {} axis {axis}: delta={position_delta}",
+                    light_sample.step
+                );
+
+                let velocity_delta = (light_body.linear_velocity_mps[axis]
+                    - heavy_body.linear_velocity_mps[axis])
+                    .abs();
+                assert!(
+                    velocity_delta < 1.0e-5,
+                    "{backend} free-fall velocity depended on mass at step {} axis {axis}: delta={velocity_delta}",
+                    light_sample.step
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn analytical_free_fall_velocity_matches_closed_form_for_both_engines() {
+    let scenario = free_fall_at_dt(0.01);
+    let expected_velocity = [
+        scenario.bodies[0].linear_velocity_mps[0]
+            + scenario.gravity_mps2[0] * scenario.dt_s * scenario.steps as f64,
+        scenario.bodies[0].linear_velocity_mps[1]
+            + scenario.gravity_mps2[1] * scenario.dt_s * scenario.steps as f64,
+        scenario.bodies[0].linear_velocity_mps[2]
+            + scenario.gravity_mps2[2] * scenario.dt_s * scenario.steps as f64,
+    ];
+
+    for (backend, trace) in [
+        ("native", run_native_scenario_3d(&scenario).unwrap()),
+        ("Rapier", run_rapier_scenario_3d(&scenario).unwrap()),
+    ] {
+        let observed = &trace.final_sample().unwrap().bodies[0].linear_velocity_mps;
+        for axis in 0..3 {
+            let error = (observed[axis] - expected_velocity[axis]).abs();
+            assert!(
+                error < 2.0e-4,
+                "{backend} free-fall velocity disagrees with v(t)=v0+g*t on axis {axis}: observed={}, expected={}, error={error}",
+                observed[axis],
+                expected_velocity[axis]
+            );
+        }
+    }
+}
+
+#[test]
+fn native_and_rapier_keep_a_sphere_near_resting_contact() {
+    let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
+    for (backend, trace) in [
+        ("native", run_native_scenario_3d(&scenario).unwrap()),
+        ("Rapier", run_rapier_scenario_3d(&scenario).unwrap()),
+    ] {
+        let sphere = final_body(&trace, ValidationBodyId(2));
+        assert!(
+            (0.38..=0.72).contains(&sphere.position_m[1]),
+            "{backend} resting sphere drifted from the support surface: y={}",
+            sphere.position_m[1]
+        );
+        assert!(
+            sphere.linear_velocity_mps[1].abs() < 0.75,
+            "{backend} resting sphere retained excessive vertical velocity: vy={}",
+            sphere.linear_velocity_mps[1]
+        );
+    }
+}
+
+#[test]
+fn native_and_rapier_restitution_changes_post_impact_trajectory() {
+    let inelastic_scenario =
+        contact_scenario("inelastic-drop-v0", 2.0, 0.0, 0.5, 0.0, 560, 0.0025, 1);
+    let bouncy_scenario =
+        contact_scenario("restitution-drop-v0", 2.0, 0.0, 0.5, 0.8, 560, 0.0025, 1);
+    let native_inelastic = run_native_scenario_3d(&inelastic_scenario).unwrap();
+    let native_bouncy = run_native_scenario_3d(&bouncy_scenario).unwrap();
+    assert_restitution_is_observable(&native_inelastic, &native_bouncy, "native");
+
+    let rapier_inelastic = run_rapier_scenario_3d(&inelastic_scenario).unwrap();
+    let rapier_bouncy = run_rapier_scenario_3d(&bouncy_scenario).unwrap();
+    assert_restitution_is_observable(&rapier_inelastic, &rapier_bouncy, "Rapier");
+}
+
+#[test]
+fn native_and_rapier_friction_reduces_sliding_sphere_speed() {
+    let low_friction = contact_scenario(
+        "low-friction-slide-v0",
+        0.51,
+        2.0,
+        0.0,
+        0.0,
+        600,
+        0.0025,
+        20,
+    );
+    let high_friction = contact_scenario(
+        "high-friction-slide-v0",
+        0.51,
+        2.0,
+        1.0,
+        0.0,
+        600,
+        0.0025,
+        20,
+    );
+    for (backend, low_trace, high_trace) in [
+        (
+            "native",
+            run_native_scenario_3d(&low_friction).unwrap(),
+            run_native_scenario_3d(&high_friction).unwrap(),
+        ),
+        (
+            "Rapier",
+            run_rapier_scenario_3d(&low_friction).unwrap(),
+            run_rapier_scenario_3d(&high_friction).unwrap(),
+        ),
+    ] {
+        let low_speed = final_body(&low_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
+        let high_speed = final_body(&high_trace, ValidationBodyId(2)).linear_velocity_mps[0].abs();
+        assert!(
+            low_speed > 0.5,
+            "{backend} zero-friction lane lost too much speed: {low_speed}"
+        );
+        assert!(
+            high_speed + 0.15 < low_speed,
+            "{backend} high friction did not reduce slide speed: low={low_speed}, high={high_speed}"
+        );
+    }
+}
+
+fn box_stack_scenario(box_count: usize) -> PhysicsScenario3d {
+    assert!(box_count >= 3 && box_count <= 5);
+    let mut bodies = vec![ScenarioBody3d {
+        id: ValidationBodyId(1),
+        body_type: ScenarioBodyType::Static,
+        shape: ScenarioShape3d::Cuboid {
+            half_extents_m: [4.0, 0.5, 4.0],
+        },
+        position_m: [0.0, -0.5, 0.0],
+        linear_velocity_mps: [0.0, 0.0, 0.0],
+        mass_kg: 0.0,
+        friction: 0.8,
+        restitution: 0.0,
+    }];
+
+    for index in 0..box_count {
+        bodies.push(ScenarioBody3d {
+            id: ValidationBodyId(100 + index as u64),
+            body_type: ScenarioBodyType::Dynamic,
+            shape: ScenarioShape3d::Cuboid {
+                half_extents_m: [0.5, 0.5, 0.5],
+            },
+            // Deliberately begin with a small, known overlap so this exercises
+            // contact resolution immediately rather than only free fall.
+            position_m: [0.0, 0.48 + index as f64 * 0.98, 0.0],
+            linear_velocity_mps: [0.0, 0.0, 0.0],
+            mass_kg: 1.0,
+            friction: 0.8,
+            restitution: 0.0,
+        });
+    }
+
+    PhysicsScenario3d {
+        schema_version: PHYSICS_SCENARIO_SCHEMA_VERSION,
+        scenario_id: format!("axis-aligned-box-stack-{box_count}-v0"),
+        gravity_mps2: [0.0, -9.81, 0.0],
+        dt_s: 1.0 / 120.0,
+        steps: 600,
+        sample_every_steps: 1,
+        bodies,
+    }
+}
+
+fn assert_stack_trace_is_bounded(trace: &PhysicsTrace3d, box_count: usize, backend: &str) {
+    assert_eq!(
+        trace.samples.len(),
+        601,
+        "{backend} must preserve every requested per-step observation"
+    );
+    let expected_body_count = box_count + 1;
+    let mut peak_speed = 0.0_f64;
+
+    for sample in &trace.samples {
+        assert_eq!(
+            sample.bodies.len(),
+            expected_body_count,
+            "{backend} changed body cardinality at step {}",
+            sample.step
+        );
+        for body in &sample.bodies {
+            assert!(
+                body.is_finite(),
+                "{backend} produced a non-finite state at step {} for body {}",
+                sample.step,
+                body.body_id.0
+            );
+            if body.body_id.0 >= 100 {
+                let speed = body
+                    .linear_velocity_mps
+                    .iter()
+                    .map(|component| component * component)
+                    .sum::<f64>()
+                    .sqrt();
+                peak_speed = peak_speed.max(speed);
+            }
+        }
+    }
+
+    assert!(
+        peak_speed < 5.0,
+        "{backend} stack produced an explosive impulse: peak speed={peak_speed} m/s"
+    );
+
+    let final_sample = trace.final_sample().expect("stack trace has samples");
+    for index in 0..box_count {
+        let body_id = ValidationBodyId(100 + index as u64);
+        let body = final_sample
+            .bodies
+            .iter()
+            .find(|body| body.body_id == body_id)
+            .expect("every stacked box retains its stable identity");
+        let expected_y = 0.5 + index as f64;
+        assert!(
+            (body.position_m[1] - expected_y).abs() < 0.45,
+            "{backend} box {index} did not remain near its stack level: y={}, expected={expected_y}",
+            body.position_m[1]
+        );
+    }
+}
+
+#[test]
+fn three_and_five_box_stacks_remain_finite_and_bounded_for_both_backends() {
+    for box_count in [3_usize, 5_usize] {
+        let scenario = box_stack_scenario(box_count);
+
+        let native = run_native_scenario_3d(&scenario).unwrap();
+        assert_stack_trace_is_bounded(&native, box_count, "native");
+
+        let rapier = run_rapier_scenario_3d(&scenario).unwrap();
+        assert_stack_trace_is_bounded(&rapier, box_count, "Rapier");
+    }
+}
+
+#[test]
+fn stack_trace_is_invariant_to_nonsemantic_body_insertion_order() {
+    // The scenario contract assigns stable IDs, and both runners normalize by
+    // those IDs before constructing the world. Reversing input order must not
+    // silently change solver history under this declared deterministic policy.
+    let scenario = box_stack_scenario(3);
+    let mut permuted = scenario.clone();
+    permuted.bodies.reverse();
+
+    assert_eq!(scenario.scenario_id, permuted.scenario_id);
+    assert_ne!(scenario.bodies, permuted.bodies);
+
+    let native_reference = run_native_scenario_3d(&scenario).unwrap();
+    let native_permuted = run_native_scenario_3d(&permuted).unwrap();
+    assert_eq!(
+        native_reference, native_permuted,
+        "native stack trace changed under a nonsemantic input permutation"
+    );
+
+    let rapier_reference = run_rapier_scenario_3d(&scenario).unwrap();
+    let rapier_permuted = run_rapier_scenario_3d(&permuted).unwrap();
+    assert_eq!(
+        rapier_reference, rapier_permuted,
+        "Rapier stack trace changed under a nonsemantic input permutation"
+    );
+}
+
+#[test]
+fn free_fall_trajectory_is_invariant_to_uniform_translation() {
+    let mut scenario = free_fall_at_dt(0.01);
+    scenario.sample_every_steps = 1;
+    let translation = [100.0, 2.0, -50.0];
+    let mut translated = scenario.clone();
+    for body in &mut translated.bodies {
+        for (axis, offset) in translation.iter().enumerate() {
+            body.position_m[axis] += *offset;
+        }
+    }
+    translated.scenario_id = format!("{}-translated", scenario.scenario_id);
+    assert_ne!(scenario.scenario_id, translated.scenario_id);
+
+    let native = run_native_scenario_3d(&scenario).unwrap();
+    let native_translated = run_native_scenario_3d(&translated).unwrap();
+    let rapier = run_rapier_scenario_3d(&scenario).unwrap();
+    let rapier_translated = run_rapier_scenario_3d(&translated).unwrap();
+
+    for (backend, reference, shifted) in [
+        ("native", &native, &native_translated),
+        ("Rapier", &rapier, &rapier_translated),
+    ] {
+        assert_eq!(reference.samples.len(), shifted.samples.len());
+        for (reference_sample, shifted_sample) in
+            reference.samples.iter().zip(&shifted.samples)
+        {
+            assert_eq!(reference_sample.step, shifted_sample.step);
+            assert_eq!(reference_sample.time_s, shifted_sample.time_s);
+            assert_eq!(
+                reference_sample.bodies.len(),
+                shifted_sample.bodies.len()
+            );
+
+            for (reference_body, shifted_body) in reference_sample
+                .bodies
+                .iter()
+                .zip(&shifted_sample.bodies)
+            {
+                assert_eq!(reference_body.body_id, shifted_body.body_id);
+                for (axis, offset) in translation.iter().enumerate() {
+                    let observed_translation =
+                        shifted_body.position_m[axis] - reference_body.position_m[axis];
+                    assert!(
+                        (observed_translation - *offset).abs() < 2.0e-4,
+                        "{backend} translation drift on axis {axis} at step {}: observed={observed_translation}, expected={offset}",
+                        reference_sample.step
+                    );
+                    let velocity_delta = shifted_body.linear_velocity_mps[axis]
+                        - reference_body.linear_velocity_mps[axis];
+                    assert!(
+                        velocity_delta.abs() < 1.0e-5,
+                        "{backend} velocity changed under translation on axis {axis} at step {}: delta={velocity_delta}",
+                        reference_sample.step
+                    );
+                }
+            }
+        }
+    }
+}
+

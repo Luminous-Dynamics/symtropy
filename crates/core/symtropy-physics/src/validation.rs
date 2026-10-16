@@ -98,6 +98,10 @@ impl PhysicsScenario3d {
         if self.steps == 0 {
             return Err(ScenarioValidationError::ZeroSteps);
         }
+        let total_duration_s = self.dt_s * self.steps as f64;
+        if !total_duration_s.is_finite() || total_duration_s <= 0.0 {
+            return Err(ScenarioValidationError::InvalidSimulationDuration);
+        }
         if self.sample_every_steps == 0 {
             return Err(ScenarioValidationError::ZeroSampleStride);
         }
@@ -173,6 +177,7 @@ pub enum ScenarioValidationError {
     UnsupportedSchemaVersion(u32),
     EmptyScenarioId,
     InvalidTimeStep,
+    InvalidSimulationDuration,
     ZeroSteps,
     ZeroSampleStride,
     NonFiniteGravity,
@@ -195,6 +200,10 @@ impl fmt::Display for ScenarioValidationError {
             }
             Self::EmptyScenarioId => write!(f, "scenario_id must not be empty"),
             Self::InvalidTimeStep => write!(f, "dt_s must be finite and greater than zero"),
+            Self::InvalidSimulationDuration => write!(
+                f,
+                "dt_s multiplied by steps must produce a finite positive duration"
+            ),
             Self::ZeroSteps => write!(f, "steps must be greater than zero"),
             Self::ZeroSampleStride => write!(f, "sample_every_steps must be greater than zero"),
             Self::NonFiniteGravity => write!(f, "gravity_mps2 must be finite"),
@@ -286,13 +295,36 @@ pub struct DifferentialMetrics3d {
     pub right_backend: PhysicsBackendDescriptor,
     pub compared_samples: u64,
     pub compared_bodies: u64,
-    pub max_position_error_m: f64,
-    pub rms_position_error_m: f64,
-    pub max_linear_velocity_error_mps: f64,
-    pub rms_linear_velocity_error_mps: f64,
+    /// Absent when no body pair had finite position and velocity on both sides.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_position_error_m: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rms_position_error_m: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_linear_velocity_error_mps: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rms_linear_velocity_error_mps: Option<f64>,
+    /// Number of (sample, body) pairs included in the numerical error metrics.
+    #[serde(default)]
+    pub finite_comparison_pairs: u64,
     pub sleeping_mismatches: u64,
     pub left_non_finite_observations: u64,
     pub right_non_finite_observations: u64,
+}
+
+impl DifferentialMetrics3d {
+    /// Whether every compared body sample pair had finite position and velocity.
+    ///
+    /// A caller making a qualification decision should normally require complete
+    /// coverage. Partial metrics are useful diagnostically but do not prove that
+    /// the entire trace met its tolerances.
+    pub fn has_complete_finite_coverage(&self) -> bool {
+        self.compared_bodies > 0
+            && self.finite_comparison_pairs > 0
+            && self.finite_comparison_pairs == self.compared_bodies
+            && self.left_non_finite_observations == 0
+            && self.right_non_finite_observations == 0
+    }
 }
 
 /// Structural mismatch that makes two traces unsafe to compare numerically.
@@ -303,14 +335,30 @@ pub enum TraceComparisonError {
         right: u32,
         supported: u32,
     },
+    EmptyScenarioId,
+    EmptyBackendIdentity {
+        side: &'static str,
+        field: &'static str,
+    },
     ScenarioMismatch,
     SampleCountMismatch,
+    EmptyTrace,
+    EmptyBodySample {
+        step: u64,
+    },
+    InvalidSampleSequence {
+        backend: String,
+        sample_index: usize,
+    },
     SampleStepMismatch {
         left: u64,
         right: u64,
     },
     NonFiniteSampleTime {
         step: u64,
+    },
+    NonFiniteComputedMetric {
+        field: &'static str,
     },
     SampleTimeMismatch {
         step: u64,
@@ -337,23 +385,39 @@ impl fmt::Display for TraceComparisonError {
                 f,
                 "unsupported trace schema version: left={left}, right={right}, supported={supported}"
             ),
+            Self::EmptyScenarioId => write!(f, "trace scenario_id must not be empty"),
+            Self::EmptyBackendIdentity { side, field } => {
+                write!(f, "{side} trace backend identity field {field} must not be empty")
+            }
             Self::ScenarioMismatch => write!(f, "trace scenario_id values differ"),
             Self::SampleCountMismatch => write!(f, "trace sample counts differ"),
+            Self::EmptyTrace => write!(f, "trace must contain at least one sample"),
+            Self::EmptyBodySample { step } => {
+                write!(f, "trace sample at step {step} has no body observations")
+            }
+            Self::InvalidSampleSequence {
+                backend,
+                sample_index,
+            } => write!(
+                f,
+                "trace from backend {backend} has invalid sample ordering at index {sample_index}"
+            ),
             Self::SampleStepMismatch { left, right } => {
                 write!(f, "trace sample steps differ: left={left}, right={right}")
             }
             Self::NonFiniteSampleTime { step } => {
                 write!(f, "trace sample time is non-finite at step {step}")
             }
+            Self::NonFiniteComputedMetric { field } => {
+                write!(f, "computed differential metric {field} is non-finite")
+            }
             Self::SampleTimeMismatch { step, left, right } => write!(
                 f,
                 "trace sample times differ at step {step}: left={left}, right={right}"
             ),
-            Self::DuplicateBodyObservation { step, body_id } => write!(
-                f,
-                "duplicate body observation {} at step {step}",
-                body_id.0
-            ),
+            Self::DuplicateBodyObservation { step, body_id } => {
+                write!(f, "duplicate body observation {} at step {step}", body_id.0)
+            }
             Self::BodySetMismatch { step } => {
                 write!(f, "trace body identity sets differ at step {step}")
             }
@@ -362,6 +426,26 @@ impl fmt::Display for TraceComparisonError {
 }
 
 impl std::error::Error for TraceComparisonError {}
+
+fn validate_trace_identity(
+    trace: &PhysicsTrace3d,
+    side: &'static str,
+) -> Result<(), TraceComparisonError> {
+    if trace.scenario_id.trim().is_empty() {
+        return Err(TraceComparisonError::EmptyScenarioId);
+    }
+
+    for (field, value) in [
+        ("engine", trace.backend.engine.as_str()),
+        ("engine_version", trace.backend.engine_version.as_str()),
+        ("profile", trace.backend.profile.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(TraceComparisonError::EmptyBackendIdentity { side, field });
+        }
+    }
+    Ok(())
+}
 
 /// Compare two traces strictly by schema, scenario, sample grid, and stable body ID.
 ///
@@ -381,12 +465,16 @@ pub fn compare_traces_3d(
             supported: PHYSICS_TRACE_SCHEMA_VERSION,
         });
     }
+    validate_trace_identity(left, "left")?;
+    validate_trace_identity(right, "right")?;
     if left.scenario_id != right.scenario_id {
         return Err(TraceComparisonError::ScenarioMismatch);
     }
     if left.samples.len() != right.samples.len() {
         return Err(TraceComparisonError::SampleCountMismatch);
     }
+    validate_sample_sequence(left)?;
+    validate_sample_sequence(right)?;
 
     let mut metrics = DifferentialMetrics3d {
         scenario_id: left.scenario_id.clone(),
@@ -394,19 +482,27 @@ pub fn compare_traces_3d(
         right_backend: right.backend.clone(),
         compared_samples: 0,
         compared_bodies: 0,
-        max_position_error_m: 0.0,
-        rms_position_error_m: 0.0,
-        max_linear_velocity_error_mps: 0.0,
-        rms_linear_velocity_error_mps: 0.0,
+        max_position_error_m: None,
+        rms_position_error_m: None,
+        max_linear_velocity_error_mps: None,
+        rms_linear_velocity_error_mps: None,
+        finite_comparison_pairs: 0,
         sleeping_mismatches: 0,
         left_non_finite_observations: 0,
         right_non_finite_observations: 0,
     };
-    let mut position_error_sq_sum = 0.0;
-    let mut velocity_error_sq_sum = 0.0;
+    let mut position_error_squares = StableSumSquares::default();
+    let mut velocity_error_squares = StableSumSquares::default();
+    let mut max_position_error_m = 0.0_f64;
+    let mut max_linear_velocity_error_mps = 0.0_f64;
     let mut finite_pairs = 0_u64;
 
     for (left_sample, right_sample) in left.samples.iter().zip(&right.samples) {
+        if left_sample.bodies.is_empty() || right_sample.bodies.is_empty() {
+            return Err(TraceComparisonError::EmptyBodySample {
+                step: left_sample.step,
+            });
+        }
         if left_sample.step != right_sample.step {
             return Err(TraceComparisonError::SampleStepMismatch {
                 left: left_sample.step,
@@ -462,22 +558,232 @@ pub fn compare_traces_3d(
                 &left_body.linear_velocity_mps,
                 &right_body.linear_velocity_mps,
             );
-            metrics.max_position_error_m = metrics.max_position_error_m.max(position_error);
-            metrics.max_linear_velocity_error_mps =
-                metrics.max_linear_velocity_error_mps.max(velocity_error);
-            position_error_sq_sum += position_error * position_error;
-            velocity_error_sq_sum += velocity_error * velocity_error;
+            if !position_error.is_finite() {
+                return Err(TraceComparisonError::NonFiniteComputedMetric {
+                    field: "position_error_m",
+                });
+            }
+            if !velocity_error.is_finite() {
+                return Err(TraceComparisonError::NonFiniteComputedMetric {
+                    field: "linear_velocity_error_mps",
+                });
+            }
+            max_position_error_m = max_position_error_m.max(position_error);
+            max_linear_velocity_error_mps =
+                max_linear_velocity_error_mps.max(velocity_error);
+            position_error_squares.add(position_error);
+            velocity_error_squares.add(velocity_error);
             finite_pairs += 1;
         }
     }
 
+    metrics.finite_comparison_pairs = finite_pairs;
     if finite_pairs > 0 {
-        let denominator = finite_pairs as f64;
-        metrics.rms_position_error_m = (position_error_sq_sum / denominator).sqrt();
-        metrics.rms_linear_velocity_error_mps = (velocity_error_sq_sum / denominator).sqrt();
+        let rms_position_error = position_error_squares.rms(finite_pairs).ok_or(
+            TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_position_error_m",
+            },
+        )?;
+        let rms_linear_velocity_error = velocity_error_squares.rms(finite_pairs).ok_or(
+            TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_linear_velocity_error_mps",
+            },
+        )?;
+        metrics.max_position_error_m = Some(max_position_error_m);
+        metrics.rms_position_error_m = Some(rms_position_error);
+        metrics.max_linear_velocity_error_mps = Some(max_linear_velocity_error_mps);
+        metrics.rms_linear_velocity_error_mps = Some(rms_linear_velocity_error);
     }
 
     Ok(metrics)
+}
+
+
+/// Explicit acceptance thresholds for a differential comparison.
+///
+/// Thresholds are caller-owned and unit-specific; no universal epsilon is
+/// implied. At least one metric must be selected. Unselected metrics are not
+/// part of this profile's acceptance claim.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DifferentialAcceptanceProfile3d {
+    pub profile_id: String,
+    pub max_position_error_m: Option<f64>,
+    pub rms_position_error_m: Option<f64>,
+    pub max_linear_velocity_error_mps: Option<f64>,
+    pub rms_linear_velocity_error_mps: Option<f64>,
+}
+
+impl DifferentialAcceptanceProfile3d {
+    fn validate(&self) -> Result<(), AcceptanceProfileError> {
+        if self.profile_id.trim().is_empty() {
+            return Err(AcceptanceProfileError::EmptyProfileId);
+        }
+        let criteria = [
+            ("max_position_error_m", self.max_position_error_m),
+            ("rms_position_error_m", self.rms_position_error_m),
+            (
+                "max_linear_velocity_error_mps",
+                self.max_linear_velocity_error_mps,
+            ),
+            (
+                "rms_linear_velocity_error_mps",
+                self.rms_linear_velocity_error_mps,
+            ),
+        ];
+        let mut selected = 0;
+        for (field, tolerance) in criteria {
+            if let Some(tolerance) = tolerance {
+                selected += 1;
+                if !tolerance.is_finite() || tolerance < 0.0 {
+                    return Err(AcceptanceProfileError::InvalidTolerance { field });
+                }
+            }
+        }
+        if selected == 0 {
+            return Err(AcceptanceProfileError::NoCriteria);
+        }
+        Ok(())
+    }
+}
+
+/// Invalid acceptance-profile configuration.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AcceptanceProfileError {
+    EmptyProfileId,
+    NoCriteria,
+    InvalidTolerance { field: &'static str },
+}
+
+impl fmt::Display for AcceptanceProfileError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyProfileId => write!(f, "acceptance profile ID must not be empty"),
+            Self::NoCriteria => write!(f, "acceptance profile must select at least one metric"),
+            Self::InvalidTolerance { field } => {
+                write!(f, "acceptance tolerance {field} must be finite and nonnegative")
+            }
+        }
+    }
+}
+
+impl std::error::Error for AcceptanceProfileError {}
+
+/// Disposition of a differential physics comparison.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QualificationDecision3d {
+    /// All selected thresholds were met with complete finite observation coverage.
+    Pass,
+    /// At least one measured selected metric exceeded its declared threshold.
+    Fail,
+    /// Some numeric evidence exists, but coverage or a required metric is incomplete.
+    Inconclusive,
+    /// The traces cannot be compared under the shared structural contract.
+    NotComparable,
+}
+
+/// Decision record keeping the acceptance policy separate from raw metrics.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct QualificationReport3d {
+    pub left_scenario_id: String,
+    pub right_scenario_id: String,
+    pub profile_id: String,
+    pub decision: QualificationDecision3d,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<DifferentialMetrics3d>,
+    pub reasons: Vec<String>,
+}
+
+/// Compare traces and evaluate them against explicit, unit-specific thresholds.
+///
+/// A structural comparison error becomes `not_comparable`. A threshold violation
+/// is a failure even when other observations are missing; otherwise incomplete
+/// finite coverage yields `inconclusive`, never a pass.
+pub fn qualify_traces_3d(
+    left: &PhysicsTrace3d,
+    right: &PhysicsTrace3d,
+    profile: &DifferentialAcceptanceProfile3d,
+) -> Result<QualificationReport3d, AcceptanceProfileError> {
+    profile.validate()?;
+    let mut report = QualificationReport3d {
+        left_scenario_id: left.scenario_id.clone(),
+        right_scenario_id: right.scenario_id.clone(),
+        profile_id: profile.profile_id.clone(),
+        decision: QualificationDecision3d::NotComparable,
+        metrics: None,
+        reasons: Vec::new(),
+    };
+
+    let metrics = match compare_traces_3d(left, right) {
+        Ok(metrics) => metrics,
+        Err(error) => {
+            report.reasons.push(error.to_string());
+            return Ok(report);
+        }
+    };
+
+    let criteria = [
+        (
+            "max_position_error_m",
+            profile.max_position_error_m,
+            metrics.max_position_error_m,
+        ),
+        (
+            "rms_position_error_m",
+            profile.rms_position_error_m,
+            metrics.rms_position_error_m,
+        ),
+        (
+            "max_linear_velocity_error_mps",
+            profile.max_linear_velocity_error_mps,
+            metrics.max_linear_velocity_error_mps,
+        ),
+        (
+            "rms_linear_velocity_error_mps",
+            profile.rms_linear_velocity_error_mps,
+            metrics.rms_linear_velocity_error_mps,
+        ),
+    ];
+    let mut failed = false;
+    let mut missing_required_metric = false;
+    for (field, tolerance, measured) in criteria {
+        let Some(tolerance) = tolerance else {
+            continue;
+        };
+        match measured {
+            Some(measured) if measured > tolerance => {
+                failed = true;
+                report.reasons.push(format!(
+                    "{field} exceeds tolerance: measured {measured}, allowed {tolerance}"
+                ));
+            }
+            Some(_) => {}
+            None => {
+                missing_required_metric = true;
+                report
+                    .reasons
+                    .push(format!("required metric {field} is unavailable"));
+            }
+        }
+    }
+
+    if failed {
+        report.decision = QualificationDecision3d::Fail;
+    } else if missing_required_metric || !metrics.has_complete_finite_coverage() {
+        report.decision = QualificationDecision3d::Inconclusive;
+        if !metrics.has_complete_finite_coverage() {
+            report
+                .reasons
+                .push("observation coverage is not completely finite".to_owned());
+        }
+    } else {
+        report.decision = QualificationDecision3d::Pass;
+        report
+            .reasons
+            .push("all selected thresholds met with complete finite coverage".to_owned());
+    }
+    report.metrics = Some(metrics);
+    Ok(report)
 }
 
 /// Execute a validated v0.1 scenario with the native Symtropy 3D solver.
@@ -515,6 +821,36 @@ pub fn run_native_scenario_3d(
         },
         samples,
     })
+}
+
+fn validate_sample_sequence(trace: &PhysicsTrace3d) -> Result<(), TraceComparisonError> {
+    let Some(first) = trace.samples.first() else {
+        return Err(TraceComparisonError::EmptyTrace);
+    };
+    if !first.time_s.is_finite() {
+        return Err(TraceComparisonError::NonFiniteSampleTime { step: first.step });
+    }
+    if first.step != 0 || first.time_s != 0.0 {
+        return Err(TraceComparisonError::InvalidSampleSequence {
+            backend: trace.backend.engine.clone(),
+            sample_index: 0,
+        });
+    }
+
+    for (index, pair) in trace.samples.windows(2).enumerate() {
+        let previous = &pair[0];
+        let current = &pair[1];
+        if !current.time_s.is_finite() {
+            return Err(TraceComparisonError::NonFiniteSampleTime { step: current.step });
+        }
+        if current.step <= previous.step || current.time_s <= previous.time_s {
+            return Err(TraceComparisonError::InvalidSampleSequence {
+                backend: trace.backend.engine.clone(),
+                sample_index: index + 1,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn body_map(
@@ -616,15 +952,51 @@ fn all_finite<const N: usize>(values: &[f64; N]) -> bool {
     values.iter().all(|value| value.is_finite())
 }
 
+/// Scaled sum-of-squares accumulator for an RMS without avoidable intermediate
+/// overflow. This is the same numerical strategy used by stable norm algorithms:
+/// keep the largest magnitude separate and accumulate only ratios in [0, 1].
+#[derive(Clone, Copy, Debug, Default)]
+struct StableSumSquares {
+    scale: f64,
+    scaled_sum_squares: f64,
+}
+
+impl StableSumSquares {
+    fn add(&mut self, value: f64) {
+        let value = value.abs();
+        if value == 0.0 {
+            return;
+        }
+
+        if self.scale < value {
+            let ratio = if self.scale == 0.0 {
+                0.0
+            } else {
+                self.scale / value
+            };
+            self.scaled_sum_squares = 1.0 + self.scaled_sum_squares * ratio * ratio;
+            self.scale = value;
+        } else {
+            let ratio = value / self.scale;
+            self.scaled_sum_squares += ratio * ratio;
+        }
+    }
+
+    fn rms(self, count: u64) -> Option<f64> {
+        let rms = if self.scale == 0.0 {
+            0.0
+        } else {
+            self.scale * (self.scaled_sum_squares / count as f64).sqrt()
+        };
+        rms.is_finite().then_some(rms)
+    }
+}
+
+/// Use hypot to avoid overflowing while squaring otherwise representable deltas.
 fn euclidean_error<const N: usize>(left: &[f64; N], right: &[f64; N]) -> f64 {
     left.iter()
         .zip(right)
-        .map(|(left, right)| {
-            let delta = left - right;
-            delta * delta
-        })
-        .sum::<f64>()
-        .sqrt()
+        .fold(0.0_f64, |norm, (left, right)| norm.hypot(left - right))
 }
 
 #[cfg(test)]
@@ -679,6 +1051,21 @@ mod tests {
     }
 
     #[test]
+    fn stable_rms_rejects_unrepresentable_final_results() {
+        let zero = StableSumSquares::default();
+        assert_eq!(zero.rms(1), Some(0.0));
+
+        // The accumulator normally receives ratios no greater than one. This
+        // deliberately extreme internal state proves the final multiply still
+        // fails closed if a future change ever makes the result unrepresentable.
+        let overflowing = StableSumSquares {
+            scale: f64::MAX,
+            scaled_sum_squares: 4.0,
+        };
+        assert_eq!(overflowing.rms(1), None);
+    }
+
+    #[test]
     fn validation_rejects_duplicate_body_ids() {
         let mut scenario = free_fall_scenario();
         scenario.bodies.push(dynamic_sphere(7, 12.0));
@@ -687,6 +1074,17 @@ mod tests {
             Err(ScenarioValidationError::DuplicateBodyId(ValidationBodyId(
                 7
             )))
+        );
+    }
+
+    #[test]
+    fn validation_rejects_total_duration_overflow() {
+        let mut scenario = free_fall_scenario();
+        scenario.dt_s = f64::MAX;
+        scenario.steps = 2;
+        assert_eq!(
+            scenario.validate(),
+            Err(ScenarioValidationError::InvalidSimulationDuration)
         );
     }
 
@@ -793,9 +1191,44 @@ mod tests {
 
         let metrics = compare_traces_3d(&left, &right).unwrap();
         assert_eq!(metrics.compared_bodies, 2);
-        assert_eq!(metrics.max_position_error_m, 0.0);
-        assert_eq!(metrics.max_linear_velocity_error_mps, 0.0);
+        assert_eq!(metrics.finite_comparison_pairs, 2);
+        assert!(metrics.has_complete_finite_coverage());
+        assert_eq!(metrics.max_position_error_m, Some(0.0));
+        assert_eq!(metrics.max_linear_velocity_error_mps, Some(0.0));
         assert_eq!(metrics.sleeping_mismatches, 0);
+    }
+
+    #[test]
+    fn trace_comparison_rejects_samples_without_body_observations() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies.clear();
+        let right = left.clone();
+
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::EmptyBodySample { step: 0 })
+        );
+    }
+
+    #[test]
+    fn trace_comparison_rejects_empty_and_nonmonotonic_traces() {
+        let mut empty = one_sample_trace();
+        empty.samples.clear();
+        assert_eq!(
+            compare_traces_3d(&empty, &empty.clone()),
+            Err(TraceComparisonError::EmptyTrace)
+        );
+
+        let mut repeated_step = one_sample_trace();
+        repeated_step.samples.push(repeated_step.samples[0].clone());
+        let expected = TraceComparisonError::InvalidSampleSequence {
+            backend: "test".to_owned(),
+            sample_index: 1,
+        };
+        assert_eq!(
+            compare_traces_3d(&repeated_step, &repeated_step.clone()),
+            Err(expected)
+        );
     }
 
     #[test]
@@ -814,15 +1247,62 @@ mod tests {
     }
 
     #[test]
+    fn trace_comparison_rejects_missing_scenario_and_backend_identity() {
+        let valid = one_sample_trace();
+
+        let mut empty_scenario = valid.clone();
+        empty_scenario.scenario_id = "  ".to_owned();
+        assert_eq!(
+            compare_traces_3d(&empty_scenario, &valid),
+            Err(TraceComparisonError::EmptyScenarioId)
+        );
+
+        let mut empty_engine = valid.clone();
+        empty_engine.backend.engine = String::new();
+        assert_eq!(
+            compare_traces_3d(&empty_engine, &valid),
+            Err(TraceComparisonError::EmptyBackendIdentity {
+                side: "left",
+                field: "engine",
+            })
+        );
+
+        let mut empty_version = valid.clone();
+        empty_version.backend.engine_version = " ".to_owned();
+        assert_eq!(
+            compare_traces_3d(&empty_version, &valid),
+            Err(TraceComparisonError::EmptyBackendIdentity {
+                side: "left",
+                field: "engine_version",
+            })
+        );
+
+        let mut empty_profile = valid.clone();
+        empty_profile.backend.profile = String::new();
+        assert_eq!(
+            compare_traces_3d(&empty_profile, &valid),
+            Err(TraceComparisonError::EmptyBackendIdentity {
+                side: "left",
+                field: "profile",
+            })
+        );
+    }
+
+    #[test]
     fn trace_comparison_rejects_mismatched_sample_time() {
-        let left = one_sample_trace();
+        let mut left = one_sample_trace();
+        let mut later_sample = left.samples[0].clone();
+        later_sample.step = 1;
+        later_sample.time_s = 1.0;
+        left.samples.push(later_sample);
+
         let mut right = left.clone();
-        right.samples[0].time_s = 0.5;
+        right.samples[1].time_s = 0.5;
         assert_eq!(
             compare_traces_3d(&left, &right),
             Err(TraceComparisonError::SampleTimeMismatch {
-                step: 0,
-                left: 0.0,
+                step: 1,
+                left: 1.0,
                 right: 0.5,
             })
         );
@@ -832,7 +1312,9 @@ mod tests {
     fn trace_comparison_rejects_duplicate_body_observations() {
         let left = one_sample_trace();
         let mut right = left.clone();
-        right.samples[0].bodies.push(right.samples[0].bodies[0].clone());
+        right.samples[0]
+            .bodies
+            .push(right.samples[0].bodies[0].clone());
         assert_eq!(
             compare_traces_3d(&left, &right),
             Err(TraceComparisonError::DuplicateBodyObservation {
@@ -843,11 +1325,144 @@ mod tests {
     }
 
     #[test]
+    fn partial_finite_coverage_reports_metrics_but_cannot_claim_complete_coverage() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
+        let mut second = left.samples[0].bodies[0].clone();
+        second.body_id = ValidationBodyId(2);
+        second.position_m = [2.0, 0.0, 0.0];
+        left.samples[0].bodies.push(second);
+
+        let mut right = left.clone();
+        right.samples[0].bodies[0].position_m = [0.0, 0.0, 0.0];
+
+        let metrics = compare_traces_3d(&left, &right).unwrap();
+        assert_eq!(metrics.compared_bodies, 2);
+        assert_eq!(metrics.finite_comparison_pairs, 1);
+        assert_eq!(metrics.left_non_finite_observations, 1);
+        assert_eq!(metrics.right_non_finite_observations, 0);
+        assert!(!metrics.has_complete_finite_coverage());
+        assert_eq!(metrics.max_position_error_m, Some(0.0));
+        assert_eq!(metrics.rms_position_error_m, Some(0.0));
+    }
+
+    #[test]
+    fn finite_components_with_overflowing_error_are_rejected() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [f64::MAX, 0.0, 0.0];
+        let mut right = left.clone();
+        right.samples[0].bodies[0].position_m = [-f64::MAX, 0.0, 0.0];
+
+        assert_eq!(
+            compare_traces_3d(&left, &right),
+            Err(TraceComparisonError::NonFiniteComputedMetric {
+                field: "position_error_m",
+            })
+        );
+    }
+
+    #[test]
+    fn large_representable_errors_do_not_overflow_norm_or_rms() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [1.0e200, 0.0, 0.0];
+        let mut second = left.samples[0].bodies[0].clone();
+        second.body_id = ValidationBodyId(2);
+        left.samples[0].bodies.push(second);
+
+        let mut right = left.clone();
+        for body in &mut right.samples[0].bodies {
+            body.position_m = [0.0, 0.0, 0.0];
+        }
+
+        let metrics = compare_traces_3d(&left, &right).unwrap();
+        assert_eq!(metrics.max_position_error_m, Some(1.0e200));
+        assert_eq!(metrics.rms_position_error_m, Some(1.0e200));
+        assert_eq!(metrics.finite_comparison_pairs, 2);
+        assert!(metrics.has_complete_finite_coverage());
+    }
+
+    fn test_acceptance_profile() -> DifferentialAcceptanceProfile3d {
+        DifferentialAcceptanceProfile3d {
+            profile_id: "test-profile-v1".to_owned(),
+            max_position_error_m: Some(0.1),
+            rms_position_error_m: Some(0.1),
+            max_linear_velocity_error_mps: Some(0.1),
+            rms_linear_velocity_error_mps: Some(0.1),
+        }
+    }
+
+    #[test]
+    fn qualification_passes_only_with_selected_thresholds_and_full_coverage() {
+        let trace = one_sample_trace();
+        let report = qualify_traces_3d(&trace, &trace, &test_acceptance_profile()).unwrap();
+
+        assert_eq!(report.decision, QualificationDecision3d::Pass);
+        assert!(report.metrics.as_ref().unwrap().has_complete_finite_coverage());
+    }
+
+    #[test]
+    fn qualification_fails_when_a_measured_metric_exceeds_its_threshold() {
+        let left = one_sample_trace();
+        let mut right = left.clone();
+        right.samples[0].bodies[0].position_m = [2.0, 0.0, 0.0];
+
+        let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
+        assert_eq!(report.decision, QualificationDecision3d::Fail);
+        assert!(report.reasons.iter().any(|reason| reason.contains("max_position_error_m")));
+    }
+
+    #[test]
+    fn qualification_is_inconclusive_when_finite_coverage_is_partial() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
+        let right = one_sample_trace();
+
+        let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
+        assert_eq!(report.decision, QualificationDecision3d::Inconclusive);
+        assert!(
+            !report
+                .metrics
+                .as_ref()
+                .unwrap()
+                .has_complete_finite_coverage()
+        );
+    }
+
+    #[test]
+    fn qualification_reports_structurally_invalid_traces_as_not_comparable() {
+        let mut left = one_sample_trace();
+        left.samples[0].bodies.clear();
+        let right = left.clone();
+
+        let report = qualify_traces_3d(&left, &right, &test_acceptance_profile()).unwrap();
+        assert_eq!(report.decision, QualificationDecision3d::NotComparable);
+        assert!(report.metrics.is_none());
+        assert!(!report.reasons.is_empty());
+    }
+
+    #[test]
+    fn acceptance_profiles_reject_empty_or_invalid_thresholds() {
+        let mut profile = test_acceptance_profile();
+        profile.profile_id = " ".to_owned();
+        assert_eq!(
+            qualify_traces_3d(&one_sample_trace(), &one_sample_trace(), &profile),
+            Err(AcceptanceProfileError::EmptyProfileId)
+        );
+
+        let mut profile = test_acceptance_profile();
+        profile.max_position_error_m = Some(f64::INFINITY);
+        assert_eq!(
+            qualify_traces_3d(&one_sample_trace(), &one_sample_trace(), &profile),
+            Err(AcceptanceProfileError::InvalidTolerance {
+                field: "max_position_error_m",
+            })
+        );
+    }
+
+    #[test]
     fn non_finite_observation_is_explicit_instead_of_poisoning_metrics() {
         let mut left = one_sample_trace();
         left.scenario_id = "nan".to_owned();
-        left.samples[0].step = 1;
-        left.samples[0].time_s = 1.0;
         left.samples[0].bodies[0].position_m = [f64::NAN, 0.0, 0.0];
         let mut right = left.clone();
         right.samples[0].bodies[0].position_m = [0.0, 0.0, 0.0];
@@ -855,7 +1470,11 @@ mod tests {
         let metrics = compare_traces_3d(&left, &right).unwrap();
         assert_eq!(metrics.left_non_finite_observations, 1);
         assert_eq!(metrics.right_non_finite_observations, 0);
-        assert_eq!(metrics.max_position_error_m, 0.0);
-        assert!(metrics.rms_position_error_m.is_finite());
+        assert_eq!(metrics.finite_comparison_pairs, 0);
+        assert!(!metrics.has_complete_finite_coverage());
+        assert_eq!(metrics.max_position_error_m, None);
+        assert_eq!(metrics.rms_position_error_m, None);
+        assert_eq!(metrics.max_linear_velocity_error_mps, None);
+        assert_eq!(metrics.rms_linear_velocity_error_mps, None);
     }
 }
