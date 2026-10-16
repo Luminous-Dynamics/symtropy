@@ -241,7 +241,7 @@ fn market(v: &Value) -> Check<Value> {
     let replay_count = req_u64(replay, "replay_count", at)?;
     let replay_tx = req_text(replay, "transaction_id", at)?;
     let replay_key = req_text(replay, "idempotency_key", at)?;
-    if replay_count < 2 || !sales.iter().any(|s| req_text(s, "transaction_id", at).ok().as_deref() == Some(&replay_tx) && req_text(s, "idempotency_key", at).ok().as_deref() == Some(&replay_key)) {
+    if replay_count < 2 || !sales.iter().any(|s| req_text(s, "transaction_id", at).ok().as_deref() == Some(replay_tx.as_str()) && req_text(s, "idempotency_key", at).ok().as_deref() == Some(replay_key.as_str())) {
         return Err(format!("{at}: replay must match a known sale and repeat at least once"));
     }
     Ok(json!({"scenario_id": at, "status": "pass", "reason_codes": [], "metrics": {
