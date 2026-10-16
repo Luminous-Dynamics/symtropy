@@ -34,7 +34,7 @@ fn make_request(
     let objectives: Vec<_> = (0..objective_count)
         .map(|index| PortfolioObjectiveDefinitionV1 {
             objective_id: format!("objective-{index:02}"),
-            direction: if index % 2 == 0 {
+            direction: if index.is_multiple_of(2) {
                 PortfolioObjectiveDirectionV1::Minimize
             } else {
                 PortfolioObjectiveDirectionV1::Maximize
@@ -48,9 +48,9 @@ fn make_request(
     let candidates: Vec<_> = (0..candidate_count)
         .map(|index| {
             let candidate_id = format!("CANDIDATE-{index:05}");
-            let feasibility = if index % 17 == 0 {
+            let feasibility = if index.is_multiple_of(17) {
                 PortfolioCandidateFeasibilityV1::Unassessed
-            } else if index % 11 == 0 {
+            } else if index.is_multiple_of(11) {
                 PortfolioCandidateFeasibilityV1::Infeasible
             } else {
                 PortfolioCandidateFeasibilityV1::Feasible
