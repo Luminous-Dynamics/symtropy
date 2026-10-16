@@ -410,6 +410,13 @@ fn prepare_option(
                 || receipt.capacity_units == 0
                 || receipt.window.time_profile_id != selection.time_profile_id
                 || receipt.window.planned_start_epoch_seconds >= receipt.window.planned_end_epoch_seconds
+                || receipt.evidence_valid_from_epoch_seconds
+                    > receipt.window.planned_start_epoch_seconds
+                || receipt.window.planned_end_epoch_seconds
+                    > receipt.evidence_valid_until_epoch_seconds
+                || receipt.window.planned_start_epoch_seconds
+                    .saturating_sub(receipt.capacity_observed_at_epoch_seconds)
+                    > report.max_observation_age_seconds
                 || !assignment_ids.insert(receipt.assignment_id.clone())
             {
                 return Err(FifoRobustPortfolioErrorV1::InvalidQualifiedPath {
