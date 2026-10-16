@@ -1103,6 +1103,51 @@ mod tests {
     }
 
     #[test]
+    fn null_interval_is_rejected_instead_of_becoming_zero() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][0]["served_rate"][3] = Value::Null;
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("expected integer"));
+    }
+
+    #[test]
+    fn negative_and_fractional_service_rates_are_rejected() {
+        let mut negative: Value = serde_json::from_slice(FIXTURE).unwrap();
+        negative["synthetic_reference_traces"][0]["served_rate"][3] =
+            Value::Number(serde_json::Number::from(-1));
+        assert!(evaluate_bytes(&serde_json::to_vec(&negative).unwrap(), "test").is_err());
+
+        let mut fractional: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fractional["synthetic_reference_traces"][0]["served_rate"][3] =
+            serde_json::Number::from_f64(79.5).map(Value::Number).unwrap();
+        assert!(evaluate_bytes(&serde_json::to_vec(&fractional).unwrap(), "test").is_err());
+    }
+
+    #[test]
+    fn lower_service_rate_cannot_reduce_integrated_unmet_service() {
+        let baseline: Value = serde_json::from_slice(FIXTURE).unwrap();
+        let baseline_report = evaluate_bytes(FIXTURE, "baseline").unwrap();
+        let baseline_metric = baseline_report.trajectory_metrics.iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+
+        let mut changed_fixture = baseline;
+        changed_fixture["synthetic_reference_traces"][0]["served_rate"] =
+            serde_json::json!([100, 70, 60, 84, 90, 95]);
+        changed_fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(101));
+        changed_fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
+        let changed = serde_json::to_vec(&changed_fixture).unwrap();
+        let changed_report = evaluate_bytes(&changed, "changed").unwrap();
+        let changed_metric = changed_report.trajectory_metrics.iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+
+        assert!(changed_metric.integrated_unmet_service_units >= baseline_metric.integrated_unmet_service_units);
+        assert_eq!(baseline_metric.integrated_unmet_service_units, 100);
+        assert_eq!(changed_metric.integrated_unmet_service_units, 101);
+    }
+
+    #[test]
     fn a_required_unknown_case_cannot_gain_a_quantitative_projection() {
         let raw = String::from_utf8(FIXTURE.to_vec()).unwrap();
         let changed = raw.replacen("\"status\": \"INDETERMINATE\"", "\"status\": \"FEASIBLE\"", 1);
