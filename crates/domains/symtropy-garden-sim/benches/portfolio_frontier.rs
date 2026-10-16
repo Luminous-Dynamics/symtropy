@@ -119,6 +119,15 @@ fn report_fingerprint(request: &PortfolioComparisonRequestV1) -> u64 {
         bytes.extend_from_slice(witness.dominated_by_candidate_id.as_bytes());
         bytes.push(0xfc);
     }
+    for excluded in &report.excluded_candidates {
+        bytes.extend_from_slice(excluded.candidate_id.as_bytes());
+        bytes.push(0xfb);
+        bytes.extend_from_slice(format!("{:?}", excluded.feasibility).as_bytes());
+        for blocker_ref in &excluded.blocker_refs {
+            bytes.extend_from_slice(blocker_ref.as_bytes());
+            bytes.push(0xfa);
+        }
+    }
     // FNV-1a 64-bit is used only to make output changes visible between runs.
     bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |hash, byte| {
         (hash ^ u64::from(*byte)).wrapping_mul(0x0000_0100_0000_01b3)
@@ -133,14 +142,14 @@ fn measure_single(label: &str, request: &PortfolioComparisonRequestV1) {
     let mut fingerprint = 0_u64;
     for _ in 0..30 {
         let start = Instant::now();
-        fingerprint ^= report_fingerprint(request);
+        fingerprint = fingerprint.wrapping_add(report_fingerprint(request));
         samples.push(start.elapsed().as_nanos());
     }
     samples.sort_unstable();
     let p50 = samples[14];
     let p95 = samples[28];
     println!(
-        "workload={label} candidates={} objectives={} repetitions=30 p50_us={} p95_us={} fingerprint_fnv1a64={fingerprint:016x}",
+        "workload={label} candidates={} objectives={} repetitions=30 p50_us={} p95_us={} sum_of_fnv1a64={fingerprint:016x}",
         request.candidates.len(),
         request.objectives.len(),
         p50 / 1_000,
@@ -164,7 +173,7 @@ fn measure_batch(label: &str, requests: &[PortfolioComparisonRequestV1]) {
             .iter()
             .map(report_fingerprint)
             .fold(0_u64, u64::wrapping_add);
-        fingerprint ^= total;
+        fingerprint = fingerprint.wrapping_add(total);
         samples.push(start.elapsed().as_nanos());
     }
     samples.sort_unstable();
@@ -193,7 +202,7 @@ fn main() {
 
     let scenarios: Vec<_> = (0..100)
         .map(|index| {
-            let seed = 24_301_u64.wrapping_add(u64::try_from(index).unwrap_or(0) * 7_919);
+            let seed = 24_301_u64.wrapping_add(u64::try_from(index).expect("100-case benchmark batch index fits u64") * 7_919);
             make_request(
                 100,
                 8,
