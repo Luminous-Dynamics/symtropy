@@ -6,7 +6,9 @@
 //! It validates source and time-boundary constraints only; it does not fetch archives,
 //! certify feature availability, run a historical replay, or fit a model.
 
-use super::{array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, JsonValue};
+use super::{
+    array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, JsonValue,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -297,10 +299,12 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         "archive_candidate.storm_crosswalk_status",
         "NOT_BUILT_OR_VERIFIED",
     )?;
-    let coverage_note =
-        require_nonempty_text(field(archive, "coverage_note", "archive_candidate")?, "archive_candidate.coverage_note")?;
+    let coverage_note = require_nonempty_text(
+        field(archive, "coverage_note", "archive_candidate")?,
+        "archive_candidate.coverage_note",
+    )?;
     if !coverage_note.to_ascii_lowercase().contains("completeness") {
-        return Err("archive_candidate.coverage_note: must preserve the completeness caveat".to_owned());
+        return Err("coverage_note must retain its completeness caveat".to_owned());
     }
 
     let policy = field(&root, "replay_policy", "root")?;
@@ -333,8 +337,9 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
     ] {
         expect_true(field(policy, name, "replay_policy")?, &format!("replay_policy.{name}"))?;
     }
-    if !array(field(policy, "feature_whitelist", "replay_policy")?, "replay_policy.feature_whitelist")?.is_empty() {
-        return Err("replay_policy.feature_whitelist must stay empty until field evidence is reviewed".to_owned());
+    let feature_whitelist = field(policy, "feature_whitelist", "replay_policy")?;
+    if !array(feature_whitelist, "replay_policy.feature_whitelist")?.is_empty() {
+        return Err("feature whitelist must stay empty until field evidence is reviewed".to_owned());
     }
     expect_false(
         field(policy, "exact_lead_time_claim_allowed", "replay_policy")?,
@@ -348,10 +353,12 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         field(policy, "replay_run_allowed", "replay_policy")?,
         "replay_policy.replay_run_allowed",
     )?;
-    let blocked_reason =
-        require_nonempty_text(field(policy, "blocked_reason", "replay_policy")?, "replay_policy.blocked_reason")?;
+    let blocked_reason = require_nonempty_text(
+        field(policy, "blocked_reason", "replay_policy")?,
+        "replay_policy.blocked_reason",
+    )?;
     if !blocked_reason.contains("date-only") && !blocked_reason.contains("date only") {
-        return Err("replay_policy.blocked_reason must state the date-only target-time limitation".to_owned());
+        return Err("blocked_reason must state the date-only target-time limit".to_owned());
     }
 
     require_string_set(
@@ -368,7 +375,12 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
     let lead_targets = field(&root, "future_lead_time_targets", "root")?;
     exact_keys(
         lead_targets,
-        &["status", "candidate_lead_hours", "requires_timestamped_targets", "requires_issue_time_and_valid_time"],
+        &[
+            "status",
+            "candidate_lead_hours",
+            "requires_timestamped_targets",
+            "requires_issue_time_and_valid_time",
+        ],
         "future_lead_time_targets",
     )?;
     expect_text(
@@ -416,16 +428,18 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         model_fit_performed: false,
         operational_authority: false,
         promotion_gate_count: REQUIRED_PROMOTION_GATES.len(),
-        claim_ceiling: "Policy validation only; no replay, forecast score, physical truth, or operational authority.",
+        claim_ceiling: "Policy validation only; no model fit, replay, or operational authority.",
     })
 }
 
 pub fn run_cli(path: &str) -> Result<(), String> {
-    let metadata = fs::metadata(path).map_err(|error| format!("cannot stat as-of replay contract {path}: {error}"))?;
+    let metadata = fs::metadata(path)
+        .map_err(|error| format!("cannot stat as-of replay contract {path}: {error}"))?;
     if metadata.len() > MAX_CONTRACT_BYTES as u64 {
         return Err(format!("as-of replay contract exceeds {MAX_CONTRACT_BYTES} bytes"));
     }
-    let bytes = fs::read(path).map_err(|error| format!("cannot read as-of replay contract {path}: {error}"))?;
+    let bytes = fs::read(path)
+        .map_err(|error| format!("cannot read as-of replay contract {path}: {error}"))?;
     let report = validate_contract(&bytes)?;
     println!(
         "{}",
@@ -478,7 +492,11 @@ mod tests {
         let mut value: Value = serde_json::from_slice(CONTRACT).expect("valid contract JSON");
         value["archive_candidate"]["retrospective_best_track_allowed_as_predictor"] = serde_json::json!(true);
         let changed = serde_json::to_vec(&value).expect("serialize mutated contract");
-        assert!(validate_contract(&changed).unwrap_err().contains("retrospective_best_track_allowed_as_predictor"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("retrospective_best_track_allowed_as_predictor")
+        );
     }
 
     #[test]
