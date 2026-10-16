@@ -52,6 +52,55 @@
       "last_modified_date": null
     },
     {
+      "source_id": "cyport_us_port_tropical_cyclone_resilience",
+      "source_kind": "research_incident_dataset",
+      "publisher": "Chenchen Kuai and collaborators (dataset repository: ChenchenMobility)",
+      "landing_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+      "metadata_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/README.md",
+      "immutable_revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+      "resource_path": "Repository directories: All_time_data/ and Tropical_cyclone_interaction/",
+      "resource_identifier": "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+      "last_modified_utc": null,
+      "last_modified_date": null,
+      "access_level": "public_repository",
+      "license_status": "readme_declares_cc_by_4_0",
+      "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+      "capture_status": "not_captured",
+      "artifact_byte_length": null,
+      "artifact_sha256": null,
+      "captured_at_utc": null,
+      "intended_role": "primary_historical_tropical_cyclone_validation_candidate",
+      "described_content": [
+        "daily vessel counts at principal U.S. ports for 2015 through 2023",
+        "745704 commercial vessel origin-destination trajectories",
+        "1927 port-cyclone interaction records with exposure and port response metadata",
+        "meteorological and tide variables including storm-surge-related measurements",
+        "port characteristics and published resilience/network metrics"
+      ],
+      "known_limitations": [
+        "the overall README declares CC BY 4.0 but each included source component and any third-party material must be checked for separate terms and attribution requirements",
+        "the published scope focuses on U.S. principal ports and tropical cyclones, so it does not establish general validity for strikes, cyber incidents, equipment failures or global ports",
+        "port-cyclone interaction rows are not independent events; group all related ports, windows and derived records by cyclone episode before train/calibration/test splitting",
+        "published resilience metrics may be derived from the same base observations; recompute target metrics independently and do not treat derived columns as independent ground truth",
+        "inspect exact temporal granularity, field definitions, missingness, source lineage, revision policy and event-window selection before use"
+      ],
+      "use_decision": "primary_candidate_after_component_rights_and_schema_review",
+      "required_capture_fields": [
+        "immutable_source_revision",
+        "resource_path",
+        "retrieval_timestamp_utc",
+        "retrieval_method",
+        "exact_resource_byte_length",
+        "exact_resource_sha256",
+        "rights_or_license_evidence",
+        "attribution_text",
+        "component_level_terms_snapshot",
+        "dataset_sheet_and_column_inventory",
+        "temporal_resolution_and_missingness_profile",
+        "raw_vs_derived_field_map"
+      ]
+    },
+    {
       "source_id": "bts_port_throughput_metrics",
       "source_kind": "government_port_performance_dataset",
       "publisher": "U.S. Bureau of Transportation Statistics",
