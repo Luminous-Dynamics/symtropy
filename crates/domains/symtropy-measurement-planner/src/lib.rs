@@ -142,6 +142,11 @@ pub struct MeasurementActionV1 {
     )]
     pub cost_utility_scaled: u64,
     pub probability_basis: ProbabilityBasisV1,
+    /// Opaque stable reference identifying the probability model/version.
+    pub probability_model_ref: Option<String>,
+    /// Opaque source reference to data/calibration review or signed expert elicitation.
+    /// The value is not fetched or authenticated by this crate.
+    pub probability_evidence_ref: Option<String>,
     /// Likelihood P(outcome | world), for every outcome in every world.
     pub likelihoods: Vec<ObservationLikelihoodV1>,
 }
@@ -191,6 +196,8 @@ pub enum MeasurementPlannerBlockerCodeV1 {
     LikelihoodRowNotNormalized,
     IncompleteOutcomeMatrix,
     NoOutcomes,
+    ProbabilityModelReferenceMissing,
+    ProbabilityEvidenceReferenceMissing,
     ArithmeticOverflow,
     NegativeGrossEvsiInvariant,
 }
@@ -227,6 +234,8 @@ pub struct OutcomeDecisionV1 {
 pub struct MeasurementComparisonV1 {
     pub action_id: String,
     pub probability_basis: ProbabilityBasisV1,
+    pub probability_model_ref: Option<String>,
+    pub probability_evidence_ref: Option<String>,
     pub disposition: MeasurementDispositionV1,
     pub baseline_decision_id: String,
     /// Denominator is PROBABILITY_SCALE_PPM.
@@ -618,6 +627,8 @@ fn blocked_comparison(
     MeasurementComparisonV1 {
         action_id: action.action_id.clone(),
         probability_basis: action.probability_basis,
+        probability_model_ref: action.probability_model_ref.clone(),
+        probability_evidence_ref: action.probability_evidence_ref.clone(),
         disposition: MeasurementDispositionV1::Blocked,
         baseline_decision_id: baseline_id.to_owned(),
         baseline_expected_utility_numerator_ppm: baseline_numerator,
@@ -663,6 +674,8 @@ fn compare_measurement(
         return MeasurementComparisonV1 {
             action_id: action.action_id.clone(),
             probability_basis: action.probability_basis,
+            probability_model_ref: action.probability_model_ref.clone(),
+            probability_evidence_ref: action.probability_evidence_ref.clone(),
             disposition: MeasurementDispositionV1::NotEstimable,
             baseline_decision_id: baseline_id.to_owned(),
             baseline_expected_utility_numerator_ppm: baseline_numerator_ppm,
@@ -676,6 +689,50 @@ fn compare_measurement(
                 "expected value is not estimated without a justified probability model",
             )],
         };
+    }
+
+    if matches!(
+        action.probability_basis,
+        ProbabilityBasisV1::CalibratedEmpirical | ProbabilityBasisV1::ReviewedExpertElicitation
+    ) {
+        let mut evidence_blockers = Vec::new();
+        if action
+            .probability_model_ref
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            evidence_blockers.push(blocker(
+                Code::ProbabilityModelReferenceMissing,
+                "a stable probability model/version reference is required",
+            ));
+        }
+        if action
+            .probability_evidence_ref
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            evidence_blockers.push(blocker(
+                Code::ProbabilityEvidenceReferenceMissing,
+                "a calibration or reviewed-elicitation evidence reference is required",
+            ));
+        }
+        if !evidence_blockers.is_empty() {
+            return MeasurementComparisonV1 {
+                action_id: action.action_id.clone(),
+                probability_basis: action.probability_basis,
+                probability_model_ref: action.probability_model_ref.clone(),
+                probability_evidence_ref: action.probability_evidence_ref.clone(),
+                disposition: MeasurementDispositionV1::NotEstimable,
+                baseline_decision_id: baseline_id.to_owned(),
+                baseline_expected_utility_numerator_ppm: baseline_numerator_ppm,
+                expected_utility_after_measurement_numerator_ppm_squared: None,
+                gross_evsi_numerator_ppm_squared: None,
+                measurement_cost_numerator_ppm_squared: None,
+                net_evsi_numerator_ppm_squared: None,
+                outcome_decisions: Vec::new(),
+                blockers: evidence_blockers,
+            };
+        }
     }
 
     let (likelihoods, outcomes) = match validate_likelihoods(scenario, action) {
@@ -897,6 +954,8 @@ fn compare_measurement(
     MeasurementComparisonV1 {
         action_id: action.action_id.clone(),
         probability_basis: action.probability_basis,
+        probability_model_ref: action.probability_model_ref.clone(),
+        probability_evidence_ref: action.probability_evidence_ref.clone(),
         disposition,
         baseline_decision_id: baseline_id.to_owned(),
         baseline_expected_utility_numerator_ppm: baseline_numerator_ppm,
@@ -962,6 +1021,8 @@ mod tests {
             hard_blockers: Vec::new(),
             cost_utility_scaled: cost,
             probability_basis: basis,
+            probability_model_ref: Some("fixture:model:two-weather-worlds".to_owned()),
+            probability_evidence_ref: Some("fixture:evidence:synthetic-likelihoods".to_owned()),
             likelihoods: vec![
                 ObservationLikelihoodV1 {
                     world_id: "dry".to_owned(),
@@ -1035,7 +1096,7 @@ mod tests {
                 },
             ],
             measurements: vec![perfect_measurement(
-                ProbabilityBasisV1::CalibratedEmpirical,
+                ProbabilityBasisV1::SyntheticFixture,
                 10,
             )],
         }
@@ -1054,7 +1115,7 @@ mod tests {
             comparison.expected_utility_after_measurement_numerator_ppm_squared,
             Some(100_000_000_000_000)
         );
-        assert_eq!(comparison.disposition, MeasurementDispositionV1::PositiveNetValue);
+        assert_eq!(comparison.disposition, MeasurementDispositionV1::SyntheticFixtureOnly);
         assert_eq!(comparison.outcome_decisions.len(), 2);
     }
 
@@ -1073,7 +1134,7 @@ mod tests {
         let comparison = &report.measurement_comparisons[0];
         assert_eq!(comparison.gross_evsi_numerator_ppm_squared, Some(0));
         assert_eq!(comparison.net_evsi_numerator_ppm_squared, Some(0));
-        assert_eq!(comparison.disposition, MeasurementDispositionV1::NonPositiveNetValue);
+        assert_eq!(comparison.disposition, MeasurementDispositionV1::SyntheticFixtureOnly);
     }
 
     #[test]
@@ -1146,6 +1207,34 @@ mod tests {
         let errors = evaluate_value_of_information(&scenario).expect_err("duplicate IDs are invalid");
         assert!(errors.iter().any(|item| item.code == MeasurementPlannerBlockerCodeV1::DuplicateWorldId));
         assert!(errors.iter().any(|item| item.code == MeasurementPlannerBlockerCodeV1::DuplicateDecisionId));
+    }
+
+
+    #[test]
+    fn evidence_backed_probability_basis_requires_model_and_evidence_refs() {
+        let mut scenario = base_scenario();
+        let action = &mut scenario.measurements[0];
+        action.probability_basis = ProbabilityBasisV1::CalibratedEmpirical;
+        action.probability_model_ref = None;
+        action.probability_evidence_ref = None;
+
+        let report = evaluate_value_of_information(&scenario).expect("scenario is structurally valid");
+        let comparison = &report.measurement_comparisons[0];
+        assert_eq!(comparison.disposition, MeasurementDispositionV1::NotEstimable);
+        assert_eq!(comparison.gross_evsi_numerator_ppm_squared, None);
+        assert!(comparison.blockers.iter().any(|item| item.code == MeasurementPlannerBlockerCodeV1::ProbabilityModelReferenceMissing));
+        assert!(comparison.blockers.iter().any(|item| item.code == MeasurementPlannerBlockerCodeV1::ProbabilityEvidenceReferenceMissing));
+
+        // These are dummy references in a synthetic unit test only. The calculator
+        // checks presence, not authenticity or adequacy of calibration evidence.
+        scenario.measurements[0].probability_model_ref = Some("fixture:model:v1".to_owned());
+        scenario.measurements[0].probability_evidence_ref = Some("fixture:calibration-review:v1".to_owned());
+        let report = evaluate_value_of_information(&scenario).expect("scenario remains valid");
+        assert_eq!(report.measurement_comparisons[0].disposition, MeasurementDispositionV1::PositiveNetValue);
+        assert_eq!(
+            report.measurement_comparisons[0].probability_evidence_ref.as_deref(),
+            Some("fixture:calibration-review:v1")
+        );
     }
 
     #[test]
