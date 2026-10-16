@@ -90,6 +90,100 @@ fn bvh_never_omits_exact_triangle_aabb_overlaps() {
     assert!(query_count > 100);
 }
 
+fn deterministic_coord(state: &mut u64) -> f64 {
+    // Fixed LCG: stable across platforms and independent of external crates.
+    *state = state
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1_442_695_040_888_963_407);
+    let value = ((*state >> 32) % 2_001) as i64 - 1_000;
+    value as f64 / 10.0
+}
+
+#[test]
+fn seeded_nonuniform_and_degenerate_mesh_matches_bruteforce_overlap_oracle() {
+    let mut state = 0x534D_5452_4F50_5955u64;
+    let triangle_count = 512usize;
+    let mut triangles = Vec::with_capacity(triangle_count);
+
+    for index in 0..triangle_count {
+        let a = SVector::<f64, 3>::from([
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+        ]);
+        let b = SVector::<f64, 3>::from([
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+        ]);
+        let mut c = SVector::<f64, 3>::from([
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+        ]);
+
+        // Preserve deterministic negative controls: explicit zero-area
+        // triangles and elongated triangles mixed into a nonuniform cloud.
+        if index % 11 == 0 {
+            c = a;
+        } else if index % 13 == 0 {
+            c[0] = a[0] + 100.0;
+        }
+
+        triangles.push(Triangle { vertices: [a, b, c] });
+    }
+    let mesh = TriangleMesh::new(triangles);
+
+    const EXTENTS: [f64; 5] = [0.0, 0.001, 0.1, 3.0, 25.0];
+    let query_count = 256usize;
+
+    for query_index in 0..query_count {
+        let center = SVector::<f64, 3>::from([
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+            deterministic_coord(&mut state),
+        ]);
+        let half_extent = EXTENTS[query_index % EXTENTS.len()];
+        let query = Aabb {
+            min: SVector::<f64, 3>::from([
+                center[0] - half_extent,
+                center[1] - half_extent,
+                center[2] - half_extent,
+            ]),
+            max: SVector::<f64, 3>::from([
+                center[0] + half_extent,
+                center[1] + half_extent,
+                center[2] + half_extent,
+            ]),
+        };
+
+        let candidates = mesh.query_overlap(&query);
+        let candidate_set: std::collections::HashSet<usize> =
+            candidates.iter().copied().collect();
+
+        assert_eq!(
+            candidates.len(),
+            candidate_set.len(),
+            "duplicate candidate index for seeded query {query_index}"
+        );
+        assert!(
+            candidates.iter().all(|&index| index < mesh.triangles.len()),
+            "out-of-range triangle index for seeded query {query_index}"
+        );
+
+        // Independent O(N) oracle; the BVH is not used to derive expected
+        // candidates. False positives are allowed, false negatives are not.
+        for (triangle_index, triangle) in mesh.triangles.iter().enumerate() {
+            if overlaps(&exact_vertex_aabb(triangle), &query) {
+                assert!(
+                    candidate_set.contains(&triangle_index),
+                    "seeded oracle false negative: query {query_index}, triangle {triangle_index}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn empty_spatial_query_returns_no_candidates() {
     let mesh = grid_mesh(2, 2);
