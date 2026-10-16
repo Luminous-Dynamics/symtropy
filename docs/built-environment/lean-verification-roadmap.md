@@ -28,7 +28,7 @@ The package under formalization/lean defines five closed-form equations:
 - Simply supported midpoint-load deflection, delta = F L^3 / (48 E I).
 - Simply supported uniform-load deflection, delta = 5 q L^4 / (384 E I).
 
-The catalogue at formalization/lean/contracts.json maps five contract IDs to twenty-eight theorem names and records assumptions, SI unit expectations, and explicit NOT_ESTABLISHED status for Rust linkage and benchmark linkage. Lean functions currently use real numbers, not a dimension-typed unit system. These are seed contracts, not complete engineering semantics.
+The catalogue at formalization/lean/contracts.json maps five contract IDs to 33 unique contract-linked theorem names, seven SI-unit vector theorem anchors, and one negative-control theorem. Alongside positivity, scaling and six exact-rational known answers, it records eight dimensional-homogeneity identities and five dimensionless groups. The seven-base exponent layer proves dimension equations, but the numerical functions still accept untyped real numbers; Rust linkage and benchmark ingestion remain explicitly unestablished.
 
 ## Program of work
 
@@ -46,12 +46,21 @@ The catalogue at formalization/lean/contracts.json maps five contract IDs to twe
 - Add counterexamples showing which preconditions matter; invalid physical inputs must produce an explicit rejection/block, not a plausible number.
 
 ### F1.5 — Dimensional homogeneity
-- Check all supported closed-form equations against seven SI base dimensions represented as integer exponent vectors.
+- Check all supported closed-form equations against seven SI base dimensions represented as integer exponent vectors; require every declared unit label to resolve to a canonical vector and theorem anchor.
 - Keep a published negative-control corpus; for example, removing the cantilever's cubic length term must be rejected as dimensionally inconsistent.
 - Extend to thermal, fluid, energy and dynamics formulas only through explicit base-dimension definitions and reviewed unit mappings.
 
+### F1.75 — Dimensionless invariants and scale similarity
+- Use the five declared Pi-like groups (section shape factor, axial strain, and three normalized beam deflections) as cross-scale metamorphic contracts.
+- The companion Rust reference tests on PR #1653 exercise five scale factors [0.5, 0.75, 1.25, 2, 4] for axial bars, cantilevers, and both simply-supported load families. These are authored tests; they are not counted as passed until CI reports the exact head successful.
+- Under the explicitly stated geometric-similarity transform, require normalized deflection/strain and stress invariance; point force scales as s^2, distributed load intensity as s, area as s^2, second moment of area as s^4, bending moment as s^3, and reaction as s^2.
+- Do not transfer these idealized linear-model similarities to nonlinear, buckling, thermal, fire, fatigue, material-scale, or other physics without additional assumptions and independent validation.
+
 ### F2 — Rust refinement/conformance
 - Add exact mappings from each formal definition to an existing or newly written Rust implementation; do not invent a link when no matching implementation exists.
+- Start with a small pure Rust formula kernel separated from JSON parsing and evidence-verifier I/O. Keep its inputs, outputs, domain checks, and error branches explicit.
+- Run a pinned Rust-to-Lean extraction compatibility spike. [Aeneas/Charon](https://github.com/AeneasVerif/aeneas) currently documents Lean 4.35.0, matching this project's pin; check whether its supported subset faithfully covers the kernel's f64 operations before relying on it. [Hax](https://github.com/cryspen/hax) documents a Lean backend with float support but currently pins a different Lean version, so evaluate it in a separately pinned package rather than mixing toolchains.
+- The [May 2026 Rust-to-Lean pipeline experience report](https://arxiv.org/abs/2605.30106) documents practical extraction gaps and recommends extracting a small semantically equivalent kernel when production dependencies/generics are unsupported. Use that route only with reviewed equivalence evidence; never silently replace production code with an easier but behaviorally different model.
 - Generate known-answer test vectors from the catalogue and test the actual Rust functions.
 - Add differential, metamorphic, property-based and mutation tests for each contract.
 - Require exact mapping from formal arguments to Rust fields and units; missing or unknown quantities block conformance.
@@ -78,6 +87,8 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 | Contract coverage | 100% of declared theorem claims are mapped to one stable contract ID; zero duplicate theorem IDs | contract catalogue and CI mapping check |
 | Rust conformance | 100% of approved known-answer cases pass and all seeded mutations are rejected or blocked | per-case results and exact Rust head |
 | Property checks | all declared linear/cubic/quartic scaling metamorphisms pass over generated valid-domain inputs | reproducible seeds, counts and tolerances |
+| Dimensionless similarity | 100% of declared valid scale-transform cases preserve the relevant Pi-like groups at s = 0.5, 0.75, 1.25, 2 and 4; seeded dimensional mutants are rejected | per-family exact inputs, output ratios, tolerances and mutation controls |
+| Rust extraction/refinement | 100% of pure-kernel functions are extracted without stubbed behavior; every proof has no `sorry` and is checked against the pinned Lean kernel | exact Rust head, extractor/toolchain hashes, generated Lean source digest, refinement theorem and axiom audit |
 | Dimensional validity | zero unit-inconsistent contract bindings in the supported subset; every declared unit has a seven-base exponent vector | dimensional-homogeneity theorems, manifest mapping and CI consistency gate |
 | Numeric honesty | every real-arithmetic contract used by floating-point code has an explicit error budget or stays labelled MATHEMATICAL_ONLY | error budget + conditioning analysis |
 | Solver credibility | residual, equilibrium, refinement, solver-specific tolerances and uncertainty declared per benchmark | solver-specific report; no universal tolerance |
@@ -92,6 +103,9 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 - [LeanDimensionalAnalysis](https://github.com/ATOMSLab/LeanDimensionalAnalysis) and its [2025 paper](https://arxiv.org/abs/2509.13142): prior formal work on seven SI base dimensions and dimensional homogeneity; the upstream repository pins an older Lean release and is a research reference until compatibility is established.
 - [Rust dimensioned](https://docs.rs/dimensioned/latest/dimensioned/): candidate compile-time unit system to evaluate for the Rust implementation.
 - [Lean documentation](https://lean-lang.org/lean4/doc/): language and proof-development reference.
+- [Aeneas/Charon](https://github.com/AeneasVerif/aeneas): safe Rust-to-Lean extraction path; current Lean backend pin matches Lean 4.35.0, but supported `f64` semantics must be checked before using it for the numerical kernel.
+- [Hax](https://github.com/cryspen/hax): alternative Rust-to-Lean/F*/Rocq extraction tool. Its changelog records Lean float support, but the current Hax Lean library pins 4.31.0, so toolchain alignment is an explicit open dependency task.
+- [Rust-to-Lean verification pipeline experience report (May 2026)](https://arxiv.org/abs/2605.30106): demonstrates kernel-checked refinement for selected production Rust and documents current extraction limitations.
 - [FloatLib](https://github.com/lean-dojo/FloatLib): first candidate to evaluate for proved executable floating-point semantics and error bounds; version compatibility alone is not evidence of compatibility with Rust or of a verified Symtropy implementation.
 - [FloatSpec](https://reservoir.lean-lang.org/%40Beneficial-AI-Foundation/FloatSpec): alternative formal floating-point project; inspect outstanding proof placeholders before reuse.
 
