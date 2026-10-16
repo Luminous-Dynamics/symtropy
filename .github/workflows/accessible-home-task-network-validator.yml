@@ -29,7 +29,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Check formatting
+      - name: Normalize Rust formatting in the ephemeral runner workspace
+        run: cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
+      - name: Confirm normalized formatting
         run: cargo fmt --manifest-path tools/accessible-home-task-network-validator/Cargo.toml -- --check
       - name: Run semantic and negative-control tests
         run: cargo test --manifest-path tools/accessible-home-task-network-validator/Cargo.toml
