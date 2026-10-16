@@ -13,6 +13,7 @@ mod cyport_interaction_profile;
 mod cyport_benchmark_tasks;
 mod cyport_feature_availability;
 mod cyport_asof_forecast_replay;
+mod cyport_asof_feature_receipt;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -721,6 +722,20 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--validate-cyport-asof-feature-receipt") {
+        let receipt_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-cyport-asof-feature-receipt <receipt-json-path> <artifact-root>"
+                .to_owned()
+        })?;
+        let artifact_root = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-cyport-asof-feature-receipt <receipt-json-path> <artifact-root>"
+                .to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for CyPort as-of feature receipt validation".to_owned());
+        }
+        return cyport_asof_feature_receipt::run_cli(&receipt_path, &artifact_root);
+    }
     if first_arg.as_deref() == Some("--validate-cyport-asof-replay-contract") {
         let contract_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-cyport-asof-replay-contract <contract-json-path>"
