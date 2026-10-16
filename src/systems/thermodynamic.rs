@@ -309,6 +309,60 @@ mod tests {
     }
 
     #[test]
+    fn deterministic_seeded_transfers_preserve_well_plus_reservoir_energy() {
+        // 100 seeds × 1,000 independently generated source/recipient states.
+        // Integer arithmetic generates repeatable f64 test values without a new dependency.
+        for seed in 0_u64..100 {
+            let mut state = seed + 1;
+            for _case in 0..1_000 {
+                let mut sample = || {
+                    state = state
+                        .wrapping_mul(6_364_136_223_846_793_005)
+                        .wrapping_add(1_442_695_040_888_963_407);
+                    ((state >> 11) as f64) / ((1_u64 << 53) as f64)
+                };
+
+                let well_capacity = 1.0 + sample() * 99.0;
+                let well_remaining = sample() * well_capacity;
+                let regen_rate = 0.01 + sample() * 20.0;
+                let reservoir_capacity = 1.0 + sample() * 99.0;
+                let reservoir_available = sample() * reservoir_capacity;
+
+                let mut well = EnergyWell::new(regen_rate, 10.0, well_capacity);
+                well.remaining = well_remaining;
+                let mut reservoir = TestReservoir::new(reservoir_capacity);
+                reservoir.available = reservoir_available;
+
+                let before = well.remaining + reservoir.available;
+                let expected = regen_rate
+                    .min(well_remaining)
+                    .min((reservoir_capacity - reservoir_available).max(0.0));
+                let accepted = transfer_well_energy(&mut well, &mut reservoir);
+                let after = well.remaining + reservoir.available;
+                let tolerance = 1e-10 * before.max(1.0);
+
+                assert!(
+                    (accepted - expected).abs() <= tolerance,
+                    "seed={seed} expected={expected} accepted={accepted}"
+                );
+                assert!(
+                    (before - after).abs() <= tolerance,
+                    "seed={seed} source/recipient energy changed: before={before}, after={after}"
+                );
+                assert!(
+                    (reservoir.regenerated_this_tick - accepted).abs() <= tolerance,
+                    "seed={seed} telemetry={} accepted={accepted}",
+                    reservoir.regenerated_this_tick
+                );
+                assert!(
+                    (well_remaining - well.remaining - accepted).abs() <= tolerance,
+                    "seed={seed} well debit does not match accepted amount"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn invalid_reservoir_state_does_not_debit_well() {
         let mut well = EnergyWell::new(10.0, 10.0, 100.0);
         let mut reservoir = TestReservoir::new(100.0);
