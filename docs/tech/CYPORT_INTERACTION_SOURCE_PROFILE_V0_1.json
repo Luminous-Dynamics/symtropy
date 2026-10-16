@@ -67,14 +67,17 @@
         "zero_total_impact_with_all_three_recovery_fields_present": 4,
         "nonzero_total_impact_with_all_three_recovery_fields_present": 273,
         "mixed_sentinel_triplets": 0,
-        "interpretation": "The four zero-valued total_impact rows with recovery timestamps also have nonzero total_impact_value, max_impact, and day_of_recover. Since total_impact is rounded, zero cannot safely be equated with no detected disruption. Treat the three recovery fields as one coherent marker triplet, and validate exact semantics against the source construction method."
+        "interpretation": "The four zero-valued total_impact rows with recovery timestamps also have nonzero total_impact_value, max_impact, and day_of_recover. Since total_impact is rounded, zero cannot safely be equated with no detected disruption. Treat the three recovery fields as one coherent marker triplet, and validate exact semantics against the source construction method.",
+        "nonzero_impact_without_recovery_markers": 0,
+        "definition_of_contradiction": "Rows with nonzero rounded total_impact but all three recovery markers sentinel-coded are counted separately from partial/mixed marker triplets. The pinned table has none; if found in future versions, do not label them as mixed markers or silently discard them."
       },
       "reported_marker_state": {
         "no_impact_window_recorded_rows": 1650,
         "impact_window_recovery_markers_present_rows": 277,
         "mixed_triplet_rows": 0,
         "definition": "Presence-based source-derived state only: all three recovery fields are either sentinel-coded or present. The source paper links absent impact windows to normal traffic; this registry does not claim independent physical ground truth.",
-        "modeling_implication": "Treat impact-window detection and rounded impact magnitude as separate targets. A four-row class has total_impact rounded to zero but recovery markers present and other impact proxies nonzero."
+        "modeling_implication": "Treat impact-window detection and rounded impact magnitude as separate targets. A four-row class has total_impact rounded to zero but recovery markers present and other impact proxies nonzero.",
+        "nonzero_impact_without_recovery_markers_rows": 0
       }
     },
     "temporal_coverage_by_start_year": {
@@ -127,7 +130,33 @@
       "test_zero_rounded_total_impact_rows": 123,
       "test_impact_window_markers_present_rows": 26,
       "test_no_impact_window_recorded_rows": 122,
-      "warning": "These counts describe the frozen public-data split. The test partition is not a secret blind holdout, and any performance result needs storm-clustered uncertainty."
+      "warning": "These counts describe the frozen public-data split. The test partition is not a secret blind holdout, and any performance result needs storm-clustered uncertainty.",
+      "split_outcome_counts": {
+        "train": {
+          "zero_impact": 1266,
+          "nonzero_impact": 205,
+          "no_impact_window_recorded": 1263,
+          "markers_present": 208,
+          "mixed_markers": 0,
+          "nonzero_impact_without_markers": 0
+        },
+        "calibration": {
+          "zero_impact": 265,
+          "nonzero_impact": 43,
+          "no_impact_window_recorded": 265,
+          "markers_present": 43,
+          "mixed_markers": 0,
+          "nonzero_impact_without_markers": 0
+        },
+        "test": {
+          "zero_impact": 123,
+          "nonzero_impact": 25,
+          "no_impact_window_recorded": 122,
+          "markers_present": 26,
+          "mixed_markers": 0,
+          "nonzero_impact_without_markers": 0
+        }
+      }
     }
   },
   "header_fields": [
