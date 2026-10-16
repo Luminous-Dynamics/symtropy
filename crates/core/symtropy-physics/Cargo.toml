@@ -36,3 +36,7 @@ path = "src/bin/replay_cli.rs"
 [[bench]]
 name = "physics_bench"
 harness = false
+
+[[bench]]
+name = "spatial_grid_bench"
+harness = false
