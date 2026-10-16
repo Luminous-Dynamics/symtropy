@@ -1265,6 +1265,73 @@ mod tests {
         assert_eq!(report.infeasible_policies_found, 1);
     }
 
+
+    #[test]
+    fn no_feasible_adaptive_policy_fails_closed_with_a_capacity_witness() {
+        let p = problem(vec![
+            scenario("nominal", FifoPathScenarioKindV1::Nominal, "known"),
+        ]);
+        let d1 = demand("d1", vec![
+            alternative("only-1", vec![route_option("d1", "only-1", "nominal", 100, "one-resource")]),
+        ]);
+        let d2 = demand("d2", vec![
+            alternative("only-2", vec![route_option("d2", "only-2", "nominal", 110, "one-resource")]),
+        ]);
+        let error = select_adaptive_robust_transport_policy(&p, &[d1, d2], 1).unwrap_err();
+        assert!(matches!(
+            &error,
+            FifoAdaptivePolicyErrorV1::NoFeasiblePolicy {
+                policies_checked: 1,
+                capacity_conflicts: 1,
+                ..
+            }
+        ));
+        let FifoAdaptivePolicyErrorV1::NoFeasiblePolicy { rejection_examples, .. } = error else {
+            unreachable!()
+        };
+        assert_eq!(rejection_examples.len(), 1);
+        assert!(matches!(
+            &rejection_examples[0].reason,
+            FifoAdaptivePolicyRejectionV1::ConcurrentCapacityExceeded { .. }
+        ));
+    }
+
+    #[test]
+    fn input_order_does_not_change_the_adaptive_policy_report() {
+        let mut p1 = problem(vec![
+            scenario("nominal", FifoPathScenarioKindV1::Nominal, "pre-alert"),
+            scenario("closure", FifoPathScenarioKindV1::Stress, "post-alert"),
+        ]);
+        let d1 = demand("d1", vec![
+            alternative("A", vec![route_option("d1", "A", "nominal", 100, "resource-A")]),
+            alternative("B", vec![
+                route_option("d1", "B", "nominal", 130, "resource-B"),
+                route_option("d1", "B", "closure", 150, "resource-B"),
+            ]),
+            alternative("C", vec![route_option("d1", "C", "closure", 120, "resource-C")]),
+        ]);
+        let d2 = demand("d2", vec![
+            alternative("D", vec![
+                route_option("d2", "D", "nominal", 90, "resource-D"),
+                route_option("d2", "D", "closure", 170, "resource-D"),
+            ]),
+            alternative("E", vec![
+                route_option("d2", "E", "nominal", 110, "resource-E"),
+                route_option("d2", "E", "closure", 125, "resource-E"),
+            ]),
+        ]);
+        let first = select_adaptive_robust_transport_policy(&p1, &[d1.clone(), d2.clone()], 64).unwrap();
+
+        p1.scenarios.reverse();
+        let mut reversed_d1 = d1;
+        let mut reversed_d2 = d2;
+        for alternative in reversed_d1.alternatives.iter_mut().chain(reversed_d2.alternatives.iter_mut()) {
+            alternative.scenario_options.reverse();
+        }
+        let second = select_adaptive_robust_transport_policy(&p1, &[reversed_d2, reversed_d1], 64).unwrap();
+        assert_eq!(first, second);
+    }
+
     #[test]
     fn over_budget_adaptive_search_fails_explicitly() {
         let p = problem(vec![
