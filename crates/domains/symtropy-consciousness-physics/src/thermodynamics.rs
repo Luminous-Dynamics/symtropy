@@ -173,6 +173,8 @@ pub struct ThermodynamicLedger {
     pub lifetime_energy: f64,
     /// Cumulative absolute local flow residual; infinity after any invalid tick.
     pub lifetime_error: f64,
+    /// Cumulative normalization scale across valid ticks; includes every flow category.
+    pub lifetime_flow_scale: f64,
     /// Number of ticks processed.
     pub tick_count: u64,
     /// Number of rejected or invalid flow updates in the current tick.
@@ -192,6 +194,7 @@ impl ThermodynamicLedger {
             phi_change_total: 0.0,
             lifetime_energy: 0.0,
             lifetime_error: 0.0,
+            lifetime_flow_scale: 0.0,
             tick_count: 0,
             invalid_flow_count: 0,
             lifetime_invalid_flow_count: 0,
@@ -360,8 +363,14 @@ impl ThermodynamicLedger {
         self.lifetime_energy += self.energy_in;
         if inputs_valid {
             self.lifetime_error += error;
+            self.lifetime_flow_scale += raw_scale;
+            if !self.lifetime_error.is_finite() || !self.lifetime_flow_scale.is_finite() {
+                self.lifetime_error = f64::INFINITY;
+                self.lifetime_flow_scale = f64::INFINITY;
+            }
         } else {
             self.lifetime_error = f64::INFINITY;
+            self.lifetime_flow_scale = f64::INFINITY;
         }
         self.lifetime_invalid_flow_count = self
             .lifetime_invalid_flow_count
@@ -420,13 +429,15 @@ impl ThermodynamicLedger {
         if self.lifetime_invalid_flow_count > 0
             || !self.lifetime_energy.is_finite()
             || !self.lifetime_error.is_finite()
+            || !self.lifetime_flow_scale.is_finite()
+            || self.lifetime_flow_scale < 0.0
         {
             return f64::INFINITY;
         }
-        if self.lifetime_energy < 1e-15 {
+        if self.lifetime_flow_scale < 1e-15 {
             return 0.0;
         }
-        self.lifetime_error / self.lifetime_energy
+        self.lifetime_error / self.lifetime_flow_scale
     }
 }
 
@@ -691,6 +702,17 @@ mod tests {
         assert_eq!(result.invalid_flow_count, 0);
         assert_eq!(result.balance, 0.0);
         assert_eq!(result.conservation_error, 0.0);
+    }
+
+    #[test]
+    fn lifetime_error_rate_includes_flows_without_action_cost() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_regeneration(2.0);
+        ledger.record_external_sink(1.0);
+        ledger.tick_balance();
+
+        // The local residual is 1J over a 2J gross-flow scale, even without action cost.
+        assert!((ledger.lifetime_error_rate() - 0.5).abs() < 1e-12);
     }
 
     #[test]
