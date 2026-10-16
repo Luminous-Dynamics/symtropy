@@ -1176,6 +1176,24 @@ mod tests {
         assert_eq!(report.static_baseline_worst_case_individual_elapsed_seconds, Some(150));
         assert_eq!(report.adaptive_gain_in_worst_case_individual_seconds, Some(30));
         assert_eq!(report.policies_checked, 4);
+
+        // Separate finite reference table for all four information-set policies.
+        // Rows: (pre-alert route, post-alert route, worst elapsed, nominal elapsed).
+        let reference = [
+            (("A", "B"), 150_u64, 100_u64),
+            (("A", "C"), 120_u64, 100_u64),
+            (("B", "B"), 150_u64, 130_u64),
+            (("B", "C"), 130_u64, 130_u64),
+        ];
+        let expected = reference.iter()
+            .min_by(|a, b| (a.1, a.1, a.2, a.0).cmp(&(b.1, b.1, b.2, b.0)))
+            .expect("the policy table has alternatives");
+        assert_eq!(
+            (chosen[&("d1", "nominal-observed")], chosen[&("d1", "closure-observed")]),
+            expected.0
+        );
+        assert_eq!(report.worst_case_individual_elapsed_seconds, expected.1);
+        assert_eq!(report.nominal_weighted_elapsed_score, expected.2);
     }
 
     #[test]
