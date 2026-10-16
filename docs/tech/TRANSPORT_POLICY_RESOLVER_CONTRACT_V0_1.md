@@ -42,16 +42,17 @@ The rule book constructor rejects duplicate version IDs, malformed effective int
 
 The initial Rust unit tests cover:
 
-1. publication-time and evidence-ingestion lookahead;
-2. inclusive start / exclusive end boundaries distinct from publication;
-3. Panamax versus Neopanamax scope isolation;
-4. overlapping rule versions without explicit supersession;
-5. unqualified source evidence;
-6. scope filtering before supersession;
-7. required source hash and clause locator;
-8. unknown supersession references;
-9. supersession cycles;
-10. order-independent resolution.
+1. publication-time lookahead;
+2. evidence-corpus ingestion later than publication;
+3. inclusive start / exclusive end boundaries distinct from publication;
+4. Panamax versus Neopanamax scope isolation;
+5. overlapping rule versions without explicit supersession;
+6. unqualified source evidence;
+7. scope filtering before supersession;
+8. required source hash and clause locator;
+9. unknown supersession references;
+10. supersession cycles;
+11. order-independent resolution.
 
 These tests exercise the resolver in isolation. They do **not yet parse or execute** the 19 synthetic cases in the existing CSV. That integration requires adding source-corpus ingestion time, evidence qualification, and exact clause provenance to the fixture contract, then mapping each case's expected clause result to a reviewed rule predicate. Do not mark the CSV corpus "executable" until those links exist and the fixtures are manually checked against admitted source artifacts.
 
