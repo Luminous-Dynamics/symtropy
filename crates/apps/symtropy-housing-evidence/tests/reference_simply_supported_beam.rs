@@ -12,7 +12,6 @@ const CASE: &str = include_str!(
 
 #[derive(Debug, Clone, Copy)]
 struct BeamResult {
-    inertia_m4: f64,
     deflection_m: f64,
     maximum_moment_nm: f64,
     maximum_stress_pa: f64,
@@ -105,7 +104,6 @@ fn evaluate_reference(case: &Value, load_case: &Value) -> Result<BeamResult, Str
     }
 
     Ok(BeamResult {
-        inertia_m4: inertia,
         deflection_m: deflection,
         maximum_moment_nm: maximum_moment,
         maximum_stress_pa: stress,
