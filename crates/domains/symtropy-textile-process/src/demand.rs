@@ -752,4 +752,16 @@ mod tests {
         assert!(forecast.planned_new_production_units >= 9);
     }
 
+
+    #[test]
+    fn report_preserves_all_inputs_and_evidence_references_for_replay() {
+        let input = scenario("audit-couture");
+        let report = evaluate_demand_corpus(&corpus(vec![input.clone()])).unwrap();
+        assert_eq!(report.scenario_results[0].scenario, input);
+        assert_eq!(
+            report.scenario_results[0].policy_outcomes.len(),
+            PRODUCTION_POLICIES.len()
+        );
+    }
+
 }
