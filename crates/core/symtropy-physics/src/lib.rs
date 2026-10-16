@@ -30,6 +30,7 @@ pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
+pub mod tick_transaction;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
@@ -42,4 +43,5 @@ pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use tick_transaction::{TickId, TickPhase, TickReceipt, TickTransaction, TransitionError};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
