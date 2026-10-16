@@ -162,6 +162,9 @@ struct Measurement {
     p99_query_us: f64,
     mean_candidates: f64,
     checksum: usize,
+    /// Canonical (sorted) exact candidate indices for every query, collected
+    /// outside timed regions and compared across build strategies.
+    canonical_candidates: Vec<Vec<usize>>,
 }
 
 fn measure_strategy(
@@ -181,6 +184,18 @@ fn measure_strategy(
     for query in queries.iter().take(QUERY_BATCH_SIZE) {
         black_box(mesh.query_overlap(black_box(query)));
     }
+
+    // Correctness evidence is deliberately outside the timing loop. Aggregate
+    // counts and sum-based checksums can collide; compare canonical exact index
+    // sets per query before publishing any median-vs-SAH timing rows.
+    let canonical_candidates: Vec<Vec<usize>> = queries
+        .iter()
+        .map(|query| {
+            let mut candidates = mesh.query_overlap(black_box(query));
+            candidates.sort_unstable();
+            candidates
+        })
+        .collect();
 
     let mut batch_mean_query_us =
         Vec::with_capacity(QUERY_REPEATS * (QUERY_COUNT / QUERY_BATCH_SIZE));
@@ -232,6 +247,7 @@ fn measure_strategy(
         mean_candidates: expected_candidates.expect("at least one repeat") as f64
             / QUERY_COUNT as f64,
         checksum: expected_checksum.expect("at least one repeat"),
+        canonical_candidates,
     }
 }
 
@@ -285,6 +301,12 @@ fn run_pair(layout: Layout, requested_triangles: usize, reverse_order: bool) {
     assert_eq!(
         first.checksum, second.checksum,
         "strategies disagree on query checksum for {} / {requested_triangles}",
+        layout.label()
+    );
+    assert_eq!(
+        first.canonical_candidates,
+        second.canonical_candidates,
+        "exact per-query candidate sets differ between strategies for {} / {requested_triangles}",
         layout.label()
     );
 
