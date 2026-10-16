@@ -1542,7 +1542,6 @@ mod tests {
     fn nonzero_impact_without_recovery_markers_is_not_mislabeled_mixed() {
         let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
         let target = text.lines().nth(2).unwrap();
-        let changed_line = target.replacen(",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,", ",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,", 1);
         let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
         let fields: Vec<&str> = target.split(',').collect();
         let mut owned: Vec<String> = fields.iter().map(|x| x.to_string()).collect();
