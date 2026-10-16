@@ -9,7 +9,7 @@
     {
       "source_id": "port_disruption_database",
       "source_kind": "research_incident_dataset",
-      "publisher": "Jasper Verschuur and collaborators",
+      "publisher": "Jasper Verschuur (repository owner; dataset authorship requires review)",
       "landing_uri": "https://github.com/jasperverschuur/Port_Disruption_database",
       "metadata_uri": "https://github.com/jasperverschuur/Port_Disruption_database/blob/29cfb82b68bce25bc93df44a240913a6c3420ef1/README.md",
       "immutable_revision": "29cfb82b68bce25bc93df44a240913a6c3420ef1",
@@ -59,7 +59,7 @@
       "immutable_revision": null,
       "resource_path": "Socrata dataset view 8sfc-juwb",
       "resource_identifier": "https://data.transportation.gov/api/views/8sfc-juwb",
-      "last_modified_utc": "2026-02-23T00:00:00Z",
+      "last_modified_utc": null,
       "access_level": "public",
       "license_status": "catalog_declares_public_domain_label",
       "license_uri": "http://www.usa.gov/publicdomain/label/1.0/",
@@ -89,7 +89,8 @@
         "actual_time_granularity",
         "actual_port_coverage",
         "null_and_revision_profile"
-      ]
+      ],
+      "last_modified_date": "2026-02-23"
     }
   ],
   "corpus_design": {
