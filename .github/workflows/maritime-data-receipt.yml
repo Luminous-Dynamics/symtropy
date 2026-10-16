@@ -77,6 +77,9 @@ jobs:
       - name: Validate prospective historical corpus source registry
         run: cargo run --locked -p maritime-data-receipt -- --validate-historical-corpus-manifest docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json
 
+      - name: Check synthetic CyPort interaction CSV schema and profile
+        run: cargo run --locked -p maritime-data-receipt -- --profile-cyport-interactions crates/tools/maritime-data-receipt/tests/fixtures/cyport-interaction-profile-synthetic.csv
+
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
 
