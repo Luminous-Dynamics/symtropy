@@ -424,7 +424,7 @@ pub fn evaluate_fifo_path(
             return Err(FifoPathEvaluationError::RepeatedEdge(leg.edge_id.clone()));
         }
         if let Some(expected_node_id) = previous_node {
-            if leg.from_node_id != expected_node_id {
+            if leg.from_node_id.as_str() != expected_node_id {
                 return Err(FifoPathEvaluationError::DisconnectedLegs {
                     previous_edge_id: previous_edge_id.unwrap_or_default().to_owned(),
                     next_edge_id: leg.edge_id.clone(),
@@ -707,6 +707,119 @@ mod tests {
         assert_eq!(
             function(&[(100, 150)]),
             Err(ArrivalFunctionError::TooFewBreakpoints)
+        );
+    }
+
+    #[test]
+    fn fifo_allows_later_departures_to_have_shorter_trip_durations() {
+        // Arrival times remain monotone (200 <= 210), even though duration
+        // drops from 100 seconds to 10 seconds between these breakpoints.
+        let function = function(&[(100, 200), (200, 210), (300, 330)]).unwrap();
+        let early = function.arrival_at(100, 55, "UTC_UNIX_SECONDS_V1").unwrap();
+        let later = function.arrival_at(200, 55, "UTC_UNIX_SECONDS_V1").unwrap();
+
+        assert_eq!(early.travel_seconds, 100);
+        assert_eq!(later.travel_seconds, 10);
+        assert!(early.arrival_epoch_seconds <= later.arrival_epoch_seconds);
+    }
+
+    #[test]
+    fn every_integer_departure_matches_a_slow_rational_reference() {
+        let points = [(100, 103), (125, 148), (150, 160)];
+        let function = function(&points).unwrap();
+
+        for departure in 100..=150 {
+            let interval = points.windows(2).find(|pair| {
+                departure >= pair[0].0 && departure <= pair[1].0
+            }).expect("departure is bracketed by a breakpoint interval");
+            let (left_departure, left_arrival) = interval[0];
+            let (right_departure, right_arrival) = interval[1];
+            let numerator = u128::from(departure - left_departure)
+                * u128::from(right_arrival - left_arrival);
+            let denominator = u128::from(right_departure - left_departure);
+            let ceiling_delta = numerator.div_ceil(denominator);
+            let reference = left_arrival + u64::try_from(ceiling_delta).unwrap();
+
+            assert_eq!(
+                function.arrival_at(departure, 55, "UTC_UNIX_SECONDS_V1")
+                    .unwrap().arrival_epoch_seconds,
+                reference,
+                "departure {departure} disagreed with independent rational reference"
+            );
+        }
+    }
+
+    #[test]
+    fn path_composition_carries_arrival_time_and_explicit_delay_forward() {
+        let road = function(&[(100, 150), (200, 250)]).unwrap();
+        let rail = function(&[(100, 160), (200, 270), (300, 330)]).unwrap();
+        let legs = vec![
+            FifoPathLegV1 {
+                edge_id: "road-1".into(),
+                from_node_id: "origin".into(),
+                to_node_id: "terminal".into(),
+                pre_leg_delay_seconds: 0,
+                arrival_function: road,
+            },
+            FifoPathLegV1 {
+                edge_id: "rail-1".into(),
+                from_node_id: "terminal".into(),
+                to_node_id: "destination".into(),
+                pre_leg_delay_seconds: 10,
+                arrival_function: rail,
+            },
+        ];
+
+        let path = evaluate_fifo_path(&legs, 150, 55, "UTC_UNIX_SECONDS_V1").unwrap();
+        assert_eq!(path.origin_node_id, "origin");
+        assert_eq!(path.destination_node_id, "destination");
+        assert_eq!(path.legs[0].estimate.departure_epoch_seconds, 150);
+        assert_eq!(path.legs[0].estimate.arrival_epoch_seconds, 200);
+        assert_eq!(path.legs[1].estimate.departure_epoch_seconds, 210);
+        assert_eq!(path.legs[1].estimate.arrival_epoch_seconds, 276);
+        assert_eq!(path.final_arrival_epoch_seconds, 276);
+        assert_eq!(path.total_elapsed_seconds, 126);
+    }
+
+    #[test]
+    fn path_composition_rejects_disconnected_legs_and_empty_paths() {
+        let first = FifoPathLegV1 {
+            edge_id: "edge-a".into(),
+            from_node_id: "A".into(),
+            to_node_id: "B".into(),
+            pre_leg_delay_seconds: 0,
+            arrival_function: function(&[(100, 150), (200, 250)]).unwrap(),
+        };
+        let disconnected = FifoPathLegV1 {
+            edge_id: "edge-c".into(),
+            from_node_id: "C".into(),
+            to_node_id: "D".into(),
+            pre_leg_delay_seconds: 0,
+            arrival_function: function(&[(100, 150), (200, 250)]).unwrap(),
+        };
+
+        assert_eq!(
+            evaluate_fifo_path(&[], 150, 55, "UTC_UNIX_SECONDS_V1"),
+            Err(FifoPathEvaluationError::EmptyPath)
+        );
+        assert!(matches!(
+            evaluate_fifo_path(&[first, disconnected], 150, 55, "UTC_UNIX_SECONDS_V1"),
+            Err(FifoPathEvaluationError::DisconnectedLegs { .. })
+        ));
+    }
+
+    #[test]
+    fn path_composition_rejects_delay_arithmetic_overflow() {
+        let leg = FifoPathLegV1 {
+            edge_id: "edge-a".into(),
+            from_node_id: "A".into(),
+            to_node_id: "B".into(),
+            pre_leg_delay_seconds: 1,
+            arrival_function: function(&[(100, 150), (200, 250)]).unwrap(),
+        };
+        assert_eq!(
+            evaluate_fifo_path(&[leg], u64::MAX, 55, "UTC_UNIX_SECONDS_V1"),
+            Err(FifoPathEvaluationError::ArithmeticOverflow)
         );
     }
 
