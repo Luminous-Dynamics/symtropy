@@ -37,6 +37,8 @@ const SOURCE_KEYS: &[&str] = &[
     "immutable_revision",
     "resource_path",
     "resource_identifier",
+    "source_git_blob_sha1",
+    "declared_resource_byte_length",
     "last_modified_utc",
     "last_modified_date",
     "access_level",
@@ -73,6 +75,8 @@ struct HistoricalSourceSummary {
     source_id: String,
     source_kind: String,
     immutable_revision: Option<String>,
+    source_git_blob_sha1: Option<String>,
+    declared_resource_byte_length: Option<u64>,
     license_status: String,
     capture_status: String,
 }
@@ -225,6 +229,23 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
     let source_id = field_text(source, "source_id", &path)?.to_owned();
     let source_kind = field_text(source, "source_kind", &path)?.to_owned();
     nonempty_text(super::field(source, "publisher", &path)?, &format!("{path}.publisher"))?;
+    let source_git_blob_sha1 = match super::field(source, "source_git_blob_sha1", &path)? {
+        JsonValue::Null => None,
+        value => {
+            let hash = nonempty_text(value, &format!("{path}.source_git_blob_sha1"))?.to_owned();
+            if !is_lower_hex(&hash, 40) {
+                return Err(format!("{path}.source_git_blob_sha1: expected lowercase 40-character Git blob SHA-1 or null"));
+            }
+            Some(hash)
+        }
+    };
+    let declared_resource_byte_length = match super::field(source, "declared_resource_byte_length", &path)? {
+        JsonValue::Null => None,
+        value => Some(super::integer(value, &format!("{path}.declared_resource_byte_length"))?),
+    };
+    if source_git_blob_sha1.is_some() != declared_resource_byte_length.is_some() {
+        return Err(format!("{path}: source Git blob SHA-1 and declared resource byte length must be jointly present or absent"));
+    }
     validate_url(super::field(source, "landing_uri", &path)?, &format!("{path}.landing_uri"), false)?;
     validate_url(super::field(source, "metadata_uri", &path)?, &format!("{path}.metadata_uri"), false)?;
     nonempty_text(super::field(source, "resource_path", &path)?, &format!("{path}.resource_path"))?;
@@ -280,6 +301,9 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             if !is_lower_hex(revision, 40) {
                 return Err(format!("{path}.immutable_revision: expected pinned 40-character lowercase Git commit"));
             }
+            if source_git_blob_sha1.is_some() || declared_resource_byte_length.is_some() {
+                return Err(format!("{path}: uninspected workbook resource metadata cannot be invented"));
+            }
             if license_status != "unverified" || !matches!(license_uri, JsonValue::Null) {
                 return Err(format!("{path}: research workbook rights must remain explicitly unverified"));
             }
@@ -313,6 +337,17 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             )?;
             if !is_lower_hex(revision, 40) {
                 return Err(format!("{path}.immutable_revision: expected pinned 40-character lowercase Git commit"));
+            }
+            if field_text(source, "resource_path", &path)? != "Tropical_cyclone_interaction/interaction_data.csv" {
+                return Err(format!("{path}.resource_path: only the pinned interaction table is admitted by this profiler"));
+            }
+            if source_git_blob_sha1.as_deref() != Some("21beb5b7673918143a0ab108b03acc3cccaeb330")
+                || declared_resource_byte_length != Some(643_047)
+            {
+                return Err(format!("{path}: pinned interaction CSV Git blob ID and byte length do not match the audited source tree"));
+            }
+            if !field_text(source, "resource_identifier", &path)?.contains("Tropical_cyclone_interaction/interaction_data.csv") {
+                return Err(format!("{path}.resource_identifier: must identify the pinned interaction CSV path"));
             }
             if license_status != "readme_declares_cc_by_4_0" {
                 return Err(format!("{path}.license_status: declared CC BY 4.0 status must remain explicit"));
@@ -355,6 +390,9 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             if !matches!(super::field(source, "immutable_revision", &path)?, JsonValue::Null) {
                 return Err(format!("{path}.immutable_revision: mutable API view must not be treated as a content revision"));
             }
+            if source_git_blob_sha1.is_some() || declared_resource_byte_length.is_some() {
+                return Err(format!("{path}: mutable API view cannot claim an immutable Git blob identity"));
+            }
             if license_status != "catalog_declares_public_domain_label" {
                 return Err(format!("{path}.license_status: source catalogue's declared label must be explicit"));
             }
@@ -386,6 +424,8 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             JsonValue::Null => None,
             _ => return Err(format!("{path}.immutable_revision: expected string or null")),
         },
+        source_git_blob_sha1,
+        declared_resource_byte_length,
         license_status,
         capture_status: "not_captured".to_owned(),
     })
@@ -674,6 +714,8 @@ mod tests {
         assert_eq!(report.status, "SOURCE_REGISTRY_VALID_NOT_CAPTURED");
         assert_eq!(report.source_count, 3);
         assert_eq!(report.immutable_revision_pinned_count, 2);
+        assert_eq!(report.sources[1].source_git_blob_sha1.as_deref(), Some("21beb5b7673918143a0ab108b03acc3cccaeb330"));
+        assert_eq!(report.sources[1].declared_resource_byte_length, Some(643_047));
         assert_eq!(report.captured_artifact_count, 0);
         assert!(!report.data_capture_performed);
         assert!(!report.model_validation_performed);
@@ -768,6 +810,24 @@ mod tests {
         root["sources"][1]["license_status"] = Value::String("all_components_unrestricted".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
         assert!(evaluate_bytes(&changed).unwrap_err().contains("declared CC BY 4.0 status must remain explicit"));
+    }
+
+    #[test]
+    fn cyport_resource_identity_is_pinned_to_blob_and_byte_length() {
+        let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
+        root["sources"][1]["source_git_blob_sha1"] =
+            Value::String("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(evaluate_bytes(&changed).unwrap_err().contains("Git blob ID and byte length do not match"));
+    }
+
+    #[test]
+    fn cyport_declared_file_size_cannot_drift() {
+        let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
+        root["sources"][1]["declared_resource_byte_length"] =
+            Value::Number(serde_json::Number::from(643_048));
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(evaluate_bytes(&changed).unwrap_err().contains("Git blob ID and byte length do not match"));
     }
 
     #[test]
