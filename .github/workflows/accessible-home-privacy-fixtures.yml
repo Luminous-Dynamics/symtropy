@@ -31,4 +31,4 @@ jobs:
         run: |
           ! grep -Eiq 'real resident data|actual resident payload|real-home measurements' docs/built-environment/accessible-home-private-evidence-envelope-v0.1.example.json
           grep -q 'Hashing is not anonymization' docs/built-environment/accessible-home-privacy-v0.1.md
-          grep -q 'Zero.*digest of raw real resident' docs/built-environment/accessible-home-privacy-v0.1.md
+          grep -q 'publication of a digest of raw real resident/home evidence' docs/built-environment/accessible-home-privacy-v0.1.md
