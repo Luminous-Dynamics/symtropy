@@ -69,6 +69,7 @@ Extend the existing ten-case corpus with at least:
 15. **Performance costume:** evaluate completed performance runs, fit/movement constraints, quick changes and repair/cleaning burden rather than generic daily wear cycles.
 16. **Heritage/archive garment:** use a declared conservation/exhibition service unit, condition observations and specialist review. Do not require the garment to be worn to have measurable service value.
 17. **Ceremonial/bridal garment:** compare alteration, lending, inheritance, resale and preservation pathways without collapsing cultural significance into an invented numeric score.
+18. **Unsold sample and overproduction:** compare made-to-order/preorder, small batch, forecast-driven production and reuse of an existing sample. Report surplus per accepted functional unit together with lead time, fulfilled demand, stockouts and product acceptance; do not optimize surplus alone.
 
 ## 4. Initial process boundary
 
@@ -181,7 +182,7 @@ These are internal semantic/measurement targets, not a universal definition of g
 - **Fair rental/resale comparisons:** measure cleaning method and frequency, transport, packaging, damage, repair, storage and actual completed uses. Calculate break-even with uncertainty for the specified route and location rather than publishing a universal “rental is greener after N wears” number.
 - **No forced-wear assumption:** archive/display profiles can use controlled exhibition days or conservation years. A historical or culturally significant garment need not be worn to have a declared service, and conservation guidance must not be indiscriminately applied to ordinary commercial apparel.
 
-For any physical pilot, the unit, profile, comparison alternatives, measurements and stopping criteria must be frozen before the observation period. Specialist review is required where the profile marks fragile/degrading materials or conservation needs.
+For any physical pilot, the unit, profile, comparison alternatives, measurements and stopping criteria must be frozen before the observation period. Specialist review is required where the profile marks fragile/degrading materials or conservation needs. For production-strategy pilots, additionally target a proposed 10% relative reduction in unsold finished garments/sample stock per accepted functional unit versus a frozen baseline, while keeping on-time fulfillment and functional-profile acceptance within preregistered non-inferiority bounds. This is exploratory, not universal; report confidence intervals and all stockout/lead-time trade-offs. Do not credit inventory donation or reallocation as environmental benefit unless the second use is observed.
 
 ## 8. Data and validation path
 
