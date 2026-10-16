@@ -33,6 +33,23 @@ The example uses synthetic values only. It demonstrates that feasible candidates
 can remain on a multi-objective Pareto frontier while a numerically attractive
 candidate is excluded after a hard environmental-admission failure.
 
+## Demand and surplus evaluation
+
+The demand module compares five policies on the same scenario: made-to-order,
+preorder plus explicit buffer, order-driven small batch, forecast-driven batch,
+and reuse-existing-inventory-first. It keeps production, accepted/rejected
+output, fulfilled demand, stockout, unsold new output and resource inputs as
+separate integer ledgers. It uses order/forecast data to make the plan and
+realized demand only for outcome accounting.
+
+Policy results are stratified by scenario, garment profile and functional unit;
+the module does not pool unlike service units. The paired fixture and benchmark
+contract live at docs/ops/fixtures/textile_demand_surplus_v0_1/ and
+docs/ops/TEXTILE_DEMAND_SURPLUS_BENCHMARK_V0_1.md. The JSON fixture is not yet
+loaded by Rust. Inventory-first is a counterfactual until physical issue/transfer
+receipts prove use; yield is a conservative integer-floor approximation, not QA
+evidence.
+
 ## Core contracts
 
 - The caller declares at least two objectives with a stable ID, exact unit string,
