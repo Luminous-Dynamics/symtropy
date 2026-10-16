@@ -578,29 +578,114 @@ mod tests {
 
     fn outputs_from_fixture(fixture: &str, case_id: &str) -> Value {
         let benchmark: Value = serde_json::from_str(fixture).expect("valid benchmark fixture");
-        let expected = if let Some(cases) = benchmark.get("load_cases").and_then(Value::as_array) {
-            cases
-                .iter()
-                .find(|item| item.get("case_id").and_then(Value::as_str) == Some(case_id))
-                .and_then(|item| item.get("expected"))
-                .expect("fixture has the requested expected load case")
-        } else {
-            assert_eq!(case_id, "default");
-            benchmark.get("expected").expect("fixture has expected outputs")
+        let benchmark_id = benchmark["benchmark_id"]
+            .as_str()
+            .expect("benchmark_id in fixture");
+        let inputs = &benchmark["inputs"];
+        let number = |object: &Value, key: &str| -> f64 {
+            object[key].as_f64().unwrap_or_else(|| panic!("{key} is numeric"))
         };
-        let outputs: Vec<Value> = expected
-            .as_object()
-            .expect("expected outputs object")
-            .iter()
-            .map(|(quantity, raw_value)| {
-                let value = raw_value.as_f64().expect("numeric expected value");
-                let unit = unit_for_quantity(quantity).expect("known output unit");
+
+        // Recompute from primitive inputs instead of copying expected values.
+        // These controls can now detect an incorrect or stale numerical oracle,
+        // not just exercise the report and hashing plumbing.
+        let calculated: Vec<(String, f64)> = match benchmark_id {
+            "structural/cantilever-beam-linear-static/v1" => {
+                assert_eq!(case_id, "default");
+                let load = number(inputs, "load_N");
+                let span = number(inputs, "span_m");
+                let modulus = number(inputs, "elastic_modulus_Pa");
+                let width = number(inputs, "section_width_m");
+                let depth = number(inputs, "section_depth_m");
+                let inertia = width * depth.powi(3) / 12.0;
+                let fiber = depth / 2.0;
+                vec![
+                    ("second_moment_area_m4".to_string(), inertia),
+                    (
+                        "free_end_deflection_m".to_string(),
+                        load * span.powi(3) / (3.0 * modulus * inertia),
+                    ),
+                    (
+                        "support_maximum_bending_stress_Pa".to_string(),
+                        load * span * fiber / inertia,
+                    ),
+                ]
+            }
+            "structural/axial-bar-linear-static/v1" => {
+                assert_eq!(case_id, "default");
+                let load = number(inputs, "load_N");
+                let length = number(inputs, "length_m");
+                let modulus = number(inputs, "elastic_modulus_Pa");
+                let area =
+                    number(inputs, "section_width_m") * number(inputs, "section_height_m");
+                vec![
+                    ("cross_section_area_m2".to_string(), area),
+                    ("axial_stress_Pa".to_string(), load / area),
+                    (
+                        "free_end_extension_m".to_string(),
+                        load * length / (modulus * area),
+                    ),
+                    ("support_reaction_magnitude_N".to_string(), load),
+                ]
+            }
+            "structural/simply-supported-beam-linear-static/v1" => {
+                let cases = benchmark["load_cases"].as_array().expect("load_cases array");
+                let mut matching = cases
+                    .iter()
+                    .filter(|item| item["case_id"].as_str() == Some(case_id));
+                let load_case = matching.next().expect("known load case in fixture");
+                assert!(matching.next().is_none(), "load_case ID must be unique");
+                let span = number(inputs, "span_m");
+                let modulus = number(inputs, "elastic_modulus_Pa");
+                let inertia = number(inputs, "section_width_m")
+                    * number(inputs, "section_depth_m").powi(3)
+                    / 12.0;
+                let fiber = number(inputs, "section_depth_m") / 2.0;
+                let (deflection, moment, reaction) =
+                    match load_case["load_type"].as_str().expect("load type") {
+                        "point_load_midspan" => {
+                            let load = number(load_case, "load_N");
+                            (
+                                load * span.powi(3) / (48.0 * modulus * inertia),
+                                load * span / 4.0,
+                                load / 2.0,
+                            )
+                        }
+                        "uniform_distributed_load" => {
+                            let load_per_m = number(load_case, "load_N_per_m");
+                            (
+                                5.0 * load_per_m * span.powi(4)
+                                    / (384.0 * modulus * inertia),
+                                load_per_m * span.powi(2) / 8.0,
+                                load_per_m * span / 2.0,
+                            )
+                        }
+                        other => panic!("unsupported load type {other}"),
+                    };
+                vec![
+                    ("maximum_deflection_m".to_string(), deflection),
+                    ("maximum_bending_moment_Nm".to_string(), moment),
+                    (
+                        "maximum_bending_stress_Pa".to_string(),
+                        moment * fiber / inertia,
+                    ),
+                    ("support_reaction_magnitude_N".to_string(), reaction),
+                ]
+            }
+            other => panic!("unsupported test fixture {other}"),
+        };
+
+        let outputs: Vec<Value> = calculated
+            .into_iter()
+            .map(|(quantity, value)| {
+                let unit = unit_for_quantity(&quantity).expect("known output unit");
                 json!({ "quantity": quantity, "value": value, "unit": unit })
             })
             .collect();
+
         json!({
             "schema_version": "0.1.0",
-            "benchmark_id": benchmark["benchmark_id"],
+            "benchmark_id": benchmark_id,
             "case_id": case_id,
             "outputs": outputs
         })
