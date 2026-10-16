@@ -625,8 +625,12 @@ mod tests {
     #[test]
     fn required_nullable_receipt_field_cannot_be_omitted() {
         let mut value = parsed_example();
-        value["records"][1]["evidence"].as_object_mut().unwrap().remove(
-            "inventory_issue_receipt_ref",
+        assert!(
+            value["records"][1]["evidence"]
+                .as_object_mut()
+                .unwrap()
+                .remove("inventory_issue_receipt_ref")
+                .is_some()
         );
         let input = serde_json::to_string(&value).unwrap();
         let err = validate_trial_json(&input).unwrap_err();
