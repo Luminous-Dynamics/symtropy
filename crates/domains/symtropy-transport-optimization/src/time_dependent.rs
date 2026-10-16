@@ -228,6 +228,7 @@ impl FifoArrivalTimeFunctionV1 {
 
         if published_at > knowledge_cutoff_epoch_seconds
             || self.evidence.repository_recorded_at_epoch_seconds > knowledge_cutoff_epoch_seconds
+            || self.evidence.source_observed_at_epoch_seconds > knowledge_cutoff_epoch_seconds
         {
             return Err(ArrivalFunctionError::NotKnownAtCutoff);
         }
@@ -413,6 +414,25 @@ mod tests {
             Err(ArrivalFunctionError::NotKnownAtCutoff)
         );
         assert_eq!(function.arrival_at(150, 55, "UTC_UNIX_SECONDS_V1").unwrap().arrival_epoch_seconds, 202);
+    }
+
+    #[test]
+    fn future_source_observation_cannot_leak_through_older_publication_metadata() {
+        let mut evidence = qualified_evidence();
+        evidence.source_observed_at_epoch_seconds = 56;
+        let function = FifoArrivalTimeFunctionV1::new(
+            evidence,
+            vec![
+                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
+                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
+            ],
+        ).unwrap();
+        // Even if metadata claims an earlier publication and ingestion time,
+        // a future source observation is impossible at this replay cutoff.
+        assert_eq!(
+            function.arrival_at(150, 55, "UTC_UNIX_SECONDS_V1"),
+            Err(ArrivalFunctionError::NotKnownAtCutoff)
+        );
     }
 
     #[test]
