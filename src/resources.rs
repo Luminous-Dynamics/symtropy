@@ -80,11 +80,29 @@ impl ConsciousnessEnergy {
         self.consumed_this_tick += consumed;
     }
 
-    pub fn regenerate(&mut self, amount: f64) {
-        let amount = amount.max(0.0);
-        let regenerated = (self.capacity - self.available).max(0.0).min(amount);
-        self.available += regenerated;
-        self.regenerated_this_tick += regenerated;
+    pub fn regenerate(&mut self, amount: f64) -> f64 {
+        if !amount.is_finite()
+            || amount <= 0.0
+            || !self.capacity.is_finite()
+            || self.capacity < 0.0
+            || !self.available.is_finite()
+            || self.available < 0.0
+            || self.available > self.capacity
+            || !self.regenerated_this_tick.is_finite()
+            || self.regenerated_this_tick < 0.0
+        {
+            return 0.0;
+        }
+        let headroom = self.capacity - self.available;
+        let regenerated = amount.min(headroom);
+        let next_available = self.available + regenerated;
+        let next_total = self.regenerated_this_tick + regenerated;
+        if !next_available.is_finite() || !next_total.is_finite() {
+            return 0.0;
+        }
+        self.available = next_available;
+        self.regenerated_this_tick = next_total;
+        regenerated
     }
 
     pub fn fraction_remaining(&self) -> f64 {
