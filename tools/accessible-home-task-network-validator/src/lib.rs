@@ -762,7 +762,7 @@ pub fn evaluate_any_bytes(input: &[u8]) -> Result<serde_json::Value, Vec<String>
 
     match schema_version {
         "0.2.0" => {
-            let report = evaluate_fixture_bytes(input).map_err(|error| vec![error])?;
+            let report = evaluate_bytes(input)?;
             serde_json::to_value(report)
                 .map_err(|error| vec![format!("could not serialize v0.2 receipt: {error}")])
         }
