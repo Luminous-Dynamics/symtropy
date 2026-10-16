@@ -25,7 +25,7 @@ required evidence fail closed with exit code 2.
 - Events must be time-ordered and must not occur after the fixture evaluation time.
 - Claims bind to explicit facet revisions. A change invalidates only claims bound to the changed facet.
 - Review-due evidence is non-current at or before its deadline.
-- Supersession cycles fail; incompatible current claims for one scope become an explicit conflict.
+- Each claim has an assertion_key; supersession and conflict checks require the same scope and assertion identity. Supersession cycles fail, while incompatible current claims for one assertion become an explicit conflict. Separate assertions within one system do not conflict merely because their evidence states differ.
 - A current declared hard barrier blocks a path even if another required claim is stale.
 - A stale barrier applies only to the old configuration; the new configuration remains not evaluable until revalidation.
 - Every claim and path declares an expected outcome; the evaluator independently derives it and rejects disagreement.
