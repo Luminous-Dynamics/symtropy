@@ -335,6 +335,11 @@ pub enum TraceComparisonError {
         right: u32,
         supported: u32,
     },
+    EmptyScenarioId,
+    EmptyBackendIdentity {
+        side: &'static str,
+        field: &'static str,
+    },
     ScenarioMismatch,
     SampleCountMismatch,
     EmptyTrace,
@@ -380,6 +385,10 @@ impl fmt::Display for TraceComparisonError {
                 f,
                 "unsupported trace schema version: left={left}, right={right}, supported={supported}"
             ),
+            Self::EmptyScenarioId => write!(f, "trace scenario_id must not be empty"),
+            Self::EmptyBackendIdentity { side, field } => {
+                write!(f, "{side} trace backend identity field {field} must not be empty")
+            }
             Self::ScenarioMismatch => write!(f, "trace scenario_id values differ"),
             Self::SampleCountMismatch => write!(f, "trace sample counts differ"),
             Self::EmptyTrace => write!(f, "trace must contain at least one sample"),
@@ -418,6 +427,26 @@ impl fmt::Display for TraceComparisonError {
 
 impl std::error::Error for TraceComparisonError {}
 
+fn validate_trace_identity(
+    trace: &PhysicsTrace3d,
+    side: &'static str,
+) -> Result<(), TraceComparisonError> {
+    if trace.scenario_id.trim().is_empty() {
+        return Err(TraceComparisonError::EmptyScenarioId);
+    }
+
+    for (field, value) in [
+        ("engine", trace.backend.engine.as_str()),
+        ("engine_version", trace.backend.engine_version.as_str()),
+        ("profile", trace.backend.profile.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(TraceComparisonError::EmptyBackendIdentity { side, field });
+        }
+    }
+    Ok(())
+}
+
 /// Compare two traces strictly by schema, scenario, sample grid, and stable body ID.
 ///
 /// Non-finite observations are counted and excluded from numeric maxima/RMS so
@@ -436,6 +465,8 @@ pub fn compare_traces_3d(
             supported: PHYSICS_TRACE_SCHEMA_VERSION,
         });
     }
+    validate_trace_identity(left, "left")?;
+    validate_trace_identity(right, "right")?;
     if left.scenario_id != right.scenario_id {
         return Err(TraceComparisonError::ScenarioMismatch);
     }
@@ -1185,6 +1216,48 @@ mod tests {
                 left: PHYSICS_TRACE_SCHEMA_VERSION,
                 right: PHYSICS_TRACE_SCHEMA_VERSION + 1,
                 supported: PHYSICS_TRACE_SCHEMA_VERSION,
+            })
+        );
+    }
+
+    #[test]
+    fn trace_comparison_rejects_missing_scenario_and_backend_identity() {
+        let valid = one_sample_trace();
+
+        let mut empty_scenario = valid.clone();
+        empty_scenario.scenario_id = "  ".to_owned();
+        assert_eq!(
+            compare_traces_3d(&empty_scenario, &valid),
+            Err(TraceComparisonError::EmptyScenarioId)
+        );
+
+        let mut empty_engine = valid.clone();
+        empty_engine.backend.engine = String::new();
+        assert_eq!(
+            compare_traces_3d(&empty_engine, &valid),
+            Err(TraceComparisonError::EmptyBackendIdentity {
+                side: "left",
+                field: "engine",
+            })
+        );
+
+        let mut empty_version = valid.clone();
+        empty_version.backend.engine_version = " ".to_owned();
+        assert_eq!(
+            compare_traces_3d(&empty_version, &valid),
+            Err(TraceComparisonError::EmptyBackendIdentity {
+                side: "left",
+                field: "engine_version",
+            })
+        );
+
+        let mut empty_profile = valid.clone();
+        empty_profile.backend.profile = String::new();
+        assert_eq!(
+            compare_traces_3d(&empty_profile, &valid),
+            Err(TraceComparisonError::EmptyBackendIdentity {
+                side: "left",
+                field: "profile",
             })
         );
     }
