@@ -648,7 +648,8 @@ mod tests {
     #[test]
     fn duplicate_record_ids_are_rejected() {
         let mut value = parsed_example();
-        value["records"][1]["record_id"] = value["records"][0]["record_id"].clone();
+        let duplicated_id = value["records"][0]["record_id"].clone();
+        value["records"][1]["record_id"] = duplicated_id;
         let input = serde_json::to_string(&value).unwrap();
         let err = validate_trial_json(&input).unwrap_err();
         assert!(err.errors.iter().any(|message| message.contains("record_id duplicates")));
