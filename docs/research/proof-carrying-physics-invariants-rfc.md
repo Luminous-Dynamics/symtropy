@@ -10,6 +10,16 @@ Treat mathematical invariants as explicit, testable contracts of the simulation 
 
 OpenAI's [mathematical research repository](https://github.com/openai/math) is a source of formalized techniques for real analysis, entropy, inequalities and related subjects. Its authors state that results have mixed verification status and that not every manuscript has a Lean formalization. Use narrowly selected, compatible lemmas as references; do not treat the full library as a drop-in dependency or import a proof without verifying its statement and assumptions.
 
+## Initial source census
+
+A first inspection of the current public source surfaces concrete tests and cautions:
+
+- [`safety.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-consciousness-physics/src/safety.rs) already documents that the hardcoded `SafetyTier::from_phi` mapping is not used by platform demos; the demos use `sprint_floor_gain`, while the four-tier mapping remains used within the crate's coupling path. Existing tests cover sampled monotonicity and representative thresholds, but not exact threshold neighbors or invalid-domain values. [Draft PR #1683](https://github.com/Luminous-Dynamics/symtropy/pull/1683) adds checked-domain classification and exact-boundary hostile tests. This is a bounded fix to the legacy mapping, not a claim that all motor-authority paths are verified or calibrated.
+- [`energy.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-consciousness-physics/src/energy.rs) exposes public `f64` methods for consumption, regeneration and heat. The previous code did not explicitly reject all negative/non-finite inputs, and the regeneration counter recorded requested flow even when the capacity cap accepted less. [Draft PR #1684](https://github.com/Luminous-Dynamics/symtropy/pull/1684) adds fail-closed input guards, candidate-state validation, accepted-flow telemetry, and deterministic regression tests. Its tests have not yet been run in this environment.
+- [`thermodynamics.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-consciousness-physics/src/thermodynamics.rs) documents a sub-1% conservation-error target. That numerical threshold is not itself a proof of ledger conservation. ST-INV-004 must first define a complete one-step accounting identity and its external inputs/sinks; long-horizon floating-point drift is a separate measurement.
+
+These findings strengthen the RFC's principle: formalization should follow the real update paths and known counterexamples, not merely translate prose equations into Lean.
+
 ## Paradigm shift: from equations in prose to contracts with evidence
 
 For each invariant, maintain a contract record:
