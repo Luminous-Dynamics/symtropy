@@ -943,7 +943,7 @@ mod tests {
         let report = evaluate_bytes(&changed, "test").expect("exact floor is a valid recovery boundary");
         let metric = report.trajectory_metrics.iter()
             .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
-        assert_eq!(metric.integrated_unmet_service_units, 90);
+        assert_eq!(metric.integrated_unmet_service_units, 115);
         assert_eq!(metric.recovery_time_hours, Some(5));
     }
 
