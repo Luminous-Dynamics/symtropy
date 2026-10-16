@@ -67,6 +67,36 @@ pub struct MeshBvhNode {
     pub triangle_idx: Option<usize>,
 }
 
+/// Deterministic operation counters for one BVH overlap query.
+///
+/// Counters are intended for diagnostics and benchmark attribution; use
+/// TriangleMesh::query_overlap for the uninstrumented hot path.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MeshBvhQueryStats {
+    /// Number of node AABBs tested, including misses.
+    pub bounds_tested: usize,
+    /// Intersecting internal nodes whose children were visited.
+    pub overlapping_internal_nodes: usize,
+    /// Intersecting leaves, each corresponding to a returned triangle candidate.
+    pub overlapping_leaves: usize,
+    /// Number of returned triangle indices.
+    pub candidate_count: usize,
+}
+
+/// Strategy used to construct a triangle-mesh BVH.
+///
+/// `Median` preserves the default deterministic longest-axis median split.
+/// `BinnedSah` selects a split using a binned surface-area cost estimate,
+/// with median fallback when a useful non-empty partition cannot be formed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MeshBvhBuildStrategy {
+    /// Deterministic longest-axis median split.
+    Median,
+    /// Binned surface-area heuristic with the requested number of bins.
+    /// The implementation clamps this to 2..=64.
+    BinnedSah { bin_count: usize },
+}
+
 /// Concave triangle mesh.
 #[derive(Clone)]
 pub struct TriangleMesh {
@@ -78,7 +108,25 @@ pub struct TriangleMesh {
 }
 
 impl TriangleMesh {
+    /// Build using the existing deterministic longest-axis median strategy.
     pub fn new(triangles: Vec<Triangle>) -> Self {
+        Self::with_bvh_strategy(triangles, MeshBvhBuildStrategy::Median)
+    }
+
+    /// Build using an explicitly selected BVH strategy. Query and collision
+    /// semantics are unchanged by the construction strategy.
+    pub fn with_bvh_strategy(
+        triangles: Vec<Triangle>,
+        strategy: MeshBvhBuildStrategy,
+    ) -> Self {
+        let strategy = match strategy {
+            MeshBvhBuildStrategy::Median => MeshBvhBuildStrategy::Median,
+            MeshBvhBuildStrategy::BinnedSah { bin_count } => {
+                MeshBvhBuildStrategy::BinnedSah {
+                    bin_count: bin_count.clamp(2, 64),
+                }
+            }
+        };
         let mut world_min = SVector::<f64, 3>::from_element(f64::MAX);
         let mut world_max = SVector::<f64, 3>::from_element(f64::MIN);
 
@@ -125,6 +173,7 @@ impl TriangleMesh {
                 &triangle_centers,
                 &mut indices,
                 &mut bvh_nodes,
+                strategy,
             ))
         } else {
             None
@@ -157,11 +206,135 @@ impl TriangleMesh {
         Aabb { min, max }
     }
 
+    fn surface_area(aabb: &Aabb<3>) -> f64 {
+        let extent = aabb.max - aabb.min;
+        let x = extent[0].max(0.0);
+        let y = extent[1].max(0.0);
+        let z = extent[2].max(0.0);
+        2.0 * (x * y + y * z + z * x)
+    }
+
+    fn centroid_bin(value: f64, minimum: f64, extent: f64, bin_count: usize) -> usize {
+        let bin = (((value - minimum) / extent).clamp(0.0, 1.0) * bin_count as f64) as usize;
+        bin.min(bin_count - 1)
+    }
+
+    /// Return a split index after sorting indices by the selected binned-SAH
+    /// split. Invalid or severely unbalanced partitions return None so the
+    /// caller can use a deterministic median fallback.
+    fn binned_sah_partition(
+        indices: &mut [usize],
+        triangle_aabbs: &[Aabb<3>],
+        triangle_centers: &[SVector<f64, 3>],
+        requested_bins: usize,
+    ) -> Option<usize> {
+        let n = indices.len();
+        if n < 4 {
+            return None;
+        }
+        let bin_count = requested_bins.clamp(2, 64);
+        let mut best: Option<(f64, usize, usize, f64, f64)> = None;
+
+        for axis in 0..3 {
+            let (mut centroid_min, mut centroid_max) =
+                (f64::INFINITY, f64::NEG_INFINITY);
+            for &index in indices.iter() {
+                centroid_min = centroid_min.min(triangle_centers[index][axis]);
+                centroid_max = centroid_max.max(triangle_centers[index][axis]);
+            }
+            let centroid_extent = centroid_max - centroid_min;
+            if !centroid_min.is_finite()
+                || !centroid_max.is_finite()
+                || !centroid_extent.is_finite()
+                || centroid_extent <= f64::EPSILON
+            {
+                continue;
+            }
+
+            let mut bin_bounds: Vec<Aabb<3>> =
+                (0..bin_count).map(|_| Aabb::empty()).collect();
+            let mut bin_counts = vec![0usize; bin_count];
+            for &index in indices.iter() {
+                let bin = Self::centroid_bin(
+                    triangle_centers[index][axis],
+                    centroid_min,
+                    centroid_extent,
+                    bin_count,
+                );
+                bin_bounds[bin] = bin_bounds[bin].union(&triangle_aabbs[index]);
+                bin_counts[bin] += 1;
+            }
+
+            let mut left_bounds: Vec<Aabb<3>> =
+                (0..bin_count).map(|_| Aabb::empty()).collect();
+            let mut left_counts = vec![0usize; bin_count];
+            let mut running_bounds = Aabb::empty();
+            let mut running_count = 0usize;
+            for bin in 0..bin_count {
+                running_bounds = running_bounds.union(&bin_bounds[bin]);
+                running_count += bin_counts[bin];
+                left_bounds[bin] = running_bounds.clone();
+                left_counts[bin] = running_count;
+            }
+
+            let mut right_bounds: Vec<Aabb<3>> =
+                (0..bin_count).map(|_| Aabb::empty()).collect();
+            let mut right_counts = vec![0usize; bin_count];
+            running_bounds = Aabb::empty();
+            running_count = 0;
+            for bin in (0..bin_count).rev() {
+                running_bounds = running_bounds.union(&bin_bounds[bin]);
+                running_count += bin_counts[bin];
+                right_bounds[bin] = running_bounds.clone();
+                right_counts[bin] = running_count;
+            }
+
+            for split_bin in 0..(bin_count - 1) {
+                let left_count = left_counts[split_bin];
+                let right_count = right_counts[split_bin + 1];
+                if left_count == 0 || right_count == 0 {
+                    continue;
+                }
+                let cost = Self::surface_area(&left_bounds[split_bin]) * left_count as f64
+                    + Self::surface_area(&right_bounds[split_bin + 1]) * right_count as f64;
+                if cost.is_finite() && best.is_none_or(|(best_cost, ..)| cost < best_cost) {
+                    best = Some((cost, axis, split_bin, centroid_min, centroid_extent));
+                }
+            }
+        }
+
+        let (_, axis, split_bin, centroid_min, centroid_extent) = best?;
+        indices.sort_by_key(|&index| {
+            Self::centroid_bin(
+                triangle_centers[index][axis],
+                centroid_min,
+                centroid_extent,
+                bin_count,
+            )
+        });
+        let split = indices.partition_point(|&index| {
+            Self::centroid_bin(
+                triangle_centers[index][axis],
+                centroid_min,
+                centroid_extent,
+                bin_count,
+            ) <= split_bin
+        });
+
+        // Keep recursion depth bounded under highly skewed centroids.
+        if split == 0 || split >= n || (n >= 32 && split.min(n - split) < n / 16) {
+            None
+        } else {
+            Some(split)
+        }
+    }
+
     fn build_bvh_rec(
         triangle_aabbs: &[Aabb<3>],
         triangle_centers: &[SVector<f64, 3>],
         indices: &mut [usize],
         nodes: &mut Vec<MeshBvhNode>,
+        strategy: MeshBvhBuildStrategy,
     ) -> usize {
         let n = indices.len();
         let aabb = indices.iter().fold(Aabb::empty(), |bounds, &idx| {
@@ -180,7 +353,7 @@ impl TriangleMesh {
         }
 
         let extents = aabb.max - aabb.min;
-        let axis = if extents[0] > extents[1] && extents[0] > extents[2] {
+        let median_axis = if extents[0] > extents[1] && extents[0] > extents[2] {
             0
         } else if extents[1] > extents[2] {
             1
@@ -188,23 +361,37 @@ impl TriangleMesh {
             2
         };
 
-        // Centroids were computed once during construction. total_cmp makes
-        // ordering deterministic even if a caller supplied non-finite data;
-        // this builder does not itself certify non-finite geometry as valid.
-        indices.sort_by(|&a, &b| triangle_centers[a][axis].total_cmp(&triangle_centers[b][axis]));
+        let split = match strategy {
+            MeshBvhBuildStrategy::Median => None,
+            MeshBvhBuildStrategy::BinnedSah { bin_count } => Self::binned_sah_partition(
+                indices,
+                triangle_aabbs,
+                triangle_centers,
+                bin_count,
+            ),
+        }
+        .unwrap_or_else(|| {
+            // Centroids were computed once during construction. total_cmp
+            // gives a deterministic order for all f64 bit patterns.
+            indices.sort_by(|&a, &b| {
+                triangle_centers[a][median_axis].total_cmp(&triangle_centers[b][median_axis])
+            });
+            n / 2
+        });
 
-        let mid = n / 2;
         let left_idx = Self::build_bvh_rec(
             triangle_aabbs,
             triangle_centers,
-            &mut indices[..mid],
+            &mut indices[..split],
             nodes,
+            strategy,
         );
         let right_idx = Self::build_bvh_rec(
             triangle_aabbs,
             triangle_centers,
-            &mut indices[mid..],
+            &mut indices[split..],
             nodes,
+            strategy,
         );
 
         let idx = nodes.len();
@@ -242,6 +429,46 @@ impl TriangleMesh {
             }
         }
         result
+    }
+
+    /// Query overlap while collecting traversal-work counters.
+    ///
+    /// The returned counters do not alter candidate semantics. This method is
+    /// intended for diagnostics and benchmarks, not as a substitute for the
+    /// lower-overhead query_overlap hot path.
+    pub fn query_overlap_with_stats(
+        &self,
+        query_aabb: &Aabb<3>,
+    ) -> (Vec<usize>, MeshBvhQueryStats) {
+        let mut result = Vec::new();
+        let mut stats = MeshBvhQueryStats::default();
+        let mut stack = Vec::new();
+        if let Some(root) = self.root_idx {
+            stack.push(root);
+        }
+
+        while let Some(idx) = stack.pop() {
+            let node = &self.bvh_nodes[idx];
+            stats.bounds_tested += 1;
+            if !node.aabb.overlaps(query_aabb) {
+                continue;
+            }
+
+            if let Some(tri_idx) = node.triangle_idx {
+                stats.overlapping_leaves += 1;
+                result.push(tri_idx);
+            } else {
+                stats.overlapping_internal_nodes += 1;
+                if let Some(l) = node.left {
+                    stack.push(l);
+                }
+                if let Some(r) = node.right {
+                    stack.push(r);
+                }
+            }
+        }
+        stats.candidate_count = result.len();
+        (result, stats)
     }
 }
 

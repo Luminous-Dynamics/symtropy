@@ -1,23 +1,24 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! Dependency-free, deterministic BVH build/query benchmark.
+//! Same-process differential benchmark for median and binned-SAH mesh BVHs.
 //!
 //! Run: cargo bench -p symtropy-mesh --bench bvh_queries
-//! Opt into the million-triangle cases with SYMTROPY_BVH_BENCH_LARGE=1.
-//! Query latency percentiles are computed from fixed-size batch means, not
-//! individual-query timings. Build time is a single observation; compare full
-//! command runs in fresh processes on the same host/toolchain.
+//! Opt into million-triangle cases with SYMTROPY_BVH_BENCH_LARGE=1.
+//! Query percentiles are fixed-size batch means, not individual-query tails.
+//! Build time is one sample per strategy; repeat full process runs on the same
+//! machine/toolchain before drawing conclusions about construction cost.
 
 use nalgebra::SVector;
 use std::hint::black_box;
 use std::time::Instant;
-use symtropy_mesh::{Triangle, TriangleMesh};
+use symtropy_mesh::{MeshBvhBuildStrategy, Triangle, TriangleMesh};
 use symtropy_physics::broadphase::Aabb;
 
 const QUERY_COUNT: usize = 2_000;
 const QUERY_BATCH_SIZE: usize = 25;
 const QUERY_REPEATS: usize = 7;
+const SAH_BIN_COUNT: usize = 16;
 
 #[derive(Clone, Copy, Debug)]
 enum Layout {
@@ -36,7 +37,16 @@ impl Layout {
     }
 }
 
-fn make_grid_mesh(requested_triangles: usize) -> TriangleMesh {
+fn strategy_label(strategy: MeshBvhBuildStrategy) -> String {
+    match strategy {
+        MeshBvhBuildStrategy::Median => "median".to_string(),
+        MeshBvhBuildStrategy::BinnedSah { bin_count } => {
+            format!("binned_sah_{bin_count}")
+        }
+    }
+}
+
+fn make_grid_triangles(requested_triangles: usize) -> Vec<Triangle> {
     let cells = requested_triangles.div_ceil(2);
     let side = (cells as f64).sqrt().ceil() as usize;
     let mut triangles = Vec::with_capacity(requested_triangles);
@@ -55,7 +65,7 @@ fn make_grid_mesh(requested_triangles: usize) -> TriangleMesh {
         }
     }
 
-    TriangleMesh::new(triangles)
+    triangles
 }
 
 fn next_unit(state: &mut u64) -> f64 {
@@ -66,7 +76,7 @@ fn next_unit(state: &mut u64) -> f64 {
     ((*state >> 32) % 1_000_001) as f64 / 1_000_000.0
 }
 
-fn make_clustered_mesh(requested_triangles: usize) -> TriangleMesh {
+fn make_clustered_triangles(requested_triangles: usize) -> Vec<Triangle> {
     let mut state = 0x434C_5553_5445_5253u64;
     let mut triangles = Vec::with_capacity(requested_triangles);
 
@@ -86,41 +96,39 @@ fn make_clustered_mesh(requested_triangles: usize) -> TriangleMesh {
         triangles.push(Triangle { vertices: [a, b, c] });
     }
 
-    TriangleMesh::new(triangles)
+    triangles
 }
 
-fn make_long_thin_mesh(requested_triangles: usize) -> TriangleMesh {
+fn make_long_thin_triangles(requested_triangles: usize) -> Vec<Triangle> {
     let mut triangles = Vec::with_capacity(requested_triangles);
 
     for index in 0..requested_triangles {
         let x = (index % 64) as f64 * 0.2;
         let z = index as f64 * 0.01;
-        // A long, thin footprint makes sphere-expanded leaf bounds markedly
-        // less selective than exact vertex AABBs.
+        // A long, thin footprint stresses loose bounds and spatial partitioning.
         let a = SVector::<f64, 3>::from([x, 0.0, z]);
         let b = SVector::<f64, 3>::from([x + 100.0, 0.0, z]);
         let c = SVector::<f64, 3>::from([x + 100.0, 0.0, z + 0.01]);
         triangles.push(Triangle { vertices: [a, b, c] });
     }
 
-    TriangleMesh::new(triangles)
+    triangles
 }
 
-fn make_mesh(layout: Layout, requested_triangles: usize) -> TriangleMesh {
+fn make_triangles(layout: Layout, requested_triangles: usize) -> Vec<Triangle> {
     match layout {
-        Layout::Grid => make_grid_mesh(requested_triangles),
-        Layout::Clustered => make_clustered_mesh(requested_triangles),
-        Layout::LongThin => make_long_thin_mesh(requested_triangles),
+        Layout::Grid => make_grid_triangles(requested_triangles),
+        Layout::Clustered => make_clustered_triangles(requested_triangles),
+        Layout::LongThin => make_long_thin_triangles(requested_triangles),
     }
 }
 
-fn query_for(mesh: &TriangleMesh, index: usize) -> Aabb<3> {
-    // Center each query on an existing triangle so every family gets populated
+fn query_for(triangles: &[Triangle], index: usize) -> Aabb<3> {
+    // Center each query on a populated triangle so every family gets useful
     // queries, even when it is clustered or highly elongated.
-    let triangle_index = index.wrapping_mul(7_919) % mesh.triangles.len();
-    let triangle = &mesh.triangles[triangle_index];
-    let center =
-        (triangle.vertices[0] + triangle.vertices[1] + triangle.vertices[2]) / 3.0;
+    let triangle_index = index.wrapping_mul(7_919) % triangles.len();
+    let triangle = &triangles[triangle_index];
+    let center = (triangle.vertices[0] + triangle.vertices[1] + triangle.vertices[2]) / 3.0;
     Aabb {
         min: SVector::<f64, 3>::from([
             center[0] - 0.4,
@@ -144,18 +152,59 @@ fn quantile(samples: &[f64], q: f64) -> f64 {
     sorted[rank.saturating_sub(1).min(sorted.len() - 1)]
 }
 
-fn run_case(layout: Layout, requested_triangles: usize) {
+#[derive(Debug)]
+struct Measurement {
+    strategy: MeshBvhBuildStrategy,
+    build_ms: f64,
+    mean_query_us: f64,
+    p50_query_us: f64,
+    p95_query_us: f64,
+    p99_query_us: f64,
+    mean_candidates: f64,
+    mean_bounds_tested: f64,
+    mean_internal_node_hits: f64,
+    checksum: usize,
+    /// Canonical (sorted) exact candidate indices for every query, collected
+    /// outside timed regions and compared across build strategies.
+    canonical_candidates: Vec<Vec<usize>>,
+}
+
+fn measure_strategy(
+    triangles: &[Triangle],
+    queries: &[Aabb<3>],
+    strategy: MeshBvhBuildStrategy,
+) -> Measurement {
+    // Clone input before timing so the measurement covers BVH construction,
+    // not fixture allocation/copying.
+    let owned_triangles = triangles.to_vec();
     let build_start = Instant::now();
-    let mesh = make_mesh(layout, requested_triangles);
+    let mesh = TriangleMesh::with_bvh_strategy(owned_triangles, strategy);
     let build_ms = build_start.elapsed().as_secs_f64() * 1_000.0;
-    black_box(mesh.triangles.len());
+    black_box(mesh.bvh_nodes.len());
 
-    let queries: Vec<Aabb<3>> = (0..QUERY_COUNT).map(|i| query_for(&mesh, i)).collect();
-
-    // A short warm-up avoids treating first-touch effects as typical latency.
+    // Warm-up uses the same corpus for both implementations.
     for query in queries.iter().take(QUERY_BATCH_SIZE) {
         black_box(mesh.query_overlap(black_box(query)));
     }
+
+    // Correctness evidence is deliberately outside the timing loop. Aggregate
+    // counts and sum-based checksums can collide; compare canonical exact index
+    // sets per query before publishing any median-vs-SAH timing rows.
+    let mut total_bounds_tested = 0usize;
+    let mut total_internal_node_hits = 0usize;
+    let mut canonical_candidates = Vec::with_capacity(queries.len());
+    for query in queries {
+        let (mut candidates, stats) = mesh.query_overlap_with_stats(black_box(query));
+        total_bounds_tested += stats.bounds_tested;
+        total_internal_node_hits += stats.overlapping_internal_nodes;
+        assert_eq!(stats.candidate_count, candidates.len());
+        assert_eq!(stats.overlapping_leaves, candidates.len());
+        candidates.sort_unstable();
+        canonical_candidates.push(candidates);
+    }
+    let mean_bounds_tested = total_bounds_tested as f64 / queries.len() as f64;
+    let mean_internal_node_hits =
+        total_internal_node_hits as f64 / queries.len() as f64;
 
     let mut batch_mean_query_us =
         Vec::with_capacity(QUERY_REPEATS * (QUERY_COUNT / QUERY_BATCH_SIZE));
@@ -169,8 +218,8 @@ fn run_case(layout: Layout, requested_triangles: usize) {
         for batch_start in (0..QUERY_COUNT).step_by(QUERY_BATCH_SIZE) {
             let start = Instant::now();
             for offset in 0..QUERY_BATCH_SIZE {
-                // 7_919 is coprime to QUERY_COUNT, so every repeat visits the
-                // complete query set in a different deterministic order.
+                // Each repetition visits the whole query corpus in a different
+                // deterministic order to expose order-sensitive cache effects.
                 let query_index = (batch_start + offset)
                     .wrapping_mul(7_919)
                     .wrapping_add(repeat * 101)
@@ -183,8 +232,6 @@ fn run_case(layout: Layout, requested_triangles: usize) {
                 .push(start.elapsed().as_secs_f64() * 1_000_000.0 / QUERY_BATCH_SIZE as f64);
         }
 
-        // Query-order changes must not change result count/checksum. A mismatch
-        // aborts the run rather than publishing timing data for unstable output.
         if let Some(expected) = expected_candidates {
             assert_eq!(total_candidates, expected, "candidate count changed between repeats");
         } else {
@@ -197,44 +244,107 @@ fn run_case(layout: Layout, requested_triangles: usize) {
         }
     }
 
-    black_box(expected_checksum);
     let mean_query_us =
         batch_mean_query_us.iter().sum::<f64>() / batch_mean_query_us.len() as f64;
-    let mean_candidates =
-        expected_candidates.expect("at least one repeat") as f64 / QUERY_COUNT as f64;
+    Measurement {
+        strategy,
+        build_ms,
+        mean_query_us,
+        p50_query_us: quantile(&batch_mean_query_us, 0.50),
+        p95_query_us: quantile(&batch_mean_query_us, 0.95),
+        p99_query_us: quantile(&batch_mean_query_us, 0.99),
+        mean_candidates: expected_candidates.expect("at least one repeat") as f64
+            / QUERY_COUNT as f64,
+        mean_bounds_tested,
+        mean_internal_node_hits,
+        checksum: expected_checksum.expect("at least one repeat"),
+        canonical_candidates,
+    }
+}
 
+fn print_measurement(layout: Layout, requested_triangles: usize, m: &Measurement) {
     println!(
-        "{},{},{},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{},{}",
+        "{},{},{},{},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{}",
         layout.label(),
         requested_triangles,
-        mesh.triangles.len(),
-        build_ms,
+        requested_triangles,
+        strategy_label(m.strategy),
+        m.build_ms,
         QUERY_COUNT,
         QUERY_REPEATS,
-        mean_query_us,
-        quantile(&batch_mean_query_us, 0.50),
-        quantile(&batch_mean_query_us, 0.95),
-        quantile(&batch_mean_query_us, 0.99),
-        mean_candidates,
-        expected_checksum.expect("at least one repeat"),
-        QUERY_BATCH_SIZE,
+        m.mean_query_us,
+        m.p50_query_us,
+        m.p95_query_us,
+        m.p99_query_us,
+        m.mean_candidates,
+        m.mean_bounds_tested,
+        m.mean_internal_node_hits,
+        m.checksum,
     );
+}
+
+fn run_pair(layout: Layout, requested_triangles: usize, reverse_order: bool) {
+    let triangles = make_triangles(layout, requested_triangles);
+    let queries: Vec<Aabb<3>> = (0..QUERY_COUNT).map(|i| query_for(&triangles, i)).collect();
+    let median_strategy = MeshBvhBuildStrategy::Median;
+    let sah_strategy = MeshBvhBuildStrategy::BinnedSah {
+        bin_count: SAH_BIN_COUNT,
+    };
+
+    let (first, second) = if reverse_order {
+        (
+            measure_strategy(&triangles, &queries, sah_strategy),
+            measure_strategy(&triangles, &queries, median_strategy),
+        )
+    } else {
+        (
+            measure_strategy(&triangles, &queries, median_strategy),
+            measure_strategy(&triangles, &queries, sah_strategy),
+        )
+    };
+
+    // Exact leaf bounds mean the strategies must produce the same triangle
+    // AABB candidate sets and aggregate checksum; only the tree traversal and
+    // construction cost are allowed to differ.
+    assert_eq!(
+        first.mean_candidates, second.mean_candidates,
+        "strategies disagree on mean candidates for {} / {requested_triangles}",
+        layout.label()
+    );
+    assert_eq!(
+        first.checksum, second.checksum,
+        "strategies disagree on query checksum for {} / {requested_triangles}",
+        layout.label()
+    );
+    assert_eq!(
+        first.canonical_candidates,
+        second.canonical_candidates,
+        "exact per-query candidate sets differ between strategies for {} / {requested_triangles}",
+        layout.label()
+    );
+
+    print_measurement(layout, requested_triangles, &first);
+    print_measurement(layout, requested_triangles, &second);
 }
 
 fn main() {
     println!(
-        "layout,requested_triangles,actual_triangles,build_ms_single_sample,queries_per_repeat,repeats,mean_batch_query_us,p50_batch_query_us,p95_batch_query_us,p99_batch_query_us,mean_candidates,checksum,batch_size"
+        "layout,requested_triangles,actual_triangles,strategy,build_ms_single_sample,queries_per_repeat,repeats,mean_batch_query_us,p50_batch_query_us,p95_batch_query_us,p99_batch_query_us,mean_candidates,mean_bounds_tested,mean_internal_node_hits,checksum"
     );
 
-    for triangle_count in [10_000, 100_000] {
-        for layout in [Layout::Grid, Layout::Clustered, Layout::LongThin] {
-            run_case(layout, triangle_count);
+    for (size_index, triangle_count) in [10_000, 100_000].into_iter().enumerate() {
+        for (layout_index, layout) in [Layout::Grid, Layout::Clustered, Layout::LongThin]
+            .into_iter()
+            .enumerate()
+        {
+            // Reverse A/B order across cases to reduce systematic order bias.
+            run_pair(layout, triangle_count, (size_index + layout_index) % 2 == 1);
         }
     }
 
     if std::env::var("SYMTROPY_BVH_BENCH_LARGE").as_deref() == Ok("1") {
         for layout in [Layout::Grid, Layout::Clustered, Layout::LongThin] {
-            run_case(layout, 1_000_000);
+            run_pair(layout, 1_000_000, false);
         }
     }
 }
