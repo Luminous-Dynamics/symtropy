@@ -388,10 +388,15 @@ fn expected_outputs(
         );
     }
 
+    // These three fixtures use elementary closed-form equations. A loose
+    // tolerance must not be allowed to turn a poor match into an accepted one.
+    // Numerical/FEM profiles require their own separately reviewed policy.
     let tolerance = benchmark["acceptance"]["relative_tolerance"]
         .as_f64()
-        .filter(|value| value.is_finite() && *value >= 0.0)
-        .ok_or_else(|| "benchmark relative_tolerance must be finite and non-negative".to_string())?;
+        .filter(|value| value.is_finite() && *value >= 0.0 && *value <= 1e-9)
+        .ok_or_else(|| {
+            "analytical benchmark relative_tolerance must be finite, non-negative, and no greater than 1e-9".to_string()
+        })?;
     let inputs = benchmark
         .get("inputs")
         .ok_or_else(|| "benchmark inputs must be an object".to_string())?;
@@ -1028,6 +1033,37 @@ mod tests {
         assert_eq!(report.independent_result_status, "BLOCKED");
         assert_eq!(report.declared_status_consistent, None);
         assert!(report.issues.iter().any(|issue| issue.contains("benchmark oracle drift")));
+        fs::remove_dir_all(root).expect("remove temp directory");
+    }
+
+    #[test]
+    fn overly_permissive_reference_tolerance_is_blocked() {
+        let mut benchmark: Value =
+            serde_json::from_str(AXIAL_FIXTURE).expect("valid analytical fixture");
+        benchmark["acceptance"]["relative_tolerance"] = json!(0.01);
+        let altered_fixture =
+            serde_json::to_string_pretty(&benchmark).expect("serialize altered fixture");
+        let outputs = outputs_from_fixture(&altered_fixture, "default");
+        let (root, record_path, pin) = setup_case_for_fixture(
+            &altered_fixture,
+            "default",
+            outputs,
+            "CLAIMED_PASS",
+            None,
+        );
+        let report = validate_paths(
+            &root.join("benchmark.json"),
+            &record_path,
+            &pin,
+            &checker_pin(),
+            &root,
+        )
+        .expect("validation should produce a report");
+        assert_eq!(report.independent_result_status, "BLOCKED");
+        assert!(report.issues.iter().any(|issue| {
+            issue.contains("relative_tolerance")
+                && issue.contains("no greater than 1e-9")
+        }));
         fs::remove_dir_all(root).expect("remove temp directory");
     }
 
