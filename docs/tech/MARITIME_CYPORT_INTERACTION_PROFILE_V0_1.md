@@ -84,6 +84,31 @@ The new `cyport_interaction_profile.rs` module and CLI are designed to:
 
 CI exercises only a small synthetic fixture with the same header; it does **not** bundle the dataset or prove the external file has been captured. The pinned-source counts above were computed from the actual fetched file in this research pass; the Rust command has not yet been executed locally or verified by exact-head CI.
 
+### Frozen cyclone-grouped temporal split
+
+The pinned source profile now accompanies [a frozen episode-split manifest](./CYPORT_EPISODE_SPLIT_V0_1.json), built by grouping every interaction row by cyclone `SID`, deriving that group's earliest `start_date`, and assigning the entire storm to one temporal partition:
+
+| Split | Storms | Interaction rows | Unique ports represented |
+|---|---:|---:|---:|
+| Train (through 2020) | 59 | 1,471 | 122 |
+| Calibration (2021) | 13 | 308 | 92 |
+| Test (2022 onward) | 18 | 148 | 61 |
+
+The split manifests all 90 cyclone IDs, not row-level samples. The fixed policy is `cyport-sid-temporal-v0.1:train<=2020;calibration=2021;test>=2022`. The validation code recomputes the manifest's internal counts and date boundaries. A second command compares a local CSV to the frozen manifest and requires the exact pinned source identity before accepting the comparison:
+
+```sh
+cargo run --locked -p maritime-data-receipt -- \
+  --validate-cyport-episode-split-manifest \
+  docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json
+
+cargo run --locked -p maritime-data-receipt -- \
+  --verify-cyport-episode-split \
+  /path/to/interaction_data.csv \
+  docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json
+```
+
+The first command checks manifest shape and internal consistency only; it does not re-read the source. The second re-profiles local source bytes, checks the Git blob identity, and compares every ordered cyclone group and split with the manifest. Because the dataset is public, this is a reproducible temporal split—not a secret blind holdout if the candidate method has already seen this dataset or its published derivatives.
+
 ## 5. Next steps and acceptance gates
 
 1. Run the profiler on the locally obtained resource, confirm the exact Git blob identity, save its SHA-256 receipt and record the retrieval timestamp outside the source file.
