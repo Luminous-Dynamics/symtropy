@@ -15,6 +15,7 @@
 
 pub mod garment_profile;
 pub mod scheduler;
+pub mod stress;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
