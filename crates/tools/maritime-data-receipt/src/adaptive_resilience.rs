@@ -1012,8 +1012,8 @@ mod tests {
     #[test]
     fn duplicate_trace_identifiers_are_rejected() {
         let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
-        fixture["synthetic_reference_traces"][1]["trace_id"] =
-            fixture["synthetic_reference_traces"][0]["trace_id"].clone();
+        let first_id = fixture["synthetic_reference_traces"][0]["trace_id"].clone();
+        fixture["synthetic_reference_traces"][1]["trace_id"] = first_id;
         let changed = serde_json::to_vec(&fixture).unwrap();
         assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("duplicate trace ID"));
     }
@@ -1032,6 +1032,74 @@ mod tests {
         let metric = report.trajectory_metrics.iter()
             .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
         assert_eq!(metric.recovery_time_hours, Some(5));
+    }
+
+    #[test]
+    fn seeded_integer_trajectory_corpus_matches_independent_oracle() {
+        let baseline: Value = serde_json::from_slice(FIXTURE).unwrap();
+        let demand = 100_u64;
+        let floor = 0.8_f64;
+        let duration = 1_u64;
+        let consecutive_required = 2_usize;
+
+        // A fixed xorshift corpus gives reproducible boundary-rich traces with no
+        // additional dependency. The oracle below does not call production helpers.
+        for seed in 1_u64..=256 {
+            let mut state = seed;
+            let mut rates = Vec::with_capacity(6);
+            for _ in 0..6 {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                rates.push(state % 121);
+            }
+
+            let expected_loss = rates.iter().fold(0_u64, |sum, rate| {
+                sum + demand.saturating_sub(*rate) * duration
+            });
+            let mut saw_breach = false;
+            let mut streak = 0_usize;
+            let mut expected_recovery = None;
+            for (index, rate) in rates.iter().enumerate() {
+                if *rate as f64 / demand as f64 < floor {
+                    saw_breach = true;
+                    streak = 0;
+                } else if saw_breach {
+                    streak += 1;
+                    if streak >= consecutive_required && expected_recovery.is_none() {
+                        expected_recovery = Some((index as u64 + 1) * duration);
+                    }
+                }
+            }
+            let expected_status = if expected_recovery.is_some() {
+                "RECOVERED_WITHIN_DECLARED_HORIZON"
+            } else {
+                "NOT_OBSERVED_WITHIN_HORIZON"
+            };
+
+            let mut fixture = baseline.clone();
+            fixture["synthetic_reference_traces"][0]["served_rate"] =
+                serde_json::to_value(&rates).unwrap();
+            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+                ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(expected_loss));
+            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+                ["recovery_time_hours"] = expected_recovery
+                    .map(serde_json::Number::from)
+                    .map(Value::Number)
+                    .unwrap_or(Value::Null);
+            fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+                ["recovery_status"] = Value::String(expected_status.to_owned());
+
+            let bytes = serde_json::to_vec(&fixture).unwrap();
+            let report = evaluate_bytes(&bytes, "seeded-oracle-test")
+                .unwrap_or_else(|error| panic!("seed {seed} should satisfy its generated oracle: {error}"));
+            let actual = report.trajectory_metrics.iter()
+                .find(|metric| metric.trace_id == "power-loss-essential-supplies")
+                .expect("the first trace should be reported");
+            assert_eq!(actual.integrated_unmet_service_units, expected_loss, "seed {seed}");
+            assert_eq!(actual.recovery_time_hours, expected_recovery, "seed {seed}");
+            assert_eq!(actual.recovery_status, expected_status, "seed {seed}");
+        }
     }
 
     #[test]
