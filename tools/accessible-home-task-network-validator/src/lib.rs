@@ -774,3 +774,32 @@ pub fn evaluate_any_bytes(input: &[u8]) -> Result<serde_json::Value, Vec<String>
         other => Err(vec![format!("unsupported schema_version '{other}'")]),
     }
 }
+
+
+#[cfg(test)]
+mod version_dispatch_tests {
+    use super::*;
+
+    const V02_FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.2.example.json");
+    const V03_FIXTURE: &str = include_str!("../../../docs/built-environment/accessible-home-task-network-v0.3.example.json");
+
+    #[test]
+    fn cli_dispatch_accepts_v02_network_contract() {
+        let report = evaluate_any_bytes(V02_FIXTURE.as_bytes()).expect("v0.2 fixture should dispatch");
+        assert_eq!(report["path_count"].as_u64(), Some(2));
+    }
+
+    #[test]
+    fn cli_dispatch_accepts_v03_typed_constraints_contract() {
+        let report = evaluate_any_bytes(V03_FIXTURE.as_bytes()).expect("v0.3 fixture should dispatch");
+        assert_eq!(report["constraint_count"].as_u64(), Some(3));
+        assert_eq!(report["path_count"].as_u64(), Some(2));
+    }
+
+    #[test]
+    fn cli_dispatch_rejects_unknown_schema_version() {
+        let invalid = br#"{"schema_version":"99.0.0"}"#;
+        let error = evaluate_any_bytes(invalid).unwrap_err().join("\n");
+        assert!(error.contains("unsupported schema_version"));
+    }
+}
