@@ -167,6 +167,9 @@ pub enum DispatchRule {
     EarliestDue,
     LowestSetup,
     LowestEnergy,
+    /// Prioritize the least remaining hard-deadline slack; where no hard
+    /// finish exists, use the soft due tick as a transparent fallback.
+    LeastSlack,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -243,11 +246,11 @@ struct MachineState {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct DispatchKey {
-    primary: u64,
-    secondary: u64,
-    tertiary: u64,
-    quaternary: u64,
-    quinary: u64,
+    primary: i128,
+    secondary: i128,
+    tertiary: i128,
+    quaternary: i128,
+    quinary: i128,
     job_id: String,
     machine_id: String,
 }
@@ -1027,14 +1030,51 @@ fn dispatch_key(
     transition: TransitionUse,
 ) -> Result<DispatchKey, ScheduleError> {
     let setup = transition.duration_ticks;
-    let energy = checked_add(job.energy_units, transition.energy_units, "dispatch energy key")?;
-    let water = checked_add(job.water_units, transition.water_units, "dispatch water key")?;
+    let energy = checked_add(
+        job.energy_units,
+        transition.energy_units,
+        "dispatch energy key",
+    )?;
+    let water = checked_add(
+        job.water_units,
+        transition.water_units,
+        "dispatch water key",
+    )?;
     let due = job.due_tick;
     let finish = operation.finish_tick;
     let (primary, secondary, tertiary, quaternary, quinary) = match rule {
-        DispatchRule::EarliestDue => (due, finish, setup, energy, water),
-        DispatchRule::LowestSetup => (setup, due, finish, energy, water),
-        DispatchRule::LowestEnergy => (energy, water, due, setup, finish),
+        DispatchRule::EarliestDue => (
+            i128::from(due),
+            i128::from(finish),
+            i128::from(setup),
+            i128::from(energy),
+            i128::from(water),
+        ),
+        DispatchRule::LowestSetup => (
+            i128::from(setup),
+            i128::from(due),
+            i128::from(finish),
+            i128::from(energy),
+            i128::from(water),
+        ),
+        DispatchRule::LowestEnergy => (
+            i128::from(energy),
+            i128::from(water),
+            i128::from(due),
+            i128::from(setup),
+            i128::from(finish),
+        ),
+        DispatchRule::LeastSlack => {
+            let deadline = job.hard_finish_by_tick.unwrap_or(job.due_tick);
+            let slack = i128::from(deadline) - i128::from(finish);
+            (
+                slack,
+                i128::from(due),
+                i128::from(finish),
+                i128::from(setup),
+                i128::from(energy),
+            )
+        }
     };
     Ok(DispatchKey {
         primary,
@@ -1555,6 +1595,7 @@ mod tests {
             DispatchRule::EarliestDue,
             DispatchRule::LowestSetup,
             DispatchRule::LowestEnergy,
+            DispatchRule::LeastSlack,
         ] {
             let first = dispatch_schedule(&problem, rule).expect("fixture dispatch should work");
             let second = dispatch_schedule(&problem, rule).expect("same fixture should work");
