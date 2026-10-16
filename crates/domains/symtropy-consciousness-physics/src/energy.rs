@@ -36,10 +36,24 @@ pub struct EnergyBudget {
     pub collapsed: bool,
 }
 
+/// Why an energy budget capacity could not be initialized.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergyBudgetConfigError {
+    NonFiniteMaxEnergy,
+    NegativeMaxEnergy,
+}
+
 impl EnergyBudget {
-    /// Create a new energy budget with starting energy.
-    pub fn new(max_energy: f64) -> Self {
-        Self {
+    /// Create a budget only when its capacity is finite and non-negative.
+    pub fn try_new(max_energy: f64) -> Result<Self, EnergyBudgetConfigError> {
+        if !max_energy.is_finite() {
+            return Err(EnergyBudgetConfigError::NonFiniteMaxEnergy);
+        }
+        if max_energy < 0.0 {
+            return Err(EnergyBudgetConfigError::NegativeMaxEnergy);
+        }
+
+        Ok(Self {
             max_energy,
             available: max_energy,
             temperature: 310.0,
@@ -49,7 +63,26 @@ impl EnergyBudget {
             regenerated_this_tick: 0.0,
             lifetime_consumed: 0.0,
             collapsed: false,
-        }
+        })
+    }
+
+    /// Create a new energy budget with starting energy.
+    ///
+    /// Compatibility wrapper for older callers. Invalid capacities fail closed
+    /// to an inert, zero-capacity, collapsed budget. New code that needs to
+    /// distinguish invalid configuration should use [`try_new`].
+    pub fn new(max_energy: f64) -> Self {
+        Self::try_new(max_energy).unwrap_or_else(|_| Self {
+            max_energy: 0.0,
+            available: 0.0,
+            temperature: 310.0,
+            entropy: 0.0,
+            heat_capacity: 100.0,
+            consumed_this_tick: 0.0,
+            regenerated_this_tick: 0.0,
+            lifetime_consumed: 0.0,
+            collapsed: true,
+        })
     }
 
     /// Reset per-tick counters (call at start of each tick).
@@ -227,6 +260,39 @@ mod tests {
         let budget = EnergyBudget::new(100.0);
         assert!((budget.available - 100.0).abs() < 1e-10);
         assert!(!budget.collapsed);
+    }
+
+    #[test]
+    fn checked_constructor_rejects_invalid_capacity() {
+        assert_eq!(
+            EnergyBudget::try_new(f64::NAN).unwrap_err(),
+            EnergyBudgetConfigError::NonFiniteMaxEnergy
+        );
+        assert_eq!(
+            EnergyBudget::try_new(f64::INFINITY).unwrap_err(),
+            EnergyBudgetConfigError::NonFiniteMaxEnergy
+        );
+        assert_eq!(
+            EnergyBudget::try_new(f64::NEG_INFINITY).unwrap_err(),
+            EnergyBudgetConfigError::NonFiniteMaxEnergy
+        );
+        assert_eq!(
+            EnergyBudget::try_new(-f64::EPSILON).unwrap_err(),
+            EnergyBudgetConfigError::NegativeMaxEnergy
+        );
+        assert_eq!(EnergyBudget::try_new(0.0).unwrap().available, 0.0);
+        assert_eq!(EnergyBudget::try_new(100.0).unwrap().available, 100.0);
+    }
+
+    #[test]
+    fn legacy_constructor_fails_closed_for_invalid_capacity() {
+        for capacity in [-1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let budget = EnergyBudget::new(capacity);
+            assert_eq!(budget.max_energy, 0.0, "capacity={capacity:?}");
+            assert_eq!(budget.available, 0.0, "capacity={capacity:?}");
+            assert!(budget.collapsed, "capacity={capacity:?}");
+            assert_eq!(budget.fraction_remaining(), 0.0, "capacity={capacity:?}");
+        }
     }
 
     #[test]
