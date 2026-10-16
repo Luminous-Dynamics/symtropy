@@ -38,6 +38,10 @@ fn positive(object: &Value, name: &str) -> Result<f64, String> {
 }
 
 fn evaluate_reference(case: &Value, load_case: &Value) -> Result<BeamResult, String> {
+    use symtropy_housing_evidence::structural_reference::{
+        simply_supported_beam, Meters, Newtons, NewtonsPerMeter, Pascals,
+        SimplySupportedLoadCase,
+    };
     let inputs = case
         .get("inputs")
         .ok_or_else(|| "inputs must be an object".to_string())?;
@@ -52,47 +56,52 @@ fn evaluate_reference(case: &Value, load_case: &Value) -> Result<BeamResult, Str
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
-    use symtropy_housing_evidence::structural_reference::SimplySupportedLoadCase;
     let load_case = match load_case.get("load_type").and_then(Value::as_str) {
         Some("point_load_midspan") => SimplySupportedLoadCase::MidpointPointLoad {
-            force_n: positive(load_case, "load_N")?,
+            force_n: Newtons::try_from_si(positive(load_case, "load_N")?)
+                .map_err(|error| error.to_string())?,
         },
         Some("uniform_distributed_load") => SimplySupportedLoadCase::UniformDistributedLoad {
-            load_n_per_m: positive(load_case, "load_N_per_m")?,
+            load_n_per_m: NewtonsPerMeter::try_from_si(positive(load_case, "load_N_per_m")?)
+                .map_err(|error| error.to_string())?,
         },
         Some(other) => return Err(format!("unsupported load_type {other:?}")),
         None => return Err("load_type must be a string".to_string()),
     };
 
-    let result = symtropy_housing_evidence::structural_reference::simply_supported_beam(
-        span, modulus, width, depth, load_case,
+    let result = simply_supported_beam(
+        Meters::try_from_si(span).map_err(|error| error.to_string())?,
+        Pascals::try_from_si(modulus).map_err(|error| error.to_string())?,
+        Meters::try_from_si(width).map_err(|error| error.to_string())?,
+        Meters::try_from_si(depth).map_err(|error| error.to_string())?,
+        load_case,
     ).map_err(|error| error.to_string())?;
     if !close_relative(
-        result.section.second_moment_area_m4,
+        result.section.second_moment_area_m4.get(),
         declared_inertia,
         tolerance,
     ) {
         return Err(format!(
             "declared second moment of area {declared_inertia} disagrees with kernel value {}",
-            result.section.second_moment_area_m4
+            result.section.second_moment_area_m4.get()
         ));
     }
     if !close_relative(
-        result.section.extreme_fiber_distance_m,
+        result.section.extreme_fiber_distance_m.get(),
         declared_extreme_fiber_distance,
         tolerance,
     ) {
         return Err(format!(
             "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with kernel value {}",
-            result.section.extreme_fiber_distance_m
+            result.section.extreme_fiber_distance_m.get()
         ));
     }
 
     Ok(BeamResult {
-        deflection_m: result.maximum_deflection_m,
-        maximum_moment_nm: result.maximum_bending_moment_nm,
-        maximum_stress_pa: result.maximum_bending_stress_pa,
-        reaction_magnitude_n: result.support_reaction_magnitude_n,
+        deflection_m: result.maximum_deflection_m.get(),
+        maximum_moment_nm: result.maximum_bending_moment_nm.get(),
+        maximum_stress_pa: result.maximum_bending_stress_pa.get(),
+        reaction_magnitude_n: result.support_reaction_magnitude_n.get(),
     })
 }
 

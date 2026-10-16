@@ -26,6 +26,9 @@ fn close_relative(actual: f64, expected: f64, tolerance: f64) -> bool {
 }
 
 fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
+    use symtropy_housing_evidence::structural_reference::{
+        cantilever_tip_load, Meters, Newtons, Pascals,
+    };
     let inputs = case
         .get("inputs")
         .and_then(Value::as_object)
@@ -53,34 +56,38 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
-    let result = symtropy_housing_evidence::structural_reference::cantilever_tip_load(
-        load, span, youngs_modulus, width, depth,
+    let result = cantilever_tip_load(
+        Newtons::try_from_si(load).map_err(|error| error.to_string())?,
+        Meters::try_from_si(span).map_err(|error| error.to_string())?,
+        Pascals::try_from_si(youngs_modulus).map_err(|error| error.to_string())?,
+        Meters::try_from_si(width).map_err(|error| error.to_string())?,
+        Meters::try_from_si(depth).map_err(|error| error.to_string())?,
     ).map_err(|error| error.to_string())?;
     if !close_relative(
-        result.section.second_moment_area_m4,
+        result.section.second_moment_area_m4.get(),
         declared_inertia,
         tolerance,
     ) {
         return Err(format!(
             "declared second moment of area {declared_inertia} disagrees with kernel value {}",
-            result.section.second_moment_area_m4
+            result.section.second_moment_area_m4.get()
         ));
     }
     if !close_relative(
-        result.section.extreme_fiber_distance_m,
+        result.section.extreme_fiber_distance_m.get(),
         declared_extreme_fiber_distance,
         tolerance,
     ) {
         return Err(format!(
             "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with kernel value {}",
-            result.section.extreme_fiber_distance_m
+            result.section.extreme_fiber_distance_m.get()
         ));
     }
 
     Ok(BeamResult {
-        inertia_m4: result.section.second_moment_area_m4,
-        deflection_m: result.maximum_deflection_m,
-        support_stress_pa: result.maximum_bending_stress_pa,
+        inertia_m4: result.section.second_moment_area_m4.get(),
+        deflection_m: result.maximum_deflection_m.get(),
+        support_stress_pa: result.maximum_bending_stress_pa.get(),
     })
 }
 

@@ -27,6 +27,7 @@ fn close_relative(actual: f64, expected: f64, tolerance: f64) -> bool {
 }
 
 fn evaluate_reference(case: &Value) -> Result<AxialResult, String> {
+    use symtropy_housing_evidence::structural_reference::{axial_bar, Meters, Newtons, Pascals};
     let inputs = case
         .get("inputs")
         .and_then(Value::as_object)
@@ -53,21 +54,25 @@ fn evaluate_reference(case: &Value) -> Result<AxialResult, String> {
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
-    let result = symtropy_housing_evidence::structural_reference::axial_bar(
-        load, length, modulus, width, height,
+    let result = axial_bar(
+        Newtons::try_from_si(load).map_err(|error| error.to_string())?,
+        Meters::try_from_si(length).map_err(|error| error.to_string())?,
+        Pascals::try_from_si(modulus).map_err(|error| error.to_string())?,
+        Meters::try_from_si(width).map_err(|error| error.to_string())?,
+        Meters::try_from_si(height).map_err(|error| error.to_string())?,
     ).map_err(|error| error.to_string())?;
-    if !close_relative(result.section.area_m2, declared_area, tolerance) {
+    if !close_relative(result.section.area_m2.get(), declared_area, tolerance) {
         return Err(format!(
             "declared cross-sectional area {declared_area} disagrees with kernel value {}",
-            result.section.area_m2
+            result.section.area_m2.get()
         ));
     }
 
     Ok(AxialResult {
-        area_m2: result.section.area_m2,
-        stress_pa: result.axial_stress_pa,
-        extension_m: result.free_end_extension_m,
-        reaction_n: result.support_reaction_magnitude_n,
+        area_m2: result.section.area_m2.get(),
+        stress_pa: result.axial_stress_pa.get(),
+        extension_m: result.free_end_extension_m.get(),
+        reaction_n: result.support_reaction_magnitude_n.get(),
     })
 }
 

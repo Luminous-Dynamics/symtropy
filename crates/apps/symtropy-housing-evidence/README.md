@@ -1,3 +1,17 @@
+## Unit-safe analytical API
+
+The public analytical-kernel functions accept validated SI newtypes
+(`Meters`, `Newtons`, `Pascals`, `NewtonsPerMeter`) rather than raw
+`f64` values. Outputs use corresponding types for area, second moment of area,
+moment and other quantities. This makes category mistakes such as passing a
+force where a length is required a compile-time type error. A `compile_fail`
+documentation example exercises that contract.
+
+The constructors validate positive finite magnitudes but do not perform unit
+conversion. Callers must convert input data to SI before constructing a
+quantity. Signed loads, compression conventions, nonlinear material behavior
+and general solver validity remain outside this reference kernel.
+
 # Symtropy Housing Evidence Verifier
 
 **Status: experimental verification tooling. Not a building-code engine or engineering certification.**

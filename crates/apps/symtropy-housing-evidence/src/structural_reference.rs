@@ -5,11 +5,26 @@
 //! structural cases used by Symtropy's housing evidence tests.
 //!
 //! All numeric inputs are SI magnitudes (N, m, Pa, m², m⁴, N/m). This API uses
-//! field names and documentation to make units visible; it does not provide a
-//! compile-time dimensional type system.
+//! field names and private-payload newtypes provide compile-time distinctions
+//! among supported SI quantity categories. Constructors validate positive finite
+//! magnitudes; they do not perform unit conversion or model signed loads.
 //!
 //! This module is an analytical reference implementation, not an FEM solver,
 //! structural design check, building-code engine, or construction approval.
+//!
+//! Quantity newtypes prevent category mistakes at compile time. For example,
+//! the following deliberately swapped API call must fail to compile:
+//!
+//! ```compile_fail
+//! use symtropy_housing_evidence::structural_reference::{axial_bar, Meters, Newtons, Pascals};
+//! let load = Newtons::try_from_si(12_000.0).unwrap();
+//! let length = Meters::try_from_si(3.0).unwrap();
+//! let modulus = Pascals::try_from_si(200_000_000_000.0).unwrap();
+//! let width = Meters::try_from_si(0.05).unwrap();
+//! let depth = Meters::try_from_si(0.1).unwrap();
+//! // The first two arguments are intentionally reversed.
+//! let _ = axial_bar(length, load, modulus, width, depth);
+//! ```
 
 use std::fmt;
 
@@ -49,6 +64,35 @@ type Result<T> = std::result::Result<T, StructuralReferenceError>;
 
 /// Public result type for fail-closed structural reference calculations.
 pub type StructuralReferenceResult<T> = std::result::Result<T, StructuralReferenceError>;
+
+/// Define a positive finite SI-magnitude type with a checked constructor.
+/// The private payload prevents callers from bypassing validation.
+macro_rules! define_positive_si_quantity {
+    ($name:ident, $label:literal) => {
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub struct $name(f64);
+
+        impl $name {
+            /// Construct from a positive finite magnitude already expressed in SI.
+            pub fn try_from_si(value: f64) -> StructuralReferenceResult<Self> {
+                positive_input($label, value).map(Self)
+            }
+
+            /// Return the represented SI magnitude.
+            pub const fn get(self) -> f64 {
+                self.0
+            }
+        }
+    };
+}
+
+define_positive_si_quantity!(Meters, "meters");
+define_positive_si_quantity!(SquareMeters, "square_meters");
+define_positive_si_quantity!(FourthMomentOfArea, "fourth_moment_of_area");
+define_positive_si_quantity!(Newtons, "newtons");
+define_positive_si_quantity!(Pascals, "pascals");
+define_positive_si_quantity!(NewtonsPerMeter, "newtons_per_meter");
+define_positive_si_quantity!(NewtonMeters, "newton_meters");
 
 fn positive_input(field: &'static str, value: f64) -> Result<f64> {
     if !value.is_finite() {
@@ -119,22 +163,22 @@ fn checked_quotient(field: &'static str, numerator: f64, denominator: f64) -> Re
 /// Rectangular section properties computed from primitive dimensions in metres.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RectangularSectionProperties {
-    pub width_m: f64,
-    pub depth_m: f64,
-    pub area_m2: f64,
-    pub second_moment_area_m4: f64,
-    pub extreme_fiber_distance_m: f64,
+    pub width_m: Meters,
+    pub depth_m: Meters,
+    pub area_m2: SquareMeters,
+    pub second_moment_area_m4: FourthMomentOfArea,
+    pub extreme_fiber_distance_m: Meters,
 }
 
 /// Compute A = b h, I = b h³ / 12, and c = h / 2 from primitive dimensions.
 ///
 /// Formal contract: `geometry.rectangular_section.second_moment.v1`.
 pub fn rectangular_section_properties(
-    width_m: f64,
-    depth_m: f64,
+    width_m: Meters,
+    depth_m: Meters,
 ) -> StructuralReferenceResult<RectangularSectionProperties> {
-    let width_m = positive_input("section_width_m", width_m)?;
-    let depth_m = positive_input("section_depth_m", depth_m)?;
+    let width_m = positive_input("section_width_m", width_m.get())?;
+    let depth_m = positive_input("section_depth_m", depth_m.get())?;
     let area_m2 = checked_product("section_area_m2", width_m, depth_m)?;
     let depth_cubed = checked_power3("section_depth_cubed_m3", depth_m)?;
     let inertia_numerator =
@@ -145,11 +189,11 @@ pub fn rectangular_section_properties(
         positive_intermediate("extreme_fiber_distance_m", depth_m / 2.0)?;
 
     Ok(RectangularSectionProperties {
-        width_m,
-        depth_m,
-        area_m2,
-        second_moment_area_m4,
-        extreme_fiber_distance_m,
+        width_m: Meters(width_m),
+        depth_m: Meters(depth_m),
+        area_m2: SquareMeters(area_m2),
+        second_moment_area_m4: FourthMomentOfArea(second_moment_area_m4),
+        extreme_fiber_distance_m: Meters(extreme_fiber_distance_m),
     })
 }
 
@@ -157,9 +201,9 @@ pub fn rectangular_section_properties(
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AxialBarResult {
     pub section: RectangularSectionProperties,
-    pub axial_stress_pa: f64,
-    pub free_end_extension_m: f64,
-    pub support_reaction_magnitude_n: f64,
+    pub axial_stress_pa: Pascals,
+    pub free_end_extension_m: Meters,
+    pub support_reaction_magnitude_n: Newtons,
 }
 
 /// Evaluate sigma = F/A, delta = F L/(E A), and R = F.
@@ -168,23 +212,23 @@ pub struct AxialBarResult {
 ///
 /// Formal contract: `mechanics.axial_bar.extension.v1`.
 pub fn axial_bar(
-    load_n: f64,
-    length_m: f64,
-    youngs_modulus_pa: f64,
-    width_m: f64,
-    depth_m: f64,
+    load_n: Newtons,
+    length_m: Meters,
+    youngs_modulus_pa: Pascals,
+    width_m: Meters,
+    depth_m: Meters,
 ) -> StructuralReferenceResult<AxialBarResult> {
-    let load_n = positive_input("load_N", load_n)?;
-    let length_m = positive_input("length_m", length_m)?;
-    let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa)?;
+    let load_n = positive_input("load_N", load_n.get())?;
+    let length_m = positive_input("length_m", length_m.get())?;
+    let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa.get())?;
     let section = rectangular_section_properties(width_m, depth_m)?;
 
-    let axial_stress_pa = checked_quotient("axial_stress_Pa", load_n, section.area_m2)?;
+    let axial_stress_pa = checked_quotient("axial_stress_Pa", load_n, section.area_m2.get())?;
     let extension_numerator = checked_product("extension_numerator_Nm", load_n, length_m)?;
     let axial_stiffness = checked_product(
         "axial_stiffness_N",
         youngs_modulus_pa,
-        section.area_m2,
+        section.area_m2.get(),
     )?;
     let free_end_extension_m = checked_quotient(
         "free_end_extension_m",
@@ -196,9 +240,9 @@ pub fn axial_bar(
 
     Ok(AxialBarResult {
         section,
-        axial_stress_pa,
-        free_end_extension_m,
-        support_reaction_magnitude_n,
+        axial_stress_pa: Pascals(axial_stress_pa),
+        free_end_extension_m: Meters(free_end_extension_m),
+        support_reaction_magnitude_n: Newtons(support_reaction_magnitude_n),
     })
 }
 
@@ -206,19 +250,19 @@ pub fn axial_bar(
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BeamResult {
     pub section: RectangularSectionProperties,
-    pub maximum_deflection_m: f64,
-    pub maximum_bending_moment_nm: f64,
-    pub maximum_bending_stress_pa: f64,
-    pub support_reaction_magnitude_n: f64,
+    pub maximum_deflection_m: Meters,
+    pub maximum_bending_moment_nm: NewtonMeters,
+    pub maximum_bending_stress_pa: Pascals,
+    pub support_reaction_magnitude_n: Newtons,
 }
 
 /// Positive-magnitude load cases supported by the simply supported beam reference.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SimplySupportedLoadCase {
     /// Concentrated force at midspan (N).
-    MidpointPointLoad { force_n: f64 },
+    MidpointPointLoad { force_n: Newtons },
     /// Constant vertical load intensity over the full span (N/m).
-    UniformDistributedLoad { load_n_per_m: f64 },
+    UniformDistributedLoad { load_n_per_m: NewtonsPerMeter },
 }
 
 fn bending_stress(
@@ -227,11 +271,11 @@ fn bending_stress(
 ) -> Result<f64> {
     let moment_times_fiber =
         checked_product("bending_stress_numerator_Nm2", maximum_bending_moment_nm,
-            section.extreme_fiber_distance_m)?;
+            section.extreme_fiber_distance_m.get())?;
     checked_quotient(
         "maximum_bending_stress_Pa",
         moment_times_fiber,
-        section.second_moment_area_m4,
+        section.second_moment_area_m4.get(),
     )
 }
 
@@ -240,15 +284,15 @@ fn bending_stress(
 ///
 /// Formal contract: `mechanics.cantilever.tip_deflection.v1`.
 pub fn cantilever_tip_load(
-    load_n: f64,
-    span_m: f64,
-    youngs_modulus_pa: f64,
-    width_m: f64,
-    depth_m: f64,
+    load_n: Newtons,
+    span_m: Meters,
+    youngs_modulus_pa: Pascals,
+    width_m: Meters,
+    depth_m: Meters,
 ) -> StructuralReferenceResult<BeamResult> {
-    let load_n = positive_input("load_N", load_n)?;
-    let span_m = positive_input("span_m", span_m)?;
-    let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa)?;
+    let load_n = positive_input("load_N", load_n.get())?;
+    let span_m = positive_input("span_m", span_m.get())?;
+    let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa.get())?;
     let section = rectangular_section_properties(width_m, depth_m)?;
 
     let span_cubed = checked_power3("span_cubed_m3", span_m)?;
@@ -257,7 +301,7 @@ pub fn cantilever_tip_load(
     let flexural_stiffness = checked_product(
         "flexural_stiffness_Pa_m4",
         youngs_modulus_pa,
-        section.second_moment_area_m4,
+        section.second_moment_area_m4.get(),
     )?;
     let deflection_denominator =
         checked_product("deflection_denominator", 3.0, flexural_stiffness)?;
@@ -275,10 +319,10 @@ pub fn cantilever_tip_load(
 
     Ok(BeamResult {
         section,
-        maximum_deflection_m,
-        maximum_bending_moment_nm,
-        maximum_bending_stress_pa,
-        support_reaction_magnitude_n,
+        maximum_deflection_m: Meters(maximum_deflection_m),
+        maximum_bending_moment_nm: NewtonMeters(maximum_bending_moment_nm),
+        maximum_bending_stress_pa: Pascals(maximum_bending_stress_pa),
+        support_reaction_magnitude_n: Newtons(support_reaction_magnitude_n),
     })
 }
 
@@ -289,27 +333,27 @@ pub fn cantilever_tip_load(
 /// Load-family contracts are `mechanics.simply_supported.midpoint_point_load.v1`
 /// and `mechanics.simply_supported.uniform_load.v1`.
 pub fn simply_supported_beam(
-    span_m: f64,
-    youngs_modulus_pa: f64,
-    width_m: f64,
-    depth_m: f64,
+    span_m: Meters,
+    youngs_modulus_pa: Pascals,
+    width_m: Meters,
+    depth_m: Meters,
     load_case: SimplySupportedLoadCase,
-) -> Result<BeamResult> {
-    let span_m = positive_input("span_m", span_m)?;
-    let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa)?;
+) -> StructuralReferenceResult<BeamResult> {
+    let span_m = positive_input("span_m", span_m.get())?;
+    let youngs_modulus_pa = positive_input("elastic_modulus_Pa", youngs_modulus_pa.get())?;
     let section = rectangular_section_properties(width_m, depth_m)?;
 
     let (maximum_deflection_m, maximum_bending_moment_nm, support_reaction_magnitude_n) =
         match load_case {
             SimplySupportedLoadCase::MidpointPointLoad { force_n } => {
-                let force_n = positive_input("load_N", force_n)?;
+                let force_n = positive_input("load_N", force_n.get())?;
                 let span_cubed = checked_power3("span_cubed_m3", span_m)?;
                 let numerator =
                     checked_product("midpoint_deflection_numerator_Nm3", force_n, span_cubed)?;
                 let flexural_stiffness = checked_product(
                     "flexural_stiffness_Pa_m4",
                     youngs_modulus_pa,
-                    section.second_moment_area_m4,
+                    section.second_moment_area_m4.get(),
                 )?;
                 let denominator =
                     checked_product("midpoint_deflection_denominator", 48.0, flexural_stiffness)?;
@@ -329,7 +373,7 @@ pub fn simply_supported_beam(
                 (deflection, moment, reaction)
             }
             SimplySupportedLoadCase::UniformDistributedLoad { load_n_per_m } => {
-                let load_n_per_m = positive_input("load_N_per_m", load_n_per_m)?;
+                let load_n_per_m = positive_input("load_N_per_m", load_n_per_m.get())?;
                 let span_fourth = checked_power4("span_fourth_m4", span_m)?;
                 let load_factor =
                     checked_product("uniform_deflection_load_factor", 5.0, load_n_per_m)?;
@@ -338,8 +382,8 @@ pub fn simply_supported_beam(
                 let flexural_stiffness = checked_product(
                     "flexural_stiffness_Pa_m4",
                     youngs_modulus_pa,
-                    section.second_moment_area_m4,
-                )?;
+                    section.second_moment_area_m4.get(),
+    )?;
                 let denominator =
                     checked_product("uniform_deflection_denominator", 384.0, flexural_stiffness)?;
                 let deflection =
@@ -368,10 +412,10 @@ pub fn simply_supported_beam(
 
     Ok(BeamResult {
         section,
-        maximum_deflection_m,
-        maximum_bending_moment_nm,
-        maximum_bending_stress_pa,
-        support_reaction_magnitude_n,
+        maximum_deflection_m: Meters(maximum_deflection_m),
+        maximum_bending_moment_nm: NewtonMeters(maximum_bending_moment_nm),
+        maximum_bending_stress_pa: Pascals(maximum_bending_stress_pa),
+        support_reaction_magnitude_n: Newtons(support_reaction_magnitude_n),
     })
 }
 
@@ -388,101 +432,135 @@ mod tests {
                 <= TOLERANCE * expected.abs().max(f64::MIN_POSITIVE)
     }
 
+    fn m(value: f64) -> Meters {
+        Meters::try_from_si(value).expect("positive SI length")
+    }
+
+    fn n(value: f64) -> Newtons {
+        Newtons::try_from_si(value).expect("positive SI force")
+    }
+
+    fn pa(value: f64) -> Pascals {
+        Pascals::try_from_si(value).expect("positive SI pressure")
+    }
+
+    fn n_per_m(value: f64) -> NewtonsPerMeter {
+        NewtonsPerMeter::try_from_si(value).expect("positive SI line load")
+    }
+
     #[test]
     fn axial_bar_matches_exact_reference_case() {
-        let result = axial_bar(12_000.0, 3.0, 200_000_000_000.0, 0.05, 0.1)
+        let result = axial_bar(n(12_000.0), m(3.0), pa(200_000_000_000.0), m(0.05), m(0.1))
             .expect("reference input is valid");
-        assert!(close(result.section.area_m2, 0.005));
-        assert!(close(result.axial_stress_pa, 2_400_000.0));
-        assert!(close(result.free_end_extension_m, 0.000036));
-        assert!(close(result.support_reaction_magnitude_n, 12_000.0));
+        assert!(close(result.section.area_m2.get(), 0.005));
+        assert!(close(result.axial_stress_pa.get(), 2_400_000.0));
+        assert!(close(result.free_end_extension_m.get(), 0.000036));
+        assert!(close(result.support_reaction_magnitude_n.get(), 12_000.0));
     }
 
     #[test]
     fn cantilever_matches_exact_reference_case() {
-        let result = cantilever_tip_load(1_000.0, 2.0, 200_000_000_000.0, 0.096, 0.1)
-            .expect("reference input is valid");
-        assert!(close(result.section.second_moment_area_m4, 8.0e-6));
-        assert!(close(result.maximum_deflection_m, 1.0 / 600.0));
-        assert!(close(result.maximum_bending_stress_pa, 12_500_000.0));
+        let result = cantilever_tip_load(
+            n(1_000.0),
+            m(2.0),
+            pa(200_000_000_000.0),
+            m(0.096),
+            m(0.1),
+        )
+        .expect("reference input is valid");
+        assert!(close(result.section.second_moment_area_m4.get(), 8.0e-6));
+        assert!(close(result.maximum_deflection_m.get(), 1.0 / 600.0));
+        assert!(close(result.maximum_bending_stress_pa.get(), 12_500_000.0));
     }
 
     #[test]
     fn simply_supported_matches_both_load_families() {
         let point = simply_supported_beam(
-            4.0,
-            200_000_000_000.0,
-            0.1,
-            0.2,
-            SimplySupportedLoadCase::MidpointPointLoad { force_n: 5_000.0 },
+            m(4.0),
+            pa(200_000_000_000.0),
+            m(0.1),
+            m(0.2),
+            SimplySupportedLoadCase::MidpointPointLoad { force_n: n(5_000.0) },
         )
         .expect("point-load case is valid");
-        assert!(close(point.maximum_deflection_m, 0.0005));
-        assert!(close(point.maximum_bending_moment_nm, 5_000.0));
-        assert!(close(point.maximum_bending_stress_pa, 7_500_000.0));
-        assert!(close(point.support_reaction_magnitude_n, 2_500.0));
+        assert!(close(point.maximum_deflection_m.get(), 0.0005));
+        assert!(close(point.maximum_bending_moment_nm.get(), 5_000.0));
+        assert!(close(point.maximum_bending_stress_pa.get(), 7_500_000.0));
+        assert!(close(point.support_reaction_magnitude_n.get(), 2_500.0));
 
         let uniform = simply_supported_beam(
-            4.0,
-            200_000_000_000.0,
-            0.1,
-            0.2,
+            m(4.0),
+            pa(200_000_000_000.0),
+            m(0.1),
+            m(0.2),
             SimplySupportedLoadCase::UniformDistributedLoad {
-                load_n_per_m: 1_000.0,
+                load_n_per_m: n_per_m(1_000.0),
             },
         )
         .expect("uniform-load case is valid");
-        assert!(close(uniform.maximum_deflection_m, 0.00025));
-        assert!(close(uniform.maximum_bending_moment_nm, 2_000.0));
-        assert!(close(uniform.maximum_bending_stress_pa, 3_000_000.0));
-        assert!(close(uniform.support_reaction_magnitude_n, 2_000.0));
+        assert!(close(uniform.maximum_deflection_m.get(), 0.00025));
+        assert!(close(uniform.maximum_bending_moment_nm.get(), 2_000.0));
+        assert!(close(uniform.maximum_bending_stress_pa.get(), 3_000_000.0));
+        assert!(close(uniform.support_reaction_magnitude_n.get(), 2_000.0));
     }
 
     #[test]
-    fn nonpositive_and_nonfinite_inputs_fail_closed() {
+    fn invalid_unit_magnitudes_fail_before_they_enter_equations() {
         assert_eq!(
-            axial_bar(0.0, 3.0, 200e9, 0.05, 0.1).unwrap_err().kind,
+            Newtons::try_from_si(0.0).unwrap_err().kind,
             StructuralReferenceErrorKind::NonPositiveInput
         );
         assert_eq!(
-            axial_bar(f64::NAN, 3.0, 200e9, 0.05, 0.1).unwrap_err().kind,
+            Meters::try_from_si(f64::NAN).unwrap_err().kind,
             StructuralReferenceErrorKind::NonFiniteInput
         );
-        assert!(cantilever_tip_load(1_000.0, 0.0, 200e9, 0.096, 0.1).is_err());
-        assert!(simply_supported_beam(
-            4.0,
-            200e9,
-            0.1,
-            0.2,
-            SimplySupportedLoadCase::UniformDistributedLoad { load_n_per_m: -1.0 }
-        ).is_err());
+        assert_eq!(
+            Pascals::try_from_si(-1.0).unwrap_err().kind,
+            StructuralReferenceErrorKind::NonPositiveInput
+        );
+        assert_eq!(
+            NewtonsPerMeter::try_from_si(f64::INFINITY).unwrap_err().kind,
+            StructuralReferenceErrorKind::NonFiniteInput
+        );
     }
 
     #[test]
     fn overflow_and_underflow_do_not_return_plausible_numbers() {
-        assert!(rectangular_section_properties(f64::MAX, f64::MAX).is_err());
-        assert!(rectangular_section_properties(f64::MIN_POSITIVE, f64::MIN_POSITIVE).is_err());
-        assert!(axial_bar(f64::MAX, f64::MAX, f64::MIN_POSITIVE, 0.05, 0.1).is_err());
+        let huge = m(f64::MAX);
+        let tiny = m(f64::MIN_POSITIVE);
+        assert!(rectangular_section_properties(huge, huge).is_err());
+        assert!(rectangular_section_properties(tiny, tiny).is_err());
+        assert!(axial_bar(
+            n(f64::MAX),
+            huge,
+            pa(f64::MIN_POSITIVE),
+            m(0.05),
+            m(0.1)
+        )
+        .is_err());
     }
 
     #[test]
     fn scale_similarity_preserves_dimensionless_outputs() {
-        let baseline = cantilever_tip_load(1_000.0, 2.0, 200e9, 0.096, 0.1)
+        let baseline = cantilever_tip_load(n(1_000.0), m(2.0), pa(200e9), m(0.096), m(0.1))
             .expect("baseline input valid");
         for scale in [0.5_f64, 0.75, 1.25, 2.0, 4.0] {
             let scaled = cantilever_tip_load(
-                1_000.0 * scale.powi(2),
-                2.0 * scale,
-                200e9,
-                0.096 * scale,
-                0.1 * scale,
+                n(1_000.0 * scale.powi(2)),
+                m(2.0 * scale),
+                pa(200e9),
+                m(0.096 * scale),
+                m(0.1 * scale),
             )
             .expect("similarity transform remains valid");
             assert!(close(
-                scaled.maximum_deflection_m / (2.0 * scale),
-                baseline.maximum_deflection_m / 2.0
+                scaled.maximum_deflection_m.get() / (2.0 * scale),
+                baseline.maximum_deflection_m.get() / 2.0
             ));
-            assert!(close(scaled.maximum_bending_stress_pa, baseline.maximum_bending_stress_pa));
+            assert!(close(
+                scaled.maximum_bending_stress_pa.get(),
+                baseline.maximum_bending_stress_pa.get()
+            ));
         }
     }
 }
