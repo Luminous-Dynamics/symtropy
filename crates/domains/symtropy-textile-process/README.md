@@ -14,9 +14,9 @@ unit IDs.
 
 ## Robust stress evaluation
 
-The stress module evaluates explicit processing-time delays, input-release delays,
-utility-budget curtailment and pre-horizon machine-availability shocks against the bounded exact solver
-and all four dispatch rules. The result preserves each fixture reference,
+The stress module evaluates processing-time delays, input-release delays,
+utility-budget curtailment, and pre-horizon machine unavailability against the
+bounded exact solver and all four dispatch rules. The result preserves each fixture reference,
 exact feasibility outcome, concrete heuristic plan (if found), profile/service
 identifiers, and per-objective gaps. This is an equally enumerated stress corpus,
 not an estimate of real-world disruption probabilities. Full protocol and
@@ -73,6 +73,6 @@ This crate includes a bounded single-stage scheduler with capability checks,
 release/due/hard-finish windows, evidence-backed sequence-dependent setups, hard
 energy/water budgets, four deterministic dispatch rules (EarliestDue, LowestSetup,
 LowestEnergy, LeastSlack), and an exhaustive Pareto oracle for tiny instances.
-The robustness harness evaluates processing, input-release and machine-availability
-shocks against the exact reference. Contracts: docs/ops/TEXTILE_SCHEDULER_BENCHMARK_V0_1.md
+The robustness harness evaluates processing, input-release, utility-budget and
+machine-availability shocks against the exact reference. Contracts: docs/ops/TEXTILE_SCHEDULER_BENCHMARK_V0_1.md
 and docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md.
