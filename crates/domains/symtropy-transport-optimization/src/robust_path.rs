@@ -17,7 +17,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::{
-    ArrivalFunctionError, FifoPathEvaluationError, FifoPathEstimateV1, FifoPathLegV1,
+    FifoPathEvaluationError, FifoPathEstimateV1, FifoPathLegV1,
     evaluate_fifo_path,
 };
 
@@ -368,12 +368,14 @@ pub fn select_robust_fifo_path(
                 "candidate has no scenario observations",
             ))?;
 
+        let worst_case_arrival_epoch_seconds = worst.final_arrival_epoch_seconds;
+        let worst_case_scenario_id = worst.scenario_id.clone();
         observations.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
         scores.push(FifoRobustPathScoreV1 {
             path_id: candidate.path_id.clone(),
             nominal_arrival_epoch_seconds,
-            worst_case_arrival_epoch_seconds: worst.final_arrival_epoch_seconds,
-            worst_case_scenario_id: worst.scenario_id.clone(),
+            worst_case_arrival_epoch_seconds,
+            worst_case_scenario_id,
             observations,
         });
     }
