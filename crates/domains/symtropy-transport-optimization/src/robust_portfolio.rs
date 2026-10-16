@@ -18,7 +18,7 @@ use std::fmt;
 
 use super::{
     CargoTransferCapacityResourceKind, FifoCapacityQualifiedPathScoreV1,
-    FifoPathScenarioKindV1, FifoRobustCapacitySelectionReportV1, FifoRobustPathScoreV1,
+    FifoPathScenarioKindV1, FifoRobustCapacitySelectionReportV1,
     QuantityUnit, ScheduledCapacityAssignmentReceiptV1, ScheduledCapacityResourceSummaryV1,
 };
 
@@ -1180,7 +1180,8 @@ mod tests {
         let chosen = report.demand_choices.iter()
             .map(|choice| (choice.demand_id.as_str(), choice.path_id.as_str()))
             .collect::<BTreeMap<_, _>>();
-        assert!(chosen["demand-1"] != "shared-fast" || chosen["demand-2"] != "shared-fast");
+        assert_eq!(chosen["demand-1"], "alternate-1");
+        assert_eq!(chosen["demand-2"], "shared-fast");
         assert!(report.infeasibility_examples.iter().any(|example| {
             matches!(&example.reason, FifoPortfolioInfeasibilityV1::ConcurrentCapacityExceeded { .. })
         }));
