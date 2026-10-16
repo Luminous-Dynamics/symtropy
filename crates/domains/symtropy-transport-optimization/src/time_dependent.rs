@@ -310,6 +310,175 @@ impl FifoArrivalTimeFunctionV1 {
     }
 }
 
+/// One ordered route leg with a declared continuous node transition.
+///
+/// `pre_leg_delay_seconds` is explicit deterministic handling/access/dwell time
+/// before this leg; it is not a scheduled-service wait and does not infer a
+/// departure from a timetable.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FifoPathLegV1 {
+    pub edge_id: String,
+    pub from_node_id: String,
+    pub to_node_id: String,
+    pub pre_leg_delay_seconds: u64,
+    pub arrival_function: FifoArrivalTimeFunctionV1,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FifoPathLegEstimateV1 {
+    pub edge_id: String,
+    pub from_node_id: String,
+    pub to_node_id: String,
+    pub pre_leg_delay_seconds: u64,
+    pub estimate: ArrivalTimeEstimateV1,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FifoPathEstimateV1 {
+    pub origin_node_id: String,
+    pub destination_node_id: String,
+    pub time_profile_id: String,
+    pub knowledge_cutoff_epoch_seconds: u64,
+    pub initial_departure_epoch_seconds: u64,
+    pub final_arrival_epoch_seconds: u64,
+    pub total_elapsed_seconds: u64,
+    pub legs: Vec<FifoPathLegEstimateV1>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FifoPathEvaluationError {
+    EmptyPath,
+    InvalidNodeOrEdgeIdentity,
+    RepeatedEdge(String),
+    DisconnectedLegs {
+        previous_edge_id: String,
+        next_edge_id: String,
+        expected_node_id: String,
+        actual_node_id: String,
+    },
+    ArithmeticOverflow,
+    ArrivalFunction {
+        edge_id: String,
+        source: ArrivalFunctionError,
+    },
+}
+
+impl fmt::Display for FifoPathEvaluationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyPath => formatter.write_str("FIFO path must contain at least one leg"),
+            Self::InvalidNodeOrEdgeIdentity => {
+                formatter.write_str("FIFO path contains an empty edge or node identity")
+            }
+            Self::RepeatedEdge(edge_id) => write!(formatter, "FIFO path repeats edge {edge_id}"),
+            Self::DisconnectedLegs {
+                previous_edge_id,
+                next_edge_id,
+                expected_node_id,
+                actual_node_id,
+            } => write!(
+                formatter,
+                "FIFO path is disconnected between edge {previous_edge_id} (ends at {expected_node_id}) and edge {next_edge_id} (starts at {actual_node_id})"
+            ),
+            Self::ArithmeticOverflow => {
+                formatter.write_str("FIFO path delay or total elapsed time overflowed")
+            }
+            Self::ArrivalFunction { edge_id, source } => {
+                write!(formatter, "arrival function for edge {edge_id} failed: {source}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for FifoPathEvaluationError {}
+
+/// Compose FIFO leg functions in route order without resetting the clock.
+///
+/// The next leg departs at the previous leg's arrival plus its declared
+/// `pre_leg_delay_seconds`. This function does not infer timetable departures,
+/// waiting rules, route-edge aliases, physical capacity, or dispatch authority.
+pub fn evaluate_fifo_path(
+    legs: &[FifoPathLegV1],
+    initial_departure_epoch_seconds: u64,
+    knowledge_cutoff_epoch_seconds: u64,
+    time_profile_id: &str,
+) -> Result<FifoPathEstimateV1, FifoPathEvaluationError> {
+    if legs.is_empty() {
+        return Err(FifoPathEvaluationError::EmptyPath);
+    }
+
+    let mut current_time = initial_departure_epoch_seconds;
+    let mut previous_node: Option<&str> = None;
+    let mut previous_edge_id: Option<&str> = None;
+    let mut seen_edges = std::collections::BTreeSet::new();
+    let mut estimates = Vec::with_capacity(legs.len());
+
+    for leg in legs {
+        if leg.edge_id.trim().is_empty()
+            || leg.from_node_id.trim().is_empty()
+            || leg.to_node_id.trim().is_empty()
+        {
+            return Err(FifoPathEvaluationError::InvalidNodeOrEdgeIdentity);
+        }
+        if !seen_edges.insert(leg.edge_id.as_str()) {
+            return Err(FifoPathEvaluationError::RepeatedEdge(leg.edge_id.clone()));
+        }
+        if let Some(expected_node_id) = previous_node {
+            if leg.from_node_id != expected_node_id {
+                return Err(FifoPathEvaluationError::DisconnectedLegs {
+                    previous_edge_id: previous_edge_id.unwrap_or_default().to_owned(),
+                    next_edge_id: leg.edge_id.clone(),
+                    expected_node_id: expected_node_id.to_owned(),
+                    actual_node_id: leg.from_node_id.clone(),
+                });
+            }
+        }
+
+        let leg_departure = current_time
+            .checked_add(leg.pre_leg_delay_seconds)
+            .ok_or(FifoPathEvaluationError::ArithmeticOverflow)?;
+        let estimate = leg
+            .arrival_function
+            .arrival_at(
+                leg_departure,
+                knowledge_cutoff_epoch_seconds,
+                time_profile_id,
+            )
+            .map_err(|source| FifoPathEvaluationError::ArrivalFunction {
+                edge_id: leg.edge_id.clone(),
+                source,
+            })?;
+
+        current_time = estimate.arrival_epoch_seconds;
+        estimates.push(FifoPathLegEstimateV1 {
+            edge_id: leg.edge_id.clone(),
+            from_node_id: leg.from_node_id.clone(),
+            to_node_id: leg.to_node_id.clone(),
+            pre_leg_delay_seconds: leg.pre_leg_delay_seconds,
+            estimate,
+        });
+        previous_node = Some(leg.to_node_id.as_str());
+        previous_edge_id = Some(leg.edge_id.as_str());
+    }
+
+    let origin_node_id = legs[0].from_node_id.clone();
+    let destination_node_id = legs[legs.len() - 1].to_node_id.clone();
+    let total_elapsed_seconds = current_time
+        .checked_sub(initial_departure_epoch_seconds)
+        .ok_or(FifoPathEvaluationError::ArithmeticOverflow)?;
+
+    Ok(FifoPathEstimateV1 {
+        origin_node_id,
+        destination_node_id,
+        time_profile_id: time_profile_id.to_owned(),
+        knowledge_cutoff_epoch_seconds,
+        initial_departure_epoch_seconds,
+        final_arrival_epoch_seconds: current_time,
+        total_elapsed_seconds,
+        legs: estimates,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
