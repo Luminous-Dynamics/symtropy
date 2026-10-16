@@ -320,10 +320,15 @@ fn debris_gate(v: &Value) -> Check<Value> {
         || req_text(v, "mission_specific_disposal_gate", at)? != "required" {
         return Err(format!("{at}: incorrect fixture identity or gate"));
     }
+    if req_text(v, "applicability_note", at)?.len() < 20 {
+        return Err(format!("{at}: mission-specific applicability boundary is missing"));
+    }
     let options = array(field(v, "options", at)?, &format!("{at}.options"))?;
     if options.len() != 2 { return Err(format!("{at}: expected exactly two options")); }
     let mut found_low = false;
     let mut found_high = false;
+    let mut low_cost = None;
+    let mut high_cost = None;
     for option in options {
         exact_keys(option, &["id", "lifecycle_cost_scu", "disposal_gate_pass"], &format!("{at}.option"))?;
         let id = req_text(option, "id", at)?;
@@ -332,19 +337,24 @@ fn debris_gate(v: &Value) -> Check<Value> {
         match id.as_str() {
             "low_cost_noncompliant" => {
                 found_low = true;
+                low_cost = Some(cost);
                 if passes { return Err(format!("{at}: low-cost negative control incorrectly passes its gate")); }
             }
             "higher_cost_compliant" => {
                 found_high = true;
+                high_cost = Some(cost);
                 if !passes { return Err(format!("{at}: compliant option unexpectedly fails gate")); }
-                if cost <= 80 { return Err(format!("{at}: compliant option must be more expensive than the noncompliant option")); }
             }
             _ => return Err(format!("{at}: unknown option {id}")),
         }
     }
     if !found_low || !found_high { return Err(format!("{at}: required options missing")); }
+    if high_cost <= low_cost {
+        return Err(format!("{at}: compliant option must cost more than the noncompliant control in this fixture"));
+    }
     Ok(json!({"scenario_id": at, "status": "pass", "reason_codes": [], "metrics": {
-        "low_cost_option_rejected_by_gate": true, "only_compliant_option_feasible": true
+        "low_cost_option_rejected_by_gate": true, "only_compliant_option_feasible": true,
+        "noncompliant_lifecycle_cost_scu": low_cost, "compliant_lifecycle_cost_scu": high_cost
     }}))
 }
 
