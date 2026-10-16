@@ -1,0 +1,133 @@
+{
+  "schema_version": "0.1",
+  "corpus_id": "textile-schedule-disruption-v0-1",
+  "corpus_version": "1",
+  "synthetic_only": true,
+  "interpretation_boundary": "Synthetic, equally enumerated stress cases for algorithm validation; scenario counts are not estimates of real-world probability and do not prove factory savings.",
+  "baseline_problem": {
+    "id": "heritage-repair-baseline-v0",
+    "time_unit_id": "minute-tick-v0",
+    "energy_unit_id": "energy-unit-v0",
+    "water_unit_id": "water-unit-v0",
+    "energy_budget_units": 4,
+    "water_budget_units": 4,
+    "jobs": [
+      {
+        "id": "ceremonial-repair",
+        "profile_id": "ceremonial-or-heritage-v0",
+        "functional_unit_id": "service-event-v0",
+        "setup_family": "specialist-repair",
+        "required_capabilities": [
+          "heritage-safe"
+        ],
+        "release_tick": 0,
+        "due_tick": 5,
+        "hard_finish_by_tick": 10,
+        "processing_ticks": 3,
+        "energy_units": 1,
+        "water_units": 1,
+        "process_evidence_ref": "fixture:repair-procedure-v0",
+        "required_gates": [
+          {
+            "id": "repair-readiness",
+            "outcome": {
+              "status": "pass",
+              "evidence_ref": "fixture:qualified-materials-review"
+            }
+          }
+        ]
+      }
+    ],
+    "machines": [
+      {
+        "id": "heritage-repair-cell",
+        "capabilities": [
+          "heritage-safe"
+        ],
+        "initial_setup_family": "specialist-repair",
+        "available_tick": 0,
+        "capability_evidence_ref": "fixture:cell-qualification-v0"
+      }
+    ],
+    "setup_transitions": []
+  },
+  "scenarios": [
+    {
+      "id": "nominal",
+      "fixture_ref": "fixture:stress:nominal",
+      "processing_delays": [],
+      "release_delays": [],
+      "utility_budget_shock": null,
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
+    },
+    {
+      "id": "slow-repair",
+      "fixture_ref": "fixture:stress:slow-repair",
+      "processing_delays": [
+        {
+          "job_id": "ceremonial-repair",
+          "additional_ticks": 3
+        }
+      ],
+      "release_delays": [],
+      "utility_budget_shock": null,
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
+    },
+    {
+      "id": "specialist-material-arrives-late",
+      "fixture_ref": "fixture:stress:specialist-material-arrives-late",
+      "processing_delays": [],
+      "release_delays": [
+        {
+          "job_id": "ceremonial-repair",
+          "additional_ticks": 2
+        }
+      ],
+      "utility_budget_shock": null,
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
+    },
+    {
+      "id": "water-intensive-finish",
+      "fixture_ref": "fixture:stress:water-intensive-finish",
+      "processing_delays": [],
+      "process_resource_shocks": [
+        {
+          "job_id": "ceremonial-repair",
+          "additional_energy_units": 0,
+          "additional_water_units": 4
+        }
+      ],
+      "release_delays": [],
+      "utility_budget_shock": null,
+      "machine_availability_delays": []
+    },
+    {
+      "id": "energy-curtailed",
+      "fixture_ref": "fixture:stress:energy-curtailed",
+      "processing_delays": [],
+      "release_delays": [],
+      "utility_budget_shock": {
+        "energy_budget_units": 0
+      },
+      "machine_availability_delays": [],
+      "process_resource_shocks": []
+    },
+    {
+      "id": "cell-unavailable-too-long",
+      "fixture_ref": "fixture:stress:cell-unavailable-too-long",
+      "processing_delays": [],
+      "release_delays": [],
+      "utility_budget_shock": null,
+      "machine_availability_delays": [
+        {
+          "machine_id": "heritage-repair-cell",
+          "unavailable_until_tick": 8
+        }
+      ],
+      "process_resource_shocks": []
+    }
+  ]
+}
