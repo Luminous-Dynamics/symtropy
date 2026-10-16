@@ -1174,6 +1174,57 @@ mod tests {
     }
 
     #[test]
+    fn one_hundred_seeded_two_world_cases_match_closed_form_oracle() {
+        for seed in 0_u32..100 {
+            let mut scenario = base_scenario();
+            let dry_probability = (seed * 7_919 % 999_998) + 1;
+            let wet_probability = PROBABILITY_SCALE_PPM - dry_probability;
+            let dry_utility = i64::from((seed * 31 % 500) + 1);
+            let wet_utility = i64::from((seed * 47 % 600) + 1);
+
+            scenario.worlds[0].probability_ppm = dry_probability;
+            scenario.worlds[1].probability_ppm = wet_probability;
+            scenario.decisions[0].utility_by_world[0].utility_scaled = dry_utility;
+            scenario.decisions[0].utility_by_world[1].utility_scaled = 0;
+            scenario.decisions[1].utility_by_world[0].utility_scaled = 0;
+            scenario.decisions[1].utility_by_world[1].utility_scaled = wet_utility;
+            scenario.measurements[0] = perfect_measurement(ProbabilityBasisV1::SyntheticFixture, 0);
+
+            let report = evaluate_value_of_information(&scenario).expect("generated valid case");
+            let dry_joint = i128::from(dry_probability) * i128::from(dry_utility);
+            let wet_joint = i128::from(wet_probability) * i128::from(wet_utility);
+            let baseline = dry_joint.max(wet_joint);
+            let gross = dry_joint.min(wet_joint) * i128::from(PROBABILITY_SCALE_PPM);
+            let comparison = &report.measurement_comparisons[0];
+
+            assert_eq!(
+                report.baseline_expected_utility_numerator_ppm,
+                baseline,
+                "baseline mismatch at synthetic seed {seed}"
+            );
+            assert_eq!(
+                comparison.expected_utility_after_measurement_numerator_ppm_squared,
+                Some((dry_joint + wet_joint) * i128::from(PROBABILITY_SCALE_PPM)),
+                "expected-after mismatch at synthetic seed {seed}"
+            );
+            assert_eq!(
+                comparison.gross_evsi_numerator_ppm_squared,
+                Some(gross),
+                "gross EVSI mismatch at synthetic seed {seed}"
+            );
+            assert_eq!(
+                comparison.net_evsi_numerator_ppm_squared,
+                Some(gross),
+                "zero-cost net EVSI mismatch at synthetic seed {seed}"
+            );
+            assert_eq!(
+                comparison.disposition,
+                MeasurementDispositionV1::SyntheticFixtureOnly
+            );
+        }
+    }
+
+    #[test]
     fn infeasible_only_scenario_is_rejected_not_scored() {
         let mut scenario = base_scenario();
         for decision in &mut scenario.decisions {
