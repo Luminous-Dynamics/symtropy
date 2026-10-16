@@ -12,6 +12,8 @@ The unit of evaluation is a **resident-defined goal in a declared context**, not
 
 The World Health Organization's *Housing and health guidelines* addresses accessibility for people with functional impairments alongside other housing-health risks. The accessibility systematic review bundled with the 2018 guideline included literature through April 2018. At the time, it noted relatively few high-quality studies, variation in interventions and measures, and a need for stronger standardized and longitudinal outcome research. It identified outcomes such as injury rates, well-being, quality of life, mental health, reliance on external care services and social participation. This is an evidence-gap signal from that review, not a claim that no newer research exists; conduct an updated literature search before field recruitment.
 
+Newer reviews make the next research priorities more specific. A 2023 systematic review identified 12 randomized trials of home modifications for older adults and reported that occupational-therapist-led approaches combined with clinical, physical-activity or behavioral components were among the more successful models ([Sheth & Cogle, 2023](https://pubmed.ncbi.nlm.nih.gov/36655622/)). A 2025 systematic review of 20 studies on home modifications for older adults identified gaps in personalization, smart-home technologies, long-term adaptation, social engagement and cost-effectiveness ([Cha, 2025](https://pubmed.ncbi.nlm.nih.gov/40218050/)). Both reviews focus on older adults, so they do not establish general effects for every disability group, child or housing context. The 2025 review uses narrative synthesis and describes heterogeneous evidence; treat these findings as priorities for study design, not a universal effect estimate. The protocol therefore measures resident-defined agency and participation alongside technical task performance, support/caregiver burden, lifecycle cost, maintainability, privacy, and failure recovery. Refresh and document the search strategy and evidence appraisal before recruitment.
+
 ISO 21542:2021 covers accessibility/usability of the built environment, including access, circulation, egress and fire evacuation; residential-unit recommendations are included. Its official status page currently identifies the 2021 edition as published and records a review milestone on 3 September 2026. Verify its latest lifecycle status, relevant editions and applicable legal requirements before using it in a live project.
 
 South Africa's *National Strategic Framework on Universal Design and Access* provides important local policy context, but does not itself certify an individual building or intervention.
@@ -19,6 +21,8 @@ South Africa's *National Strategic Framework on Universal Design and Access* pro
 Sources:
 - WHO, [Housing and health guidelines](https://www.who.int/publications/i/item/9789241550376)
 - WHO, [full guideline and accessibility research recommendations](https://iris.who.int/bitstream/handle/10665/276001/9789241550376-eng.pdf)
+- Sheth and Cogle (2023), [Home Modifications for Older Adults: A Systematic Review](https://pubmed.ncbi.nlm.nih.gov/36655622/)
+- Cha (2025), [A Systematic Review of Home Modifications for Aging in Place in Older Adults](https://pubmed.ncbi.nlm.nih.gov/40218050/)
 - ISO, [ISO 21542:2021 status and scope](https://committee.iso.org/standard/71860.html)
 - South African Government, [National Strategic Framework on Universal Design and Access](https://www.gov.za/sites/default/files/gcis_document/202110/45328gen606.pdf)
 
