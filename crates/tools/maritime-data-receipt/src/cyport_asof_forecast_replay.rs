@@ -490,7 +490,8 @@ mod tests {
     #[test]
     fn post_storm_best_track_cannot_be_promoted_to_forecast_predictor() {
         let mut value: Value = serde_json::from_slice(CONTRACT).expect("valid contract JSON");
-        value["archive_candidate"]["retrospective_best_track_allowed_as_predictor"] = serde_json::json!(true);
+        value["archive_candidate"]["retrospective_best_track_allowed_as_predictor"] =
+            serde_json::json!(true);
         let changed = serde_json::to_vec(&value).expect("serialize mutated contract");
         assert!(
             validate_contract(&changed)
