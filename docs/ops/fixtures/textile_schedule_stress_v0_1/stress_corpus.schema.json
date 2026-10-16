@@ -403,6 +403,7 @@
         "id",
         "fixture_ref",
         "processing_delays",
+        "process_resource_shocks",
         "release_delays",
         "utility_budget_shock",
         "machine_availability_delays"
@@ -441,8 +442,50 @@
           "items": {
             "$ref": "#/$defs/machine_availability_delay"
           }
+        },
+        "process_resource_shocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/process_resource_shock"
+          }
         }
       }
+    },
+    "process_resource_shock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "additional_energy_units",
+        "additional_water_units"
+      ],
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "additional_energy_units": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "additional_water_units": {
+          "$ref": "#/$defs/nonNegative"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "additional_energy_units": {
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "additional_water_units": {
+              "minimum": 1
+            }
+          }
+        }
+      ]
     }
   }
 }
