@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use accessible_home_task_network_validator::evaluate_bytes;
+use accessible_home_task_network_validator::evaluate_any_bytes;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -35,7 +35,7 @@ fn run() -> Result<(), String> {
     let input_path = input_path.ok_or("--input is required (use --help)")?;
     let input = fs::read(&input_path)
         .map_err(|error| format!("could not read {}: {error}", input_path.display()))?;
-    let report = evaluate_bytes(&input)
+    let report = evaluate_any_bytes(&input)
         .map_err(|errors| format!("validation failed closed:\n- {}", errors.join("\n- ")))?;
     let output = serde_json::to_vec_pretty(&report)
         .map_err(|error| format!("could not serialize receipt: {error}"))?;
