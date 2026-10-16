@@ -579,10 +579,20 @@ pub fn compare_traces_3d(
 
     metrics.finite_comparison_pairs = finite_pairs;
     if finite_pairs > 0 {
+        let rms_position_error = position_error_squares.rms(finite_pairs).ok_or(
+            TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_position_error_m",
+            },
+        )?;
+        let rms_linear_velocity_error = velocity_error_squares.rms(finite_pairs).ok_or(
+            TraceComparisonError::NonFiniteComputedMetric {
+                field: "rms_linear_velocity_error_mps",
+            },
+        )?;
         metrics.max_position_error_m = Some(max_position_error_m);
-        metrics.rms_position_error_m = Some(position_error_squares.rms(finite_pairs));
+        metrics.rms_position_error_m = Some(rms_position_error);
         metrics.max_linear_velocity_error_mps = Some(max_linear_velocity_error_mps);
-        metrics.rms_linear_velocity_error_mps = Some(velocity_error_squares.rms(finite_pairs));
+        metrics.rms_linear_velocity_error_mps = Some(rms_linear_velocity_error);
     }
 
     Ok(metrics)
@@ -972,12 +982,13 @@ impl StableSumSquares {
         }
     }
 
-    fn rms(self, count: u64) -> f64 {
-        if self.scale == 0.0 {
+    fn rms(self, count: u64) -> Option<f64> {
+        let rms = if self.scale == 0.0 {
             0.0
         } else {
             self.scale * (self.scaled_sum_squares / count as f64).sqrt()
-        }
+        };
+        rms.is_finite().then_some(rms)
     }
 }
 
@@ -1037,6 +1048,21 @@ mod tests {
                 }],
             }],
         }
+    }
+
+    #[test]
+    fn stable_rms_rejects_unrepresentable_final_results() {
+        let zero = StableSumSquares::default();
+        assert_eq!(zero.rms(1), Some(0.0));
+
+        // The accumulator normally receives ratios no greater than one. This
+        // deliberately extreme internal state proves the final multiply still
+        // fails closed if a future change ever makes the result unrepresentable.
+        let overflowing = StableSumSquares {
+            scale: f64::MAX,
+            scaled_sum_squares: 4.0,
+        };
+        assert_eq!(overflowing.rms(1), None);
     }
 
     #[test]
