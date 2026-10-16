@@ -14,11 +14,11 @@ use std::error::Error;
 use std::fmt;
 
 use crate::scheduler::{
-    DispatchRule, ObjectiveOptima, ScheduleError, ScheduleMetrics, ScheduleProblem,
-    dispatch_schedule, solve_exhaustive,
+    DispatchRule, ObjectiveOptima, ScheduleCandidate, ScheduleError, ScheduleMetrics,
+    ScheduleProblem, ScheduledOperation, dispatch_schedule, solve_exhaustive,
 };
 
-pub const MAX_STRESS_SCENARIOS: usize = 128;
+pub const MAX_STRESS_SCENARIOS: usize = 32;
 pub const STRESS_SCOPE_NOTE: &str = "Stress-corpus counts and percentiles describe the enumerated scenarios; they do not estimate real-world probabilities or prove factory savings.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -87,6 +87,9 @@ pub struct RuleScenarioResult {
     pub plan_found: bool,
     pub failure: Option<ScheduleError>,
     pub metrics: Option<ScheduleMetrics>,
+    /// Full candidate for downstream auditing; profile and functional-unit IDs
+    /// remain attached to each operation.
+    pub operations: Option<Vec<ScheduledOperation>>,
     /// Differences from independently best exact values for each objective.
     /// These optima are not necessarily jointly attainable by one schedule.
     pub gap_from_individual_optima: Option<ObjectiveGap>,
@@ -98,6 +101,7 @@ pub struct RuleScenarioResult {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScenarioResult {
     pub scenario_id: String,
+    pub fixture_ref: String,
     pub exact_outcome: ScenarioExactOutcome,
     pub dispatch_results: Vec<RuleScenarioResult>,
 }
@@ -383,6 +387,7 @@ pub fn evaluate_stress_corpus(
                         plan_found: true,
                         failure: None,
                         metrics: Some(candidate.metrics),
+                        operations: Some(candidate.operations),
                         gap_from_individual_optima: Some(gap),
                         missed_feasible_schedule: false,
                     });
@@ -393,6 +398,7 @@ pub fn evaluate_stress_corpus(
                         plan_found: false,
                         failure: Some(source),
                         metrics: None,
+                        operations: None,
                         gap_from_individual_optima: None,
                         missed_feasible_schedule: exact_optima.is_some(),
                     });
@@ -408,6 +414,7 @@ pub fn evaluate_stress_corpus(
 
         scenario_results.push(ScenarioResult {
             scenario_id: scenario.id.clone(),
+            fixture_ref: scenario.fixture_ref.clone(),
             exact_outcome: exact,
             dispatch_results,
         });
