@@ -92,8 +92,8 @@ struct SplitSummary {
     storm_count: usize,
     interaction_rows: usize,
     unique_port_ids: Option<usize>,
-    first_event_start: String,
-    last_event_start: String,
+    first_event_start: Option<String>,
+    last_event_start: Option<String>,
 }
 
 #[derive(Default)]
@@ -580,8 +580,8 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 storm_count: summary.storm_count,
                 interaction_rows: summary.interaction_rows,
                 unique_port_ids: Some(summary.port_ids.len()),
-                first_event_start: summary.first_event_start.clone().expect("nonempty split has a first episode"),
-                last_event_start: summary.last_event_start.clone().expect("nonempty split has a last episode"),
+                first_event_start: summary.first_event_start.clone(),
+                last_event_start: summary.last_event_start.clone(),
             }
         })
         .collect();
@@ -851,8 +851,8 @@ fn compute_split_summaries(episodes: &[StormEpisodeSplit]) -> Result<Vec<SplitSu
             interaction_rows: usize::try_from(row_count)
                 .map_err(|_| format!("split {name}: row count overflows platform size"))?,
             unique_port_ids: None,
-            first_event_start: first.to_string(),
-            last_event_start: last.to_string(),
+            first_event_start: Some(first.to_string()),
+            last_event_start: Some(last.to_string()),
         });
     }
     Ok(result)
@@ -1025,8 +1025,8 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
         let actual_last = manifest_text(actual, "last_event_start", summary.split)?;
         if actual_storms != summary.storm_count as u64
             || actual_rows != summary.interaction_rows as u64
-            || actual_first != summary.first_event_start
-            || actual_last != summary.last_event_start
+            || Some(actual_first) != summary.first_event_start.as_deref()
+            || Some(actual_last) != summary.last_event_start.as_deref()
         {
             return Err(format!("split manifest summary drift for {}", summary.split));
         }
@@ -1216,6 +1216,23 @@ mod tests {
     }
 
     #[test]
+    fn empty_synthetic_splits_report_unknown_date_bounds_not_panics() {
+        let report = profile_bytes(SYNTHETIC_FIXTURE).expect("synthetic fixture should profile");
+        let train = report.split_summaries.iter().find(|summary| summary.split == "train").unwrap();
+        let calibration = report.split_summaries.iter().find(|summary| summary.split == "calibration").unwrap();
+        let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
+        assert_eq!(train.storm_count, 0);
+        assert_eq!(train.first_event_start, None);
+        assert_eq!(train.last_event_start, None);
+        assert_eq!(calibration.storm_count, 0);
+        assert_eq!(calibration.first_event_start, None);
+        assert_eq!(calibration.last_event_start, None);
+        assert_eq!(test.storm_count, 2);
+        assert_eq!(test.first_event_start.as_deref(), Some("2022-10-01"));
+        assert_eq!(test.last_event_start.as_deref(), Some("2023-09-12"));
+    }
+
+    #[test]
     fn all_rows_for_each_synthetic_storm_remain_in_one_temporal_split() {
         let report = profile_bytes(SYNTHETIC_FIXTURE).expect("fixture should profile");
         assert_eq!(report.episode_split_policy_id, EPISODE_SPLIT_POLICY_ID);
@@ -1246,8 +1263,8 @@ mod tests {
         assert_eq!(train.storm_count, 59);
         assert_eq!(train.interaction_rows, 1_471);
         assert_eq!(train.unique_port_ids, None);
-        assert_eq!(train.first_event_start, "2015-05-06");
-        assert_eq!(train.last_event_start, "2020-11-13");
+        assert_eq!(train.first_event_start.as_deref(), Some("2015-05-06"));
+        assert_eq!(train.last_event_start.as_deref(), Some("2020-11-13"));
         let calibration = report.split_summaries.iter().find(|summary| summary.split == "calibration").unwrap();
         assert_eq!(calibration.storm_count, 13);
         assert_eq!(calibration.interaction_rows, 308);
