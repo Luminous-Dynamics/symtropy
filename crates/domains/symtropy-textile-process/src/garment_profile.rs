@@ -215,7 +215,7 @@ impl GarmentUseProfile {
     /// environmental harm from a non-wear service unit.
     pub fn has_non_wear_service_unit(&self) -> bool {
         matches!(
-            self.functional_unit,
+            &self.functional_unit,
             FunctionalUnitBasis::PerformanceRuns
                 | FunctionalUnitBasis::ExhibitionDays
                 | FunctionalUnitBasis::ConservationYears
