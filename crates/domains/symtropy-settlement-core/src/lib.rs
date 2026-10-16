@@ -1058,7 +1058,7 @@ mod tests {
     }
 
     #[test]
-    fn stale_power_evidence_blocks_instead_of_becoming_zero_or_healthy() {
+    fn stale_power_evidence_has_shared_uncertainty_budget_and_never_becomes_zero() {
         let mut input = fixture();
         input
             .components
@@ -1068,10 +1068,26 @@ mod tests {
             .observed_state = ComponentState::Unknown {
             cause: UnknownCause::StaleTelemetry,
         };
+        // Remove known backup capacity so only the grid's bounded unknown
+        // capacity remains. The higher-priority clinic demand gets the first
+        // hypothetical uncertainty budget; it cannot be double-counted for the
+        // pump as well.
+        let backup = input
+            .resource_supplies
+            .iter_mut()
+            .find(|supply| supply.supply_id == "backup-energy")
+            .unwrap();
+        backup.capacity_units = 20;
+        backup.protected_reserve_units = 20;
 
         let report = evaluate_scenario(&input).unwrap();
-        assert_eq!(demand(&report, "pump-power").outcome, DemandOutcome::Indeterminate);
-        assert_eq!(floor(&report, "water-floor").status, FloorStatus::Blocked);
+        assert_eq!(
+            demand(&report, "clinic-power").outcome,
+            DemandOutcome::Indeterminate
+        );
+        assert_eq!(demand(&report, "pump-power").outcome, DemandOutcome::Shortfall);
+        assert_eq!(floor(&report, "clinic-floor").status, FloorStatus::Blocked);
+        assert_eq!(floor(&report, "water-floor").status, FloorStatus::Breached);
         assert_eq!(
             report
                 .payload
@@ -1181,6 +1197,68 @@ mod tests {
         let mut wrong_unit = fixture();
         wrong_unit.service_floors[0].output_unit = "synthetic.other-unit".into();
         assert!(evaluate_scenario(&wrong_unit).is_err());
+    }
+
+    #[test]
+    fn same_kind_supply_cannot_cross_an_explicit_allocation_pool() {
+        let mut input = fixture();
+        input
+            .resource_demands
+            .iter_mut()
+            .find(|demand| demand.demand_id == "pump-power")
+            .unwrap()
+            .allocation_pool_id = "isolated-electrical".into();
+
+        let report = evaluate_scenario(&input).unwrap();
+        assert_eq!(
+            demand(&report, "pump-power").allocated_known_units,
+            0,
+            "power from a different allocation pool must not be borrowed implicitly"
+        );
+        assert_eq!(demand(&report, "pump-power").outcome, DemandOutcome::Shortfall);
+        assert_eq!(floor(&report, "water-floor").status, FloorStatus::Breached);
+    }
+
+    #[test]
+    fn unknown_resource_capacity_is_not_double_counted_across_demands() {
+        let mut input = fixture();
+        input
+            .components
+            .iter_mut()
+            .find(|component| component.id == id("grid"))
+            .unwrap()
+            .observed_state = ComponentState::Unknown {
+            cause: UnknownCause::StaleTelemetry,
+        };
+        let backup = input
+            .resource_supplies
+            .iter_mut()
+            .find(|supply| supply.supply_id == "backup-energy")
+            .unwrap();
+        backup.capacity_units = 20;
+        backup.protected_reserve_units = 20;
+        let grid = input
+            .resource_supplies
+            .iter_mut()
+            .find(|supply| supply.supply_id == "grid-energy")
+            .unwrap();
+        grid.capacity_units = 80;
+        grid.protected_reserve_units = 20;
+
+        let report = evaluate_scenario(&input).unwrap();
+        assert_eq!(
+            demand(&report, "clinic-power").outcome,
+            DemandOutcome::Indeterminate
+        );
+        assert_eq!(demand(&report, "pump-power").outcome, DemandOutcome::Shortfall);
+        assert_eq!(
+            demand(&report, "clinic-power").unresolved_potential_units,
+            60
+        );
+        assert_eq!(
+            demand(&report, "pump-power").unresolved_potential_units,
+            10
+        );
     }
 
     #[test]
