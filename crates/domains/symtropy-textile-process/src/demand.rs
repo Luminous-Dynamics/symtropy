@@ -712,6 +712,7 @@ mod tests {
     fn arithmetic_overflow_fails_instead_of_wrapping() {
         let mut bad = scenario("overflow");
         bad.confirmed_order_units = u64::MAX;
+        bad.realized_demand_units = 0;
         bad.safety_stock_units = 1;
         bad.energy_per_planned_unit = 0;
         bad.water_per_planned_unit = 0;
