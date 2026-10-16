@@ -59,11 +59,12 @@ The catalogue at formalization/lean/contracts.json maps five contract IDs to 33 
 - Do not transfer these idealized linear-model similarities to nonlinear, buckling, thermal, fire, fatigue, material-scale, or other physics without additional assumptions and independent validation.
 
 ### F2 — Rust refinement/conformance
-- Add exact mappings from each formal definition to an existing or newly written Rust implementation; do not invent a link when no matching implementation exists.
-- Start with a small pure Rust formula kernel separated from JSON parsing and evidence-verifier I/O. Keep its inputs, outputs, domain checks, and error branches explicit.
+- Candidate formula mappings now exist in `formalization/lean/contracts.json` for `symtropy_housing_evidence::structural_reference` on housing-evidence PR #1653. The source is a shared analytical reference kernel, not the production FEM solver; mappings are marked candidate/not-merged and refinement remains NOT_ESTABLISHED.
+- The three housing fixture integration tests now invoke this shared kernel, compare outputs with declared oracle values, and retain geometry-consistency checks. Kernel functions have explicit inputs, outputs, domain checks and error branches.
+- Next, freeze the candidate source/function map at a specific merged Rust revision, emit canonical input/output vectors, and prove/check the mapping from Lean's real-number specification to the Rust f64 implementation. Do not claim a verified refinement merely because tests call the same kernel.
 - Run a pinned Rust-to-Lean extraction compatibility spike. [Aeneas/Charon](https://github.com/AeneasVerif/aeneas) currently documents Lean 4.35.0, matching this project's pin; check whether its supported subset faithfully covers the kernel's f64 operations before relying on it. [Hax](https://github.com/cryspen/hax) documents a Lean backend with float support but currently pins a different Lean version, so evaluate it in a separately pinned package rather than mixing toolchains.
 - The [May 2026 Rust-to-Lean pipeline experience report](https://arxiv.org/abs/2605.30106) documents practical extraction gaps and recommends extracting a small semantically equivalent kernel when production dependencies/generics are unsupported. Use that route only with reviewed equivalence evidence; never silently replace production code with an easier but behaviorally different model.
-- Generate known-answer test vectors from the catalogue and test the actual Rust functions.
+- Generate known-answer test vectors from the catalogue and test the actual Rust functions. The candidate kernel now covers all five contract families; exact linkage to Lean and floating-point refinement remains open.
 - Add differential, metamorphic, property-based and mutation tests for each contract.
 - Require exact mapping from formal arguments to Rust fields and units; missing or unknown quantities block conformance.
 - Keep the mathematical proof, implementation test, analytical fixture, and execution receipt as distinct artifacts in the evidence chain.

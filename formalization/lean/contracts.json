@@ -46,7 +46,20 @@
           "theorem": "SymtropyFormal.rectangularSectionShapeFactor_dimensions",
           "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
         }
-      ]
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "rectangular_section_properties(width_m, depth_m)",
+        "outputs": {
+          "area_m2": "RectangularSectionProperties.area_m2",
+          "second_moment_area_m4": "RectangularSectionProperties.second_moment_area_m4",
+          "extreme_fiber_distance_m": "RectangularSectionProperties.extreme_fiber_distance_m"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+      }
     },
     {
       "id": "mechanics.axial_bar.extension.v1",
@@ -92,7 +105,21 @@
           "theorem": "SymtropyFormal.axialExtension_normalized_strain_dimensionless",
           "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
         }
-      ]
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "axial_bar(load_n, length_m, youngs_modulus_pa, width_m, depth_m)",
+        "outputs": {
+          "extension_m": "AxialBarResult.free_end_extension_m",
+          "stress_pa": "AxialBarResult.axial_stress_pa",
+          "support_reaction_n": "AxialBarResult.support_reaction_magnitude_n",
+          "section_area_m2": "AxialBarResult.section.area_m2"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+      }
     },
     {
       "id": "mechanics.cantilever.tip_deflection.v1",
@@ -140,7 +167,21 @@
           "theorem": "SymtropyFormal.cantilever_normalized_deflection_dimensionless",
           "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
         }
-      ]
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "cantilever_tip_load(load_n, span_m, youngs_modulus_pa, width_m, depth_m)",
+        "outputs": {
+          "tip_deflection_m": "BeamResult.maximum_deflection_m",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+      }
     },
     {
       "id": "mechanics.simply_supported.midpoint_point_load.v1",
@@ -191,7 +232,21 @@
           "theorem": "SymtropyFormal.simplySupportedMidpoint_normalized_deflection_dimensionless",
           "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
         }
-      ]
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "simply_supported_beam(span_m, youngs_modulus_pa, width_m, depth_m, SimplySupportedLoadCase::MidpointPointLoad { force_n })",
+        "outputs": {
+          "midspan_deflection_m": "BeamResult.maximum_deflection_m",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+      }
     },
     {
       "id": "mechanics.simply_supported.uniform_load.v1",
@@ -242,7 +297,21 @@
           "theorem": "SymtropyFormal.simplySupportedUniformLoad_normalized_deflection_dimensionless",
           "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
         }
-      ]
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "simply_supported_beam(span_m, youngs_modulus_pa, width_m, depth_m, SimplySupportedLoadCase::UniformDistributedLoad { load_n_per_m })",
+        "outputs": {
+          "midspan_deflection_m": "BeamResult.maximum_deflection_m",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "SI magnitudes encoded in f64 field names; dimensionless type enforcement is not present."
+      }
     }
   ],
   "dimension_system": {
@@ -355,5 +424,6 @@
       "expectation": "REJECT_WRONG_DIMENSION",
       "purpose": "Guard against accidental removal of the L^3 factor from the cantilever deflection equation."
     }
-  ]
+  ],
+  "rust_refinement_status": "NOT_ESTABLISHED"
 }
