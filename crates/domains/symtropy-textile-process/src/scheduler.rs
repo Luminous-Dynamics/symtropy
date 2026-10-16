@@ -1057,10 +1057,15 @@ mod tests {
         energy_units: u64,
         water_units: u64,
     ) -> TextileJob {
+        let functional_unit_id = match profile_id {
+            "everyday-v0" => "wear-care-cycle-v0",
+            "couture-decorative-v0" => "event-service-v0",
+            _ => "declared-unit-v0",
+        };
         TextileJob {
             id: id.to_owned(),
             profile_id: profile_id.to_owned(),
-            functional_unit_id: "declared-unit-v0".to_owned(),
+            functional_unit_id: functional_unit_id.to_owned(),
             setup_family: family.to_owned(),
             required_capabilities: required_capabilities
                 .iter()
