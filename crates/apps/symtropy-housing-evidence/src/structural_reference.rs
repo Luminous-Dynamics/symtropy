@@ -269,9 +269,11 @@ fn bending_stress(
     maximum_bending_moment_nm: f64,
     section: RectangularSectionProperties,
 ) -> Result<f64> {
-    let moment_times_fiber =
-        checked_product("bending_stress_numerator_Nm2", maximum_bending_moment_nm,
-            section.extreme_fiber_distance_m.get())?;
+    let moment_times_fiber = checked_product(
+        "bending_stress_numerator_Nm2",
+        maximum_bending_moment_nm,
+        section.extreme_fiber_distance_m.get(),
+    )?;
     checked_quotient(
         "maximum_bending_stress_Pa",
         moment_times_fiber,
@@ -383,7 +385,7 @@ pub fn simply_supported_beam(
                     "flexural_stiffness_Pa_m4",
                     youngs_modulus_pa,
                     section.second_moment_area_m4.get(),
-    )?;
+                )?;
                 let denominator =
                     checked_product("uniform_deflection_denominator", 384.0, flexural_stiffness)?;
                 let deflection =
