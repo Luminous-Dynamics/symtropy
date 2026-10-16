@@ -30,7 +30,9 @@ baseline problem against deterministic perturbation cases. Supported shocks:
 - additional processing time for a named job;
 - delayed release of a named job, representing late material arrival, specialist
   preparation or another readiness precondition;
-- machine unavailable until an explicit tick in the shared time unit.
+- machine unavailable until an explicit tick in the shared time unit;
+- a hard utility-budget curtailment that may preserve or tighten but never loosen
+  the baseline energy/water limits.
 
 The harness runs the bounded exact solver and all four deterministic dispatch
 rules for every case. This establishes four different outcomes:
@@ -60,6 +62,7 @@ profile/capability/problem contract:
 - nominal baseline;
 - longer processing time for specialist repair/embellishment;
 - delayed material/specialist-input readiness;
+- utility budget reduced below the minimum process requirement;
 - specialist machine unavailable until a time that makes a hard finish window
   impossible.
 
@@ -79,6 +82,7 @@ a synthetic fixture reference as if it authenticated an industrial measurement.
 | Measure | Tiny locked corpus target | Notes |
 |---|---:|---|
 | Invalid/duplicate/unknown shock references accepted | **0** | Fail closed |
+| Utility-budget shock raises a baseline limit or declares no affected resource | **0** | Curtailment cannot silently relax a constraint |
 | Arithmetic overflow accepted | **0** | Checked addition |
 | Dispatch claims a plan where exact oracle says no feasible schedule | **0** | Oracle contradiction is a harness failure |
 | Oracle feasibility classification or heuristic-miss attribution is incorrect | **0** | Exact feasibility and planner quality are separate findings |
