@@ -1,0 +1,345 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+//! Declared use and care profiles for garments that do not fit an everyday-wear model.
+//!
+//! Occasional use is not itself evidence of low value or a poor outcome. Formal
+//! wear, couture, ceremonial garments, stage costumes and collection/display
+//! textiles can have different service units, values, handling risks and
+//! end-of-life options. This module validates that those distinctions are
+//! explicit; it does not assign cultural value or calculate lifecycle impact.
+
+use std::collections::BTreeSet;
+use std::error::Error;
+use std::fmt;
+
+/// Garment families with meaningfully different use/care profiles.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum GarmentArchetype {
+    Everyday,
+    Workwear,
+    Occasionwear,
+    CoutureOrDecorative,
+    CeremonialOrHeritage,
+    PerformanceOrCostume,
+    ArchiveOrDisplay,
+}
+
+/// Expected pattern of service; no ordering implies greater or lesser value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum UsePattern {
+    Frequent,
+    Seasonal,
+    Occasional,
+    EventSpecific,
+    PerformanceSchedule,
+    DisplayRotation,
+    ArchivePreservation,
+}
+
+/// Basis used to define the functional unit for assessment.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FunctionalUnitBasis {
+    WearAndCareCycles,
+    DistinctEvents,
+    PerformanceRuns,
+    ExhibitionDays,
+    ConservationYears,
+    Custom(String),
+}
+
+/// Dimensions of value/function that may be relevant to a declared profile.
+///
+/// The evaluator must retain these as named dimensions, not convert them into
+/// an invented universal cultural/aesthetic scalar.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ValueDimension {
+    ProtectionOrUtility,
+    FitAndComfort,
+    AestheticExpression,
+    CulturalOrCeremonialMeaning,
+    HistoricalEvidence,
+    PerformanceFunction,
+    IdentityOrBelonging,
+    Collectability,
+    AccessibilityAndEaseOfUse,
+}
+
+/// Declared care, handling, and preservation constraints.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum CareConstraint {
+    MachineWashable,
+    ProfessionalCleaning,
+    SpotCleanOnly,
+    NoWetCleaning,
+    RemoveDetachableEmbellishmentsBeforeCleaning,
+    HandSupportDuringHandling,
+    PaddedOrFlatStorage,
+    LightAndHumidityControlledStorage,
+    PestInspection,
+    SpecialistConservationReview,
+    RepairByQualifiedEmbellishmentSpecialist,
+}
+
+/// Permitted or intended second-life route; does not imply qualification.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum CirculationRoute {
+    OwnerRetained,
+    RepairAndReturn,
+    AlterationOrRestyling,
+    RentalOrCostumeHire,
+    LendingOrSharedWardrobe,
+    Resale,
+    ArchiveOrMuseumCollection,
+    ExhibitionOrDisplay,
+    TransformIntoAnotherArticle,
+    QualifiedMaterialRecovery,
+}
+
+/// A garment-specific declaration for functional comparison.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GarmentUseProfile {
+    pub profile_id: String,
+    pub archetype: GarmentArchetype,
+    pub use_pattern: UsePattern,
+    pub functional_unit: FunctionalUnitBasis,
+    pub intended_service: String,
+    pub value_dimensions: Vec<ValueDimension>,
+    pub care_constraints: Vec<CareConstraint>,
+    pub circulation_routes: Vec<CirculationRoute>,
+}
+
+/// Structural errors in a use-profile declaration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GarmentProfileError {
+    EmptyProfileId,
+    EmptyIntendedService,
+    EmptyCustomFunctionalUnit,
+    MissingValueDimensions,
+    DuplicateValueDimension(ValueDimension),
+    DuplicateCareConstraint(CareConstraint),
+    DuplicateCirculationRoute(CirculationRoute),
+}
+
+impl fmt::Display for GarmentProfileError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyProfileId => write!(f, "profile ID must not be empty"),
+            Self::EmptyIntendedService => write!(f, "intended garment service must be declared"),
+            Self::EmptyCustomFunctionalUnit => {
+                write!(f, "custom functional-unit basis must not be empty")
+            }
+            Self::MissingValueDimensions => {
+                write!(f, "at least one named value/function dimension is required")
+            }
+            Self::DuplicateValueDimension(value) => {
+                write!(f, "duplicate value/function dimension: {value:?}")
+            }
+            Self::DuplicateCareConstraint(value) => {
+                write!(f, "duplicate care constraint: {value:?}")
+            }
+            Self::DuplicateCirculationRoute(value) => {
+                write!(f, "duplicate circulation route: {value:?}")
+            }
+        }
+    }
+}
+
+impl Error for GarmentProfileError {}
+
+impl GarmentUseProfile {
+    /// Validate declarations without scoring or ranking the type of garment.
+    pub fn validate(&self) -> Result<(), GarmentProfileError> {
+        if self.profile_id.trim().is_empty() {
+            return Err(GarmentProfileError::EmptyProfileId);
+        }
+        if self.intended_service.trim().is_empty() {
+            return Err(GarmentProfileError::EmptyIntendedService);
+        }
+        if matches!(
+            &self.functional_unit,
+            FunctionalUnitBasis::Custom(unit) if unit.trim().is_empty()
+        ) {
+            return Err(GarmentProfileError::EmptyCustomFunctionalUnit);
+        }
+        if self.value_dimensions.is_empty() {
+            return Err(GarmentProfileError::MissingValueDimensions);
+        }
+        ensure_unique(
+            self.value_dimensions.iter().copied(),
+            GarmentProfileError::DuplicateValueDimension,
+        )?;
+        ensure_unique(
+            self.care_constraints.iter().copied(),
+            GarmentProfileError::DuplicateCareConstraint,
+        )?;
+        ensure_unique(
+            self.circulation_routes.iter().copied(),
+            GarmentProfileError::DuplicateCirculationRoute,
+        )?;
+        Ok(())
+    }
+
+    /// Whether this profile declares any non-wear service unit.
+    ///
+    /// This is a descriptive helper only; callers must not infer low value or
+    /// environmental harm from a non-wear service unit.
+    pub fn has_non_wear_service_unit(&self) -> bool {
+        matches!(
+            self.functional_unit,
+            FunctionalUnitBasis::PerformanceRuns
+                | FunctionalUnitBasis::ExhibitionDays
+                | FunctionalUnitBasis::ConservationYears
+                | FunctionalUnitBasis::Custom(_)
+        )
+    }
+}
+
+fn ensure_unique<T, E, I, F>(items: I, make_error: F) -> Result<(), E>
+where
+    T: Ord + Copy,
+    I: IntoIterator<Item = T>,
+    F: Fn(T) -> E,
+{
+    let mut seen = BTreeSet::new();
+    for item in items {
+        if !seen.insert(item) {
+            return Err(make_error(item));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn couture_profile() -> GarmentUseProfile {
+        GarmentUseProfile {
+            profile_id: "COUTURE-BEADED-EVENING-GOWN-01".into(),
+            archetype: GarmentArchetype::CoutureOrDecorative,
+            use_pattern: UsePattern::EventSpecific,
+            functional_unit: FunctionalUnitBasis::DistinctEvents,
+            intended_service: "formal event appearance with beadwork integrity retained".into(),
+            value_dimensions: vec![
+                ValueDimension::AestheticExpression,
+                ValueDimension::Collectability,
+                ValueDimension::FitAndComfort,
+            ],
+            care_constraints: vec![
+                CareConstraint::SpotCleanOnly,
+                CareConstraint::PaddedOrFlatStorage,
+                CareConstraint::RepairByQualifiedEmbellishmentSpecialist,
+            ],
+            circulation_routes: vec![
+                CirculationRoute::OwnerRetained,
+                CirculationRoute::RepairAndReturn,
+                CirculationRoute::Resale,
+            ],
+        }
+    }
+
+    #[test]
+    fn rare_use_couture_profile_is_valid_without_frequency_penalty() {
+        let profile = couture_profile();
+        assert_eq!(profile.use_pattern, UsePattern::EventSpecific);
+        assert_eq!(profile.validate(), Ok(()));
+        assert_eq!(profile.functional_unit, FunctionalUnitBasis::DistinctEvents);
+    }
+
+    #[test]
+    fn display_or_archive_can_use_non_wear_service_units() {
+        let profile = GarmentUseProfile {
+            profile_id: "HERITAGE-CEREMONIAL-01".into(),
+            archetype: GarmentArchetype::CeremonialOrHeritage,
+            use_pattern: UsePattern::ArchivePreservation,
+            functional_unit: FunctionalUnitBasis::ConservationYears,
+            intended_service: "preserve historic and ceremonial integrity".into(),
+            value_dimensions: vec![
+                ValueDimension::HistoricalEvidence,
+                ValueDimension::CulturalOrCeremonialMeaning,
+            ],
+            care_constraints: vec![
+                CareConstraint::HandSupportDuringHandling,
+                CareConstraint::PaddedOrFlatStorage,
+                CareConstraint::LightAndHumidityControlledStorage,
+                CareConstraint::SpecialistConservationReview,
+            ],
+            circulation_routes: vec![
+                CirculationRoute::ArchiveOrMuseumCollection,
+                CirculationRoute::ExhibitionOrDisplay,
+            ],
+        };
+        assert_eq!(profile.validate(), Ok(()));
+        assert!(profile.has_non_wear_service_unit());
+    }
+
+    #[test]
+    fn performance_costume_uses_performance_runs_not_default_washes() {
+        let profile = GarmentUseProfile {
+            profile_id: "STAGE-COSTUME-01".into(),
+            archetype: GarmentArchetype::PerformanceOrCostume,
+            use_pattern: UsePattern::PerformanceSchedule,
+            functional_unit: FunctionalUnitBasis::PerformanceRuns,
+            intended_service: "meet costume, movement and appearance needs across a run".into(),
+            value_dimensions: vec![
+                ValueDimension::PerformanceFunction,
+                ValueDimension::AestheticExpression,
+                ValueDimension::AccessibilityAndEaseOfUse,
+            ],
+            care_constraints: vec![
+                CareConstraint::RemoveDetachableEmbellishmentsBeforeCleaning,
+                CareConstraint::RepairByQualifiedEmbellishmentSpecialist,
+            ],
+            circulation_routes: vec![
+                CirculationRoute::RentalOrCostumeHire,
+                CirculationRoute::RepairAndReturn,
+                CirculationRoute::TransformIntoAnotherArticle,
+            ],
+        };
+        assert_eq!(profile.validate(), Ok(()));
+        assert!(profile.has_non_wear_service_unit());
+    }
+
+    #[test]
+    fn missing_named_value_dimension_is_rejected() {
+        let mut profile = couture_profile();
+        profile.value_dimensions.clear();
+        assert_eq!(
+            profile.validate(),
+            Err(GarmentProfileError::MissingValueDimensions)
+        );
+    }
+
+    #[test]
+    fn duplicate_care_constraints_are_rejected() {
+        let mut profile = couture_profile();
+        profile
+            .care_constraints
+            .push(CareConstraint::SpotCleanOnly);
+        assert_eq!(
+            profile.validate(),
+            Err(GarmentProfileError::DuplicateCareConstraint(
+                CareConstraint::SpotCleanOnly
+            ))
+        );
+    }
+
+    #[test]
+    fn custom_unit_cannot_be_empty() {
+        let mut profile = couture_profile();
+        profile.functional_unit = FunctionalUnitBasis::Custom("  ".into());
+        assert_eq!(
+            profile.validate(),
+            Err(GarmentProfileError::EmptyCustomFunctionalUnit)
+        );
+    }
+
+    #[test]
+    fn low_frequency_is_not_an_implicit_failure_state() {
+        let mut profile = couture_profile();
+        profile.use_pattern = UsePattern::Occasional;
+        assert_eq!(profile.validate(), Ok(()));
+        assert_eq!(profile.use_pattern, UsePattern::Occasional);
+    }
+}
