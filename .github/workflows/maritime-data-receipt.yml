@@ -21,6 +21,7 @@ on:
       - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.md'
       - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json'
       - 'docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json'
+      - 'docs/tech/CYPORT_EPISODE_SPLIT_V0_1.md'
       - 'docs/tech/CYPORT_INTERACTION_SOURCE_PROFILE_V0_1.json'
       - 'docs/tech/MARITIME_CYPORT_INTERACTION_PROFILE_V0_1.md'
       - 'Cargo.toml'
