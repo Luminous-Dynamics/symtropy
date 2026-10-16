@@ -691,7 +691,7 @@ mod tests {
         let receipt = compare_scenarios_json(&raw).unwrap();
         let expected = format!("{:x}", Sha256::digest(raw.as_bytes()));
         assert_eq!(receipt["input_sha256"], expected);
-        assert_eq!(receipt["input_bytes"], raw.len());
+        assert_eq!(receipt["input_bytes"].as_u64(), Some(raw.len() as u64));
     }
 
     #[test]
