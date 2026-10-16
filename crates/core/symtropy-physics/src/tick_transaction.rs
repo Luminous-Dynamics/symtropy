@@ -73,6 +73,9 @@ pub enum TransitionError {
         last_finalized: TickId,
         proposed: TickId,
     },
+    PriorStateMismatch {
+        previous_tick: TickId,
+    },
     FinalizationConflict {
         tick_id: TickId,
     },
@@ -106,6 +109,11 @@ impl core::fmt::Display for TransitionError {
                 f,
                 "tick {} is not newer than finalized tick {}",
                 proposed.0, last_finalized.0
+            ),
+            Self::PriorStateMismatch { previous_tick } => write!(
+                f,
+                "new tick prior-state digest does not match finalized tick {} result",
+                previous_tick.0
             ),
             Self::FinalizationConflict { tick_id } => write!(
                 f,
@@ -142,9 +150,10 @@ impl TickTransaction {
     /// Begin a tick with caller-computed input and prior-state digests.
     ///
     /// IDs must strictly increase after the first finalized tick. Gaps are
-    /// permitted so callers can represent restored/rebased simulation streams;
+    /// permitted when the prior-state digest still matches the latest receipt;
     /// applications that require contiguous IDs must enforce that policy at
-    /// their allocator boundary.
+    /// their allocator boundary. To restore from a different checkpoint, start
+    /// a new transaction instance after validating that checkpoint explicitly.
     pub fn begin(
         &mut self,
         tick_id: TickId,
@@ -163,6 +172,22 @@ impl TickTransaction {
                     last_finalized,
                     proposed: tick_id,
                 });
+            }
+        }
+
+        // Chain continuity is checked separately from monotonic identity. A
+        // caller may skip IDs, but may not silently start from a different
+        // state without creating a new transaction from an explicit checkpoint.
+        if let Some(previous) = self.current {
+            if previous.phase == TickPhase::Finalized {
+                let previous_receipt = previous
+                    .receipt
+                    .expect("finalized ticks always carry a receipt");
+                if prior_state_digest != previous_receipt.result_state_digest {
+                    return Err(TransitionError::PriorStateMismatch {
+                        previous_tick: previous.id,
+                    });
+                }
             }
         }
 
@@ -391,7 +416,33 @@ mod tests {
 
         // Gaps are a documented allocator policy, not an implicit failure.
         let later = TickId(12);
-        assert_eq!(transaction.begin(later, digest(6), digest(7)), Ok(()));
+        assert_eq!(transaction.begin(later, digest(6), digest(3)), Ok(()));
+    }
+
+    #[test]
+    fn next_tick_must_link_to_the_previous_result_state() {
+        let mut transaction = TickTransaction::default();
+        let first = TickId(4);
+        transaction.begin(first, digest(1), digest(2)).unwrap();
+        transaction.mark_physics_applied(first).unwrap();
+        let receipt = transaction.finalize(first, digest(3)).unwrap();
+
+        let next = TickId(5);
+        assert_eq!(
+            transaction.begin(next, digest(4), digest(99)),
+            Err(TransitionError::PriorStateMismatch {
+                previous_tick: first,
+            })
+        );
+        assert_eq!(transaction.phase(), Some(TickPhase::Finalized));
+        assert_eq!(transaction.last_finalized_tick(), Some(first));
+
+        // Retry the begin with the exact committed state; the failed attempt
+        // did not mutate the finalized transaction.
+        assert_eq!(
+            transaction.begin(next, digest(4), receipt.result_state_digest),
+            Ok(())
+        );
     }
 
     #[test]
