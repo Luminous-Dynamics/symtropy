@@ -160,6 +160,7 @@ pub enum FifoAdaptivePolicyErrorV1 {
     InconsistentResourceCrosswalk { demand_id: String, path_id: String, scenario_id: String, edge_id: String },
     NoRouteForInformationSet { demand_id: String, information_set_id: String },
     CombinationCountOverflow,
+    DecisionNodeLimitExceeded { required: usize, limit: usize },
     CombinationLimitExceeded { required: usize, limit: usize },
     ArithmeticOverflow,
     NoFeasiblePolicy {
@@ -193,6 +194,8 @@ impl fmt::Display for FifoAdaptivePolicyErrorV1 {
             Self::NoRouteForInformationSet { demand_id, information_set_id } =>
                 write!(f, "demand {demand_id} has no route available across information set {information_set_id}"),
             Self::CombinationCountOverflow => f.write_str("adaptive policy combination count overflowed"),
+            Self::DecisionNodeLimitExceeded { required, limit } =>
+                write!(f, "adaptive policy has {required} decision nodes, exceeding the safe exact-search depth limit {limit}"),
             Self::CombinationLimitExceeded { required, limit } =>
                 write!(f, "adaptive policy search requires {required} combinations, exceeding limit {limit}"),
             Self::ArithmeticOverflow => f.write_str("adaptive policy objective or capacity arithmetic overflowed"),
@@ -685,6 +688,8 @@ fn compare_scores(a: &AdaptiveScore, b: &AdaptiveScore) -> Ordering {
 /// Enumerate all route choices per demand/information set, retaining choices
 /// only when the chosen route is qualified in every scenario indistinguishable
 /// at that decision point. Capacity is then checked jointly per scenario.
+const MAX_ADAPTIVE_DECISION_NODES: usize = 512;
+
 pub fn select_adaptive_robust_transport_policy(
     problem: &FifoAdaptiveTransportProblemV1,
     demands: &[FifoAdaptiveDemandV1],
@@ -708,6 +713,15 @@ pub fn select_adaptive_robust_transport_policy(
 
     let mut sorted_demands = demands.iter().collect::<Vec<_>>();
     sorted_demands.sort_by(|a, b| a.demand_id.cmp(&b.demand_id));
+    let decision_node_count = sorted_demands.len()
+        .checked_mul(inventory.information_sets.len())
+        .ok_or(FifoAdaptivePolicyErrorV1::CombinationCountOverflow)?;
+    if decision_node_count > MAX_ADAPTIVE_DECISION_NODES {
+        return Err(FifoAdaptivePolicyErrorV1::DecisionNodeLimitExceeded {
+            required: decision_node_count,
+            limit: MAX_ADAPTIVE_DECISION_NODES,
+        });
+    }
     let mut prepared_by_demand: BTreeMap<String, Vec<PreparedRoute>> = BTreeMap::new();
     let mut endpoints_by_demand: BTreeMap<String, (String, String)> = BTreeMap::new();
 
@@ -1330,6 +1344,24 @@ mod tests {
         }
         let second = select_adaptive_robust_transport_policy(&p1, &[reversed_d2, reversed_d1], 64).unwrap();
         assert_eq!(first, second);
+    }
+
+
+    #[test]
+    fn decision_node_depth_limit_is_checked_before_route_preparation() {
+        let scenarios = (0..513).map(|index| {
+            scenario(
+                &format!("scenario-{index}"),
+                if index == 0 { FifoPathScenarioKindV1::Nominal } else { FifoPathScenarioKindV1::Stress },
+                &format!("information-{index}"),
+            )
+        }).collect::<Vec<_>>();
+        let p = problem(scenarios);
+        let d = demand("d1", vec![alternative("route", Vec::new())]);
+        assert_eq!(
+            select_adaptive_robust_transport_policy(&p, &[d], 1),
+            Err(FifoAdaptivePolicyErrorV1::DecisionNodeLimitExceeded { required: 513, limit: 512 })
+        );
     }
 
     #[test]
