@@ -303,7 +303,7 @@ fn both_builders_match_exact_oracle_on_seeded_nonuniform_degenerate_corpus() {
         [3.0, 3.0, 3.0],
         [25.0, 25.0, 25.0],
     ];
-    let mut query_state = 0x4256_484F_5241_434Cull64;
+    let mut query_state = 0x4256_484F_5241_434C_u64;
     for query_index in 0..384usize {
         let center = if query_index % 3 != 2 {
             let triangle_index = query_index.wrapping_mul(73) % median.triangles.len();
