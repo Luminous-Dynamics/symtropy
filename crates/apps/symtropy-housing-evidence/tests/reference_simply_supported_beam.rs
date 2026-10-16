@@ -52,93 +52,48 @@ fn evaluate_reference(case: &Value, load_case: &Value) -> Result<BeamResult, Str
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
-    let inertia = width * depth.powi(3) / 12.0;
-    let extreme_fiber_distance = depth / 2.0;
-    if !close_relative(inertia, declared_inertia, tolerance) {
+    use symtropy_housing_evidence::structural_reference::SimplySupportedLoadCase;
+    let load_case = match load_case.get("load_type").and_then(Value::as_str) {
+        Some("point_load_midspan") => SimplySupportedLoadCase::MidpointPointLoad {
+            force_n: positive(load_case, "load_N")?,
+        },
+        Some("uniform_distributed_load") => SimplySupportedLoadCase::UniformDistributedLoad {
+            load_n_per_m: positive(load_case, "load_N_per_m")?,
+        },
+        Some(other) => return Err(format!("unsupported load_type {other:?}")),
+        None => return Err("load_type must be a string".to_string()),
+    };
+
+    let result = symtropy_housing_evidence::structural_reference::simply_supported_beam(
+        span, modulus, width, depth, load_case,
+    ).map_err(|error| error.to_string())?;
+    if !close_relative(
+        result.section.second_moment_area_m4,
+        declared_inertia,
+        tolerance,
+    ) {
         return Err(format!(
-            "declared second moment of area {declared_inertia} disagrees with geometry-derived value {inertia}"
+            "declared second moment of area {declared_inertia} disagrees with kernel value {}",
+            result.section.second_moment_area_m4
         ));
     }
     if !close_relative(
-        extreme_fiber_distance,
+        result.section.extreme_fiber_distance_m,
         declared_extreme_fiber_distance,
         tolerance,
     ) {
         return Err(format!(
-            "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with geometry-derived value {extreme_fiber_distance}"
+            "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with kernel value {}",
+            result.section.extreme_fiber_distance_m
         ));
     }
 
-    let (deflection, maximum_moment, reaction) =
-        match load_case.get("load_type").and_then(Value::as_str) {
-            Some("point_load_midspan") => {
-                let load = positive(load_case, "load_N")?;
-                (
-                    load * span.powi(3) / (48.0 * modulus * inertia),
-                    load * span / 4.0,
-                    load / 2.0,
-                )
-            }
-            Some("uniform_distributed_load") => {
-                let load_per_m = positive(load_case, "load_N_per_m")?;
-                (
-                    5.0 * load_per_m * span.powi(4) / (384.0 * modulus * inertia),
-                    load_per_m * span.powi(2) / 8.0,
-                    load_per_m * span / 2.0,
-                )
-            }
-            Some(other) => return Err(format!("unsupported load_type {other:?}")),
-            None => return Err("load_type must be a string".to_string()),
-        };
-    let stress = maximum_moment * extreme_fiber_distance / inertia;
-
-    for (name, value) in [
-        ("maximum deflection", deflection),
-        ("maximum moment", maximum_moment),
-        ("maximum stress", stress),
-        ("support reaction", reaction),
-    ] {
-        if !value.is_finite() {
-            return Err(format!("computed {name} is not finite"));
-        }
-    }
-
     Ok(BeamResult {
-        deflection_m: deflection,
-        maximum_moment_nm: maximum_moment,
-        maximum_stress_pa: stress,
-        reaction_magnitude_n: reaction,
+        deflection_m: result.maximum_deflection_m,
+        maximum_moment_nm: result.maximum_bending_moment_nm,
+        maximum_stress_pa: result.maximum_bending_stress_pa,
+        reaction_magnitude_n: result.support_reaction_magnitude_n,
     })
-}
-
-fn assert_matches_expected(actual: BeamResult, expected: &Value, tolerance: f64) {
-    for (name, value, expected_value) in [
-        (
-            "maximum deflection",
-            actual.deflection_m,
-            expected["maximum_deflection_m"].as_f64().unwrap(),
-        ),
-        (
-            "maximum bending moment",
-            actual.maximum_moment_nm,
-            expected["maximum_bending_moment_Nm"].as_f64().unwrap(),
-        ),
-        (
-            "maximum bending stress",
-            actual.maximum_stress_pa,
-            expected["maximum_bending_stress_Pa"].as_f64().unwrap(),
-        ),
-        (
-            "support reaction magnitude",
-            actual.reaction_magnitude_n,
-            expected["support_reaction_magnitude_N"].as_f64().unwrap(),
-        ),
-    ] {
-        assert!(
-            close_relative(value, expected_value, tolerance),
-            "{name} mismatch: actual={value}, expected={expected_value}"
-        );
-    }
 }
 
 #[test]

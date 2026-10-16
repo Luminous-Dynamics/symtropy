@@ -53,35 +53,21 @@ fn evaluate_reference(case: &Value) -> Result<AxialResult, String> {
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
-    // Calculate from primitive dimensions, not the duplicated area value.
-    let area = width * height;
-    if !area.is_finite() {
-        return Err("geometry-derived cross-sectional area is not finite".to_string());
-    }
-    if !close_relative(area, declared_area, tolerance) {
+    let result = symtropy_housing_evidence::structural_reference::axial_bar(
+        load, length, modulus, width, height,
+    ).map_err(|error| error.to_string())?;
+    if !close_relative(result.section.area_m2, declared_area, tolerance) {
         return Err(format!(
-            "declared cross-sectional area {declared_area} disagrees with geometry-derived value {area}"
+            "declared cross-sectional area {declared_area} disagrees with kernel value {}",
+            result.section.area_m2
         ));
     }
 
-    let stress = load / area;
-    let extension = load * length / (modulus * area);
-    let reaction = load;
-    for (name, value) in [
-        ("stress", stress),
-        ("extension", extension),
-        ("support reaction", reaction),
-    ] {
-        if !value.is_finite() {
-            return Err(format!("computed {name} is not finite"));
-        }
-    }
-
     Ok(AxialResult {
-        area_m2: area,
-        stress_pa: stress,
-        extension_m: extension,
-        reaction_n: reaction,
+        area_m2: result.section.area_m2,
+        stress_pa: result.axial_stress_pa,
+        extension_m: result.free_end_extension_m,
+        reaction_n: result.support_reaction_magnitude_n,
     })
 }
 

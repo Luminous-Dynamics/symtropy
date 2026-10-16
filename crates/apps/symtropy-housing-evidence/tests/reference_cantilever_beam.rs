@@ -30,7 +30,6 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
         .get("inputs")
         .and_then(Value::as_object)
         .ok_or_else(|| "inputs must be an object".to_string())?;
-
     let read_positive = |name: &str| -> Result<f64, String> {
         let value = inputs
             .get(name)
@@ -54,43 +53,34 @@ fn evaluate_reference(case: &Value) -> Result<BeamResult, String> {
         .filter(|value| value.is_finite() && *value >= 0.0)
         .ok_or_else(|| "relative_tolerance must be finite and non-negative".to_string())?;
 
-    // Derive section inertia from geometric primitives, then independently
-    // check the fixture's declared value. Downstream equations use the derived
-    // value so a stale/incorrect declared inertia cannot drive both sides.
-    let computed_inertia = width * depth.powi(3) / 12.0;
-    let computed_extreme_fiber_distance = depth / 2.0;
+    let result = symtropy_housing_evidence::structural_reference::cantilever_tip_load(
+        load, span, youngs_modulus, width, depth,
+    ).map_err(|error| error.to_string())?;
     if !close_relative(
-        computed_extreme_fiber_distance,
+        result.section.second_moment_area_m4,
+        declared_inertia,
+        tolerance,
+    ) {
+        return Err(format!(
+            "declared second moment of area {declared_inertia} disagrees with kernel value {}",
+            result.section.second_moment_area_m4
+        ));
+    }
+    if !close_relative(
+        result.section.extreme_fiber_distance_m,
         declared_extreme_fiber_distance,
         tolerance,
     ) {
         return Err(format!(
-            "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with geometry-derived value {computed_extreme_fiber_distance}"
+            "declared extreme-fiber distance {declared_extreme_fiber_distance} disagrees with kernel value {}",
+            result.section.extreme_fiber_distance_m
         ));
-    }
-    if !close_relative(computed_inertia, declared_inertia, tolerance) {
-        return Err(format!(
-            "declared second moment of area {declared_inertia} disagrees with geometry-derived value {computed_inertia}"
-        ));
-    }
-
-    let computed_deflection = load * span.powi(3) / (3.0 * youngs_modulus * computed_inertia);
-    let computed_stress = load * span * computed_extreme_fiber_distance / computed_inertia;
-
-    for (name, value) in [
-        ("computed_inertia", computed_inertia),
-        ("computed_deflection", computed_deflection),
-        ("computed_stress", computed_stress),
-    ] {
-        if !value.is_finite() {
-            return Err(format!("{name} is not finite"));
-        }
     }
 
     Ok(BeamResult {
-        inertia_m4: computed_inertia,
-        deflection_m: computed_deflection,
-        support_stress_pa: computed_stress,
+        inertia_m4: result.section.second_moment_area_m4,
+        deflection_m: result.maximum_deflection_m,
+        support_stress_pa: result.maximum_bending_stress_pa,
     })
 }
 
