@@ -66,6 +66,35 @@
       "2021": 308,
       "2022": 70,
       "2023": 78
+    },
+    "episode_split": {
+      "policy_id": "cyport-sid-temporal-v0.1:train<=2020;calibration=2021;test>=2022",
+      "split_unit": "cyclone SID, never individual port-interaction row",
+      "date_basis": "earliest start_date among rows associated with each SID",
+      "train": {
+        "storms": 59,
+        "interaction_rows": 1471,
+        "unique_port_ids": 122,
+        "first_event_start": "2015-05-06",
+        "last_event_start": "2020-11-13"
+      },
+      "calibration": {
+        "storms": 13,
+        "interaction_rows": 308,
+        "unique_port_ids": 92,
+        "first_event_start": "2021-06-13",
+        "last_event_start": "2021-10-27"
+      },
+      "test": {
+        "storms": 18,
+        "interaction_rows": 148,
+        "unique_port_ids": 61,
+        "first_event_start": "2022-06-04",
+        "last_event_start": "2023-10-22"
+      },
+      "split_manifest_path": "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json",
+      "raw_source_recomputed_split_verification": "Not executed by Rust; summary derived independently from pinned CSV during source inspection.",
+      "warning": "The dataset is public, so this partition is reproducible, not a secret blind holdout against models already trained on this dataset."
     }
   },
   "header_fields": [
@@ -140,6 +169,7 @@
     "Record the profiler's SHA-256, byte length, source path, retrieval timestamp and tool version in a capture receipt.",
     "Inspect the accompanying interaction-data descriptions and paper's definitions before assigning recovery/censoring labels.",
     "Freeze cyclone-grouped splits before tuning; keep every port interaction for a storm together.",
-    "Compare transparent baselines and disclose the imbalance and missing-recovery counts per split."
+    "Compare transparent baselines and disclose the imbalance and missing-recovery counts per split.",
+    "Verify the frozen episode split manifest against the local CSV with --verify-cyport-episode-split before any scoring."
   ]
 }
