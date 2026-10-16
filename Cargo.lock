@@ -9421,6 +9421,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-textile-process"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-web-gallery"
 version = "0.1.0"
 dependencies = [
