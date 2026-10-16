@@ -25,21 +25,18 @@
     "train": {
       "storms": 59,
       "interaction_rows": 1471,
-      "unique_port_ids": 122,
       "first_event_start": "2015-05-06",
       "last_event_start": "2020-11-13"
     },
     "calibration": {
       "storms": 13,
       "interaction_rows": 308,
-      "unique_port_ids": 92,
       "first_event_start": "2021-06-13",
       "last_event_start": "2021-10-27"
     },
     "test": {
       "storms": 18,
       "interaction_rows": 148,
-      "unique_port_ids": 61,
       "first_event_start": "2022-06-04",
       "last_event_start": "2023-10-22"
     }
