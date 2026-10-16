@@ -85,7 +85,9 @@ struct SplitSummary {
     split: &'static str,
     storm_count: usize,
     interaction_rows: usize,
-    unique_port_ids: usize,
+    unique_port_ids: Option<usize>,
+    first_event_start: String,
+    last_event_start: String,
 }
 
 #[derive(Default)]
@@ -101,6 +103,8 @@ struct SplitAccumulator {
     storm_count: usize,
     interaction_rows: usize,
     port_ids: BTreeSet<String>,
+    first_event_start: Option<String>,
+    last_event_start: Option<String>,
 }
 
 #[derive(Default)]
@@ -497,6 +501,14 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             .ok_or_else(|| format!("unknown split assignment {:?}", episode.split))?;
         summary.storm_count += 1;
         summary.interaction_rows += episode.interaction_rows;
+        match summary.first_event_start.as_ref() {
+            Some(current) if current <= &episode.first_event_start => {}
+            _ => summary.first_event_start = Some(episode.first_event_start.clone()),
+        }
+        match summary.last_event_start.as_ref() {
+            Some(current) if current >= &episode.last_event_start => {}
+            _ => summary.last_event_start = Some(episode.last_event_start.clone()),
+        }
         let group = counts
             .storm_groups
             .get(&episode.storm_id)
@@ -519,7 +531,9 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 },
                 storm_count: summary.storm_count,
                 interaction_rows: summary.interaction_rows,
-                unique_port_ids: summary.port_ids.len(),
+                unique_port_ids: Some(summary.port_ids.len()),
+                first_event_start: summary.first_event_start.clone().expect("nonempty split has a first episode"),
+                last_event_start: summary.last_event_start.clone().expect("nonempty split has a last episode"),
             }
         })
         .collect();
@@ -775,7 +789,7 @@ fn compute_split_summaries(episodes: &[StormEpisodeSplit]) -> Result<Vec<SplitSu
             storm_count: group.len(),
             interaction_rows: usize::try_from(row_count)
                 .map_err(|_| format!("split {name}: row count overflows platform size"))?,
-            unique_port_ids: 0,
+            unique_port_ids: None,
             first_event_start: first.to_string(),
             last_event_start: last.to_string(),
         });
@@ -1004,7 +1018,12 @@ fn compare_episode_manifest_to_profile(
         ));
     }
     for (index, (expected, actual)) in manifest.episodes.iter().zip(&profile.episode_groups).enumerate() {
-        if expected != actual {
+        if expected.storm_id != actual.storm_id
+            || expected.first_event_start != actual.first_event_start
+            || expected.last_event_start != actual.last_event_start
+            || expected.split != actual.split
+            || expected.interaction_rows != actual.interaction_rows
+        {
             return Err(format!(
                 "CyPort episode split mismatch at sorted entry {index}: manifest SID {:?}, source SID {:?}",
                 expected.storm_id, actual.storm_id
@@ -1143,7 +1162,7 @@ mod tests {
         let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
         assert_eq!(test.storm_count, 2);
         assert_eq!(test.interaction_rows, 4);
-        assert_eq!(test.unique_port_ids, 3);
+        assert_eq!(test.unique_port_ids, Some(3));
     }
 
     #[test]
