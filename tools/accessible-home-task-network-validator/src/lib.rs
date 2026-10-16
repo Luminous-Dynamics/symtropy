@@ -251,7 +251,7 @@ pub fn evaluate_bytes(input: &[u8]) -> Result<ValidationReport, Vec<String>> {
         failure_mode_count: network.failure_modes.len(),
         path_results,
         failure_mode_results,
-        claim_limit: "SYNTHETIC CONTRACT ONLY: this receipt validates internal consistency of the declared fixture. It does not establish the truth of evidence, real-home accessibility, usability, dimensions, device function, security, life-safety, suitability, or legal compliance.".to_owned(),
+        claim_limit: "SYNTHETIC CONTRACT ONLY: this receipt validates internal consistency of the declared fixture. Resident constraints are prose in v0.2 and are not machine-verified by this validator. It does not establish the truth of evidence, real-home accessibility, usability, dimensions, device function, security, life-safety, suitability, or legal compliance.".to_owned(),
     })
 }
 
