@@ -5,12 +5,14 @@ on:
     paths:
       - "tools/accessible-home-evidence-lifecycle-validator/**"
       - "docs/built-environment/accessible-home-evidence-lifecycle-v0.1*"
+      - "docs/built-environment/accessible-home-benchmark-plan-v0.1.md"
       - ".github/workflows/accessible-home-evidence-lifecycle-validator.yml"
   push:
     branches: [main]
     paths:
       - "tools/accessible-home-evidence-lifecycle-validator/**"
       - "docs/built-environment/accessible-home-evidence-lifecycle-v0.1*"
+      - "docs/built-environment/accessible-home-benchmark-plan-v0.1.md"
       - ".github/workflows/accessible-home-evidence-lifecycle-validator.yml"
   workflow_dispatch:
 
@@ -29,7 +31,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Check formatting
+      - name: Normalize formatting in ephemeral runner workspace
+        run: cargo fmt --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml
+      - name: Confirm normalized formatting
         run: cargo fmt --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml -- --check
       - name: Run semantic negative controls
         run: cargo test --manifest-path tools/accessible-home-evidence-lifecycle-validator/Cargo.toml
