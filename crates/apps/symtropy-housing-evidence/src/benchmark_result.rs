@@ -720,7 +720,7 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .iter_mut()
-            .find(|item| item["quantity"] == "axial_stress_Pa")
+            .find(|item| item.get("quantity").and_then(Value::as_str) == Some("axial_stress_Pa"))
             .expect("axial stress output");
         stress["value"] = json!(3000000.0);
         let (root, record_path, pin) = setup_case(outputs, "CLAIMED_PASS", None);
