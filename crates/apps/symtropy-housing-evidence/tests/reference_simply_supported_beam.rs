@@ -547,3 +547,69 @@ fn analytical_simply_supported_beam_obeys_load_span_modulus_interactions() {
         }
     }
 }
+
+
+#[test]
+fn simply_supported_reference_preserves_dimensionless_deflection_under_geometric_similarity() {
+    let base: Value = serde_json::from_str(CASE).expect("reference fixture must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let base_inputs = &base["inputs"];
+    let span = base_inputs["span_m"].as_f64().unwrap();
+    let width = base_inputs["section_width_m"].as_f64().unwrap();
+    let depth = base_inputs["section_depth_m"].as_f64().unwrap();
+    let inertia = base_inputs["second_moment_area_m4"].as_f64().unwrap();
+    let fiber_distance = base_inputs["extreme_fiber_distance_m"].as_f64().unwrap();
+    let load_cases = base["load_cases"].as_array().expect("load_cases array");
+    assert_eq!(load_cases.len(), 2, "both load families must be covered");
+
+    // Under geometric similarity, span/depth/width scale by s, I by s^4,
+    // point force by s^2 and distributed load intensity by s. For either
+    // load family, normalized deflection and bending stress remain invariant;
+    // moments scale as s^3 and reactions as s^2.
+    for scale in [0.5_f64, 0.75, 1.25, 2.0, 4.0] {
+        for case_index in 0..load_cases.len() {
+            let baseline_case = &base["load_cases"][case_index];
+            let reference = evaluate_reference(&base, baseline_case)
+                .expect("baseline simple-span case is valid");
+            let mut changed = base.clone();
+            changed["inputs"]["span_m"] = serde_json::json!(span * scale);
+            changed["inputs"]["section_width_m"] = serde_json::json!(width * scale);
+            changed["inputs"]["section_depth_m"] = serde_json::json!(depth * scale);
+            changed["inputs"]["second_moment_area_m4"] =
+                serde_json::json!(inertia * scale.powi(4));
+            changed["inputs"]["extreme_fiber_distance_m"] =
+                serde_json::json!(fiber_distance * scale);
+
+            if case_index == 0 {
+                let point_load = baseline_case["load_N"].as_f64().unwrap();
+                changed["load_cases"][case_index]["load_N"] =
+                    serde_json::json!(point_load * scale.powi(2));
+            } else {
+                let uniform_load = baseline_case["load_N_per_m"].as_f64().unwrap();
+                changed["load_cases"][case_index]["load_N_per_m"] =
+                    serde_json::json!(uniform_load * scale);
+            }
+
+            let result = evaluate_reference(&changed, &changed["load_cases"][case_index])
+                .expect("similarity-scaled simple-span case is valid");
+            assert!(close_relative(
+                result.deflection_m / (span * scale),
+                reference.deflection_m / span,
+                tolerance
+            ), "normalized deflection must be scale invariant for case={case_index}, s={scale}");
+            assert!(close_relative(
+                result.maximum_moment_nm,
+                reference.maximum_moment_nm * scale.powi(3),
+                tolerance
+            ));
+            assert!(close_relative(result.maximum_stress_pa, reference.maximum_stress_pa, tolerance));
+            assert!(close_relative(
+                result.reaction_magnitude_n,
+                reference.reaction_magnitude_n * scale.powi(2),
+                tolerance
+            ));
+        }
+    }
+}

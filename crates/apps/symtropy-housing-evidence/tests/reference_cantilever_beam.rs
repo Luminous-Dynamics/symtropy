@@ -430,3 +430,51 @@ fn analytical_cantilever_obeys_load_span_modulus_interactions() {
         }
     }
 }
+
+
+#[test]
+fn cantilever_reference_preserves_dimensionless_deflection_under_geometric_similarity() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("baseline inputs are valid");
+    let inputs = &base["inputs"];
+    let load = inputs["load_N"].as_f64().unwrap();
+    let span = inputs["span_m"].as_f64().unwrap();
+    let width = inputs["section_width_m"].as_f64().unwrap();
+    let depth = inputs["section_depth_m"].as_f64().unwrap();
+    let inertia = inputs["second_moment_area_m4"].as_f64().unwrap();
+    let fiber_distance = inputs["extreme_fiber_distance_m"].as_f64().unwrap();
+    let reference_normalized_deflection = reference.deflection_m / span;
+
+    // Geometric similarity scales every length by s, section inertia by s^4,
+    // and point force by s^2 at constant E. Therefore delta/span and bending
+    // stress are invariant. This is an analytical metamorphic test, not
+    // physical validation of real beams outside the model assumptions.
+    for scale in [0.5_f64, 0.75, 1.25, 2.0, 4.0] {
+        let mut changed = base.clone();
+        changed["inputs"]["load_N"] = serde_json::json!(load * scale.powi(2));
+        changed["inputs"]["span_m"] = serde_json::json!(span * scale);
+        changed["inputs"]["section_width_m"] = serde_json::json!(width * scale);
+        changed["inputs"]["section_depth_m"] = serde_json::json!(depth * scale);
+        changed["inputs"]["second_moment_area_m4"] =
+            serde_json::json!(inertia * scale.powi(4));
+        changed["inputs"]["extreme_fiber_distance_m"] =
+            serde_json::json!(fiber_distance * scale);
+
+        let result = evaluate_reference(&changed)
+            .expect("similarity-scaled cantilever reference remains valid");
+        assert!(close_relative(
+            result.deflection_m / (span * scale),
+            reference_normalized_deflection,
+            tolerance
+        ), "normalized tip deflection must be scale invariant at s={scale}");
+        assert!(close_relative(result.support_stress_pa, reference.support_stress_pa, tolerance));
+        assert!(close_relative(
+            result.inertia_m4,
+            reference.inertia_m4 * scale.powi(4),
+            tolerance
+        ));
+    }
+}

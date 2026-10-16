@@ -369,3 +369,52 @@ fn analytical_axial_bar_obeys_load_length_modulus_area_interactions() {
         }
     }
 }
+
+
+#[test]
+fn axial_reference_preserves_dimensionless_strain_under_geometric_similarity() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("baseline inputs are valid");
+    let inputs = &base["inputs"];
+    let length = inputs["length_m"].as_f64().unwrap();
+    let width = inputs["section_width_m"].as_f64().unwrap();
+    let height = inputs["section_height_m"].as_f64().unwrap();
+    let area = inputs["cross_section_area_m2"].as_f64().unwrap();
+    let load = inputs["load_N"].as_f64().unwrap();
+    let reference_strain = reference.extension_m / length;
+
+    // For geometrically similar bars with fixed material, scale length and
+    // section dimensions by s, and force by s^2. Then delta/L and stress are
+    // invariant; area and reaction scale as s^2.
+    for scale in [0.5_f64, 0.75, 1.25, 2.0, 4.0] {
+        let mut changed = base.clone();
+        changed["inputs"]["length_m"] = serde_json::json!(length * scale);
+        changed["inputs"]["section_width_m"] = serde_json::json!(width * scale);
+        changed["inputs"]["section_height_m"] = serde_json::json!(height * scale);
+        changed["inputs"]["cross_section_area_m2"] =
+            serde_json::json!(area * scale.powi(2));
+        changed["inputs"]["load_N"] = serde_json::json!(load * scale.powi(2));
+
+        let result = evaluate_reference(&changed)
+            .expect("similarity-scaled axial reference remains valid");
+        assert!(close_relative(
+            result.extension_m / (length * scale),
+            reference_strain,
+            tolerance
+        ), "normalized axial extension must be scale invariant at s={scale}");
+        assert!(close_relative(result.stress_pa, reference.stress_pa, tolerance));
+        assert!(close_relative(
+            result.area_m2,
+            reference.area_m2 * scale.powi(2),
+            tolerance
+        ));
+        assert!(close_relative(
+            result.reaction_n,
+            reference.reaction_n * scale.powi(2),
+            tolerance
+        ));
+    }
+}
