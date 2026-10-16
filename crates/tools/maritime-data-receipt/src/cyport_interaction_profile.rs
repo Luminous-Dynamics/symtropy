@@ -69,6 +69,7 @@ struct CyPortInteractionReport {
     latest_event_end: String,
     episode_split_policy_id: &'static str,
     split_summaries: Vec<SplitSummary>,
+    split_outcome_summaries: Vec<SplitOutcomeSummary>,
     episode_groups: Vec<StormEpisodeSplit>,
     data_capture_persisted: bool,
     model_validation_performed: bool,
@@ -96,12 +97,29 @@ struct SplitSummary {
     last_event_start: Option<String>,
 }
 
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct SplitOutcomeSummary {
+    split: &'static str,
+    storm_count: usize,
+    interaction_rows: usize,
+    zero_total_impact_rows: usize,
+    nonzero_total_impact_rows: usize,
+    no_impact_window_recorded_rows: usize,
+    impact_window_recovery_markers_present_rows: usize,
+    mixed_recovery_field_state_rows: usize,
+}
+
 #[derive(Default)]
 struct StormAccumulator {
     row_count: usize,
     port_ids: BTreeSet<String>,
     first_event_start: Option<String>,
     last_event_start: Option<String>,
+    zero_total_impact_rows: usize,
+    nonzero_total_impact_rows: usize,
+    no_impact_window_recorded_rows: usize,
+    impact_window_recovery_markers_present_rows: usize,
+    mixed_recovery_field_state_rows: usize,
 }
 
 #[derive(Default)]
@@ -111,6 +129,11 @@ struct SplitAccumulator {
     port_ids: BTreeSet<String>,
     first_event_start: Option<String>,
     last_event_start: Option<String>,
+    zero_total_impact_rows: usize,
+    nonzero_total_impact_rows: usize,
+    no_impact_window_recorded_rows: usize,
+    impact_window_recovery_markers_present_rows: usize,
+    mixed_recovery_field_state_rows: usize,
 }
 
 #[derive(Default)]
@@ -459,7 +482,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         counts.event_starts.push(start.clone());
         counts.event_ends.push(end);
 
-        let group = counts.storm_groups.entry(storm).or_default();
+        let group = counts.storm_groups.entry(storm.clone()).or_default();
         group.row_count += 1;
         group.port_ids.insert(port_id);
         match group.first_event_start.as_ref() {
@@ -498,12 +521,42 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             }
         }
 
-        match (start_recovery_sentinel, end_recovery_sentinel, duration_sentinel) {
-            (true, true, true) if impact == 0 => counts.zero_impact_all_recovery_sentinels += 1,
-            (true, true, true) => counts.mixed_recovery_field_states += 1,
-            (false, false, false) if impact == 0 => counts.zero_impact_all_recovery_fields_present += 1,
-            (false, false, false) => counts.nonzero_impact_all_recovery_fields_present += 1,
-            _ => counts.mixed_recovery_field_states += 1,
+        let (no_impact_window_recorded, impact_window_markers_present, mixed_marker_state) =
+            match (start_recovery_sentinel, end_recovery_sentinel, duration_sentinel) {
+                (true, true, true) if impact == 0 => {
+                    counts.zero_impact_all_recovery_sentinels += 1;
+                    (true, false, false)
+                }
+                (true, true, true) => {
+                    counts.mixed_recovery_field_states += 1;
+                    (false, false, true)
+                }
+                (false, false, false) if impact == 0 => {
+                    counts.zero_impact_all_recovery_fields_present += 1;
+                    (false, true, false)
+                }
+                (false, false, false) => {
+                    counts.nonzero_impact_all_recovery_fields_present += 1;
+                    (false, true, false)
+                }
+                _ => {
+                    counts.mixed_recovery_field_states += 1;
+                    (false, false, true)
+                }
+            };
+        let group = counts.storm_groups.get_mut(&storm)
+            .ok_or_else(|| format!("missing cyclone group after row {}", row_index + 2))?;
+        if impact == 0 {
+            group.zero_total_impact_rows += 1;
+        } else {
+            group.nonzero_total_impact_rows += 1;
+        }
+        if no_impact_window_recorded {
+            group.no_impact_window_recorded_rows += 1;
+        } else if impact_window_markers_present {
+            group.impact_window_recovery_markers_present_rows += 1;
+        } else if mixed_marker_state {
+            group.mixed_recovery_field_state_rows += 1;
         }
     }
 
@@ -562,6 +615,11 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             .get(&episode.storm_id)
             .ok_or_else(|| format!("missing storm group {:?}", episode.storm_id))?;
         summary.port_ids.extend(group.port_ids.iter().cloned());
+        summary.zero_total_impact_rows += group.zero_total_impact_rows;
+        summary.nonzero_total_impact_rows += group.nonzero_total_impact_rows;
+        summary.no_impact_window_recorded_rows += group.no_impact_window_recorded_rows;
+        summary.impact_window_recovery_markers_present_rows += group.impact_window_recovery_markers_present_rows;
+        summary.mixed_recovery_field_state_rows += group.mixed_recovery_field_state_rows;
     }
     let split_summaries: Vec<SplitSummary> = split_names
         .iter()
@@ -582,6 +640,30 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 unique_port_ids: Some(summary.port_ids.len()),
                 first_event_start: summary.first_event_start.clone(),
                 last_event_start: summary.last_event_start.clone(),
+            }
+        })
+        .collect();
+    let split_outcome_summaries: Vec<SplitOutcomeSummary> = split_names
+        .iter()
+        .map(|name| {
+            let summary = split_accumulators
+                .get(name)
+                .expect("all declared outcome accumulators were inserted");
+            SplitOutcomeSummary {
+                split: if *name == "train" {
+                    "train"
+                } else if *name == "calibration" {
+                    "calibration"
+                } else {
+                    "test"
+                },
+                storm_count: summary.storm_count,
+                interaction_rows: summary.interaction_rows,
+                zero_total_impact_rows: summary.zero_total_impact_rows,
+                nonzero_total_impact_rows: summary.nonzero_total_impact_rows,
+                no_impact_window_recorded_rows: summary.no_impact_window_recorded_rows,
+                impact_window_recovery_markers_present_rows: summary.impact_window_recovery_markers_present_rows,
+                mixed_recovery_field_state_rows: summary.mixed_recovery_field_state_rows,
             }
         })
         .collect();
@@ -638,6 +720,29 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 ));
             }
         }
+        let expected_split_outcomes = [
+            ("train", 59usize, 1_471usize, 1_266usize, 205usize, 1_263usize, 208usize, 0usize),
+            ("calibration", 13usize, 308usize, 265usize, 43usize, 265usize, 43usize, 0usize),
+            ("test", 18usize, 148usize, 123usize, 25usize, 122usize, 26usize, 0usize),
+        ];
+        for (name, storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed) in expected_split_outcomes {
+            let actual = split_outcome_summaries
+                .iter()
+                .find(|summary| summary.split == name)
+                .ok_or_else(|| format!("missing expected impact-state split {name}"))?;
+            let observed = (
+                actual.storm_count,
+                actual.interaction_rows,
+                actual.zero_total_impact_rows,
+                actual.nonzero_total_impact_rows,
+                actual.no_impact_window_recorded_rows,
+                actual.impact_window_recovery_markers_present_rows,
+                actual.mixed_recovery_field_state_rows,
+            );
+            if observed != (storms, rows, zero_impact, nonzero_impact, no_window, markers_present, mixed) {
+                return Err(format!("pinned CyPort {name} impact-state split drift: observed {observed:?}"));
+            }
+        }
         if counts.event_starts.first().map(String::as_str) != Some("2015-05-06")
             || counts.event_starts.last().map(String::as_str) != Some("2023-10-22")
             || counts.event_ends.first().map(String::as_str) != Some("2015-05-06")
@@ -688,6 +793,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         latest_event_end: counts.event_ends[counts.event_ends.len() - 1].clone(),
         episode_split_policy_id: EPISODE_SPLIT_POLICY_ID,
         split_summaries,
+        split_outcome_summaries,
         episode_groups,
         data_capture_persisted: false,
         model_validation_performed: false,
@@ -1247,6 +1353,13 @@ mod tests {
         assert_eq!(test.storm_count, 2);
         assert_eq!(test.interaction_rows, 5);
         assert_eq!(test.unique_port_ids, Some(4));
+        let split_outcomes = report.split_outcome_summaries.iter()
+            .find(|summary| summary.split == "test").unwrap();
+        assert_eq!(split_outcomes.zero_total_impact_rows, 3);
+        assert_eq!(split_outcomes.nonzero_total_impact_rows, 2);
+        assert_eq!(split_outcomes.no_impact_window_recorded_rows, 2);
+        assert_eq!(split_outcomes.impact_window_recovery_markers_present_rows, 3);
+        assert_eq!(split_outcomes.mixed_recovery_field_state_rows, 0);
     }
 
     const FROZEN_SPLIT_MANIFEST: &[u8] =
