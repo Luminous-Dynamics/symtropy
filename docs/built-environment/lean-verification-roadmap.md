@@ -78,7 +78,7 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 | Contract coverage | 100% of declared theorem claims are mapped to one stable contract ID; zero duplicate theorem IDs | contract catalogue and CI mapping check |
 | Rust conformance | 100% of approved known-answer cases pass and all seeded mutations are rejected or blocked | per-case results and exact Rust head |
 | Property checks | all declared linear/cubic/quartic scaling metamorphisms pass over generated valid-domain inputs | reproducible seeds, counts and tolerances |
-| Dimensional validity | zero unit-inconsistent contract bindings in the supported subset | dimension-analysis proof/tests |
+| Dimensional validity | zero unit-inconsistent contract bindings in the supported subset; every declared unit has a seven-base exponent vector | dimensional-homogeneity theorems, manifest mapping and CI consistency gate |
 | Numeric honesty | every real-arithmetic contract used by floating-point code has an explicit error budget or stays labelled MATHEMATICAL_ONLY | error budget + conditioning analysis |
 | Solver credibility | residual, equilibrium, refinement, solver-specific tolerances and uncertainty declared per benchmark | solver-specific report; no universal tolerance |
 | Physical validation | validation data are independent of calibration where feasible and include measurement uncertainty | traceable validation dossier |

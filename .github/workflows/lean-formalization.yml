@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Check out exact revision
         uses: actions/checkout@v4
-      - name: Validate theorem-to-contract mapping and negative controls
+      - name: Validate theorem, unit and negative-control mappings
         shell: bash
         run: |
           jq -e '
@@ -33,7 +33,8 @@ jobs:
             .package == "SymtropyFormal" and
             (.contracts | length == 5) and
             ([.contracts[].theorems[]] | unique | length == 28) and
-            (.negative_controls | length == 1)
+            (.negative_controls | length == 1) and
+            (.dimension_system.unit_dimension_vectors | keys | length == 7)
           ' formalization/lean/contracts.json >/dev/null
 
           while IFS= read -r theorem; do
@@ -51,6 +52,13 @@ jobs:
               exit 1
             fi
           done < <(jq -r '.negative_controls[].theorem' formalization/lean/contracts.json)
+
+          while IFS= read -r unit; do
+            if ! jq -e --arg unit "$unit" '.dimension_system.unit_dimension_vectors | has($unit)' formalization/lean/contracts.json >/dev/null; then
+              echo "::error::No exponent vector declared for unit: $unit"
+              exit 1
+            fi
+          done < <(jq -r '.contracts[].inputs_and_outputs[]' formalization/lean/contracts.json | sort -u)
 
           declared_count=$(grep -REh '^theorem ' formalization/lean/SymtropyFormal | wc -l)
           expected_count=$((
