@@ -226,3 +226,31 @@ For CI qualification: the new Rust crate's tests and workspace build must pass a
 ## Claim ceiling
 
 This document defines integration ownership and proposed message contracts. The current Rust kernel is a synthetic deterministic prototype. No Symthaea/Mycelix runtime adapter, calibrated city physics, field validation, deployment approval or space-habitat qualification is yet established.
+
+
+## Implementation review update — 16 October 2026
+
+The prototype now gives each resource supply and demand an explicit `allocation_pool_id`. Equal resource kind alone no longer permits implicit substitution across pools. This avoids the hidden assumption that every source of, for example, synthetic electrical-energy units is available to every consumer.
+
+The review also identified and corrected a subtler issue: unknown capacity had initially been compared independently against each demand, so the same stale/unknown supply could make multiple mutually incompatible demands all appear individually feasible. The revised deterministic rule considers one **shared unknown-capacity upper bound per (resource kind, allocation pool)** in declared demand-priority order. Unknown capacity is never actually allocated; it only determines whether a minimum-demand outcome is `Indeterminate` or a known `Shortfall`. The report records the pool-wide unresolved upper bound before each demand's priority decision.
+
+New authored regressions cover:
+- Same-kind supply cannot be borrowed across explicitly distinct allocation pools.
+- Stale/unknown capacity cannot be double-counted across competing demands.
+- Higher-priority uncertainty may be reported as `Indeterminate` while a lower-priority demand is `Shortfall` when the shared best-case bound is insufficient for both.
+- Input-order permutation preserves the report digest.
+
+The core now has 13 authored Rust tests. They are **not claimed as executed**: the authoring environment has no local Cargo/rustc toolchain, and the exact-head GitHub workflow remains the verification path.
+
+## Research alignment
+
+These additions follow established resilience-planning concerns without claiming conformity or validation:
+- NIST's Community Resilience Planning Guide treats infrastructure dependencies and cascading consequences as part of community recovery planning, and emphasizes community-set goals and recovery metrics: https://www.nist.gov/community-resilience/planning-guide and https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1190GB-16.pdf
+- NASA's Environmental Control and Life Support System spans pressure, fire safety, oxygen, ventilation, waste, water recovery, air revitalization and oxygen generation—illustrating why a habitat must be modeled as coupled subsystem domains, not a generic "city" profile: https://www.nasa.gov/reference/environmental-control-and-life-support-systems-eclss/
+- Research on urban digital twins finds that interdisciplinary integration, consensual context and operationalization remain central gaps: https://doi.org/10.3390/smartcities8010032
+
+These are design references, not model coefficients or certification standards for the prototype.
+
+## Known remaining limitations
+
+The current kernel is static and declarative. It does not yet model event time, resource production/consumption over multiple ticks, duration-limited backup use, repair completion, transient outages, restoration delays, physical capacity flows, or time-to-stable-recovery. Service-floor results are consequences of the declared graph and allocation rules, not estimates from electrical, hydraulic or thermal solvers. The next vertical should add a deterministic event timeline and explicit finite-duration interventions before using terms such as "recovery time."
