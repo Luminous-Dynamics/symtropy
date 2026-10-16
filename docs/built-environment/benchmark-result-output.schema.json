@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schemas:benchmark-result-output:0.1.0",
+  "title": "Engineering Benchmark Raw Numeric Output V1",
+  "description": "Machine-readable numeric outputs parsed from a benchmark run. A separate verifier compares these values and units to an externally pinned reference case.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "case_id", "outputs"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["quantity", "value", "unit"],
+        "properties": {
+          "quantity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          "value": { "type": "number" },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9.*^/+-]+$"
+          }
+        }
+      }
+    }
+  }
+}
