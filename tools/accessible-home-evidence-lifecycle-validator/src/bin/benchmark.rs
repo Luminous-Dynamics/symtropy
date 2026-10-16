@@ -48,6 +48,11 @@ fn parse_args() -> Result<Options, String> {
         *slot = raw.parse().map_err(|_| format!("invalid positive integer {raw:?} after {arg}"))?;
     }
 
+    validate_options(&options)?;
+    Ok(options)
+}
+
+fn validate_options(options: &Options) -> Result<(), String> {
     if options.claims == 0 || options.events == 0 || options.paths == 0 {
         return Err("claims, events, and paths must be positive".into());
     }
@@ -63,7 +68,7 @@ fn parse_args() -> Result<Options, String> {
     if options.iterations > 10_000 || options.warmup > 10_000 {
         return Err("iterations and warmups are capped at 10000".into());
     }
-    Ok(options)
+    Ok(())
 }
 
 fn build_fixture(options: &Options) -> Result<Vec<u8>, String> {
@@ -254,7 +259,6 @@ mod tests {
     #[test]
     fn benchmark_rejects_more_events_than_claims() {
         let options = Options { claims: 2, events: 3, paths: 1, iterations: 2, warmup: 0 };
-        assert!(build_fixture(&options).is_ok());
-        assert!(options.events > options.claims);
+        assert!(validate_options(&options).is_err());
     }
 }
