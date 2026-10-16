@@ -31,6 +31,7 @@ The build-time field is explicitly a single sample. Repeat the whole command in 
 - `TriangleMesh::new` retains the existing median split by default for compatibility.
 - `TriangleMesh::with_bvh_strategy` adds an explicit `BinnedSah` alternative. Bin count is clamped to 2..=64; degenerate/no-split and severely unbalanced partitions fall back to the deterministic median split to avoid pathological recursion.
 - Both builders use precomputed exact triangle vertex AABBs and centroids. This isolates the remaining tree-partition question from loose sphere-expanded leaf bounds.
+- Classical SAH is an estimated traversal-cost heuristic developed chiefly for ray traversal, so it is a hypothesis—not a guarantee—for this mesh's AABB-overlap query workload. Benchmark results must decide whether its build overhead is repaid by faster real queries. See [Wodniok and Goesele's SAH construction evaluation](https://www.sciencedirect.com/science/article/pii/S0097849316301376) for the underlying traversal-cost context.
 - The same-process benchmark compares build time and query batch-mean latency on identical inputs. Because leaves use exact triangle AABBs, mean candidate counts and checksums must be identical between builders; a difference fails the run rather than counting as an optimization.
 
 ## Candidate optimization experiments
