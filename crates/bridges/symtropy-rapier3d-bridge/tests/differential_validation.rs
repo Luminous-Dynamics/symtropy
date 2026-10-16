@@ -624,6 +624,63 @@ fn free_fall_trajectory_obeys_constant_velocity_boost_metamorphism() {
 }
 
 #[test]
+fn isolated_free_fall_is_invariant_to_body_mass() {
+    // In Newtonian uniform gravity without contact or drag, inertial mass does
+    // not change the trajectory. Compare every saved state, not only endpoints.
+    let mut light = free_fall_at_dt(0.01);
+    light.sample_every_steps = 1;
+    light.bodies[0].mass_kg = 0.25;
+    light.scenario_id = "mass-invariance-light-v0".to_owned();
+
+    let mut heavy = light.clone();
+    heavy.bodies[0].mass_kg = 25.0;
+    heavy.scenario_id = "mass-invariance-heavy-v0".to_owned();
+
+    for (backend, light_trace, heavy_trace) in [
+        (
+            "native",
+            run_native_scenario_3d(&light).unwrap(),
+            run_native_scenario_3d(&heavy).unwrap(),
+        ),
+        (
+            "Rapier",
+            run_rapier_scenario_3d(&light).unwrap(),
+            run_rapier_scenario_3d(&heavy).unwrap(),
+        ),
+    ] {
+        assert_eq!(light_trace.samples.len(), heavy_trace.samples.len());
+        for (light_sample, heavy_sample) in
+            light_trace.samples.iter().zip(&heavy_trace.samples)
+        {
+            assert_eq!(light_sample.step, heavy_sample.step);
+            assert_eq!(light_sample.time_s, heavy_sample.time_s);
+            let light_body = &light_sample.bodies[0];
+            let heavy_body = &heavy_sample.bodies[0];
+            assert_eq!(light_body.body_id, heavy_body.body_id);
+
+            for axis in 0..3 {
+                let position_delta =
+                    (light_body.position_m[axis] - heavy_body.position_m[axis]).abs();
+                assert!(
+                    position_delta < 2.0e-4,
+                    "{backend} free-fall position depended on mass at step {} axis {axis}: delta={position_delta}",
+                    light_sample.step
+                );
+
+                let velocity_delta = (light_body.linear_velocity_mps[axis]
+                    - heavy_body.linear_velocity_mps[axis])
+                    .abs();
+                assert!(
+                    velocity_delta < 1.0e-5,
+                    "{backend} free-fall velocity depended on mass at step {} axis {axis}: delta={velocity_delta}",
+                    light_sample.step
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn native_and_rapier_keep_a_sphere_near_resting_contact() {
     let scenario = contact_scenario("resting-sphere-v0", 0.55, 0.0, 0.8, 0.0, 800, 0.0025, 40);
     for (backend, trace) in [
