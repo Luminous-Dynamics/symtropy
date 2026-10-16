@@ -1262,6 +1262,54 @@ mod tests {
     }
 
     #[test]
+    fn resource_allocations_reconcile_to_named_supplies_and_pools() {
+        let input = fixture();
+        let report = evaluate_scenario(&input).unwrap();
+        let supplies: BTreeMap<&str, &ResourceSupply> = input
+            .resource_supplies
+            .iter()
+            .map(|supply| (supply.supply_id.as_str(), supply))
+            .collect();
+        let demands: BTreeMap<&str, &ResourceDemand> = input
+            .resource_demands
+            .iter()
+            .map(|demand| (demand.demand_id.as_str(), demand))
+            .collect();
+        let mut consumed_by_supply = BTreeMap::<String, u64>::new();
+
+        for allocation in &report.payload.resource_allocations {
+            let source_total = allocation.sources.iter().try_fold(0_u64, |sum, source| {
+                let supply = supplies
+                    .get(source.supply_id.as_str())
+                    .expect("allocation must reference an exact declared supply");
+                let demand = demands
+                    .get(allocation.demand_id.as_str())
+                    .expect("allocation must reference an exact declared demand");
+                assert_eq!(supply.resource_kind, allocation.resource_kind);
+                assert_eq!(supply.allocation_pool_id, demand.allocation_pool_id);
+                assert_eq!(supply.resource_kind, demand.resource_kind);
+                assert_eq!(allocation.unit_code, allocation.resource_kind.synthetic_unit_code());
+                let total = sum.checked_add(source.units).expect("source sum must not overflow");
+                *consumed_by_supply.entry(source.supply_id.clone()).or_default() += source.units;
+                Ok::<u64, SettlementError>(total)
+            }).unwrap();
+            assert_eq!(source_total, allocation.allocated_known_units);
+            assert!(allocation.allocated_known_units <= allocation.requested_units);
+        }
+
+        for supply in &input.resource_supplies {
+            let consumed = consumed_by_supply
+                .get(&supply.supply_id)
+                .copied()
+                .unwrap_or(0);
+            assert!(
+                consumed <= supply.capacity_units - supply.protected_reserve_units,
+                "resource use must not cross declared capacity or protected reserve"
+            );
+        }
+    }
+
+    #[test]
     fn unsupported_schema_version_is_rejected() {
         let mut input = fixture();
         input.schema_version += 1;
