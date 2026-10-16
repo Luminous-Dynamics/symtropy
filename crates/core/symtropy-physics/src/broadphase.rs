@@ -767,6 +767,109 @@ mod tests {
         assert!(!a.overlaps(&c));
     }
 
+    #[test]
+    fn static_spatial_index_matches_linear_oracle_on_large_seeded_cache() {
+        use symtropy_math::Transform;
+
+        let mut state = 0x5354_4154_4943_4250_u64;
+        let mut bodies = Vec::with_capacity(2_048);
+        for index in 0..2_048usize {
+            let cluster = index % 16;
+            let local = index / 16;
+            let position = Point::new([
+                (cluster % 4) as f64 * 75.0 + (local % 32) as f64 * 0.55,
+                deterministic_broadphase_unit(&mut state) * 4.0,
+                (cluster / 4) as f64 * 75.0 + (local / 32) as f64 * 0.55,
+            ]);
+            let radius = 0.1 + deterministic_broadphase_unit(&mut state) * 0.8;
+            let mut body = if index % 2 == 0 {
+                RigidBody::<3>::static_body(
+                    BodyHandle(index),
+                    position,
+                    Box::new(Sphere::new(Point::origin(), radius)),
+                )
+            } else {
+                RigidBody::<3>::new(
+                    BodyHandle(index),
+                    BodyType::Kinematic,
+                    Transform::from_translation(position),
+                    Box::new(Sphere::new(Point::origin(), radius)),
+                    0.0,
+                    SVector::zeros(),
+                )
+            };
+            body.collision_group = 1 << (index % 4);
+            body.collision_mask = (deterministic_broadphase_unit(&mut state) * 15.0) as u32 + 1;
+            bodies.push(body);
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        assert_eq!(static_bp.len(), 2_048);
+        assert_eq!(static_bp.nodes.len(), 2 * static_bp.len() - 1);
+        assert_eq!(
+            static_bp.nodes.iter().filter(|node| node.entry_idx.is_some()).count(),
+            static_bp.len(),
+            "each cached entry must have exactly one tree leaf"
+        );
+
+        // Compare the hierarchy query against an independent linear scan. The
+        // corpus includes populated clusters, boundary-near points, and empty
+        // space, with varied query radii and asymmetric collision filters.
+        for query_index in 0..256usize {
+            let center = match query_index % 4 {
+                0 | 1 => {
+                    let target = query_index.wrapping_mul(97) % bodies.len();
+                    bodies[target].position()
+                }
+                2 => SVector::<f64, 3>::from([
+                    deterministic_broadphase_unit(&mut state) * 400.0 - 10.0,
+                    deterministic_broadphase_unit(&mut state) * 4.0,
+                    deterministic_broadphase_unit(&mut state) * 400.0 - 10.0,
+                ]),
+                _ => SVector::<f64, 3>::from([
+                    1_000_000.0 + query_index as f64,
+                    -1_000_000.0,
+                    500_000.0,
+                ]),
+            };
+            let radius = 0.05 + deterministic_broadphase_unit(&mut state) * 3.0;
+            let mut query_body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(10_000 + query_index),
+                Point::new([center[0], center[1], center[2]]),
+                radius,
+                1.0,
+            );
+            query_body.collision_group = 1 << (query_index % 4);
+            query_body.collision_mask = (deterministic_broadphase_unit(&mut state) * 15.0) as u32 + 1;
+            let query_entry = BpEntry::from_body(&query_body);
+
+            let mut actual = static_bp.query_against(&query_entry);
+            let mut expected: Vec<BroadphasePair> = static_bp
+                .entries
+                .iter()
+                .filter(|cached| {
+                    (query_entry.collision_group & cached.collision_mask != 0)
+                        && (cached.collision_group & query_entry.collision_mask != 0)
+                        && query_entry.aabb.overlaps(&cached.aabb)
+                })
+                .map(|cached| {
+                    if query_entry.handle < cached.handle {
+                        BroadphasePair(query_entry.handle, cached.handle)
+                    } else {
+                        BroadphasePair(cached.handle, query_entry.handle)
+                    }
+                })
+                .collect();
+            actual.sort_unstable_by_key(|pair| (pair.0, pair.1));
+            expected.sort_unstable_by_key(|pair| (pair.0, pair.1));
+            assert_eq!(
+                actual, expected,
+                "spatial cache differs from linear oracle for query {query_index}"
+            );
+        }
+    }
+
     // --- Incremental broadphase tests ---
 
     #[test]
