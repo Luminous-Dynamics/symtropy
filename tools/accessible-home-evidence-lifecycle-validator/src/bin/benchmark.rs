@@ -57,8 +57,8 @@ fn validate_options(options: &Options) -> Result<(), String> {
     if options.claims == 0 || options.events == 0 || options.paths == 0 {
         return Err("claims, events, and paths must be positive".into());
     }
-    if options.events > options.claims {
-        return Err("events must not exceed claims".into());
+    if options.events >= options.claims {
+        return Err("events must be fewer than claims so the workload includes current and stale evidence".into());
     }
     if options.paths > options.claims {
         return Err("paths must not exceed claims".into());
@@ -134,10 +134,15 @@ fn build_fixture(options: &Options) -> Result<Vec<u8>, String> {
 
     let paths: Vec<Value> = (0..options.paths)
         .map(|i| {
-            let stale = i < options.events;
+            let claim_index = if i % 2 == 0 {
+                (i / 2) % options.events
+            } else {
+                options.events + (i / 2) % (options.claims - options.events)
+            };
+            let stale = claim_index < options.events;
             json!({
                 "path_id": format!("bench-path-{i:05}"),
-                "required_claim_ids": [format!("bench-claim-{i:05}")],
+                "required_claim_ids": [format!("bench-claim-{claim_index:05}")],
                 "expected_assessment": if stale { "not_evaluable" } else { "evidence_complete_for_fixture" },
                 "note": "Generated synthetic benchmark path."
             })
@@ -265,7 +270,8 @@ mod tests {
         assert_eq!(report.event_count, 10);
         assert_eq!(report.path_count, 10);
         assert_eq!(report.path_results[0].assessment, Assessment::NotEvaluable);
-        assert_eq!(report.path_results[9].assessment, Assessment::NotEvaluable);
+        assert_eq!(report.path_results[1].assessment, Assessment::EvidenceCompleteForFixture);
+        assert_eq!(report.path_results[9].assessment, Assessment::EvidenceCompleteForFixture);
     }
 
     #[test]
