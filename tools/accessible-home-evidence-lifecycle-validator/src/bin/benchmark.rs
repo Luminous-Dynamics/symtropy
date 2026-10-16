@@ -8,7 +8,8 @@ use serde_json::{json, Value};
 use std::env;
 use std::hint::black_box;
 use std::process::ExitCode;
-use std::time::{Duration as StdDuration, Instant};
+use std::time::Instant;
+use sha2::{Digest, Sha256};
 
 use accessible_home_evidence_lifecycle_validator::{evaluate_bytes, VALIDATOR_VERSION};
 
@@ -202,6 +203,11 @@ fn run() -> Result<(), String> {
     let median_ns = percentile(&durations, 0.50);
     let p95_ns = percentile(&durations, 0.95);
     let digest = baseline.input_sha256.clone();
+    let serialized_baseline = serde_json::to_vec(&baseline).map_err(|e| e.to_string())?;
+    let report_digest = Sha256::digest(&serialized_baseline)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
     let output = json!({
         "benchmark_schema_version": "0.1.0",
         "synthetic_only": true,
@@ -214,13 +220,18 @@ fn run() -> Result<(), String> {
         "paths": options.paths,
         "input_bytes": input.len(),
         "input_sha256": digest,
+        "receipt_sha256": report_digest,
+        "validated_facet_count": baseline.facet_count,
+        "validated_claim_count": baseline.claim_count,
+        "validated_event_count": baseline.event_count,
+        "validated_path_count": baseline.path_count,
         "warmup_iterations": options.warmup,
         "timed_iterations": options.iterations,
         "min_elapsed_ns": durations[0],
         "median_elapsed_ns": median_ns,
         "p95_elapsed_ns": p95_ns,
         "max_elapsed_ns": *durations.last().unwrap_or(&0),
-        "median_claims_per_second": if median_ns > 0 { options.claims as f64 * 1_000_000_000.0 / median_ns as f64 } else { Value::Null.as_f64().unwrap_or(0.0) },
+        "median_claims_per_second": if median_ns > 0 { options.claims as f64 * 1_000_000_000.0 / median_ns as f64 } else { 0.0 },
         "peak_rss_bytes": null,
         "peak_rss_note": "Not available portably from this binary; collect with /usr/bin/time -v or an equivalent OS tool.",
         "measurement_boundary": "Wall time covers evaluate_bytes only; fixture generation and JSON serialization are excluded."
