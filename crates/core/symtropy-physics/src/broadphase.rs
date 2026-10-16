@@ -756,6 +756,12 @@ mod tests {
             ),
             kinematic(2, Point::new([0.25, 0.0, 0.0])),
             kinematic(3, Point::new([1.0, 0.0, 0.0])),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(4),
+                Point::new([0.75, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ),
         ];
 
         let mut static_bp = StaticBroadphase::new();
@@ -768,9 +774,13 @@ mod tests {
         let expected = vec![
             BroadphasePair(BodyHandle(0), BodyHandle(2)),
             BroadphasePair(BodyHandle(0), BodyHandle(3)),
+            BroadphasePair(BodyHandle(0), BodyHandle(4)),
             BroadphasePair(BodyHandle(1), BodyHandle(2)),
             BroadphasePair(BodyHandle(1), BodyHandle(3)),
+            BroadphasePair(BodyHandle(1), BodyHandle(4)),
             BroadphasePair(BodyHandle(2), BodyHandle(3)),
+            BroadphasePair(BodyHandle(2), BodyHandle(4)),
+            BroadphasePair(BodyHandle(3), BodyHandle(4)),
         ];
         assert_eq!(reference, expected, "reference contract changed unexpectedly");
         assert_eq!(
