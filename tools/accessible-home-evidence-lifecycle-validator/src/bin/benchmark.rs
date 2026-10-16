@@ -203,7 +203,8 @@ fn run() -> Result<(), String> {
     let median_ns = percentile(&durations, 0.50);
     let p95_ns = percentile(&durations, 0.95);
     let digest = baseline.input_sha256.clone();
-    let serialized_baseline = serde_json::to_vec(&baseline).map_err(|e| e.to_string())?;
+    let mut serialized_baseline = serde_json::to_vec_pretty(&baseline).map_err(|e| e.to_string())?;
+    serialized_baseline.push(b'\n');
     let report_digest = Sha256::digest(&serialized_baseline)
         .iter()
         .map(|byte| format!("{byte:02x}"))
