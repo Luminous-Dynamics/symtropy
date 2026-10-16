@@ -445,6 +445,9 @@ fn prepare(problem: &ScheduleProblem) -> Result<PreparedProblem, ScheduleError> 
 
     let mut jobs = problem.jobs.clone();
     jobs.sort_by(|left, right| left.id.cmp(&right.id));
+    for job in &mut jobs {
+        job.required_gates.sort_by(|left, right| left.id.cmp(&right.id));
+    }
     let mut seen_job_ids = BTreeSet::new();
     let mut base_energy_units = 0_u64;
     let mut base_water_units = 0_u64;
