@@ -456,9 +456,6 @@ fn summarize_rule(
         percentiles(&mut values)
     };
 
-    // Sorting happens in percentiles, so the local variable does not depend on
-    // the encounter order of the fixture manifest.
-    selected.sort_by(|left, right| left.cmp(right));
     RuleStressSummary {
         rule,
         exact_feasible_scenarios,
