@@ -41,6 +41,8 @@ The Rust tests in `adaptive_resilience.rs` exercise:
 - dependency edges referencing undeclared nodes;
 - perturbations extending beyond the declared horizon;
 - duplicate trace identifiers;
+- null, negative and fractional service-rate inputs rejected instead of silently coerced;
+- a metamorphic control proving that lowering one service-rate sample cannot reduce integrated unmet service under fixed demand and duration;
 - a fixed-seed, 256-case integer-trajectory corpus compared against a test oracle that does not call production metric helpers;
 - unknown/indeterminate evidence cases that cannot acquire a quantitative projection.
 
