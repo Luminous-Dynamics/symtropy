@@ -380,7 +380,7 @@ pub fn simply_supported_beam(
                 let load_factor =
                     checked_product("uniform_deflection_load_factor", 5.0, load_n_per_m)?;
                 let numerator =
-                    checked_product("uniform_deflection_numerator_Nm4", load_factor, span_fourth)?;
+                    checked_product("uniform_deflection_numerator_Nm3", load_factor, span_fourth)?;
                 let flexural_stiffness = checked_product(
                     "flexural_stiffness_Pa_m4",
                     youngs_modulus_pa,
@@ -393,7 +393,7 @@ pub fn simply_supported_beam(
 
                 let span_squared = positive_intermediate("span_squared_m2", span_m.powi(2))?;
                 let moment_numerator = checked_product(
-                    "uniform_moment_numerator_Nm2",
+                    "uniform_moment_numerator_Nm",
                     load_n_per_m,
                     span_squared,
                 )?;
