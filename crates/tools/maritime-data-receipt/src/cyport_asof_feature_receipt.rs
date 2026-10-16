@@ -8,7 +8,9 @@
 //! does not prove that the referenced CyPort row exists, that an archive was
 //! accessible to an operator at the declared time, or that a feature is approved.
 
-use super::{array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, JsonValue};
+use super::{
+    array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, JsonValue,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -90,13 +92,6 @@ fn text_field<'a>(
 ) -> Result<&'a str, String> {
     let path = format!("{parent}.{name}");
     require_nonempty_text(field(object, name, parent)?, &path)
-}
-
-fn expect_bool(value: &JsonValue, path: &str, expected: bool) -> Result<(), String> {
-    match value {
-        JsonValue::Bool(actual) if *actual == expected => Ok(()),
-        _ => Err(format!("{path}: expected boolean {expected}")),
-    }
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -185,7 +180,10 @@ fn validate_value_and_missing_reason(feature: &JsonValue, index: usize) -> Resul
     let reason = field(feature, "missing_reason", &path)?;
     match (value, reason) {
         (JsonValue::Null, JsonValue::String(reason)) if !reason.trim().is_empty() => Ok(()),
-        (JsonValue::Number(_) | JsonValue::String(_) | JsonValue::Bool(_), JsonValue::Null) => Ok(()),
+        (
+            JsonValue::Number(_) | JsonValue::String(_) | JsonValue::Bool(_),
+            JsonValue::Null,
+        ) => Ok(()),
         (JsonValue::Null, _) => Err(format!(
             "{path}.missing_reason: a missing value requires a non-empty reason"
         )),
@@ -363,16 +361,22 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
             valid_utc_timestamp(value, &format!("{path}.{name}"))?;
         }
         if publication > cutoff {
-            return Err(format!("{path}.source_publication_time_utc: product postdates the decision cutoff"));
+            return Err(format!(
+                "{path}.source_publication_time_utc: product postdates the decision cutoff"
+            ));
         }
         if available < publication {
             return Err(format!("{path}.feature_available_at_utc: cannot precede publication"));
         }
         if available > cutoff {
-            return Err(format!("{path}.feature_available_at_utc: feature was unavailable at the decision cutoff"));
+            return Err(format!(
+                "{path}.feature_available_at_utc: feature was unavailable at the decision cutoff"
+            ));
         }
         if retrieval < publication {
-            return Err(format!("{path}.source_retrieval_time_utc: retrieval predates source publication"));
+            return Err(format!(
+                "{path}.source_retrieval_time_utc: retrieval predates source publication"
+            ));
         }
         if valid_start > valid_end {
             return Err(format!("{path}: forecast/valid interval starts after it ends"));
@@ -414,7 +418,9 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
 fn verify_artifact_bytes(facts: &ReceiptFacts, artifact_root: &Path) -> Result<(), String> {
     let root = artifact_root
         .canonicalize()
-        .map_err(|error| format!("cannot resolve artifact root {}: {error}", artifact_root.display()))?;
+        .map_err(|error| {
+            format!("cannot resolve artifact root {}: {error}", artifact_root.display())
+        })?;
     if !root.is_dir() {
         return Err("artifact root must be a directory".to_owned());
     }
@@ -482,7 +488,7 @@ pub fn run_cli(receipt_path: &str, artifact_root: &str) -> Result<(), String> {
         model_fit_performed: false,
         replay_performed: false,
         operational_authority: false,
-        claim_ceiling: "Receipt metadata and local bytes only; no forecast, prediction, or operational authority.",
+        claim_ceiling: "Receipt bytes and metadata only; no forecast or operational authority.",
     };
     println!(
         "{}",
@@ -514,7 +520,8 @@ mod tests {
     #[test]
     fn post_cutoff_feature_availability_is_rejected() {
         let mut value: Value = serde_json::from_slice(RECEIPT).expect("valid fixture JSON");
-        value["features"][0]["feature_available_at_utc"] = serde_json::json!("2022-09-23T12:31:00Z");
+        value["features"][0]["feature_available_at_utc"] =
+            serde_json::json!("2022-09-23T12:31:00Z");
         let changed = serde_json::to_vec(&value).expect("serialize mutated receipt");
         assert!(
             validate_receipt(&changed)
@@ -546,7 +553,7 @@ mod tests {
     #[test]
     fn missing_values_require_explicit_reasons() {
         let mut value: Value = serde_json::from_slice(RECEIPT).expect("valid fixture JSON");
-        value["features"][0]["value"] = JsonValue::Null.into_test_value();
+        value["features"][0]["value"] = serde_json::Value::Null;
         value["features"][0]["missing_reason"] = serde_json::Value::Null;
         let changed = serde_json::to_vec(&value).expect("serialize mutated receipt");
         assert!(validate_receipt(&changed).unwrap_err().contains("missing value requires"));
