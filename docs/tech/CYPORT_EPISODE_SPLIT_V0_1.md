@@ -48,6 +48,16 @@ cargo run --locked -p maritime-data-receipt -- \
 
 CI validates the manifest and the profiler's synthetic-fixture contract. It intentionally does not download or vendor the third-party source CSV. The local source-to-manifest comparison is a separate reproducibility gate for whoever performs a permitted local capture.
 
+## Comparability with the published analysis
+
+The associated paper describes a random 80:20 train/test split in its model-development procedure and reports filtering the 1,927 interaction records to 1,093 for the fitted analysis using an average-daily-vessel-activity threshold. Our frozen 59/13/18 cyclone-level temporal partition uses all 1,927 interaction rows and groups all records for each `SID`. Therefore, do not compare a future score from this split directly with the paper's reported score as if the evaluation protocol and population were identical.
+
+A responsible benchmark should have two tracks:
+1. **Primary generalization track:** this pinned, cyclone-grouped temporal split; report event-grouped uncertainty, all 90 cyclone IDs and outcomes/censoring by split.
+2. **Reproduction track:** separately implement the paper's filtering and split protocol from the paper's definitions, pin its random seed if specified, and keep it explicitly distinct from our primary temporal holdout.
+
+The paper's random-split reported score is not an external validation result for this repository. Because the dataset and derived paper results are public, neither split is a blind benchmark for a method trained on the same resources. For an independent external claim, a separately permissioned, post-cutoff event corpus and independent evaluation are required.
+
 ## Metrics and interpretation safeguards
 
 The source's `total_impact` field is zero in 1,654 rows (85.83%) and nonzero in 273 (14.17%); recovery-related columns carry zero/NA sentinels in 1,650 rows. Do not let raw accuracy dominate model assessment, and do not equate those sentinels with zero recovery time, no recovery or right-censoring without verifying the data definitions.
