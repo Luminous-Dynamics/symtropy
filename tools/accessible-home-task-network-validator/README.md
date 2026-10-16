@@ -41,7 +41,7 @@ The CLI dispatches on `schema_version`. Malformed networks, unresolved reference
 
 ## Mutation coverage
 
-The v0.2 suite checks the baseline, all six evidence states, barrier precedence, optional evidence, duplicate IDs, dangling references, path order/count, outcome termination, fallback triggers, evidence downgrades and deterministic receipts. The v0.3 suite additionally checks typed constraint coverage, duplicate/unknown/missing findings, condition applicability, hard conflict and unresolved semantics, unverified satisfaction, preference conflict visibility/non-gating, malformed state rejection, and deterministic receipts.
+The v0.2 suite checks the baseline, all six evidence states, barrier precedence, optional evidence, duplicate IDs, dangling references, path order/count, outcome termination, fallback triggers, evidence downgrades and deterministic receipts. The v0.3 suite additionally exhausts all 24 combinations of four hard-constraint dispositions and six evidence states (16 accepted with derived outcomes; 8 malformed combinations rejected), and checks typed constraint coverage, duplicate/unknown/missing findings, condition applicability, hard conflict and unresolved semantics, unverified satisfaction, preference conflict visibility/non-gating, malformed state rejection, and deterministic receipts.
 
 ## Known limitations
 
