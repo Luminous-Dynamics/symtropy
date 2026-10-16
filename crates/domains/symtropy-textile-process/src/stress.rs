@@ -535,8 +535,9 @@ fn summarize_rule(
         .collect();
 
     let plans_found_on_feasible_scenarios = selected.len();
+    debug_assert!(plans_found_on_feasible_scenarios <= exact_feasible_scenarios);
     let feasible_scenarios_missed =
-        exact_feasible_scenarios.saturating_sub(plans_found_on_feasible_scenarios);
+        exact_feasible_scenarios - plans_found_on_feasible_scenarios;
     let metric = |select: fn(&ScheduleMetrics) -> u64| {
         let mut values: Vec<u64> = selected.iter().map(|item| select(item)).collect();
         percentiles(&mut values)
@@ -843,6 +844,44 @@ mod tests {
             evaluate_stress_corpus(&problem, &corpus),
             Err(StressHarnessError::ReleaseDelayOverflow { .. })
         ));
+    }
+
+
+    #[test]
+    fn exact_feasibility_is_not_confused_with_greedy_dispatch_failure() {
+        let mut problem = fixture_problem();
+        problem.jobs[0].id = "long-early-soft-due".to_owned();
+        problem.jobs[0].processing_ticks = 5;
+        problem.jobs[0].due_tick = 2;
+        problem.jobs[0].hard_finish_by_tick = Some(10);
+        problem.jobs[0].functional_unit_id = "ceremonial-service-event-v0".to_owned();
+
+        let mut short_job = problem.jobs[0].clone();
+        short_job.id = "short-hard-window".to_owned();
+        short_job.processing_ticks = 2;
+        short_job.due_tick = 5;
+        short_job.hard_finish_by_tick = Some(6);
+        short_job.functional_unit_id = "alteration-event-v0".to_owned();
+        problem.jobs.push(short_job);
+
+        let corpus = StressCorpus {
+            id: "greedy-deadline-trap".to_owned(),
+            version: "1".to_owned(),
+            scenarios: vec![scenario("nominal", vec![], vec![])],
+        };
+        let report = evaluate_stress_corpus(&problem, &corpus)
+            .expect("valid but challenging scheduling case is evaluable");
+
+        assert_eq!(report.exact_feasible_scenarios, 1);
+        assert_eq!(report.exact_no_schedule_scenarios, 0);
+        assert!(report.scenario_results[0]
+            .dispatch_results
+            .iter()
+            .all(|result| result.missed_feasible_schedule && !result.plan_found));
+        assert!(report.rule_summaries.iter().all(|summary| {
+            summary.plans_found_on_feasible_scenarios == 0
+                && summary.feasible_scenarios_missed == 1
+        }));
     }
 
 }
