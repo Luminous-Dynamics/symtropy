@@ -37,8 +37,8 @@ const EXPECTED_HEADER: &[&str] = &[
 struct CyPortInteractionReport {
     status: &'static str,
     source_id: &'static str,
-    source_revision: &'static str,
-    source_path: &'static str,
+    source_revision_expected: &'static str,
+    source_path_expected: &'static str,
     source_git_blob_sha1_expected: &'static str,
     source_git_blob_sha1_observed: String,
     source_sha256_observed: String,
@@ -216,6 +216,22 @@ fn column_index(header: &[String], name: &str) -> Result<usize, String> {
         .ok_or_else(|| format!("required CyPort column {name:?} is missing"))
 }
 
+fn record_field<'a>(
+    record: &'a [String],
+    indexes: &BTreeMap<&str, usize>,
+    name: &str,
+    row_number: usize,
+) -> Result<&'a str, String> {
+    let index = indexes
+        .get(name)
+        .copied()
+        .ok_or_else(|| format!("required CyPort column {name:?} is missing"))?;
+    record
+        .get(index)
+        .map(String::as_str)
+        .ok_or_else(|| format!("CSV data row {row_number} has no field {name:?}"))
+}
+
 fn parse_mdy_date(value: &str, path: &str) -> Result<String, String> {
     let date_part = value.split_ascii_whitespace().next().unwrap_or_default();
     let mut pieces = date_part.split('/');
@@ -315,28 +331,27 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 header.len()
             ));
         }
-        let value = |name: &str| -> &str { &record[indexes[name]] };
         for name in ["ID", "SID", "PID", "port"] {
-            if is_sentinel(value(name)) {
+            if is_sentinel(record_field(record, &indexes, name, row_index + 2)?) {
                 return Err(format!("CSV row {} has missing required identity field {name}", row_index + 2));
             }
         }
 
-        let id = value("ID").to_owned();
+        let id = record_field(record, &indexes, "ID", row_index + 2)?.to_owned();
         if !counts.ids.insert(id) {
             counts.duplicate_id_rows += 1;
         }
-        let storm = value("SID").to_owned();
-        let port_id = value("PID").to_owned();
+        let storm = record_field(record, &indexes, "SID", row_index + 2)?.to_owned();
+        let port_id = record_field(record, &indexes, "PID", row_index + 2)?.to_owned();
         counts.storm_ids.insert(storm.clone());
         counts.port_ids.insert(port_id.clone());
         if !counts.storm_port_pairs.insert((storm, port_id)) {
             counts.duplicate_pair_rows += 1;
         }
 
-        let impact = value("total_impact")
+        let impact = record_field(record, &indexes, "total_impact", row_index + 2)?
             .parse::<f64>()
-            .map_err(|_| format!("CSV row {} has invalid total_impact {:?}", row_index + 2, value("total_impact")))?;
+            .map_err(|_| format!("CSV row {} has invalid total_impact {:?}", row_index + 2, record_field(record, &indexes, "total_impact", row_index + 2)?))?;
         if !impact.is_finite() || impact < 0.0 {
             return Err(format!("CSV row {} has non-finite or negative total_impact", row_index + 2));
         }
@@ -346,8 +361,8 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             counts.nonzero_total_impact_rows += 1;
         }
 
-        let start = parse_mdy_date(value("start_date"), &format!("row {} start_date", row_index + 2))?;
-        let end = parse_mdy_date(value("end_date"), &format!("row {} end_date", row_index + 2))?;
+        let start = parse_mdy_date(record_field(record, &indexes, "start_date", row_index + 2)?, &format!("row {} start_date", row_index + 2))?;
+        let end = parse_mdy_date(record_field(record, &indexes, "end_date", row_index + 2)?, &format!("row {} end_date", row_index + 2))?;
         if end < start {
             return Err(format!(
                 "CSV row {} ends before its start date ({start} > {end})",
@@ -357,17 +372,17 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         counts.event_starts.push(start);
         counts.event_ends.push(end);
 
-        if is_sentinel(value("start_recovery_date")) {
+        if is_sentinel(record_field(record, &indexes, "start_recovery_date", row_index + 2)?) {
             counts.start_recovery_sentinels += 1;
         } else {
-            let _ = parse_mdy_date(value("start_recovery_date"), &format!("row {} start_recovery_date", row_index + 2))?;
+            let _ = parse_mdy_date(record_field(record, &indexes, "start_recovery_date", row_index + 2)?, &format!("row {} start_recovery_date", row_index + 2))?;
         }
-        if is_sentinel(value("end_recovery_date")) {
+        if is_sentinel(record_field(record, &indexes, "end_recovery_date", row_index + 2)?) {
             counts.end_recovery_sentinels += 1;
         } else {
-            let _ = parse_mdy_date(value("end_recovery_date"), &format!("row {} end_recovery_date", row_index + 2))?;
+            let _ = parse_mdy_date(record_field(record, &indexes, "end_recovery_date", row_index + 2)?, &format!("row {} end_recovery_date", row_index + 2))?;
         }
-        if is_sentinel(value("day_of_recover")) {
+        if is_sentinel(record_field(record, &indexes, "day_of_recover", row_index + 2)?) {
             counts.day_of_recover_sentinels += 1;
         }
     }
@@ -418,8 +433,8 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
     Ok(CyPortInteractionReport {
         status,
         source_id: "cyport_us_port_tropical_cyclone_resilience",
-        source_revision: PINNED_REVISION,
-        source_path: "Tropical_cyclone_interaction/interaction_data.csv",
+        source_revision_expected: PINNED_REVISION,
+        source_path_expected: "Tropical_cyclone_interaction/interaction_data.csv",
         source_git_blob_sha1_expected: PINNED_GIT_BLOB_SHA1,
         source_git_blob_sha1_observed: observed_blob_sha1,
         source_sha256_observed: super::sha256_bytes(bytes),
