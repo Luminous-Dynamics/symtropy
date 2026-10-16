@@ -1,0 +1,110 @@
+{
+  "protocol_id": "textile-empirical-evaluation-protocol",
+  "version": "0.1.0",
+  "trial_id": "synthetic-paired-policy-example",
+  "status": "proposed",
+  "frozen_at": "2026-10-16T00:00:00Z",
+  "design": "randomized_blocked",
+  "baseline_policy_id": "made_to_order",
+  "comparison_policy_id": "reuse_inventory_first",
+  "primary_endpoint": "unsold_new_per_fulfilled_service_unit",
+  "target_effect": {
+    "direction": "reduce",
+    "relative_reduction_bps": 1000
+  },
+  "guardrails": {
+    "max_on_time_regression_bps": 100,
+    "max_quality_acceptance_regression_bps": 100,
+    "max_stockout_increase_units": 0
+  },
+  "profile_strata": ["workwear"],
+  "observation_window_days": 30,
+  "synthetic_only": true,
+  "interpretation_boundary": "Illustrative synthetic arithmetic only. These paired records do not represent observed production, randomization, physical inventory movement, lifecycle impacts, causal evidence, or achieved savings.",
+  "records": [
+    {
+      "record_id": "synthetic-pair-001-baseline",
+      "pair_id": "synthetic-pair-001",
+      "cluster_id": "synthetic-cell-01-period-1",
+      "profile_id": "workwear",
+      "functional_unit_id": "accepted-garment-service-unit",
+      "assigned_policy_id": "made_to_order",
+      "actual_policy_id": "made_to_order",
+      "confirmed_order_units": 80,
+      "frozen_forecast_units": 100,
+      "realized_uncancelled_demand_units": 90,
+      "planned_new_units": 80,
+      "completed_new_units": 80,
+      "accepted_new_units": 76,
+      "rejected_new_units": 4,
+      "fulfilled_from_new_units": 70,
+      "fulfilled_from_existing_units": 0,
+      "unsold_new_units_end_of_window": 6,
+      "other_accepted_new_fates": 0,
+      "eligible_existing_inventory_units": 0,
+      "existing_inventory_issued_units": 0,
+      "existing_inventory_remaining_units": 0,
+      "other_existing_inventory_fates": 0,
+      "on_time_fulfilled_units": 64,
+      "late_fulfilled_units": 6,
+      "stockout_units": 20,
+      "window_days": 30,
+      "resource_measurements": {
+        "energy_kwh": {"status": "observed", "value": 100, "evidence_refs": ["synthetic:meter:baseline-energy"]},
+        "water_litres": {"status": "observed", "value": 300, "evidence_refs": ["synthetic:meter:baseline-water"]},
+        "material_kg": {"status": "observed", "value": 25, "evidence_refs": ["synthetic:scale:baseline-material"]},
+        "direct_labor_hours": {"status": "observed", "value": 120, "evidence_refs": ["synthetic:time-ledger:baseline-labor"]}
+      },
+      "evidence": {
+        "assignment_ref": "synthetic:assignment:baseline",
+        "order_snapshot_ref": "synthetic:orders:baseline",
+        "production_ledger_ref": "synthetic:production:baseline",
+        "quality_record_ref": "synthetic:quality:baseline",
+        "demand_closeout_ref": "synthetic:demand-closeout:baseline",
+        "inventory_issue_receipt_ref": null
+      }
+    },
+    {
+      "record_id": "synthetic-pair-001-comparison",
+      "pair_id": "synthetic-pair-001",
+      "cluster_id": "synthetic-cell-02-period-1",
+      "profile_id": "workwear",
+      "functional_unit_id": "accepted-garment-service-unit",
+      "assigned_policy_id": "reuse_inventory_first",
+      "actual_policy_id": "reuse_inventory_first",
+      "confirmed_order_units": 80,
+      "frozen_forecast_units": 100,
+      "realized_uncancelled_demand_units": 90,
+      "planned_new_units": 65,
+      "completed_new_units": 65,
+      "accepted_new_units": 62,
+      "rejected_new_units": 3,
+      "fulfilled_from_new_units": 62,
+      "fulfilled_from_existing_units": 15,
+      "unsold_new_units_end_of_window": 0,
+      "other_accepted_new_fates": 0,
+      "eligible_existing_inventory_units": 15,
+      "existing_inventory_issued_units": 15,
+      "existing_inventory_remaining_units": 0,
+      "other_existing_inventory_fates": 0,
+      "on_time_fulfilled_units": 70,
+      "late_fulfilled_units": 7,
+      "stockout_units": 13,
+      "window_days": 30,
+      "resource_measurements": {
+        "energy_kwh": {"status": "observed", "value": 82, "evidence_refs": ["synthetic:meter:comparison-energy"]},
+        "water_litres": {"status": "observed", "value": 260, "evidence_refs": ["synthetic:meter:comparison-water"]},
+        "material_kg": {"status": "observed", "value": 20.3, "evidence_refs": ["synthetic:scale:comparison-material"]},
+        "direct_labor_hours": {"status": "observed", "value": 96, "evidence_refs": ["synthetic:time-ledger:comparison-labor"]}
+      },
+      "evidence": {
+        "assignment_ref": "synthetic:assignment:comparison",
+        "order_snapshot_ref": "synthetic:orders:comparison",
+        "production_ledger_ref": "synthetic:production:comparison",
+        "quality_record_ref": "synthetic:quality:comparison",
+        "demand_closeout_ref": "synthetic:demand-closeout:comparison",
+        "inventory_issue_receipt_ref": "synthetic:receipt:inventory-issue"
+      }
+    }
+  ]
+}

@@ -97,3 +97,13 @@ machine-availability shocks against the exact reference. Contracts:
 docs/ops/TEXTILE_SCHEDULER_BENCHMARK_V0_1.md,
 docs/ops/TEXTILE_SCHEDULE_ROBUSTNESS_BENCHMARK_V0_1.md, and
 docs/ops/TEXTILE_DEMAND_SURPLUS_BENCHMARK_V0_1.md.
+
+
+## Empirical evaluation boundary
+
+Planning and synthetic stress results do not establish that a production policy reduces waste or environmental impact in a factory. The proposed preregistration, physical-receipt, causal comparison, and profile-stratified reporting protocol is documented at:
+
+- `docs/ops/TEXTILE_EMPIRICAL_EVALUATION_PROTOCOL_V0_1.md`
+- `docs/ops/fixtures/textile_empirical_evaluation_v0_1/`
+
+The schema/example are a proposed contract only. No JSON loader, arithmetic cross-field validator, independent schema validation, or field evaluation is claimed yet. Physical inventory use requires an issue/transfer receipt; second use and lifecycle benefits need additional evidence.
