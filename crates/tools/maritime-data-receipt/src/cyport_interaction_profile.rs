@@ -1385,11 +1385,13 @@ mod tests {
     }
 
     #[test]
-    fn pinned_recovery_markers_match_the_rounded_zero_cross_tab() {
-        // The exact source check is enforced when the pinned Git blob is supplied.
-        // These expectations describe the source profile, not a model label.
-        assert_eq!(PINNED_BYTES, 643_047);
-        assert_eq!(PINNED_GIT_BLOB_SHA1, "21beb5b7673918143a0ab108b03acc3cccaeb330");
+    fn rounded_zero_impact_does_not_erase_present_recovery_markers() {
+        let report = profile_bytes(SYNTHETIC_FIXTURE).expect("fixture should profile");
+        assert_eq!(report.zero_total_impact_rows, 3);
+        assert_eq!(report.zero_impact_all_recovery_sentinels_rows, 2);
+        assert_eq!(report.zero_impact_all_recovery_fields_present_rows, 1);
+        assert_eq!(report.no_impact_window_recorded_rows, 2);
+        assert_eq!(report.impact_window_recovery_markers_present_rows, 3);
     }
 
     #[test]
