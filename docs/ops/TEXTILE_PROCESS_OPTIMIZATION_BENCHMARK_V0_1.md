@@ -1,6 +1,6 @@
 # Textile Process Optimization Benchmark v0.1
 
-**Status:** research/benchmark specification; synthetic fixtures only. No textile optimizer, factory digital twin, physical validation, or savings result is claimed by this document.
+**Status:** research/benchmark specification with a first dependency-free Rust contract evaluator; synthetic fixtures only. The evaluator is authored but not yet CI-qualified. No process scheduler, factory digital twin, physical validation, or savings result is claimed by this document.
 
 **Purpose:** define a falsifiable first benchmark for improving textile and clothing manufacturing with Symtropy, Symthaea, and Mycelix. The target is a reusable industrial-process capability, not a fashion recommender or a generic “AI for sustainability” demo.
 
@@ -146,12 +146,13 @@ Public datasets are an initial evidence base, not proof of factory-wide optimiza
 
 ## 9. First implementation sequence
 
-1. Freeze the scenario schema, synthetic corpus and independent correctness oracle.
-2. Implement a small dependency-light deterministic schedule/flow evaluator in an optional textile-domain module; do not alter Symtropy's core rigid-body semantics.
-3. Implement exact enumeration for tiny cases, then compare heuristics and multi-objective search with fixed compute budgets.
-4. Add a Mycelix-facing assessment receipt that references immutable lot/process/evidence IDs without importing confidential source data.
-5. Use Symthaea first for offline proposal generation, uncertainty diagnosis and next-measurement selection; record every proposal and independently re-check it.
-6. Only after replay, oracle parity and data validation, run a no-write shadow evaluation with an operator. Physical trials require their own risk review and process owner.
+1. **Completed in source, awaiting exact-head validation:** freeze the scenario schema, ten synthetic contract cases and an independent correctness oracle; add the `symtropy-textile-process` dependency-free Rust crate to the workspace.
+2. **Implemented but not yet CI-qualified:** typed objective directions/units/scales, evidence-bearing objective values, hard-gate outcomes (`Pass`, `Fail`, `Unknown`), deterministic feasible/incomplete/blocked classification, Pareto frontier and deterministic domination witnesses, plus exact integer mass closure at one declared process boundary. A seeded independent exhaustive oracle checks 100 synthetic scenarios × 16 candidates × 4 objectives. A small example makes a hard-gate false-green visible.
+3. **Next:** add numerical process-operation and schedule models (durations, setup families, machine eligibility, due windows and utility envelopes) with tiny exhaustive scheduling fixtures. Do not alter Symtropy's core rigid-body semantics or represent missing resource/effluent data as zero.
+4. Compare a simple incumbent dispatch rule, earliest-due-date, shortest-processing-time, and exact solutions on tiny instances before multi-objective heuristics. Freeze time and compute budgets.
+5. Add a Mycelix-facing assessment receipt referencing immutable lot/process/evidence IDs, uncertainty and objective-contract identity without importing confidential source data.
+6. Use Symthaea for offline proposal generation, uncertainty diagnosis and next-measurement selection; independently re-check every proposal.
+7. Only after exact replay, oracle parity and data validation, run a no-write shadow evaluation with an operator. Physical trials require their own risk review and process owner.
 
 ### Claim ceiling
 
