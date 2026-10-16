@@ -54,6 +54,8 @@ pub struct DemandScenario {
     pub maximum_customer_wait_ticks: u64,
     /// Integer basis points in the closed interval [0, 10000].
     /// This is a declared scenario assumption/measurement, not a model output.
+    /// Accepted units use conservative integer-floor arithmetic; small lots can
+    /// be biased downward, so physical trials must use observed integer QA counts.
     pub acceptance_rate_basis_points: u64,
     pub energy_unit_id: String,
     pub energy_per_planned_unit: u64,
@@ -656,7 +658,7 @@ mod tests {
 
     #[test]
     fn strategy_decisions_do_not_use_realized_demand_as_the_forecast() {
-        let mut first = scenario("paired-a");
+        let first = scenario("paired-a");
         let mut second = scenario("paired-b");
         second.realized_demand_units = 20;
         second.realized_demand_evidence_ref = "fixture:realized:paired-b".to_owned();
@@ -711,6 +713,9 @@ mod tests {
         let mut bad = scenario("overflow");
         bad.confirmed_order_units = u64::MAX;
         bad.safety_stock_units = 1;
+        bad.energy_per_planned_unit = 0;
+        bad.water_per_planned_unit = 0;
+        bad.material_per_planned_unit = 0;
         assert!(matches!(
             evaluate_demand_corpus(&corpus(vec![bad])),
             Err(DemandError::ArithmeticOverflow {
