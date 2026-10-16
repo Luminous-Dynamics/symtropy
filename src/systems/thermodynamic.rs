@@ -353,6 +353,37 @@ mod tick_guard_tests {
     }
 
     #[test]
+    fn seeded_million_tick_tape_admits_each_unique_tick_once() {
+        const UNIQUE_TICKS: u64 = 1_000_000;
+        let mut guard = ThermodynamicTickGuard::default();
+        let mut state = 0x7f4a_7c15_d1ce_4e5b_u64;
+        let mut expected_duplicates = 0_u64;
+
+        for tick in 1..=UNIQUE_TICKS {
+            let identity = std::time::Duration::from_nanos(tick);
+            assert!(guard.admit(identity), "unique tick {tick} was rejected");
+
+            // Deterministically choose 1-5 duplicate invocations per unique tick.
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let duplicates = (state % 5) + 1;
+            expected_duplicates += duplicates;
+
+            for _ in 0..duplicates {
+                assert!(
+                    !guard.admit(identity),
+                    "duplicate tick {tick} was admitted"
+                );
+            }
+        }
+
+        assert_eq!(guard.admitted_ticks, UNIQUE_TICKS);
+        assert_eq!(guard.duplicate_invocations, expected_duplicates);
+        assert_eq!(guard.regressed_invocations, 0);
+    }
+
+    #[test]
     fn zero_elapsed_identity_is_not_a_sentinel() {
         let mut guard = ThermodynamicTickGuard::default();
         let zero = std::time::Duration::ZERO;
