@@ -6,6 +6,10 @@ publish = false
 license = "AGPL-3.0-or-later"
 description = "Fail-closed replay and temporal validity checks for synthetic accessible-home evidence"
 
+[[bin]]
+name = "accessible-home-evidence-lifecycle-benchmark"
+path = "src/bin/benchmark.rs"
+
 [workspace]
 
 [dependencies]
