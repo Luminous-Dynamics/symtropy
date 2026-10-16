@@ -21,8 +21,22 @@ const OUTPUT_SCHEMA: &str =
     include_str!("../../../../docs/built-environment/benchmark-result-output.schema.json");
 
 #[derive(Debug, Serialize)]
+pub struct QuantityComparison {
+    pub quantity: String,
+    pub actual_value: Option<f64>,
+    pub actual_unit: Option<String>,
+    pub expected_value: f64,
+    pub expected_unit: String,
+    pub absolute_error: Option<f64>,
+    pub allowed_error: f64,
+    pub within_tolerance: bool,
+}
+
+#[derive(Debug, Serialize)]
 pub struct BenchmarkResultReport {
     pub validator_version: String,
+    pub benchmark_id: Option<String>,
+    pub case_id: Option<String>,
     pub validator_binary_sha256: Option<String>,
     pub checker_pin_matches: bool,
     pub record_schema_sha256: String,
@@ -39,6 +53,7 @@ pub struct BenchmarkResultReport {
     pub output_schema_valid: bool,
     pub reference_case_resolved: bool,
     pub outputs_match_reference: bool,
+    pub quantity_comparisons: Vec<QuantityComparison>,
     pub declared_status: Option<String>,
     pub declared_status_consistent: Option<bool>,
     pub independent_result_status: String,
@@ -162,6 +177,7 @@ pub fn validate_paths(
     let mut raw_output_digest_matches = false;
     let mut output_schema_valid = false;
     let mut outputs_match_reference = false;
+    let mut quantity_comparisons = Vec::new();
     let mut reference_case_resolved = false;
 
     let raw_artifact = record.get("raw_output_artifact");
@@ -232,12 +248,14 @@ pub fn validate_paths(
         match expected_outputs(&benchmark, expected_id, expected_case_id) {
             Ok((expected, tolerance)) => {
                 reference_case_resolved = true;
-                outputs_match_reference = compare_outputs(
+                let (matches, comparisons) = compare_outputs(
                     output.get("outputs"),
                     &expected,
                     tolerance,
                     &mut issues,
                 );
+                outputs_match_reference = matches;
+                quantity_comparisons = comparisons;
             }
             Err(error) => issues.push(error),
         }
@@ -280,6 +298,8 @@ pub fn validate_paths(
 
     Ok(BenchmarkResultReport {
         validator_version: env!("CARGO_PKG_VERSION").to_string(),
+        benchmark_id: benchmark_id.map(str::to_owned),
+        case_id: case_id.map(str::to_owned),
         validator_binary_sha256,
         checker_pin_matches,
         record_schema_sha256,
@@ -296,6 +316,7 @@ pub fn validate_paths(
         output_schema_valid,
         reference_case_resolved,
         outputs_match_reference,
+        quantity_comparisons,
         declared_status,
         declared_status_consistent,
         independent_result_status: independent_result_status.to_string(),
@@ -537,10 +558,10 @@ fn compare_outputs(
     expected: &BTreeMap<String, ExpectedOutput>,
     tolerance: f64,
     issues: &mut Vec<String>,
-) -> bool {
+) -> (bool, Vec<QuantityComparison>) {
     let Some(outputs) = outputs.and_then(Value::as_array) else {
         issues.push("raw output outputs field must be an array".to_string());
-        return false;
+        return (false, Vec::new());
     };
 
     let mut observed = BTreeMap::<String, ObservedOutput>::new();
@@ -585,30 +606,54 @@ fn compare_outputs(
         }
     }
 
+    let mut comparisons = Vec::with_capacity(expected.len());
     for (quantity, expected_output) in expected {
+        let allowed_error = tolerance * expected_output.value.abs().max(f64::MIN_POSITIVE);
         let Some(actual) = observed.get(quantity) else {
             valid = false;
             issues.push(format!("raw output omits required quantity {quantity:?}"));
+            comparisons.push(QuantityComparison {
+                quantity: quantity.clone(),
+                actual_value: None,
+                actual_unit: None,
+                expected_value: expected_output.value,
+                expected_unit: expected_output.unit.to_string(),
+                absolute_error: None,
+                allowed_error,
+                within_tolerance: false,
+            });
             continue;
         };
-        if actual.unit != expected_output.unit {
+
+        let unit_matches = actual.unit == expected_output.unit;
+        if !unit_matches {
             valid = false;
             issues.push(format!(
                 "raw output quantity {quantity:?} has unit {:?}, expected {:?}",
                 actual.unit, expected_output.unit
             ));
         }
-        let allowed_error = tolerance * expected_output.value.abs().max(f64::MIN_POSITIVE);
         let absolute_error = (actual.value - expected_output.value).abs();
-        if absolute_error > allowed_error {
+        let numerical_match = absolute_error <= allowed_error;
+        if !numerical_match {
             valid = false;
             issues.push(format!(
                 "reference mismatch for {quantity:?}: actual {}, expected {}, absolute error {}, allowed {}",
                 actual.value, expected_output.value, absolute_error, allowed_error
             ));
         }
+        comparisons.push(QuantityComparison {
+            quantity: quantity.clone(),
+            actual_value: Some(actual.value),
+            actual_unit: Some(actual.unit.clone()),
+            expected_value: expected_output.value,
+            expected_unit: expected_output.unit.to_string(),
+            absolute_error: Some(absolute_error),
+            allowed_error,
+            within_tolerance: unit_matches && numerical_match,
+        });
     }
-    valid && observed.len() == expected.len()
+    (valid && observed.len() == expected.len(), comparisons)
 }
 
 fn unit_for_quantity(quantity: &str) -> Option<&'static str> {
