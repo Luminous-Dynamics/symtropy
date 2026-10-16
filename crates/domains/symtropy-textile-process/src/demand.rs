@@ -672,8 +672,6 @@ mod tests {
                 .planned_new_production_units;
             assert_eq!(produced_a, produced_b);
         }
-        first.forecast_units = second.forecast_units;
-        assert_eq!(first.forecast_units, second.forecast_units);
     }
 
     #[test]
