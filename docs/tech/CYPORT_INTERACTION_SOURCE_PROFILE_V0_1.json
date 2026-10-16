@@ -48,13 +48,26 @@
       "zero_share": 0.8583290098598858,
       "nonzero_share": 0.1416709901401147,
       "nonzero_observed_values_min": 1,
-      "nonzero_observed_values_max": 10
+      "nonzero_observed_values_max": 10,
+      "description": "Equivalent days of vessel activity lost (total_impact); the paper states that originally non-integral total-impact values are rounded to the nearest integer for count-model analysis.",
+      "related_raw_or_proxy_fields": [
+        "total_impact_value (impact in vessel counts)",
+        "max_impact (maximum impact)",
+        "day_of_recover (recovery duration in days)"
+      ]
     },
     "recovery_sentinels": {
       "start_recovery_date_zero_or_na_rows": 1650,
       "end_recovery_date_zero_or_na_rows": 1650,
       "day_of_recover_zero_or_na_rows": 1650,
-      "interpretation": "Sentinel counts only; they do not establish censoring or prove no recovery. Determine semantics from the data dictionary and event-window rules."
+      "interpretation": "1,650 rows have a zero/NA sentinel in each recovery field, all alongside total_impact=0. The paper says no detected impact window means vessel traffic remained in the normal range, but the exact row-level sentinel semantics should still be verified; do not call them right-censored without evidence. Four more total_impact=0 rows have all recovery markers present.",
+      "cross_tab": {
+        "zero_total_impact_and_all_three_recovery_fields_sentinel": 1650,
+        "zero_total_impact_with_all_three_recovery_fields_present": 4,
+        "nonzero_total_impact_with_all_three_recovery_fields_present": 273,
+        "mixed_sentinel_triplets": 0,
+        "interpretation": "The four zero-valued total_impact rows with recovery timestamps also have nonzero total_impact_value, max_impact, and day_of_recover. Since total_impact is rounded, zero cannot safely be equated with no detected disruption. Treat the three recovery fields as one coherent marker triplet, and validate exact semantics against the source construction method."
+      }
     },
     "temporal_coverage_by_start_year": {
       "2015": 105,
@@ -159,9 +172,10 @@
     "The 1927 rows are port-cyclone interactions, not 1927 independent storms. Group all ports and related records by SID before data splitting.",
     "The 122 ports represented in the interaction table are not the same thing as the 145 principal ports described across the broader dataset.",
     "The 1654 zero-valued total_impact records indicate strong imbalance in this column; do not redefine them as a specific severity category until the source definition is checked.",
-    "The 1650 zero-or-NA recovery sentinels must not be converted to zero recovery time or automatically labelled right-censored.",
     "Vessel activity/counts are proxies for port activity and are not equivalent to cargo tonnage, delivered supplies or engineering safety.",
-    "Published derived resilience/network metrics must not be used as independent ground truth if they are constructed from the same underlying observations."
+    "Published derived resilience/network metrics must not be used as independent ground truth if they are constructed from the same underlying observations.",
+    "Zero total_impact is a rounded count outcome, not a guaranteed no-impact label: four zero-valued rows retain recovery markers and have nonzero total_impact_value/max_impact/day_of_recover.",
+    "Recovery-marker fields are coherent in the inspected table (1,650 all-sentinel triplets and 277 all-present triplets, no mixed triplets); if an importer observes a mixed triplet, retain it as a data-quality exception rather than imputing."
   ],
   "next_capture_gates": [
     "Run --profile-cyport-interactions against a local copy and require exact Git blob SHA-1 identity for the pinned source.",
