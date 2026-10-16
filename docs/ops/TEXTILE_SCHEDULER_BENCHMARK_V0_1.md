@@ -57,9 +57,12 @@ authenticate the underlying measurements.
    for its worth.
 
 The current code models aggregate utility budgets across a planning horizon;
-it does not yet enforce time-indexed utility peaks. Likewise, it represents
-machine capabilities but not individual operator calendars or skill-level
-constraints. Those are future model extensions, not implied capabilities.
+it does not yet enforce time-indexed utility peaks. The time unit is explicit,
+and all time fields in one problem use that shared unit. Setups are
+non-anticipatory in v0.1: setup starts no earlier than both machine availability
+and job release. The model represents machine capabilities but not individual
+operator calendars or skill-level constraints. Those are future extensions,
+not implied capabilities.
 
 ## v0.1 algorithms
 
