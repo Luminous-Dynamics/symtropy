@@ -30,9 +30,7 @@ pub struct ProcessingDelay {
     pub additional_ticks: u64,
 }
 
-/// Machine unavailability through an absolute tick in the problem's declared
-/// time unit. The current v0.1 model treats this as a pre-horizon availability
-/// shift; it does not simulate failures during an in-progress operation.
+/// Additional delay before the job's inputs or specialist preparation are ready.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct JobReleaseDelay {
     pub job_id: String,
@@ -40,6 +38,9 @@ pub struct JobReleaseDelay {
     pub additional_ticks: u64,
 }
 
+/// Machine unavailability through an absolute tick in the problem's declared
+/// time unit. The current v0.1 model treats this as a pre-horizon availability
+/// shift; it does not simulate failures during an in-progress operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MachineAvailabilityDelay {
     pub machine_id: String,
