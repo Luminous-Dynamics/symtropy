@@ -943,7 +943,7 @@ mod tests {
         let report = evaluate_bytes(&changed, "test").expect("exact floor is a valid recovery boundary");
         let metric = report.trajectory_metrics.iter()
             .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
-        assert_eq!(metric.integrated_unmet_service_units, 90);
+        assert_eq!(metric.integrated_unmet_service_units, 115);
         assert_eq!(metric.recovery_time_hours, Some(5));
     }
 
@@ -965,6 +965,73 @@ mod tests {
         assert_eq!(metric.integrated_unmet_service_units, 125);
         assert_eq!(metric.recovery_time_hours, None);
         assert_eq!(metric.recovery_status, "NOT_OBSERVED_WITHIN_HORIZON");
+    }
+
+    #[test]
+    fn recovery_streak_resets_one_point_below_the_floor() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][0]["served_rate"] =
+            serde_json::json!([100, 70, 60, 79, 80, 80]);
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(131));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(6));
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        let report = evaluate_bytes(&changed, "test").expect("one-under-floor should reset recovery streak");
+        let metric = report.trajectory_metrics.iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        assert_eq!(metric.integrated_unmet_service_units, 131);
+        assert_eq!(metric.recovery_time_hours, Some(6));
+    }
+
+    #[test]
+    fn trace_cannot_reference_an_undeclared_scenario() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][0]["case_id"] = Value::String("undeclared_case".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("unknown scenario case"));
+    }
+
+    #[test]
+    fn dependency_edges_cannot_reference_unknown_nodes() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["dependency_edges"][0]["to_node"] = Value::String("invented_terminal".to_owned());
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("unknown node"));
+    }
+
+    #[test]
+    fn perturbation_must_stay_inside_the_declared_horizon() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["scenario_cases"][0]["perturbations"][0]["end_hour_exclusive"] =
+            Value::Number(serde_json::Number::from(7));
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("invalid perturbation interval"));
+    }
+
+    #[test]
+    fn duplicate_trace_identifiers_are_rejected() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][1]["trace_id"] =
+            fixture["synthetic_reference_traces"][0]["trace_id"].clone();
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        assert!(evaluate_bytes(&changed, "test").unwrap_err().contains("duplicate trace ID"));
+    }
+
+    #[test]
+    fn service_rate_exactly_at_floor_counts_as_recovered() {
+        let mut fixture: Value = serde_json::from_slice(FIXTURE).unwrap();
+        fixture["synthetic_reference_traces"][0]["served_rate"] =
+            serde_json::json!([100, 70, 60, 80, 80, 95]);
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["integrated_service_loss_units"] = Value::Number(serde_json::Number::from(115));
+        fixture["synthetic_reference_traces"][0]["expected_contract_metrics"]
+            ["recovery_time_hours"] = Value::Number(serde_json::Number::from(5));
+        let changed = serde_json::to_vec(&fixture).unwrap();
+        let report = evaluate_bytes(&changed, "test").expect("floor boundary must be inclusive");
+        let metric = report.trajectory_metrics.iter()
+            .find(|metric| metric.trace_id == "power-loss-essential-supplies").unwrap();
+        assert_eq!(metric.recovery_time_hours, Some(5));
     }
 
     #[test]
