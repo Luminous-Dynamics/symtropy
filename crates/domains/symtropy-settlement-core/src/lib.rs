@@ -244,8 +244,8 @@ pub struct ResourceAllocation {
     pub requested_units: u64,
     pub minimum_units: u64,
     pub allocated_known_units: u64,
-    /// Upper bound from declared capacities whose operational state is unknown.
-    /// This value is informational only and is never allocated.
+    /// Remaining pool-wide unknown-capacity upper bound before this demand's
+    /// priority decision. This is not a resource allocation or an availability claim.
     pub unresolved_potential_units: u64,
     pub sources: Vec<SourceAllocation>,
     pub outcome: DemandOutcome,
