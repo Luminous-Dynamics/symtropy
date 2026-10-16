@@ -309,14 +309,18 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
             evaluate_reference(&base, base_case).expect("baseline load case is valid");
         for factor in factors {
             let mut changed_load = base.clone();
-            if base_case["load_type"].as_str() == Some("point_load_midspan") {
-                let load = base_case["load_N"].as_f64().unwrap();
-                changed_load["load_cases"][case_index]["load_N"] =
-                    serde_json::json!(load * factor);
-            } else {
-                let load = base_case["load_N_per_m"].as_f64().unwrap();
-                changed_load["load_cases"][case_index]["load_N_per_m"] =
-                    serde_json::json!(load * factor);
+            match base_case["load_type"].as_str() {
+                Some("point_load_midspan") => {
+                    let load = base_case["load_N"].as_f64().unwrap();
+                    changed_load["load_cases"][case_index]["load_N"] =
+                        serde_json::json!(load * factor);
+                }
+                Some("uniform_distributed_load") => {
+                    let load = base_case["load_N_per_m"].as_f64().unwrap();
+                    changed_load["load_cases"][case_index]["load_N_per_m"] =
+                        serde_json::json!(load * factor);
+                }
+                other => panic!("unsupported load type {other:?}"),
             }
             let result = evaluate_reference(
                 &changed_load,
@@ -352,11 +356,11 @@ fn analytical_simply_supported_beam_survives_deterministic_scaling_sweep() {
             )
             .expect("scaled span is valid");
             let (deflection_power, moment_power, reaction_power) =
-                if base_case["load_type"].as_str() == Some("point_load_midspan") {
-                (3, 1, 0)
-            } else {
-                (4, 2, 1)
-            };
+                match base_case["load_type"].as_str() {
+                    Some("point_load_midspan") => (3, 1, 0),
+                    Some("uniform_distributed_load") => (4, 2, 1),
+                    other => panic!("unsupported load type {other:?}"),
+                };
             assert!(close_relative(
                 result.deflection_m,
                 reference.deflection_m * factor.powi(deflection_power),
