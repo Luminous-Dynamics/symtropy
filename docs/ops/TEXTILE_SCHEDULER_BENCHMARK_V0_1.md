@@ -18,7 +18,7 @@ The scheduler includes:
 - mandatory evidence gates with Pass, Fail, or Unknown states;
 - deterministic Pareto comparison across lateness, tardiness, makespan, energy,
   water, and setup duration;
-- three transparent dispatch baselines and a bounded exhaustive solver.
+- four deterministic dispatch rules and a bounded exhaustive solver.
 
 It is not a factory digital twin, lifecycle assessment, textile chemistry model,
 staffing optimizer, conservation diagnosis, or carbon calculator. Numbers and
@@ -86,8 +86,10 @@ explicit error; it never returns a partial search as exact.
 - **EarliestDue:** prioritizes earliest due tick, with deterministic tie-breaks.
 - **LowestSetup:** prioritizes shorter next setup.
 - **LowestEnergy:** prioritizes job-plus-next-setup energy, then water.
+- **LeastSlack:** prioritizes smallest remaining hard-finish slack; where a job
+  has no hard finish tick, it uses the soft due tick as a fallback.
 
-These baselines are deliberately simple. They are comparison points, not claims
+These rules are deliberately simple. They are comparison points, not claims
 that any rule is universally superior. Input vectors are canonicalized by
 stable IDs to make outputs independent of caller ordering.
 
