@@ -37,10 +37,12 @@ impl Layout {
     }
 }
 
-fn strategy_label(strategy: MeshBvhBuildStrategy) -> &'static str {
+fn strategy_label(strategy: MeshBvhBuildStrategy) -> String {
     match strategy {
-        MeshBvhBuildStrategy::Median => "median",
-        MeshBvhBuildStrategy::BinnedSah { .. } => "binned_sah",
+        MeshBvhBuildStrategy::Median => "median".to_string(),
+        MeshBvhBuildStrategy::BinnedSah { bin_count } => {
+            format!("binned_sah_{bin_count}")
+        }
     }
 }
 
