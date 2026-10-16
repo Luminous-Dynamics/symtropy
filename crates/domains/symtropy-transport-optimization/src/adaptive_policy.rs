@@ -467,7 +467,7 @@ fn validate_scenario_option(
 
     let mut seen_edge_resource = BTreeSet::new();
     let mut topology_by_edge: Vec<(String, String, String)> = Vec::new();
-    let mut binding_signature: BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, u64, QuantityUnit)>> = BTreeMap::new();
+    let mut binding_signature: BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, Option<String>, u64, QuantityUnit)>> = BTreeMap::new();
     for use_ in &uses {
         let Some(leg) = legs_by_edge.get(use_.edge_id.as_str()) else {
             return Err(fail("resource mapping references an edge outside the evaluated route"));
@@ -496,8 +496,8 @@ fn validate_scenario_option(
         };
         binding_signature.entry(use_.edge_id.clone()).or_default().push((
             use_.crosswalk_id.clone(), key, use_.crosswalk_manifest_sha256.clone(),
-            use_.assignment.capacity_scope_id.clone(), use_.assignment.capacity_units,
-            use_.assignment.capacity_unit,
+            use_.assignment.capacity_scope_id.clone(), use_.assignment.terminal_id.clone(),
+            use_.assignment.capacity_units, use_.assignment.capacity_unit,
         ));
     }
     for leg in &estimate.legs {
@@ -727,7 +727,7 @@ pub fn select_adaptive_robust_transport_policy(
             }
             let mut by_scenario = BTreeMap::new();
             let mut expected_topology: Option<Vec<(String, String, String)>> = None;
-            let mut expected_signature: Option<BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, u64, QuantityUnit)>>> = None;
+            let mut expected_signature: Option<BTreeMap<String, Vec<(String, AdaptiveResourceKey, String, String, Option<String>, u64, QuantityUnit)>>> = None;
             let mut endpoints: Option<(String, String)> = None;
             for option in &alternative.scenario_options {
                 if by_scenario.contains_key(&option.scenario_id) {
