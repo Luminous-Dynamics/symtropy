@@ -575,8 +575,8 @@ mod tests {
             id: "demand-campaign-v0".to_owned(),
             version: "1".to_owned(),
             synthetic_only: true,
-            interpretation_boundary: "Synthetic paired comparison; no probability or lifecycle benefit implied."
-                .to_owned(),
+            interpretation_boundary:
+                "Synthetic paired comparison; no probability or lifecycle benefit implied.".to_owned(),
             scenarios,
         }
     }
