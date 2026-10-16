@@ -308,7 +308,7 @@ mod tests {
         let grid = SpatialGrid2d::new(points, 1.0).unwrap();
         assert_eq!(grid.query_radius_candidates([0.0, 0.0], 1.0e100).unwrap().len(), 3);
         assert_eq!(
-            grid.query_radius_candidates([9.0e18, 0.0], 1.0).unwrap().len(),
+            grid.query_radius_candidates([9.3e18, 0.0], 1.0).unwrap().len(),
             3
         );
     }
@@ -350,7 +350,7 @@ mod tests {
     fn point_outside_representable_index_range_is_rejected() {
         assert_eq!(
             SpatialGrid2d::new(
-                [SpatialPoint { id: 8, x: 9.0e18, y: 0.0 }],
+                [SpatialPoint { id: 8, x: 9.3e18, y: 0.0 }],
                 1.0
             )
             .unwrap_err(),
