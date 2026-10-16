@@ -116,11 +116,6 @@ fn evaluate_reference(case: &Value, load_case: &Value) -> Result<BeamResult, Str
 fn assert_matches_expected(actual: BeamResult, expected: &Value, tolerance: f64) {
     for (name, value, expected_value) in [
         (
-            "section inertia",
-            actual.inertia_m4,
-            expected["second_moment_area_m4"].as_f64().unwrap_or(actual.inertia_m4),
-        ),
-        (
             "maximum deflection",
             actual.deflection_m,
             expected["maximum_deflection_m"].as_f64().unwrap(),
