@@ -380,7 +380,7 @@ pub fn dispatch_schedule(
                     continue;
                 }
 
-                let key = dispatch_key(rule, job, &operation, transition);
+                let key = dispatch_key(rule, job, &operation, transition)?;
                 choices.push(DispatchChoice {
                     key,
                     job_index,
@@ -666,12 +666,12 @@ fn prepare(problem: &ScheduleProblem) -> Result<PreparedProblem, ScheduleError> 
     })
 }
 
-fn transition_for<'a>(
-    problem: &'a PreparedProblem,
+fn transition_for(
+    problem: &PreparedProblem,
     machine_id: &str,
     from_family: &str,
     to_family: &str,
-) -> Result<TransitionUse<'a>, ScheduleError> {
+) -> Result<TransitionUse, ScheduleError> {
     if from_family == to_family {
         return Ok(TransitionUse {
             duration_ticks: 0,
@@ -699,7 +699,7 @@ fn transition_for<'a>(
 }
 
 #[derive(Clone, Copy)]
-struct TransitionUse<'a> {
+struct TransitionUse {
     duration_ticks: u64,
     energy_units: u64,
     water_units: u64,
@@ -709,7 +709,7 @@ fn make_operation(
     job: &TextileJob,
     machine: &Machine,
     state: &MachineState,
-    transition: TransitionUse<'_>,
+    transition: TransitionUse,
 ) -> Result<ScheduledOperation, ScheduleError> {
     let setup_finish_tick = checked_add(
         state.available_tick,
@@ -988,11 +988,11 @@ fn dispatch_key(
     rule: DispatchRule,
     job: &TextileJob,
     operation: &ScheduledOperation,
-    transition: TransitionUse<'_>,
-) -> DispatchKey {
+    transition: TransitionUse,
+) -> Result<DispatchKey, ScheduleError> {
     let setup = transition.duration_ticks;
-    let energy = job.energy_units.saturating_add(transition.energy_units);
-    let water = job.water_units.saturating_add(transition.water_units);
+    let energy = checked_add(job.energy_units, transition.energy_units, "dispatch energy key")?;
+    let water = checked_add(job.water_units, transition.water_units, "dispatch water key")?;
     let due = job.due_tick;
     let finish = operation.finish_tick;
     let (primary, secondary, tertiary, quaternary, quinary) = match rule {
@@ -1000,7 +1000,7 @@ fn dispatch_key(
         DispatchRule::LowestSetup => (setup, due, finish, energy, water),
         DispatchRule::LowestEnergy => (energy, water, due, setup, finish),
     };
-    DispatchKey {
+    Ok(DispatchKey {
         primary,
         secondary,
         tertiary,
@@ -1008,7 +1008,7 @@ fn dispatch_key(
         quinary,
         job_id: job.id.clone(),
         machine_id: operation.machine_id.clone(),
-    }
+    })
 }
 
 fn checked_add(left: u64, right: u64, field: &'static str) -> Result<u64, ScheduleError> {
@@ -1196,6 +1196,8 @@ mod tests {
     #[test]
     fn exact_search_rejects_instances_above_its_declared_bound() {
         let mut problem = sample_problem();
+        problem.energy_budget_units = 1_000;
+        problem.water_budget_units = 1_000;
         let template = problem.jobs[0].clone();
         for index in 0..EXHAUSTIVE_MAX_JOBS {
             let mut extra = template.clone();
