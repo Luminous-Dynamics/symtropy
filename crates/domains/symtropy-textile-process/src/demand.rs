@@ -109,16 +109,8 @@ pub struct PolicyDemandOutcome {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScenarioDemandResult {
-    pub scenario_id: String,
-    pub fixture_ref: String,
-    pub profile_id: String,
-    pub functional_unit_id: String,
-    pub energy_unit_id: String,
-    pub water_unit_id: String,
-    pub material_unit_id: String,
-    pub forecast_units: u64,
-    pub confirmed_order_units: u64,
-    pub realized_demand_units: u64,
+    /// Full frozen input and evidence references, not just the derived outputs.
+    pub scenario: DemandScenario,
     pub policy_outcomes: Vec<PolicyDemandOutcome>,
 }
 
@@ -205,16 +197,7 @@ pub fn evaluate_demand_corpus(
             policy_outcomes.push(evaluate_policy(scenario, policy)?);
         }
         scenario_results.push(ScenarioDemandResult {
-            scenario_id: scenario.id.clone(),
-            fixture_ref: scenario.fixture_ref.clone(),
-            profile_id: scenario.profile_id.clone(),
-            functional_unit_id: scenario.functional_unit_id.clone(),
-            energy_unit_id: scenario.energy_unit_id.clone(),
-            water_unit_id: scenario.water_unit_id.clone(),
-            material_unit_id: scenario.material_unit_id.clone(),
-            forecast_units: scenario.forecast_units,
-            confirmed_order_units: scenario.confirmed_order_units,
-            realized_demand_units: scenario.realized_demand_units,
+            scenario: scenario.clone(),
             policy_outcomes,
         });
     }
@@ -629,8 +612,8 @@ mod tests {
     #[test]
     fn product_and_demand_ledgers_close_for_every_policy() {
         let report = evaluate_demand_corpus(&corpus(vec![scenario("ledger")])).unwrap();
-        let scenario = &report.scenario_results[0];
-        for outcome in &scenario.policy_outcomes {
+        let scenario_result = &report.scenario_results[0];
+        for outcome in &scenario_result.policy_outcomes {
             assert_eq!(
                 outcome.planned_new_production_units,
                 outcome.accepted_new_output_units + outcome.rejected_new_output_units
@@ -649,7 +632,7 @@ mod tests {
                 outcome.on_time_fulfilled_units + outcome.late_fulfilled_units
             );
             assert_eq!(
-                scenario.realized_demand_units,
+                scenario_result.scenario.realized_demand_units,
                 outcome.total_fulfilled_units + outcome.stockout_units
             );
             assert!(outcome.manufacturing_energy_units
