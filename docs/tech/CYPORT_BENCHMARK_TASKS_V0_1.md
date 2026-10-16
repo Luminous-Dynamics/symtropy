@@ -4,6 +4,7 @@
 **Machine-readable contract:** [CYPORT_BENCHMARK_TASKS_V0_1.json](./CYPORT_BENCHMARK_TASKS_V0_1.json)  
 **Verifier:** `cargo run --locked -p maritime-data-receipt -- --validate-cyport-benchmark-tasks docs/tech/CYPORT_BENCHMARK_TASKS_V0_1.json`  
 **Upstream source profile:** [CyPort Interaction Table Profile v0.1](./MARITIME_CYPORT_INTERACTION_PROFILE_V0_1.md)  
+**Field-timing gate:** [CyPort Feature Availability Audit v0.1](./CYPORT_FEATURE_AVAILABILITY_V0_1.md) — 56/56 fields classified; no predictors approved.  
 **Frozen split:** [CYPORT_EPISODE_SPLIT_V0_1.json](./CYPORT_EPISODE_SPLIT_V0_1.json)
 
 ## Why this changes the research framing
@@ -73,6 +74,16 @@ The 24/48/72-hour lead-time benchmark is **future work only**: the interaction t
 5. **Graph/network models:** only once time-varying port connectivity and route/service outcomes are properly joined with point-in-time provenance. Graph neural networks are not automatically superior; require ablations proving a gain over node-only baselines.
 
 Symthaea may help with schema audits, explanation, scenario generation and hypothesis triage, but the first numeric forecasters should be simple, calibrated, falsifiable baselines. Any Symthaea-generated rationale must remain separate from the measured predictive output and should never be treated as ground truth.
+
+## Complementary benchmark: evidence-grounded preparedness reasoning
+
+Numeric event/severity prediction is only one component of a port operator's task. The 2026 AAAI paper [CyPortQA](https://doi.org/10.1609/aaai.v40i45.41222) introduces 2,917 real-world port–cyclone scenarios and 117,178 structured question–answer pairs, and reports remaining weaknesses in MLLM impact estimation and decision reasoning. This suggests a separate, **evidence-grounded decision benchmark** for synthesizing official forecast products, port-condition bulletins and network context.
+
+Do not merge these scores into the four numeric tasks above. CyPortQA is built from the same CyPort case universe, so it is a useful adjacent task benchmark—not an independent external validation set for the same ports/storms. Any adapted split must group by underlying SID and scenario lineage, not by question or prompt, to prevent near-duplicate leakage.
+
+A candidate preparedness response should return a structured decision record: evidence references with valid/issue times, estimated impact range and uncertainty, alternative actions, trigger conditions, expected freight-service consequences, an explicit abstain/escalate state, and the facts that would change the recommendation. Evaluate source-grounding (claims supported by the cited bulletin/forecast), temporal freshness, uncertainty calibration, counterfactual consistency, decision-cost trade-offs, and expert adjudication. Safety-critical instructions require independent port-domain review; fluent language is not evidence of decision quality.
+
+The next infrastructure-level shift is to join these layers through a time-indexed port–route–cargo graph and measure **service delivered / unmet demand / rerouting cost**, not only a port-level impact label. Recent maritime-network research reports gains from spatiotemporal graph models over temporal baselines on monthly port operational-risk forecasts, while other 2026 work studies recovery resource allocation and shipping-network consequences. Those findings motivate graph and intervention baselines, but do not validate this dataset or authorize real operations ([spatiotemporal maritime-risk study](https://www.sciencedirect.com/science/article/pii/S136655452600606X); [typhoon recovery optimization study](https://www.sciencedirect.com/science/article/pii/S0967070X26000399)).
 
 ## Interpretation boundary
 
