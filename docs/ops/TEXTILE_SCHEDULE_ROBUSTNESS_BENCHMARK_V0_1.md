@@ -81,8 +81,9 @@ a synthetic fixture reference as if it authenticated an industrial measurement.
 | Invalid/duplicate/unknown shock references accepted | **0** | Fail closed |
 | Arithmetic overflow accepted | **0** | Checked addition |
 | Dispatch claims a plan where exact oracle says no feasible schedule | **0** | Oracle contradiction is a harness failure |
-| Exact feasible case missed by all dispatch rules | **0** | Report misses per rule, not just overall |
-| Exact feasible cases missed by the intended baseline policy | **0** on locked tiny cases | Does not imply 0 misses at production scale |
+| Oracle feasibility classification or heuristic-miss attribution is incorrect | **0** | Exact feasibility and planner quality are separate findings |
+| Missed exact-feasible cases are hidden or counted as infeasible | **0** | Every miss must be reported per rule |
+| Future improved selector misses a locked tiny feasible case | **0** target | The v0.1 dispatch rules are baselines; this corpus deliberately tests that they can miss feasible schedules |
 | Repeat-run normalized reports differ for identical manifest/version | **0** | Deterministic ordering |
 | Hidden infeasibility or partial exact search presented as exact | **0** | Bound failures must remain explicit |
 | Factory risk / outage probabilities inferred from unweighted stress corpus | **0** | Requires calibrated external frequency evidence |
