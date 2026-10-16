@@ -718,6 +718,27 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--validate-cyport-episode-split-manifest") {
+        let manifest_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-cyport-episode-split-manifest <manifest-json-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for CyPort episode split manifest validation".to_owned());
+        }
+        return cyport_interaction_profile::validate_episode_split_manifest_cli(&manifest_path);
+    }
+    if first_arg.as_deref() == Some("--verify-cyport-episode-split") {
+        let csv_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --verify-cyport-episode-split <interaction-data-csv-path> <manifest-json-path>".to_owned()
+        })?;
+        let manifest_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --verify-cyport-episode-split <interaction-data-csv-path> <manifest-json-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for CyPort source-to-split verification".to_owned());
+        }
+        return cyport_interaction_profile::verify_episode_split_cli(&csv_path, &manifest_path);
+    }
     if first_arg.as_deref() == Some("--profile-cyport-interactions") {
         let csv_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --profile-cyport-interactions <interaction-data-csv-path>".to_owned()
