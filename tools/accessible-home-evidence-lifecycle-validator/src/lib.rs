@@ -75,6 +75,11 @@ pub enum Assessment {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+#[serde(transparent)]
+pub struct RequiredNullableString(pub Option<String>);
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Claim {
     pub claim_id: String,
     pub scope_ref: String,
@@ -83,8 +88,8 @@ pub struct Claim {
     pub source_ref: String,
     pub review_role: String,
     pub observed_at: String,
-    pub review_due: Option<String>,
-    pub supersedes_claim_id: Option<String>,
+    pub review_due: RequiredNullableString,
+    pub supersedes_claim_id: RequiredNullableString,
     pub expected_currentness: Currentness,
     pub note: String,
 }
@@ -277,14 +282,14 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
             }
         }
         if let Some(observed) = parse_time(&claim.observed_at, &format!("claim {} observed_at", claim.claim_id), &mut errors) {
-            if evaluation_time.is_some_and(|end| observed > end) {
+            if evaluation_time.as_ref().is_some_and(|end| observed > end.clone()) {
                 errors.push(format!("claim {:?} is observed after evaluation_time", claim.claim_id));
             }
         }
-        if let Some(due) = claim.review_due.as_deref() {
+        if let Some(due) = claim.review_due.0.as_deref() {
             parse_time(due, &format!("claim {} review_due", claim.claim_id), &mut errors);
         }
-        if let Some(old_id) = claim.supersedes_claim_id.as_deref() {
+        if let Some(old_id) = claim.supersedes_claim_id.0.as_deref() {
             if old_id == claim.claim_id {
                 errors.push(format!("claim {:?} cannot supersede itself", claim.claim_id));
             }
@@ -310,7 +315,7 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
     let parent_by_id: BTreeMap<&str, &str> = data
         .claims
         .iter()
-        .filter_map(|claim| claim.supersedes_claim_id.as_deref().map(|old| (claim.claim_id.as_str(), old)))
+        .filter_map(|claim| claim.supersedes_claim_id.0.as_deref().map(|old| (claim.claim_id.as_str(), old)))
         .collect();
     for start in parent_by_id.keys() {
         let mut visited = BTreeSet::new();
@@ -336,7 +341,7 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
         }
         let event_time = parse_time(&event.occurred_at, &format!("event {} occurred_at", event.event_id), &mut errors);
         if let Some(time) = event_time {
-            if evaluation_time.is_some_and(|end| time > end) {
+            if evaluation_time.as_ref().is_some_and(|end| time > end.clone()) {
                 errors.push(format!("event {:?} occurs after evaluation_time", event.event_id));
             }
             if last_event_time.is_some_and(|previous| time < previous) {
@@ -367,8 +372,8 @@ fn validate_and_replay(data: &Lifecycle) -> Result<BTreeMap<String, String>, Vec
                 .entry(change.facet_id.clone())
                 .or_default()
                 .insert(change.to_revision_id.clone());
-            match current_revisions.get(&change.facet_id) {
-                Some(current) if current == &change.from_revision_id => {
+            match current_revisions.get(&change.facet_id).cloned() {
+                Some(current) if current == change.from_revision_id => {
                     current_revisions.insert(change.facet_id.clone(), change.to_revision_id.clone());
                 }
                 Some(current) => errors.push(format!(
@@ -431,7 +436,7 @@ fn derive_claim_results(
     let superseded: BTreeSet<&str> = data
         .claims
         .iter()
-        .filter_map(|claim| claim.supersedes_claim_id.as_deref())
+        .filter_map(|claim| claim.supersedes_claim_id.0.as_deref())
         .collect();
     let evaluation_time = DateTime::parse_from_rfc3339(&data.evaluation_time)
         .expect("evaluation_time has already been validated");
@@ -452,7 +457,7 @@ fn derive_claim_results(
                 "Bound revision changed for facet(s): {}.",
                 invalidated_by_facets.join(", ")
             ))
-        } else if claim.review_due.as_deref().and_then(|due| DateTime::parse_from_rfc3339(due).ok()).is_some_and(|due| due <= evaluation_time) {
+        } else if claim.review_due.0.as_deref().and_then(|due| DateTime::parse_from_rfc3339(due).ok()).is_some_and(|due| due <= evaluation_time) {
             (Currentness::Expired, "The declared review deadline is at or before evaluation_time.".to_owned())
         } else {
             (Currentness::Current, "All bound revisions match; the review window has not lapsed.".to_owned())
@@ -679,7 +684,8 @@ mod tests {
     #[test]
     fn supersession_cycle_fails_closed() {
         let mut value = fixture_value();
-        value["claims"][0]["scope_ref"] = value["claims"][1]["scope_ref"].clone();
+        let shared_scope = value["claims"][1]["scope_ref"].clone();
+        value["claims"][0]["scope_ref"] = shared_scope;
         value["claims"][0]["supersedes_claim_id"] = json!("visitor-alert-path");
         value["claims"][1]["supersedes_claim_id"] = json!("night-route-clearance");
         let errors = evaluate_value(&value).expect_err("cycle must fail");
