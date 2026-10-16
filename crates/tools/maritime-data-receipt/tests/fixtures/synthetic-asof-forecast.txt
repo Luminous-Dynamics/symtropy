@@ -1,0 +1,1 @@
+SYNTHETIC_ONLY: archived forecast evidence fixture, not a real NOAA product.
