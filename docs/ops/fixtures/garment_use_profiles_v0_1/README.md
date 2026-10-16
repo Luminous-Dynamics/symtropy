@@ -6,7 +6,7 @@ This fixture set extends textile-process evaluation to garments whose service ca
 
 Nine synthetic profile examples cover everyday base layers, workwear, rental occasionwear, beaded couture, bridal/ceremonial garments, performance costumes, modular decorative pieces, deadstock/runway samples, and heritage/archive garments.
 
-Each profile declares a functional unit, intended service, named value/function dimensions, decoration risks, care constraints, specialist-review status and possible circulation routes.
+Each profile declares a functional unit, intended service, named value/function dimensions, decoration risks, care constraints, specialist-review status, production strategies and possible circulation routes.
 
 ## Core semantics
 
@@ -15,7 +15,9 @@ Each profile declares a functional unit, intended service, named value/function 
 - **Aesthetic, cultural, historical, collectable and performance value remain named dimensions.** The benchmark does not invent a universal scalar for cultural or artistic value.
 - **Decoration affects manufacturing, care and repair.** Beads, sequins, dense embroidery, metallic thread, adhesives, feathers, mixed-material trims and detachable modules can create different repair, cleaning, sorting and recovery requirements.
 - **Specialist review is an explicit gate, not a generically inferred pass.** Historic, fragile, composition-unknown or highly embellished objects may need a qualified conservator, repairer or material assessor.
-- **A circulation option is not proof of success.** Rental, lending, resale, alteration, transformation, archiving and material recovery require their own observed events and acceptance evidence.
+- **A circulation option is not proof of success.** Rental, lending, resale, alteration, transformation, donation, archiving and material recovery require their own observed events and acceptance evidence.
+- **Production strategy is not one-size-fits-all.** Compare made-to-order, preorders/demand signals, small batches, forecast batches, shared/rental stock, one-off artisanal production, commissions, repair-first choices and sample reuse. Include lead time, stockouts, unsold inventory, service acceptance and the value of reusing an existing article.
+- **Deadstock is not automatically waste or qualified feedstock.** Existing stock can be retained, reallocated, donated, remade or recovered only within its actual material/function evidence; missing composition remains unknown.
 
 ## Benchmark ideas
 
@@ -30,6 +32,8 @@ Each profile declares a functional unit, intended service, named value/function 
 ## Evidence basis and limits
 
 This is a synthetic contract/profile benchmark, not a validated LCA, conservation plan, circularity certificate or apparel-performance claim.
+
+Regulatory context also matters: the European Commission's strategy timeline lists the prohibition on destroying unsold textiles and footwear for large enterprises from 19 July 2026, with the medium-enterprise date listed as 19 July 2030. The applicable legal scope and exceptions need a current jurisdiction-specific review before operational use: https://environment.ec.europa.eu/strategy/textiles-strategy_en
 
 Relevant domain guidance:
 - European Commission Sustainable and Circular Textiles Strategy: https://environment.ec.europa.eu/strategy/textiles-strategy_en
