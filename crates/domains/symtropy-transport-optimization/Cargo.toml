@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-transport-optimization"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Deterministic reference model for multimodal passenger and cargo route trade-offs"
+
+[lib]
+path = "src/lib.rs"
