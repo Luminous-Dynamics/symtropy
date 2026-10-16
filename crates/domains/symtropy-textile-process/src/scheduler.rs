@@ -1325,7 +1325,7 @@ mod tests {
             if position == order.len() {
                 if energy_units > problem.energy_budget_units
                     || water_units > problem.water_budget_units
-                    || finishes.iter().any(Option::is_none)
+                    || finishes.iter().any(|finish| finish.is_none())
                 {
                     return;
                 }
@@ -1387,7 +1387,7 @@ mod tests {
                     continue;
                 }
 
-                let old_state = state.clone();
+                let old_state = states[machine_index].clone();
                 let old_finish = finishes[job_index];
                 states[machine_index] = MachineState {
                     available_tick: finish,
