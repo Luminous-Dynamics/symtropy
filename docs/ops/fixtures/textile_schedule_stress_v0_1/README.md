@@ -33,7 +33,7 @@ against this schema with an independent validator before the JSON is treated as
 an executable corpus. This distinction is intentional: a valid-looking file is
 not runtime evidence until parsing and semantic validation are actually wired.
 
-The scenario set is unweighted and synthetic. Its five examples are not a
+The scenario set is unweighted and synthetic. Its six examples are not a
 sample of disruption frequency, do not estimate real-world probability, and
 cannot support factory-savings, compliance or circularity claims. Compute and
 record a SHA-256 of the exact input bytes used in every benchmark run; do not
