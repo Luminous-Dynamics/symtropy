@@ -23,7 +23,8 @@ const SOURCE_PATH: &str = "Tropical_cyclone_interaction/interaction_data.csv";
 const SOURCE_BLOB_SHA1: &str = "21beb5b7673918143a0ab108b03acc3cccaeb330";
 const SOURCE_BYTES: u64 = 643_047;
 const SPLIT_PATH: &str = "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json";
-const SPLIT_POLICY_ID: &str = "cyport_sid_chronological_split_v0_1";
+const SPLIT_MANIFEST_SCHEMA_ID: &str = "luminous.symtropy.maritime.cyport-episode-split";
+const SPLIT_MANIFEST_SCHEMA_VERSION: &str = "0.1.0";
 
 const TASK_IDS: &[&str] = &[
     "impact_window_marker_state",
@@ -61,7 +62,7 @@ struct BenchmarkContractReport {
     contract_sha256: String,
     task_count: usize,
     task_ids: Vec<String>,
-    split_policy_id: &'static str,
+    split_manifest_schema_id: &'static str,
     split_storm_count: u64,
     split_row_count: u64,
     feature_whitelist_empty: bool,
@@ -227,14 +228,19 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
     let split = field(&root, "split_manifest", "root")?;
     exact_keys(
         split,
-        &["path", "policy_id", "split_unit", "splits", "total_storms", "total_rows"],
+        &["path", "schema_id", "schema_version", "split_unit", "splits", "total_storms", "total_rows"],
         "split_manifest",
     )?;
     expect_text(field(split, "path", "split_manifest")?, "split_manifest.path", SPLIT_PATH)?;
     expect_text(
-        field(split, "policy_id", "split_manifest")?,
-        "split_manifest.policy_id",
-        SPLIT_POLICY_ID,
+        field(split, "schema_id", "split_manifest")?,
+        "split_manifest.schema_id",
+        SPLIT_MANIFEST_SCHEMA_ID,
+    )?;
+    expect_text(
+        field(split, "schema_version", "split_manifest")?,
+        "split_manifest.schema_version",
+        SPLIT_MANIFEST_SCHEMA_VERSION,
     )?;
     expect_text(field(split, "split_unit", "split_manifest")?, "split_manifest.split_unit", "SID")?;
     let expected_splits = [
@@ -436,7 +442,7 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         contract_sha256: super::sha256_bytes(bytes),
         task_count: task_ids.len(),
         task_ids,
-        split_policy_id: SPLIT_POLICY_ID,
+        split_manifest_schema_id: SPLIT_MANIFEST_SCHEMA_ID,
         split_storm_count: storms,
         split_row_count: rows,
         feature_whitelist_empty: true,
