@@ -77,7 +77,7 @@ For the current idealized cantilever with section and material unchanged, elemen
 - Doubling section width doubles $I$, so formula-level deflection and stress halve.
 - Doubling section depth multiplies rectangular-section $I$ by eight. If $c=h/2$ is updated consistently, formula-level deflection falls by eight and extreme-fiber stress falls by four.
 
-These are properties of the stated idealized equations. They must not be applied blindly when self-weight, nonlinear response, shear deformation, support conditions or load definitions change. Tests should transform primitive inputs and recompute derived values, not leave contradictory derived fields behind.
+The Rust reference suites now sweep load, span/length, elastic modulus, width and depth/height across six deterministic scale factors (0.25, 0.5, 0.75, 1.25, 2 and 4) and check the corresponding law for each output. These are properties of the stated idealized equations. They must not be applied blindly when self-weight, nonlinear response, shear deformation, support conditions or load definitions change. Tests should transform primitive inputs and recompute derived values, not leave contradictory derived fields behind.
 
 ## Gate-execution record and independent checking
 
