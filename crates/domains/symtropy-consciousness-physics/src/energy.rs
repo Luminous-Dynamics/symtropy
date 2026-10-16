@@ -185,7 +185,10 @@ impl EnergyBudget {
         (self.available - self.temperature * self.entropy).max(0.0)
     }
 
-    /// Add energy (from regeneration sources). Capped at max_energy.
+    /// Add energy from a regeneration source, capped at max_energy.
+    ///
+    /// Returns the actual accepted Joules (zero for an invalid request or no headroom)
+    /// so a finite source can debit exactly the amount received by this reservoir.
     #[inline]
     pub fn regenerate(&mut self, amount: f64) -> f64 {
         // Regeneration is an energy source, not a debit. Reject invalid public
