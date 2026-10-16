@@ -20,6 +20,7 @@ The build-time field is explicitly a single sample. Repeat the whole command in 
 
 - BVH broadphase may produce false positives but must not omit any triangle whose exact vertex AABB overlaps a query AABB.
 - Results contain no duplicate or out-of-range triangle indices.
+- A fixed-seed nonuniform 512-triangle corpus (including zero-area and elongated triangles) is checked against an independent O(N) triangle-AABB overlap oracle across 256 queries with point-like through broad boxes.
 - Transformed mesh queries are conservative under translation and rotation.
 - Degenerate triangles, empty meshes, large coordinate magnitudes, and near-coplanar contacts are covered before changing predicate or narrowphase logic.
 - Collision results stay finite; independently check against brute-force candidate scans or a separate reference implementation where feasible.
