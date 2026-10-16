@@ -420,13 +420,13 @@ impl<const D: usize> Default for StaticBroadphase<D> {
 /// Separates the body list into dynamic and non-dynamic entries:
 /// - Dynamic–dynamic: brute-force O(n_dyn²), acceptable for typical games
 ///   where the number of actively moving bodies is small.
-/// - Dynamic–static: linear scan against the prebuilt `StaticBroadphase`.
-///   For large static geometry this avoids re-packing static bodies into the
-///   LBVH every frame.
+/// - Dynamic–cached: linear scan against the prebuilt `StaticBroadphase`.
+/// - Kinematic–cached: explicit comparisons preserve Static–Kinematic and
+///   Kinematic–Kinematic pairs while omitting Static–Static pairs.
 ///
-/// For very large dynamic counts (≥ BRUTE_FORCE_THRESHOLD) the existing
-/// `find_pairs` (full LBVH over all bodies) is called instead, since it is
-/// superior at scale.
+/// When the combined Dynamic + Kinematic count reaches
+/// `BRUTE_FORCE_THRESHOLD`, the standard full-LBVH path is used to avoid
+/// quadratic active-vs-cached scans.
 pub fn find_pairs_incremental<const D: usize>(
     bodies: &[RigidBody<D>],
     static_bp: &StaticBroadphase<D>,
@@ -447,9 +447,17 @@ pub fn find_pairs_incremental<const D: usize>(
         .map(BpEntry::from_body)
         .collect();
 
-    // For large dynamic counts fall back to the full LBVH path which is more
-    // efficient at scale. The static cache saves rebuilding the full tree.
-    if dynamic.len() >= BRUTE_FORCE_THRESHOLD {
+    // The active-vs-cached implementation below is quadratic in the number
+    // of moving entries and cached entries. Once Dynamic + Kinematic reaches
+    // the established small-N crossover, use the standard LBVH path instead.
+    // This also prevents a large kinematic population from bypassing the
+    // existing dynamic-only fallback.
+    let kinematic_count = static_bp
+        .entries
+        .iter()
+        .filter(|entry| entry.body_type == BodyType::Kinematic)
+        .count();
+    if dynamic.len() + kinematic_count >= BRUTE_FORCE_THRESHOLD {
         return find_pairs(bodies);
     }
 
