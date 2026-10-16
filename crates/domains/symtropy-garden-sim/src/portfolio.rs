@@ -846,7 +846,7 @@ mod tests {
             let id = format!("CASE-{case_index:03}-CAND-{index:02}");
             let feasibility = if index == 0 {
                 PortfolioCandidateFeasibilityV1::Unassessed
-            } else if index % 7 == 0 {
+            } else if index.is_multiple_of(7) {
                 PortfolioCandidateFeasibilityV1::Infeasible
             } else {
                 PortfolioCandidateFeasibilityV1::Feasible
