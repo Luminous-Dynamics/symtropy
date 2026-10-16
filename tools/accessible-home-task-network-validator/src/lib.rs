@@ -290,24 +290,17 @@ fn validate_structure(network: &Network) -> Vec<String> {
 
     // IDs share one namespace so a reference cannot ambiguously resolve across kinds.
     let mut all_ids = BTreeSet::new();
-    let mut register_id = |kind: &str, id: &str| {
-        if !valid_id(id) {
-            errors.push(format!("{kind} id '{id}' is invalid"));
-        }
-        if !all_ids.insert(id.to_owned()) {
-            errors.push(format!("duplicate global id '{id}' ({kind})"));
-        }
-    };
-    register_id("goal", &network.goal.id);
+    register_id(&mut errors, &mut all_ids, "network", &network.network_id);
+    register_id(&mut errors, &mut all_ids, "goal", &network.goal.id);
     for node in &network.nodes {
-        register_id("node", &node.id);
+        register_id(&mut errors, &mut all_ids, "node", &node.id);
         require_text(&mut errors, &format!("node '{}' title", node.id), &node.title);
         require_text(&mut errors, &format!("node '{}' evidence_ref", node.id), &node.evidence_ref);
         require_text(&mut errors, &format!("node '{}' review_with", node.id), &node.review_with);
         require_text(&mut errors, &format!("node '{}' note", node.id), &node.note);
     }
     for edge in &network.edges {
-        register_id("edge", &edge.id);
+        register_id(&mut errors, &mut all_ids, "edge", &edge.id);
         require_text(&mut errors, &format!("edge '{}' from", edge.id), &edge.from);
         require_text(&mut errors, &format!("edge '{}' to", edge.id), &edge.to);
         require_text(&mut errors, &format!("edge '{}' evidence_ref", edge.id), &edge.evidence_ref);
@@ -320,18 +313,17 @@ fn validate_structure(network: &Network) -> Vec<String> {
         }
     }
     for path in &network.paths {
-        register_id("path", &path.id);
+        register_id(&mut errors, &mut all_ids, "path", &path.id);
         require_text(&mut errors, &format!("path '{}' title", path.id), &path.title);
         require_text(&mut errors, &format!("path '{}' success_condition", path.id), &path.success_condition);
         require_text(&mut errors, &format!("path '{}' note", path.id), &path.note);
     }
     for failure in &network.failure_modes {
-        register_id("failure mode", &failure.id);
+        register_id(&mut errors, &mut all_ids, "failure mode", &failure.id);
         require_text(&mut errors, &format!("failure mode '{}' title", failure.id), &failure.title);
         require_text(&mut errors, &format!("failure mode '{}' note", failure.id), &failure.note);
     }
-    drop(register_id);
-
+    
     if !errors.is_empty() {
         // Type/ID failures are already actionable; continue only once IDs are safe to index.
         // The complete list is returned below so callers see all first-order defects.
@@ -521,9 +513,234 @@ fn require_text(errors: &mut Vec<String>, label: &str, value: &str) {
     }
 }
 
+
+fn register_id(errors: &mut Vec<String>, all_ids: &mut BTreeSet<String>, kind: &str, id: &str) {
+    if !valid_id(id) {
+        errors.push(format!("{kind} id '{id}' is invalid"));
+    }
+    if !all_ids.insert(id.to_owned()) {
+        errors.push(format!("duplicate global id '{id}' ({kind})"));
+    }
+}
+
+fn unique(values: &[String]) -> bool {
+    let mut seen = BTreeSet::new();
+    values.iter().all(|value| seen.insert(value.as_str()))
+}
+
 fn valid_id(value: &str) -> bool {
     let bytes = value.as_bytes();
-    !bytes.is_empty()
-        && bytes.len() <= 80
-        && bytes[0].is_ascii_lowercase().then_some(true).unwrap_or(false) || false
+    if bytes.is_empty() || bytes.len() > 80 {
+        return false;
+    }
+    if !(bytes[0].is_ascii_lowercase() || bytes[0].is_ascii_digit()) {
+        return false;
+    }
+    bytes.iter().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+}
+
+fn hex_sha256(input: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let digest = Sha256::digest(input);
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn fixture_value() -> Value {
+        serde_json::from_str(FIXTURE).expect("repository fixture must be valid JSON")
+    }
+
+    fn evaluate_value(value: &Value) -> Result<ValidationReport, Vec<String>> {
+        let bytes = serde_json::to_vec(value).expect("test fixture serializes");
+        evaluate_bytes(&bytes)
+    }
+
+    fn change_evidence(value: &mut Value, node_id: &str, state: &str) {
+        let nodes = value["nodes"].as_array_mut().expect("nodes array");
+        let node = nodes.iter_mut().find(|node| node["id"] == node_id).expect("node exists");
+        node["evidence_state"] = Value::String(state.to_owned());
+    }
+
+    #[test]
+    fn baseline_matches_all_path_and_failure_expectations() {
+        let report = evaluate_bytes(FIXTURE.as_bytes()).expect("baseline should qualify");
+        assert_eq!(report.node_count, 5);
+        assert_eq!(report.edge_count, 5);
+        assert_eq!(report.path_count, 2);
+        assert_eq!(report.failure_mode_count, 1);
+        assert_eq!(report.path_results[0].assessment, Assessment::NotEvaluable);
+        assert_eq!(report.path_results[1].assessment, Assessment::EvidenceCompleteForFixture);
+        assert_eq!(report.failure_mode_results[0].actual_goal_state, GoalState::CandidatePathAvailableForFixture);
+        assert_eq!(report.input_sha256, hex_sha256(FIXTURE.as_bytes()));
+        assert!(report.claim_limit.contains("does not establish"));
+    }
+
+    #[test]
+    fn all_required_evidence_states_obey_fail_closed_rules() {
+        let cases = [
+            (EvidenceState::VerifiedForDeclaredScope, Assessment::EvidenceCompleteForFixture),
+            (EvidenceState::KnownBarrier, Assessment::BlockedByDeclaredBarrier),
+            (EvidenceState::Unknown, Assessment::NotEvaluable),
+            (EvidenceState::Proposed, Assessment::NotEvaluable),
+            (EvidenceState::NeedsSiteMeasurement, Assessment::NotEvaluable),
+            (EvidenceState::NeedsProfessionalReview, Assessment::NotEvaluable),
+        ];
+        for (state, expected) in cases {
+            assert_eq!(assess_evidence_states(&[(state, true)]), expected, "state {state:?}");
+        }
+    }
+
+    #[test]
+    fn required_barrier_takes_precedence_over_unknown() {
+        assert_eq!(
+            assess_evidence_states(&[
+                (EvidenceState::Unknown, true),
+                (EvidenceState::KnownBarrier, true),
+            ]),
+            Assessment::BlockedByDeclaredBarrier
+        );
+    }
+
+    #[test]
+    fn optional_unknown_or_barrier_does_not_gate_a_path() {
+        for optional_state in [EvidenceState::Unknown, EvidenceState::KnownBarrier, EvidenceState::NeedsProfessionalReview] {
+            assert_eq!(
+                assess_evidence_states(&[
+                    (EvidenceState::VerifiedForDeclaredScope, true),
+                    (optional_state, false),
+                ]),
+                Assessment::EvidenceCompleteForFixture
+            );
+        }
+    }
+
+    #[test]
+    fn duplicate_ids_across_different_entity_kinds_are_rejected() {
+        let mut value = fixture_value();
+        value["edges"][0]["id"] = value["nodes"][0]["id"].clone();
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("duplicate global id"));
+    }
+
+    #[test]
+    fn dangling_edge_endpoint_is_rejected() {
+        let mut value = fixture_value();
+        value["edges"][0]["to"] = Value::String("missing-node".to_owned());
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("dangling to-node"));
+    }
+
+    #[test]
+    fn dangling_path_reference_is_rejected() {
+        let mut value = fixture_value();
+        value["paths"][0]["node_ids"][1] = Value::String("missing-node".to_owned());
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("references missing node"));
+    }
+
+    #[test]
+    fn incorrect_edge_order_is_rejected() {
+        let mut value = fixture_value();
+        value["paths"][0]["edge_ids"].as_array_mut().unwrap().swap(0, 1);
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("does not connect ordered nodes"));
+    }
+
+    #[test]
+    fn edge_count_must_match_adjacent_node_pairs() {
+        let mut value = fixture_value();
+        value["paths"][0]["edge_ids"].as_array_mut().unwrap().pop();
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("exactly one edge between each adjacent node pair"));
+    }
+
+    #[test]
+    fn outcome_must_terminate_each_path() {
+        let mut value = fixture_value();
+        value["nodes"][3]["kind"] = Value::String("outcome".to_owned());
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("must end at an outcome node"));
+    }
+
+    #[test]
+    fn fallback_without_degraded_trigger_is_rejected() {
+        let mut value = fixture_value();
+        value["edges"][3]["trigger"] = Value::String("normal".to_owned());
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("needs a non-normal trigger"));
+    }
+
+    #[test]
+    fn required_evidence_downgrade_cannot_keep_fixture_complete_status() {
+        let mut value = fixture_value();
+        change_evidence(&mut value, "local-tactile-signal", "unknown");
+        assert_eq!(
+            assess_evidence_states(&[(EvidenceState::Unknown, true)]),
+            Assessment::NotEvaluable
+        );
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("expected EvidenceCompleteForFixture"));
+    }
+
+    #[test]
+    fn optional_unknown_node_does_not_make_a_path_fail() {
+        let mut value = fixture_value();
+        let node = value["nodes"].as_array_mut().unwrap()
+            .iter_mut().find(|node| node["id"] == "local-tactile-signal").unwrap();
+        node["required"] = Value::Bool(false);
+        node["evidence_state"] = Value::String("unknown".to_owned());
+        let report = evaluate_value(&value).expect("optional node is advisory in this contract");
+        assert_eq!(report.path_results[1].assessment, Assessment::EvidenceCompleteForFixture);
+    }
+
+    #[test]
+    fn failure_mode_cannot_keep_stale_candidate_claim_after_fallback_downgrade() {
+        let mut value = fixture_value();
+        change_evidence(&mut value, "local-tactile-signal", "needs_professional_review");
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("expected EvidenceCompleteForFixture"));
+        assert!(error.contains("expected CandidatePathAvailableForFixture"));
+    }
+
+    #[test]
+    fn unknown_evidence_enum_is_rejected_during_parse() {
+        let mut value = fixture_value();
+        change_evidence(&mut value, "local-tactile-signal", "probably_safe");
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let error = evaluate_bytes(&bytes).unwrap_err().join("\n");
+        assert!(error.contains("invalid network JSON/shape"));
+    }
+
+    #[test]
+    fn real_home_kind_is_not_accepted() {
+        let mut value = fixture_value();
+        value["fixture_kind"] = Value::String("real_home".to_owned());
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("fixture_kind must be synthetic_task_network"));
+    }
+
+    #[test]
+    fn empty_activated_path_set_is_rejected() {
+        let mut value = fixture_value();
+        value["failure_modes"][0]["activated_path_ids"] = Value::Array(vec![]);
+        let error = evaluate_value(&value).unwrap_err().join("\n");
+        assert!(error.contains("must activate at least one path"));
+    }
+
+    #[test]
+    fn deterministic_input_produces_identical_receipt() {
+        let first = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
+        let second = evaluate_bytes(FIXTURE.as_bytes()).expect("valid baseline");
+        assert_eq!(first, second);
+        assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
+    }
 }
