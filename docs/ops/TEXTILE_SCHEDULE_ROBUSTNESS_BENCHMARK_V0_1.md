@@ -27,7 +27,10 @@ multiplier.
 The public Rust module symtropy-textile-process::stress evaluates a locked
 baseline problem against deterministic perturbation cases. Supported shocks:
 
-- additional processing time for a named job;
+- additional processing time for a named job (duration only; it does not implicitly
+  change that job's declared resource use);
+- an additional energy and/or water burden for a named job, for a more resource-
+  intensive operation or finishing route;
 - delayed release of a named job, representing late material arrival, specialist
   preparation or another readiness precondition;
 - machine unavailable until an explicit tick in the shared time unit;
@@ -77,6 +80,7 @@ The first fixture should include the following matched cases over the same
 profile/capability/problem contract:
 - nominal baseline;
 - longer processing time for specialist repair/embellishment;
+- higher resource intensity for specialist finishing;
 - delayed material/specialist-input readiness;
 - utility budget reduced below the minimum process requirement;
 - specialist machine unavailable until a time that makes a hard finish window
@@ -99,6 +103,8 @@ a synthetic fixture reference as if it authenticated an industrial measurement.
 |---|---:|---|
 | Invalid/duplicate/unknown shock references accepted | **0** | Fail closed |
 | Utility-budget shock raises a baseline limit or declares no affected resource | **0** | Curtailment cannot silently relax a constraint |
+| Empty, duplicate or unknown process-resource shock target accepted | **0** | Shock provenance is explicit |
+| Resource-shock arithmetic wraps | **0** | Additional energy/water uses checked addition |
 | Arithmetic overflow accepted | **0** | Checked addition |
 | Dispatch claims a plan where exact oracle says no feasible schedule | **0** | Oracle contradiction is a harness failure |
 | Oracle feasibility classification or heuristic-miss attribution is incorrect | **0** | Exact feasibility and planner quality are separate findings |
