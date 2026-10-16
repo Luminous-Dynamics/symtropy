@@ -833,7 +833,7 @@ mod tests {
     }
 
     #[test]
-    fn interpolation_is_input_immutable_and_deterministic() {
+    fn repeated_evaluation_is_deterministic_for_immutable_inputs() {
         let forward = function(&[(100, 150), (200, 270), (300, 330)]).unwrap();
         let reversed = function(&[(100, 150), (200, 270), (300, 330)]).unwrap();
         assert_eq!(forward, reversed);
