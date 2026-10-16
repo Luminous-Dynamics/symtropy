@@ -171,6 +171,12 @@ struct ResourceKey {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct ResourceEvidenceKey {
+    resource: ResourceKey,
+    evidence_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct CapacitySnapshotFingerprint {
     evidence_id: String,
     capacity_scope_id: String,
@@ -268,6 +274,7 @@ fn summary_for_receipt<'a>(
     let mut matched = summaries.iter().filter(|summary| {
         summary.resource_kind == receipt.resource_kind
             && summary.resource_id == receipt.resource_id
+            && summary.evidence_id == receipt.evidence_id
     });
     let one = matched.next()?;
     if matched.next().is_some() { return None; }
@@ -393,7 +400,7 @@ fn prepare_option(
     for scenario_capacity in &path.scenario_capacity {
         let report = &scenario_capacity.report;
         let mut assignment_ids = BTreeSet::new();
-        let mut snapshot_by_resource: BTreeMap<ResourceKey, CapacitySnapshotFingerprint> = BTreeMap::new();
+        let mut snapshot_by_resource: BTreeMap<ResourceEvidenceKey, CapacitySnapshotFingerprint> = BTreeMap::new();
         let mut uses = Vec::new();
         for receipt in &report.assignments {
             if receipt.assignment_id.trim().is_empty()
@@ -442,7 +449,11 @@ fn prepare_option(
                 id: receipt.resource_id.clone(),
             };
             let source_fingerprint = fingerprint(summary, receipt);
-            if let Some(previous) = snapshot_by_resource.insert(resource_key.clone(), source_fingerprint.clone()) {
+            let evidence_key = ResourceEvidenceKey {
+                resource: resource_key.clone(),
+                evidence_id: receipt.evidence_id.clone(),
+            };
+            if let Some(previous) = snapshot_by_resource.insert(evidence_key, source_fingerprint.clone()) {
                 if previous != source_fingerprint {
                     return Err(FifoRobustPortfolioErrorV1::InvalidQualifiedPath {
                         demand_id: demand_id.to_owned(),
@@ -497,7 +508,7 @@ fn joint_capacity_check(
         key: ResourceKey,
     }
 
-    let mut snapshots: BTreeMap<ResourceKey, CapacitySnapshotFingerprint> = BTreeMap::new();
+    let mut snapshots: BTreeMap<ResourceKey, Vec<CapacitySnapshotFingerprint>> = BTreeMap::new();
     let mut events_by_resource: BTreeMap<ResourceKey, Vec<Event>> = BTreeMap::new();
     let mut assignment_ids = BTreeSet::new();
 
@@ -510,16 +521,24 @@ fn joint_capacity_check(
                         assignment_id: use_.assignment_id.clone(),
                     });
                 }
-                if let Some(previous) = snapshots.get(&use_.key) {
-                    if previous != &use_.fingerprint {
+                let resource_snapshots = snapshots.entry(use_.key.clone()).or_default();
+                for previous in resource_snapshots.iter() {
+                    let validity_overlaps = previous.valid_from_epoch_seconds
+                        < use_.fingerprint.valid_until_epoch_seconds
+                        && use_.fingerprint.valid_from_epoch_seconds
+                            < previous.valid_until_epoch_seconds;
+                    if previous != &use_.fingerprint
+                        && (previous.evidence_id == use_.fingerprint.evidence_id || validity_overlaps)
+                    {
                         return Err(FifoPortfolioInfeasibilityV1::InconsistentCapacityEvidence {
                             scenario_id: scenario_id.to_owned(),
                             resource_kind: use_.key.kind,
                             resource_id: use_.key.id.clone(),
                         });
                     }
-                } else {
-                    snapshots.insert(use_.key.clone(), use_.fingerprint.clone());
+                }
+                if !resource_snapshots.contains(&use_.fingerprint) {
+                    resource_snapshots.push(use_.fingerprint.clone());
                 }
                 let limit = use_.fingerprint.capacity_limit_units;
                 let events = events_by_resource.entry(use_.key.clone()).or_default();
