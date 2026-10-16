@@ -100,6 +100,7 @@ struct FeatureAvailabilityReport {
     source_resource_byte_length: u64,
     field_count: usize,
     eligibility_counts: std::collections::BTreeMap<String, usize>,
+    category_counts: std::collections::BTreeMap<String, usize>,
     approved_predictor_count: usize,
     all_fields_blocked_or_join_only: bool,
     point_in_time_evidence_required: bool,
@@ -189,6 +190,9 @@ fn validate_register(bytes: &[u8]) -> Result<FeatureAvailabilityReport, String> 
         &["dataset_repository", "dataset_revision", "interaction_resource_path", "interaction_resource_git_blob_sha1", "interaction_resource_byte_length", "source_description_path", "source_description_note"],
         "source",
     )?;
+    expect_text(field(source, "dataset_repository", "source")?, "source.dataset_repository", "https://github.com/ChenchenMobility/Maritime-Data-CyPort")?;
+    expect_text(field(source, "interaction_resource_path", "source")?, "source.interaction_resource_path", "Tropical_cyclone_interaction/interaction_data.csv")?;
+    expect_text(field(source, "source_description_path", "source")?, "source.source_description_path", "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/README.md")?;
     expect_text(field(source, "dataset_revision", "source")?, "source.dataset_revision", SOURCE_REVISION)?;
     expect_text(field(source, "interaction_resource_git_blob_sha1", "source")?, "source.interaction_resource_git_blob_sha1", SOURCE_BLOB_SHA1)?;
     if integer(field(source, "interaction_resource_byte_length", "source")?, "source.interaction_resource_byte_length")? != SOURCE_BYTES {
@@ -266,6 +270,7 @@ fn validate_register(bytes: &[u8]) -> Result<FeatureAvailabilityReport, String> 
         source_resource_byte_length: SOURCE_BYTES,
         field_count: names.len(),
         eligibility_counts,
+        category_counts: categories,
         approved_predictor_count: 0,
         all_fields_blocked_or_join_only: true,
         point_in_time_evidence_required: true,
@@ -294,7 +299,7 @@ pub fn run_cli(path: &str) -> Result<(), String> {
 mod tests {
     use super::*;
     use serde_json::Value;
-
+    
     const REGISTER: &[u8] =
         include_bytes!("../../../../docs/tech/CYPORT_FEATURE_AVAILABILITY_V0_1.json");
 
