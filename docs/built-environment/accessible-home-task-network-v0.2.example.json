@@ -135,7 +135,12 @@
       ],
       "expected_assessment": "not_evaluable",
       "success_condition": "The resident receives their selected notification and decides whether to respond.",
-      "note": "Not evaluable because network-service needs site measurement and mobile notification is proposed."
+      "note": "Not evaluable because network-service needs site measurement and mobile notification is proposed.",
+      "edge_ids": [
+        "signal-to-network",
+        "network-to-mobile",
+        "mobile-to-choice"
+      ]
     },
     {
       "id": "local-fallback-path",
@@ -148,7 +153,11 @@
       ],
       "expected_assessment": "evidence_complete_for_fixture",
       "success_condition": "The resident receives the chosen local signal and independently decides whether to respond without internet access.",
-      "note": "Complete only according to synthetic declared-scope states; it is not a real-home pass."
+      "note": "Complete only according to synthetic declared-scope states; it is not a real-home pass.",
+      "edge_ids": [
+        "network-fallback-to-local",
+        "local-to-choice"
+      ]
     }
   ],
   "failure_modes": [
