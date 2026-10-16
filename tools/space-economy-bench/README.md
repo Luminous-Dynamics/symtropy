@@ -23,3 +23,19 @@ The corpus is deliberately small and inspectable. The next engineering step is t
 ## Determinism
 
 The receipt has no wall-clock timestamp. Given identical corpus bytes and source-commit input, its normalized JSON payload is deterministic. SHA-256 is calculated over the exact corpus bytes, including whitespace and line endings. Do not normalize the file before hashing.
+
+## Value-of-information reference (v0.2 research slice)
+
+The standalone file tools/space-economy-bench/examples/voi_reference.rs is a separate analytical fixture, not part of the frozen v0.1 six-scenario corpus. It uses integer basis-point likelihoods and exact rational payoff numerators to test a decision rule before irreversible investment.
+
+Run:
+
+```sh
+cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference
+cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+With the synthetic prior P(rich)=0.40, build payoffs (+100 if rich, −150 if poor), import payoff 0, 90% sensitivity/specificity, and survey cost 10, the analytical reference gives expected value 0 without a survey, gross value 27 after a positive-survey-only build policy, net incremental survey value +17, and perfect-information value 40. A 50%/50% uninformative survey has zero information value and must not be purchased at positive cost.
+
+These numbers are intentionally synthetic. They validate the value-of-information arithmetic and the stop/continue decision contract, not lunar geology, a survey instrument, or an actual ISRU investment. See Symtropy issue #1738: https://github.com/Luminous-Dynamics/symtropy/issues/1738.
