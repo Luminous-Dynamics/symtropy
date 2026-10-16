@@ -285,3 +285,104 @@ fn analytical_reference_rejects_inconsistent_extreme_fiber_distance() {
         "a declared extreme-fiber distance that contradicts the rectangular section geometry must block evaluation"
     );
 }
+
+
+#[test]
+fn analytical_cantilever_survives_deterministic_scaling_sweep() {
+    let base: Value = serde_json::from_str(CASE).expect("reference case must be valid JSON");
+    let tolerance = base["acceptance"]["relative_tolerance"]
+        .as_f64()
+        .expect("relative_tolerance");
+    let reference = evaluate_reference(&base).expect("baseline case is valid");
+    let factors = [0.25_f64, 0.5, 0.75, 1.25, 2.0, 4.0];
+
+    let input = &base["inputs"];
+    let load = input["load_N"].as_f64().unwrap();
+    let span = input["span_m"].as_f64().unwrap();
+    let modulus = input["elastic_modulus_Pa"].as_f64().unwrap();
+    let width = input["section_width_m"].as_f64().unwrap();
+    let depth = input["section_depth_m"].as_f64().unwrap();
+    let inertia = input["second_moment_area_m4"].as_f64().unwrap();
+    let fiber = input["extreme_fiber_distance_m"].as_f64().unwrap();
+
+    for factor in factors {
+        let mut changed_load = base.clone();
+        changed_load["inputs"]["load_N"] = serde_json::json!(load * factor);
+        let result = evaluate_reference(&changed_load).expect("scaled load is valid");
+        assert!(close_relative(result.deflection_m, reference.deflection_m * factor, tolerance));
+        assert!(close_relative(
+            result.support_stress_pa,
+            reference.support_stress_pa * factor,
+            tolerance
+        ));
+
+        let mut changed_span = base.clone();
+        changed_span["inputs"]["span_m"] = serde_json::json!(span * factor);
+        let result = evaluate_reference(&changed_span).expect("scaled span is valid");
+        assert!(close_relative(
+            result.deflection_m,
+            reference.deflection_m * factor.powi(3),
+            tolerance
+        ));
+        assert!(close_relative(
+            result.support_stress_pa,
+            reference.support_stress_pa * factor,
+            tolerance
+        ));
+
+        let mut changed_modulus = base.clone();
+        changed_modulus["inputs"]["elastic_modulus_Pa"] =
+            serde_json::json!(modulus * factor);
+        let result = evaluate_reference(&changed_modulus).expect("scaled modulus is valid");
+        assert!(close_relative(
+            result.deflection_m,
+            reference.deflection_m / factor,
+            tolerance
+        ));
+        assert!(close_relative(
+            result.support_stress_pa,
+            reference.support_stress_pa,
+            tolerance
+        ));
+
+        let mut changed_width = base.clone();
+        changed_width["inputs"]["section_width_m"] = serde_json::json!(width * factor);
+        changed_width["inputs"]["second_moment_area_m4"] =
+            serde_json::json!(inertia * factor);
+        let result = evaluate_reference(&changed_width).expect("consistent scaled width is valid");
+        assert!(close_relative(result.inertia_m4, reference.inertia_m4 * factor, tolerance));
+        assert!(close_relative(
+            result.deflection_m,
+            reference.deflection_m / factor,
+            tolerance
+        ));
+        assert!(close_relative(
+            result.support_stress_pa,
+            reference.support_stress_pa / factor,
+            tolerance
+        ));
+
+        let mut changed_depth = base.clone();
+        changed_depth["inputs"]["section_depth_m"] = serde_json::json!(depth * factor);
+        changed_depth["inputs"]["second_moment_area_m4"] =
+            serde_json::json!(inertia * factor.powi(3));
+        changed_depth["inputs"]["extreme_fiber_distance_m"] =
+            serde_json::json!(fiber * factor);
+        let result = evaluate_reference(&changed_depth).expect("consistent scaled depth is valid");
+        assert!(close_relative(
+            result.inertia_m4,
+            reference.inertia_m4 * factor.powi(3),
+            tolerance
+        ));
+        assert!(close_relative(
+            result.deflection_m,
+            reference.deflection_m / factor.powi(3),
+            tolerance
+        ));
+        assert!(close_relative(
+            result.support_stress_pa,
+            reference.support_stress_pa / factor.powi(2),
+            tolerance
+        ));
+    }
+}
