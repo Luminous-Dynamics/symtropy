@@ -590,12 +590,20 @@ impl<const D: usize> ConsciousnessField<D> {
         for (handle, pos) in positions {
             let effect = leakage.total_effect_at(pos);
             if let Some(entity) = self.entities.get_mut(handle) {
+                if !effect.is_finite() {
+                    // Reject non-finite source values and mark this tick invalid.
+                    self.ledger.record_regeneration(effect);
+                    continue;
+                }
                 if effect > 0.0 {
-                    entity.energy.regenerate(effect);
-                    self.ledger.record_dissipation(-effect); // Energy enters 3D
+                    // The reservoir is the authority on accepted energy; do not
+                    // infer the transfer by subtracting mutable state snapshots.
+                    let accepted = entity.energy.regenerate(effect);
+                    self.ledger.record_regeneration(accepted);
                 } else if effect < 0.0 {
                     let consumed = entity.energy.consume(effect.abs());
-                    self.ledger.record_dissipation(consumed); // Energy exits 3D
+                    // A leakage sink removes stored energy; it is not automatically heat.
+                    self.ledger.record_external_sink(consumed);
                 }
             }
         }
