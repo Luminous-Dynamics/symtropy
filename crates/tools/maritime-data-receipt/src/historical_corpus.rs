@@ -283,6 +283,12 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             if license_status != "unverified" || !matches!(license_uri, JsonValue::Null) {
                 return Err(format!("{path}: research workbook rights must remain explicitly unverified"));
             }
+            if !field_text(source, "metadata_uri", &path)?.contains(revision) {
+                return Err(format!("{path}.metadata_uri: must pin the same immutable revision as immutable_revision"));
+            }
+            if !field_text(source, "resource_identifier", &path)?.contains(revision) {
+                return Err(format!("{path}.resource_identifier: must bind resources to the immutable revision"));
+            }
             if field_text(source, "use_decision", &path)?
                 != "metadata_inspection_only_until_rights_and_terms_are_confirmed"
             {
@@ -311,7 +317,17 @@ fn validate_source(source: &JsonValue, index: usize) -> Result<HistoricalSourceS
             if license_status != "readme_declares_cc_by_4_0" {
                 return Err(format!("{path}.license_status: declared CC BY 4.0 status must remain explicit"));
             }
-            validate_url(license_uri, &format!("{path}.license_uri"), false)?;
+            super::expect_text(
+                license_uri,
+                &format!("{path}.license_uri"),
+                "https://creativecommons.org/licenses/by/4.0/",
+            )?;
+            if !field_text(source, "metadata_uri", &path)?.contains(revision) {
+                return Err(format!("{path}.metadata_uri: must pin the same immutable revision as immutable_revision"));
+            }
+            if !field_text(source, "resource_identifier", &path)?.contains(revision) {
+                return Err(format!("{path}.resource_identifier: must bind resources to the immutable revision"));
+            }
             if field_text(source, "use_decision", &path)?
                 != "primary_candidate_after_component_rights_and_schema_review"
             {
@@ -709,6 +725,16 @@ mod tests {
         );
         assert_ne!(changed, raw);
         assert!(evaluate_bytes(changed.as_bytes()).unwrap_err().contains("cannot be populated before capture"));
+    }
+
+    #[test]
+    fn pinned_research_metadata_must_match_source_revision() {
+        let mut root: Value = serde_json::from_slice(FIXTURE).unwrap();
+        root["sources"][1]["metadata_uri"] = Value::String(
+            "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/main/README.md".to_owned()
+        );
+        let changed = serde_json::to_vec(&root).unwrap();
+        assert!(evaluate_bytes(&changed).unwrap_err().contains("must pin the same immutable revision"));
     }
 
     #[test]
