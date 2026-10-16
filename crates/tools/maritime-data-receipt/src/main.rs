@@ -7,6 +7,7 @@ mod port_identity;
 mod macro_connectivity;
 mod forecast_applicability;
 mod disruption_rehearsal;
+mod adaptive_resilience;
 
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -715,6 +716,15 @@ fn verify(receipt_bytes: &[u8], artifact_path: &Path, receipt_path: &str, source
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--evaluate-adaptive-resilience") {
+        let fixture_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --evaluate-adaptive-resilience <fixture-json-path>".to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for adaptive resilience verification".to_owned());
+        }
+        return adaptive_resilience::run_cli(&fixture_path);
+    }
     if first_arg.as_deref() == Some("--evaluate-disruption-rehearsal") {
         let scenario_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --evaluate-disruption-rehearsal <scenario-json-path>".to_owned()
