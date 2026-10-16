@@ -154,7 +154,7 @@ Tracking: [TRANSPORT-RES-005 #1671](https://github.com/Luminous-Dynamics/symtrop
 
 Physical feasibility and reservation eligibility are different questions. The Panama case shows that a planner can respect a daily slot count yet still apply the wrong booking rule, lock system, market segment, competition period, swap/substitution condition, or effective date.
 
-Use [TRANSPORT_POLICY-001 #1681](https://github.com/Luminous-Dynamics/symtropy/issues/1681), [the public rule matrix](TRANSPORT_PANAMA_POLICY_RULES_V0_1.md) and [19 provisional golden cases](TRANSPORT_PANAMA_POLICY_GOLDEN_CASES_V0_1.csv). These fixtures validate only specific published rule clauses; they do not reconstruct confidential customer rankings, bids or realized slot awards.
+Use [TRANSPORT-POLICY-001 #1681](https://github.com/Luminous-Dynamics/symtropy/issues/1681), [the public rule matrix](TRANSPORT_PANAMA_POLICY_RULES_V0_1.md) and [19 provisional golden cases](TRANSPORT_PANAMA_POLICY_GOLDEN_CASES_V0_1.csv). These fixtures validate only specific published rule clauses; they do not reconstruct confidential customer rankings, bids or realized slot awards.
 
 ### Required conformance targets
 
