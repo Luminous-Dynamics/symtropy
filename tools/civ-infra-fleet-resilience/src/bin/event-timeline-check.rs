@@ -422,6 +422,13 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
     if fixture.qualification_status != "proposed_not_executed" {
         errors.push("fixture must not imply prior benchmark qualification".to_string());
     }
+    if fixture.clock.get("unit").and_then(serde_json::Value::as_str)
+        != Some("fixture_tick")
+        || fixture.clock.get("interval_semantics").and_then(serde_json::Value::as_str)
+            != Some("half_open")
+    {
+        errors.push("fixture clock must use fixture_tick and half_open semantics".to_string());
+    }
     if fixture.evidence_vocabulary.is_empty()
         || fixture.policies.is_empty()
         || fixture.resources.is_empty()
@@ -435,6 +442,19 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
     if fixture.disturbance_cases.len() != 13 {
         errors.push("fixture must contain exactly 13 disturbance cases".to_string());
     }
+
+    let evidence_ids: std::collections::BTreeSet<&str> =
+        fixture.evidence_vocabulary.iter().map(String::as_str).collect();
+    let resource_ids: std::collections::BTreeSet<&str> = fixture
+        .resources
+        .iter()
+        .filter_map(|resource| resource.get("resource_id").and_then(serde_json::Value::as_str))
+        .collect();
+    let task_ids: std::collections::BTreeSet<&str> = fixture
+        .task_graph
+        .iter()
+        .filter_map(|task| task.get("task_id").and_then(serde_json::Value::as_str))
+        .collect();
 
     let mut seen = std::collections::BTreeSet::new();
     for case in &fixture.disturbance_cases {
@@ -454,6 +474,39 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
                 "case {} is observable before injection",
                 case.case_id
             ));
+        }
+        if case.recovery_evidence.is_empty() || case.required_invariants.is_empty() {
+            errors.push(format!(
+                "case {} must declare recovery evidence and invariants",
+                case.case_id
+            ));
+        }
+        if case.recoverability.as_deref() == Some("") {
+            errors.push(format!("case {} has empty recoverability metadata", case.case_id));
+        }
+        for resource_id in &case.affected_resources {
+            if !resource_ids.contains(resource_id.as_str()) {
+                errors.push(format!(
+                    "case {} references unknown resource {}",
+                    case.case_id, resource_id
+                ));
+            }
+        }
+        for task_id in &case.affected_tasks {
+            if !task_ids.contains(task_id.as_str()) {
+                errors.push(format!(
+                    "case {} references unknown task {}",
+                    case.case_id, task_id
+                ));
+            }
+        }
+        for evidence in &case.recovery_evidence {
+            if !evidence_ids.contains(evidence.as_str()) {
+                errors.push(format!(
+                    "case {} references unknown recovery evidence {}",
+                    case.case_id, evidence
+                ));
+            }
         }
     }
 
