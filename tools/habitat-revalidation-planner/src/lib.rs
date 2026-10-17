@@ -560,7 +560,7 @@ mod tests {
                 .declared_gate_ids
                 .iter()
                 .enumerate()
-                .filter(|(index, _)| mask & (1usize << index) != 0)
+                .filter(|(index, _)| mask & (1usize << *index) != 0)
                 .map(|(_, gate)| gate.clone())
                 .collect();
             let digest = sha256_hex(&serde_json::to_vec(&candidate).unwrap());
