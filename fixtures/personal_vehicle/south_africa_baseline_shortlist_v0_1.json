@@ -93,7 +93,8 @@
         "dated parts and labor basket",
         "physical workshop timings"
       ],
-      "published_fuel_use_is_not_measured_validation": true
+      "published_fuel_use_is_not_measured_validation": true,
+      "source_url": "https://www.suzukiauto.co.za/cars/swift"
     },
     {
       "id": "BASELINE_TOYOTA_STARLET_ENTRY_HATCH",
