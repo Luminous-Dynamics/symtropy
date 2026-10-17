@@ -144,11 +144,14 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
         let reason = eligibility_reason(candidate, &manifest);
         let eligible = reason.is_none();
         let score = if eligible {
-            Some(floor_mul_div(
-                candidate.gross_recovered_g_per_unit,
-                u64::from(candidate.recovery_yield_bp),
-                BASIS_POINTS,
-            )?)
+            Some(
+                floor_mul_div(
+                    candidate.gross_recovered_g_per_unit,
+                    u64::from(candidate.recovery_yield_bp),
+                    BASIS_POINTS,
+                )?
+                .min(manifest.virgin_material_g_per_unit),
+            )
         } else {
             None
         };
@@ -608,6 +611,22 @@ mod tests {
         assert_eq!(item.gross_circularity_score_g_per_unit, None);
         assert_eq!(item.expected_ghg_gco2e, None);
         assert!(item.scenarios.is_empty());
+    }
+
+    #[test]
+    fn gross_circularity_score_cannot_exceed_virgin_material_demand() {
+        let mut manifest = fixture_manifest();
+        let high_loop = manifest.options.iter_mut()
+            .find(|candidate| candidate.id == "high-loop")
+            .expect("high-loop candidate exists");
+        high_loop.gross_recovered_g_per_unit = 500;
+        let bytes = serde_json::to_vec(&manifest).expect("mutated fixture serializes");
+        let report = evaluate(&bytes, "mutated-source").expect("bounded fixture evaluates");
+        assert_eq!(result(&report, "high-loop").gross_circularity_score_g_per_unit, Some(100));
+        let stable = result(&report, "high-loop").scenarios.iter()
+            .find(|outcome| outcome.scenario_id == "stable-supply")
+            .expect("stable outcome exists");
+        assert_eq!(stable.displaced_virgin_g_per_unit, 100);
     }
 
     #[test]
