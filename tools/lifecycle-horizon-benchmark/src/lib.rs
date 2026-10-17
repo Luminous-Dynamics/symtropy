@@ -21,6 +21,7 @@ pub struct Manifest {
     pub maximum_repairs: u32,
     pub initial_condition_bp: u32,
     pub initial_lineage_share_bp: u32,
+    pub policy_search: PolicySearchSpec,
     pub evidence: Vec<Evidence>,
     pub actions: Vec<Action>,
     pub scenarios: Vec<Scenario>,
@@ -80,6 +81,23 @@ pub struct Scenario {
     pub id: String,
     pub plans: Vec<Plan>,
     pub expected_frontier: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PolicySearchSpec {
+    pub action_profile_ids: Vec<String>,
+    pub expected_candidate_count: usize,
+    pub expected_unique_policy_count: usize,
+    pub expected_eligible_count: usize,
+    pub expected_rejection_counts: Vec<DispositionCount>,
+    pub expected_frontier_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DispositionCount {
+    pub disposition: Disposition,
+    pub count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -220,6 +238,30 @@ pub struct Report {
     pub overall_status: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PolicySearchReport {
+    pub tool_version: String,
+    pub source_revision: String,
+    pub manifest_sha256: String,
+    pub claim_ceiling: String,
+    pub functional_unit: String,
+    pub horizon_cycles: usize,
+    pub action_profile_ids: Vec<String>,
+    pub candidate_count: usize,
+    pub unique_policy_count: usize,
+    pub eligible_count: usize,
+    pub complete_service_horizon_count: usize,
+    pub rejected_count: usize,
+    pub rejection_counts: Vec<DispositionCount>,
+    pub transition_oracle_agreement: bool,
+    pub pareto_frontier: Vec<String>,
+    pub oracle_frontier: Vec<String>,
+    pub frontier_oracle_agreement: bool,
+    pub fixture_expectations_match: bool,
+    pub plans: Vec<PlanResult>,
+    pub overall_status: String,
+}
+
 #[derive(Debug, Clone, Default)]
 struct State {
     condition: u32,
@@ -322,6 +364,162 @@ pub fn evaluate(bytes: &[u8], source_revision: &str) -> Result<Report, String> {
     })
 }
 
+
+/// Exhaustively enumerate the explicitly declared finite policy universe. The
+/// transition implementation and independent reference are run on every
+/// ordered action sequence. Terminal condition is a maximized Pareto objective
+/// so the horizon's residual asset state remains visible.
+pub fn evaluate_policy_search(bytes: &[u8], source_revision: &str) -> Result<PolicySearchReport, String> {
+    let manifest: Manifest = serde_json::from_slice(bytes)
+        .map_err(|error| format!("manifest rejected: {error}"))?;
+    validate(&manifest)?;
+
+    let evidence: BTreeMap<&str, &Evidence> = manifest.evidence.iter()
+        .map(|item| (item.id.as_str(), item)).collect();
+    let actions: BTreeMap<&str, &Action> = manifest.actions.iter()
+        .map(|item| (item.id.as_str(), item)).collect();
+    let digests: BTreeMap<String, bool> = manifest.evidence.iter()
+        .map(|item| (item.id.clone(), sha256_hex(item.payload.as_bytes()) == item.sha256))
+        .collect();
+    let all_digests_valid = digests.values().all(|valid| *valid);
+
+    let mut action_profile_ids = manifest.policy_search.action_profile_ids.clone();
+    action_profile_ids.sort();
+    let mut sequences = Vec::new();
+    enumerate_policy_sequences(
+        &action_profile_ids,
+        manifest.horizon_cycles,
+        &mut Vec::new(),
+        &mut sequences,
+    );
+    let mut plans = Vec::with_capacity(sequences.len());
+    for steps in sequences {
+        let id = steps.join("/");
+        plans.push(Plan {
+            id,
+            steps,
+            expected: Expected {
+                disposition: Disposition::Eligible,
+                delivered_service_hours: 0,
+                lineage_weighted_service_hours: 0,
+                condition_after_cycle_bp: Vec::new(),
+            },
+        });
+    }
+
+    let search_scenario = Scenario {
+        id: "exhaustive-policy-search".into(),
+        plans,
+        expected_frontier: manifest.policy_search.expected_frontier_ids.clone(),
+    };
+    let mut production_results = Vec::with_capacity(search_scenario.plans.len());
+    let mut reference_results = Vec::with_capacity(search_scenario.plans.len());
+    for plan in &search_scenario.plans {
+        production_results.push(simulate(
+            &manifest, &search_scenario, plan, &actions, &evidence, &digests,
+        ));
+        reference_results.push(simulate_reference(
+            &manifest, &search_scenario, plan, &actions, &evidence, &digests,
+        ));
+    }
+    production_results.sort_by(|left, right| left.plan_id.cmp(&right.plan_id));
+    reference_results.sort_by(|left, right| left.plan_id.cmp(&right.plan_id));
+
+    let candidate_count = production_results.len();
+    let unique_policy_count = production_results.iter()
+        .map(|plan| plan.plan_id.as_str()).collect::<BTreeSet<_>>().len();
+    let transition_oracle_agreement = production_results.iter()
+        .zip(reference_results.iter())
+        .all(|(left, right)| same_outcome(left, right));
+    let eligible: Vec<&PlanResult> = production_results.iter()
+        .filter(|plan| plan.disposition == Disposition::Eligible).collect();
+    let eligible_count = eligible.len();
+    let complete_service_horizon_count = production_results.iter()
+        .filter(|plan| plan.complete_service_horizon).count();
+    let rejected_count = candidate_count.saturating_sub(eligible_count);
+
+    let mut dispositions: BTreeMap<Disposition, usize> = BTreeMap::new();
+    for plan in &production_results {
+        if plan.disposition != Disposition::Eligible {
+            *dispositions.entry(plan.disposition.clone()).or_insert(0) += 1;
+        }
+    }
+    let rejection_counts: Vec<DispositionCount> = dispositions.into_iter()
+        .map(|(disposition, count)| DispositionCount { disposition, count })
+        .collect();
+
+    let frontier = terminal_reserve_frontier(&eligible);
+    let oracle_frontier = terminal_reserve_exhaustive_frontier(&eligible);
+    let frontier_oracle_agreement = frontier == oracle_frontier;
+    let mut expected_rejections = manifest.policy_search.expected_rejection_counts.clone();
+    expected_rejections.sort_by(|left, right| left.disposition.cmp(&right.disposition));
+    let known_policy_ids: BTreeSet<&str> = production_results.iter()
+        .map(|plan| plan.plan_id.as_str()).collect();
+    let expected_frontier: BTreeSet<String> = manifest.policy_search.expected_frontier_ids
+        .iter().cloned().collect();
+    let fixture_expectations_match =
+        candidate_count == manifest.policy_search.expected_candidate_count
+        && unique_policy_count == manifest.policy_search.expected_unique_policy_count
+        && eligible_count == manifest.policy_search.expected_eligible_count
+        && rejection_counts == expected_rejections
+        && frontier == expected_frontier
+        && expected_frontier.iter().all(|id| known_policy_ids.contains(id.as_str()))
+        && complete_service_horizon_count == eligible_count
+        && eligible.iter().all(|plan| plan.complete_service_horizon)
+        && eligible_count + rejected_count == candidate_count
+        && rejection_counts.iter().map(|item| item.count).sum::<usize>() == rejected_count;
+
+    let status = if all_digests_valid
+        && transition_oracle_agreement
+        && frontier_oracle_agreement
+        && fixture_expectations_match
+    {
+        "PASS_SYNTHETIC_CONTRACT"
+    } else {
+        "FAIL"
+    };
+
+    Ok(PolicySearchReport {
+        tool_version: TOOL_VERSION.to_owned(),
+        source_revision: source_revision.to_owned(),
+        manifest_sha256: sha256_hex(bytes),
+        claim_ceiling: manifest.claim_ceiling,
+        functional_unit: manifest.functional_unit,
+        horizon_cycles: manifest.horizon_cycles,
+        action_profile_ids,
+        candidate_count,
+        unique_policy_count,
+        eligible_count,
+        complete_service_horizon_count,
+        rejected_count,
+        rejection_counts,
+        transition_oracle_agreement,
+        pareto_frontier: frontier.into_iter().collect(),
+        oracle_frontier: oracle_frontier.into_iter().collect(),
+        frontier_oracle_agreement,
+        fixture_expectations_match,
+        plans: production_results,
+        overall_status: status.to_owned(),
+    })
+}
+
+fn enumerate_policy_sequences(
+    action_ids: &[String],
+    horizon: usize,
+    prefix: &mut Vec<String>,
+    output: &mut Vec<Vec<String>>,
+) {
+    if prefix.len() == horizon {
+        output.push(prefix.clone());
+        return;
+    }
+    for action_id in action_ids {
+        prefix.push(action_id.clone());
+        enumerate_policy_sequences(action_ids, horizon, prefix, output);
+        prefix.pop();
+    }
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let mut result = String::with_capacity(64);
     for byte in Sha256::digest(bytes) {
@@ -374,6 +572,44 @@ fn validate(manifest: &Manifest) -> Result<(), String> {
         if !evidence_ids.contains(action.evidence_id.as_str()) {
             return Err(format!("action {} references missing evidence", action.id));
         }
+    }
+
+    if manifest.policy_search.action_profile_ids.is_empty()
+        || manifest.policy_search.action_profile_ids.len() > 8
+    {
+        return Err("policy search must declare between one and eight action profiles".into());
+    }
+    let mut search_action_ids = BTreeSet::new();
+    for id in &manifest.policy_search.action_profile_ids {
+        if id.trim().is_empty() || id.contains('/') || !search_action_ids.insert(id.as_str()) {
+            return Err(format!("invalid or duplicate policy-search action ID {id}"));
+        }
+        if !action_ids.contains(id.as_str()) {
+            return Err(format!("policy search references missing action profile {id}"));
+        }
+    }
+    let mut candidate_bound = 1usize;
+    for _ in 0..manifest.horizon_cycles {
+        candidate_bound = candidate_bound
+            .checked_mul(manifest.policy_search.action_profile_ids.len())
+            .ok_or_else(|| "policy search candidate count overflow".to_owned())?;
+        if candidate_bound > 1_000_000 {
+            return Err("policy search exceeds the one-million-candidate safety bound".into());
+        }
+    }
+    let mut rejection_ids = BTreeSet::new();
+    for expected in &manifest.policy_search.expected_rejection_counts {
+        if expected.disposition == Disposition::Eligible
+            || expected.count == 0
+            || !rejection_ids.insert(expected.disposition.clone())
+        {
+            return Err("policy-search rejection counts must be nonzero, unique, and non-eligible".into());
+        }
+    }
+    let expected_policy_frontier: BTreeSet<&str> = manifest.policy_search.expected_frontier_ids
+        .iter().map(String::as_str).collect();
+    if expected_policy_frontier.len() != manifest.policy_search.expected_frontier_ids.len() {
+        return Err("policy-search expected frontier contains duplicate IDs".into());
     }
 
     let mut scenario_ids = BTreeSet::new();
@@ -859,6 +1095,73 @@ fn exhaustive_frontier(plans: &[&PlanResult]) -> BTreeSet<String> {
     result
 }
 
+
+fn terminal_reserve_dominates(a: &PlanResult, b: &PlanResult) -> bool {
+    let no_worse = a.metrics.cost_cents <= b.metrics.cost_cents
+        && a.metrics.virgin_material_g <= b.metrics.virgin_material_g
+        && a.metrics.energy_wh <= b.metrics.energy_wh
+        && a.metrics.ghg_co2e_g <= b.metrics.ghg_co2e_g
+        && a.metrics.water_ml <= b.metrics.water_ml
+        && a.metrics.residual_waste_g <= b.metrics.residual_waste_g
+        && a.lineage_weighted_service_hours >= b.lineage_weighted_service_hours
+        && a.final_condition_bp >= b.final_condition_bp;
+    no_worse && (
+        a.metrics.cost_cents < b.metrics.cost_cents
+            || a.metrics.virgin_material_g < b.metrics.virgin_material_g
+            || a.metrics.energy_wh < b.metrics.energy_wh
+            || a.metrics.ghg_co2e_g < b.metrics.ghg_co2e_g
+            || a.metrics.water_ml < b.metrics.water_ml
+            || a.metrics.residual_waste_g < b.metrics.residual_waste_g
+            || a.lineage_weighted_service_hours > b.lineage_weighted_service_hours
+            || a.final_condition_bp > b.final_condition_bp
+    )
+}
+
+fn terminal_reserve_frontier(plans: &[&PlanResult]) -> BTreeSet<String> {
+    plans.iter()
+        .filter(|plan| !plans.iter().any(|other| {
+            other.plan_id != plan.plan_id && terminal_reserve_dominates(other, plan)
+        }))
+        .map(|plan| plan.plan_id.clone())
+        .collect()
+}
+
+/// Independent exhaustive oracle: normalize all eight objectives to integer
+/// minimization and check every ordered eligible pair.
+fn terminal_reserve_exhaustive_frontier(plans: &[&PlanResult]) -> BTreeSet<String> {
+    let vector = |plan: &PlanResult| [
+        i128::from(plan.metrics.cost_cents),
+        i128::from(plan.metrics.virgin_material_g),
+        i128::from(plan.metrics.energy_wh),
+        i128::from(plan.metrics.ghg_co2e_g),
+        i128::from(plan.metrics.water_ml),
+        i128::from(plan.metrics.residual_waste_g),
+        -i128::from(plan.lineage_weighted_service_hours),
+        -i128::from(plan.final_condition_bp),
+    ];
+    let mut result = BTreeSet::new();
+    for candidate in plans {
+        let candidate_vector = vector(candidate);
+        let mut dominated = false;
+        for other in plans {
+            if candidate.plan_id == other.plan_id {
+                continue;
+            }
+            let other_vector = vector(other);
+            let no_worse = (0..8).all(|index| other_vector[index] <= candidate_vector[index]);
+            let strictly_better = (0..8).any(|index| other_vector[index] < candidate_vector[index]);
+            if no_worse && strictly_better {
+                dominated = true;
+                break;
+            }
+        }
+        if !dominated {
+            result.insert(candidate.plan_id.clone());
+        }
+    }
+    result
+}
+
 fn expectations_match(scenario: &Scenario, results: &[PlanResult], frontier: &BTreeSet<String>) -> bool {
     if results.len() != scenario.plans.len() {
         return false;
@@ -1001,6 +1304,76 @@ mod tests {
             r#""claim_ceiling": "synthetic_only", "auto_approve": true"#,
         );
         assert!(evaluate(bad.as_bytes(), "test").is_err());
+    }
+
+
+    #[test]
+    fn exhaustive_policy_search_covers_the_declared_universe_and_matches_oracles() {
+        let report = evaluate_policy_search(FIXTURE.as_bytes(), "test-revision")
+            .expect("policy search evaluates");
+        assert_eq!(report.overall_status, "PASS_SYNTHETIC_CONTRACT");
+        assert_eq!(report.candidate_count, 216);
+        assert_eq!(report.unique_policy_count, 216);
+        assert_eq!(report.eligible_count, 198);
+        assert_eq!(report.rejected_count, 18);
+        assert_eq!(report.complete_service_horizon_count, 198);
+        assert!(report.transition_oracle_agreement);
+        assert!(report.frontier_oracle_agreement);
+        assert!(report.fixture_expectations_match);
+        assert_eq!(
+            report.rejection_counts,
+            vec![
+                DispositionCount { disposition: Disposition::RejectedCondition, count: 6 },
+                DispositionCount { disposition: Disposition::RejectedRepairLimit, count: 12 },
+            ]
+        );
+        assert_eq!(
+            report.pareto_frontier,
+            vec![
+                "continue/continue/remanufacture".to_owned(),
+                "continue/continue/repair".to_owned(),
+            ]
+        );
+    }
+
+    #[test]
+    fn exhaustive_search_is_invariant_to_declared_action_order() {
+        let mut manifest = manifest();
+        let bytes_a = serde_json::to_vec(&manifest).unwrap();
+        manifest.policy_search.action_profile_ids.reverse();
+        let bytes_b = serde_json::to_vec(&manifest).unwrap();
+        let a = evaluate_policy_search(&bytes_a, "test-revision").unwrap();
+        let b = evaluate_policy_search(&bytes_b, "test-revision").unwrap();
+        assert_eq!(a.candidate_count, b.candidate_count);
+        assert_eq!(a.unique_policy_count, b.unique_policy_count);
+        assert_eq!(a.eligible_count, b.eligible_count);
+        assert_eq!(a.rejection_counts, b.rejection_counts);
+        assert_eq!(a.pareto_frontier, b.pareto_frontier);
+        assert_eq!(a.plans, b.plans);
+    }
+
+    #[test]
+    fn changing_the_frozen_policy_frontier_fails_the_search_receipt() {
+        let mut manifest = manifest();
+        manifest.policy_search.expected_frontier_ids.pop();
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        let report = evaluate_policy_search(&bytes, "test-revision").unwrap();
+        assert_eq!(report.frontier_oracle_agreement, true);
+        assert_eq!(report.fixture_expectations_match, false);
+        assert_eq!(report.overall_status, "FAIL");
+    }
+
+    #[test]
+    fn policy_search_enforces_a_finite_candidate_budget() {
+        let mut manifest = manifest();
+        manifest.horizon_cycles = 12;
+        manifest.policy_search.action_profile_ids = vec![
+            "continue".into(), "repair".into(), "remanufacture".into(),
+            "replace-recycle".into(), "replace-energy-recovery".into(), "replace-mixed".into(),
+        ];
+        let bytes = serde_json::to_vec(&manifest).unwrap();
+        assert!(evaluate_policy_search(&bytes, "test-revision")
+            .unwrap_err().contains("one-million-candidate"));
     }
 
     #[test]

@@ -11,6 +11,33 @@
   "maximum_repairs": 1,
   "initial_condition_bp": 10000,
   "initial_lineage_share_bp": 10000,
+  "policy_search": {
+    "action_profile_ids": [
+      "continue",
+      "repair",
+      "remanufacture",
+      "replace-recycle",
+      "replace-energy-recovery",
+      "replace-mixed"
+    ],
+    "expected_candidate_count": 216,
+    "expected_unique_policy_count": 216,
+    "expected_eligible_count": 198,
+    "expected_rejection_counts": [
+      {
+        "disposition": "rejected_condition",
+        "count": 6
+      },
+      {
+        "disposition": "rejected_repair_limit",
+        "count": 12
+      }
+    ],
+    "expected_frontier_ids": [
+      "continue/continue/remanufacture",
+      "continue/continue/repair"
+    ]
+  },
   "evidence": [
     {
       "id": "ev-continue",

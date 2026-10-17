@@ -5,11 +5,13 @@ on:
     paths:
       - "tools/lifecycle-horizon-benchmark/**"
       - "docs/research/CIRC_BUILD_MULTI_CYCLE_V0_1.md"
+      - "docs/research/CIRC_BUILD_EXHAUSTIVE_POLICY_SEARCH_V0_1.md"
       - ".github/workflows/lifecycle-horizon-benchmark.yml"
   push:
     paths:
       - "tools/lifecycle-horizon-benchmark/**"
       - "docs/research/CIRC_BUILD_MULTI_CYCLE_V0_1.md"
+      - "docs/research/CIRC_BUILD_EXHAUSTIVE_POLICY_SEARCH_V0_1.md"
       - ".github/workflows/lifecycle-horizon-benchmark.yml"
   workflow_dispatch:
 
@@ -32,3 +34,5 @@ jobs:
         run: cargo test --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml
       - name: Emit exact-source horizon receipt
         run: cargo run --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml
+      - name: Enumerate the complete finite policy space
+        run: cargo run --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml -- --policy-search
