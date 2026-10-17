@@ -139,12 +139,16 @@ fn evaluate_case(case: &Value, errors: &mut Vec<String>) -> Option<TriggerResult
         } else {
             let age = observation.get("age_minutes").and_then(Value::as_i64);
             let max_age = profile.get("max_observation_age_minutes").and_then(Value::as_i64).unwrap_or(-1);
-            if age.map(|value| value < 0 || value > max_age).unwrap_or(true) {
+            if age.map(|value| value < 0).unwrap_or(true) {
+                ("HOLD_INVALID_OBSERVATION", "OBSERVATION_AGE_INVALID", "held")
+            } else if age.map(|value| value > max_age).unwrap_or(true) {
                 ("HOLD_STALE_EVIDENCE", "OBSERVATION_EXCEEDS_MAX_AGE", "held")
             } else {
                 let coverage = finite_number(observation.get("coverage_ratio"));
                 let min_coverage = finite_number(profile.get("minimum_coverage_ratio")).unwrap_or(1.0);
-                if coverage.map(|value| !(0.0..=1.0).contains(&value) || value < min_coverage).unwrap_or(true) {
+                if coverage.map(|value| value < 0.0 || value > 1.0).unwrap_or(true) {
+                    ("HOLD_INVALID_OBSERVATION", "COVERAGE_RATIO_INVALID", "held")
+                } else if coverage.map(|value| value < min_coverage).unwrap_or(true) {
                     ("HOLD_INSUFFICIENT_COVERAGE", "OBSERVATION_COVERAGE_BELOW_MINIMUM", "held")
                 } else {
                     let value = finite_number(observation.get("value"));
@@ -287,11 +291,11 @@ fn make_receipt(
             errors.push("EXECUTION_AUTHORITY_INVALID".to_string());
         }
 
-        let cases = match root.get("cases").and_then(Value::as_array) {
-            Some(cases) if !cases.is_empty() => cases,
+        let cases: Vec<&Value> = match root.get("cases").and_then(Value::as_array) {
+            Some(cases) if !cases.is_empty() => cases.iter().collect(),
             _ => {
                 errors.push("CASES_MISSING_OR_EMPTY".to_string());
-                &Vec::new()
+                Vec::new()
             }
         };
         trigger_count = cases.len();
@@ -520,7 +524,8 @@ mod tests {
         corpus["cases"][0]["observation"]["age_minutes"] = json!(-1);
         let receipt = audit(corpus);
         let result = receipt.trigger_results.iter().find(|r| r.case_id == "TRG-001-FOREST-ENTER-AT-BOUNDARY").unwrap();
-        assert_eq!(result.outcome, "HOLD_STALE_EVIDENCE");
+        assert_eq!(result.outcome, "HOLD_INVALID_OBSERVATION");
+        assert_eq!(result.reason_code, "OBSERVATION_AGE_INVALID");
     }
 
     #[test]
@@ -529,7 +534,8 @@ mod tests {
         corpus["cases"][0]["observation"]["coverage_ratio"] = json!(1.2);
         let receipt = audit(corpus);
         let result = receipt.trigger_results.iter().find(|r| r.case_id == "TRG-001-FOREST-ENTER-AT-BOUNDARY").unwrap();
-        assert_eq!(result.outcome, "HOLD_INSUFFICIENT_COVERAGE");
+        assert_eq!(result.outcome, "HOLD_INVALID_OBSERVATION");
+        assert_eq!(result.reason_code, "COVERAGE_RATIO_INVALID");
     }
 
     #[test]
