@@ -49,7 +49,8 @@
           "label",
           "fallback_capacity_fraction",
           "stocked_critical_part_coverage_days",
-          "parameter_status"
+          "parameter_status",
+          "fallback_mode_eligible_for_synthetic_test"
         ],
         "properties": {
           "id": {
@@ -75,6 +76,9 @@
           },
           "parameter_status": {
             "const": "synthetic_fixture_value_not_observed"
+          },
+          "fallback_mode_eligible_for_synthetic_test": {
+            "type": "boolean"
           }
         }
       }
@@ -316,7 +320,9 @@
             "additionalProperties": false,
             "required": [
               "active_safety_hold_action",
-              "unqualified_configuration_action"
+              "unqualified_configuration_action",
+              "active_safety_hold",
+              "configuration_qualified_for_simulation"
             ],
             "properties": {
               "active_safety_hold_action": {
@@ -324,6 +330,12 @@
               },
               "unqualified_configuration_action": {
                 "const": "deny_dispatch"
+              },
+              "active_safety_hold": {
+                "type": "boolean"
+              },
+              "configuration_qualified_for_simulation": {
+                "type": "boolean"
               }
             }
           },
