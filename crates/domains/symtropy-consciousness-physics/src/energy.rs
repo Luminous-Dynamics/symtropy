@@ -72,7 +72,7 @@ impl EnergyBudget {
     /// to an inert, zero-capacity, collapsed budget. New code that needs to
     /// distinguish invalid configuration should use [`try_new`].
     pub fn new(max_energy: f64) -> Self {
-        Self::try_new(max_energy).unwrap_or_else(|_| Self {
+        Self::try_new(max_energy).unwrap_or(Self {
             max_energy: 0.0,
             available: 0.0,
             temperature: 310.0,
@@ -362,6 +362,8 @@ mod tests {
     #[test]
     fn net_flow_tracks_correctly() {
         let mut budget = EnergyBudget::new(100.0);
+        budget.consume(20.0);
+        budget.tick_reset();
         budget.consume(10.0);
         budget.regenerate(15.0);
         assert!((budget.net_flow_this_tick() - 5.0).abs() < 1e-10); // +5 net
