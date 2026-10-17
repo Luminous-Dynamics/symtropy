@@ -6,6 +6,10 @@ publish = false
 license = "AGPL-3.0-or-later"
 description = "Synthetic, fail-closed staged accessibility intervention portfolio planning"
 
+[[bin]]
+name = "accessible-home-portfolio-benchmark"
+path = "src/bin/benchmark.rs"
+
 [workspace]
 
 [dependencies]
