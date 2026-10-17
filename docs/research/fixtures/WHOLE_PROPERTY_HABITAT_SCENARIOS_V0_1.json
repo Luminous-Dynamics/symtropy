@@ -260,7 +260,7 @@
       "id": "WP-019",
       "profile": "HOME-BASE",
       "domain": "cyberphysical_resilience",
-      "setup": "A compromised third-party cloud credential attempts unauthorized changes to building subsystems; the resident network is then disconnected for the declared recovery interval.",
+      "setup": "The proposed smart-home architecture grants a compromised third-party cloud credential cross-subsystem control; after unauthorized changes, the resident network is disconnected and essential fallback has not been demonstrated.",
       "expected_gate_state": "hard_gate_failure",
       "negative_control": true,
       "evidence_class": "synthetic",
