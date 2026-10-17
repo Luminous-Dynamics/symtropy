@@ -313,7 +313,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     }
 
     check_unique(
-        fixture.resources.iter().map(|item| item.resource_id.as_str()),
+        fixture
+            .resources
+            .iter()
+            .map(|item| item.resource_id.as_str()),
         "resource_id",
         &mut errors,
     );
@@ -328,7 +331,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         &mut errors,
     );
     check_unique(
-        fixture.expected_outcomes.iter().map(|item| item.policy_id.as_str()),
+        fixture
+            .expected_outcomes
+            .iter()
+            .map(|item| item.policy_id.as_str()),
         "expected policy_id",
         &mut errors,
     );
@@ -372,7 +378,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push(format!("task {} has no resource alternative", task.task_id));
         }
         if task.acceptance_evidence.is_empty() {
-            errors.push(format!("task {} has no acceptance evidence token", task.task_id));
+            errors.push(format!(
+                "task {} has no acceptance evidence token",
+                task.task_id
+            ));
         }
         check_unique(
             task.requires.iter().map(String::as_str),
@@ -417,7 +426,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     loop {
         let previous_count = resolved.len();
         for task in &fixture.tasks {
-            if task.requires.iter().all(|dependency| resolved.contains(dependency)) {
+            if task
+                .requires
+                .iter()
+                .all(|dependency| resolved.contains(dependency))
+            {
                 resolved.insert(task.task_id.clone());
             }
         }
@@ -453,18 +466,18 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         "capacity_one_resources_are_never_double_booked",
         "synthetic_completion_does_not_claim_physical_qualification",
     ] {
-        if !fixture.required_invariants.iter().any(|item| item.as_str() == required) {
+        if !fixture
+            .required_invariants
+            .iter()
+            .any(|item| item.as_str() == required)
+        {
             errors.push(format!("required invariant {required} is absent"));
         }
     }
     errors
 }
 
-fn check_unique<'a>(
-    values: impl Iterator<Item = &'a str>,
-    label: &str,
-    errors: &mut Vec<String>,
-) {
+fn check_unique<'a>(values: impl Iterator<Item = &'a str>, label: &str, errors: &mut Vec<String>) {
     let mut seen = BTreeSet::new();
     for value in values {
         if !seen.insert(value) {
@@ -557,10 +570,10 @@ fn run_policy(fixture: &Fixture, policy: Policy) -> PolicyResult {
                 continue;
             }
             let prerequisites_complete = runtime[index].spec.requires.iter().all(|required| {
-                runtime
-                    .iter()
-                    .any(|candidate| candidate.spec.task_id.as_str() == required.as_str()
-                        && candidate.state == TaskState::Complete)
+                runtime.iter().any(|candidate| {
+                    candidate.spec.task_id.as_str() == required.as_str()
+                        && candidate.state == TaskState::Complete
+                })
             });
             if !prerequisites_complete {
                 continue;
@@ -590,12 +603,12 @@ fn run_policy(fixture: &Fixture, policy: Policy) -> PolicyResult {
         .iter()
         .filter(|task| task.state == TaskState::Complete)
         .count();
-    let final_inspection_complete = runtime.iter().any(|task| {
-        task.spec.task_id == "inspect-assembly" && task.state == TaskState::Complete
-    });
-    let accepted_synthetic_work =
-        !stopped_by_protective_interlock && completed_task_count == runtime.len()
-            && final_inspection_complete;
+    let final_inspection_complete = runtime
+        .iter()
+        .any(|task| task.spec.task_id == "inspect-assembly" && task.state == TaskState::Complete);
+    let accepted_synthetic_work = !stopped_by_protective_interlock
+        && completed_task_count == runtime.len()
+        && final_inspection_complete;
     let makespan_ticks = if accepted_synthetic_work {
         runtime.iter().filter_map(|task| task.completed_at).max()
     } else {
@@ -692,9 +705,21 @@ mod tests {
     fn replanning_waits_until_the_event_is_observable() {
         let report =
             verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
-        let b0 = report.policy_results.iter().find(|item| item.policy_id == "B0").unwrap();
-        let b1 = report.policy_results.iter().find(|item| item.policy_id == "B1").unwrap();
-        let b2 = report.policy_results.iter().find(|item| item.policy_id == "B2").unwrap();
+        let b0 = report
+            .policy_results
+            .iter()
+            .find(|item| item.policy_id == "B0")
+            .unwrap();
+        let b1 = report
+            .policy_results
+            .iter()
+            .find(|item| item.policy_id == "B1")
+            .unwrap();
+        let b2 = report
+            .policy_results
+            .iter()
+            .find(|item| item.policy_id == "B2")
+            .unwrap();
 
         assert_eq!(b0.event_observed_tick, None);
         assert_eq!(b1.event_observed_tick, Some(2));
@@ -712,9 +737,12 @@ mod tests {
         for policy in report.policy_results {
             if policy.accepted_synthetic_work {
                 assert_eq!(policy.completed_task_count, 4);
-                assert!(policy.final_resource_assignments.iter().any(|assignment| {
-                    assignment.task_id == "inspect-assembly"
-                }));
+                assert!(
+                    policy
+                        .final_resource_assignments
+                        .iter()
+                        .any(|assignment| { assignment.task_id == "inspect-assembly" })
+                );
             } else {
                 assert_eq!(policy.policy_id, "B0");
                 assert_eq!(policy.completed_task_count, 0);
