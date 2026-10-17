@@ -917,6 +917,11 @@ fn default_registry_path() -> PathBuf {
         .join("../../fixtures/personal_vehicle/benchmark_source_registry_v0_1.json")
 }
 
+fn default_baseline_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json")
+}
+
 fn default_evidence_schema_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json")
@@ -927,16 +932,17 @@ fn default_evidence_fixtures_path() -> PathBuf {
         .join("../../fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json")
 }
 
-fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
+fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf, PathBuf), String> {
     let mut args = env::args_os().skip(1);
     let mut corpus_path = None;
     let mut registry_path = None;
+    let mut baseline_path = None;
     let mut evidence_schema_path = None;
     let mut evidence_fixtures_path = None;
     while let Some(arg) = args.next() {
         if arg == "--help" || arg == "-h" {
-            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH] [--envelope-schema PATH] [--envelope-fixtures PATH]");
-            println!("Checks synthetic scenario/source/evidence-envelope contracts only; it does not run vehicle physics.");
+            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH] [--baseline PATH] [--envelope-schema PATH] [--envelope-fixtures PATH]");
+            println!("Checks synthetic scenario/source/baseline/evidence-envelope contracts only; it does not run vehicle physics.");
             std::process::exit(0);
         } else if arg == "--corpus" {
             let Some(value) = args.next() else {
@@ -948,6 +954,11 @@ fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
                 return Err("--registry requires a path".to_owned());
             };
             registry_path = Some(PathBuf::from(value));
+        } else if arg == "--baseline" {
+            let Some(value) = args.next() else {
+                return Err("--baseline requires a path".to_owned());
+            };
+            baseline_path = Some(PathBuf::from(value));
         } else if arg == "--envelope-schema" {
             let Some(value) = args.next() else {
                 return Err("--envelope-schema requires a path".to_owned());
@@ -965,13 +976,14 @@ fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
     Ok((
         corpus_path.unwrap_or_else(default_corpus_path),
         registry_path.unwrap_or_else(default_registry_path),
+        baseline_path.unwrap_or_else(default_baseline_path),
         evidence_schema_path.unwrap_or_else(default_evidence_schema_path),
         evidence_fixtures_path.unwrap_or_else(default_evidence_fixtures_path),
     ))
 }
 
 fn main() -> ExitCode {
-    let (corpus_path, registry_path, evidence_schema_path, evidence_fixtures_path) = match read_cli() {
+    let (corpus_path, registry_path, baseline_path, evidence_schema_path, evidence_fixtures_path) = match read_cli() {
         Ok(paths) => paths,
         Err(error) => {
             eprintln!("CORPUS_AUDIT_FAIL: {error}");
@@ -994,6 +1006,13 @@ fn main() -> ExitCode {
         }
     };
     let (registry_raw, registry) = match load_json(&registry_path, "source registry") {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("CORPUS_AUDIT_FAIL: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let (baseline_raw, baseline) = match load_json(&baseline_path, "South African baseline shortlist") {
         Ok(value) => value,
         Err(error) => {
             eprintln!("CORPUS_AUDIT_FAIL: {error}");
@@ -1030,6 +1049,13 @@ fn main() -> ExitCode {
             None
         }
     };
+    let baseline_result = match validate_baseline_matrix(&baseline, &registry) {
+        Ok(result) => Some(result),
+        Err(baseline_errors) => {
+            errors.extend(baseline_errors);
+            None
+        }
+    };
     let evidence_result = match validate_evidence_envelope_fixtures(
         &evidence_schema,
         &evidence_fixtures,
@@ -1056,6 +1082,7 @@ fn main() -> ExitCode {
         let (source_registry_count, source_registry_sha256) =
             registry_result.expect("source registry result exists after successful validation");
         let evidence = evidence_result.expect("evidence envelope result exists after successful validation");
+        let (baseline_count, baseline_sha256) = baseline_result.expect("baseline shortlist result exists after successful validation");
         let repair_graph_fixture_count = repair_graph_count.expect("repair graph fixture count exists after successful validation");
         let report = AuditSummary {
             case_count: summary.case_count,
@@ -1066,20 +1093,24 @@ fn main() -> ExitCode {
             evidence_fixture_count: evidence.fixture_count,
             evidence_schema_sha256: evidence.schema_sha256,
             evidence_fixtures_sha256: evidence.fixtures_sha256,
+            baseline_count,
+            baseline_sha256: format!("{:x}", Sha256::digest(&baseline_raw)),
         };
         println!(
-            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={} evidence_fixtures={} envelope_schema_sha256={} envelope_fixtures_sha256={} repair_graph_fixtures={}",
+            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={} baseline_candidates={} baseline_sha256={} evidence_fixtures={} envelope_schema_sha256={} envelope_fixtures_sha256={} repair_graph_fixtures={}",
             report.case_count,
             report.negative_control_count,
             report.sha256,
             report.source_registry_count,
             report.source_registry_sha256,
+            report.baseline_count,
+            report.baseline_sha256,
             report.evidence_fixture_count,
             report.evidence_schema_sha256,
             report.evidence_fixtures_sha256,
             repair_graph_fixture_count
         );
-        println!("CLAIM_CEILING synthetic corpus/registry/evidence-envelope/repair-graph contracts only; no physics, signature, licensing, workmanship or safety result");
+        println!("CLAIM_CEILING synthetic scenario/evidence contracts and sourced price-screening snapshot only; no physics, licensing, TCO or safety result");
         ExitCode::SUCCESS
     } else {
         eprintln!("CORPUS_AUDIT_FAIL errors={}", errors.len());
