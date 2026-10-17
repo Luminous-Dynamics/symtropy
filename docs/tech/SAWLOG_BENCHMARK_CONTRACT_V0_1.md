@@ -90,7 +90,7 @@ TreeTrace_Douglas is a published dataset for Douglas-fir logs and downstream pro
 - Dataset metadata: https://metadata-afs.nancy.inra.fr/geonetwork/srv/fre/catalog.search#/metadata/d9eef6e4-f195-41f4-b6c2-2ab46adc637e
 - Dataset paper: https://doi.org/10.1186/s13595-022-01163-7
 
-The paper is CC BY 4.0, but verify the dataset repository's own terms and individual third-party image rights before copying, transforming or redistributing the data. The repository files are not bundled in this PR.
+The TreeTrace paper is CC BY 4.0, but the data repository records **Custom Dataset Terms: CC BY 2.0**. Follow the dataset terms and citation instructions rather than assuming the paper license applies to every data file; review third-party image notices where applicable. The repository files are not bundled in this PR.
 
 ### Track B — 3D log measurement and volume error
 
@@ -98,7 +98,7 @@ Stack-LAUT includes point clouds from 10 wood stacks captured with three LiDAR d
 
 - Dataset record (published 2025-01-08): https://doi.org/10.5281/zenodo.14609648
 
-Confirm the dataset's license and redistribution terms directly in the repository metadata before adopting it. The record describes a large collection; begin with only the reference-measurement tables and a small, permission-compatible point-cloud subset rather than downloading or mirroring the full corpus by default.
+The Zenodo record's visible Rights section currently shows a License label without a license value. Treat reuse/redistribution permission as unresolved and contact the depositor before using files or derived data; do not assume public download implies an open license. The record describes a large collection; start with metadata and contact/permission checks rather than downloading or mirroring the full corpus.
 
 ### Track C — board-surface defect perception (supporting only)
 
