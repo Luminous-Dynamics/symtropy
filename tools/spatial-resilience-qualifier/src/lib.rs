@@ -9,10 +9,12 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const EMBEDDED_MANIFEST: &str =
-    include_str!("../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.json");
-pub const EMBEDDED_SCHEMA: &str =
-    include_str!("../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json");
+pub const EMBEDDED_MANIFEST: &str = include_str!(
+    "../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.json"
+);
+pub const EMBEDDED_SCHEMA: &str = include_str!(
+    "../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json"
+);
 
 const EXPECTED_CASE_COUNT: usize = 15;
 const EXPECTED_INVARIANTS: &[&str] = &[
@@ -651,10 +653,12 @@ mod tests {
 }
 
 
-pub const EMBEDDED_ORACLE_CORPUS: &str =
-    include_str!("../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json");
-pub const EMBEDDED_ORACLE_SCHEMA: &str =
-    include_str!("../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.schema.json");
+pub const EMBEDDED_ORACLE_CORPUS: &str = include_str!(
+    "../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json"
+);
+pub const EMBEDDED_ORACLE_SCHEMA: &str = include_str!(
+    "../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.schema.json"
+);
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct TimelineFixtureFailure {
@@ -918,7 +922,7 @@ pub fn validate_timeline_fixtures_bytes(
                 "TIMELINE_EXPECTATION_MISMATCH",
                 &path,
                 format!(
-                    "Expected recovery tick {expected_tick:?} and error {expected_error:?}; oracle returned {actual:?}."
+                    "Expected tick {expected_tick:?}, error {expected_error:?}; got {actual:?}."
                 ),
             );
         }
