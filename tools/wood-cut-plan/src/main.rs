@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
@@ -436,7 +436,7 @@ fn enumerate_patterns(
                 .checked_mul(u64::from(quantity))
                 .ok_or_else(|| "candidate product length overflow".to_owned())?;
             let mut product_length = 0_u64;
-            let mut piece_count = quantity;
+            let mut piece_count = 0_u32;
             for prior in 0..index {
                 product_length = product_length
                     .checked_add(
@@ -765,9 +765,7 @@ fn evaluate_scenario_with_budget(
 
     let mut frontier: Vec<PlanReceipt> = Vec::new();
     for candidate in &plans {
-        let dominated = plans.iter().any(|other| {
-            other.product_counts != candidate.product_counts && is_dominated(candidate, other)
-        });
+        let dominated = plans.iter().any(|other| is_dominated(candidate, other));
         if !dominated {
             frontier.push(candidate.clone());
         }
