@@ -708,6 +708,9 @@ mod tests {
         assert!(first.contains("\\"assumptions_id\\":\\"analytic-cp-linear-two-point-v0.1\\""));
         assert!(first.contains("\\"stored_exergy_before_discharge_j\\""));
         assert!(first.contains("\\"final_store_exergy_j\\""));
+        assert!(first.contains("\\"exergy_reference_temperature_k\\":300.000000000"));
+        assert!(first.contains("\\"useful_captured_heat_j\\":700000.000000000"));
+        assert!(first.contains("\\"unmet_useful_heat_j\\":0.000000000"));
     }
 
     #[test]
@@ -825,6 +828,25 @@ mod tests {
         assert_eq!(after, s);
         verify_discharge_report(&c, s, DischargeRequest { requested_useful_heat: e(10_000.0), required_supply_temperature: k(355.0), minimum_approach: approach, heat_exchanger_effectiveness: Fraction::new(0.95).unwrap(), duration: dt(10.0) }, r).unwrap();
     }
+    #[test]
+    fn blocks_delivery_when_required_temperature_exceeds_store_maximum() {
+        let c = cfg(400.0);
+        let s = c.initial_state();
+        let request = DischargeRequest {
+            requested_useful_heat: e(10_000.0),
+            required_supply_temperature: k(600.0),
+            minimum_approach: TemperatureDifferenceK::new(10.0).unwrap(),
+            heat_exchanger_effectiveness: Fraction::new(0.9).unwrap(),
+            duration: dt(100.0),
+        };
+        let (after, report) = discharge_to_load(&c, s, request).unwrap();
+        assert!(report.blocked_by_temperature);
+        assert_eq!(after, s);
+        assert!(close(report.useful_heat_delivered.value(), 0.0));
+        assert!(close(report.unmet_useful_heat.value(), 10_000.0));
+        verify_discharge_report(&c, s, request, report).unwrap();
+    }
+
     #[test]
     fn verifier_rejects_tampered_collector_report() {
         let i = CollectorInput { incident_solar: e(1_000.0), optical_efficiency: Fraction::new(0.8).unwrap(), receiver_loss: e(100.0) };
