@@ -215,16 +215,7 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
     if input.actions.len() > MAX_ACTIONS {
         return Err(format!("action count exceeds limit {MAX_ACTIONS}"));
     }
-    let state_action_evaluations = input
-        .actions
-        .len()
-        .checked_mul(state_count)
-        .ok_or_else(|| "state-action evaluation count overflow".to_owned())?;
-    if state_action_evaluations > MAX_STATE_ACTION_EVALUATIONS {
-        return Err(format!(
-            "state-action evaluation count {state_action_evaluations} exceeds limit {MAX_STATE_ACTION_EVALUATIONS}"
-        ));
-    }
+    validate_evaluation_bound(input.actions.len(), state_count)?;
 
     let mut action_ids = BTreeSet::new();
     let mut raw_assessments = Vec::with_capacity(input.actions.len());
@@ -449,6 +440,18 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
         state_bindings,
         actions_ranked,
     })
+}
+
+fn validate_evaluation_bound(action_count: usize, state_count: usize) -> Result<usize, String> {
+    let evaluations = action_count
+        .checked_mul(state_count)
+        .ok_or_else(|| "state-action evaluation count overflow".to_owned())?;
+    if evaluations > MAX_STATE_ACTION_EVALUATIONS {
+        return Err(format!(
+            "state-action evaluation count {evaluations} exceeds limit {MAX_STATE_ACTION_EVALUATIONS}"
+        ));
+    }
+    Ok(evaluations)
 }
 
 fn validate_signature(
@@ -988,6 +991,20 @@ mod tests {
         let mut input = base_input();
         input.state_signatures[1].state_id = input.state_signatures[0].state_id.clone();
         assert!(plan(&input, &fixture_digest(&input)).unwrap_err().contains("duplicate state_id"));
+    }
+
+    #[test]
+    fn state_action_work_bound_accepts_limit_and_rejects_overflow() {
+        assert_eq!(
+            validate_evaluation_bound(1000, 10_000).expect("exact limit is accepted"),
+            MAX_STATE_ACTION_EVALUATIONS
+        );
+        assert!(validate_evaluation_bound(1001, 10_000)
+            .unwrap_err()
+            .contains("exceeds limit"));
+        assert!(validate_evaluation_bound(usize::MAX, 2)
+            .unwrap_err()
+            .contains("overflow"));
     }
 
     #[test]
