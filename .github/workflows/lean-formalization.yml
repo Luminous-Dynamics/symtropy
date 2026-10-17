@@ -91,6 +91,9 @@ jobs:
             .reference_vector_bindings.rust_lean_refinement_status == "NOT_ESTABLISHED" and
             (.reference_vector_bindings.corpus_path | type == "string" and length > 0) and
             (.reference_vector_bindings.corpus_commit | test("^[0-9a-f]{40}$")) and
+            .reference_vector_bindings.corpus_schema_status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
+            (.reference_vector_bindings.corpus_schema_path | type == "string" and length > 0) and
+            (.reference_vector_bindings.corpus_schema_commit | test("^[0-9a-f]{40}$")) and
             (.reference_vector_bindings.bindings | length == 5) and
             ([.reference_vector_bindings.bindings[].vector_id] | unique | length == 5) and
             ([.reference_vector_bindings.bindings[].contract_id] | sort) == ([.contracts[].id] | sort) and
