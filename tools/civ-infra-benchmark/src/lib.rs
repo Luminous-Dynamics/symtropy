@@ -1172,6 +1172,10 @@ mod tests {
             .iter()
             .find(|candidate| candidate.candidate_id == "A-shortest")
             .expect("shortest candidate exists");
+        assert_eq!(shortest.metrics.derived_max_grade_percent, 8.0);
+        assert_eq!(shortest.metrics.derived_cut_volume_m3, 3520.0);
+        assert_eq!(shortest.metrics.derived_fill_volume_m3, 1760.0);
+        assert_eq!(shortest.metrics.derived_total_earthworks_m3, 5280.0);
         assert!(shortest.findings.iter().any(|finding| {
             finding.code == "grade_limit" && finding.status == CheckStatus::Violation
         }));
@@ -1198,6 +1202,11 @@ mod tests {
             .iter()
             .find(|candidate| candidate.candidate_id == "C-reference")
             .expect("reference candidate exists");
+        assert_eq!(reference.metrics.route_length_m, 1080.0);
+        assert_eq!(reference.metrics.derived_max_grade_percent, 3.5);
+        assert_eq!(reference.metrics.derived_cut_volume_m3, 2160.0);
+        assert_eq!(reference.metrics.derived_fill_volume_m3, 1620.0);
+        assert_eq!(reference.metrics.derived_total_earthworks_m3, 3780.0);
         assert!(reference
             .findings
             .iter()
