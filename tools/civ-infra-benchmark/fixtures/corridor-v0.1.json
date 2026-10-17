@@ -64,11 +64,20 @@
       "road_envelopes": [
         {
           "station_start_m": 0,
-          "station_end_m": 900,
+          "station_end_m": 440,
           "lateral_min_m": -4,
           "lateral_max_m": 4,
           "elevation_min_m": 0,
-          "elevation_max_m": 1,
+          "elevation_max_m": 35.2,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 440,
+          "station_end_m": 880,
+          "lateral_min_m": -4,
+          "lateral_max_m": 4,
+          "elevation_min_m": 35.2,
+          "elevation_max_m": 70.4,
           "uncertainty_m": 0.1
         }
       ],
@@ -100,11 +109,20 @@
       "road_envelopes": [
         {
           "station_start_m": 0,
-          "station_end_m": 1000,
+          "station_end_m": 490,
           "lateral_min_m": 10,
           "lateral_max_m": 18,
           "elevation_min_m": 0,
-          "elevation_max_m": 1,
+          "elevation_max_m": 20.58,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 490,
+          "station_end_m": 980,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": 20.58,
+          "elevation_max_m": 41.16,
           "uncertainty_m": 0.1
         }
       ],
@@ -136,11 +154,20 @@
       "road_envelopes": [
         {
           "station_start_m": 0,
-          "station_end_m": 1000,
+          "station_end_m": 540,
           "lateral_min_m": 20,
           "lateral_max_m": 28,
-          "elevation_min_m": 2,
-          "elevation_max_m": 3,
+          "elevation_min_m": 0,
+          "elevation_max_m": 18.9,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 540,
+          "station_end_m": 1080,
+          "lateral_min_m": 20,
+          "lateral_max_m": 28,
+          "elevation_min_m": 18.9,
+          "elevation_max_m": 37.8,
           "uncertainty_m": 0.1
         }
       ],
