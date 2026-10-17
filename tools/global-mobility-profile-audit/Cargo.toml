@@ -7,3 +7,5 @@ description = "Fail-closed semantic audit for the synthetic global mobility regi
 
 [dependencies]
 serde_json = "1"
+
+[workspace]
