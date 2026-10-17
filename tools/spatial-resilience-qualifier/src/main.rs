@@ -1,7 +1,8 @@
 use spatial_resilience_qualifier::{
-    validate_manifest_bytes, validate_timeline_fixtures_bytes, TimelineFixtureSummary,
-    ValidationSummary, EMBEDDED_MANIFEST, EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA,
-    EMBEDDED_SCHEMA,
+    validate_manifest_bytes, validate_outcome_fixtures_bytes, validate_timeline_fixtures_bytes,
+    OutcomeSummary, TimelineFixtureSummary, ValidationSummary, EMBEDDED_MANIFEST,
+    EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
+    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA,
 };
 use std::env;
 use std::fs;
@@ -11,7 +12,8 @@ fn usage() -> &'static str {
     concat!(
         "Usage: spatial-resilience-qualifier --check [--json] | --oracle-check [--json] | ",
         "--validate MANIFEST.json SCHEMA.json [--json] | ",
-        "--oracle-validate CORPUS.json SCHEMA.json [--json]"
+        "--oracle-validate CORPUS.json SCHEMA.json [--json] | ",
+        "--outcome-check [--json] | --outcome-validate CORPUS.json SCHEMA.json [--json]"
     )
 }
 
@@ -79,6 +81,46 @@ fn emit_timeline(summary: &TimelineFixtureSummary, json_output: bool) {
     );
     println!("corpus_sha256={}", summary.corpus_sha256);
     println!("schema_sha256={}", summary.schema_sha256);
+    for failure in &summary.failures {
+        println!(
+            "{} path={} detail={}",
+            failure.code, failure.path, failure.detail
+        );
+    }
+}
+
+fn emit_outcomes(summary: &OutcomeSummary, json_output: bool) {
+    if json_output {
+        match serde_json::to_string_pretty(summary) {
+            Ok(serialized) => println!("{serialized}"),
+            Err(error) => {
+                eprintln!("REPORT_SERIALIZATION_FAILED: {error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
+
+    let state = if summary.passed { "PASS" } else { "FAIL" };
+    println!("{state}: spatial-resilience paired-outcome evaluator");
+    println!(
+        "benchmark_id={} version={} comparisons={} comparisons_passed={}",
+        summary.benchmark_id.as_deref().unwrap_or("unknown"),
+        summary.version.as_deref().unwrap_or("unknown"),
+        summary.comparisons_seen,
+        summary.comparisons_passed
+    );
+    println!("corpus_sha256={}", summary.corpus_sha256);
+    println!("schema_sha256={}", summary.schema_sha256);
+    for result in &summary.results {
+        println!("comparison={} status={}", result.comparison_id, result.status);
+        for candidate in &result.candidate_dispositions {
+            println!(
+                "  candidate={} disposition={}",
+                candidate.candidate_id, candidate.disposition
+            );
+        }
+    }
     for failure in &summary.failures {
         println!(
             "{} path={} detail={}",
@@ -162,6 +204,46 @@ fn main() {
             let schema = read_file(schema_path);
             let summary = validate_timeline_fixtures_bytes(&corpus, &schema);
             emit_timeline(&summary, true);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode] if mode == "--outcome-check" => {
+            let summary = validate_outcome_fixtures_bytes(
+                EMBEDDED_OUTCOME_CORPUS.as_bytes(),
+                EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
+            );
+            emit_outcomes(&summary, false);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, flag] if mode == "--outcome-check" && flag == "--json" => {
+            let summary = validate_outcome_fixtures_bytes(
+                EMBEDDED_OUTCOME_CORPUS.as_bytes(),
+                EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
+            );
+            emit_outcomes(&summary, true);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, corpus_path, schema_path] if mode == "--outcome-validate" => {
+            let corpus = read_file(corpus_path);
+            let schema = read_file(schema_path);
+            let summary = validate_outcome_fixtures_bytes(&corpus, &schema);
+            emit_outcomes(&summary, false);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, corpus_path, schema_path, flag]
+            if mode == "--outcome-validate" && flag == "--json" =>
+        {
+            let corpus = read_file(corpus_path);
+            let schema = read_file(schema_path);
+            let summary = validate_outcome_fixtures_bytes(&corpus, &schema);
+            emit_outcomes(&summary, true);
             if !summary.passed {
                 process::exit(1);
             }
