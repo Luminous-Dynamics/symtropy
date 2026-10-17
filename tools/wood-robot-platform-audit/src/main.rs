@@ -10,8 +10,9 @@ use std::{
 
 const VERSION: &str = "0.1.0";
 const EXPECTED_SUITE: &str = "WOOD_ROBOT_PLATFORM";
-const EXPECTED_SCENARIOS: usize = 22;
+const EXPECTED_SCENARIOS: usize = 29;
 const EXPECTED_AERIAL_SCENARIOS: usize = 13;
+const EXPECTED_SALVAGE_SCENARIOS: usize = 7;
 
 type Check<T> = Result<T, Vec<String>>;
 
@@ -328,6 +329,147 @@ fn check_general_eligibility(s: &Scenario, errors: &mut Vec<String>) {
     }
 }
 
+fn check_salvage_scenario(s: &Scenario, errors: &mut Vec<String>) {
+    let id = s.scenario_id.as_str();
+    let o = &s.observations;
+    let h = &s.hard_constraints;
+    let mut blockers: Vec<&str> = Vec::new();
+
+    for field in [
+        "tree_condition",
+        "harvest_permission_state",
+        "landholder_consent_state",
+        "protected_species_status",
+        "deadwood_retention_disposition",
+        "biodiversity_review_state",
+        "hazard_review_state",
+        "pest_quarantine_state",
+    ] {
+        require_string(o, field, id, errors);
+    }
+
+    if value_str(o, "harvest_permission_state") != Some("verified") {
+        blockers.push("HARVEST_PERMISSION_UNVERIFIED");
+    }
+    if value_str(o, "landholder_consent_state") != Some("verified") {
+        blockers.push("LANDHOLDER_CONSENT_UNVERIFIED");
+    }
+    if value_str(o, "protected_species_status") != Some("checked_not_protected") {
+        blockers.push("PROTECTED_SPECIES_STATUS_UNKNOWN");
+    }
+    match value_str(o, "deadwood_retention_disposition") {
+        Some("retain_habitat") => blockers.push("DEADWOOD_RETENTION_REQUIRED"),
+        Some("approved_for_removal_after_ecological_review") => {}
+        _ => blockers.push("ECOLOGICAL_REVIEW_INCOMPLETE"),
+    }
+    if value_str(o, "biodiversity_review_state") != Some("complete") {
+        blockers.push("ECOLOGICAL_REVIEW_INCOMPLETE");
+    }
+    if value_str(o, "hazard_review_state") != Some("complete") {
+        blockers.push("HAZARD_REVIEW_INCOMPLETE");
+    }
+    if value_str(o, "pest_quarantine_state") != Some("cleared") {
+        blockers.push("BIOSECURITY_HOLD");
+        blockers.push("NO_MOVEMENT_BEFORE_CLEARANCE");
+    }
+
+    if value_str(o, "tree_condition") == Some("declining_live") {
+        let separate = expected_true(h, "require_separate_silvicultural_decision_for_live_tree_removal")
+            && value_str(o, "separate_silvicultural_decision") == Some("approved");
+        if !separate {
+            blockers.push("LIVE_TREE_REMOVAL_REQUIRES_SEPARATE_APPROVAL");
+        }
+    }
+
+    if s.expected_decision == "eligible_for_simulated_plan" && !blockers.is_empty() {
+        errors.push(format!(
+            "{id}: salvage/extraction screening is eligible despite hard blockers: {}",
+            blockers.join(", ")
+        ));
+    }
+    for code in blockers {
+        if !has_reason(s, code) {
+            errors.push(format!("{id}: salvage/extraction blocker requires reason code {code}"));
+        }
+    }
+
+    match s.task_type.as_str() {
+        "screen_deadwood_for_recovery" => {
+            if s.expected_decision == "eligible_for_simulated_plan" {
+                for code in ["SCREENING_ONLY", "NO_EXTRACTION_AUTHORIZED"] {
+                    if !has_reason(s, code) {
+                        errors.push(format!("{id}: eligible screening must include reason code {code}"));
+                    }
+                }
+            }
+        }
+        "screen_declining_live_tree" => {
+            if value_str(o, "tree_condition") == Some("declining_live")
+                && value_str(o, "separate_silvicultural_decision") != Some("approved")
+                && s.expected_decision == "eligible_for_simulated_plan"
+            {
+                errors.push(format!("{id}: a declining live tree cannot enter the deadwood salvage path without a separate decision"));
+            }
+        }
+        "compare_extraction_modes" => {
+            let ground_or_cable = value_bool(o, "ground_or_cable_access_feasible");
+            let selected = value_str(o, "mode_selected");
+            let helicopter_cost = value_u64(o, "helicopter_all_in_cost_cents_per_m3");
+            let cable_cost = value_u64(o, "cable_yarder_all_in_cost_cents_per_m3");
+
+            if expected_true(h, "compare_all_in_cost_including_mobilization")
+                && (helicopter_cost.is_none() || (ground_or_cable == Some(true) && cable_cost.is_none()))
+            {
+                errors.push(format!("{id}: extraction-mode comparison lacks declared all-in cost inputs"));
+            }
+
+            if ground_or_cable == Some(true) {
+                if let (Some(heli), Some(cable)) = (helicopter_cost, cable_cost) {
+                    if cable < heli {
+                        if selected != Some("cable_yarder") {
+                            errors.push(format!("{id}: cheaper feasible cable extraction must not be displaced by helicopter cost-only preference"));
+                        }
+                        if !has_reason(s, "CABLE_YARDER_SELECTED_LOWER_DECLARED_COST") {
+                            errors.push(format!("{id}: cost-dominated helicopter option must include CABLE_YARDER_SELECTED_LOWER_DECLARED_COST"));
+                        }
+                    }
+                }
+            } else if ground_or_cable == Some(false) && selected == Some("helicopter_candidate_for_operator_review") {
+                let margin = value_u64(o, "expected_recovered_product_margin_cents_per_m3");
+                if let (Some(heli), Some(margin)) = (helicopter_cost, margin) {
+                    if margin <= heli {
+                        errors.push(format!("{id}: helicopter candidate fails declared synthetic margin screen"));
+                    }
+                } else {
+                    errors.push(format!("{id}: remote helicopter candidate lacks declared synthetic margin/cost"));
+                }
+                if value_str(o, "lift_plan_state") != Some("requires_qualified_operator_and_rigging_review") {
+                    errors.push(format!("{id}: helicopter candidate requires qualified lift-plan and rigging review"));
+                }
+                if value_str(o, "rotor_clearance_state") != Some("qualified_site_assessment_required") {
+                    errors.push(format!("{id}: rotor/obstacle clearance must remain an explicit site assessment"));
+                }
+                if value_str(o, "weather_state") != Some("within_declared_operating_envelope") {
+                    errors.push(format!("{id}: helicopter candidate lacks an in-envelope weather declaration"));
+                }
+                for code in [
+                    "HELICOPTER_ONLY_A_CANDIDATE_FOR_REVIEW",
+                    "SYNTHETIC_COST_COMPARISON_ONLY",
+                    "NO_EXTRACTION_AUTHORIZED",
+                ] {
+                    if !has_reason(s, code) {
+                        errors.push(format!("{id}: helicopter proposal must include reason code {code}"));
+                    }
+                }
+                if s.expected_actuation {
+                    errors.push(format!("{id}: salvage screening cannot authorize a physical lift"));
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 fn validate(corpus: &Corpus) -> Check<Summary> {
     let mut errors = Vec::new();
     if corpus.suite_id != EXPECTED_SUITE {
@@ -374,6 +516,7 @@ fn validate(corpus: &Corpus) -> Check<Summary> {
     ].into_iter().collect();
     let mut ids = BTreeSet::new();
     let mut aerial_count = 0usize;
+    let mut salvage_count = 0usize;
     let mut decision_counts = BTreeMap::<String, usize>::new();
 
     for s in &corpus.scenarios {
@@ -411,11 +554,23 @@ fn validate(corpus: &Corpus) -> Check<Summary> {
             aerial_count += 1;
             check_aerial_scenario(s, &mut errors);
         }
+        if s.platform_profile == "P6_REUSE_REMANUFACTURE_STATION"
+            && ["screen_deadwood_for_recovery", "compare_extraction_modes", "screen_declining_live_tree"].contains(&s.task_type.as_str())
+        {
+            salvage_count += 1;
+            check_salvage_scenario(s, &mut errors);
+        }
     }
 
     if aerial_count != EXPECTED_AERIAL_SCENARIOS {
         errors.push(format!(
             "expected {EXPECTED_AERIAL_SCENARIOS} aerial Scout scenarios, found {aerial_count}"
+        ));
+    }
+
+    if salvage_count != EXPECTED_SALVAGE_SCENARIOS {
+        errors.push(format!(
+            "expected {EXPECTED_SALVAGE_SCENARIOS} deadwood-salvage/extraction scenarios, found {salvage_count}"
         ));
     }
 
@@ -554,6 +709,7 @@ mod tests {
         let summary = validate(&corpus).expect("frozen corpus should pass contract checks");
         assert_eq!(summary.scenario_count, EXPECTED_SCENARIOS);
         assert_eq!(summary.aerial_scenario_count, EXPECTED_AERIAL_SCENARIOS);
+        assert_eq!(summary.scenario_count, EXPECTED_SCENARIOS);
     }
 
     #[test]
@@ -597,6 +753,39 @@ mod tests {
     fn duplicate_scenario_ids_are_rejected() {
         let mut corpus = frozen_corpus();
         corpus.scenarios[1].scenario_id = corpus.scenarios[0].scenario_id.clone();
+        assert!(validate(&corpus).is_err());
+    }
+
+
+    #[test]
+    fn habitat_retention_blocks_salvage_removal() {
+        let mut corpus = frozen_corpus();
+        let scenario = corpus.scenarios.iter_mut()
+            .find(|s| s.scenario_id == "SYNTHETIC_WOODROBOT_024_DEADWOOD_RETAINED_FOR_HABITAT")
+            .expect("habitat retention fixture exists");
+        scenario.observations.insert("deadwood_retention_disposition".to_owned(), json!("approved_for_removal_after_ecological_review"));
+        scenario.expected_decision = "eligible_for_simulated_plan".to_owned();
+        assert!(validate(&corpus).is_err());
+    }
+
+    #[test]
+    fn declining_live_tree_requires_separate_silvicultural_decision() {
+        let mut corpus = frozen_corpus();
+        let scenario = corpus.scenarios.iter_mut()
+            .find(|s| s.scenario_id == "SYNTHETIC_WOODROBOT_029_DECLINING_LIVE_TREE_NEEDS_SEPARATE_DECISION")
+            .expect("declining live tree fixture exists");
+        scenario.observations.insert("separate_silvicultural_decision".to_owned(), json!("missing"));
+        scenario.expected_decision = "eligible_for_simulated_plan".to_owned();
+        assert!(validate(&corpus).is_err());
+    }
+
+    #[test]
+    fn cable_yarder_dominates_synthetic_helicopter_cost_case() {
+        let mut corpus = frozen_corpus();
+        let scenario = corpus.scenarios.iter_mut()
+            .find(|s| s.scenario_id == "SYNTHETIC_WOODROBOT_027_AIRLIFT_DOMINATED_BY_CABLE")
+            .expect("cost-dominated helicopter fixture exists");
+        scenario.observations.insert("mode_selected".to_owned(), json!("helicopter_candidate_for_operator_review"));
         assert!(validate(&corpus).is_err());
     }
 
