@@ -1036,6 +1036,49 @@ mod tests {
         assert!(verify_plan_contract(&map, &tampered, &config, "tamper control").is_err());
     }
 
+
+    #[test]
+    fn target_oracle_is_deterministic_and_reports_expansion_bound() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let a = TargetOracleSolver::new(&map, &targets, config_for(binding)).unwrap().solve().unwrap();
+        let b = TargetOracleSolver::new(&map, &targets, config_for(binding)).unwrap().solve().unwrap();
+        assert_eq!(serde_json::to_vec(&a).unwrap(), serde_json::to_vec(&b).unwrap());
+        assert!(a.expanded_state_count <= 980_201);
+        assert!(a.candidate_count <= 100);
+    }
+
+    #[test]
+    fn unreachable_target_has_no_invented_completeness_ratio() {
+        let map = map_for(Scene::BlockedCorridor);
+        let target = Target {
+            target_id: "unreachable-negative-control".into(),
+            kind: TargetKind::TrunkDiameterEdges,
+            center_cell: idx(3, 2),
+            required_feature_cells: vec![idx(3, 1), idx(3, 3)],
+        };
+        let targets = vec![target];
+        let config = PlannerConfig {
+            start_cell: 0,
+            energy_budget_steps: 10,
+            return_reserve_steps: 2,
+            max_viewpoints: 3,
+            sensor_range_cells: RANGE,
+            horizontal_fov_degrees: 180,
+            turn_cost_steps: 1,
+            greedy_algorithm: "test".into(),
+            oracle_algorithm: "test".into(),
+            lookahead_algorithm: "test".into(),
+        };
+        let oracle = TargetOracleSolver::new(&map, &targets, config).unwrap().solve().unwrap();
+        assert_eq!(oracle.score.complete_target_count, 0);
+        assert_eq!(oracle.score.visible_feature_count, 0);
+        let baseline = score_plan(&map, &oracle.plan, &targets).unwrap();
+        assert_eq!(target_regret(&oracle.score, &baseline).complete_target_ratio_basis_points, None);
+    }
+
     #[test]
     fn serialized_scores_are_bounded_and_deterministic() {
         let map = map_for(Scene::OpenGrid);
