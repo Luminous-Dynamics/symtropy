@@ -497,6 +497,24 @@
               5000
             ]
           }
+        },
+        {
+          "id": "replace-then-remanufacture",
+          "steps": [
+            "continue",
+            "replace-recycle",
+            "remanufacture"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500,
+              7500,
+              7500
+            ]
+          }
         }
       ],
       "expected_frontier": [

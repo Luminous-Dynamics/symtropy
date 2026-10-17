@@ -20,7 +20,7 @@ Evaluate the whole service horizon. Every plan attempts the same service quantit
 - Condition degrades by 2,500 bp after each serviced cycle.
 - Minimum pre-service condition: 6,000 bp.
 - Repair restores the profile's declared condition and consumes one repair allowance.
-- Remanufacture restores condition to 10,000 bp, resets the repair counter, and assigns a declared lineage share (50% in the fixture).
+- Remanufacture restores condition to 10,000 bp, resets the repair counter, and caps original-asset lineage at its declared retained share (50% in the fixture). Lineage is monotonic non-increasing: remanufacturing a replacement asset cannot restore credit to the retired original.
 - Replacement restores condition to 10,000 bp, resets repair allowance, and assigns zero lineage share to the initial asset.
 
 **Lineage-weighted service hours** are explicitly a synthetic bookkeeping proxy for the amount of service attributed to the initial asset. They are not a direct physical measurement or universal circularity metric.

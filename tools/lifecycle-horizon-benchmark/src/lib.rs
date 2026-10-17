@@ -583,7 +583,7 @@ fn simulate(
             }
             Kind::Remanufacture => {
                 state.condition = 10_000;
-                state.lineage = action.lineage_after_bp.unwrap_or(0);
+                state.lineage = state.lineage.min(action.lineage_after_bp.unwrap_or(0));
                 state.repairs = 0;
             }
             Kind::ReplaceRecycle | Kind::ReplaceEnergyRecovery | Kind::ReplaceMixed => {
@@ -712,7 +712,7 @@ fn simulate_reference(
             }
             Kind::Remanufacture => {
                 state.condition = 10_000;
-                state.lineage = action.lineage_after_bp.unwrap_or(0);
+                state.lineage = state.lineage.min(action.lineage_after_bp.unwrap_or(0));
                 state.repairs = 0;
             }
             Kind::ReplaceRecycle | Kind::ReplaceEnergyRecovery | Kind::ReplaceMixed => {
@@ -928,6 +928,16 @@ mod tests {
         assert_eq!(result.delivered_service_hours, 30_000);
         assert_eq!(result.lineage_weighted_service_hours, 20_000);
         assert_eq!(result.condition_after_cycle_bp, vec![7500, 7500, 5000]);
+    }
+
+    #[test]
+    fn remanufacture_cannot_restore_original_lineage_after_replacement() {
+        let report = report();
+        let result = plan(&report, "baseline-horizon", "replace-then-remanufacture");
+        assert_eq!(result.disposition, Disposition::Eligible);
+        assert_eq!(result.delivered_service_hours, 30_000);
+        assert_eq!(result.lineage_weighted_service_hours, 10_000);
+        assert_eq!(result.condition_after_cycle_bp, vec![7500, 7500, 7500]);
     }
 
     #[test]

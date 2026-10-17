@@ -14,7 +14,7 @@ SOURCE_REVISION="$(git rev-parse HEAD)" cargo run --manifest-path tools/lifecycl
 
 A circularity choice cannot be judged only when an asset is discarded. Wear, repair limits, remanufacture, replacement, remaining service demand, and original-asset lineage interact over several cycles. Each plan must attempt the same three 10,000-hour service blocks and must pass condition, evidence, safety/function/inspection, and mass-fate gates at every cycle.
 
-Condition is a bounded synthetic state in basis points. It degrades after each delivered service block; repair restores a declared amount; remanufacture resets condition and assigns a declared remaining lineage share; replacement resets condition but assigns zero lineage share to the initial asset. Lineage-weighted service hours are a synthetic accounting proxy, not a measured physical circularity value.
+Condition is a bounded synthetic state in basis points. It degrades after each delivered service block; repair restores a declared amount; remanufacture resets condition and caps, but cannot increase, original-asset lineage; replacement resets condition and assigns zero lineage share to the initial asset. Lineage-weighted service hours are a synthetic accounting proxy, not a measured physical circularity value.
 
 ## Reproducibility and assurance
 
