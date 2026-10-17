@@ -257,6 +257,15 @@ pub enum CostEvidenceDispositionV1 {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AnnualCostBreakdownV1 {
     pub currency_code: String,
+    pub service_unit: ServiceUnitV1,
+    #[serde(with = "exact_u64")]
+    pub annual_completed_service_units: u64,
+    #[serde(with = "exact_option_u64")]
+    pub annual_area_completed_m2: Option<u64>,
+    pub field_count: u32,
+    pub access_point_count: u32,
+    #[serde(with = "exact_u64")]
+    pub missions_per_year: u64,
     #[serde(with = "exact_u64")]
     pub annualized_capital_minor: u64,
     #[serde(with = "exact_u64")]
@@ -471,6 +480,12 @@ fn make_breakdown(input: &FieldRobotCostInputV1) -> Option<AnnualCostBreakdownV1
 
     Some(AnnualCostBreakdownV1 {
         currency_code: input.currency_code.clone(),
+        service_unit: input.service_unit,
+        annual_completed_service_units: input.annual_completed_service_units,
+        annual_area_completed_m2: input.annual_area_completed_m2,
+        field_count: input.field_count,
+        access_point_count: input.access_point_count,
+        missions_per_year: input.missions_per_year,
         annualized_capital_minor,
         productive_machine_time_minor,
         nonproductive_machine_time_minor,
@@ -622,7 +637,7 @@ mod tests {
             scope_ref: "synthetic-site-01".into(),
             period_ref: "synthetic-annual-period-01".into(),
             currency_code: "ZAR".into(),
-            service_unit: ServiceUnitV1::SquareMetresCompleted,
+            service_unit: ServiceUnitV1::KilogramsDelivered,
             annual_completed_service_units: 1_000,
             annual_area_completed_m2: Some(200_000),
             field_count: 4,
@@ -653,7 +668,7 @@ mod tests {
             .map(|domain| {
                 CostEvidenceRecordV1::source_referenced(
                     domain,
-                    format!("synthetic-source-ref://{}", format!("{domain:?}").to_lowercase()),
+                    format!("synthetic-source-ref://{domain:?}"),
                     FIXTURE_SHA256,
                 )
             })
