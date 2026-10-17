@@ -200,7 +200,7 @@ fn validate_manifest_structure(
                     serde_json::from_slice(bytes).map_err(|error| {
                         vec![format!("whole-property manifest rejected: {error}")]
                     })?;
-                let cases = manifest
+                let cases: Vec<CaseSummary> = manifest
                     .scenarios
                     .into_iter()
                     .map(|case| CaseSummary {
@@ -231,7 +231,7 @@ fn validate_manifest_structure(
                     serde_json::from_slice(bytes).map_err(|error| {
                         vec![format!("terrain-native manifest rejected: {error}")]
                     })?;
-                let cases = manifest
+                let cases: Vec<CaseSummary> = manifest
                     .scenarios
                     .into_iter()
                     .map(|case| CaseSummary {
@@ -432,6 +432,26 @@ mod tests {
 
     fn validate_test_value(kind: ManifestKind, value: &Value) -> Result<VerificationReport, Vec<String>> {
         validate_manifest_structure(kind, serde_json::to_string(value).unwrap().as_bytes())
+    }
+
+    #[test]
+    fn verifies_pinned_whole_property_fixture_bytes() {
+        let bytes = include_bytes!("../../../docs/research/fixtures/WHOLE_PROPERTY_HABITAT_SCENARIOS_V0_1.json");
+        let report = verify_manifest_bytes(ManifestKind::WholeProperty, bytes).unwrap();
+        assert_eq!(report.input_sha256, WHOLE_PROPERTY_SHA256);
+        assert_eq!(report.scenario_count, 18);
+        assert_eq!(report.negative_control_count, 16);
+        assert_eq!(report.verification_status, "STRUCTURAL_PASS_NOT_SEMANTIC_PASS");
+    }
+
+    #[test]
+    fn verifies_pinned_terrain_native_fixture_bytes() {
+        let bytes = include_bytes!("../../../docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json");
+        let report = verify_manifest_bytes(ManifestKind::TerrainNative, bytes).unwrap();
+        assert_eq!(report.input_sha256, TERRAIN_NATIVE_SHA256);
+        assert_eq!(report.scenario_count, 14);
+        assert_eq!(report.negative_control_count, 12);
+        assert_eq!(report.verification_status, "STRUCTURAL_PASS_NOT_SEMANTIC_PASS");
     }
 
     #[test]
