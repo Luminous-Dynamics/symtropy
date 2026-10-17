@@ -13,7 +13,7 @@ const EXPECTED_VARIANTS: [(&str, &str); 4] = [
     ("base", "baseline"),
     ("adversarial-pressure", "adversarial"),
     ("adversarial-low-information", "adversarial"),
-    ("adversarial-role-reversal", "adversarial"),
+    ("adversarial-role-or-value-reversal", "adversarial"),
 ];
 
 pub fn verify_files(
