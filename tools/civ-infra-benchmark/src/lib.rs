@@ -1108,7 +1108,8 @@ pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(),
     expected_candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     if report.candidates != expected_candidates {
         errors.push(
-            "candidate findings/dispositions disagree with reference recomputation".to_string(),
+            "candidate metrics/findings/dispositions disagree with reference recomputation"
+                .to_string(),
         );
     }
 
@@ -1497,6 +1498,20 @@ mod tests {
         }));
         verify_report(&exceeded_bytes, &exceeded_report)
             .expect("reference check should reject capacity exceedance");
+    }
+
+    #[test]
+    fn altered_derived_metric_is_rejected_by_reference_checker() {
+        let bytes = fixture_bytes();
+        let mut report = evaluate_json(&bytes).expect("fixture should evaluate");
+        let candidate = report
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.metrics.derived_total_earthworks_m3 = 0.0;
+        let errors = verify_report(&bytes, &report).expect_err("metric tampering must fail");
+        assert!(errors.iter().any(|error| error.contains("candidate metrics")));
     }
 
 }
