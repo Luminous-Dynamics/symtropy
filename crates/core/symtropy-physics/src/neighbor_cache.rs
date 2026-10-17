@@ -88,6 +88,8 @@ pub struct NeighborList2d {
     build_radius: f64,
     build_points: Vec<SpatialPoint>,
     build_positions_by_id: HashMap<u64, [f64; 2]>,
+    /// Reused across validity checks to avoid a fresh allocation per tick.
+    seen_scratch: HashSet<u64>,
     pairs: Vec<NeighborPair>,
 }
 
@@ -155,6 +157,7 @@ impl NeighborList2d {
             build_radius,
             build_points,
             build_positions_by_id,
+            seen_scratch: HashSet::with_capacity(build_positions_by_id.len()),
             pairs,
         })
     }
@@ -166,7 +169,7 @@ impl NeighborList2d {
     /// input order is irrelevant. Invalid coordinates or duplicate IDs return
     /// an error; callers must fail closed instead of reusing the cache.
     pub fn requires_rebuild(
-        &self,
+        &mut self,
         current_points: &[SpatialPoint],
         interaction_radius: f64,
         skin: f64,
@@ -182,7 +185,7 @@ impl NeighborList2d {
             || cell_size != self.cell_size;
         let max_displacement = self.skin * 0.5;
         let max_displacement_squared = max_displacement * max_displacement;
-        let mut seen = HashSet::with_capacity(current_points.len());
+        self.seen_scratch.clear();
         let mut rebuild_required =
             configuration_changed || current_points.len() != self.build_points.len();
 
@@ -192,7 +195,7 @@ impl NeighborList2d {
             if !point.x.is_finite() || !point.y.is_finite() {
                 return Err(NeighborListError::NonFinitePoint { id: point.id });
             }
-            if !seen.insert(point.id) {
+            if !self.seen_scratch.insert(point.id) {
                 return Err(NeighborListError::DuplicateId { id: point.id });
             }
             let Some(build_position) = self.build_positions_by_id.get(&point.id) else {
@@ -305,7 +308,7 @@ mod tests {
                 let y = ((lcg(&mut seed) >> 16) % 20_001) as f64 / 100.0;
                 initial.push(point(id, x, y));
             }
-            let cache = NeighborList2d::build(initial.clone(), 2.0, 1.0, 2.0).unwrap();
+            let mut cache = NeighborList2d::build(initial.clone(), 2.0, 1.0, 2.0).unwrap();
             let mut moved = initial.clone();
             for item in &mut moved {
                 // Each point moves at most 0.49, strictly below skin / 2.
@@ -333,7 +336,7 @@ mod tests {
     #[test]
     fn opposing_motion_at_buffer_boundary_is_covered_or_forces_rebuild() {
         let initial = [point(10, 0.0, 0.0), point(20, 2.5, 0.0)];
-        let cache = NeighborList2d::build(initial, 1.0, 2.0, 1.0).unwrap();
+        let mut cache = NeighborList2d::build(initial, 1.0, 2.0, 1.0).unwrap();
         assert!(cache.pairs().contains(&NeighborPair { a: 10, b: 20 }));
 
         // Opposing sub-threshold motion can bring a buffered pair into range.
@@ -350,7 +353,7 @@ mod tests {
     #[test]
     fn changed_topology_or_configuration_requires_rebuild() {
         let initial = [point(1, 0.0, 0.0), point(2, 1.0, 0.0)];
-        let cache = NeighborList2d::build(initial, 1.0, 1.0, 1.0).unwrap();
+        let mut cache = NeighborList2d::build(initial, 1.0, 1.0, 1.0).unwrap();
 
         assert!(cache
             .requires_rebuild(&[point(1, 0.0, 0.0)], 1.0, 1.0, 1.0)
@@ -381,7 +384,7 @@ mod tests {
             point(3, 0.0, 0.0),
             point(6, 2.0, 0.0),
         ];
-        let cache = NeighborList2d::build(points, 1.0, 1.0, 1.0).unwrap();
+        let mut cache = NeighborList2d::build(points, 1.0, 1.0, 1.0).unwrap();
         assert!(cache
             .pairs()
             .windows(2)
@@ -394,7 +397,7 @@ mod tests {
 
     #[test]
     fn invalid_motion_inputs_fail_closed() {
-        let cache = NeighborList2d::build([point(1, 0.0, 0.0)], 1.0, 1.0, 1.0).unwrap();
+        let mut cache = NeighborList2d::build([point(1, 0.0, 0.0)], 1.0, 1.0, 1.0).unwrap();
         assert_eq!(
             cache.requires_rebuild(&[point(1, f64::NAN, 0.0)], 1.0, 1.0, 1.0),
             Err(NeighborListError::NonFinitePoint { id: 1 })
