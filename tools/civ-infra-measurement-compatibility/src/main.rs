@@ -1,4 +1,4 @@
-use civ_infra_measurement_compatibility::{evaluate, sha256_hex, CompatibilityInput};
+use civ_infra_measurement_compatibility::evaluate_bytes;
 use std::env;
 use std::fs;
 use std::process::ExitCode;
@@ -24,10 +24,7 @@ fn run() -> Result<(), String> {
     let input_path = &args[1];
     let bytes = fs::read(input_path)
         .map_err(|err| format!("cannot read input {input_path:?}: {err}"))?;
-    let input_sha256 = sha256_hex(&bytes);
-    let input: CompatibilityInput = serde_json::from_slice(&bytes)
-        .map_err(|err| format!("invalid compatibility input JSON: {err}"))?;
-    let report = evaluate(&input, &input_sha256)?;
+    let report = evaluate_bytes(&bytes)?;
     let report_bytes = serde_json::to_vec_pretty(&report)
         .map_err(|err| format!("cannot serialize report: {err}"))?;
 
