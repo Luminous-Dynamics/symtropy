@@ -14,7 +14,7 @@ This benchmark therefore evaluates **household mobility continuity** across thre
 2. A repairability-oriented single vehicle.
 3. A primary vehicle plus complementary mobility options.
 
-It crosses them with five stressors: nominal operation, repair delay, critical-part unavailability, fuel-price shock, and household cash-flow contraction. The 15 cases are deliberately synthetic and form a full 3 × 5 matrix. The data has no simulated outputs: an empty result is not evidence of success.
+It crosses them with eight stress profiles: the five single-shock/nominal cases (nominal operation, repair delay, critical-part unavailability, fuel-price shock, cash-flow contraction) plus repair-delay + fuel-price shock, critical-part unavailability + cash-flow contraction, and a combined supply + fuel + cash-flow shock. The 24 cases form a complete 3 × 8 architecture/stressor matrix. The checked-in corpus contains scenario inputs and no claimed outputs; the separate simulator creates explicitly synthetic model outputs.
 
 The benchmark extends vehicle repairability research—where spare-parts availability is a recognized repairability dimension—into the household consequence of repair delays and alternative-mode resilience. It is a research contract, not a recognized automotive standard. Reference: [Proposing an integrated indicator to measure product repairability](https://www.sciencedirect.com/science/article/pii/S0959652623005929).
 
@@ -30,13 +30,13 @@ The benchmark extends vehicle repairability research—where spare-parts availab
 
 The fixture's 12 essential trips and 8 discretionary trips per week are normalized synthetic workload values for deterministic smoke tests, not a South African household travel estimate. Architecture readiness and stress parameters are equally synthetic and must not be represented as actual product capabilities or forecasts.
 
-**Verifier/model boundary:** the contract audit checks schema, matrix completeness, frozen parameters and fail-closed declarations, and executes a small reference policy guard against five seeded adversarial controls. The new deterministic simulator now calculates synthetic annual trip fulfilment, unmet trips, primary-vehicle outage hours, descriptive recovery times, budget-constrained primary/fallback trips, and limited variable spend for all 15 scenarios. These outputs remain a deliberately simplified proxy. They do not validate vehicle physics, model actual South African services or costs, prove production decision-engine integration, or produce a real-world false-accept rate.
+**Verifier/model boundary:** the contract audit checks schema, matrix completeness, frozen parameters and fail-closed declarations, and executes a small reference policy guard against five seeded adversarial controls. The new deterministic simulator now calculates synthetic annual trip fulfilment, unmet trips, primary-vehicle outage hours, descriptive recovery times, budget-constrained primary/fallback trips, and limited variable spend for all 24 scenarios. These outputs remain a deliberately simplified proxy. They do not validate vehicle physics, model actual South African services or costs, prove production decision-engine integration, or produce a real-world false-accept rate.
 
 ## 3. Metrics and calculation contract
 
 ### Deterministic proxy simulator v0.1
 
-The executable model is a small deterministic discrete-time replay, not a calibrated fleet or physical vehicle simulation. It evaluates every row in the 3 × 5 corpus and emits a report with SHA-256 input digests and a deterministic report digest.
+The executable model is a small deterministic discrete-time replay, not a calibrated fleet or physical vehicle simulation. It evaluates every row in the 3 × 8 corpus and emits a report with SHA-256 input digests and a deterministic report digest.
 
 - Horizon: 364 days (52 seven-day weeks), 12 essential trip opportunities per week.
 - Synthetic failure events: days 30 and 210, with 8 hours of hands-on work per event before adding a scenario's parts/repair delay.
@@ -47,7 +47,7 @@ The executable model is a small deterministic discrete-time replay, not a calibr
 - Cost and measurement ceiling: the simulator may report synthetic primary-energy and fallback-mode spend only. Both benchmark cost-per-fulfilled-trip fields remain null because acquisition, financing, insurance, maintenance, repairs, depreciation and other necessary inputs are absent. Fallback accessibility fraction and uncertainty-interval coverage also remain null: the fixture's eligibility flag is not field evidence, and this deterministic two-event replay supplies no held-out observations.
 - Recovery percentiles: P50/P90 are descriptive nearest-rank values over two fixed hypothetical repair events. They are not stable statistical estimates or population percentiles.
 
-The simulator is useful now to exercise calculation logic and make sensitivity assumptions inspectable. Its 15 numerical outputs are outputs of the stated toy model, not evidence that the target values are met. Do not tune its fictional parameters to make an archetype look better; replace them only with sourced, rights-cleared, timestamped evidence and preregistered observations. The next work item, [TRANSPORT-CALIBRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/1791), specifies the evidence ledger and held-out validation path. The report carries its evidence class as `synthetic_simulated_output` and a claim ceiling that excludes road, workshop, household and population claims.
+The simulator is useful now to exercise calculation logic and make sensitivity assumptions inspectable. Its 24 numerical outputs are outputs of the stated toy model, not evidence that the target values are met. Do not tune its fictional parameters to make an archetype look better; replace them only with sourced, rights-cleared, timestamped evidence and preregistered observations. The next work item, [TRANSPORT-CALIBRATION-001](https://github.com/Luminous-Dynamics/symtropy/issues/1791), specifies the evidence ledger and held-out validation path. The report carries its evidence class as `synthetic_simulated_output` and a claim ceiling that excludes road, workshop, household and population claims.
 
 Every report must carry the input/configuration digest, model and source revision, evidence class, units, sampling method, uncertainty, missingness, limitations, and maximum justified claim. Use the shared [engineering evidence envelope](./../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json) when publishing results across projects.
 
