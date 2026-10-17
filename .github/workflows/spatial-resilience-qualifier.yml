@@ -1,0 +1,65 @@
+name: Spatial resilience qualifier
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_*"
+      - "tools/spatial-resilience-qualifier/**"
+      - ".github/workflows/spatial-resilience-qualifier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_*"
+      - "tools/spatial-resilience-qualifier/**"
+      - ".github/workflows/spatial-resilience-qualifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualifier:
+    name: Schema, semantic invariants, and temporal oracle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate revision
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Resolve and snapshot standalone dependencies
+        run: cargo generate-lockfile --manifest-path tools/spatial-resilience-qualifier/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --check
+
+      - name: Run unit and negative-control tests
+        run: cargo test --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked
+
+      - name: Validate embedded manifest against schema
+        run: cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked -- --check --json > spatial-resilience-qualifier-receipt.json
+
+      - name: Bind receipt to exact files and resolved dependency lock
+        run: |
+          sha256sum \
+            docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.json \
+            docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json \
+            tools/spatial-resilience-qualifier/Cargo.toml \
+            tools/spatial-resilience-qualifier/Cargo.lock \
+            spatial-resilience-qualifier-receipt.json > spatial-resilience-qualifier-receipt.sha256
+          git rev-parse HEAD > spatial-resilience-qualifier-commit.txt
+
+      - name: Upload exact-head receipt and dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: spatial-resilience-qualifier-receipt
+          if-no-files-found: error
+          path: |
+            spatial-resilience-qualifier-receipt.json
+            spatial-resilience-qualifier-receipt.sha256
+            spatial-resilience-qualifier-commit.txt
+            tools/spatial-resilience-qualifier/Cargo.lock
