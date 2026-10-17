@@ -920,6 +920,54 @@ mod tests {
     }
 
     #[test]
+    fn incremental_frontier_matches_brute_force_all_pairs_reference() {
+        let report = evaluate_bytes(FIXTURE.as_bytes()).expect("fixture validates");
+        let input: PortfolioInput = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let order = topological_order(&input).expect("fixture dependency graph is acyclic");
+        let topo_rank: BTreeMap<usize, usize> = order.iter().enumerate()
+            .map(|(rank, index)| (*index, rank)).collect();
+        let count = input.interventions.len();
+        let mut feasible = Vec::new();
+
+        // Reference implementation intentionally materializes all feasible candidates,
+        // then computes the Pareto frontier with a separate all-pairs dominance pass.
+        for mask in 0..(1u64 << count) {
+            let selected: BTreeSet<usize> = (0..count)
+                .filter(|index| mask & (1u64 << index) != 0)
+                .collect();
+            if !has_all_hard_coverage(&input, &selected) || !dependency_closed(&input, &selected) {
+                continue;
+            }
+            if !permission_counts(&input, &selected).0 {
+                continue;
+            }
+            if selected.iter().any(|index| matches!(
+                &input.interventions[*index].cost,
+                CostEvidence::Unknown { .. }
+            )) {
+                continue;
+            }
+            let (capital, _) = sum_cost(&input, &selected).expect("known costs add without overflow");
+            if capital.low_minor_units > input.budget_cap_upper_minor_units
+                || capital.high_minor_units > input.budget_cap_upper_minor_units
+            {
+                continue;
+            }
+            feasible.push(build_plan(&input, &selected, &order, &topo_rank).expect("synthetic plan totals fit"));
+        }
+
+        let mut reference: Vec<CandidatePlan> = feasible.iter().enumerate()
+            .filter_map(|(i, candidate)| {
+                let dominated = feasible.iter().enumerate()
+                    .any(|(j, other)| i != j && dominates(other, candidate));
+                (!dominated).then(|| candidate.clone())
+            })
+            .collect();
+        reference.sort_by_key(plan_sort_key);
+        assert_eq!(report.pareto_frontier, reference);
+    }
+
+    #[test]
     fn frontier_contains_no_strictly_dominated_plan() {
         let report = evaluate_bytes(FIXTURE.as_bytes()).expect("fixture validates");
         for (i, candidate) in report.pareto_frontier.iter().enumerate() {
