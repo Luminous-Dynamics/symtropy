@@ -40,7 +40,7 @@ Reject malformed transforms, unknown frames, non-finite values, zero/negative de
 
 ### B. Conventional display response
 
-Represent a declared transfer function/tone curve and its assumptions. The initial implementation includes sRGB encoding/decoding and normalized linear-light relative luminance for SDR, plus the SMPTE ST 2084 / ITU-R BT.2100 PQ encode/decode pair for nominal 0–10,000 cd/m² HDR signal interpretation. Verify domain/range, monotonicity where required, bounded numeric behavior and exact reference points. PQ decoding is not tone mapping; normalized relative luminance is not absolute cd/m²; and no transfer-function fixture establishes HDR compliance, real panel luminance, local-dimming behavior or temporal performance. Physical EOTF tracking requires calibrated measurements on an actual device. Standards anchors: https://www.w3.org/TR/2026/CRD-css-color-4-20261008/, https://www.itu.int/rec/R-REC-BT.2100-3-202502-I/en, https://pub.smpte.org/latest/st2084/st2084-2014.pdf.
+Represent a declared transfer function/tone curve and its assumptions. The initial implementation includes sRGB encoding/decoding and normalized linear-light relative luminance for SDR, the SMPTE ST 2084 / ITU-R BT.2100 PQ encode/decode pair for nominal 0–10,000 cd/m² signal interpretation, and BT.2100 HLG scene OETF/inverse. Verify domain/range, monotonicity where required, bounded numeric behavior and exact reference points. PQ decoding is not tone mapping; normalized relative luminance is not absolute cd/m²; HLG scene OETF output is not display luminance. Display-side HLG OOTF/EOTF requires explicit system gamma, nominal peak luminance, black-level assumptions and viewing context. No transfer-function fixture establishes HDR compliance, real panel luminance, local-dimming behavior or temporal performance. Physical EOTF tracking requires calibrated measurements on an actual device. Standards anchors: https://www.w3.org/TR/2026/CRD-css-color-4-20261008/, https://www.itu.int/rec/R-REC-BT.2100-3-202502-I/en, https://pub.smpte.org/latest/st2084/st2084-2014.pdf.
 
 ### B2. Pixel-to-ray and geometric field-of-view references
 
@@ -78,6 +78,7 @@ Start with 12–20 fixtures, then contribute to the 40+ cross-domain corpus defi
 - `docs/visual-technology/fixtures/pinhole-ray-roundtrip-001.json`
 - `docs/visual-technology/fixtures/srgb-transfer-and-luminance-001.json`
 - `docs/visual-technology/fixtures/pq-st2084-eotf-oetf-001.json`
+- `docs/visual-technology/fixtures/hlg-scene-oetf-001.json`
 
 All these files carry `UNQUALIFIED`; the Rust integration test parses the fixtures and checks initial analytic equations against the reference functions. Passing those software tests does not make them physical evidence, a qualified optical model, a device calibration, a tone mapper, or an HDR compliance result.
 
@@ -119,8 +120,11 @@ Each fixture must have explicit units and expected values; this numbered list is
 
 ## Research references
 
-- [ITU-R BT.2100-3 (2025)](https://www.itu.int/rec/R-REC-BT.2100-3-202502-I/en) and [SMPTE ST 2084](https://pub.smpte.org/latest/st2084/st2084-2014.pdf), defining the PQ reference transfer mapping to nominal absolute luminance 0–10,000 cd/m².
+- [ITU-R BT.2100-3 (2025)](https://www.itu.int/rec/R-REC-BT.2100-3-202502-I/en), specifying the PQ and HLG HDR system transfer functions.
+- [SMPTE ST 2084](https://pub.smpte.org/latest/st2084/st2084-2014.pdf), defining the PQ reference transfer mapping to nominal absolute luminance 0–10,000 cd/m².
+- [Khronos Data Format Specification 1.4](https://registry.khronos.org/DataFormat/specs/1.4/dataformat.1.4.html), with inspectable HLG OETF/inverse and PQ equations.
 - [W3C CSS Color Module Level 4 (2026)](https://www.w3.org/TR/2026/CRD-css-color-4-20261008/), for sRGB transfer behavior and linear-light color handling.
+- Follow-on owner issue: [VIS-HDR-001 #1819](https://github.com/Luminous-Dynamics/symtropy/issues/1819) keeps HLG display-side system response outside this scene OETF slice.
 - [VESA DisplayHDR performance criteria](https://displayhdr.org/performance-criteria/)
 - [Khronos OpenXR Registry](https://registry.khronos.org/OpenXR/)
 - [Propagation-adaptive 4K computer-generated holography](https://www.nature.com/articles/s41467-025-62997-z)
