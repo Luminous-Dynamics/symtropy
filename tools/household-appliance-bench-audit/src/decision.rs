@@ -56,7 +56,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         return Err(format!("decision schema $id must be {SCHEMA_ID}"));
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
-        return Err("decision schema does not validate against the Draft 2020-12 meta-schema".to_owned());
+        return Err(
+            "decision schema does not validate against the Draft 2020-12 meta-schema".to_owned(),
+        );
     }
     jsonschema::draft202012::options()
         .should_validate_formats(true)
@@ -267,7 +269,7 @@ fn evaluate_decision(decision: &Value) -> Value {
         "candidate_assessments": outcomes,
         "eligible_candidate_count": eligible_count,
         "robust_pareto_frontier_count": frontier_count,
-        "physical_ranking_claim_permitted": eligible_count > 0,
+        "physical_ranking_claim_permitted": eligible_count >= 2,
         "product_winner_declared": false
     })
 }
@@ -291,7 +293,10 @@ fn audit_values(
     if text_at(decision, "schema_version") != Some("0.1.0")
         || text_at(decision, "decision_id") != Some(DECISION_ID)
     {
-        errors.push("decision identity/version must remain REPAIRABILITY-DECISION-001 v0.1.0".to_owned());
+        errors.push(
+            "decision identity/version must remain REPAIRABILITY-DECISION-001 v0.1.0"
+                .to_owned(),
+        );
     }
     if text_at(decision, "status") != Some("decision_profile_under_evaluation")
         || text_at(decision, "claim_ceiling")
@@ -307,14 +312,17 @@ fn audit_values(
         || text_at(policy, "dominance_policy")
             != Some("interval_bounds_must_separate_on_every_criterion_and_strictly_improve_at_least_one")
     {
-        errors.push("decision policy must preserve non-compensatory gates, unknown-not-zero and interval-robust dominance".to_owned());
+        errors.push(
+            "decision policy must preserve non-compensatory gates, unknown-not-zero and interval-robust dominance"
+                .to_owned(),
+        );
     }
 
     let Some(gates) = policy.get("hard_gate_ids").and_then(Value::as_array) else {
         return Err(vec!["decision_policy.hard_gate_ids must be an array".to_owned()]);
     };
     let gate_ids: Vec<&str> = gates.iter().filter_map(Value::as_str).collect();
-    if gate_ids != EXPECTED_GATES {
+    if gate_ids.as_slice() != EXPECTED_GATES.as_slice() {
         errors.push(format!("hard gate IDs/order must remain {:?}", EXPECTED_GATES));
     }
 
@@ -353,7 +361,10 @@ fn audit_values(
         return Err(vec!["candidates must be an array".to_owned()]);
     };
     if candidates.len() != EXPECTED_CANDIDATES.len() {
-        errors.push(format!("decision must contain {} reviewed washer alternatives", EXPECTED_CANDIDATES.len()));
+        errors.push(format!(
+            "decision must contain {} reviewed washer alternatives",
+            EXPECTED_CANDIDATES.len()
+        ));
     }
     let mut candidate_ids = BTreeSet::new();
     let mut observation_count = 0usize;
@@ -367,14 +378,19 @@ fn audit_values(
         }
         if let Some((expected_id, expected_role)) = EXPECTED_CANDIDATES.get(index) {
             if id != *expected_id || text_at(candidate, "role") != Some(*expected_role) {
-                errors.push(format!("candidate[{index}] must retain reviewed identity/role {expected_id}/{expected_role}"));
+                errors.push(format!(
+                    "candidate[{index}] must retain reviewed identity/role {expected_id}/{expected_role}"
+                ));
             }
         }
         let candidate_gates = candidate.get("hard_gates").and_then(Value::as_array);
         if candidate_gates.is_none_or(|items| items.len() != EXPECTED_GATES.len()) {
             errors.push(format!("{id}: every hard gate must be represented exactly once"));
         } else if let Some(items) = candidate_gates {
-            let found: Vec<&str> = items.iter().filter_map(|item| text_at(item, "gate_id")).collect();
+            let found: Vec<&str> = items
+                .iter()
+                .filter_map(|item| text_at(item, "gate_id"))
+                .collect();
             if found.iter().copied().collect::<BTreeSet<_>>().len() != found.len()
                 || EXPECTED_GATES.iter().any(|expected| !found.contains(expected))
             {
@@ -384,7 +400,10 @@ fn audit_values(
                 if text_at(gate, "status") != Some("unknown")
                     && text_at(gate, "evidence_id").is_none_or(str::is_empty)
                 {
-                    errors.push(format!("{id}.{}: non-unknown gate state requires an evidence ID", text_at(gate, "gate_id").unwrap_or("unknown_gate")));
+                    errors.push(format!(
+                        "{id}.{}: non-unknown gate state requires an evidence ID",
+                        text_at(gate, "gate_id").unwrap_or("unknown_gate")
+                    ));
                 }
             }
         }
@@ -408,36 +427,50 @@ fn audit_values(
                 let evidence_class = text_at(observation, "evidence_class").unwrap_or("");
                 if ELIGIBLE_EVIDENCE.contains(&evidence_class) {
                     if observation.get("method_frozen").and_then(Value::as_bool) != Some(true) {
-                        errors.push(format!("{id}.{metric_id}: scored evidence requires a frozen method"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: scored evidence requires a frozen method"
+                        ));
                     }
                     if text_at(observation, "evidence_id").is_none_or(str::is_empty)
                         || text_at(observation, "method_id").is_none_or(str::is_empty)
-                        || text_at(observation, "evidence_id").unwrap_or("").starts_with("SYNTHETIC-")
+                        || text_at(observation, "evidence_id")
+                            .unwrap_or("")
+                            .starts_with("SYNTHETIC-")
                     {
-                        errors.push(format!("{id}.{metric_id}: eligible evidence requires a real source receipt and method ID, not synthetic test evidence"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: eligible evidence requires a real source receipt and method ID, not synthetic test evidence"
+                        ));
                     }
                     if text_at(observation, "unit") != text_at(criterion, "unit") {
                         errors.push(format!("{id}.{metric_id}: unit does not match the criterion"));
                     }
                     if text_at(criterion, "status") != Some("method_frozen") {
-                        errors.push(format!("{id}.{metric_id}: eligible observations require the criterion method to be frozen"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: eligible observations require the criterion method to be frozen"
+                        ));
                     }
                     let (Some(lower), Some(upper)) = (
                         observation.get("lower").and_then(Value::as_f64),
                         observation.get("upper").and_then(Value::as_f64),
                     ) else {
-                        errors.push(format!("{id}.{metric_id}: eligible evidence requires finite numeric bounds"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: eligible evidence requires finite numeric bounds"
+                        ));
                         continue;
                     };
                     if !lower.is_finite() || !upper.is_finite() || lower < 0.0 || lower > upper {
-                        errors.push(format!("{id}.{metric_id}: bounds must be finite, non-negative and satisfy lower <= upper"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: bounds must be finite, non-negative and satisfy lower <= upper"
+                        ));
                     }
                     if matches!(
                         metric_id,
                         "first_visit_verified_repair_rate" | "target_window_part_fulfilment_rate"
                     ) && upper > 1.0
                     {
-                        errors.push(format!("{id}.{metric_id}: proportion bounds must not exceed 1.0"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: proportion bounds must not exceed 1.0"
+                        ));
                     }
                 }
             }
@@ -455,7 +488,10 @@ fn audit_values(
         || text_at(experiment, "existing_information_value_owner")
             .is_none_or(|value| !value.contains("Symthaea") || !value.contains("EIG/EVSI"))
     {
-        errors.push("experiment policy must preserve value-of-information objective and existing Symthaea EIG/EVSI ownership".to_owned());
+        errors.push(
+            "experiment policy must preserve value-of-information objective and existing Symthaea EIG/EVSI ownership"
+                .to_owned(),
+        );
     }
 
     if !errors.is_empty() {
@@ -463,8 +499,12 @@ fn audit_values(
     }
 
     let assessment = evaluate_decision(decision);
-    let eligible_candidate_count = assessment["eligible_candidate_count"].as_u64().unwrap_or(0) as usize;
-    let pareto_frontier_count = assessment["robust_pareto_frontier_count"].as_u64().unwrap_or(0) as usize;
+    let eligible_candidate_count = assessment["eligible_candidate_count"]
+        .as_u64()
+        .unwrap_or(0) as usize;
+    let pareto_frontier_count = assessment["robust_pareto_frontier_count"]
+        .as_u64()
+        .unwrap_or(0) as usize;
     Ok(DecisionAuditSummary {
         candidate_count: candidates.len(),
         hard_gate_count: EXPECTED_GATES.len(),
@@ -578,7 +618,10 @@ mod tests {
     fn missing_criterion_prevents_comparison() {
         let mut decision = synthetic_scored_decision();
         decision["candidates"][0]["observations"].as_array_mut().unwrap().pop();
-        assert_eq!(candidate_status(&decision, &decision["candidates"][0]), "insufficient_eligible_evidence");
+        assert_eq!(
+            candidate_status(&decision, &decision["candidates"][0]),
+            "insufficient_eligible_evidence"
+        );
     }
 
     #[test]
@@ -599,7 +642,11 @@ mod tests {
     #[test]
     fn interval_robust_dominance_requires_separation_on_every_criterion() {
         let mut decision = synthetic_scored_decision();
-        assert!(robustly_dominates(&decision, &decision["candidates"][0], &decision["candidates"][1]));
+        assert!(robustly_dominates(
+            &decision,
+            &decision["candidates"][0],
+            &decision["candidates"][1]
+        ));
     }
 
     #[test]
@@ -609,7 +656,11 @@ mod tests {
             observation["lower"] = json!(-1.0);
             observation["upper"] = json!(1.0);
         }
-        assert!(!robustly_dominates(&decision, &decision["candidates"][0], &decision["candidates"][1]));
+        assert!(!robustly_dominates(
+            &decision,
+            &decision["candidates"][0],
+            &decision["candidates"][1]
+        ));
     }
 
     #[test]
