@@ -576,7 +576,7 @@ impl<'a> TargetOracleSolver<'a> {
             at: self.config.start_cell, heading: Heading::North,
         };
         self.search(initial);
-        let best = self.best.ok_or_else(|| "target oracle found no feasible state".to_owned())?;
+        let best = self.best.take().ok_or_else(|| "target oracle found no feasible state".to_owned())?;
         let (back, total) = self.total(best.outbound, &best.selected)
             .ok_or_else(|| "target oracle best state has no return path".to_owned())?;
         let viewpoints: Vec<Viewpoint> = best.selected.iter()
