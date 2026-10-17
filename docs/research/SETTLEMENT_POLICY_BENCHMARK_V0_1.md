@@ -151,3 +151,10 @@ A first policy-decision interface now exists in `crates/domains/symtropy-settlem
 - Eight policy tests cover basic baselines, current vs stale/missing/conflicting/unvalidated evidence, source restrictions, competing failures and priorities, malformed rules, overflow and tampering.
 
 This deliberately does not execute repairs, reserve/spend resources, model a real repair crew, or compare policy outcomes. The emitted request is not actuation authority. The paired timeline runner, intervention acceptance/execution receipts, resource/crew contention, held-out policy campaign and external physical solver comparison remain unimplemented.
+
+
+## Outstanding policy-runner semantics
+
+Before turning requests into comparative outcomes, add a versioned intervention journal/state input so repeated observations cannot trigger duplicate active repairs. The executor must atomically check target/generation and pending intervention identity, reserve parts/crew under explicit budgets, accept/reject/defer with a reason, and write a completion/abort receipt. Idempotency keys must bind policy version, target generation, trigger observation, and action semantics. A request is not a reservation and must not be counted as completed work.
+
+The temporal scenario runner must then separate exogenous event batches from intervention events. Every policy arm gets the same exogenous events and observation-generation contract; only accepted interventions differ. Report both request counts and accepted/executed intervention outcomes, including failed preconditions and resource contention. This prevents a policy from being rewarded for actions that it requested but the simulated institution could not carry out.
