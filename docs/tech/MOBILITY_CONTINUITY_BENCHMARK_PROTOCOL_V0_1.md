@@ -124,7 +124,7 @@ Fuel-cost inputs must be dated, regional and grade-specific. The [Department of 
 - Report real-world outcomes only with evidence envelopes and source-consistent claims. Never transfer a synthetic percentage directly to public claims, funding claims or purchasing advice.
 
 
-## 8. Research rationale and external boundaries
+## 7. Research rationale and external boundaries
 
 This benchmark connects established ideas rather than claiming a new repairability standard:
 
@@ -137,7 +137,7 @@ For South African road use, the official [Government Letter of Authority guidanc
 
 The South African Government's [5 October 2026 fuel-pricing notice](https://www.gov.za/news/media-statements/minister-gwede-mantashe-announces-adjustment-fuel-prices-effective-7-0) documents a R3.33/L increase for 95-octane petrol effective 7 October 2026. That establishes one dated stress event—not the current pump price for every zone, a forecast, or a value used to calibrate the synthetic R20/trip constant.
 
-## 7. What success would look like
+## 8. What success would look like
 
 The paradigm shift is demonstrated only if the approach can produce a reproducible comparison in which:
 - a household's essential mobility outcomes are measured directly rather than inferred solely from engine efficiency or sticker price;
