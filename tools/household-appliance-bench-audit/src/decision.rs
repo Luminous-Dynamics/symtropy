@@ -628,7 +628,10 @@ mod tests {
     fn desk_estimate_cannot_qualify_as_physical_measurement() {
         let mut decision = synthetic_scored_decision();
         decision["candidates"][0]["observations"][0]["evidence_class"] = json!("desk_estimate");
-        assert_eq!(candidate_status(&decision, &decision["candidates"][0]), "insufficient_eligible_evidence");
+        assert_eq!(
+            candidate_status(&decision, &decision["candidates"][0]),
+            "insufficient_eligible_evidence"
+        );
     }
 
     #[test]
@@ -636,7 +639,10 @@ mod tests {
         let mut decision = synthetic_scored_decision();
         decision["candidates"][0]["observations"][0]["lower"] = json!(2.0);
         decision["candidates"][0]["observations"][0]["upper"] = json!(1.0);
-        assert_eq!(candidate_status(&decision, &decision["candidates"][0]), "insufficient_eligible_evidence");
+        assert_eq!(
+            candidate_status(&decision, &decision["candidates"][0]),
+            "insufficient_eligible_evidence"
+        );
     }
 
     #[test]
