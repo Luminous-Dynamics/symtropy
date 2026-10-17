@@ -52,9 +52,9 @@ jobs:
             docs/tech/forest-robotics-corpus-v0.1.json --source-commit "$source_commit" > forest-robotics-receipt.json
           jq -e '
             .result == "validated"
-            and .scenario_count == 10
+            and .scenario_count == 11
             and .eligible_for_simulation_only_count == 1
-            and .blocked_fail_closed_count == 8
+            and .blocked_fail_closed_count == 9
             and .rejected_out_of_scope_count == 1
             and ([.scenarios[].scenario_id] == [
               "SCOUT_SURVEY_READY",
@@ -66,10 +66,12 @@ jobs:
               "EMERGENCY_STOP_ENGAGED",
               "BATTERY_BELOW_RESERVE",
               "LOCALIZATION_ERROR_OVER_LIMIT",
+              "AUTONOMOUS_MODE_REQUIRES_REVIEW",
               "CUT_OR_FELL_OUT_OF_SCOPE"
             ])
             and ([.scenarios[].decision] == [
               "eligible_for_simulation_only",
+              "blocked_fail_closed",
               "blocked_fail_closed",
               "blocked_fail_closed",
               "blocked_fail_closed",
