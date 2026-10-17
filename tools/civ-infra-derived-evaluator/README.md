@@ -33,7 +33,7 @@ The four state combinations are exhaustively checked from two finite supports (s
 
 The expected Pareto set is B-balanced and D-resilient: B has shorter length and lower earthworks, while D has more drainage and clearance margin.
 
-The test suite runs 625 deterministic primitive-candidate variants (12,500 candidate-state evaluations) against an independent test-only rules oracle and Pareto calculation. In CI, `CIV_INFRA_DERIVED_CORPUS_OUT` enables a machine-readable manifest binding each generated input digest to the oracle/evaluated dispositions and Pareto set; the workflow uploads it as a 14-day artifact. It is generated test evidence, not a persisted source fixture for each case.
+The test suite runs 625 deterministic primitive-candidate variants (12,500 candidate-state evaluations) against an independent test-only rules oracle and Pareto calculation. In CI, `CIV_INFRA_DERIVED_CORPUS_OUT` enables a machine-readable manifest containing the full generated input JSON, per-input SHA-256, generator seed/algorithm/mutator, evaluator version, oracle/evaluated dispositions and Pareto sets. The workflow uploads it as a 14-day artifact. The snapshots are retained in the artifact rather than checked into source control.
 
 ## Claim ceiling
 
