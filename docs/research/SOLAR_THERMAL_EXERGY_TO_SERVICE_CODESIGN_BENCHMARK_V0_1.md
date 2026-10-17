@@ -75,6 +75,22 @@ A 2026 Journal of Energy Storage study evaluates TES integration with high-tempe
 
 Treat cleaning access, replaceable absorber and insulation modules, pumps/valves, seals, sensors, corrosion inspection, fluid replacement, spare parts, and safe isolation as design variables. Report replacement frequency, maintenance labor, material replacement, downtime, embodied burden where data exist, and time to restore service. Avoid assuming a nominally efficient technology is practical when its servicing needs are prohibitive.
 
+### 3.7B Separate the storage medium from its heat-transfer architecture
+
+Treat the storage medium and the mechanisms that move heat into/out of it as separate design choices. Concrete/rock/sensible storage with embedded thermosiphons or heat pipes, and latent stores with heat-pipe-assisted charging/discharging, should be compared only when the component models are supported by data. These architectures can change power density, temperature uniformity, cycling rate and usable discharge temperature even when nominal storage capacity is unchanged.
+
+The Lehigh Thermal Battery provides a concrete reference case: a 150 kWh-thermal concrete-based store with embedded thermosiphons was tested in a relevant environment. The university reports a media-level charge/discharge efficiency above 95% for specified tests and an end-to-end thermal-battery efficiency around 70% for another stated system boundary. Do not merge those figures: the measurement boundary changes the result. Reproduce the source case, identify the exact input/output measurement planes, and report both media-level and whole-system performance when the required measurements exist.
+
+The open-access 2026 dynamic-model study for a heat-pipe-integrated latent store reports a Modelica model compared with experiments, with prediction errors varying by measured output and simulation horizon. It is a good example of how the benchmark should preserve time-series residuals and validation envelopes rather than treat a model as uniformly accurate.
+
+### 3.7C Accept multiple heat sources and independently scheduled outputs
+
+Test a source-agnostic store that can accept heat from direct solar thermal, PV-powered resistance heating, a heat pump, recovered process/data-center heat, or compatible waste heat—only within a declared temperature and material envelope. The store's charging inputs and useful heat/electricity outputs must be separately metered in the model; do not count the same joules once as source generation and again as stored heat.
+
+The scheduling question becomes: which source should charge which store, at what temperature, and when should each output be used? Account for source opportunity cost, source-temperature compatibility, heat-transfer limits, storage degradation, and the value of supplying a particular load at a particular time. Compare this multi-source design against one-source baselines and a simple rule-based dispatch under matched weather, tariffs, and demand.
+
+The goal is not to assume that “hybrid” always wins. Test whether independent charge/discharge paths and source flexibility improve delivered service or lifecycle cost after full parasitic and conversion losses.
+
 ### 3.8 Turn the model into an active scientist
 
 Symthaea can propose the next simulation or measurement that most reduces decision-relevant uncertainty, not merely search a fixed design space. Test expected value of information per unit time and cost using a held-out evaluator.
@@ -288,6 +304,9 @@ Use only sources appropriate to the modeled technology and version. Initial refe
 - Wikoff et al. (2025), **Benchmarking Thermal Energy Storage Cost for Industrial Process Heat**, *Applied Energy* 402, article 126873, DOI: https://doi.org/10.1016/j.apenergy.2025.126873
 - **Evaluating the potential of thermal energy storage integration in enhancing high-temperature heat pump performance: A comprehensive analysis and optimization strategies**, *Journal of Energy Storage* 147 (20 February 2026), article 120344, DOI: https://doi.org/10.1016/j.est.2026.120344. Use its high-temperature heat-pump-plus-TES cases as a reproducible hypothesis; its reported gains are scenario-specific and not Symthaea evidence.
 - IEA Solar Heating and Cooling Task 62 reports, including **Mapping degradation of PCM and TCM** (September 2025): https://www.task62.iea-shc.org/reports
+- Lehigh University, **Lehigh Thermal Battery**: component architecture and university-reported test boundaries for concrete sensible storage with embedded thermosiphons: https://engineering.lehigh.edu/research/resolve/volume-2-2023/lehigh-thermal-battery and https://news.lehigh.edu/engineers-unveil-lehigh-thermal-battery-for-decarbonization-applications
+- Q. et al. (2026), **Dynamic modeling of heat pipe integrated thermal battery latent heat storage system experiment validation**, *Journal of Energy Storage* 160, article 121875, DOI: https://doi.org/10.1016/j.est.2026.121875. Use its published model/experiment comparison as a temporal validation case; inspect output-specific errors and applicability before reuse.
+- Deeper 2026 case study on multi-temperature R718 heat pumps, thermal storage and PV in grid-connected industrial multi-energy systems: DOI https://doi.org/10.1016/j.energy.2026.141996. Reproduce applicable model assumptions first; its reported advantages versus rule-based operation are not transferable without matching loads, hardware envelopes and cost boundaries.
 - DOE, **Thermal Storage R&D for CSP Systems**: historical research targets and technology directions; do not silently treat old program targets as current universal acceptance standards: https://www.energy.gov/cmei/systems/thermal-storage-rd-csp-systems
 
 Record source version, licence/terms, units, calibration window, missing-data handling and provenance. Do not invent field inputs from climatology or literature summaries. Reference models are not truth: validate against physical data within the proposed system's regime.
