@@ -12,12 +12,20 @@ const EXPECTED_FAMILIES: [&str; 6] = [
     "heat_pump_water_heater",
     "heat_pump_hvac",
 ];
+const EXPECTED_WASHER_VARIANTS: [(&str, &str); 5] = [
+    ("W0-RETAIL-CONTROL", "control"),
+    ("W1-ACCESSIBLE-CONVENTIONAL", "candidate"),
+    ("W2-SERVICE-SPINE", "candidate"),
+    ("W3-BEARING-TUB-TRADE", "orthogonal_trade"),
+    ("W4-DRIVE-TOPOLOGY", "orthogonal_trade"),
+];
 
 type Errors = Vec<String>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct PortfolioAuditSummary {
     pub(crate) family_count: usize,
+    pub(crate) washer_variant_count: usize,
     pub(crate) proposed_target_count: usize,
     pub(crate) schema_sha256: String,
     pub(crate) portfolio_sha256: String,
@@ -235,6 +243,72 @@ fn audit_values(
         }
     }
 
+    let Some(variants) = portfolio
+        .get("washer_architecture_variants")
+        .and_then(Value::as_array)
+    else {
+        return Err(vec![
+            "portfolio.washer_architecture_variants must be an array".to_owned(),
+        ]);
+    };
+    if variants.len() != EXPECTED_WASHER_VARIANTS.len() {
+        errors.push(format!(
+            "washer architecture matrix must contain {} variants; got {}",
+            EXPECTED_WASHER_VARIANTS.len(),
+            variants.len()
+        ));
+    }
+    let mut variant_ids = BTreeSet::new();
+    for (index, variant) in variants.iter().enumerate() {
+        let Some(id) = text_at(variant, "id") else {
+            errors.push(format!("washer_architecture_variants[{index}].id must be a string"));
+            continue;
+        };
+        if !variant_ids.insert(id.to_owned()) {
+            errors.push(format!("duplicate washer architecture variant {id}"));
+        }
+        if let Some((expected_id, expected_role)) = EXPECTED_WASHER_VARIANTS.get(index) {
+            if id != *expected_id {
+                errors.push(format!(
+                    "washer variant at index {index} must be {expected_id}; got {id}"
+                ));
+            }
+            if text_at(variant, "role") != Some(*expected_role) {
+                errors.push(format!(
+                    "{id}.role must be {expected_role}, got {:?}",
+                    text_at(variant, "role")
+                ));
+            }
+        }
+        if text_at(variant, "status") != Some("proposed_no_measurements") {
+            errors.push(format!(
+                "{id}: architecture status must remain proposed_no_measurements until tested"
+            ));
+        }
+        let compare_against: BTreeSet<&str> = variant
+            .get("compare_against")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect();
+        if index > 0 && !compare_against.contains("W0-RETAIL-CONTROL") {
+            errors.push(format!("{id}: every candidate/trade must compare against W0 retail control"));
+        }
+        if variant
+            .get("required_measurements")
+            .and_then(Value::as_array)
+            .is_none_or(|measurements| measurements.len() < 4)
+        {
+            errors.push(format!("{id}: at least four required measurements must be named"));
+        }
+    }
+    if variants.first().and_then(|variant| text_at(variant, "id"))
+        != Some("W0-RETAIL-CONTROL")
+    {
+        errors.push("washer architecture matrix must begin with the retail control W0".to_owned());
+    }
+
     let reference_titles: BTreeSet<String> = portfolio
         .get("references")
         .and_then(Value::as_array)
@@ -260,6 +334,7 @@ fn audit_values(
 
     Ok(PortfolioAuditSummary {
         family_count: families.len(),
+        washer_variant_count: variants.len(),
         proposed_target_count: targets.len(),
         schema_sha256: format!("{:x}", Sha256::digest(schema_raw.as_bytes())),
         portfolio_sha256: format!("{:x}", Sha256::digest(portfolio_raw.as_bytes())),
@@ -303,6 +378,7 @@ mod tests {
         let summary =
             audit_portfolio_texts(SCHEMA, PORTFOLIO).expect("portfolio must qualify synthetically");
         assert_eq!(summary.family_count, 6);
+        assert_eq!(summary.washer_variant_count, 5);
         assert_eq!(summary.proposed_target_count, 8);
         assert_eq!(summary.schema_sha256.len(), 64);
         assert_eq!(summary.portfolio_sha256.len(), 64);
@@ -344,6 +420,24 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("prohibited refrigerant/pressure/mains boundary"))
         );
+    }
+
+
+    #[test]
+    fn washer_variant_cannot_be_marked_as_measured_before_physical_tests() {
+        let mut portfolio = canonical_portfolio();
+        portfolio["washer_architecture_variants"][2]["status"] = json!("measured_pass");
+        let errors = audit_mutation(&portfolio)
+            .expect_err("an unmeasured variant must not be promoted");
+        assert!(errors.iter().any(|error| error.contains("proposed_no_measurements")));
+    }
+
+    #[test]
+    fn washer_variant_matrix_must_keep_the_retail_control() {
+        let mut portfolio = canonical_portfolio();
+        portfolio["washer_architecture_variants"][0]["id"] = json!("W0-NEW-DESIGN");
+        let errors = audit_mutation(&portfolio).expect_err("retail control identity must be stable");
+        assert!(errors.iter().any(|error| error.contains("W0-RETAIL-CONTROL")));
     }
 
     #[test]
