@@ -83,6 +83,19 @@ jobs:
               exit 1
             fi
           done < <(jq -r '.contracts[].inputs_and_outputs[]' formalization/lean/contracts.json | sort -u)
+      - name: Validate shared cross-language vector bindings
+        shell: bash
+        run: |
+          jq -e '
+            .reference_vector_bindings.status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
+            .reference_vector_bindings.rust_lean_refinement_status == "NOT_ESTABLISHED" and
+            (.reference_vector_bindings.corpus_path | type == "string" and length > 0) and
+            (.reference_vector_bindings.corpus_commit | test("^[0-9a-f]{40}$")) and
+            (.reference_vector_bindings.bindings | length == 5) and
+            ([.reference_vector_bindings.bindings[].vector_id] | unique | length == 5) and
+            ([.reference_vector_bindings.bindings[].contract_id] | sort) == ([.contracts[].id] | sort) and
+            all(.reference_vector_bindings.bindings[]; (.vector_id | type == "string" and length > 0))
+          ' formalization/lean/contracts.json >/dev/null
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
         with:
