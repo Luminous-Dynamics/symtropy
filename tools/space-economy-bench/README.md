@@ -319,3 +319,21 @@ The synthetic receipt compares an intentionally unsafe “always apply” policy
 
 The monitor complements, rather than replaces, envelope checks. No sequential detector can retroactively undo evidence credited before an alarm, and passing these finite controls does not establish real instrument drift rates, calibration coverage, lunar environmental compatibility, or resource recoverability. Held-out physical observations and independent reference comparisons are required before deployment thresholds can be claimed. Track the research contract in [BENCH-SPACE-014](https://github.com/Luminous-Dynamics/symtropy/issues/1860).
 
+## Compare drift detectors at a matched false-alarm budget
+
+The example `drift_detector_comparison_reference.rs` compares three causal detectors—absolute-residual (Shewhart-style), two-sided CUSUM, and two-sided EWMA—using deterministic seeded streams. Thresholds are selected only on a calibration partition of 128 stable episodes, under a declared 1% false-alarm budget, then frozen before held-out scoring. Results include 256 separate held-out null episodes and 576 shifted episodes per detector across positive/negative abrupt shifts at 0.25, 0.5, 1 and 2 sigma, plus a gradual 1-sigma shift over 20 observations.
+
+Run the example:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example drift_detector_comparison_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example drift_detector_comparison_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The receipt binds source and model-specification SHA-256 digests and reports held-out false-alarm rates, detection probability, detections within five samples, misses, detection-delay median/p90/p95, pre-shift false alarms, exposed observations before detection, and synthetic downstream loss/recalibration cost. The same seeds are used to compare the detectors; calibration, held-out null and shifted seed ranges are disjoint. The workflow fails closed if thresholds exceed the calibration-partition budget or output shape/provenance invariants fail.
+
+The generator is a simple sum-of-uniforms noise approximation. This first slice does not yet claim superiority under heavy tails, autocorrelation, missingness or site-specific noise; those should be independent stress modules after the baseline harness is reviewed. The registered false-alarm target is a calibration constraint, not a guarantee of the observed held-out rate. All streams, shifts, costs and targets are synthetic; no field detector performance has been established.
+
+Research context: [NIST CUSUM average-run-length guidance](https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc3231.htm), [NIST instrument drift guidance](https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc453.htm), and [EWMA shift-detection research](https://www.sciencedirect.com/science/article/pii/S0031320314002878). The code's baseline algorithms are intentionally inspectable reference implementations, not claims to reproduce a paper's full method.
+
