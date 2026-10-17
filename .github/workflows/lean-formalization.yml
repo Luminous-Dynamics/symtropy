@@ -99,6 +99,59 @@ jobs:
             ([.reference_vector_bindings.bindings[].contract_id] | sort) == ([.contracts[].id] | sort) and
             all(.reference_vector_bindings.bindings[]; (.vector_id | type == "string" and length > 0))
           ' formalization/lean/contracts.json >/dev/null
+      - name: Reconcile pinned candidate corpus from housing evidence PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest='formalization/lean/contracts.json'
+          corpus_commit=$(jq -r '.reference_vector_bindings.corpus_commit' "$manifest")
+          schema_commit=$(jq -r '.reference_vector_bindings.corpus_schema_commit' "$manifest")
+          corpus_path=$(jq -r '.reference_vector_bindings.corpus_path' "$manifest")
+          schema_path=$(jq -r '.reference_vector_bindings.corpus_schema_path' "$manifest")
+          expected_corpus_blob=$(jq -r '.reference_vector_bindings.corpus_blob_sha' "$manifest")
+          expected_schema_blob=$(jq -r '.reference_vector_bindings.corpus_schema_blob_sha' "$manifest")
+          source_pr=$(jq -r '.reference_vector_bindings.source_pr_number' "$manifest")
+
+          if [ "$source_pr" != "1653" ]; then
+            echo "::error::Unexpected candidate corpus source PR: $source_pr"
+            exit 1
+          fi
+
+          candidate_ref="refs/remotes/origin/pr-${source_pr}-head"
+          git fetch --no-tags --depth=100 origin "refs/pull/${source_pr}/head:${candidate_ref}"
+          for pinned_commit in "$corpus_commit" "$schema_commit"; do
+            if ! git merge-base --is-ancestor "$pinned_commit" "$candidate_ref"; then
+              echo "::error::Pinned corpus/schema commit is not in PR #${source_pr} history: $pinned_commit"
+              exit 1
+            fi
+          done
+
+          actual_corpus_blob=$(git rev-parse "${corpus_commit}:${corpus_path}")
+          actual_schema_blob=$(git rev-parse "${schema_commit}:${schema_path}")
+          if [ "$actual_corpus_blob" != "$expected_corpus_blob" ]; then
+            echo "::error::Pinned vector corpus blob SHA does not match the manifest"
+            exit 1
+          fi
+          if [ "$actual_schema_blob" != "$expected_schema_blob" ]; then
+            echo "::error::Pinned vector schema blob SHA does not match the manifest"
+            exit 1
+          fi
+
+          git show "${corpus_commit}:${corpus_path}" > /tmp/structural-reference-contract-vectors.json
+          jq -e --slurpfile manifest "$manifest" '
+            .schema_version == "1.0.0" and
+            .corpus_id == "symtropy.structural-reference-contract-vectors.v1" and
+            .status == "ANALYTICAL_REFERENCE_CONFORMANCE_ONLY" and
+            (.vectors | length == 5) and
+            ([.vectors[].vector_id] | unique | length == 5) and
+            ([.vectors[].contract_id] | sort) ==
+              ([$manifest[0].reference_vector_bindings.bindings[].contract_id] | sort) and
+            all($manifest[0].reference_vector_bindings.bindings[];
+              . as $binding | any(.vectors[];
+                .vector_id == $binding.vector_id and .contract_id == $binding.contract_id))
+          ' /tmp/structural-reference-contract-vectors.json >/dev/null
+
+          echo "Verified pinned vector corpus + schema blobs and reconciled all five IDs."
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
         with:
