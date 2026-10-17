@@ -10,6 +10,7 @@ A deterministic fixture package with no runtime dependencies (the manifest-consi
 - A frozen public manifest records the four operators, full measurement covariances, observations, and expected covariance-whitened singular values/ranks; hidden state truth is deliberately absent.
 - A 2x2 covariance-whitened local observability oracle reports singular values, rank, condition number only when full rank, and weak/null directions. It is an H0 reference, not a large-system solver.
 - An exact Gaussian expected-information-gain oracle evaluates `0.5 * ln(det(I + Sa Hᵀ R⁻¹ H))` in nats, using the full covariance matrices from the fixture.
+- The EIG oracle also reports information gain per declared acquisition-cost unit; all four fixtures use two channels at unit cost, making the complementary-vs-duplicate comparison budget matched.
 - Estimator-facing API does not contain ground-truth values. Truth fixtures are only compiled for unit tests or when the explicit `benchmark-scoring` feature is enabled.
 
 These are algebraic benchmark controls, not physical geodynamo outputs, observations of Earth, or a validated Earth-interior forward model. The state coordinates are not calibrated physical units.
@@ -34,4 +35,4 @@ cargo fmt --package symtropy-geophysics-benchmark -- --check
 
 No empirical performance benchmark has been run yet. The source is a small H0 control surface, not a geodynamo solver.
 
-Fifteen Rust tests are authored, including exact comparisons with the public fixture manifest. They are not yet executed; check the exact-head CI workflows before claiming qualification.
+Sixteen Rust tests are authored, including exact comparisons with the public fixture manifest. They are not yet executed; check the exact-head CI workflows before claiming qualification.
