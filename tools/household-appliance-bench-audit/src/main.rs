@@ -488,7 +488,9 @@ fn run() -> Result<(), String> {
     let sourcing_schema_path = read_arg_path("--sourcing-schema");
     let sourcing_snapshot_path = read_arg_path("--sourcing-snapshot");
     if sourcing_schema_path.is_some() != sourcing_snapshot_path.is_some() {
-        return Err("--sourcing-schema and --sourcing-snapshot must be supplied together".to_owned());
+        return Err(
+            "--sourcing-schema and --sourcing-snapshot must be supplied together".to_owned(),
+        );
     }
     let decision_schema_path = read_arg_path("--decision-schema");
     let decision_profile_path = read_arg_path("--decision-profile");
