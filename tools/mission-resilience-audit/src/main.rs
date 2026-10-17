@@ -85,10 +85,6 @@ fn boolean(value: &Value, key: &str, path: &str) -> Result<bool, String> {
         .ok_or_else(|| fail(&format!("{path}.{key}"), "must be a boolean"))
 }
 
-fn nonempty_id(value: &Value, key: &str, path: &str) -> Result<String, String> {
-    Ok(text(value, key, path)?.to_string())
-}
-
 fn validate_statuses(value: &Value, fields: &[&str], path: &str) -> Result<(), String> {
     for field in fields {
         let status = text(value, field, path)?;
@@ -627,7 +623,8 @@ fn audit(input: &Value) -> Result<Value, String> {
             assessments.push(assess_plan(mission, plan, case_id, impact)?);
         }
         let viable_ids = eligible_ids(&assessments);
-        let actually_feasible = !viable_ids.is_empty();
+        let feasible_plan_count = viable_ids.len();
+        let actually_feasible = feasible_plan_count > 0;
         let expected_feasible = case["expected_feasible_plan"].as_bool().unwrap();
         let outcome_matches_expectation = actually_feasible == expected_feasible;
         if expected_feasible {
@@ -654,7 +651,7 @@ fn audit(input: &Value) -> Result<Value, String> {
             "expected_feasible_plan": expected_feasible,
             "feasible_plan_ids": viable_ids,
             "pareto_plan_ids": pareto_ids(&assessments),
-            "feasible_plan_count": viable_ids.len(),
+            "feasible_plan_count": feasible_plan_count,
             "no_admissible_plan": !actually_feasible,
             "outcome_matches_expectation": outcome_matches_expectation,
             "candidate_assessments": assessments
