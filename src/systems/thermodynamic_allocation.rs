@@ -554,6 +554,69 @@ mod tests {
             .collect()
     }
 
+    /// Manual benchmark. Run with
+    /// cargo test allocator_scaling_benchmark -- --ignored --nocapture
+    ///
+    /// This intentionally records timings instead of asserting a machine-
+    /// dependent threshold. Compare only runs with compatible build/toolchain
+    /// and hardware manifests.
+    #[test]
+    #[ignore = "manual scalability benchmark; timing is environment-dependent"]
+    fn allocator_scaling_benchmark() {
+        use std::time::Instant;
+
+        fn percentile_ns(sorted: &[u128], percentile: usize) -> u128 {
+            assert!(!sorted.is_empty());
+            let rank = (sorted.len() * percentile).div_ceil(100).max(1);
+            sorted[rank.min(sorted.len()) - 1]
+        }
+
+        for count in [0_usize, 1, 2, 10, 1_000, 10_000, 100_000] {
+            let recipients: Vec<_> = (0..count)
+                .map(|id| RecipientDemand {
+                    id: id as u64,
+                    headroom: ((id.wrapping_mul(7_919) % 901) as f64) / 100.0,
+                })
+                .collect();
+            let supply = count as f64 * 2.5;
+            let limit = 5.0;
+            let samples = if count >= 100_000 {
+                15
+            } else if count >= 10_000 {
+                20
+            } else {
+                50
+            };
+
+            for _ in 0..2 {
+                let warmup = allocate_max_min(recipients.iter().copied(), supply, limit)
+                    .expect("generated benchmark input is valid");
+                assert!(warmup.total_allocated <= supply);
+            }
+
+            let mut durations_ns = Vec::with_capacity(samples);
+            let mut final_result = None;
+            for _ in 0..samples {
+                let start = Instant::now();
+                let result = allocate_max_min(recipients.iter().copied(), supply, limit)
+                    .expect("generated benchmark input is valid");
+                durations_ns.push(start.elapsed().as_nanos());
+                assert!(result.total_allocated <= supply);
+                final_result = Some(result);
+            }
+            durations_ns.sort_unstable();
+            let result = final_result.expect("at least one benchmark sample");
+            println!(
+                "allocator_bench recipients={count} samples={samples} p50_ns={} p95_ns={} p99_ns={} total_allocated={:.17e} unallocated_supply={:.17e}",
+                percentile_ns(&durations_ns, 50),
+                percentile_ns(&durations_ns, 95),
+                percentile_ns(&durations_ns, 99),
+                result.total_allocated,
+                result.unallocated_supply,
+            );
+        }
+    }
+
     fn next_finite_nonnegative(seed: &mut u64) -> f64 {
         let raw = next_random(seed);
         const FRACTION_MASK: u64 = (1_u64 << 52) - 1;
