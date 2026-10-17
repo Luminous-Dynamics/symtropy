@@ -47,8 +47,8 @@ jobs:
           jq -e '
             .evidence_class == "synthetic_contract_audit"
             and .profile_count == 4
-            and .negative_control_count == 7
-            and .correctly_rejected_control_count == 7
+            and .negative_control_count == 8
+            and .correctly_rejected_control_count == 8
             and .false_accept_count == 0
           ' "$RUNNER_TEMP/vehicle-personalization-audit.json"
           sha256sum "$RUNNER_TEMP/vehicle-personalization-audit.json"
