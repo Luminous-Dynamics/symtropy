@@ -1,0 +1,34 @@
+name: Exact finite inspection value benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/lifecycle-inspection-value-benchmark/**"
+      - "docs/research/CIRC_BUILD_INSPECTION_VALUE_V0_1.md"
+      - ".github/workflows/lifecycle-inspection-value-benchmark.yml"
+  push:
+    paths:
+      - "tools/lifecycle-inspection-value-benchmark/**"
+      - "docs/research/CIRC_BUILD_INSPECTION_VALUE_V0_1.md"
+      - ".github/workflows/lifecycle-inspection-value-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-finite-decision-contract:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lifecycle-inspection-value-benchmark/Cargo.toml -- --check
+      - name: Run finite oracle and mutation tests
+        run: cargo test --manifest-path tools/lifecycle-inspection-value-benchmark/Cargo.toml
+      - name: Emit exact-source decision receipt
+        run: cargo run --manifest-path tools/lifecycle-inspection-value-benchmark/Cargo.toml

@@ -1,0 +1,76 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "synthetic_only",
+  "scope_id": "synthetic-asset:inspection-decision-v1",
+  "likelihood_denominator": 100,
+  "prior_serviceable_weight": 7,
+  "prior_degraded_weight": 3,
+  "actions": [
+    {
+      "id": "continue",
+      "loss_if_serviceable": 100,
+      "loss_if_degraded": 900
+    },
+    {
+      "id": "repair",
+      "loss_if_serviceable": 300,
+      "loss_if_degraded": 350
+    },
+    {
+      "id": "replace",
+      "loss_if_serviceable": 800,
+      "loss_if_degraded": 800
+    }
+  ],
+  "inspections": [
+    {
+      "id": "low-cost-visual-check",
+      "cost": 40,
+      "serviceable_alarm_weight": 10,
+      "degraded_alarm_weight": 80,
+      "expected": {
+        "alarm_action": "repair",
+        "clear_action": "continue",
+        "decision_loss_numerator": 222000,
+        "inspection_cost_numerator": 40000,
+        "total_loss_numerator": 262000,
+        "gross_evsi_numerator": 93000,
+        "net_evsi_numerator": 53000
+      }
+    },
+    {
+      "id": "high-accuracy-inspection",
+      "cost": 100,
+      "serviceable_alarm_weight": 1,
+      "degraded_alarm_weight": 95,
+      "expected": {
+        "alarm_action": "repair",
+        "clear_action": "continue",
+        "decision_loss_numerator": 184650,
+        "inspection_cost_numerator": 100000,
+        "total_loss_numerator": 284650,
+        "gross_evsi_numerator": 130350,
+        "net_evsi_numerator": 30350
+      }
+    },
+    {
+      "id": "uninformative-check",
+      "cost": 5,
+      "serviceable_alarm_weight": 30,
+      "degraded_alarm_weight": 30,
+      "expected": {
+        "alarm_action": "repair",
+        "clear_action": "repair",
+        "decision_loss_numerator": 315000,
+        "inspection_cost_numerator": 5000,
+        "total_loss_numerator": 320000,
+        "gross_evsi_numerator": 0,
+        "net_evsi_numerator": -5000
+      }
+    }
+  ],
+  "expected_baseline_action": "repair",
+  "expected_baseline_loss_numerator": 315000,
+  "expected_perfect_information_loss_numerator": 175000,
+  "expected_max_gross_evpi_numerator": 140000
+}
