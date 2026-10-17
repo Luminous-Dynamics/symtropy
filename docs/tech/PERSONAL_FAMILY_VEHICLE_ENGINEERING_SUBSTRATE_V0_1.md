@@ -133,6 +133,20 @@ Use 10-year / 150,000 km as the initial comparison horizon; also run low-mileage
 
 These are hypotheses until backed by measurements, not promised savings.
 
+### Gate C.5 — multi-fidelity modeling and value-of-information
+
+Do not maximize simulation count. Select the next analysis or physical test by asking which uncertainty could change an engineering decision and what evidence would resolve it.
+
+- Maintain an uncertainty ledger for each parameter/claim: source, distribution or bounded interval, correlation assumptions, model discrepancy, confidence class, and which decisions it can change.
+- Use low-cost analytical estimates and broad parameter sweeps to screen the design space; run higher-fidelity component models only where sensitivity, constraint proximity or ranking ambiguity justifies the expense; use physical tests to calibrate discrepancies and falsify model assumptions.
+- Keep calibration and held-out validation data separate. Selecting a new test because it agrees with the current model must not leak that same result into the holdout set.
+- Pre-register each expensive test's decision relevance, expected observables, acceptance tolerance, instrument calibration, failure interpretation and evidence class before seeing its result.
+- Estimate decision value using expected reduction in decision regret / uncertainty of the Pareto ranking, divided by the test's cost, elapsed time and resource burden. Never use this economic score to defer a legally required or safety-critical test.
+- If small changes to energy price, annual distance, repair rate, part lead time or model discrepancy reverse the winning architecture, report a fragile/unresolved recommendation and prioritize the measurements that discriminate between those alternatives.
+- Calibrate prediction intervals as well as point estimates; report interval coverage, bias and error by condition. Out-of-domain or non-converged predictions abstain rather than extrapolate silently.
+
+**Provisional decision-quality target:** for *cost-only* recommendations, aim for the same leading architecture in at least 90% of the preregistered, plausible uncertainty scenarios before calling the choice robust. If the target is not met, present the Pareto set and identify the highest-value resolving tests. This is not a safety metric: hard safety/legal constraints remain non-negotiable.
+
 ### Gate D — resilience and service continuity
 
 Evaluate bounded disruption profiles: unavailable parts, workshop outage, fuel/charging interruption, key subsystem failure, heat wave, flood/pothole damage and loss of a route. Measure essential trips preserved, time to restore service, dependence on single suppliers and the repair/safety trade-off. A vehicle-level result must not be treated as a network-availability result.
