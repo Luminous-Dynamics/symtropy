@@ -287,17 +287,19 @@ impl EvaluatorEventQueue {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-struct PolicyObservationQueue {
+#[derive(Clone, Debug)]
+struct PolicyObservationCursor {
+    next_tick: u32,
+    final_tick: u32,
     releases_by_tick: BTreeMap<u32, Vec<PolicyObservation>>,
+    visible_by_id: BTreeMap<String, PolicyObservation>,
 }
 
-impl PolicyObservationQueue {
+impl PolicyObservationCursor {
     fn from_events(events: &[QueuedEvent]) -> Self {
-        let mut queue = Self::default();
+        let mut releases_by_tick = BTreeMap::<u32, Vec<PolicyObservation>>::new();
         for event in events {
-            queue
-                .releases_by_tick
+            releases_by_tick
                 .entry(event.observable_tick)
                 .or_default()
                 .push(PolicyObservation {
@@ -311,20 +313,46 @@ impl PolicyObservationQueue {
                     recovery_evidence: event.recovery_evidence.clone(),
                 });
         }
-        normalize_observation_buckets(&mut queue.releases_by_tick);
-        queue
+        normalize_observation_buckets(&mut releases_by_tick);
+        let final_tick = releases_by_tick.keys().next_back().copied().unwrap_or(0);
+        Self {
+            next_tick: 0,
+            final_tick,
+            releases_by_tick,
+            visible_by_id: BTreeMap::new(),
+        }
     }
 
-    fn observations_at(&self, tick: u32) -> Vec<PolicyObservation> {
-        self.releases_by_tick.get(&tick).cloned().unwrap_or_default()
-    }
-
-    fn final_tick(&self) -> u32 {
-        self.releases_by_tick.keys().next_back().copied().unwrap_or(0)
+    // The policy caller cannot request an arbitrary/future tick. It receives
+    // only the next frame, with observations released at that point in time.
+    fn advance_one_tick(&mut self) -> Option<PolicyTick> {
+        if self.next_tick > self.final_tick {
+            return None;
+        }
+        let tick = self.next_tick;
+        let newly_observed_events = self.releases_by_tick.remove(&tick).unwrap_or_default();
+        for observation in &newly_observed_events {
+            self.visible_by_id
+                .insert(observation.case_id.clone(), observation.clone());
+        }
+        let newly_observed_event_ids = newly_observed_events
+            .iter()
+            .map(|observation| observation.case_id.clone())
+            .collect::<Vec<_>>();
+        let visible_event_ids = self.visible_by_id.keys().cloned().collect::<Vec<_>>();
+        self.next_tick = self.next_tick.saturating_add(1);
+        Some(PolicyTick {
+            tick,
+            newly_observed_event_ids,
+            newly_observed_events,
+            visible_event_ids,
+        })
     }
 }
 
-fn normalize_observation_buckets(queue: &mut BTreeMap<u32, Vec<PolicyObservation>>) {
+fn normalize_observation_buckets(
+    queue: &mut BTreeMap<u32, Vec<PolicyObservation>>,
+) {
     for observations in queue.values_mut() {
         observations.sort_by(|left, right| left.case_id.cmp(&right.case_id));
         observations.dedup_by(|left, right| left.case_id == right.case_id);
@@ -401,8 +429,8 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
     });
 
     let evaluator_queue = EvaluatorEventQueue::from_events(&events);
-    let policy_observation_queue = PolicyObservationQueue::from_events(&events);
-    let max_tick = policy_observation_queue.final_tick();
+    let mut policy_cursor = PolicyObservationCursor::from_events(&events);
+    let max_tick = policy_cursor.final_tick;
     let mut evaluator_timeline = Vec::with_capacity(max_tick as usize + 1);
     let mut policy_timeline = Vec::with_capacity(max_tick as usize + 1);
     let mut injected_so_far = BTreeSet::<String>::new();
@@ -411,31 +439,22 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
     for tick in 0..=max_tick {
         let injected_event_ids = evaluator_queue.events_at(tick);
         injected_so_far.extend(injected_event_ids.iter().cloned());
-
-        let newly_observed_events = policy_observation_queue.observations_at(tick);
-        let newly_observed_event_ids = newly_observed_events
-            .iter()
-            .map(|observation| observation.case_id.clone())
-            .collect::<Vec<_>>();
-        visible_so_far.extend(newly_observed_event_ids.iter().cloned());
+        let policy_frame = policy_cursor
+            .advance_one_tick()
+            .expect("cursor has a frame for every tick through final_tick");
+        visible_so_far.extend(policy_frame.newly_observed_event_ids.iter().cloned());
 
         let events_injected_but_not_yet_observable = injected_so_far
             .difference(&visible_so_far)
             .cloned()
             .collect::<Vec<_>>();
-        let visible_event_ids = visible_so_far.iter().cloned().collect::<Vec<_>>();
 
         evaluator_timeline.push(EvaluatorTick {
             tick,
             injected_event_ids,
             events_injected_but_not_yet_observable,
         });
-        policy_timeline.push(PolicyTick {
-            tick,
-            newly_observed_event_ids,
-            newly_observed_events,
-            visible_event_ids,
-        });
+        policy_timeline.push(policy_frame);
     }
 
     if let Err(mut timeline_errors) =
@@ -993,6 +1012,43 @@ mod tests {
                 "R-010".to_string(),
             ]
         );
+    }
+
+    #[test]
+    fn policy_cursor_cannot_skip_or_request_a_future_observation_tick() {
+        let fixture: Fixture =
+            serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should parse");
+        let events = fixture
+            .disturbance_cases
+            .iter()
+            .map(|case| QueuedEvent {
+                case_id: case.case_id.clone(),
+                kind: DisturbanceKind::for_case(case).expect("frozen kind"),
+                injection_tick: case.injection_tick as u32,
+                observable_tick: case.observable_tick as u32,
+                event_name: case.event.clone(),
+                affected_resources: sorted_unique(case.affected_resources.clone()),
+                affected_tasks: sorted_unique(case.affected_tasks.clone()),
+                invalidates: sorted_unique(case.invalidates.clone()),
+                recovery_evidence: sorted_unique(case.recovery_evidence.clone()),
+            })
+            .collect::<Vec<_>>();
+        let mut cursor = PolicyObservationCursor::from_events(&events);
+
+        let tick_zero = cursor.advance_one_tick().expect("tick zero frame should exist");
+        assert_eq!(tick_zero.tick, 0);
+        assert!(tick_zero.visible_event_ids.iter().all(|id| id == "R-011"));
+        assert!(tick_zero.newly_observed_events.iter().all(|event| event.observed_at_tick == 0));
+
+        let tick_one = cursor.advance_one_tick().expect("tick one frame should exist");
+        assert_eq!(tick_one.tick, 1);
+        assert!(!tick_one.visible_event_ids.iter().any(|id| id == "R-008"));
+
+        for expected_tick in 2..=7 {
+            let frame = cursor.advance_one_tick().expect("next frame should exist");
+            assert_eq!(frame.tick, expected_tick);
+        }
+        assert!(cursor.advance_one_tick().is_none());
     }
 
     #[test]
