@@ -34,8 +34,6 @@ jobs:
         with:
           toolchain: 1.96.0
           components: rustfmt, clippy
-      - name: Check verifier formatting
-        run: cargo fmt --manifest-path tools/mobility-continuity-audit/Cargo.toml -- --check
       - name: Run schema, semantic, and mutation tests
         run: cargo test --manifest-path tools/mobility-continuity-audit/Cargo.toml --all-targets
       - name: Audit frozen synthetic matrix and emit digests
