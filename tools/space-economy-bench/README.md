@@ -123,3 +123,35 @@ With synthetic failure months 2, 6, and 10 and a 75% service-availability floor 
 The model uses explicit event semantics: deliveries arrive at period start; failures happen within a period; service recovery is no earlier than the following period. The architecture-level gate requires every scenario declared for that architecture to meet the service floor before lifecycle cost is considered. Under these fixtures, the imported-spares architecture fails the delay shock; the higher-cost verified-local-repair architecture is the cheapest robust-feasible choice among the declared options.
 
 All failures, delivery dates, repair durations, availability floor and costs are synthetic. This is not a calibrated reliability model, an inventory-optimization model, a lunar operating forecast, or mission qualification. Future empirical versions need service-specific failure evidence, lead-time distributions, wear-out/replacement models, stockpile policy, repair capacity, energy/material budgets, and independent held-out validation. Follow-up: [BENCH-SPACE-007](https://github.com/Luminous-Dynamics/symtropy/issues/1792).
+
+## Resource-to-production chain reference
+
+The separate example `tools/space-economy-bench/examples/resource_chain_reference.rs` explores four alternatives across three resource/process families: bulk-regolith screening for shielding aggregate, oxygen extraction from regolith, polar volatile-bearing feed to purified water, and polar volatile-bearing feed to electrolysis products. It keeps process intermediates, final products and residuals separate, and mass-balances each alternative.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example resource_chain_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example resource_chain_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+### Synthetic batch oracle
+
+- **Bulk shielding aggregate:** 1,000 kg feed → 900 kg aggregate + 100 kg screening rejects. Within this fixture, the feed, process, declared-use quality and energy gates are set to pass; this is a positive control for the gate logic, not a claim that a lunar site or process has been qualified.
+- **Regolith oxygen:** synthetic 1,000 kg feed includes an assumed 400 kg oxygen inventory and 50% recovery, giving 200 kg conditional oxygen + 800 kg residue. The declared 6,000 kWh demand exceeds the 5,000 kWh site budget, and process/product gates are unqualified; firm output is therefore zero.
+- **Polar volatile-bearing feed → water:** synthetic 100 kg input assumes 80% water, 75% extraction recovery, then 90% purification recovery: 54 kg purified water + 46 kg residuals. Site feed and process/quality gates are unverified, so firm output is zero.
+- **Same polar batch → electrolysis products:** the alternative consumes the same 54 kg purified-water intermediate to produce 48 kg oxygen + 6 kg hydrogen, with the same 46 kg residuals. It is an alternative allocation for the same 100 kg batch, not additive output alongside the water product path. This fixture's arithmetic reflects the mass ratio of water electrolysis but not its real energy use, storage loss, purity or achievable yield.
+
+Potential Fe/Al/Ti/Si-bearing streams in the regolith oxygen path remain explicitly uncredited until extraction, separation, purity and downstream product quality are measured. No potential coproduct is counted as refined inventory simply because it may exist in residue.
+
+### Evidence interpretation
+
+NASA states that lunar volatile location, form, concentration, distribution and accessibility are not fully characterized; it also notes many current ISRU analog demonstrations were short-duration and under Earth conditions. The USGS lunar-resource methodology separates the resource type from certainty and recoverability. Sources:
+- [NASA: Overview of In-Situ Resource Utilization](https://www.nasa.gov/overview-in-situ-resource-utilization/)
+- [USGS: Assessment of Lunar Resource Exploration in 2022](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022)
+- [NASA: Lunar Enabling Infrastructure Accelerator, 8 September 2026](https://www.nasa.gov/news-release/nasa-calls-for-proposals-to-accelerate-lunar-surface-technologies/)
+
+Consequently, a "potential" pathway output is not automatically "firm supply". Firm output in this executable reference means only that the explicit synthetic fixture gates are satisfied: scenario feed batch verified, process qualified, product quality verified for its declared use, energy within budget, and mass balance exact. These flags do not assert real lunar qualification. The four pathway results share a single synthetic site-power budget for comparison; site batches with the same allocation group cannot have their output summed.
+
+Recommended next inputs for real pathway comparison: site-specific grade/access measurements, mineralogical phases, extraction/purification recovery intervals, energy intensity under representative thermal/vacuum/dust conditions, product purity and acceptance specification, equipment life/wear parts, and data source/licence/epoch/resolution. Follow-up: [BENCH-SPACE-008](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
