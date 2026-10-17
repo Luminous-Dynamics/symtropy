@@ -1,5 +1,5 @@
 use jsonschema::Validator;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -38,7 +38,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         return Err(format!("sourcing schema $id must be {SCHEMA_ID}"));
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
-        return Err("sourcing schema does not validate against the Draft 2020-12 meta-schema".to_owned());
+        return Err(
+            "sourcing schema does not validate against the Draft 2020-12 meta-schema".to_owned(),
+        );
     }
     jsonschema::draft202012::options()
         .should_validate_formats(true)
@@ -75,7 +77,10 @@ fn audit_values(
         || text_at(snapshot, "claim_ceiling")
             != Some("no_control_selected_no_physical_test_no_parts_fit_claim")
     {
-        errors.push("sourcing snapshot cannot claim a selected control, purchase, physical test or verified part fit".to_owned());
+        errors.push(
+            "sourcing snapshot cannot claim a selected control, purchase, physical test or verified part fit"
+                .to_owned(),
+        );
     }
 
     let selection = snapshot.get("selection_rule").unwrap_or(&Value::Null);
@@ -85,7 +90,10 @@ fn audit_values(
         || selection.get("donor_is_valid_control").and_then(Value::as_bool) != Some(false)
         || text_at(selection, "missing_data_policy") != Some("unknown_not_zero")
     {
-        errors.push("selection rule must preserve a >=3 same-model/revision control pilot, prohibit pooled brands/donor-as-control, and keep unknown data unknown".to_owned());
+        errors.push(
+            "selection rule must preserve a >=3 same-model/revision control pilot, prohibit pooled brands/donor-as-control, and keep unknown data unknown"
+                .to_owned(),
+        );
     }
 
     let Some(candidates) = snapshot.get("candidate_shortlist").and_then(Value::as_array) else {
@@ -118,32 +126,51 @@ fn audit_values(
         }
         if text_at(candidate, "purchase_state") != Some("not_purchased") {
             purchased_candidate_count += 1;
-            errors.push(format!("{id}: purchase state cannot change without reviewed procurement evidence"));
+            errors.push(format!(
+                "{id}: purchase state cannot change without reviewed procurement evidence"
+            ));
         }
         if text_at(candidate, "control_state") != Some("not_selected") {
             selected_control_count += 1;
             errors.push(format!("{id}: no control can be selected from a desk snapshot alone"));
         }
         if candidate.get("capacity_kg").and_then(Value::as_f64) != Some(8.0) {
-            errors.push(format!("{id}: this reviewed shortlist is the 8 kg sourcing cohort; changing capacity requires review"));
+            errors.push(format!(
+                "{id}: this reviewed shortlist is the 8 kg sourcing cohort; changing capacity requires review"
+            ));
         }
-        let Some(observations) = candidate.get("price_observations").and_then(Value::as_array) else {
+        let Some(observations) = candidate
+            .get("price_observations")
+            .and_then(Value::as_array)
+        else {
             errors.push(format!("{id}: price_observations must be an array"));
             continue;
         };
         if observations.is_empty() {
-            errors.push(format!("{id}: at least one dated price-discovery observation is required"));
+            errors.push(format!(
+                "{id}: at least one dated price-discovery observation is required"
+            ));
         }
         price_observation_count += observations.len();
         for (price_index, observation) in observations.iter().enumerate() {
             if text_at(observation, "evidence_state") != Some("public_snapshot_not_a_quote") {
-                errors.push(format!("{id}.price_observations[{price_index}]: public listing cannot be relabelled a quote or purchase"));
+                errors.push(format!(
+                    "{id}.price_observations[{price_index}]: public listing cannot be relabelled a quote or purchase"
+                ));
             }
             if text_at(observation, "currency") != Some("ZAR") {
-                errors.push(format!("{id}.price_observations[{price_index}]: currency must be ZAR for this snapshot"));
+                errors.push(format!(
+                    "{id}.price_observations[{price_index}]: currency must be ZAR for this snapshot"
+                ));
             }
-            if observation.get("amount_minor").and_then(Value::as_u64).is_none_or(|amount| amount == 0) {
-                errors.push(format!("{id}.price_observations[{price_index}]: price must be a positive integer in minor currency units"));
+            if observation
+                .get("amount_minor")
+                .and_then(Value::as_u64)
+                .is_none_or(|amount| amount == 0)
+            {
+                errors.push(format!(
+                    "{id}.price_observations[{price_index}]: price must be a positive integer in minor currency units"
+                ));
             }
         }
         let docs = candidate.get("model_documentation").unwrap_or(&Value::Null);
@@ -180,13 +207,21 @@ fn audit_values(
         if fit == Some("confirmed_with_documented_fit") {
             model_fit_confirmed_probe_count += 1;
             if text_at(probe, "compatibility_evidence_url").is_none() {
-                errors.push(format!("{id}: a confirmed fit requires a model/revision-specific compatibility evidence URL"));
+                errors.push(format!(
+                    "{id}: a confirmed fit requires a model/revision-specific compatibility evidence URL"
+                ));
             }
         } else if evidence == Some("installed_and_verified") {
-            errors.push(format!("{id}: cannot claim installed_and_verified while exact-model fit is unconfirmed"));
+            errors.push(format!(
+                "{id}: cannot claim installed_and_verified while exact-model fit is unconfirmed"
+            ));
         }
-        if evidence == Some("public_catalogue_listing_only") && fit == Some("confirmed_with_documented_fit") {
-            errors.push(format!("{id}: a generic public catalogue listing cannot by itself confirm exact-model fit"));
+        if evidence == Some("public_catalogue_listing_only")
+            && fit == Some("confirmed_with_documented_fit")
+        {
+            errors.push(format!(
+                "{id}: a generic public catalogue listing cannot by itself confirm exact-model fit"
+            ));
         }
     }
 
@@ -208,10 +243,17 @@ fn audit_values(
     }
     let evidence_rules = snapshot.get("evidence_rules").and_then(Value::as_array);
     if evidence_rules.is_none_or(|rules| {
-        rules.iter().filter_map(Value::as_str).any(|rule| rule.to_ascii_lowercase().contains("unknown equals zero"))
-            || !rules.iter().any(|rule| rule.contains("Three different brands cannot be pooled"))
+        rules.iter().filter_map(Value::as_str).any(|rule| {
+            rule.to_ascii_lowercase()
+                .contains("unknown equals zero")
+        }) || !rules
+            .iter()
+            .any(|rule| rule.contains("Three different brands cannot be pooled"))
     }) {
-        errors.push("evidence rules must preserve unknown-not-zero and the same-design control interpretation".to_owned());
+        errors.push(
+            "evidence rules must preserve unknown-not-zero and the same-design control interpretation"
+                .to_owned(),
+        );
     }
 
     if !errors.is_empty() {
@@ -243,6 +285,7 @@ pub(crate) fn audit_sourcing_texts(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/washer_parts_resilience_snapshot_v0_1.schema.json"
