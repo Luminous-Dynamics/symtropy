@@ -808,32 +808,25 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
             .chain(c.held_out_seeds.iter().map(|s| ("held_out", *s))).collect();
         for (split, seed) in seeds {
             let targets = generate_targets(&map, seed, &binding.planner_scenario_id, c.target_count_per_case)?;
+            let greedy = score_plan(&map, &scenario.greedy, &targets)?;
+            let lookahead = score_plan(&map, &scenario.two_step_lookahead, &targets)?;
+            let coverage_oracle = score_plan(&map, &scenario.exhaustive_oracle, &targets)?;
+            let target_oracle = TargetOracleSolver::new(&map, &targets, config.clone())?.solve()?;
+            for (name, compared) in [("greedy", &greedy), ("lookahead", &lookahead)] {
+                if target_oracle.score.complete_target_count < compared.complete_target_count
+                    || (target_oracle.score.complete_target_count == compared.complete_target_count
+                        && target_oracle.score.visible_feature_count < compared.visible_feature_count) {
+                    return Err(format!("{name}: feasible plan beats the claimed exact target-objective oracle for {} seed {seed}", binding.planner_scenario_id));
+                }
+            }
+            let greedy_vs_target_oracle = target_regret(&target_oracle.score, &greedy);
+            let lookahead_vs_target_oracle = target_regret(&target_oracle.score, &lookahead);
             evaluations.push(Evaluation {
                 planner_scenario_id: binding.planner_scenario_id.clone(), scene: binding.scene,
                 seed, split: split.to_owned(), generated_target_count: targets.len(),
                 map_sha256: scenario.map_sha256.clone(), config_sha256: scenario.config_sha256.clone(),
-                greedy: score_plan(&map, &scenario.greedy, &targets)?,
-                lookahead: score_plan(&map, &scenario.two_step_lookahead, &targets)?,
-                coverage_oracle: score_plan(&map, &scenario.exhaustive_oracle, &targets)?,
-                target_oracle: TargetOracleSolver::new(&map, &targets, config.clone())?.solve()?,
-                greedy_vs_target_oracle: TargetRegret {
-                    oracle_complete_target_count: 0,
-                    compared_complete_target_count: 0,
-                    complete_target_regret: 0,
-                    complete_target_ratio_basis_points: None,
-                    oracle_visible_feature_count: 0,
-                    compared_visible_feature_count: 0,
-                    visible_feature_delta_to_oracle: 0,
-                },
-                lookahead_vs_target_oracle: TargetRegret {
-                    oracle_complete_target_count: 0,
-                    compared_complete_target_count: 0,
-                    complete_target_regret: 0,
-                    complete_target_ratio_basis_points: None,
-                    oracle_visible_feature_count: 0,
-                    compared_visible_feature_count: 0,
-                    visible_feature_delta_to_oracle: 0,
-                },
+                greedy, lookahead, coverage_oracle, target_oracle,
+                greedy_vs_target_oracle, lookahead_vs_target_oracle,
             });
         }
     }
