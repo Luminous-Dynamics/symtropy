@@ -1,0 +1,1031 @@
+{
+  "schema_version": "south-africa-vehicle-localization-scenario-matrix/0.1",
+  "matrix_id": "mobility-localization-sa-v0.1",
+  "created_date": "2026-10-17",
+  "market": "South Africa",
+  "status": "synthetic scenario matrix for engineering/economic sensitivity only; no costed route or approval",
+  "provenance": {
+    "policy_source_ids": [
+      "SRC_SA_DTIC_SKD_POLICY_2026_10",
+      "SRC_SA_SARS_APDP2"
+    ],
+    "source_registry_path": "benchmark_source_registry_v0_1.json",
+    "notes": [
+      "The 2026-10-15 dtic statement is a primary policy-risk signal; project-specific rules and implementation must be checked against current instruments and written authority guidance.",
+      "The SARS APDP2 page describes program context; its presence is not proof that this project or route is eligible.",
+      "The matrix does not assume a subsidy, incentive, local-content percentage or compliant CKD/SKD classification."
+    ]
+  },
+  "route_definitions": [
+    {
+      "id": "import_complete_vehicle",
+      "label": "Import complete vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ]
+    },
+    {
+      "id": "import_qualified_modules_local_service",
+      "label": "Import qualified modules; develop local service parts and non-safety-critical assemblies",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ]
+    },
+    {
+      "id": "local_value_add_conditional",
+      "label": "Local value-add / CKD-style manufacture only if current requirements are confirmed",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ]
+    }
+  ],
+  "volume_tiers": [
+    {
+      "id": "pilot_250",
+      "vehicles_per_year": 250,
+      "note": "Synthetic volume tier for model sensitivity, not a production forecast."
+    },
+    {
+      "id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "note": "Synthetic volume tier for model sensitivity, not a production forecast."
+    },
+    {
+      "id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "note": "Synthetic volume tier for model sensitivity, not a production forecast."
+    }
+  ],
+  "supply_conditions": [
+    {
+      "id": "stable_supply",
+      "label": "Stable reference case",
+      "fx_multiplier": 1,
+      "imported_part_lead_time_multiplier": 1,
+      "available_supplier_fraction": 0.98,
+      "demand_multiplier": 1,
+      "status": "illustrative_sensitivity_input_not_observation"
+    },
+    {
+      "id": "supply_fx_stress",
+      "label": "FX and supply disruption stress",
+      "fx_multiplier": 1.2,
+      "imported_part_lead_time_multiplier": 2,
+      "available_supplier_fraction": 0.85,
+      "demand_multiplier": 0.7,
+      "status": "illustrative_sensitivity_input_not_observation"
+    }
+  ],
+  "scenario_count_expected": 18,
+  "scenarios": [
+    {
+      "id": "LOC_IMPORT_COMPLETE_VEHICLE_PILOT_250_STABLE_SUPPLY",
+      "route_id": "import_complete_vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "volume_tier_id": "pilot_250",
+      "vehicles_per_year": 250,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_COMPLETE_VEHICLE_PILOT_250_SUPPLY_FX_STRESS",
+      "route_id": "import_complete_vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "volume_tier_id": "pilot_250",
+      "vehicles_per_year": 250,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_COMPLETE_VEHICLE_SMALL_SERIES_2500_STABLE_SUPPLY",
+      "route_id": "import_complete_vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "volume_tier_id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_COMPLETE_VEHICLE_SMALL_SERIES_2500_SUPPLY_FX_STRESS",
+      "route_id": "import_complete_vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "volume_tier_id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_COMPLETE_VEHICLE_SCALE_25000_STABLE_SUPPLY",
+      "route_id": "import_complete_vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "volume_tier_id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_COMPLETE_VEHICLE_SCALE_25000_SUPPLY_FX_STRESS",
+      "route_id": "import_complete_vehicle",
+      "route_gate": "market_baseline_only",
+      "localization_status": "not_a_local_manufacturing_case",
+      "volume_tier_id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Use as market/ownership-cost comparator; do not present as local-manufacturing capability.",
+        "Bind candidate comparison to exact grade, model year and written landed-cost quotation.",
+        "No advertised-from price may stand in for landed cost or ten-year ownership cost."
+      ],
+      "unlock_evidence": [
+        "dated written supplier/dealer quote",
+        "exact variant and applicable safety/approval evidence",
+        "common parts-and-service price basket"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_QUALIFIED_MODULES_LOCAL_SERVICE_PILOT_250_STABLE_SUPPLY",
+      "route_id": "import_qualified_modules_local_service",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "volume_tier_id": "pilot_250",
+      "vehicles_per_year": 250,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_QUALIFIED_MODULES_LOCAL_SERVICE_PILOT_250_SUPPLY_FX_STRESS",
+      "route_id": "import_qualified_modules_local_service",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "volume_tier_id": "pilot_250",
+      "vehicles_per_year": 250,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_QUALIFIED_MODULES_LOCAL_SERVICE_SMALL_SERIES_2500_STABLE_SUPPLY",
+      "route_id": "import_qualified_modules_local_service",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "volume_tier_id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_QUALIFIED_MODULES_LOCAL_SERVICE_SMALL_SERIES_2500_SUPPLY_FX_STRESS",
+      "route_id": "import_qualified_modules_local_service",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "volume_tier_id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_QUALIFIED_MODULES_LOCAL_SERVICE_SCALE_25000_STABLE_SUPPLY",
+      "route_id": "import_qualified_modules_local_service",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "volume_tier_id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_IMPORT_QUALIFIED_MODULES_LOCAL_SERVICE_SCALE_25000_SUPPLY_FX_STRESS",
+      "route_id": "import_qualified_modules_local_service",
+      "route_gate": "requires_module_and_supplier_qualification",
+      "localization_status": "conditional_engineering_route_not_approved",
+      "volume_tier_id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Safety-critical imported modules retain exact qualified part/configuration identity.",
+        "Every local substitute needs compatibility, quality and applicable approval evidence before use.",
+        "Local service parts and workshop tooling are modeled separately from road-vehicle assembly or tax-incentive eligibility."
+      ],
+      "unlock_evidence": [
+        "dated module and local-component quotes",
+        "quality-system and supplier-capability evidence",
+        "part compatibility and engineering qualification for each safety-relevant item",
+        "written confirmation of the applicable legal/manufacturing route"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_LOCAL_VALUE_ADD_CONDITIONAL_PILOT_250_STABLE_SUPPLY",
+      "route_id": "local_value_add_conditional",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "volume_tier_id": "pilot_250",
+      "vehicles_per_year": 250,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_LOCAL_VALUE_ADD_CONDITIONAL_PILOT_250_SUPPLY_FX_STRESS",
+      "route_id": "local_value_add_conditional",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "volume_tier_id": "pilot_250",
+      "vehicles_per_year": 250,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_LOCAL_VALUE_ADD_CONDITIONAL_SMALL_SERIES_2500_STABLE_SUPPLY",
+      "route_id": "local_value_add_conditional",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "volume_tier_id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_LOCAL_VALUE_ADD_CONDITIONAL_SMALL_SERIES_2500_SUPPLY_FX_STRESS",
+      "route_id": "local_value_add_conditional",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "volume_tier_id": "small_series_2500",
+      "vehicles_per_year": 2500,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_LOCAL_VALUE_ADD_CONDITIONAL_SCALE_25000_STABLE_SUPPLY",
+      "route_id": "local_value_add_conditional",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "volume_tier_id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "supply_condition_id": "stable_supply",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1,
+        "imported_part_lead_time_multiplier": 1,
+        "assumed_supplier_availability_fraction": 0.98,
+        "annual_demand_multiplier": 1,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    },
+    {
+      "id": "LOC_LOCAL_VALUE_ADD_CONDITIONAL_SCALE_25000_SUPPLY_FX_STRESS",
+      "route_id": "local_value_add_conditional",
+      "route_gate": "blocked_until_written_authority_confirmation",
+      "localization_status": "blocked_pending_project_specific_eligibility",
+      "volume_tier_id": "scale_25000",
+      "vehicles_per_year": 25000,
+      "supply_condition_id": "supply_fx_stress",
+      "shock_inputs": {
+        "foreign_exchange_cost_multiplier": 1.2,
+        "imported_part_lead_time_multiplier": 2,
+        "assumed_supplier_availability_fraction": 0.85,
+        "annual_demand_multiplier": 0.7,
+        "input_class": "illustrative_sensitivity_input_not_observation"
+      },
+      "cost_model_status": "not_computed_missing_dated_quotes_and_bom",
+      "costs": {
+        "vehicle_bom_zar": null,
+        "landed_import_cost_zar": null,
+        "local_labor_cost_zar": null,
+        "tooling_capex_zar": null,
+        "homologation_and_approval_cost_zar": null,
+        "warranty_and_rework_cost_zar": null,
+        "annual_parts_inventory_cost_zar": null,
+        "incentive_or_rebate_zar": null,
+        "ten_year_ownership_cost_zar": null
+      },
+      "policy_source_ids": [
+        "SRC_SA_DTIC_SKD_POLICY_2026_10",
+        "SRC_SA_SARS_APDP2"
+      ],
+      "route_invariants": [
+        "Never assume SKD support, CKD status, APDP2 eligibility or incentive amounts from the public announcement alone.",
+        "No incentive or rebate enters the base case until the current rule and project-specific eligibility are confirmed.",
+        "Tooling, capex, homologation, training, supplier qualification and warranty costs are mandatory model categories."
+      ],
+      "unlock_evidence": [
+        "written project-specific route/eligibility confirmation from the competent authority",
+        "current governing instruments and applicable rebate items",
+        "supplier quotations and capacity/quality evidence",
+        "tooling/capex quotations and a documented break-even model"
+      ],
+      "claim_ceiling": [
+        "Volume and disruption inputs are synthetic sensitivity values, not forecasts or observed market statistics.",
+        "This case has no cost result because BOMs, dated quotes, lawful route and project-specific eligibility have not been established.",
+        "No safety, approval, local-content, incentive, commercial viability or ownership-cost conclusion follows from this case."
+      ]
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "LC01_UNCONFIRMED_INCENTIVE_AS_ZERO_COST",
+      "mutation": "Set incentive_or_rebate_zar to 0 and claim the local route is fully costed despite unresolved eligibility.",
+      "expected": "reject_or_mark_blocked",
+      "invariant": "Unknown or unconfirmed incentives are unresolved, not a verified zero or an assumed benefit."
+    },
+    {
+      "id": "LC02_UNQUALIFIED_SAFETY_CRITICAL_LOCAL_SUBSTITUTE",
+      "mutation": "Replace an imported safety-critical module with a locally sourced item without compatibility/qualification evidence.",
+      "expected": "reject_route_candidate",
+      "invariant": "Local availability does not establish interchangeability or safety."
+    },
+    {
+      "id": "LC03_SKD_ANNOUNCEMENT_TREATED_AS_COMPLETE_LEGAL_RULE",
+      "mutation": "Treat the dtic announcement by itself as complete implementation and project-specific legal eligibility.",
+      "expected": "reject_eligibility_claim",
+      "invariant": "Announcement, current legal instrument and individual eligibility are distinct evidence."
+    },
+    {
+      "id": "LC04_ADVERTISED_FROM_PRICE_AS_LANDED_COST",
+      "mutation": "Use one advertised manufacturer starting price as vehicle landed cost or total ownership cost.",
+      "expected": "reject_cost_claim",
+      "invariant": "Advertised-from snapshots, written landed quotes and lifecycle cost are distinct quantities."
+    },
+    {
+      "id": "LC05_VOLUME_TIER_AS_FORECAST",
+      "mutation": "Represent 250, 2,500 or 25,000 vehicles/year sensitivity tiers as demand evidence.",
+      "expected": "reject_forecast_claim",
+      "invariant": "Synthetic volume tiers do not establish demand, market share, order book or production economics."
+    }
+  ],
+  "required_cost_categories": [
+    "BOM and dated supplier quote",
+    "landed costs and forex basis",
+    "local labor/training/productivity",
+    "tooling and capital expenditure",
+    "supplier minimum order quantity and lead time",
+    "parts inventory and repair-network capacity",
+    "quality escape, warranty and rework",
+    "homologation, testing and approval",
+    "program incentives only after eligibility verified",
+    "lifecycle downtime and end-of-life"
+  ],
+  "claim_ceiling": [
+    "This is a synthetic sensitivity matrix, not a market forecast or a factory-cost estimate.",
+    "Null cost fields are intentionally unresolved; they must not be coerced to zero.",
+    "The source registry supports discovery and risk framing, not legal advice or an approval.",
+    "A route remains blocked when required legal, engineering or supplier evidence is absent."
+  ]
+}
