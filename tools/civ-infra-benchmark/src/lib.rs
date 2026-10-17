@@ -1392,4 +1392,55 @@ mod tests {
         assert!(errors.iter().any(|error| error.contains("road envelope excludes profile")));
     }
 
+    #[test]
+    fn drainage_capacity_boundary_is_accepted_and_exceedance_is_rejected() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.drainage.required_flow_lps = candidate.drainage.capacity_lps;
+        let boundary_bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let boundary_report =
+            evaluate_json(&boundary_bytes).expect("exact capacity boundary is valid");
+        let boundary_result = boundary_report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference result exists");
+        assert!(boundary_result.findings.iter().any(|finding| {
+            finding.code.starts_with("drainage_capacity:")
+                && finding.status == CheckStatus::Pass
+        }));
+        verify_report(&boundary_bytes, &boundary_report)
+            .expect("reference check should accept exact capacity boundary");
+
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.drainage.required_flow_lps += 0.001;
+        let exceeded_bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let exceeded_report =
+            evaluate_json(&exceeded_bytes).expect("finite exceedance input remains valid");
+        let exceeded_result = exceeded_report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference result exists");
+        assert_eq!(
+            exceeded_result.disposition,
+            CandidateDisposition::Infeasible
+        );
+        assert!(exceeded_result.findings.iter().any(|finding| {
+            finding.code.starts_with("drainage_capacity:")
+                && finding.status == CheckStatus::Violation
+        }));
+        verify_report(&exceeded_bytes, &exceeded_report)
+            .expect("reference check should reject capacity exceedance");
+    }
+
 }
