@@ -14,7 +14,7 @@ The CLI reads the exact fixture bytes, validates the schema and declared metric 
 
 ## Current synthetic fixture
 
-The frozen fixture contains three intentionally different candidate alignments. The report emits derived length, maximum absolute grade, cut volume, fill volume and total earthworks, each normalized to a stable nine-decimal precision for deterministic comparison.
+The frozen fixture contains three intentionally different candidate alignments. The report emits derived length, maximum absolute grade, cut volume, fill volume and total earthworks, each normalized to a stable nine-decimal precision for deterministic comparison. Result dispositions distinguish physical constraint infeasibility, inconsistency between declared and derived evidence, unknown/review-required cases, and feasibility for the explicitly modelled synthetic checks.
 
 | Candidate | Length | Derived maximum grade | Cut | Fill | Total earthworks | Synthetic disposition |
 |---|---:|---:|---:|---:|---:|---|
