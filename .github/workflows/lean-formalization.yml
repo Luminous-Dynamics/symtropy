@@ -1,0 +1,177 @@
+name: Lean formalization
+
+on:
+  pull_request:
+    paths:
+      - "formalization/lean/**"
+      - "docs/built-environment/lean-verification-roadmap.md"
+      - ".github/workflows/lean-formalization.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "formalization/lean/**"
+      - "docs/built-environment/lean-verification-roadmap.md"
+      - ".github/workflows/lean-formalization.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Validate contracts, build proofs and audit axioms
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate contract, unit and dimensionless-group mappings
+        shell: bash
+        run: |
+          jq -e '
+            .schema_version == "0.1.0" and
+            .package == "SymtropyFormal" and
+            (.contracts | length == 5) and
+            ([.contracts[].theorems[]] | unique | length == 53) and
+            (.negative_controls | length == 1) and
+            (.dimension_system.unit_dimension_vectors | keys | sort) ==
+              (.dimension_system.unit_theorems | keys | sort) and
+            ([.dimension_system.unit_theorems[]] | unique | length == 7) and
+            ([.contracts[].dimensionless_groups[]] | length == 5) and
+            (.dimension_system.unit_dimension_vectors == {
+              "m":[1,0,0,0,0,0,0],
+              "m^2":[2,0,0,0,0,0,0],
+              "m^4":[4,0,0,0,0,0,0],
+              "N":[1,1,-2,0,0,0,0],
+              "Pa":[-1,1,-2,0,0,0,0],
+              "N*m":[2,1,-2,0,0,0,0],
+              "N/m":[0,1,-2,0,0,0,0]
+            }) and
+            ([.contracts[].candidate_rust_mapping.api] | unique | length == 5) and
+            ([.contracts[].candidate_rust_mapping.source_path] | unique ==
+              ["crates/apps/symtropy-housing-evidence/src/structural_reference.rs"]) and
+            ([.contracts[] | .candidate_rust_mapping.status] | all(. == "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED")) and
+            ([.contracts[] | .candidate_rust_mapping.refinement_status] | all(. == "NOT_ESTABLISHED")) and
+            ([.contracts[] | .candidate_rust_mapping.outputs | length] | all(. > 0)) and
+            ([.contracts[] | .candidate_rust_mapping.input_quantity_types | length] | all(. > 0)) and
+            ([.contracts[] | .candidate_rust_mapping.units] | all(contains("newtypes"))) and
+            ([.contracts[] | .candidate_rust_mapping.type_safety] | all(contains("compile-time"))) and
+            ([.contracts[] | select(.id != "geometry.rectangular_section.second_moment.v1") | .candidate_rust_mapping.api] | all(contains("Pascals"))) and
+            (.rust_refinement_status == "NOT_ESTABLISHED")
+          ' formalization/lean/contracts.json >/dev/null
+
+          while IFS= read -r unit; do
+            if ! jq -e --arg unit "$unit" '.dimension_system.unit_dimension_vectors | has($unit)' formalization/lean/contracts.json >/dev/null; then
+              echo "::error::No exponent vector declared for unit: $unit"
+              exit 1
+            fi
+          done < <(jq -r '.contracts[].inputs_and_outputs[]' formalization/lean/contracts.json | sort -u)
+      - name: Validate shared cross-language vector bindings
+        shell: bash
+        run: |
+          jq -e '
+            . as $root |
+            $root.reference_vector_bindings.status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
+            $root.reference_vector_bindings.rust_lean_refinement_status == "NOT_ESTABLISHED" and
+            ($root.reference_vector_bindings.corpus_path | type == "string" and length > 0) and
+            ($root.reference_vector_bindings.corpus_commit | test("^[0-9a-f]{40}$")) and
+            $root.reference_vector_bindings.corpus_schema_status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
+            ($root.reference_vector_bindings.corpus_schema_path | type == "string" and length > 0) and
+            ($root.reference_vector_bindings.corpus_schema_commit | test("^[0-9a-f]{40}$")) and
+            ($root.reference_vector_bindings.bindings | length == 5) and
+            ([$root.reference_vector_bindings.bindings[].vector_id] | unique | length == 5) and
+            ([$root.reference_vector_bindings.bindings[].contract_id] | sort) == ([$root.contracts[].id] | sort) and
+            all($root.reference_vector_bindings.bindings[];
+              . as $binding |
+              (.vector_id | type == "string" and length > 0) and
+              (.output_theorems | type == "object" and length > 0) and
+              all(($binding.output_theorems | to_entries[]);
+                .value as $theorem |
+                any($root.contracts[].theorems[]; . == $theorem)
+              )
+            )
+          ' formalization/lean/contracts.json >/dev/null
+      - name: Reconcile pinned candidate corpus from housing evidence PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest='formalization/lean/contracts.json'
+          corpus_commit=$(jq -r '.reference_vector_bindings.corpus_commit' "$manifest")
+          schema_commit=$(jq -r '.reference_vector_bindings.corpus_schema_commit' "$manifest")
+          corpus_path=$(jq -r '.reference_vector_bindings.corpus_path' "$manifest")
+          schema_path=$(jq -r '.reference_vector_bindings.corpus_schema_path' "$manifest")
+          expected_corpus_blob=$(jq -r '.reference_vector_bindings.corpus_blob_sha' "$manifest")
+          expected_schema_blob=$(jq -r '.reference_vector_bindings.corpus_schema_blob_sha' "$manifest")
+          source_pr=$(jq -r '.reference_vector_bindings.source_pr_number' "$manifest")
+
+          if [ "$source_pr" != "1653" ]; then
+            echo "::error::Unexpected candidate corpus source PR: $source_pr"
+            exit 1
+          fi
+
+          candidate_ref="refs/remotes/origin/pr-${source_pr}-head"
+          git fetch --no-tags --depth=100 origin "refs/pull/${source_pr}/head:${candidate_ref}"
+          for pinned_commit in "$corpus_commit" "$schema_commit"; do
+            if ! git merge-base --is-ancestor "$pinned_commit" "$candidate_ref"; then
+              echo "::error::Pinned corpus/schema commit is not in PR #${source_pr} history: $pinned_commit"
+              exit 1
+            fi
+          done
+
+          actual_corpus_blob=$(git rev-parse "${corpus_commit}:${corpus_path}")
+          actual_schema_blob=$(git rev-parse "${schema_commit}:${schema_path}")
+          if [ "$actual_corpus_blob" != "$expected_corpus_blob" ]; then
+            echo "::error::Pinned vector corpus blob SHA does not match the manifest"
+            exit 1
+          fi
+          if [ "$actual_schema_blob" != "$expected_schema_blob" ]; then
+            echo "::error::Pinned vector schema blob SHA does not match the manifest"
+            exit 1
+          fi
+
+          git show "${corpus_commit}:${corpus_path}" > /tmp/structural-reference-contract-vectors.json
+          jq -e --slurpfile manifest "$manifest" '
+            . as $corpus |
+            $corpus.schema_version == "1.0.0" and
+            $corpus.corpus_id == "symtropy.structural-reference-contract-vectors.v1" and
+            $corpus.status == "ANALYTICAL_REFERENCE_CONFORMANCE_ONLY" and
+            ($corpus.vectors | length == 5) and
+            ([$corpus.vectors[].vector_id] | unique | length == 5) and
+            ([$corpus.vectors[].contract_id] | sort) ==
+              ([$manifest[0].reference_vector_bindings.bindings[].contract_id] | sort) and
+            all($manifest[0].reference_vector_bindings.bindings[];
+              . as $binding |
+              any($corpus.vectors[];
+                .vector_id == $binding.vector_id and .contract_id == $binding.contract_id) and
+              (
+                ([$corpus.vectors[] | select(.vector_id == $binding.vector_id and .contract_id == $binding.contract_id)][0].expected | keys | sort)
+                == ($binding.output_theorems | keys | sort)
+              ) and
+              all(($binding.output_theorems | to_entries[]);
+                .value as $theorem |
+                any($manifest[0].contracts[].theorems[]; . == $theorem)
+              )
+            )
+          ' /tmp/structural-reference-contract-vectors.json >/dev/null
+
+          echo "Verified pinned vector corpus + schema blobs and reconciled all five IDs."
+      - name: Build pinned Lean project and audit theorem namespace
+        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
+        with:
+          lake-package-directory: formalization/lean
+          use-mathlib-cache: true
+          build: true
+          axiom-audit: true
+          axiom-audit-root: SymtropyFormal
+          axiom-audit-allow: propext,Classical.choice,Quot.sound
+      - name: Typecheck all theorem names in the formal contract manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'import SymtropyFormal\n\n'
+            jq -r '([.contracts[].theorems[], .dimension_system.unit_theorems[], .negative_controls[].theorem] | unique[]) | "#check " + .' formalization/lean/contracts.json
+          } > formalization/lean/ContractManifestCheck.lean
+          cd formalization/lean
+          trap 'rm -f ContractManifestCheck.lean' EXIT
+          lake env lean ContractManifestCheck.lean

@@ -1,0 +1,567 @@
+{
+  "schema_version": "0.1.0",
+  "package": "SymtropyFormal",
+  "status": "PROTOTYPE_PENDING_EXACT_HEAD_CI",
+  "unit_convention": "Lean formulas are real-valued and accompanied by a separate dimension-exponent model. Candidate Rust kernel APIs use validated SI quantity newtypes; try_from_si validates positive finite magnitudes but performs no unit conversion. Rust implementation refinement remains NOT_ESTABLISHED.",
+  "contracts": [
+    {
+      "id": "geometry.rectangular_section.second_moment.v1",
+      "equation": "I = b * h^3 / 12",
+      "formal_definition": "SymtropyFormal.rectangularSecondMoment",
+      "inputs_and_outputs": {
+        "breadth": "m",
+        "depth": "m",
+        "second_moment_of_area": "m^4"
+      },
+      "assumptions": [
+        "breadth > 0 and depth > 0 for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.rectangularSecondMoment_pos",
+        "SymtropyFormal.rectangularSecondMoment_depth_scaling",
+        "SymtropyFormal.rectangularSecondMoment_cantilever_fixture_value",
+        "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value",
+        "SymtropyFormal.rectangularSecondMoment_dimensions",
+        "SymtropyFormal.rectangularSectionShapeFactor_dimensions",
+        "SymtropyFormal.rectangularSectionArea_cantilever_fixture_value",
+        "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value",
+        "SymtropyFormal.rectangularSectionArea_dimensions"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/cantilever-beam-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        },
+        {
+          "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "geometry.rectangular.section.shape-factor.pi1.v1",
+          "expression": "I / L^4 = (b*h^3)/(12*L^4)",
+          "theorem": "SymtropyFormal.rectangularSectionShapeFactor_dimensions",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "rectangular_section_properties(width_m: Meters, depth_m: Meters) -> StructuralReferenceResult<RectangularSectionProperties>",
+        "outputs": {
+          "area_m2": "RectangularSectionProperties.area_m2: SquareMeters",
+          "second_moment_area_m4": "RectangularSectionProperties.second_moment_area_m4: FourthMomentOfArea",
+          "extreme_fiber_distance_m": "RectangularSectionProperties.extreme_fiber_distance_m: Meters"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "width_m": "Meters",
+          "depth_m": "Meters"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
+      }
+    },
+    {
+      "id": "mechanics.axial_bar.extension.v1",
+      "equation": "delta = F * L / (E * A)",
+      "formal_definition": "SymtropyFormal.axialExtension",
+      "inputs_and_outputs": {
+        "force": "N",
+        "length": "m",
+        "youngs_modulus": "Pa",
+        "area": "m^2",
+        "extension": "m",
+        "axial_stress": "Pa",
+        "support_reaction_magnitude": "N"
+      },
+      "assumptions": [
+        "uniform linearly elastic bar",
+        "positive force and length for positivity claim",
+        "positive Young's modulus and area"
+      ],
+      "theorems": [
+        "SymtropyFormal.axialExtension_pos",
+        "SymtropyFormal.axialExtension_force_scaling",
+        "SymtropyFormal.axialExtension_length_scaling",
+        "SymtropyFormal.axialBar_fixture_extension_value",
+        "SymtropyFormal.axialExtension_dimensions",
+        "SymtropyFormal.supportReaction_dimensions",
+        "SymtropyFormal.axialExtension_normalized_strain_dimensionless",
+        "SymtropyFormal.rectangularSectionArea_axialBar_fixture_value",
+        "SymtropyFormal.axialBarStress_fixture_value",
+        "SymtropyFormal.axialBarSupportReaction_fixture_value",
+        "SymtropyFormal.axialBarStress_formula_dimensions"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/axial-bar-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/axial-bar-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.axial_bar.strain.pi1.v1",
+          "expression": "delta/L = F/(E*A)",
+          "theorem": "SymtropyFormal.axialExtension_normalized_strain_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "axial_bar(load_n: Newtons, length_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters) -> StructuralReferenceResult<AxialBarResult>",
+        "outputs": {
+          "extension_m": "AxialBarResult.free_end_extension_m: Meters",
+          "stress_pa": "AxialBarResult.axial_stress_pa: Pascals",
+          "support_reaction_n": "AxialBarResult.support_reaction_magnitude_n: Newtons",
+          "section_area_m2": "AxialBarResult.section.area_m2: SquareMeters"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "load_n": "Newtons",
+          "length_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
+      }
+    },
+    {
+      "id": "mechanics.cantilever.tip_deflection.v1",
+      "equation": "delta = F * L^3 / (3 * E * I)",
+      "formal_definition": "SymtropyFormal.cantileverTipDeflection",
+      "inputs_and_outputs": {
+        "tip_force": "N",
+        "span": "m",
+        "youngs_modulus": "Pa",
+        "second_moment_of_area": "m^4",
+        "tip_deflection": "m",
+        "support_bending_moment": "N*m",
+        "support_maximum_bending_stress": "Pa",
+        "support_reaction_magnitude": "N"
+      },
+      "assumptions": [
+        "Euler-Bernoulli beam theory",
+        "linear static response and small deflection",
+        "cantilever with a tip point load",
+        "positive force, span, Young's modulus and second moment of area for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.cantileverTipDeflection_pos",
+        "SymtropyFormal.cantileverTipDeflection_force_scaling",
+        "SymtropyFormal.cantileverTipDeflection_length_cubic_scaling",
+        "SymtropyFormal.cantilever_fixture_tip_deflection_value",
+        "SymtropyFormal.cantileverTipDeflection_dimensions",
+        "SymtropyFormal.axialStress_dimensions",
+        "SymtropyFormal.cantilever_normalized_deflection_dimensionless",
+        "SymtropyFormal.rectangularSectionArea_cantilever_fixture_value",
+        "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value",
+        "SymtropyFormal.cantileverMaximumBendingMoment_fixture_value",
+        "SymtropyFormal.cantileverMaximumBendingStress_fixture_value",
+        "SymtropyFormal.cantileverSupportReaction_fixture_value",
+        "SymtropyFormal.beamBendingStress_dimensions"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/cantilever-beam-linear-static/v1",
+          "fixture_path": "docs/built-environment/benchmarks/cantilever-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.cantilever.normalized-deflection.pi1.v1",
+          "expression": "delta/L = F*L^2/(3*E*I)",
+          "theorem": "SymtropyFormal.cantilever_normalized_deflection_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "cantilever_tip_load(load_n: Newtons, span_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters) -> StructuralReferenceResult<BeamResult>",
+        "outputs": {
+          "tip_deflection_m": "BeamResult.maximum_deflection_m: Meters",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm: NewtonMeters",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa: Pascals",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n: Newtons"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "load_n": "Newtons",
+          "span_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
+      }
+    },
+    {
+      "id": "mechanics.simply_supported.midpoint_point_load.v1",
+      "equation": "delta_mid = F * L^3 / (48 * E * I)",
+      "formal_definition": "SymtropyFormal.simplySupportedMidpointDeflection",
+      "inputs_and_outputs": {
+        "midpoint_force": "N",
+        "span": "m",
+        "youngs_modulus": "Pa",
+        "second_moment_of_area": "m^4",
+        "midspan_deflection": "m",
+        "maximum_bending_moment": "N*m",
+        "maximum_bending_stress": "Pa",
+        "support_reaction_magnitude": "N"
+      },
+      "assumptions": [
+        "Euler-Bernoulli beam theory",
+        "linear static response and small deflection",
+        "simply supported beam with a midpoint point load",
+        "positive force, span, Young's modulus and second moment of area for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.simplySupportedMidpointDeflection_pos",
+        "SymtropyFormal.simplySupportedMidpointDeflection_force_scaling",
+        "SymtropyFormal.simplySupportedMidpointDeflection_length_cubic_scaling",
+        "SymtropyFormal.simplySupportedMidpoint_fixture_deflection_value",
+        "SymtropyFormal.simplySupportedMidpointDeflection_dimensions",
+        "SymtropyFormal.axialStress_dimensions",
+        "SymtropyFormal.bendingMoment_dimensions",
+        "SymtropyFormal.supportReaction_dimensions",
+        "SymtropyFormal.simplySupportedMidpoint_normalized_deflection_dimensionless",
+        "SymtropyFormal.rectangularSectionArea_simplySupported_fixture_value",
+        "SymtropyFormal.extremeFiberDistance_simplySupported_fixture_value",
+        "SymtropyFormal.simplySupportedMidpointMaximumBendingMoment_fixture_value",
+        "SymtropyFormal.simplySupportedMidpointMaximumBendingStress_fixture_value",
+        "SymtropyFormal.simplySupportedMidpointSupportReaction_fixture_value",
+        "SymtropyFormal.beamBendingStress_dimensions"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+          "case_id": "midpoint-point-load-v1",
+          "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.simply_supported.midpoint.normalized-deflection.pi1.v1",
+          "expression": "delta/L = F*L^2/(48*E*I)",
+          "theorem": "SymtropyFormal.simplySupportedMidpoint_normalized_deflection_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "simply_supported_beam(span_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters, MidpointPointLoad { force_n: Newtons }) -> StructuralReferenceResult<BeamResult>",
+        "outputs": {
+          "midspan_deflection_m": "BeamResult.maximum_deflection_m: Meters",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm: NewtonMeters",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa: Pascals",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n: Newtons"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "span_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters",
+          "force_n": "Newtons"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
+      }
+    },
+    {
+      "id": "mechanics.simply_supported.uniform_load.v1",
+      "equation": "delta_mid = 5 * q * L^4 / (384 * E * I)",
+      "formal_definition": "SymtropyFormal.simplySupportedUniformLoadDeflection",
+      "inputs_and_outputs": {
+        "uniform_load_intensity": "N/m",
+        "span": "m",
+        "youngs_modulus": "Pa",
+        "second_moment_of_area": "m^4",
+        "midspan_deflection": "m",
+        "maximum_bending_moment": "N*m",
+        "maximum_bending_stress": "Pa",
+        "support_reaction_magnitude": "N"
+      },
+      "assumptions": [
+        "Euler-Bernoulli beam theory",
+        "linear static response and small deflection",
+        "simply supported beam with uniformly distributed load over the span",
+        "positive load intensity, span, Young's modulus and second moment of area for positivity claim"
+      ],
+      "theorems": [
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_pos",
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_load_scaling",
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_length_quartic_scaling",
+        "SymtropyFormal.simplySupportedUniformLoad_fixture_deflection_value",
+        "SymtropyFormal.simplySupportedUniformLoadDeflection_dimensions",
+        "SymtropyFormal.axialStress_dimensions",
+        "SymtropyFormal.bendingMoment_dimensions",
+        "SymtropyFormal.supportReaction_dimensions",
+        "SymtropyFormal.simplySupportedUniformLoad_normalized_deflection_dimensionless",
+        "SymtropyFormal.rectangularSectionArea_simplySupported_fixture_value",
+        "SymtropyFormal.extremeFiberDistance_simplySupported_fixture_value",
+        "SymtropyFormal.simplySupportedUniformMaximumBendingMoment_fixture_value",
+        "SymtropyFormal.simplySupportedUniformMaximumBendingStress_fixture_value",
+        "SymtropyFormal.simplySupportedUniformSupportReaction_fixture_value",
+        "SymtropyFormal.beamBendingStress_dimensions",
+        "SymtropyFormal.simplySupportedUniformMaximumBendingMoment_dimensions"
+      ],
+      "rust_binding_status": "NOT_ESTABLISHED",
+      "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
+      "candidate_benchmark_fixtures": [
+        {
+          "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+          "case_id": "uniform-distributed-load-v1",
+          "fixture_path": "docs/built-environment/benchmarks/simply-supported-beam-linear-static-v1.json",
+          "status": "CANDIDATE_ON_OPEN_PR_1653"
+        }
+      ],
+      "dimension_status": "LEAN_DIMENSION_IDENTITY_ADDED_RUST_BINDING_NOT_ESTABLISHED",
+      "dimensionless_groups": [
+        {
+          "id": "mechanics.simply_supported.uniform-load.normalized-deflection.pi1.v1",
+          "expression": "delta/L = 5*q*L^3/(384*E*I)",
+          "theorem": "SymtropyFormal.simplySupportedUniformLoad_normalized_deflection_dimensionless",
+          "scope": "LINEAR_ANALYTICAL_REFERENCE_ONLY"
+        }
+      ],
+      "candidate_rust_mapping": {
+        "repository": "Luminous-Dynamics/symtropy",
+        "source_path": "crates/apps/symtropy-housing-evidence/src/structural_reference.rs",
+        "api": "simply_supported_beam(span_m: Meters, youngs_modulus_pa: Pascals, width_m: Meters, depth_m: Meters, UniformDistributedLoad { load_n_per_m: NewtonsPerMeter }) -> StructuralReferenceResult<BeamResult>",
+        "outputs": {
+          "midspan_deflection_m": "BeamResult.maximum_deflection_m: Meters",
+          "maximum_bending_moment_nm": "BeamResult.maximum_bending_moment_nm: NewtonMeters",
+          "maximum_bending_stress_pa": "BeamResult.maximum_bending_stress_pa: Pascals",
+          "support_reaction_n": "BeamResult.support_reaction_magnitude_n: Newtons"
+        },
+        "status": "CANDIDATE_IMPLEMENTATION_ON_OPEN_PR_1653_NOT_MERGED",
+        "refinement_status": "NOT_ESTABLISHED",
+        "units": "Validated private-payload SI quantity newtypes; callers must convert inputs to SI before try_from_si. No implicit unit conversion is performed.",
+        "input_quantity_types": {
+          "span_m": "Meters",
+          "youngs_modulus_pa": "Pascals",
+          "width_m": "Meters",
+          "depth_m": "Meters",
+          "load_n_per_m": "NewtonsPerMeter"
+        },
+        "type_safety": "Rust compile-time quantity-category distinctions; dimensional exponent consistency is specified separately in Lean."
+      }
+    }
+  ],
+  "dimension_system": {
+    "representation": "Seven integer exponents (length, mass, time, electric current, thermodynamic temperature, amount of substance, luminous intensity). Multiplication adds exponents; division subtracts them; natural powers scale them.",
+    "base_order": [
+      "length",
+      "mass",
+      "time",
+      "electric_current",
+      "thermodynamic_temperature",
+      "amount_of_substance",
+      "luminous_intensity"
+    ],
+    "enforcement_status": "PROVED_DIMENSION_IDENTITIES_ONLY_NUMERIC_FUNCTION_ARGUMENTS_NOT_TYPE_ENFORCED",
+    "research": [
+      "https://arxiv.org/abs/2509.13142",
+      "https://github.com/ATOMSLab/LeanDimensionalAnalysis",
+      "https://docs.rs/dimensioned/latest/dimensioned/"
+    ],
+    "unit_dimension_vectors": {
+      "m": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "m^2": [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "m^4": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "N": [
+        1,
+        1,
+        -2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "Pa": [
+        -1,
+        1,
+        -2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "N*m": [
+        2,
+        1,
+        -2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "N/m": [
+        0,
+        1,
+        -2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "vector_order": [
+      "length",
+      "mass",
+      "time",
+      "electric_current",
+      "thermodynamic_temperature",
+      "amount_of_substance",
+      "luminous_intensity"
+    ],
+    "note": "Exponent vectors are dimensions, not conversion factors. SI-scaled values still need a trusted unit-normalization layer.",
+    "unit_theorems": {
+      "m": "SymtropyFormal.unit_m_vector",
+      "m^2": "SymtropyFormal.unit_m2_vector",
+      "m^4": "SymtropyFormal.unit_m4_vector",
+      "N": "SymtropyFormal.unit_N_vector",
+      "Pa": "SymtropyFormal.unit_Pa_vector",
+      "N*m": "SymtropyFormal.unit_Nm_vector",
+      "N/m": "SymtropyFormal.unit_N_per_m_vector"
+    }
+  },
+  "negative_controls": [
+    {
+      "id": "mechanics.cantilever.missing-length-power.v1",
+      "expression": "F * L / (E * I) is not a length-dimensional deflection",
+      "theorem": "SymtropyFormal.cantilever_missing_length_power_is_not_length",
+      "expectation": "REJECT_WRONG_DIMENSION",
+      "purpose": "Guard against accidental removal of the L^3 factor from the cantilever deflection equation."
+    }
+  ],
+  "rust_refinement_status": "NOT_ESTABLISHED",
+  "reference_vector_bindings": {
+    "status": "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED",
+    "corpus_path": "docs/built-environment/benchmarks/structural-reference-contract-vectors-v1.json",
+    "corpus_commit": "5f28fba1096e84b1ebd1fa83661ed70558b67ba3",
+    "rust_test_path": "crates/apps/symtropy-housing-evidence/tests/structural_reference_contract_vectors.rs",
+    "rust_test_status": "AUTHORED_NOT_EXECUTED",
+    "rust_lean_refinement_status": "NOT_ESTABLISHED",
+    "note": "Stable shared IDs support traceability and differential testing. The vector corpus is not an independently implemented verifier and does not itself prove that the Rust implementation refines the Lean definitions.",
+    "bindings": [
+      {
+        "vector_id": "geometry.rectangular-section.cantilever-fixture.v1",
+        "contract_id": "geometry.rectangular_section.second_moment.v1",
+        "output_theorems": {
+          "area_m2": "SymtropyFormal.rectangularSectionArea_cantilever_fixture_value",
+          "second_moment_area_m4": "SymtropyFormal.rectangularSecondMoment_cantilever_fixture_value",
+          "extreme_fiber_distance_m": "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value"
+        }
+      },
+      {
+        "vector_id": "mechanics.axial-bar.fixture.v1",
+        "contract_id": "mechanics.axial_bar.extension.v1",
+        "output_theorems": {
+          "area_m2": "SymtropyFormal.rectangularSectionArea_axialBar_fixture_value",
+          "axial_stress_Pa": "SymtropyFormal.axialBarStress_fixture_value",
+          "free_end_extension_m": "SymtropyFormal.axialBar_fixture_extension_value",
+          "support_reaction_magnitude_N": "SymtropyFormal.axialBarSupportReaction_fixture_value"
+        }
+      },
+      {
+        "vector_id": "mechanics.cantilever.tip-load.fixture.v1",
+        "contract_id": "mechanics.cantilever.tip_deflection.v1",
+        "output_theorems": {
+          "area_m2": "SymtropyFormal.rectangularSectionArea_cantilever_fixture_value",
+          "second_moment_area_m4": "SymtropyFormal.rectangularSecondMoment_cantilever_fixture_value",
+          "extreme_fiber_distance_m": "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value",
+          "maximum_deflection_m": "SymtropyFormal.cantilever_fixture_tip_deflection_value",
+          "maximum_bending_moment_Nm": "SymtropyFormal.cantileverMaximumBendingMoment_fixture_value",
+          "maximum_bending_stress_Pa": "SymtropyFormal.cantileverMaximumBendingStress_fixture_value",
+          "support_reaction_magnitude_N": "SymtropyFormal.cantileverSupportReaction_fixture_value"
+        }
+      },
+      {
+        "vector_id": "mechanics.simply-supported.midpoint-load.fixture.v1",
+        "contract_id": "mechanics.simply_supported.midpoint_point_load.v1",
+        "output_theorems": {
+          "area_m2": "SymtropyFormal.rectangularSectionArea_simplySupported_fixture_value",
+          "second_moment_area_m4": "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value",
+          "extreme_fiber_distance_m": "SymtropyFormal.extremeFiberDistance_simplySupported_fixture_value",
+          "maximum_deflection_m": "SymtropyFormal.simplySupportedMidpoint_fixture_deflection_value",
+          "maximum_bending_moment_Nm": "SymtropyFormal.simplySupportedMidpointMaximumBendingMoment_fixture_value",
+          "maximum_bending_stress_Pa": "SymtropyFormal.simplySupportedMidpointMaximumBendingStress_fixture_value",
+          "support_reaction_magnitude_N": "SymtropyFormal.simplySupportedMidpointSupportReaction_fixture_value"
+        }
+      },
+      {
+        "vector_id": "mechanics.simply-supported.uniform-load.fixture.v1",
+        "contract_id": "mechanics.simply_supported.uniform_load.v1",
+        "output_theorems": {
+          "area_m2": "SymtropyFormal.rectangularSectionArea_simplySupported_fixture_value",
+          "second_moment_area_m4": "SymtropyFormal.rectangularSecondMoment_simplySupported_fixture_value",
+          "extreme_fiber_distance_m": "SymtropyFormal.extremeFiberDistance_simplySupported_fixture_value",
+          "maximum_deflection_m": "SymtropyFormal.simplySupportedUniformLoad_fixture_deflection_value",
+          "maximum_bending_moment_Nm": "SymtropyFormal.simplySupportedUniformMaximumBendingMoment_fixture_value",
+          "maximum_bending_stress_Pa": "SymtropyFormal.simplySupportedUniformMaximumBendingStress_fixture_value",
+          "support_reaction_magnitude_N": "SymtropyFormal.simplySupportedUniformSupportReaction_fixture_value"
+        }
+      }
+    ],
+    "corpus_schema_path": "docs/built-environment/benchmarks/structural-reference-contract-vectors.schema.json",
+    "corpus_schema_commit": "219f29a0a1ef3639077ad88e9d2b47a52dde3235",
+    "corpus_schema_status": "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED",
+    "source_pr_number": 1653,
+    "corpus_blob_sha": "c4b58eb5b766bfc717b7836b9e524f98fce20b56",
+    "corpus_schema_blob_sha": "74df040d1a09b8a5177c63c88bf9355fc1127b0a"
+  }
+}
