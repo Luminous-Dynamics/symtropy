@@ -76,7 +76,7 @@ Compare the same frozen cases against:
 
 The tiny-instance oracle must not reuse production branch-feasibility, resource-ledger, objective-aggregation or state-transition helpers. Freeze tie-breaking and the baseline implementations before the evaluation split.
 
-## 6. Required hostile cases
+## 7. Required hostile cases
 
 - no disruption (recourse must not create needless plan churn);
 - one berth delay with one feasible alternate interval;
@@ -96,7 +96,7 @@ The tiny-instance oracle must not reuse production branch-feasibility, resource-
 
 Keep negative controls. A hash or valid signature proves integrity/issuer attribution, not physical truth or permission to execute a branch.
 
-## 7. Proposed acceptance gates
+## 8. Proposed acceptance gates
 
 These are targets, **not measured results**:
 - 100% agreement with the exhaustive oracle on complete frozen tiny policy spaces for reachable branches, hard feasibility, resource ledger and objective vector.
@@ -109,13 +109,13 @@ These are targets, **not measured results**:
 - Larger-scale tests report p50/p95 runtime, peak memory, branch count/depth, candidates examined, truncation and per-scenario outcomes. Set latency targets only after a pinned-host baseline exists.
 - Historical-event performance remains gated by [#1671](https://github.com/Luminous-Dynamics/symtropy/issues/1671); a narrative-only case is a qualitative stress test, not empirical recovery validation.
 
-## 8. Authority and claim ceiling
+## 9. Authority and claim ceiling
 
 This is a deterministic reference benchmark, not an operational policy engine. Plans and branches are proposals, not bookings, dispatches, navigation advice or physical commands. Mycelix's separate owner-authorized flow remains responsible for real resource commitments. No automatic outreach, inventory mutation, payment, custody mutation, dispatch or actuation is permitted in this phase.
 
 Passing synthetic oracle checks proves only bounded policy correctness on the frozen model. It does not demonstrate real-world resilience, fairness, safety, emissions savings, seaworthiness, regulatory compliance or predictive validity.
 
-## Research grounding
+## 10. Research grounding
 
 - IMO/IAPH/IHMA, *Port Call Optimization Guide launched at IMO*, 26 March 2026: https://greenvoyage2050.imo.org/port-call-optimization-guide-launched-at-imo/
 - IMO GreenVoyage2050, *Ship-Port Interface Measures Portal* (describes JIT arrival dependency on berth, fairway and nautical-service availability): https://greenvoyage2050.imo.org/ship-port-interface-measures-portal/
