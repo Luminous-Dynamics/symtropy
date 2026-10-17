@@ -815,6 +815,42 @@ mod tests {
             dispositions.get("C-reference"),
             Some(&CandidateDisposition::FeasibleForSyntheticCase)
         );
+
+        let shortest = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "A-shortest")
+            .expect("shortest candidate exists");
+        assert!(shortest.findings.iter().any(|finding| {
+            finding.code == "grade_limit" && finding.status == CheckStatus::Violation
+        }));
+        assert!(shortest.findings.iter().any(|finding| {
+            finding.code == "earthworks_budget" && finding.status == CheckStatus::Violation
+        }));
+        assert!(shortest.findings.iter().any(|finding| {
+            finding.code.starts_with("drainage_capacity:")
+                && finding.status == CheckStatus::Violation
+        }));
+
+        let low_earthworks = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "B-low-earthworks")
+            .expect("low-earthworks candidate exists");
+        assert!(low_earthworks.findings.iter().any(|finding| {
+            finding.code == "utility_clearance:power-duct-known"
+                && finding.status == CheckStatus::Violation
+        }));
+
+        let reference = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate exists");
+        assert!(reference
+            .findings
+            .iter()
+            .all(|finding| finding.status == CheckStatus::Pass));
         assert!(!report.resource_schedule_feasible);
         assert_eq!(report.schedule_conflicts.len(), 1);
         assert_eq!(report.schedule_conflicts[0].resource_id, "excavator");
@@ -966,6 +1002,16 @@ mod tests {
                 > u64::from(u32::MAX)
         );
         verify_report(&modified, &report).expect("reference checker should match wide arithmetic");
+    }
+
+    #[test]
+    fn exact_frozen_input_replays_to_identical_report_bytes() {
+        let bytes = fixture_bytes();
+        let first_report = evaluate_json(&bytes).expect("first evaluation succeeds");
+        let second_report = evaluate_json(&bytes).expect("second evaluation succeeds");
+        let first_bytes = serde_json::to_vec(&first_report).expect("first report serializes");
+        let second_bytes = serde_json::to_vec(&second_report).expect("second report serializes");
+        assert_eq!(first_bytes, second_bytes);
     }
 
 }
