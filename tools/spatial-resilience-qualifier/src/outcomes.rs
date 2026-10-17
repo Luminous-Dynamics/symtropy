@@ -129,7 +129,8 @@ fn parse_candidate(value: &Value) -> Option<Candidate> {
 
 fn dominates(left: &Candidate, right: &Candidate) -> bool {
     let service_no_worse = left.services.iter().all(|(requirement_id, left_hours)| {
-        right.services
+        right
+            .services
             .get(requirement_id)
             .is_some_and(|right_hours| left_hours >= right_hours)
     });
@@ -197,7 +198,12 @@ fn compare_one(
         let requirement_id = read_string(requirement_object, "requirement_id")?.to_owned();
         let minimum_service_hours = read_u64(requirement_object, "minimum_service_hours")?;
         if requirements
-            .insert(requirement_id.clone(), Requirement { minimum_service_hours })
+            .insert(
+                requirement_id.clone(),
+                Requirement {
+                    minimum_service_hours,
+                },
+            )
             .is_some()
         {
             summary.fail(
@@ -337,10 +343,7 @@ fn compare_one(
 }
 
 /// Validate the schema and execute all expected paired-comparison/Pareto cases.
-pub fn validate_outcome_fixtures_bytes(
-    corpus_bytes: &[u8],
-    schema_bytes: &[u8],
-) -> OutcomeSummary {
+pub fn validate_outcome_fixtures_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> OutcomeSummary {
     let mut summary = OutcomeSummary::new(corpus_bytes, schema_bytes);
     let schema_value: Value = match serde_json::from_slice(schema_bytes) {
         Ok(value) => value,
@@ -393,7 +396,11 @@ pub fn validate_outcome_fixtures_bytes(
     }
 
     let Some(comparisons) = root.get("comparisons").and_then(Value::as_array) else {
-        summary.fail("OUTCOME_COMPARISONS_MISSING", "$.comparisons", "Expected an array.");
+        summary.fail(
+            "OUTCOME_COMPARISONS_MISSING",
+            "$.comparisons",
+            "Expected an array.",
+        );
         return summary;
     };
     summary.comparisons_seen = comparisons.len();
@@ -408,10 +415,7 @@ pub fn validate_outcome_fixtures_bytes(
     let mut comparison_ids = BTreeSet::new();
     for (index, comparison) in comparisons.iter().enumerate() {
         let path = format!("$.comparisons[{index}]");
-        let case_id = comparison
-            .get("id")
-            .and_then(Value::as_str)
-            .unwrap_or("");
+        let case_id = comparison.get("id").and_then(Value::as_str).unwrap_or("");
         if !comparison_ids.insert(case_id.to_owned()) {
             summary.fail(
                 "OUTCOME_COMPARISON_ID_DUPLICATE",
@@ -450,8 +454,8 @@ pub fn validate_outcome_fixtures_bytes(
     summary.failures.sort_by(|left, right| {
         (&left.path, &left.code, &left.detail).cmp(&(&right.path, &right.code, &right.detail))
     });
-    summary.passed = summary.failures.is_empty()
-        && summary.comparisons_passed == summary.comparisons_seen;
+    summary.passed =
+        summary.failures.is_empty() && summary.comparisons_passed == summary.comparisons_seen;
     summary
 }
 
@@ -469,7 +473,11 @@ mod tests {
             EMBEDDED_OUTCOME_CORPUS.as_bytes(),
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
-        assert!(summary.passed, "unexpected failures: {:?}", summary.failures);
+        assert!(
+            summary.passed,
+            "unexpected failures: {:?}",
+            summary.failures
+        );
         assert_eq!(summary.comparisons_seen, 5);
         assert_eq!(summary.comparisons_passed, 5);
         assert_eq!(summary.corpus_sha256.len(), 64);
@@ -482,7 +490,11 @@ mod tests {
             EMBEDDED_OUTCOME_CORPUS.as_bytes(),
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
-        let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-001").unwrap();
+        let result = summary
+            .results
+            .iter()
+            .find(|item| item.comparison_id == "SPR-P-001")
+            .unwrap();
         let fragile = result
             .candidate_dispositions
             .iter()
@@ -512,7 +524,11 @@ mod tests {
             EMBEDDED_OUTCOME_CORPUS.as_bytes(),
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
-        let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-003").unwrap();
+        let result = summary
+            .results
+            .iter()
+            .find(|item| item.comparison_id == "SPR-P-003")
+            .unwrap();
         assert_eq!(result.status, "reject_comparison");
         assert!(
             result
@@ -528,8 +544,17 @@ mod tests {
             EMBEDDED_OUTCOME_CORPUS.as_bytes(),
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
-        let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-005").unwrap();
-        assert!(result.candidate_dispositions.iter().all(|item| item.disposition == "front"));
+        let result = summary
+            .results
+            .iter()
+            .find(|item| item.comparison_id == "SPR-P-005")
+            .unwrap();
+        assert!(
+            result
+                .candidate_dispositions
+                .iter()
+                .all(|item| item.disposition == "front")
+        );
     }
 
     #[test]
@@ -583,7 +608,10 @@ mod tests {
     fn service_vector_must_preserve_every_declared_requirement() {
         let mut corpus: Value =
             serde_json::from_str(EMBEDDED_OUTCOME_CORPUS).expect("valid outcomes");
-        corpus["comparisons"][0]["candidates"][0]["services"].as_array_mut().unwrap().pop();
+        corpus["comparisons"][0]["candidates"][0]["services"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
         let summary = validate_outcome_fixtures_bytes(&bytes, EMBEDDED_OUTCOME_SCHEMA.as_bytes());
         assert!(has_code(&summary, "OUTCOME_SERVICE_VECTOR_MISMATCH"));
