@@ -33,6 +33,30 @@ observations / records
 
 An observation is not a fact without provenance and scope. A prediction is not permission. A preferred plan is not an actuation command. An asset marked "dead", "damaged", "obsolete" or "waste" is not thereby available for recovery.
 
+## Two stronger paradigms: evidence vectors and information economics
+
+Do not collapse heterogeneous observations into a single condition score. Photovoltaic screening illustrates why: an I–V curve, electroluminescence image, and insulation/wet-leakage test measure different failure dimensions. A 2025 study of 76 modules used visual inspection, insulation resistance, I–V curves and electroluminescence; its reported 68% reuse result is specific to its sample and qualification rules, not a general target. V0 therefore includes a hostile case where performance screening passes but a separate safety gate remains unknown.
+
+Choose the next test by **decision value**, not just asset risk, sensor novelty, or missing-data count. A 2026 Bayesian value-of-information study for marine concrete inspection reported that data-scarce zones could be more valuable to inspect than high-risk but data-saturated zones; the authors reported 46% lower cost and 8.81% risk reduction for their wharf case. Those figures are case-specific, not universal targets. V0 uses deliberately synthetic arithmetic to test that the declared net information value equals expected decision loss avoided minus test cost, delay burden and inspection risk. If the arithmetic or action label is inconsistent, reject the fixture.
+
+For positive expected net value, a measurement may become an inspection candidate; it still does not clear the unresolved gate before the measurement result is observed and qualified. For non-positive expected net value, the rule only says not to choose that test **on value alone**; it does not authorize a hazardous or otherwise blocked operation.
+
+## Interoperability, not another competing passport
+
+Where available, link rather than duplicate established product-lifecycle and conformity records. The UNECE/UN Transparency Protocol Digital Product Passport already describes product or batch identity, provenance, dimensions, conformity evidence, lifecycle data and linked component records. This oracle should be a **decision-time companion receipt**: reference the applicable passport / component records; add the current evidence snapshot, domain-profile version, gate outcomes, unresolved uncertainty, feasible plans, comparison method, and review disposition. It should not claim to issue a DPP or replace a conformity credential. Legal requirements remain specific to jurisdiction and product class.
+
+The intended seam is:
+
+```text
+product / batch passport + linked evidence credentials
+  -> versioned current evidence snapshot
+  -> domain profile + mandatory gates
+  -> recovery comparison
+  -> immutable decision receipt referencing the source record
+```
+
+That allows forestry lots, modules, turbine blades, infrastructure components and repairable machines to share the provenance/decision envelope while retaining their own measurements, tests, authorities and laws.
+
 ## Shared protocol, non-shared physics
 
 The common layer owns evidence references, decision semantics, reason codes, deterministic comparison, and receipts. Each domain profile owns its physics, units, hazards, thresholds, applicable tests, calibration, regulators/authorities and acceptance criteria.
@@ -147,7 +171,7 @@ Replay of identical canonical inputs, profile/version and planner version must p
 
 ## Reference benchmark contract
 
-The bundled `recovery-decision-scenarios-v0.1.json` has synthetic fixtures designed to test logic, not real detection or recovery performance. Every fixture sets `expected_actuation=false`.
+The bundled `recovery-decision-scenarios-v0.1.json` contains 17 synthetic fixtures designed to test logic, evidence-envelope completeness and inspection-value arithmetic—not real detection or recovery performance. Each evidence record includes an explicit synthetic source reference, method, evidence class, uncertainty kind, coverage and freshness class. Every fixture sets `expected_actuation=false`.
 
 ### Mandatory gates and correctness
 
@@ -156,7 +180,9 @@ The bundled `recovery-decision-scenarios-v0.1.json` has synthetic fixtures desig
 - **Unknown hazard or mandatory test:** 100% held from the affected operation.
 - **No hidden actuation:** 100% of receipts carry `NO_ACTUATION_AUTHORIZED`.
 - **Deterministic replay:** 100% byte-identical canonical receipts for identical normalized input/profile/version.
-- **Provenance completeness:** 100% of decision-relevant facts, thresholds, estimates and comparisons have source/profile/version identities.
+- **Provenance completeness:** 100% of decision-relevant facts, thresholds, estimates and comparisons have source/profile/version identities, and every synthetic evidence record declares scope, source reference, uncertainty kind, coverage and freshness.
+- **No scalar safety shortcut:** a passing performance signal cannot silently stand in for an independent mandatory safety test.
+- **Value-of-information arithmetic:** 100% of synthetic VOI fixtures reproduce the reported net value exactly, and the declared inspect/do-not-inspect-on-value-alone label matches its sign.
 - **Counterfactual isolation:** rendering, map styling, prose, UI selection or absent sensors cannot silently mutate canonical physical state or grant permission.
 - **No silent unit conversion/profile substitution:** mismatches reject with reason codes.
 
@@ -189,6 +215,8 @@ The corpus intentionally contains:
 - a declining live tree that cannot be reclassified as deadwood;
 - PV modules eligible for second-life review only after specified tests;
 - a PV module with failed insulation held from reuse;
+- a PV module with performance-screening results but unknown insulation safety, held until the independent test is resolved;
+- one synthetic inspection where the expected decision loss avoided exceeds inspection burden, and another where it does not—both keep the unresolved operation on hold;
 - a wind blade with unresolved condition and transport qualification;
 - disaster debris with unknown asbestos status;
 - lab-tested concrete eligible for engineering review, not automatic structural approval;
@@ -203,6 +231,9 @@ Every cost/quantity value in the corpus is synthetic and clearly labeled. These 
 ## Research grounding
 
 - PV second-life decision process using visual inspection, insulation resistance, I–V curves and electroluminescence on 76 modules from a 22-year-old installation; its 68% reuse finding is study-specific, not a target to generalize: [Marinna et al., Journal of Cleaner Production (2025), DOI 10.1016/j.jclepro.2025.144941](https://doi.org/10.1016/j.jclepro.2025.144941).
+- A Bayesian value-of-information framework for marine concrete inspection found knowledge scarcity affected inspection value; its 46% cost and 8.81% risk reductions are particular to the reported wharf case: [Reliability Engineering & System Safety (2026), DOI 10.1016/j.ress.2026.112817](https://doi.org/10.1016/j.ress.2026.112817).
+- The UN Transparency Protocol’s Digital Product Passport specification provides a useful interoperability target for item/batch identity, provenance, component links, conformity evidence and lifecycle data. The recovery decision receipt should link to these records rather than replace them: [UNECE/UNTP Digital Product Passport](https://untp.unece.org/docs/specification/DigitalProductPassport/).
+- A 2025 review of end-of-life wind-turbine blades compares recovery/reprocessing stages and cascading use paths; it reinforces that route comparisons must cover interdependent processing stages instead of optimizing only collection: [Renewable and Sustainable Energy Reviews (2025), DOI 10.1016/j.rser.2025.115834](https://doi.org/10.1016/j.rser.2025.115834).
 - Post-disaster circular reconstruction argues for recovery pathways alongside hazard-aware separation and institutional coordination: [Çetin & Kirchherr (2025), DOI 10.1007/s43615-024-00495-y](https://doi.org/10.1007/s43615-024-00495-y).
 - Wind turbine blade review compares recovery and utilization methods, including hierarchical mechanical recycling: [Resources, Conservation & Recycling (2024), DOI 10.1016/j.resconrec.2024.107813](https://doi.org/10.1016/j.resconrec.2024.107813).
 - Recent bridge research integrates robotic inspection, digital-twin updating and maintenance decision support; its domain-specific model and field findings do not qualify this oracle: [Communications Engineering (2026), DOI 10.1038/s44172-026-00637-0](https://doi.org/10.1038/s44172-026-00637-0).
