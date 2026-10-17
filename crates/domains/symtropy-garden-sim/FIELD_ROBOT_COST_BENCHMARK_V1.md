@@ -58,6 +58,17 @@ A 2026 open-access study of 61 maize fields in northwestern Germany reported tha
 
 Reference: *Structural cost modeling and sensitivity analysis of autonomous field robot operations*, Smart Agricultural Technology 13 (March 2026), https://doi.org/10.1016/j.atech.2026.101913.
 
+## Bounded sensitivity envelope follow-on
+
+The companion `field_robot_cost_sensitivity` module (tracked in [AGRI-ROBOT-COST-002 #1816](https://github.com/Luminous-Dynamics/symtropy/issues/1816)) evaluates explicitly supplied low/base/high or otherwise bounded scenario inputs using the same cost kernel. It returns observed min/max annual cost, cost per service unit and cost per hectare where comparable, plus the number of source-referenced, provisional and blocked scenarios.
+
+Its range status is explicit:
+- `Complete`: every listed scenario produced a numeric calculation. Inputs may still be provisional.
+- `Partial`: some scenarios calculated but at least one is blocked; min/max describe only calculated scenarios and are not guaranteed bounds.
+- `Blocked`: invalid request or no scenario could be calculated; no numeric range is emitted.
+
+It does not invent probabilities or present scenario min/max as a confidence interval. An optional per-service-unit cost threshold reports whether the currently calculated scenario results straddle that threshold, while partial status remains visible.
+
 ## Current limitations and next steps
 
 1. This first version does not estimate crop yield, crop quality, task-failure probability, seasonal utilization, stochastic repair cost, discount rate, tax, or residual-value uncertainty. Add these only with explicit assumptions/ranges and independent oracle fixtures.
