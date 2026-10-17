@@ -4,7 +4,7 @@
 
 Symtropy already has a proof-carrying physics RFC (#1682), a pinned Lean engineering prototype (#1691), and a Rust tick-transaction primitive under review (#1726). This contract connects these strands without duplicating the broad RFC or overstating what Lean proves.
 
-The abstract model in \`formalization/lean/SymtropyFormal/TickTransactions.lean\` covers six lifecycle properties: strictly increasing logical tick IDs, continuity of prior/result state digests, legal phase ordering, rejection of finalization before physics, idempotent same-result retries, and rejection of conflicting retries.
+The abstract model in \`formalization/lean/SymtropyFormal/TickTransactions.lean\` declares eight lifecycle lemmas: strictly increasing logical tick IDs, continuity of prior/result state digests, legal phase ordering, rejection of finalization before physics, idempotent same-result retries, rejection of conflicting retries, rejection of pre-populated result state before physics, and rejection of an unlinked prior-state digest at finalization.
 
 ## Research transfer from OpenAI's public proof work
 
@@ -44,7 +44,7 @@ This model does not prove:
 
 ## Benchmarks and gates
 
-The first benchmark is correctness before speed: zero accepted illegal transitions, zero stale-ID accepts, zero state-chain-linkage violations, and zero conflicting-finalize accepts across exhaustive small state combinations and seeded traces. Report coverage counts and rejected-case counts, not just a pass percentage.
+The next proposed benchmark is correctness before speed: zero accepted illegal transitions, zero stale-ID accepts, zero state-chain-linkage violations, and zero conflicting-finalize accepts across exhaustive small state combinations and seeded traces. This runtime campaign is not implemented or measured in this PR. Report coverage counts and rejected-case counts, not just a pass percentage.
 
 For a future runtime trace campaign, target:
 - 100% rejection of enumerated illegal state transitions;
