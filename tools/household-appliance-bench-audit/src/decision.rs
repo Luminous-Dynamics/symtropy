@@ -341,8 +341,11 @@ fn audit_values(
                 ));
             }
         }
-        if text_at(criterion, "status") != Some("method_definition_not_yet_frozen") {
-            errors.push(format!("{id}: measurement method must remain unfrozen until the control protocol is preregistered"));
+        if !matches!(
+            text_at(criterion, "status"),
+            Some("method_definition_not_yet_frozen" | "method_frozen")
+        ) {
+            errors.push(format!("{id}: unsupported measurement-method state"));
         }
     }
 
@@ -416,6 +419,9 @@ fn audit_values(
                     if text_at(observation, "unit") != text_at(criterion, "unit") {
                         errors.push(format!("{id}.{metric_id}: unit does not match the criterion"));
                     }
+                    if text_at(criterion, "status") != Some("method_frozen") {
+                        errors.push(format!("{id}.{metric_id}: eligible observations require the criterion method to be frozen"));
+                    }
                     let (Some(lower), Some(upper)) = (
                         observation.get("lower").and_then(Value::as_f64),
                         observation.get("upper").and_then(Value::as_f64),
@@ -423,8 +429,15 @@ fn audit_values(
                         errors.push(format!("{id}.{metric_id}: eligible evidence requires finite numeric bounds"));
                         continue;
                     };
-                    if !lower.is_finite() || !upper.is_finite() || lower > upper {
-                        errors.push(format!("{id}.{metric_id}: bounds must be finite with lower <= upper"));
+                    if !lower.is_finite() || !upper.is_finite() || lower < 0.0 || lower > upper {
+                        errors.push(format!("{id}.{metric_id}: bounds must be finite, non-negative and satisfy lower <= upper"));
+                    }
+                    if matches!(
+                        metric_id,
+                        "first_visit_verified_repair_rate" | "target_window_part_fulfilment_rate"
+                    ) && upper > 1.0
+                    {
+                        errors.push(format!("{id}.{metric_id}: proportion bounds must not exceed 1.0"));
                     }
                 }
             }
