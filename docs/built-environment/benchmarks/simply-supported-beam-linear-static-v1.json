@@ -1,0 +1,74 @@
+{
+  "benchmark_id": "structural/simply-supported-beam-linear-static/v1",
+  "status": "analytical_reference_only",
+  "purpose": "Deterministic analytical oracle for simple-span beam deflection, maximum bending moment, extreme-fiber stress and support reactions. Not a building design or proof of code compliance.",
+  "model": {
+    "idealization": "Prismatic Euler-Bernoulli beam simply supported at both ends with no overhang.",
+    "assumptions": [
+      "linear elastic isotropic material",
+      "small deflection",
+      "slender beam; shear deformation ignored",
+      "ideal pin/roller simple supports",
+      "quasi-static vertical loading",
+      "no self-weight unless explicitly included in a load case",
+      "no buckling, lateral-torsional instability, connections, fire, fatigue, or material defects"
+    ],
+    "units": "SI"
+  },
+  "inputs": {
+    "span_m": 4,
+    "elastic_modulus_Pa": 200000000000,
+    "section_width_m": 0.1,
+    "section_depth_m": 0.2,
+    "second_moment_area_m4": 0.00006666666666666667,
+    "extreme_fiber_distance_m": 0.1
+  },
+  "equations": {
+    "second_moment_area": "I = b*h^3/12",
+    "extreme_fiber_distance": "c = h/2",
+    "midpoint_point_load_deflection": "delta_max = P*L^3/(48*E*I)",
+    "midpoint_point_load_maximum_moment": "M_max = P*L/4",
+    "uniform_load_deflection": "delta_max = 5*w*L^4/(384*E*I)",
+    "uniform_load_maximum_moment": "M_max = w*L^2/8",
+    "extreme_fiber_bending_stress": "sigma_max = M_max*c/I",
+    "midpoint_point_load_support_reaction": "R = P/2 per support",
+    "uniform_load_support_reaction": "R = w*L/2 per support"
+  },
+  "acceptance": {
+    "relative_tolerance": 1e-12,
+    "require_positive_inputs": true
+  },
+  "load_cases": [
+    {
+      "case_id": "midpoint-point-load-v1",
+      "load_type": "point_load_midspan",
+      "load_N": 5000,
+      "expected": {
+        "maximum_deflection_m": 0.0005,
+        "maximum_bending_moment_Nm": 5000,
+        "maximum_bending_stress_Pa": 7500000,
+        "support_reaction_magnitude_N": 2500
+      }
+    },
+    {
+      "case_id": "uniform-distributed-load-v1",
+      "load_type": "uniform_distributed_load",
+      "load_N_per_m": 1000,
+      "expected": {
+        "maximum_deflection_m": 0.00025,
+        "maximum_bending_moment_Nm": 2000,
+        "maximum_bending_stress_Pa": 3000000,
+        "support_reaction_magnitude_N": 2000
+      }
+    }
+  ],
+  "interpretation": {
+    "pass_means": "The declared elementary simply-supported beam formulas, geometry consistency and units/calculation plumbing match the synthetic reference within the stated tolerance.",
+    "does_not_mean": [
+      "A finite-element solver has been independently validated.",
+      "The beam or a real building member is adequate or code-compliant.",
+      "Shear deformation, buckling, lateral-torsional instability, connections, load combinations, fire, fatigue or material variability have been checked.",
+      "Any building-code provision is satisfied."
+    ]
+  }
+}

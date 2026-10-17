@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:schemas:rule-evaluation-receipt:0.4.0",
+  "title": "Rule Evaluation Receipt V4",
+  "description": "Binds a producer-declared rule-evaluation result to exact registry, jurisdiction, project, source, implementation, corpus, validated project-input manifest, independently pinned evaluation scope profile, declared gate outcomes and evidence artifacts, evaluator and output artifacts. Receipt integrity does not reproduce or endorse the declared result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "evaluated_at",
+    "evaluation_date",
+    "producer_declared_status",
+    "registry",
+    "jurisdiction",
+    "project",
+    "source_binding",
+    "project_input_manifest",
+    "evaluator",
+    "output_artifact",
+    "scope_profile",
+    "evaluation_gate_evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.4.0"
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluation_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "producer_declared_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "CLAIMED_PASS",
+        "CLAIMED_FAIL"
+      ]
+    },
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry_id",
+        "revision",
+        "sha256"
+      ],
+      "properties": {
+        "registry_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "country_code",
+        "region",
+        "municipality",
+        "resolution_status"
+      ],
+      "properties": {
+        "country_code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "region": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 160
+        },
+        "municipality": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "resolution_status": {
+          "const": "confirmed"
+        }
+      }
+    },
+    "source_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "edition",
+        "clause_location",
+        "source_snapshot_sha256",
+        "rule_id",
+        "rule_version",
+        "implementation_sha256",
+        "test_corpus_sha256",
+        "translation_review_sha256"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "clause_location": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "source_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "rule_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "implementation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "test_corpus_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "translation_review_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "project_input_manifest": {
+      "$ref": "#/$defs/artifact"
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "executable_artifact"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "executable_artifact": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "output_artifact": {
+      "$ref": "#/$defs/artifact"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "project_revision"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+        },
+        "project_revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "scope_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_version",
+        "artifact"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "artifact": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "evaluation_gate_evidence": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_id",
+          "artifact",
+          "declared_result_status"
+        ],
+        "properties": {
+          "gate_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+          },
+          "artifact": {
+            "$ref": "#/$defs/artifact"
+          },
+          "declared_result_status": {
+            "type": "string",
+            "enum": [
+              "CLAIMED_PASS",
+              "CLAIMED_FAIL",
+              "BLOCKED",
+              "NOT_EVALUATED",
+              "INSUFFICIENT_EVIDENCE"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[A-Za-z0-9._/-]+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

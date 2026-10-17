@@ -1,0 +1,49 @@
+{
+  "benchmark_id": "structural/cantilever-beam-linear-static/v1",
+  "status": "analytical_reference_only",
+  "purpose": "Deterministic analytical oracle for testing units, calculation plumbing, and future solver adapters. Not a building design or proof of code compliance.",
+  "model": {
+    "idealization": "Prismatic Euler-Bernoulli cantilever beam, fixed at x=0 and free at x=L, with a vertical point load P at the free end.",
+    "assumptions": [
+      "linear elastic isotropic material",
+      "small deflection",
+      "quasi-static point load",
+      "slender beam; shear deformation ignored",
+      "perfect fixed support",
+      "no self-weight, buckling, lateral-torsional instability, connections, fire, fatigue, or material defects"
+    ],
+    "units": "SI"
+  },
+  "inputs": {
+    "load_N": 1000,
+    "span_m": 2,
+    "elastic_modulus_Pa": 200000000000,
+    "section_width_m": 0.096,
+    "section_depth_m": 0.1,
+    "second_moment_area_m4": 0.000008,
+    "extreme_fiber_distance_m": 0.05
+  },
+  "equations": {
+    "second_moment_area": "I = b*h^3/12",
+    "free_end_deflection": "delta = P*L^3/(3*E*I)",
+    "support_maximum_bending_stress": "sigma = P*L*c/I"
+  },
+  "expected": {
+    "second_moment_area_m4": 0.000008,
+    "free_end_deflection_m": 0.0016666666666666668,
+    "support_maximum_bending_stress_Pa": 12500000
+  },
+  "acceptance": {
+    "relative_tolerance": 1e-12,
+    "require_positive_inputs": true
+  },
+  "interpretation": {
+    "pass_means": "The analytical reference computation and unit/shape checks match this declared example within the stated tolerance.",
+    "does_not_mean": [
+      "A finite-element solver has been independently validated.",
+      "The beam is adequate for a real building.",
+      "Connections, supports, load combinations, stability, fire resistance, serviceability rules, material grades, or jurisdictional provisions have been checked.",
+      "Any building-code provision is satisfied."
+    ]
+  }
+}
