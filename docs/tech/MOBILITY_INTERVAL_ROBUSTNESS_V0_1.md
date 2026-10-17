@@ -44,7 +44,7 @@ For a metric and eligible candidate pair, ordering is ambiguous when each candid
 
 ## Synthetic fixture and negative controls
 
-The fixture has eight invented bundles and five metrics. Five candidates have complete pass gates and bounded intervals; one fails a hard gate despite attractive fabricated metrics; one has unknown energy/service and repair gates; one has an unknown budget interval. All numbers and gate states are constructed only to exercise the implementation. They are not observations, vendor quotes, regulatory determinations, physical tests or environmental assessments.
+The fixture has eight invented bundles and five metrics. Five candidates have complete pass gates and bounded intervals; one fails a hard gate despite attractive fabricated metrics; one has unknown energy/service and repair gates; one has an unknown budget interval. All numbers and gate states are constructed only to exercise the implementation. They are not observations, vendor quotes, regulatory determinations, physical tests or environmental assessments. An independent readback calculation of this fixture retains all five fully evidenced candidates on the conservative robust frontier, but yields an empty stable frontier: the bounds are deliberately too broad to establish that any one candidate cannot be dominated under every admissible realization. The pairwise order-ambiguity counts are 10 for essential-trip coverage, 10 for P90 access time, 9 for monthly burden, 8 for repair downtime and 6 for the lifecycle index. These counts prioritize follow-up evidence only; they do not express likelihood or value of information.
 
 ## Benchmarks and acceptance targets
 
