@@ -358,7 +358,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 20
+      "maximum_safe_route_tilt_deg": 20,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "riverlink_accessible_ferry",
@@ -397,7 +411,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 12
+      "maximum_safe_route_tilt_deg": 12,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "canopyedge_light_rover",
@@ -414,9 +442,9 @@
       ],
       "max_payload_kg": 90,
       "bay_dimensions_mm": {
-        "length": 900,
-        "width": 750,
-        "height": 650
+        "length": 1400,
+        "width": 1000,
+        "height": 900
       },
       "ambient_temp_min_c": 10,
       "ambient_temp_max_c": 40,
@@ -435,7 +463,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 10
+      "maximum_safe_route_tilt_deg": 10,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "congo_low_disturbance_rover",
@@ -450,9 +492,9 @@
       ],
       "max_payload_kg": 75,
       "bay_dimensions_mm": {
-        "length": 850,
-        "width": 700,
-        "height": 620
+        "length": 1300,
+        "width": 900,
+        "height": 800
       },
       "ambient_temp_min_c": 10,
       "ambient_temp_max_c": 40,
@@ -471,7 +513,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 10
+      "maximum_safe_route_tilt_deg": 10,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "polar_sled_train",
@@ -506,7 +562,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 12
+      "maximum_safe_route_tilt_deg": 12,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "polarcrawler_science_carrier",
@@ -543,7 +613,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 12
+      "maximum_safe_route_tilt_deg": 12,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "polar_patient_carrier",
@@ -579,7 +663,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 8
+      "maximum_safe_route_tilt_deg": 8,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "dunerunner_cargo_rover",
@@ -594,9 +692,9 @@
       ],
       "max_payload_kg": 250,
       "bay_dimensions_mm": {
-        "length": 1100,
-        "width": 900,
-        "height": 800
+        "length": 1800,
+        "width": 1000,
+        "height": 900
       },
       "ambient_temp_min_c": 0,
       "ambient_temp_max_c": 60,
@@ -615,7 +713,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 14
+      "maximum_safe_route_tilt_deg": 14,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "dunerunner_crew_carrier",
@@ -650,7 +762,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 16
+      "maximum_safe_route_tilt_deg": 16,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "aidrover_supply",
@@ -666,9 +792,9 @@
       ],
       "max_payload_kg": 220,
       "bay_dimensions_mm": {
-        "length": 1200,
-        "width": 900,
-        "height": 850
+        "length": 1800,
+        "width": 1300,
+        "height": 1200
       },
       "ambient_temp_min_c": -15,
       "ambient_temp_max_c": 45,
@@ -687,7 +813,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 15
+      "maximum_safe_route_tilt_deg": 15,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     },
     {
       "platform_id": "aidrover_patient_carrier",
@@ -723,7 +863,21 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 9
+      "maximum_safe_route_tilt_deg": 9,
+      "center_of_mass_limits_fraction": {
+        "x": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "y": {
+          "min": 0.15,
+          "max": 0.85
+        },
+        "z": {
+          "min": 0.15,
+          "max": 0.85
+        }
+      }
     }
   ],
   "mission_scenarios": [
@@ -1159,6 +1313,24 @@
           "lower": 20,
           "upper": 50
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -1234,6 +1406,24 @@
           "status": "synthetic_interval",
           "lower": 26,
           "upper": 65
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -1315,6 +1505,24 @@
           "lower": 10,
           "upper": 25
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "seated_passengers",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "wheelchair_passenger",
+          "position_mm": {
+            "x": 1800,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -1394,6 +1602,24 @@
           "status": "synthetic_interval",
           "lower": 13,
           "upper": 32.5
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "seated_passengers",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "wheelchair_passenger",
+          "position_mm": {
+            "x": 1800,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -1475,6 +1701,24 @@
           "lower": 16,
           "upper": 40
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "seated_passengers",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "wheelchair_passenger",
+          "position_mm": {
+            "x": 1800,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -1550,6 +1794,24 @@
           "status": "synthetic_interval",
           "lower": 15,
           "upper": 40
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "contained_water_samples",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -1627,6 +1889,24 @@
           "lower": 19.5,
           "upper": 52
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "contained_water_samples",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -1699,6 +1979,16 @@
           "lower": 10,
           "upper": 30
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -1770,6 +2060,16 @@
           "status": "synthetic_interval",
           "lower": 13,
           "upper": 39
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -1847,6 +2147,24 @@
           "lower": 20,
           "upper": 60
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -1922,6 +2240,24 @@
           "status": "synthetic_interval",
           "lower": 26,
           "upper": 78
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 750,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -2007,6 +2343,16 @@
           "lower": 15,
           "upper": 40
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -2091,6 +2437,16 @@
           "lower": 19.5,
           "upper": 52
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -2166,6 +2522,24 @@
           "status": "synthetic_interval",
           "lower": 20,
           "upper": 50
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 900,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -2243,6 +2617,24 @@
           "lower": 26,
           "upper": 65
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "fragile_science_instrument",
+          "position_mm": {
+            "x": 900,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -2319,6 +2711,16 @@
           "lower": 20,
           "upper": 45
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -2394,6 +2796,16 @@
           "status": "synthetic_interval",
           "lower": 26,
           "upper": 58.5
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "field_crew",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -2475,6 +2887,24 @@
           "lower": 20,
           "upper": 60
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -2554,6 +2984,24 @@
           "status": "synthetic_interval",
           "lower": 26,
           "upper": 78
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "cold_chain_medicine",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "payload_id": "bulk_medical_supplies",
+          "position_mm": {
+            "x": 700,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     },
@@ -2643,6 +3091,16 @@
           "lower": 20,
           "upper": 60
         }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
       ]
     },
     {
@@ -2730,6 +3188,16 @@
           "status": "synthetic_interval",
           "lower": 26,
           "upper": 78
+        }
+      ],
+      "load_layout": [
+        {
+          "payload_id": "stretcher_patient",
+          "position_mm": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
         }
       ]
     }
