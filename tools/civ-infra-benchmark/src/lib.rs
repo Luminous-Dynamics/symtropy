@@ -1175,8 +1175,8 @@ mod tests {
         let occupancy = unknown.occupancy.as_mut().expect("horizontal envelope exists");
         occupancy.station_start_m = 300.0;
         occupancy.station_end_m = 450.0;
-        occupancy.lateral_min_m = 25.0;
-        occupancy.lateral_max_m = 26.0;
+        occupancy.lateral_min_m = 15.0;
+        occupancy.lateral_max_m = 16.0;
 
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&modified).expect("modified synthetic input remains valid");
@@ -1327,12 +1327,12 @@ mod tests {
             .iter_mut()
             .find(|candidate| candidate.id == "C-reference")
             .expect("reference candidate exists");
-        candidate.profile_points[1].elevation_m = 60.0;
+        candidate.profile_points[1].elevation_m = -60.0;
         // Keep the coarse envelopes consistent with the edited profile while
         // leaving the claimed 3.5% grade untouched.
-        candidate.road_envelopes[0].elevation_max_m = Some(60.0);
-        candidate.road_envelopes[1].elevation_min_m = Some(37.8);
-        candidate.road_envelopes[1].elevation_max_m = Some(60.0);
+        candidate.road_envelopes[0].elevation_min_m = Some(-60.0);
+        candidate.road_envelopes[1].elevation_min_m = Some(-60.0);
+        candidate.road_envelopes[1].elevation_max_m = Some(-19.25);
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&modified).expect("finite profile remains structurally valid");
         let result = report
@@ -1386,7 +1386,7 @@ mod tests {
             .iter_mut()
             .find(|candidate| candidate.id == "C-reference")
             .expect("reference candidate exists");
-        candidate.road_envelopes[0].elevation_max_m = Some(10.0);
+        candidate.road_envelopes[0].elevation_max_m = Some(-15.5);
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let errors = evaluate_json(&modified).expect_err("inconsistent envelope must fail");
         assert!(errors.iter().any(|error| error.contains("road envelope excludes profile")));
