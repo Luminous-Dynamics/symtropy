@@ -14,16 +14,16 @@ The CLI reads the exact fixture bytes, validates the schema and declared metric 
 
 ## Current synthetic fixture
 
-The frozen fixture contains four intentionally different candidate alignments. Each candidate is evaluated against three declared synthetic drainage scenarios (low flow, design storm, severe storm); the model records each case independently rather than hiding a failing stress condition in a nominal score. The report emits derived length, maximum absolute grade, cut volume, fill volume and total earthworks, each normalized to a stable nine-decimal precision for deterministic comparison. Result dispositions distinguish physical constraint infeasibility, inconsistency between declared and derived evidence, unknown/review-required cases, and feasibility for the explicitly modelled synthetic checks.
+The frozen fixture contains four intentionally different candidate alignments. Each candidate is evaluated against three declared synthetic drainage scenarios (low flow, design storm, severe storm); the model records each case independently rather than hiding a failing stress condition in a nominal score. The report emits derived length, maximum absolute grade, cut volume, fill volume, total earthworks, and the minimum drainage reserve (declared capacity minus declared demand) across the scenario set, each normalized to a stable nine-decimal precision for deterministic comparison. Result dispositions distinguish physical constraint infeasibility, inconsistency between declared and derived evidence, unknown/review-required cases, and feasibility for the explicitly modelled synthetic checks.
 
-| Candidate | Length | Derived maximum grade | Cut | Fill | Total earthworks | Synthetic disposition |
-|---|---:|---:|---:|---:|---:|---|
-| A-shortest | 880 m | 8.0% | 3,520 m³ | 1,760 m³ | 5,280 m³ | Infeasible: grade, earthworks and drainage limits |
-| B-low-earthworks | 980 m | 4.2% | 1,470 m³ | 980 m³ | 2,450 m³ | Infeasible: power-duct clearance |
-| C-reference | 1,080 m | 3.5% | 2,160 m³ | 1,620 m³ | 3,780 m³ | Feasible for explicitly modelled synthetic checks |
-| D-resilient-detour | 1,200 m | 2.5% | 2,400 m³ | 1,800 m³ | 4,200 m³ | Feasible; longer but gentler profile |
+| Candidate | Length | Grade | Cut | Fill | Total earthworks | Minimum drainage reserve | Synthetic disposition |
+|---|---:|---:|---:|---:|---:|---:|---|
+| A-shortest | 880 m | 8.0% | 3,520 m³ | 1,760 m³ | 5,280 m³ | −70 L/s | Infeasible: grade, earthworks and drainage limits |
+| B-low-earthworks | 980 m | 4.2% | 1,470 m³ | 980 m³ | 2,450 m³ | 10 L/s | Infeasible: power-duct clearance |
+| C-reference | 1,080 m | 3.5% | 2,160 m³ | 1,620 m³ | 3,780 m³ | 10 L/s | Feasible for explicitly modelled synthetic checks |
+| D-resilient-detour | 1,200 m | 2.5% | 2,400 m³ | 1,800 m³ | 4,200 m³ | 20 L/s | Feasible; longer but gentler profile |
 
-The V0 Pareto frontier uses only three minimization metrics—route length, maximum absolute grade, and total earthworks—and admits only candidates that pass every explicitly modelled synthetic check. Under that declared trade space, C-reference and D-resilient-detour are both non-dominated: C is shorter and needs less earthwork, while D has the gentler profile. This is a bounded synthetic demonstration of a Pareto set, not evidence that either real-world alternative is preferable.
+The V0 Pareto frontier uses route length, maximum absolute grade, total earthworks (all minimized), and minimum drainage reserve (maximized), and admits only candidates that pass every explicitly modelled synthetic check. Under that declared trade space, C-reference and D-resilient-detour are both non-dominated: C is shorter and needs less earthwork, while D has the gentler profile and more declared drainage reserve. This is a bounded synthetic demonstration of a Pareto set, not evidence that either real-world alternative is preferable.
 
 The cross-section cut/fill areas, profile, utility locations, and scenario-specific flow/capacity values and constraints are invented fixtures. Drainage scenarios only exercise direct demand-versus-declared-capacity checks; they are not hydraulic-solver runs. The grade and volumes are calculated from those inputs; they are not derived from surveyed terrain or a full corridor solid. C is not a real-world qualified road design.
 
