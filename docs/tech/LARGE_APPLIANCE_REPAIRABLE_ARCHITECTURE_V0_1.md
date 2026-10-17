@@ -190,6 +190,7 @@ Do not declare a 10-year service life from a short accelerated test. Accelerated
 ## 7. Symtropy / Symthaea / Mycelix boundaries
 
 - **Symtropy** owns the architecture variants, design/task graphs, cost/performance trade-offs and preregistered benchmark protocol.
+- **Architecture decision engine** ([REPAIR-DECISION-001 #1862](https://github.com/Luminous-Dynamics/symtropy/issues/1862), [protocol](REPAIRABILITY_ARCHITECTURE_DECISION_ENGINE_V0_1.md)) enforces non-compensatory hard gates and interval-robust Pareto comparison before any physical candidate can enter a comparative frontier.
 - **Symthaea** provides optional local advisory fault hypotheses and candidate-measurement rankings via the existing finite-hypothesis kernel and evidence-chained posterior state. Do not create a second EIG/EVSI implementation.
 - **Mycelix** binds source revision, BOM/substitute qualification, exact built unit, work-order/actual material events, post-repair proof and bounded recurrence through existing Manufacturing/RepairProductiveLoop and release/provenance owners.
 - **Physical product** retains deterministic local controls and independent protection. A synthetic benchmark or signed record cannot certify a machine as safe.
