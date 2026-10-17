@@ -17,22 +17,26 @@ with a zero horizon ratio and a two-tick starvation streak.
 This evaluator reports those dimensions separately rather than folding them
 into one scalar:
 
-- **Horizon service profile:** sorted exact fractions of total allocated amount
-  over total declared demand, across the trace.
+- **Horizon service profile:** sorted exact fractions of total allocation over
+  eligible demand across the trace. Ticks where an agent is ineligible do not
+  count toward its allocatable-demand denominator.
 - **Worst eligible slot ratio:** minimum allocation/demand fraction among
   eligible agent-tick pairs with positive demand.
 - **Starvation exposure:** per-agent starved tick count and maximum consecutive
   eligible-demand ticks receiving zero service.
-- **Demand coverage:** total demand, allocation, and unmet demand per agent.
+- **Demand coverage:** total demand/allocation/unmet demand and separate
+  eligible-demand, eligible-allocation, and eligible-unmet totals per agent.
 - **Input validity:** reject duplicate agents, jagged time series, allocations
   exceeding demand, and positive allocation while ineligible.
 - **Determinism:** canonical report order independent of input agent order;
   rational ordering uses a continued-fraction comparator rather than
   multiplication, avoiding overflow in ratio comparison.
 
-A zero-demand agent is excluded from horizon ratios; it is not silently assigned
-a 0/0 value. A tick with no eligibility or no positive demand breaks a
-starvation streak. This semantics is explicit and testable.
+An agent with zero eligible demand is excluded from horizon ratios; it is not
+silently assigned a 0/0 value. Demand during an ineligible tick remains visible
+in total unmet demand but does not falsely look like allocatable demand when
+comparing the allocation policy. A tick with no eligibility or no positive
+eligible demand breaks a starvation streak. This semantics is explicit and testable.
 
 ## Run
 
