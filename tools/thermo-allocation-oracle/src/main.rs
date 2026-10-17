@@ -76,7 +76,7 @@ fn feasible(p: &Problem, matrix: &[Vec<u32>], totals: &[u32]) -> bool {
     }
     for (wi, w) in p.wells.iter().enumerate() {
         if matrix[wi].len() != p.agents.len()
-            || matrix[wi].iter().copied().sum::<u32>() > w.supply {
+            || matrix[wi].iter().copied().sum::<u32>() > w.supply
         {
             return false;
         }
