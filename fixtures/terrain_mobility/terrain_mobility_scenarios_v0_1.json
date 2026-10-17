@@ -1021,15 +1021,14 @@
         "step_height_m": 0,
         "rut_depth_m": 0.18,
         "surface_uncertainty": "variable",
-        "drop_or_void_hazard": false,
-        "surface_dynamics": "changing"
+        "drop_or_void_hazard": false
       },
       "environment": {
         "lighting": "daylight",
         "weather": "dry",
         "localization": "nominal",
         "communications": "connected",
-        "surface_dynamics": "stable",
+        "surface_dynamics": "changing",
         "faults": []
       },
       "mission": {
