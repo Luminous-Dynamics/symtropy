@@ -3,7 +3,8 @@
 
 use serde_json::Value;
 use symtropy_visual_optics_reference::{
-    CameraPoint3, PinholeIntrinsics, PixelPoint, field_of_view, project_point, ray_through_pixel,
+    CameraPoint3, PinholeIntrinsics, PixelPoint, field_of_view, linear_channel_to_srgb,
+    project_point, ray_through_pixel, relative_luminance_from_srgb, srgb_channel_to_linear,
 };
 
 const PINHOLE_AXIS_FIXTURE: &str =
@@ -12,6 +13,8 @@ const PINHOLE_FOV_FIXTURE: &str =
     include_str!("../../../docs/visual-technology/fixtures/pinhole-fov-centered-1280x720-001.json");
 const PINHOLE_RAY_FIXTURE: &str =
     include_str!("../../../docs/visual-technology/fixtures/pinhole-ray-roundtrip-001.json");
+const SRGB_FIXTURE: &str =
+    include_str!("../../../docs/visual-technology/fixtures/srgb-transfer-and-luminance-001.json");
 
 fn parse_fixture(text: &str) -> Value {
     serde_json::from_str(text).expect("checked-in visual fixture must be valid JSON")
@@ -148,6 +151,104 @@ fn centered_field_of_view_fixture_matches_independent_equation_and_reference() {
         tolerance,
         "implementation vertical FOV",
     );
+}
+
+#[test]
+fn srgb_fixture_matches_independent_transfer_and_luminance_equations() {
+    let fixture = parse_fixture(SRGB_FIXTURE);
+    assert_fixture_is_not_self_qualifying(&fixture, "VIS-SRGB-REFERENCES-001");
+    assert_eq!(
+        value_at(&fixture, &["profile", "name"]).as_str(),
+        Some("sRGB")
+    );
+    assert_eq!(
+        value_at(&fixture, &["profile", "channel_domain"])
+            .as_array()
+            .expect("channel domain must be an array")
+            .len(),
+        2
+    );
+    let tolerance = number_at(&fixture, &["tolerance"]);
+    let encoded_threshold = number_at(&fixture, &["profile", "transfer_threshold_encoded"]);
+    let linear_threshold = number_at(&fixture, &["profile", "transfer_threshold_linear"]);
+
+    for case in value_at(&fixture, &["encoded_to_linear_cases"])
+        .as_array()
+        .expect("decode cases must be an array")
+    {
+        let encoded = number_at(case, &["encoded"]);
+        let expected = number_at(case, &["expected_linear"]);
+        let oracle = if encoded <= encoded_threshold {
+            encoded / 12.92
+        } else {
+            ((encoded + 0.055) / 1.055).powf(2.4)
+        };
+        assert_close(oracle, expected, tolerance, "independent sRGB decode equation");
+        assert_close(
+            srgb_channel_to_linear(encoded).expect("fixture channel is in range"),
+            expected,
+            tolerance,
+            "sRGB decode implementation",
+        );
+    }
+
+    for case in value_at(&fixture, &["linear_to_encoded_cases"])
+        .as_array()
+        .expect("encode cases must be an array")
+    {
+        let linear = number_at(case, &["linear"]);
+        let expected = number_at(case, &["expected_encoded"]);
+        let oracle = if linear <= linear_threshold {
+            12.92 * linear
+        } else {
+            1.055 * linear.powf(1.0 / 2.4) - 0.055
+        };
+        assert_close(oracle, expected, tolerance, "independent sRGB encode equation");
+        assert_close(
+            linear_channel_to_srgb(linear).expect("fixture channel is in range"),
+            expected,
+            tolerance,
+            "sRGB encode implementation",
+        );
+    }
+
+    for case in value_at(&fixture, &["relative_luminance_cases"])
+        .as_array()
+        .expect("luminance cases must be an array")
+    {
+        let rgb = value_at(case, &["rgb_srgb"])
+            .as_array()
+            .expect("RGB must be an array");
+        let red = rgb[0].as_f64().expect("red channel must be numeric");
+        let green = rgb[1].as_f64().expect("green channel must be numeric");
+        let blue = rgb[2].as_f64().expect("blue channel must be numeric");
+        let expected = number_at(case, &["expected_y"]);
+        let oracle = 0.2126
+            * if red <= encoded_threshold {
+                red / 12.92
+            } else {
+                ((red + 0.055) / 1.055).powf(2.4)
+            }
+            + 0.7152
+                * if green <= encoded_threshold {
+                    green / 12.92
+                } else {
+                    ((green + 0.055) / 1.055).powf(2.4)
+                }
+            + 0.0722
+                * if blue <= encoded_threshold {
+                    blue / 12.92
+                } else {
+                    ((blue + 0.055) / 1.055).powf(2.4)
+                };
+        assert_close(oracle, expected, tolerance, "independent relative luminance");
+        assert_close(
+            relative_luminance_from_srgb(red, green, blue).expect("fixture RGB is in gamut"),
+            expected,
+            tolerance,
+            "relative luminance implementation",
+        );
+    }
 }
 
 #[test]
