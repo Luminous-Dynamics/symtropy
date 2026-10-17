@@ -101,20 +101,22 @@ fn contract_vector_schema_and_identity_negative_controls_reject_mutations() {
     );
 
     let mut missing_output = baseline.clone();
-    missing_output["vectors"][2]["expected"]
+    let removed_output = missing_output["vectors"][2]["expected"]
         .as_object_mut()
         .expect("expected outputs are an object")
         .remove("maximum_deflection_m");
+    assert!(removed_output.is_some(), "target output must exist in the positive control");
     assert!(
         !corpus_schema_errors(&missing_output).is_empty(),
         "removing a required output must fail schema validation"
     );
 
     let mut missing_input = baseline.clone();
-    missing_input["vectors"][1]["inputs"]
+    let removed_input = missing_input["vectors"][1]["inputs"]
         .as_object_mut()
         .expect("inputs are an object")
         .remove("length_m");
+    assert!(removed_input.is_some(), "target input must exist in the positive control");
     assert!(
         !corpus_schema_errors(&missing_input).is_empty(),
         "removing a required input must fail schema validation"
@@ -144,7 +146,8 @@ fn contract_vector_schema_and_identity_negative_controls_reject_mutations() {
     );
 
     let mut duplicate_id = baseline;
-    duplicate_id["vectors"][1]["vector_id"] = duplicate_id["vectors"][0]["vector_id"].clone();
+    let first_vector_id = duplicate_id["vectors"][0]["vector_id"].clone();
+    duplicate_id["vectors"][1]["vector_id"] = first_vector_id;
     let vectors = duplicate_id["vectors"].as_array().expect("vectors array");
     assert!(
         ensure_unique_vector_ids(vectors).is_err(),
