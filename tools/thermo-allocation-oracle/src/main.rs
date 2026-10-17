@@ -572,9 +572,15 @@ mod tests {
                         };
 
                         let (expected, _, _) = oracle(&p);
+                        let (expected_normalized, _, _) =
+                            oracle_with_objective(&p, Objective::CapacityNormalized);
                         assert!(
                             feasible(&p, &expected.matrix, &expected.totals),
-                            "infeasible oracle output for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
+                            "infeasible absolute oracle output for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
+                        );
+                        assert!(
+                            feasible(&p, &expected_normalized.matrix, &expected_normalized.totals),
+                            "infeasible normalized oracle output for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
                         );
 
                         let mut permuted = p.clone();
@@ -584,9 +590,15 @@ mod tests {
                             well.eligible.reverse();
                         }
                         let (actual, _, _) = oracle(&permuted);
+                        let (actual_normalized, _, _) =
+                            oracle_with_objective(&permuted, Objective::CapacityNormalized);
                         assert_eq!(
                             expected, actual,
-                            "permutation mismatch for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
+                            "absolute-objective permutation mismatch for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
+                        );
+                        assert_eq!(
+                            expected_normalized, actual_normalized,
+                            "normalized-objective permutation mismatch for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
                         );
                         checked += 1;
                     }
