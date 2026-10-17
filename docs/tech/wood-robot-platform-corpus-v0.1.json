@@ -13,7 +13,7 @@
     "altitude": "m_above_ground_level",
     "cost": "synthetic_eur_cents_per_m3"
   },
-  "expected_scenario_count": 28,
+  "expected_scenario_count": 29,
   "scenarios": [
     {
       "scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
@@ -1215,6 +1215,42 @@
         "NO_EXTRACTION_AUTHORIZED"
       ],
       "evidence_class": "synthetic"
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_029_DECLINING_LIVE_TREE_NEEDS_SEPARATE_DECISION",
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "task_type": "screen_declining_live_tree",
+      "material_state": "declining_live_tree",
+      "observations": {
+        "human_approval": "approved",
+        "tree_condition": "declining_live",
+        "species_status": "identified",
+        "harvest_permission_state": "unknown",
+        "landholder_consent_state": "verified",
+        "protected_species_status": "checked_not_protected",
+        "deadwood_retention_disposition": "not_applicable_live_tree",
+        "biodiversity_review_state": "pending",
+        "hazard_review_state": "complete",
+        "pest_quarantine_state": "cleared",
+        "removal_reason": "economic_salvage_only",
+        "separate_silvicultural_decision": "missing",
+        "extraction_mode": "not_selected_screening_only"
+      },
+      "hard_constraints": {
+        "require_separate_silvicultural_decision_for_live_tree_removal": true,
+        "prohibit_classifying_live_tree_as_deadwood_salvage": true,
+        "require_landholder_consent": true,
+        "require_harvest_permission": true,
+        "require_protected_species_check": true,
+        "require_ecological_retention_review": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "LIVE_TREE_REMOVAL_REQUIRES_SEPARATE_APPROVAL",
+        "HARVEST_PERMISSION_UNVERIFIED",
+        "ECOLOGICAL_REVIEW_INCOMPLETE"
+      ],
+      "expected_actuation": false
     }
   ]
 }
