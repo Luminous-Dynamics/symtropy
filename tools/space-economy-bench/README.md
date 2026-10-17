@@ -87,3 +87,21 @@ cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml 
 ```
 
 **Evidence boundary:** SOBU (synthetic orbital burden unit) is a fixture-only dimensionless unit, not a physical debris-risk measure, collision probability, standard, or regulator's threshold. This reference is not an orbital-dynamics simulation and must not be transferred to lunar orbit/surface decisions without a separate scope and independently justified model. The 2026 ESA Space Environment Report motivates this research direction—orbital environment health has worsened and ESA says active debris removal is needed alongside prevention—but does not calibrate these fixture numbers: https://www.esa.int/Space_Safety/Space_Debris/ESA_Space_Environment_Report_2026. OECD similarly identifies orbital sustainability, market concentration, and critical-input dependencies as distinct systemic risks: https://www.oecd.org/en/publications/the-space-economy-at-a-glance-2026_cbf9b240-en/full-report/managing-vulnerabilities-dependencies-and-sustainability-risks-of-the-space-economy_4d97ef6d.html.
+
+## Verified industrial capability closure
+
+The example `tools/space-economy-bench/examples/industrial_closure_reference.rs` separates the claim that a service is operating now from the stronger claim that its required capability graph can be sustained locally. It recursively evaluates dependencies and fails closed for missing capabilities, unverified processes, nonlocal operation, recurring imports, and dependency cycles.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example industrial_closure_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example industrial_closure_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The synthetic high-local-content plan claims 92% local content and lower lifecycle cost (95 SCU), and its target mine-service is reported operating now. It nevertheless fails local closure because metal refining is unverified and the sensor module has nonlocal/recurring-import dependencies. The closure-first plan claims 78% local content, costs 120 synthetic SCU, and passes the specified closure graph because each modeled node is verified, locally operated, and free of recurring imports. The difference is a software contract oracle—not evidence that lunar sensor-electronics production is physically or economically feasible.
+
+The receipt intentionally reports local-content percentage, current operating status, evidence verification, and local closure separately. It contains named negative controls for missing dependencies and dependency cycles. A cycle blocker is the graph walk's explicit conservative failure, not a claim to compute a globally minimal cut set.
+
+The closure definition is specific to the declared graph and horizon: every node must be operational, evidence-verified, locally operated, and free of declared recurring external inputs, with the same requirements applying recursively to dependencies. Real applications must separately define the service horizon, stockpiles, wear-out/replacement rates, energy/material budgets, and evidence quality. See [BENCH-SPACE-006](https://github.com/Luminous-Dynamics/symtropy/issues/1765).
