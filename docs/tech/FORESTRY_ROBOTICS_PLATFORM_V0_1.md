@@ -74,7 +74,7 @@ sensors → time synchronization → state estimation → local map → tree/log
 - Robot profiles declare supported tasks, payload, speed, slope and localization limits.
 - Safety profiles name the approving authority, risk-assessment record, version, expiry, and numeric limits; they cannot make a robot profile more capable.
 - Telemetry includes timestamp, localization quality/error, perception and obstacle-sensor health, obstacles/clearance, mobility-sensor state, independent safety-controller state, E-stop state, communications, slope, speed and battery reserve.
-- The only v0.1 results are eligible for simulation only, blocked fail-closed, or rejected out of scope. No state means safe to actuate.
+- The only v0.1 results are eligible for simulation only, blocked fail-closed, or rejected out of scope. Autonomous mode requires separate review in v0.1. No state means safe to actuate.
 - Receipts bind the exact input corpus, software/configuration version and source revision. Unknown values stay unknown; they are never filled with plausible guesses.
 
 Use ROS 2/Nav2 or an equivalent middleware through replaceable adapters, not as the source of safety authority. Enforce timestamp and coordinate-frame consistency in integration tests; Nav2 documents the map/odom/base/sensor transform tree and GNSS integration:
@@ -98,6 +98,7 @@ All numeric goals below are proposed project targets, not standards or demonstra
 ### Gate 0 — contract and replay (software only)
 
 - 100% of frozen adverse cases produce the expected decision and reason codes.
+- Autonomous mission mode remains blocked for v0.1 pending a separate autonomy validation programme; teleoperated/supervised scenarios are the initial baseline.
 - 100% block unknown/denied site permission, expired profiles, stale/future telemetry, unhealthy critical sensors, engaged E-stop, missing capability, excessive localization error, slope/speed over limits and low battery.
 - 100% reject high-hazard F1 tasks even if all other fields look favourable.
 - Identical corpus bytes and source revision produce identical normalized receipts.
