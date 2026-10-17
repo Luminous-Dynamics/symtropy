@@ -271,5 +271,6 @@
   "expected_frontier": [
     "inspect_then_adapt",
     "visible_context_adaptive"
-  ]
+  ],
+  "algorithm_id": "scenario-observation-regret-frontier-v0.1"
 }
