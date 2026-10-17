@@ -854,9 +854,18 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
     Ok(evaluations)
 }
 fn valid_sha(value: &str) -> bool { value.len() == 40 && value.bytes().all(|b| b.is_ascii_hexdigit()) }
+fn validate_planner_corpus(receipt: &PlannerReceipt, bytes: &[u8]) -> Check<()> {
+    let actual = hash(bytes);
+    if receipt.corpus_sha256 != actual {
+        return Err(format!("planner corpus digest mismatch: receipt {}, actual {actual}", receipt.corpus_sha256));
+    }
+    Ok(())
+}
 fn run() -> Check<()> {
     let mut args = env::args().skip(1);
-    let planner_path = args.next().ok_or_else(|| "usage: forest-target-audit PLANNER_RECEIPT.json --target-corpus CORPUS.json --source-commit <40-hex-sha>".to_owned())?;
+    let planner_path = args.next().ok_or_else(|| "usage: forest-target-audit PLANNER_RECEIPT.json --planner-corpus PLANNER_CORPUS.json --target-corpus TARGET_CORPUS.json --source-commit <40-hex-sha>".to_owned())?;
+    if args.next().as_deref() != Some("--planner-corpus") { return Err("expected --planner-corpus".into()); }
+    let planner_corpus_path = args.next().ok_or_else(|| "missing planner corpus path".to_owned())?;
     if args.next().as_deref() != Some("--target-corpus") { return Err("expected --target-corpus".into()); }
     let target_path = args.next().ok_or_else(|| "missing target corpus path".to_owned())?;
     if args.next().as_deref() != Some("--source-commit") { return Err("expected --source-commit".into()); }
@@ -864,8 +873,10 @@ fn run() -> Check<()> {
     if !valid_sha(&source) { return Err("source commit must be 40 hex chars".into()); }
     if args.next().is_some() { return Err("unexpected trailing arguments".into()); }
     let planner_bytes = fs::read(&planner_path).map_err(|e| format!("cannot read {planner_path}: {e}"))?;
+    let planner_corpus_bytes = fs::read(&planner_corpus_path).map_err(|e| format!("cannot read {planner_corpus_path}: {e}"))?;
     let target_bytes = fs::read(&target_path).map_err(|e| format!("cannot read {target_path}: {e}"))?;
     let planner: PlannerReceipt = serde_json::from_slice(&planner_bytes).map_err(|e| format!("invalid planner receipt JSON: {e}"))?;
+    validate_planner_corpus(&planner, &planner_corpus_bytes)?;
     let corpus: Corpus = serde_json::from_slice(&target_bytes).map_err(|e| format!("invalid target corpus JSON: {e}"))?;
     validate_corpus(&corpus)?;
     let evaluations = validate_and_score(&corpus, &planner, &source)?;
@@ -884,7 +895,22 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
     const FIXTURE: &str = include_str!("../../../docs/tech/forest-target-completeness-corpus-v0.1.json");
+    const PLANNER_CORPUS: &str = include_str!("../../../docs/tech/forest-next-best-view-corpus-v0.1.json");
     fn corpus() -> Corpus { serde_json::from_str(FIXTURE).expect("fixture parses") }
+
+    #[test]
+    fn planner_corpus_digest_must_match_exact_input_bytes() {
+        let bytes = PLANNER_CORPUS.as_bytes();
+        let receipt = PlannerReceipt {
+            source_commit: "0".repeat(40),
+            corpus_sha256: hash(bytes),
+            scenarios: Vec::new(),
+        };
+        assert!(validate_planner_corpus(&receipt, bytes).is_ok());
+        let mut modified = bytes.to_vec();
+        modified.push(b' ');
+        assert!(validate_planner_corpus(&receipt, &modified).is_err());
+    }
 
     #[test]
     fn train_and_held_out_seeds_are_disjoint_and_unique() {
