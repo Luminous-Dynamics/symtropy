@@ -50,6 +50,13 @@ The 16 fixtures contain two accepted synthetic graph shapes, six semantic-negati
 
 This is a useful paradigm shift because “repairability” is no longer one score or a vague CAD attribute: the same versioned graph can support access analysis, tool/parts dependencies, measured technician timing, downtime and rework accounting, and whole-life cost tradeoffs. However, graph validity does not prove a repair sequence is mechanically safe or complete. Only an approved procedure and controlled physical workshop trials can establish those claims.
 
+
+## Confirmatory repairability measurement protocol
+
+The preregistration template [Repairability Benchmark Protocol v0.1](./REPAIRABILITY_BENCHMARK_PROTOCOL_V0_1.md) now separates a small pilot from confirmatory evidence. It specifies event clocks for diagnosis, hands-on labor, bay elapsed time, parts/tool waiting, verification, rework and out-of-service time; recommends 5 qualified technicians × 6 repetitions per baseline/candidate/task cell as a planning default; and requires power analysis to refine that sample size when feasible. A 3-technician × 3-repetition pilot is for method calibration, not a defensible P90 victory claim.
+
+Its hard gates prevent faster-but-incomplete work from counting as success: approved procedure, required isolation, compatible parts/tools and post-repair verification are mandatory. It calls for task-level medians/quantiles, confidence intervals, censoring/deviation ledger, technician effects, and priced local lifecycle inputs. The target of 25% lower median/P90 time on preregistered high-impact tasks remains a hypothesis until a matched physical study and independent review support it.
+
 ## Core paradigm shift: design a vehicle and its maintenance ecosystem jointly
 
 Optimize across:
