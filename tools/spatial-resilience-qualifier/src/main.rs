@@ -8,7 +8,11 @@ use std::fs;
 use std::process;
 
 fn usage() -> &'static str {
-    "Usage: spatial-resilience-qualifier --check [--json] | --oracle-check [--json] | --validate MANIFEST.json SCHEMA.json [--json] | --oracle-validate CORPUS.json SCHEMA.json [--json]"
+    concat!(
+        "Usage: spatial-resilience-qualifier --check [--json] | --oracle-check [--json] | ",
+        "--validate MANIFEST.json SCHEMA.json [--json] | ",
+        "--oracle-validate CORPUS.json SCHEMA.json [--json]"
+    )
 }
 
 fn read_file(path: &str) -> Vec<u8> {
