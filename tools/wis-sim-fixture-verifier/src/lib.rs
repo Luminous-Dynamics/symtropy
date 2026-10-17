@@ -1211,10 +1211,11 @@ mod tests {
         assert!(!segments.is_empty());
         let mut current = root;
         for segment in &segments[..segments.len() - 1] {
-            if !current.get(segment).map(Value::is_object).unwrap_or(false) {
-                current[segment] = json!({});
+            let child_is_object = current.get(segment).map(Value::is_object).unwrap_or(false);
+            if !child_is_object {
+                current.as_object_mut().unwrap().insert(segment.clone(), json!({}));
             }
-            current = current.get_mut(segment).unwrap();
+            current = current.as_object_mut().unwrap().get_mut(segment).unwrap();
         }
         current.as_object_mut().unwrap().insert(
             segments[segments.len() - 1].clone(),
