@@ -3,17 +3,27 @@ use sha2::{Digest, Sha256};
 use std::{env, fs, process};
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Fixture {
     schema_version: String,
     fixture_id: String,
     classification: String,
     claim_ceiling: String,
+    warning: String,
+    evidence_vocabulary: Vec<String>,
+    clock: serde_json::Value,
+    policies: Vec<serde_json::Value>,
     resources: Vec<serde_json::Value>,
     task_graph: Vec<serde_json::Value>,
     disturbance_cases: Vec<FixtureDisturbance>,
+    expected_evaluation_rules: Vec<serde_json::Value>,
+    qualification_status: String,
+    required_future_checks: Vec<String>,
+    tiny_schedule_cases: Vec<serde_json::Value>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct FixtureDisturbance {
     case_id: String,
     name: String,
@@ -23,7 +33,10 @@ struct FixtureDisturbance {
     affected_resources: Vec<String>,
     affected_tasks: Vec<String>,
     invalidates: Vec<String>,
+    #[serde(default)]
+    recoverability: Option<String>,
     recovery_evidence: Vec<String>,
+    required_invariants: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -397,11 +410,27 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
     if fixture.schema_version != "civ-infra-fleet-resilience/0.1" {
         errors.push("unsupported fixture schema_version".to_string());
     }
-    if fixture.fixture_id.trim().is_empty() || fixture.claim_ceiling.trim().is_empty() {
-        errors.push("fixture identity and claim_ceiling must be explicit".to_string());
+    if fixture.fixture_id.trim().is_empty()
+        || fixture.claim_ceiling.trim().is_empty()
+        || fixture.warning.trim().is_empty()
+    {
+        errors.push("fixture identity, warning, and claim_ceiling must be explicit".to_string());
     }
     if fixture.classification != "synthetic_only" {
         errors.push("fixture classification must remain synthetic_only".to_string());
+    }
+    if fixture.qualification_status != "proposed_not_executed" {
+        errors.push("fixture must not imply prior benchmark qualification".to_string());
+    }
+    if fixture.evidence_vocabulary.is_empty()
+        || fixture.policies.is_empty()
+        || fixture.resources.is_empty()
+        || fixture.task_graph.is_empty()
+        || fixture.expected_evaluation_rules.is_empty()
+        || fixture.required_future_checks.is_empty()
+        || fixture.tiny_schedule_cases.is_empty()
+    {
+        errors.push("fixture contract collections must not be empty".to_string());
     }
     if fixture.disturbance_cases.len() != 13 {
         errors.push("fixture must contain exactly 13 disturbance cases".to_string());
