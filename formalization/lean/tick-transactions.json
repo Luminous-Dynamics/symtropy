@@ -1,0 +1,136 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "thermo.tick_lifecycle.v1",
+  "title": "Tick transaction lifecycle and replay boundaries",
+  "proof_file": "formalization/lean/SymtropyFormal/TickTransactions.lean",
+  "lean_toolchain_path": "formalization/lean/lean-toolchain",
+  "toolchain_policy": "reuse_pinned_toolchain_from_PR_1691",
+  "rust_source": {
+    "repository_path": "crates/core/symtropy-physics/src/tick_transaction.rs",
+    "pull_request": 1726,
+    "source_branch": "feat/thermo-tick-transaction-core-2026-10-16",
+    "observed_source_commit": "6b1856c598c53a303663b85ead5e8ee2e7a8ea87",
+    "source_status": "OPEN_PR_NOT_MERGED"
+  },
+  "evidence": {
+    "proof_status": "AUTHORED_NOT_VERIFIED_UNTIL_EXACT_HEAD_LEAN_CI_PASSES",
+    "rust_refinement_status": "NOT_ESTABLISHED",
+    "native_rust_tests_status": "NOT_ASSERTED",
+    "cross_language_conformance_status": "NOT_IMPLEMENTED",
+    "proof_scope": "abstract lifecycle and logical digest-linkage rules"
+  },
+  "invariants": [
+    {
+      "id": "tick.begin.monotonic",
+      "theorem": "SymtropyFormal.begin_rejects_nonmonotonic_tick",
+      "claim": "A tick ID not greater than the last finalized ID cannot begin."
+    },
+    {
+      "id": "tick.begin.state-link",
+      "theorem": "SymtropyFormal.begin_rejects_prior_state_mismatch",
+      "claim": "A next tick whose prior-state digest does not equal the last result cannot begin."
+    },
+    {
+      "id": "tick.physics.phase",
+      "theorem": "SymtropyFormal.applyPhysics_rejects_non_begun_phase",
+      "claim": "Physics cannot be marked applied for a tick that is not in the begun phase."
+    },
+    {
+      "id": "tick.finalize.phase",
+      "theorem": "SymtropyFormal.finalize_rejects_before_physics",
+      "claim": "A tick in the begun phase cannot be finalized."
+    },
+    {
+      "id": "tick.finalize.idempotent",
+      "theorem": "SymtropyFormal.finalize_same_result_is_idempotent",
+      "claim": "Repeating finalization with the same result digest leaves modeled state unchanged."
+    },
+    {
+      "id": "tick.finalize.conflict",
+      "theorem": "SymtropyFormal.finalize_conflicting_result_is_rejected",
+      "claim": "A second finalization with a conflicting result digest is rejected."
+    },
+    {
+      "id": "tick.physics.no-preexisting-result",
+      "theorem": "SymtropyFormal.applyPhysics_rejects_prepopulated_result",
+      "claim": "A begun tick carrying a pre-existing result digest cannot advance to physics-applied."
+    },
+    {
+      "id": "tick.finalize.state-link",
+      "theorem": "SymtropyFormal.finalize_rejects_unlinked_tick",
+      "claim": "A finalization whose active tick prior-state digest disagrees with the last result is rejected."
+    }
+  ],
+  "known_answer_cases": [
+    {
+      "id": "stale_tick",
+      "last_finalized": [
+        7,
+        91
+      ],
+      "proposed_tick_id": 7,
+      "expected": "REJECT"
+    },
+    {
+      "id": "wrong_prior_digest",
+      "last_finalized": [
+        7,
+        91
+      ],
+      "proposed_tick_id": 8,
+      "proposed_prior_digest": 90,
+      "expected": "REJECT"
+    },
+    {
+      "id": "physics_before_begin",
+      "phase": "finalized",
+      "expected": "REJECT"
+    },
+    {
+      "id": "finalize_before_physics",
+      "phase": "begun",
+      "expected": "REJECT"
+    },
+    {
+      "id": "same_result_retry",
+      "phase": "finalized",
+      "previous_result_digest": 123,
+      "retry_result_digest": 123,
+      "expected": "IDEMPOTENT"
+    },
+    {
+      "id": "conflicting_result_retry",
+      "phase": "finalized",
+      "previous_result_digest": 123,
+      "retry_result_digest": 124,
+      "expected": "REJECT"
+    },
+    {
+      "id": "valid_two_tick_trace",
+      "steps": [
+        "begin tick 1",
+        "apply physics to tick 1",
+        "finalize tick 1 with result digest 7",
+        "begin tick 2 with prior-state digest 7",
+        "apply physics to tick 2",
+        "finalize tick 2 with result digest 8"
+      ],
+      "expected": "ACCEPT"
+    }
+  ],
+  "nonclaims": [
+    "No proof that the production Rust implementation refines this Lean model.",
+    "No proof that caller-supplied digests are cryptographically valid or collision resistant.",
+    "No rollback guarantee for side effects performed before finalization.",
+    "No proof of physical-law correctness, solver convergence, or empirical validity.",
+    "No cross-platform bitwise floating-point determinism claim."
+  ],
+  "positive_trace_theorems": [
+    "SymtropyFormal.valid_first_tick_begin",
+    "SymtropyFormal.valid_first_tick_physics",
+    "SymtropyFormal.valid_first_tick_finalize",
+    "SymtropyFormal.valid_second_tick_begin_links_previous_result",
+    "SymtropyFormal.valid_second_tick_physics",
+    "SymtropyFormal.valid_second_tick_finalize"
+  ]
+}
