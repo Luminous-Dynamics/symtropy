@@ -391,8 +391,9 @@ fn state_evaluations(
                 .iter()
                 .filter_map(|(id, passed)| (!passed).then_some(id.clone()))
                 .collect::<Vec<_>>();
-            let constraints_complete = result.constraints.len() == fixture.required_constraints.len()
-                && fixture
+            let constraints_complete =
+                result.constraints.len() == fixture.required_constraints.len()
+                    && fixture
                     .required_constraints
                     .iter()
                     .all(|id| result.constraints.contains_key(id));
@@ -536,7 +537,10 @@ fn evaluate_fixture(fixture: &RobustFixture, input_sha256: String) -> RobustRepo
             let mut review_reasons = global_gates.clone();
             for state in &state_evaluations {
                 if !state.evidence_complete {
-                    review_reasons.push(format!("candidate_state_evidence_incomplete:{}:{}", candidate.id, state.state_id));
+                    review_reasons.push(format!(
+                        "candidate_state_evidence_incomplete:{}:{}",
+                        candidate.id, state.state_id
+                    ));
                 }
             }
             review_reasons.sort();
@@ -621,14 +625,23 @@ mod tests {
             let mut pass_state_count = 0usize;
             let mut all_results_complete = true;
             for state in &fixture.states {
-                let Some(result) = candidate.state_results.iter().find(|item| item.state_id == state.id)
+                let Some(result) = candidate
+                    .state_results
+                    .iter()
+                    .find(|item| item.state_id == state.id)
                 else {
                     all_results_complete = false;
                     continue;
                 };
                 observed_state_count += 1;
-                if fixture.required_constraints.iter().any(|id| !result.constraints.contains_key(id))
-                    || fixture.objectives.iter().any(|item| !result.objectives.contains_key(&item.id))
+                if fixture
+                    .required_constraints
+                    .iter()
+                    .any(|id| !result.constraints.contains_key(id))
+                    || fixture
+                        .objectives
+                        .iter()
+                        .any(|item| !result.objectives.contains_key(&item.id))
                 {
                     all_results_complete = false;
                     continue;
@@ -689,7 +702,8 @@ mod tests {
             assert_eq!(expected[&candidate.candidate_id], candidate.disposition);
         }
 
-        let range = &disposition_for(&report, "B-resilient").objective_ranges["hydraulic_margin_lps"];
+        let range =
+            &disposition_for(&report, "B-resilient").objective_ranges["hydraulic_margin_lps"];
         assert_eq!(range.minimum, Some(8.0));
         assert_eq!(range.maximum, Some(20.0));
         assert_eq!(range.observed_states, 4);
@@ -715,7 +729,10 @@ mod tests {
         fixture.uncertainties[0].support = Support::UnboundedUnknown;
         let bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&bytes).expect("unknown support remains reportable");
-        assert!(report.global_review_gates.iter().any(|gate| gate.starts_with("unbounded_unknown:")));
+        assert!(report
+            .global_review_gates
+            .iter()
+            .any(|gate| gate.starts_with("unbounded_unknown:")));
         assert!(report.candidates.iter().all(|candidate| {
             candidate.disposition == CandidateDisposition::UnknownReviewRequired
         }));
@@ -727,7 +744,9 @@ mod tests {
         fixture.exhaustive_joint_state_set = false;
         let bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&bytes).expect("coverage limitation remains reportable");
-        assert!(report.global_review_gates.contains(&"joint_state_coverage_not_exhaustive".to_string()));
+        assert!(report
+            .global_review_gates
+            .contains(&"joint_state_coverage_not_exhaustive".to_string()));
         assert!(report.candidates.iter().all(|candidate| {
             candidate.disposition == CandidateDisposition::UnknownReviewRequired
         }));
@@ -819,7 +838,9 @@ mod tests {
             disposition_for(&report, "D-high-margin").disposition,
             CandidateDisposition::UnknownReviewRequired
         );
-        assert!(!report.robust_pareto_frontier_candidate_ids.contains(&"D-high-margin".to_string()));
+        assert!(!report
+            .robust_pareto_frontier_candidate_ids
+            .contains(&"D-high-margin".to_string()));
     }
 
     #[test]
