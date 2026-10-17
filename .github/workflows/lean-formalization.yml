@@ -60,23 +60,6 @@ jobs:
             (.rust_refinement_status == "NOT_ESTABLISHED")
           ' formalization/lean/contracts.json >/dev/null
 
-          while IFS= read -r theorem; do
-            short="${theorem##*.}"
-            if ! grep -REq "^theorem ${short}([[:space:]]|$)" formalization/lean/SymtropyFormal; then
-              echo "::error::Declared theorem missing from Lean source: ${theorem}"
-              exit 1
-            fi
-          done < <(
-            jq -r '.contracts[].theorems[], .dimension_system.unit_theorems[], .negative_controls[].theorem' formalization/lean/contracts.json
-          )
-
-          declared_count=$(grep -REh '^theorem ' formalization/lean/SymtropyFormal | wc -l)
-          expected_count=$(jq '([.contracts[].theorems[], .dimension_system.unit_theorems[], .negative_controls[].theorem] | unique | length)' formalization/lean/contracts.json)
-          if [ "$declared_count" -ne "$expected_count" ]; then
-            echo "::error::Expected $expected_count mapped theorem declarations, found $declared_count"
-            exit 1
-          fi
-
           while IFS= read -r unit; do
             if ! jq -e --arg unit "$unit" '.dimension_system.unit_dimension_vectors | has($unit)' formalization/lean/contracts.json >/dev/null; then
               echo "::error::No exponent vector declared for unit: $unit"
@@ -181,3 +164,14 @@ jobs:
           axiom-audit: true
           axiom-audit-root: SymtropyFormal
           axiom-audit-allow: propext,Classical.choice,Quot.sound
+      - name: Typecheck all theorem names in the formal contract manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'import SymtropyFormal\n\n'
+            jq -r '([.contracts[].theorems[], .dimension_system.unit_theorems[], .negative_controls[].theorem] | unique[]) | "#check " + .' formalization/lean/contracts.json
+          } > formalization/lean/ContractManifestCheck.lean
+          cd formalization/lean
+          trap 'rm -f ContractManifestCheck.lean' EXIT
+          lake env lean ContractManifestCheck.lean
