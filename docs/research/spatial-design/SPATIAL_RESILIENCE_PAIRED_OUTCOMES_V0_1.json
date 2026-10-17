@@ -326,6 +326,60 @@
           "repair_ticks": 2,
           "cost_units": 3,
           "expected_disposition": "excluded_hard_constraint"
+        },
+        {
+          "candidate_id": "missing-evidence-optimist",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "missing",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 1,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
+        },
+        {
+          "candidate_id": "out-of-domain-evidence",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "out_of_domain",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 1,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
+        },
+        {
+          "candidate_id": "contradictory-evidence",
+          "trace_id": "trace-model-domain-v1",
+          "trace_revision": "trace-revision-004",
+          "evidence_state": "contradictory",
+          "hard_constraints_pass": true,
+          "uncertainty_width": 0,
+          "services": [
+            {
+              "requirement_id": "essential-thermal-service",
+              "available_hours": 12
+            }
+          ],
+          "energy_units": 1,
+          "repair_ticks": 1,
+          "cost_units": 1,
+          "expected_disposition": "blocked_evidence"
         }
       ]
     },
