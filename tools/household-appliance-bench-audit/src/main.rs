@@ -10,6 +10,7 @@ use std::process::ExitCode;
 mod portfolio;
 mod sourcing;
 mod decision;
+mod stakeholder;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
 const EXPECTED_CASE_IDS: [&str; 30] = [
@@ -590,6 +591,23 @@ fn run() -> Result<(), String> {
             &decision_profile_raw,
         )
         .map_err(|errors| errors.join("\n"))?;
+
+        let (stakeholder_summary, stakeholder_report) = stakeholder::audit_stakeholder_texts(
+            &decision_schema_raw,
+            &decision_profile_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["stakeholder_repairability_profiles"] = json!({
+            "status": "PASS_STAKEHOLDER_PROFILE_CONTRACT_ONLY",
+            "profile_count": stakeholder_summary.profile_count,
+            "requirement_count": stakeholder_summary.requirement_count,
+            "frozen_requirement_count": stakeholder_summary.frozen_requirement_count,
+            "profile_ready_count": stakeholder_summary.profile_ready_count,
+            "report": stakeholder_report,
+            "profile_specific_selection_claim_permitted": false,
+            "physical_user_research_completed": false
+        });
 
         report["repairability_architecture_decision"] = json!({
             "status": "PASS_DECISION_PROFILE_CONTRACT_ONLY",
