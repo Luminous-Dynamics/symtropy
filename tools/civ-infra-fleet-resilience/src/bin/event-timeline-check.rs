@@ -191,8 +191,12 @@ fn verify_report_bytes(
     if report.input_sha256 != expected.input_sha256 {
         errors.push("report input_sha256 does not bind the supplied fixture bytes".to_string());
     }
-    if report.classification != "synthetic_only" || report.classification != expected.classification {
-        errors.push("report classification must be synthetic_only and match the fixture".to_string());
+    if report.classification != "synthetic_only"
+        || report.classification != expected.classification
+    {
+        errors.push(
+            "report classification must be synthetic_only and match the fixture".to_string(),
+        );
     }
     if report.timeline_status != "canonical_event_queue_timing_audited" {
         errors.push("unexpected timeline_status".to_string());
@@ -201,22 +205,34 @@ fn verify_report_bytes(
         errors.push("report must declare that the timeline audit executed".to_string());
     }
     if report.policy_simulation_executed || report.policy_runs_performed != 0 {
-        errors.push("timeline-only report must not claim policy simulation or policy runs".to_string());
+        errors.push(
+            "timeline-only report must not claim policy simulation or policy runs".to_string(),
+        );
     }
     if report.claim_ceiling != expected.claim_ceiling {
         errors.push("report claim_ceiling differs from the fixture".to_string());
     }
     if report.counts != expected.counts {
-        errors.push("report counts differ from independently recomputed fixture counts".to_string());
+        errors.push(
+            "report counts differ from independently recomputed fixture counts".to_string(),
+        );
     }
     if report.event_cases != expected.event_cases {
-        errors.push("event case records differ from independently normalized fixture cases".to_string());
+        errors.push(
+            "event case records differ from independently normalized fixture cases".to_string(),
+        );
     }
     if report.evaluator_timeline != expected.evaluator_timeline {
-        errors.push("evaluator injection/hidden-event timeline differs from independent recomputation".to_string());
+        errors.push(
+            "evaluator injection/hidden-event timeline differs from independent recomputation"
+                .to_string(),
+        );
     }
     if report.policy_timeline != expected.policy_timeline {
-        errors.push("policy-visible observation timeline differs from independent recomputation".to_string());
+        errors.push(
+            "policy-visible observation timeline differs from independent recomputation"
+                .to_string(),
+        );
     }
     if report.explicit_limitations.is_empty() {
         errors.push("report must state explicit limitations".to_string());
