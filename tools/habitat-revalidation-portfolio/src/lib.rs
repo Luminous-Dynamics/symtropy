@@ -306,7 +306,10 @@ fn enumerate_portfolios(
         if used_tasks.contains(&task.id)
             || valid_artifacts.contains(&task.produces_artifact_id)
             || !task.required_artifact_ids.iter().all(|id| valid_artifacts.contains(id))
-            || !task.required_gate_ids.iter().all(|id| fixture.available_gate_ids.contains(id))
+            || !task
+                .required_gate_ids
+                .iter()
+                .all(|id| fixture.available_gate_ids.contains(id))
         {
             continue;
         }
