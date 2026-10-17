@@ -52,6 +52,9 @@ jobs:
 
       - name: Run supplier-concentration reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference
+
+      - name: Run orbital sustainability externality reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
       - name: Execute corpus validator and emit receipt
         shell: bash
         run: |
@@ -121,6 +124,31 @@ jobs:
             and .diversification_cost_premium_percent_integer == 18
           ' space-economy-supplier-concentration-receipt.json
 
+      - name: Execute orbital sustainability externality reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference -- \
+            --source-commit "$source_commit" > space-economy-orbital-externality-receipt.json
+          jq -e '
+            .result == "pass"
+            and .environment_scope == "synthetic_near_earth_orbit_case"
+            and .service_floor_units == 90
+            and .orbital_burden_budget_sobu == 15
+            and .options[0].total_accounted_cost_scu == 60
+            and .options[0].feasible == false
+            and .options[1].residual_burden_sobu == 13
+            and .options[1].feasible == true
+            and .options[2].residual_burden_sobu == 8
+            and .options[2].feasible == true
+            and .options[3].claimed_removal_sobu == 20
+            and .options[3].credited_removal_sobu == 0
+            and .options[3].feasible == false
+            and .options[4].service_floor_pass == false
+            and .pareto_frontier_option_ids == ["design_for_removal", "service_and_reuse"]
+          ' space-economy-orbital-externality-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -132,7 +160,8 @@ jobs:
             space-economy-reference-receipt.json \
             space-economy-voi-reference-receipt.json \
             space-economy-common-cause-receipt.json \
-            space-economy-supplier-concentration-receipt.json; do
+            space-economy-supplier-concentration-receipt.json \
+            space-economy-orbital-externality-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -153,6 +182,7 @@ jobs:
             space-economy-voi-reference-receipt.json
             space-economy-common-cause-receipt.json
             space-economy-supplier-concentration-receipt.json
+            space-economy-orbital-externality-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
