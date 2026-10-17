@@ -39,7 +39,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         return Err(format!("decision schema $id must be {SCHEMA_ID}"));
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
-        return Err("decision schema does not validate against the Draft 2020-12 meta-schema".to_owned());
+        return Err(
+            "decision schema does not validate against the Draft 2020-12 meta-schema".to_owned(),
+        );
     }
     jsonschema::draft202012::options()
         .should_validate_formats(true)
@@ -69,7 +71,9 @@ fn candidate_evidence_status(decision: &Value, candidate: &Value) -> &'static st
         }
         if text_at(gate, "status") != Some("pass")
             || text_at(gate, "evidence_id").is_none_or(str::is_empty)
-            || text_at(gate, "evidence_id").unwrap_or("").starts_with("SYNTHETIC-")
+            || text_at(gate, "evidence_id")
+                .unwrap_or("")
+                .starts_with("SYNTHETIC-")
         {
             return "blocked_unknown_gate";
         }
@@ -100,7 +104,9 @@ fn candidate_evidence_status(decision: &Value, candidate: &Value) -> &'static st
             || text_at(observation, "unit") != text_at(criterion, "unit")
             || text_at(observation, "evidence_id").is_none_or(str::is_empty)
             || text_at(observation, "method_id").is_none_or(str::is_empty)
-            || text_at(observation, "evidence_id").unwrap_or("").starts_with("SYNTHETIC-")
+            || text_at(observation, "evidence_id")
+                .unwrap_or("")
+                .starts_with("SYNTHETIC-")
         {
             return "insufficient_eligible_evidence";
         }
@@ -150,12 +156,15 @@ fn candidate_meets_profile_requirements(
         let Some(criterion_id) = text_at(requirement, "criterion_id") else {
             return "requirements_not_frozen";
         };
-        let Some(criterion) = decision
-            .get("criteria")
-            .and_then(Value::as_array)
-            .and_then(|criteria| criteria.iter().find(|criterion| {
-                text_at(criterion, "id") == Some(criterion_id)
-            }))
+        let Some(criterion) =
+            decision
+                .get("criteria")
+                .and_then(Value::as_array)
+                .and_then(|criteria| {
+                    criteria
+                        .iter()
+                        .find(|criterion| text_at(criterion, "id") == Some(criterion_id))
+                })
         else {
             return "requirements_not_frozen";
         };
@@ -180,12 +189,7 @@ fn candidate_meets_profile_requirements(
     "meets_profile_constraints"
 }
 
-fn robustly_dominates_for_profile(
-    decision: &Value,
-    profile: &Value,
-    a: &Value,
-    b: &Value,
-) -> bool {
+fn robustly_dominates_for_profile(decision: &Value, profile: &Value, a: &Value, b: &Value) -> bool {
     let Some(ids) = profile.get("criteria").and_then(Value::as_array) else {
         return false;
     };
@@ -194,19 +198,20 @@ fn robustly_dominates_for_profile(
         let Some(id) = id_value.as_str() else {
             return false;
         };
-        let Some(criterion) = decision
-            .get("criteria")
-            .and_then(Value::as_array)
-            .and_then(|criteria| criteria.iter().find(|criterion| {
-                text_at(criterion, "id") == Some(id)
-            }))
+        let Some(criterion) =
+            decision
+                .get("criteria")
+                .and_then(Value::as_array)
+                .and_then(|criteria| {
+                    criteria
+                        .iter()
+                        .find(|criterion| text_at(criterion, "id") == Some(id))
+                })
         else {
             return false;
         };
-        let (Some(a_obs), Some(b_obs)) = (
-            observation_by_id(a, id),
-            observation_by_id(b, id),
-        ) else {
+        let (Some(a_obs), Some(b_obs)) = (observation_by_id(a, id), observation_by_id(b, id))
+        else {
             return false;
         };
         let (Some(a_lower), Some(a_upper), Some(b_lower), Some(b_upper)) = (
@@ -253,10 +258,15 @@ fn audit_values(
     let profile_policy = decision.get("profile_policy").unwrap_or(&Value::Null);
     if text_at(profile_policy, "profile_policy_id")
         != Some("STAKEHOLDER-REPAIRABILITY-PROFILES-001")
-        || profile_policy.get("hard_gate_override").and_then(Value::as_bool) != Some(false)
-        || profile_policy.get("selection_before_evidence").and_then(Value::as_bool) != Some(false)
-        || text_at(profile_policy, "threshold_policy")
-            != Some("unfrozen_threshold_remains_unknown")
+        || profile_policy
+            .get("hard_gate_override")
+            .and_then(Value::as_bool)
+            != Some(false)
+        || profile_policy
+            .get("selection_before_evidence")
+            .and_then(Value::as_bool)
+            != Some(false)
+        || text_at(profile_policy, "threshold_policy") != Some("unfrozen_threshold_remains_unknown")
         || text_at(profile_policy, "weighting_policy") != Some("no_hidden_global_weights")
     {
         errors.push(
@@ -268,7 +278,10 @@ fn audit_values(
     let Some(criteria) = decision.get("criteria").and_then(Value::as_array) else {
         return Err(vec!["decision criteria must be an array".to_owned()]);
     };
-    let Some(profiles) = decision.get("stakeholder_profiles").and_then(Value::as_array) else {
+    let Some(profiles) = decision
+        .get("stakeholder_profiles")
+        .and_then(Value::as_array)
+    else {
         return Err(vec!["stakeholder_profiles must be an array".to_owned()]);
     };
     if profiles.len() != EXPECTED_PROFILES.len() {
@@ -306,11 +319,15 @@ fn audit_values(
             .filter_map(Value::as_str)
             .collect();
         if profile_criteria.is_empty() {
-            errors.push(format!("{profile_id}: at least one mapped criterion is required"));
+            errors.push(format!(
+                "{profile_id}: at least one mapped criterion is required"
+            ));
         }
         for criterion_id in &profile_criteria {
             if criterion_by_id(criteria, criterion_id).is_none() {
-                errors.push(format!("{profile_id}: unknown criterion mapping {criterion_id}"));
+                errors.push(format!(
+                    "{profile_id}: unknown criterion mapping {criterion_id}"
+                ));
             }
         }
 
@@ -337,7 +354,9 @@ fn audit_values(
                 continue;
             };
             let Some(criterion) = criterion_by_id(criterion_id) else {
-                errors.push(format!("{profile_id}.{req_id}: unknown criterion {criterion_id}"));
+                errors.push(format!(
+                    "{profile_id}.{req_id}: unknown criterion {criterion_id}"
+                ));
                 all_frozen = false;
                 continue;
             };
@@ -393,10 +412,14 @@ fn audit_values(
 
         let status = text_at(profile, "status");
         if status == Some("requirements_frozen") && !all_frozen {
-            errors.push(format!("{profile_id}: cannot freeze a profile while a requirement is unfrozen"));
+            errors.push(format!(
+                "{profile_id}: cannot freeze a profile while a requirement is unfrozen"
+            ));
         }
         if status == Some("requirements_not_frozen") && all_frozen {
-            errors.push(format!("{profile_id}: profile status disagrees with frozen requirements"));
+            errors.push(format!(
+                "{profile_id}: profile status disagrees with frozen requirements"
+            ));
         }
 
         if profile_id == "P1-HOUSEHOLD-OWNER" {
@@ -454,9 +477,10 @@ fn audit_values(
             if is_frontier {
                 frontier_count += 1;
             }
-            if let Some(outcome) = candidate_assessments.iter_mut().find(|outcome| {
-                text_at(outcome, "candidate_id") == text_at(candidate, "id")
-            }) {
+            if let Some(outcome) = candidate_assessments
+                .iter_mut()
+                .find(|outcome| text_at(outcome, "candidate_id") == text_at(candidate, "id"))
+            {
                 outcome["robust_pareto_frontier"] = json!(is_frontier);
                 outcome["robustly_dominated_by"] = json!(dominators);
             }
@@ -484,7 +508,9 @@ fn audit_values(
     }
     for expected in EXPECTED_PROFILES {
         if !profile_ids.contains(expected) {
-            errors.push(format!("required stakeholder profile {expected} is missing"));
+            errors.push(format!(
+                "required stakeholder profile {expected} is missing"
+            ));
         }
     }
     if total_requirements != 18 {
@@ -537,9 +563,8 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/repairability_architecture_decision_v0_1.schema.json"
     );
-    const DECISION: &str = include_str!(
-        "../../../fixtures/appliances/repairability_architecture_decision_v0_1.json"
-    );
+    const DECISION: &str =
+        include_str!("../../../fixtures/appliances/repairability_architecture_decision_v0_1.json");
 
     fn canonical_decision() -> Value {
         serde_json::from_str(DECISION).expect("decision profile must parse")
@@ -561,7 +586,8 @@ mod tests {
             {
                 requirement["status"] = json!("frozen_before_candidate_measurements");
                 requirement["frozen_before_candidate_measurements"] = json!(true);
-                requirement["threshold"] = if text_at(requirement, "direction") == Some("minimize") {
+                requirement["threshold"] = if text_at(requirement, "direction") == Some("minimize")
+                {
                     json!(100000.0)
                 } else {
                     json!(0.0)
@@ -618,10 +644,16 @@ mod tests {
         assert_eq!(summary.requirement_count, 18);
         assert_eq!(summary.frozen_requirement_count, 0);
         assert_eq!(summary.profile_ready_count, 0);
-        assert_eq!(report["profile_specific_selection_claim_permitted"], json!(false));
+        assert_eq!(
+            report["profile_specific_selection_claim_permitted"],
+            json!(false)
+        );
         for profile in report["profiles"].as_array().expect("profiles") {
             assert_eq!(profile["status"], "requirements_not_frozen");
-            assert_eq!(profile["profile_specific_selection_claim_permitted"], json!(false));
+            assert_eq!(
+                profile["profile_specific_selection_claim_permitted"],
+                json!(false)
+            );
         }
     }
 
@@ -634,12 +666,18 @@ mod tests {
             .expect("synthetic stakeholder logic fixture must validate");
         assert_eq!(summary.profile_ready_count, 5);
         assert_eq!(summary.frozen_requirement_count, 18);
-        assert_eq!(report["profile_specific_selection_claim_permitted"], json!(false));
+        assert_eq!(
+            report["profile_specific_selection_claim_permitted"],
+            json!(false)
+        );
         for profile in report["profiles"].as_array().expect("profiles") {
             assert_eq!(profile["status"], "requirements_frozen");
             assert_eq!(profile["candidate_meeting_constraints_count"], json!(5));
             assert_eq!(profile["profile_pareto_frontier_count"], json!(1));
-            assert_eq!(profile["profile_specific_selection_claim_permitted"], json!(false));
+            assert_eq!(
+                profile["profile_specific_selection_claim_permitted"],
+                json!(false)
+            );
         }
         assert!(!raw.is_empty());
     }
@@ -666,13 +704,16 @@ mod tests {
         let mut decision = synthetic_frozen_decision();
         decision["stakeholder_profiles"][0]["requirements"][0]["threshold"] = json!(0.0);
         let schema: Value = serde_json::from_str(SCHEMA).unwrap();
-        let (_, report) = audit_values(&schema, &decision)
-            .expect("profile threshold is a valid constraint");
+        let (_, report) =
+            audit_values(&schema, &decision).expect("profile threshold is a valid constraint");
         assert_eq!(
             report["profiles"][0]["candidate_assessments"][0]["status"],
             json!("fails_profile_constraint")
         );
-        assert_eq!(report["policy"], json!("stakeholder_constraints_without_hidden_global_weights"));
+        assert_eq!(
+            report["policy"],
+            json!("stakeholder_constraints_without_hidden_global_weights")
+        );
     }
 
     #[test]
@@ -680,7 +721,11 @@ mod tests {
         let mut decision = canonical_decision();
         decision["stakeholder_profiles"][1]["id"] = json!("P1-HOUSEHOLD-OWNER");
         let errors = audit_mutation(&decision).expect_err("duplicate profile must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate stakeholder profile")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate stakeholder profile"))
+        );
     }
 
     #[test]
@@ -699,7 +744,11 @@ mod tests {
         decision["stakeholder_profiles"][0]["required_task_boundary"] =
             json!("DIY users may open internal mains and may perform refrigerant charging.");
         let errors = audit_mutation(&decision).expect_err("hazardous user scope must fail");
-        assert!(errors.iter().any(|error| error.contains("household task boundary")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("household task boundary"))
+        );
     }
 
     #[test]
@@ -707,9 +756,11 @@ mod tests {
         let mut decision = canonical_decision();
         decision["stakeholder_profiles"][0]["requirements"][0]["unit"] = json!("invented_units");
         let errors = audit_mutation(&decision).expect_err("profile units must be canonical");
-        assert!(errors.iter().any(|error| {
-            error.contains("direction and unit must match")
-        }));
+        assert!(
+            errors
+                .iter()
+                .any(|error| { error.contains("direction and unit must match") })
+        );
     }
 
     #[test]
