@@ -300,3 +300,22 @@ cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml 
 ```
 
 Research motivation: [Hu, Ao and Mahadevan, *Calibration experimental design considering field response and model uncertainty*](https://www.sciencedirect.com/science/article/pii/S0045782516302274) explicitly studies calibration-design optimization under model uncertainty and testing budgets. NIST's [uncertainties of calibrated values guidance](https://www.itl.nist.gov/div898/handbook/mpc/section3/mpc367.htm) notes the joint contribution of limited calibration-curve data and future-measurement uncertainty. The Symtropy fixture is an independent finite reference; these sources do not validate its numerical assumptions. Follow-up: [BENCH-SPACE-013](https://github.com/Luminous-Dynamics/symtropy/issues/1847).
+
+## Calibration transfer under site, epoch and environment shift
+
+The example `calibration_transfer_shift_reference.rs` extends calibration decision-value analysis with an explicit **validity envelope**. A calibration is not trusted solely because its instrument name matches: instrument revision, reference-standard identity and content hash, revocation state, body/site/patch, epoch interval, temperature, power mode, input range, sample preparation, and calibration-model hash must also match.
+
+Run it directly:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example calibration_transfer_shift_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example calibration_transfer_shift_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The synthetic receipt compares an intentionally unsafe “always apply” policy with a fail-closed envelope gate. Thirteen negative controls cover temperature drift, expiry, revoked or changed reference standard, unseen site/body/patch, instrument revision, calibration-model hash, missing metadata, power mode, input range, and sample-preparation changes. The valid in-envelope control remains accepted. The same receipt separately reports a two-consecutive-residual drift monitor: one isolated high residual does not alert; a sustained shift alerts one sample after the declared onset. Detection latency and the exposure before alarm remain visible.
+
+**Acceptance targets:** zero false-valid claims for the declared out-of-envelope controls; zero in-envelope false rejections in this finite fixture; zero test-site/time leakage; and drift delay reported alongside false alarms and recalibration cost. In the declared synthetic series, monitoring avoids 12 loss units against a recalibration cost of 7, but one shifted sample is exposed before detection. These are deliberately chosen synthetic units, not a measured forecast.
+
+The monitor complements, rather than replaces, envelope checks. No sequential detector can retroactively undo evidence credited before an alarm, and passing these finite controls does not establish real instrument drift rates, calibration coverage, lunar environmental compatibility, or resource recoverability. Held-out physical observations and independent reference comparisons are required before deployment thresholds can be claimed. Track the research contract in [BENCH-SPACE-014](https://github.com/Luminous-Dynamics/symtropy/issues/1860).
+
