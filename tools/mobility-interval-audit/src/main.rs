@@ -497,6 +497,13 @@ mod tests {
         }
         assert_eq!(out["candidate_count"], 8);
         assert_eq!(out["comparable_candidate_count"], 5);
+        assert_eq!(robust.len(), 5);
+        assert!(stable.is_empty(), "wide synthetic bounds should not claim a universally stable candidate");
+        let priorities = out["measurement_priorities"].as_array().unwrap();
+        assert_eq!(priorities[0]["metric_id"], "essential_trip_coverage");
+        assert_eq!(priorities[0]["overlapping_interval_pair_count"], 10);
+        assert_eq!(priorities[1]["metric_id"], "p90_access_time_minutes");
+        assert_eq!(priorities[1]["overlapping_interval_pair_count"], 10);
         assert_eq!(out["weighted_utility_score_produced"], false);
         assert_eq!(out["probability_model_used"], false);
         assert_eq!(out["evpi_calculated"], false);
@@ -559,7 +566,8 @@ mod tests {
         root["candidates"][0]["metrics"][0]["metric_id"] = json!("unknown_metric");
         assert!(evaluate(&root).is_err());
         let mut root = fixture();
-        root["candidates"][1]["candidate_id"] = root["candidates"][0]["candidate_id"].clone();
+        let first_id = root["candidates"][0]["candidate_id"].clone();
+        root["candidates"][1]["candidate_id"] = first_id;
         assert!(evaluate(&root).is_err());
     }
 
