@@ -35,7 +35,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         return Err(format!("portfolio schema $id must be {SCHEMA_ID}"));
     }
     if !jsonschema::draft202012::meta::is_valid(schema) {
-        return Err("portfolio schema does not validate against the Draft 2020-12 meta-schema".to_owned());
+        return Err(
+            "portfolio schema does not validate against the Draft 2020-12 meta-schema".to_owned(),
+        );
     }
     jsonschema::draft202012::options()
         .should_validate_formats(true)
@@ -152,7 +154,9 @@ fn audit_values(
         }
         let metrics = family.get("function_metrics").and_then(Value::as_array);
         if metrics.is_none_or(|items| items.len() < 3) {
-            errors.push(format!("{id}: function output and resource/service metrics are incomplete"));
+            errors.push(format!(
+                "{id}: function output and resource/service metrics are incomplete"
+            ));
         }
         let user_tasks = family
             .get("user_maintenance_tasks")
@@ -277,8 +281,9 @@ pub(crate) fn audit_portfolio_texts(
 mod tests {
     use super::*;
 
-    const SCHEMA: &str =
-        include_str!("../../../schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json");
+    const SCHEMA: &str = include_str!(
+        "../../../schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json"
+    );
     const PORTFOLIO: &str =
         include_str!("../../../fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json");
 
@@ -323,7 +328,8 @@ mod tests {
     fn unmeasured_target_cannot_be_relabelled_as_result() {
         let mut portfolio = canonical_portfolio();
         portfolio["benchmark_policy"]["proposed_targets"][0]["status"] = json!("achieved");
-        let errors = audit_mutation(&portfolio).expect_err("proposed target must not become result");
+        let errors = audit_mutation(&portfolio)
+            .expect_err("proposed target must not become result");
         assert!(errors.iter().any(|error| error.contains("proposal_not_result")));
     }
 
