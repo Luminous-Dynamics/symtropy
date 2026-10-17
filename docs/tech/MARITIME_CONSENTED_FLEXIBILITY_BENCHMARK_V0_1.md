@@ -93,7 +93,13 @@ Report a vector rather than a universal score:
 
 Do not target a fixed percentage of capex avoided before the fixture and baseline are defined and run. In early phases, the strongest numerical target is correctness on small cases, not a preselected savings headline.
 
-## 7. Required hostile cases
+## 7. Frozen machine-readable corpus
+
+The first starter corpus is [MARITIME_CONSENTED_FLEXIBILITY_V0_1.json](https://github.com/Luminous-Dynamics/symtropy/blob/research/maritime-consented-flex-v0-1/benchmarks/fixtures/MARITIME_CONSENTED_FLEXIBILITY_V0_1.json). It contains 12 synthetic cases for offered-versus-accepted state, a bounded shift that releases a peak slot, hard deadline rejection, double-spending an offer, physical-resource aliasing, revoked/expired offers, wrong-subject reuse, future authorization leakage, compensation accounting, no-flex controls, scenario-dependent investment deferral, and deterministic permutation.
+
+This is a versioned starter corpus, not an executable test result. The eventual verifier must independently recompute expected feasibility, per-resource usage and objective components; no expected savings or ranking should be trusted solely because it is written in a fixture.
+
+## 8. Required hostile cases
 
 - unaccepted offer is treated as committed flexibility;
 - an offer is revoked or expires before its activation lock time;
@@ -111,7 +117,7 @@ Do not target a fixed percentage of capex avoided before the fixture and baselin
 - search-budget exhaustion cannot claim global optimality;
 - canonical input permutations and duplicate/replayed offer receipts preserve deterministic/idempotent results.
 
-## 8. Proposed acceptance gates (not measured)
+## 9. Proposed acceptance gates (not measured)
 
 - 100% agreement with an independently implemented exhaustive oracle on complete tiny cases: feasibility, flex allocation, resource ledger, objective vector and frozen tie-breaker.
 - Zero violations of consent, acceptance status, expiry, hard deadlines, service-quality constraints or physical capacity.
@@ -124,11 +130,11 @@ Do not target a fixed percentage of capex avoided before the fixture and baselin
 - Larger workloads report p50/p95, peak memory, offer/candidate counts, resource-ledger operations, completeness and per-scenario Pareto results.
 - Historical/real evaluation requires lawful source snapshots, permission for participant-level data, explicit decision-time cutoffs and owner-qualified outcome receipts. Synthetic success is not empirical validation.
 
-## 9. Authority and claim ceiling
+## 10. Authority and claim ceiling
 
 This is an effects-disabled research model. It does not contact a participant, accept/purchase flexibility, change arrival times, rebook cargo, reserve a berth, mutate inventory, settle payment, alter contracts or authorize capital expenditure. Only Mycelix's separate authorized workflow may represent real commitments. Passing the synthetic oracle establishes finite-model contract correctness, not real cost savings, market fairness beyond the stated policy, emissions reduction, operational safety or legal compliance.
 
-## Research references
+## 11. Research references
 
 - Lei & Jia, *An integrated framework of vessel demand shifting and port capacity utilization for congestion mitigation*, Transportation Research Part E 208 (2026): https://doi.org/10.1016/j.tre.2025.104660
 - IMO GreenVoyage2050, *Port Call Optimization Guide launched at IMO*, 26 March 2026: https://greenvoyage2050.imo.org/port-call-optimization-guide-launched-at-imo/
