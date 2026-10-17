@@ -374,6 +374,10 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
         })
         .collect();
 
+    events.sort_by(|left, right| {
+        (left.injection_tick, &left.case_id).cmp(&(right.injection_tick, &right.case_id))
+    });
+
     let evaluator_queue = EvaluatorEventQueue::from_events(&events);
     let policy_observation_queue = PolicyObservationQueue::from_events(&events);
     let max_tick = policy_observation_queue.final_tick();
