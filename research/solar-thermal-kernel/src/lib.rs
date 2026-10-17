@@ -89,6 +89,7 @@ macro_rules! positive_unit {
 }
 nonnegative_unit!(EnergyJ, "energy_j");
 nonnegative_unit!(ExergyJ, "exergy_j");
+nonnegative_unit!(SpecificExergyJPerKg, "specific_exergy_j_per_kg");
 positive_unit!(Kelvin, "temperature_k");
 nonnegative_unit!(TemperatureDifferenceK, "temperature_difference_k");
 positive_unit!(MassKg, "mass_kg");
@@ -165,7 +166,7 @@ impl HeatCapacityCurve {
         &self,
         reference_temperature: Kelvin,
         temperature: Kelvin,
-    ) -> Result<ExergyJ, ModelError> {
+    ) -> Result<SpecificExergyJPerKg, ModelError> {
         let (minimum, maximum) = self.temperature_bounds();
         for t in [reference_temperature, temperature] {
             if t.value() < minimum.value() || t.value() > maximum.value() {
@@ -176,7 +177,7 @@ impl HeatCapacityCurve {
             return Err(ModelError::TemperatureBelowReference);
         }
         if temperature.value() == reference_temperature.value() {
-            return ExergyJ::new(0.0);
+            return SpecificExergyJPerKg::new(0.0);
         }
 
         let sensible_enthalpy =
@@ -188,7 +189,7 @@ impl HeatCapacityCurve {
         let exergy = sensible_enthalpy
             - reference_temperature.value() * cp_over_t;
         // Roundoff near the reference temperature can produce a tiny negative.
-        ExergyJ::new(exergy.max(0.0))
+        SpecificExergyJPerKg::new(exergy.max(0.0))
     }
 
     fn integrate_cp_over_temperature(&self, low: f64, high: f64) -> f64 {
