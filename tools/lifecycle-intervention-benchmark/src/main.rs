@@ -22,7 +22,9 @@ fn main() {
                     process::exit(2);
                 }
             }
-            if failed { process::exit(1); }
+            if failed {
+                process::exit(1);
+            }
         }
         Err(error) => {
             eprintln!("manifest rejected: {error}");
