@@ -12,7 +12,7 @@ SOURCE_REVISION="$(git rev-parse HEAD)" cargo run --manifest-path tools/net-addi
 
 ## What changes
 
-The benchmark refuses to treat gross recovered content as equivalent to avoided virgin production. For an eligible option, it calculates yield-adjusted recovered mass, caps effective substitution at the scenario's market-displacement limit, then models scenario-specific rebound as additional service volume. Virgin-material and action-process burdens are both scaled, with integer arithmetic and conservative rounding. An option whose evidence is unknown, revoked, partial, claim-mismatched, or out of scope is excluded; it receives no policy score.
+The benchmark refuses to treat gross recovered content as equivalent to avoided virgin production. For an eligible option, it calculates yield-adjusted recovered mass, caps effective substitution at the scenario's market-displacement limit, then models scenario-specific rebound as additional service volume. The headline loop score is capped at virgin-material demand per service unit. Virgin-material and action-process burdens are both scaled, with integer arithmetic and conservative rounding. An option whose evidence is unknown, revoked, partial, claim-mismatched, or out of scope is excluded; it receives no policy score.
 
 Three policies are compared on the same fixed functional unit:
 
