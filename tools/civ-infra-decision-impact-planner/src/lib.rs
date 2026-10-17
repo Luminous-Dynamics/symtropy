@@ -45,6 +45,9 @@ pub struct DecisionSignature {
 pub struct MeasurementAction {
     pub action_id: String,
     pub description: String,
+    pub outcome_model_ref: String,
+    #[serde(default)]
+    pub outcome_model_sha256: Option<String>,
     pub outcomes: Vec<ActionOutcome>,
     #[serde(default)]
     pub estimated_cost: Option<Estimate>,
@@ -95,6 +98,8 @@ pub struct ActionAssessment {
     pub rank: usize,
     pub action_id: String,
     pub description: String,
+    pub outcome_model_ref: String,
+    pub outcome_model_sha256: Option<String>,
     pub impact: DecisionImpact,
     pub estimated_cost: Option<Estimate>,
     pub estimated_duration: Option<Estimate>,
@@ -139,6 +144,8 @@ struct NormalizedState {
 struct RawActionAssessment {
     action_id: String,
     description: String,
+    outcome_model_ref: String,
+    outcome_model_sha256: Option<String>,
     impact: DecisionImpact,
     estimated_cost: Option<Estimate>,
     estimated_duration: Option<Estimate>,
@@ -223,6 +230,10 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
     for action in &input.actions {
         validate_name(&action.action_id, "action_id")?;
         validate_name(&action.description, "action description")?;
+        validate_name(&action.outcome_model_ref, "outcome_model_ref")?;
+        if let Some(digest) = &action.outcome_model_sha256 {
+            validate_digest(digest, "outcome_model_sha256")?;
+        }
         if !action_ids.insert(action.action_id.clone()) {
             return Err(format!("duplicate action_id {:?}", action.action_id));
         }
@@ -358,6 +369,8 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
         raw_assessments.push(RawActionAssessment {
             action_id: action.action_id.clone(),
             description: action.description.clone(),
+            outcome_model_ref: action.outcome_model_ref.clone(),
+            outcome_model_sha256: action.outcome_model_sha256.clone(),
             impact: DecisionImpact {
                 outcome_count: action.outcomes.len(),
                 best_case_remaining_states,
@@ -410,6 +423,8 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
             rank: index + 1,
             action_id: raw.action_id,
             description: raw.description,
+            outcome_model_ref: raw.outcome_model_ref,
+            outcome_model_sha256: raw.outcome_model_sha256,
             impact: raw.impact,
             estimated_cost: raw.estimated_cost,
             estimated_duration: raw.estimated_duration,
@@ -620,6 +635,8 @@ mod tests {
                 MeasurementAction {
                     action_id: "broad-survey".to_owned(),
                     description: "Separate dry-like and wet-like states".to_owned(),
+                    outcome_model_ref: "synthetic-partition-model:broad-survey".to_owned(),
+                    outcome_model_sha256: None,
                     outcomes: vec![outcome("dry-like", &["s1", "s2"]), outcome("wet-like", &["s3", "s4"])],
                     estimated_cost: Some(Estimate {
                         value: 2,
@@ -635,6 +652,8 @@ mod tests {
                 MeasurementAction {
                     action_id: "targeted-survey".to_owned(),
                     description: "Separate each declared state".to_owned(),
+                    outcome_model_ref: "synthetic-partition-model:targeted-survey".to_owned(),
+                    outcome_model_sha256: None,
                     outcomes: vec![
                         outcome("o1", &["s1"]),
                         outcome("o2", &["s2"]),
@@ -655,6 +674,8 @@ mod tests {
                 MeasurementAction {
                     action_id: "cheap-check".to_owned(),
                     description: "Low-cost broad split".to_owned(),
+                    outcome_model_ref: "synthetic-partition-model:cheap-check".to_owned(),
+                    outcome_model_sha256: None,
                     outcomes: vec![outcome("match", &["s1", "s4"]), outcome("other", &["s2", "s3"])],
                     estimated_cost: Some(Estimate {
                         value: 1,
@@ -909,6 +930,8 @@ mod tests {
             actions.push(MeasurementAction {
                 action_id: format!("measure-{action_index}"),
                 description: format!("synthetic measurement action {action_index}"),
+                outcome_model_ref: format!("synthetic-generator:seeded-modular-partition-v1:world{world}:action{action_index}"),
+                outcome_model_sha256: None,
                 outcomes,
                 estimated_cost: Some(Estimate {
                     value: 1 + action_index as u64,
@@ -1015,6 +1038,16 @@ mod tests {
         assert!(validate_evaluation_bound(usize::MAX, 2)
             .unwrap_err()
             .contains("overflow"));
+    }
+
+    #[test]
+    fn outcome_model_provenance_is_required_and_digest_is_checked() {
+        let mut input = base_input();
+        input.actions[0].outcome_model_ref = " ".to_owned();
+        assert!(plan(&input, &fixture_digest(&input)).unwrap_err().contains("outcome_model_ref"));
+        let mut input = base_input();
+        input.actions[0].outcome_model_sha256 = Some("not-a-digest".to_owned());
+        assert!(plan(&input, &fixture_digest(&input)).unwrap_err().contains("outcome_model_sha256"));
     }
 
     #[test]
