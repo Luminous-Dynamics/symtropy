@@ -541,6 +541,10 @@ mod tests {
         for kind in [DetectorKind::Shewhart, DetectorKind::Cusum, DetectorKind::Ewma] {
             let tuned = tune_detector(kind).unwrap();
             assert!(tuned.training_false_alarm_rate_bps <= FALSE_ALARM_BUDGET_BPS);
+            assert!(
+                wilson_interval_bps(tuned.training_false_alarm_episodes, TRAINING_EPISODES)[1]
+                    <= FALSE_ALARM_BUDGET_BPS as f64
+            );
             assert!(candidate_thresholds(kind).contains(&tuned.parameters.threshold_milli));
         }
     }
