@@ -12,11 +12,12 @@ const SKIN: f64 = 1.0;
 const CELL_SIZE: f64 = 3.0;
 
 fn points(count: usize, spacing: f64) -> Vec<SpatialPoint> {
+    let columns = (count as f64).sqrt().ceil() as usize;
     (0..count)
         .map(|index| SpatialPoint {
             id: index as u64,
-            x: (index % 1000) as f64 * spacing,
-            y: (index / 1000) as f64 * spacing,
+            x: (index % columns) as f64 * spacing,
+            y: (index / columns) as f64 * spacing,
         })
         .collect()
 }
