@@ -30,6 +30,8 @@ The cantilever, axial-bar and simply-supported-beam suites are B1 seeds, not a B
 
 ## Initial benchmark portfolio
 
+The machine-readable [structural-reference-contract-vectors-v1.json](benchmarks/structural-reference-contract-vectors-v1.json) corpus currently pins five vectors across the five mathematical contract families and is exercised by `tests/structural_reference_contract_vectors.rs`. Each vector has a stable `contract_id`, primitive SI inputs, explicit idealization assumptions, and expected outputs. This is a cross-contract regression surface—not yet an independent second oracle or a proved Rust-to-Lean refinement. Its contract-manifest linkage remains a candidate while PRs #1653 and #1691 are open; CI must run against the exact latest heads before conformance can be called passing.
+
 | Case family | Independent oracle/check | Purpose |
 |---|---|---|
 | Rectangular section | $I=bh^3/12$ and $c=h/2$, from declared dimensions | Geometry/property consistency |
@@ -91,7 +93,7 @@ The next execution record revision should add exact argument vector, controlled 
 
 ## Sequenced implementation
 
-1. Complete and verify the B1 reference suite: maintain geometry consistency, finite outputs, explicit units, and metamorphic invariants for cantilever, axial-bar and simple-span load cases.
+1. Complete and verify the B1 reference suite: maintain geometry consistency, finite outputs, explicit units, and metamorphic invariants for cantilever, axial-bar and simple-span load cases. Exercise all five contract families through the shared versioned vector corpus; pin the exact corpus and Rust source revisions before generating a Lean/Rust conformance report.
 2. Extend the benchmark-result record with a pinned structured invocation, complete input/configuration digests, controlled environment, timestamps, and raw stdout/stderr + parser provenance.
 3. Add a versioned solver adapter process that emits these execution records and a separately testable parser. Pin the solver build and resolve licensing before packaging; a declared zero exit code is insufficient.
 4. Run the solver spike against all three analytical families, check equilibrium and residuals, test negative controls, and perform mesh refinement. Keep the reference checker separate from the solver/producer path.
