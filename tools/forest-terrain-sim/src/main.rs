@@ -66,6 +66,11 @@ struct RobotConfig {
 }
 #[derive(Debug, Clone, Copy, Serialize)]
 struct CellCoord { x: u16, y: u16 }
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum Facing { North, East, South, West }
+#[derive(Debug, Clone, Copy, Serialize)]
+struct SensorConfig { range_cells: u16, horizontal_fov_degrees: u16 }
 #[derive(Debug, Serialize)]
 struct ScenarioResult {
     scenario_id: String,
@@ -78,6 +83,10 @@ struct ScenarioResult {
     planned_survey_targets: usize,
     traversed_survey_targets: usize,
     verified_survey_targets: usize,
+    planned_area_cells: usize,
+    observed_area_cells: usize,
+    unobserved_area_cells: usize,
+    observed_coverage_basis_points: u16,
     energy_used_milliunits: u64,
     fault_response_latency_steps: Option<u32>,
     fault_deadline_steps: Option<u32>,
@@ -111,8 +120,102 @@ fn cell_index(map: &GridMap, coord: CellCoord) -> Option<usize> {
     if coord.x >= map.width || coord.y >= map.height { return None; }
     Some(usize::from(coord.y) * usize::from(map.width) + usize::from(coord.x))
 }
+fn coord_for_index(map: &GridMap, idx: usize) -> Option<CellCoord> {
+    if idx >= map.cells.len() { return None; }
+    let width = usize::from(map.width);
+    if width == 0 { return None; }
+    Some(CellCoord { x: (idx % width) as u16, y: (idx / width) as u16 })
+}
+fn sensor_config() -> SensorConfig {
+    SensorConfig { range_cells: 3, horizontal_fov_degrees: 180 }
+}
+fn facing_between(map: &GridMap, from: usize, to: usize) -> Option<Facing> {
+    let a = coord_for_index(map, from)?;
+    let b = coord_for_index(map, to)?;
+    match (i32::from(b.x) - i32::from(a.x), i32::from(b.y) - i32::from(a.y)) {
+        (0, -1) => Some(Facing::North),
+        (1, 0) => Some(Facing::East),
+        (0, 1) => Some(Facing::South),
+        (-1, 0) => Some(Facing::West),
+        _ => None,
+    }
+}
+fn facing_at_route_step(map: &GridMap, route: &[usize], step: usize) -> Facing {
+    if route.len() < 2 { return Facing::East; }
+    if step > 0 {
+        facing_between(map, route[step - 1], route[step]).unwrap_or(Facing::East)
+    } else {
+        facing_between(map, route[0], route[1]).unwrap_or(Facing::East)
+    }
+}
+fn ray_cell_blocks(map: &GridMap, x: i32, y: i32) -> bool {
+    if x < 0 || y < 0 || x >= i32::from(map.width) || y >= i32::from(map.height) {
+        return true;
+    }
+    let idx = (y as usize) * usize::from(map.width) + (x as usize);
+    let cell = &map.cells[idx];
+    !cell.observed || matches!(cell.occupancy, Occupancy::Obstacle | Occupancy::Unknown)
+}
+/// Conservative grid raycast: unknown cells and obstacles block visibility beyond themselves.
+/// When the ray crosses a grid corner, both side-adjacent cells are checked to avoid leaks.
+fn line_of_sight(map: &GridMap, origin: CellCoord, target: CellCoord) -> bool {
+    let (mut x, mut y) = (i32::from(origin.x), i32::from(origin.y));
+    let (tx, ty) = (i32::from(target.x), i32::from(target.y));
+    let dx = (tx - x).abs();
+    let dy = (ty - y).abs();
+    let sx = if x < tx { 1 } else if x > tx { -1 } else { 0 };
+    let sy = if y < ty { 1 } else if y > ty { -1 } else { 0 };
+    let mut err = dx - dy;
+    loop {
+        if x == tx && y == ty { return true; }
+        let twice = 2 * err;
+        let step_x = twice > -dy;
+        let step_y = twice < dx;
+        if step_x && step_y
+            && (ray_cell_blocks(map, x + sx, y) || ray_cell_blocks(map, x, y + sy)) {
+            return false;
+        }
+        if step_x { err -= dy; x += sx; }
+        if step_y { err += dx; y += sy; }
+        if (x, y) != (tx, ty) && ray_cell_blocks(map, x, y) { return false; }
+    }
+}
+fn within_sensor_range(map: &GridMap, origin_idx: usize, target_idx: usize, sensor: &SensorConfig) -> bool {
+    let Some(origin) = coord_for_index(map, origin_idx) else { return false; };
+    let Some(target) = coord_for_index(map, target_idx) else { return false; };
+    let dx = i32::from(target.x) - i32::from(origin.x);
+    let dy = i32::from(target.y) - i32::from(origin.y);
+    let range = i32::from(sensor.range_cells);
+    dx * dx + dy * dy <= range * range
+}
+fn visible_from_pose(
+    map: &GridMap, origin_idx: usize, target_idx: usize, facing: Facing, sensor: &SensorConfig,
+) -> bool {
+    let Some(origin) = coord_for_index(map, origin_idx) else { return false; };
+    let Some(target) = coord_for_index(map, target_idx) else { return false; };
+    let dx = i32::from(target.x) - i32::from(origin.x);
+    let dy = i32::from(target.y) - i32::from(origin.y);
+    if !within_sensor_range(map, origin_idx, target_idx, sensor) { return false; }
+    if sensor.horizontal_fov_degrees != 180 { return false; }
+    let dot = match facing {
+        Facing::North => -dy,
+        Facing::East => dx,
+        Facing::South => dy,
+        Facing::West => -dx,
+    };
+    // v0.1 uses a forward-facing 180-degree sensor; lateral rays are included.
+    if dot < 0 { return false; }
+    line_of_sight(map, origin, target)
+}
+fn visible_cells_from_pose(
+    map: &GridMap, origin_idx: usize, facing: Facing, sensor: &SensorConfig,
+) -> BTreeSet<usize> {
+    (0..map.cells.len())
+        .filter(|target| visible_from_pose(map, origin_idx, *target, facing, sensor))
+        .collect()
+}
 fn base_map(seed: u64, variant: MapVariant) -> GridMap {
-    let (width, height) = (5_u16, 5_u16);
+    let (width, height) = (9_u16, 9_u16);
     let mut cells = Vec::with_capacity(usize::from(width) * usize::from(height));
     for y in 0..height {
         for x in 0..width {
@@ -216,13 +319,16 @@ fn validate_scenario(corpus: &Corpus, spec: &ScenarioSpec) -> Check<ScenarioResu
     let target_coord = CellCoord { x: 4, y: 4 };
     let target = cell_index(&map, target_coord).ok_or_else(|| "target outside map".to_owned())?;
     let map_sha = sha256(&encoded(&map)?);
-    let config_inputs = (&robot, start_coord, target_coord, spec.map_variant, spec.battery_milliunits, spec.fault);
+    let sensor = sensor_config();
+    let config_inputs = (&robot, &sensor, start_coord, target_coord, spec.map_variant, spec.battery_milliunits, spec.fault);
     let config_sha = sha256(&encoded(&config_inputs)?);
     let mut result = ScenarioResult {
         scenario_id: spec.scenario_id.clone(), state: SimState::Blocked, reason_codes: Vec::new(),
         map_sha256: map_sha, config_sha256: config_sha, planned_route_cells: 0,
         traversed_unique_cells: 0, planned_survey_targets: 1, traversed_survey_targets: 0,
-        verified_survey_targets: 0, energy_used_milliunits: 0,
+        verified_survey_targets: 0, planned_area_cells: map.cells.len(), observed_area_cells: 0,
+        unobserved_area_cells: map.cells.len(), observed_coverage_basis_points: 0,
+        energy_used_milliunits: 0,
         fault_response_latency_steps: None, fault_deadline_steps: spec.fault.map(|f| f.deadline_steps),
         fault_deadline_passed: None,
     };
@@ -241,6 +347,7 @@ fn validate_scenario(corpus: &Corpus, spec: &ScenarioSpec) -> Check<ScenarioResu
         return Ok(result);
     }
     let mut traversed = BTreeSet::new();
+    let mut observed_cells = BTreeSet::new();
     let mut triggered = false;
     for (step, idx) in route.iter().copied().enumerate() {
         if let Some(fault) = spec.fault {
@@ -255,15 +362,24 @@ fn validate_scenario(corpus: &Corpus, spec: &ScenarioSpec) -> Check<ScenarioResu
             }
         }
         traversed.insert(idx);
+        let facing = facing_at_route_step(&map, &route, step);
+        observed_cells.extend(visible_cells_from_pose(&map, idx, facing, &sensor));
         if step > 0 { result.energy_used_milliunits += u64::from(robot.energy_per_cell_milliunits); }
-        if idx == target {
-            result.traversed_survey_targets = 1;
-            if map.cells[target].observed && map.cells[target].occupancy == Occupancy::Clear {
-                result.verified_survey_targets = 1;
-            }
-        }
+        if idx == target { result.traversed_survey_targets = 1; }
     }
     result.traversed_unique_cells = traversed.len();
+    result.observed_area_cells = observed_cells.len();
+    result.unobserved_area_cells = result.planned_area_cells.saturating_sub(result.observed_area_cells);
+    if result.planned_area_cells > 0 {
+        result.observed_coverage_basis_points =
+            ((result.observed_area_cells as u64 * 10_000) / result.planned_area_cells as u64) as u16;
+    }
+    if result.traversed_survey_targets > 0
+        && observed_cells.contains(&target)
+        && map.cells[target].observed
+        && map.cells[target].occupancy == Occupancy::Clear {
+        result.verified_survey_targets = 1;
+    }
     if !triggered { result.state = SimState::Completed; }
     Ok(result)
 }
@@ -413,6 +529,58 @@ mod tests {
         assert_eq!(a.map_sha256, b.map_sha256); assert_eq!(a.config_sha256, b.config_sha256);
         let other = c.scenarios.iter().find(|s| s.map_variant == MapVariant::UnknownTarget).unwrap();
         let changed = validate_scenario(&c, other).unwrap(); assert_ne!(a.map_sha256, changed.map_sha256);
+    }
+    #[test]
+    fn baseline_reports_partial_sensor_coverage_separately_from_traversal() {
+        let c = corpus();
+        let r = validate_scenario(&c, &c.scenarios[0]).expect("baseline");
+        assert_eq!(r.planned_area_cells, 81);
+        assert!(r.observed_area_cells > 0);
+        assert!(r.observed_area_cells < r.planned_area_cells);
+        assert_eq!(r.observed_area_cells + r.unobserved_area_cells, r.planned_area_cells);
+        assert!(r.observed_coverage_basis_points < 10_000);
+    }
+    #[test]
+    fn cells_behind_the_sensor_are_outside_the_forward_field_of_view() {
+        let map = base_map(20261017, MapVariant::Clear);
+        let sensor = sensor_config();
+        let origin = cell_index(&map, CellCoord { x: 4, y: 4 }).unwrap();
+        let behind = cell_index(&map, CellCoord { x: 1, y: 4 }).unwrap();
+        let ahead = cell_index(&map, CellCoord { x: 7, y: 4 }).unwrap();
+        assert!(!visible_from_pose(&map, origin, behind, Facing::East, &sensor));
+        assert!(visible_from_pose(&map, origin, ahead, Facing::East, &sensor));
+    }
+    #[test]
+    fn obstacle_blocks_line_of_sight_even_when_a_disk_baseline_would_count_the_cell() {
+        let mut map = base_map(20261017, MapVariant::Clear);
+        let obstacle = cell_index(&map, CellCoord { x: 1, y: 4 }).unwrap();
+        map.cells[obstacle].occupancy = Occupancy::Obstacle;
+        let origin = cell_index(&map, CellCoord { x: 0, y: 4 }).unwrap();
+        let behind = cell_index(&map, CellCoord { x: 3, y: 4 }).unwrap();
+        assert!(within_sensor_range(&map, origin, behind, &sensor_config()));
+        assert!(visible_from_pose(&map, origin, obstacle, Facing::East, &sensor_config()));
+        assert!(!visible_from_pose(&map, origin, behind, Facing::East, &sensor_config()));
+    }
+    #[test]
+    fn unknown_cells_can_be_targeted_but_block_visibility_beyond_them() {
+        let mut map = base_map(20261017, MapVariant::Clear);
+        let unknown = cell_index(&map, CellCoord { x: 1, y: 4 }).unwrap();
+        map.cells[unknown].occupancy = Occupancy::Unknown;
+        map.cells[unknown].observed = false;
+        let origin = cell_index(&map, CellCoord { x: 0, y: 4 }).unwrap();
+        let behind = cell_index(&map, CellCoord { x: 2, y: 4 }).unwrap();
+        let sensor = sensor_config();
+        assert!(visible_from_pose(&map, origin, unknown, Facing::East, &sensor));
+        assert!(!visible_from_pose(&map, origin, behind, Facing::East, &sensor));
+    }
+    #[test]
+    fn fault_interruptions_reduce_observed_coverage_without_crediting_the_plan() {
+        let c = corpus();
+        let baseline = validate_scenario(&c, &c.scenarios[0]).expect("baseline");
+        let interrupted = validate_scenario(&c, &c.scenarios[1]).expect("GNSS fault");
+        assert!(interrupted.observed_area_cells < baseline.observed_area_cells);
+        assert_eq!(interrupted.planned_area_cells, baseline.planned_area_cells);
+        assert_eq!(interrupted.verified_survey_targets, 0);
     }
     #[test]
     fn synthetic_only_claim_ceiling_is_enforced() {
