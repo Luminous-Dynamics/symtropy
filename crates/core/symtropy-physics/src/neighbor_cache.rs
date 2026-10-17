@@ -150,6 +150,7 @@ impl NeighborList2d {
         pairs.sort_unstable();
         pairs.dedup();
 
+        let scratch_capacity = build_positions_by_id.len();
         Ok(Self {
             interaction_radius,
             skin,
@@ -157,7 +158,7 @@ impl NeighborList2d {
             build_radius,
             build_points,
             build_positions_by_id,
-            seen_scratch: HashSet::with_capacity(build_positions_by_id.len()),
+            seen_scratch: HashSet::with_capacity(scratch_capacity),
             pairs,
         })
     }
