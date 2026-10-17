@@ -71,6 +71,26 @@ pub fn verify_bytes(
     let expected_scenarios = manifest.get("unique_scenario_count")
         .and_then(Value::as_u64)
         .ok_or_else(|| "manifest.unique_scenario_count must be an unsigned integer".to_owned())? as usize;
+    let declared_variant_count = manifest.get("variant_count_per_scenario")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "manifest.variant_count_per_scenario must be an unsigned integer".to_owned())? as usize;
+    if declared_variant_count != EXPECTED_VARIANTS.len() {
+        return Err("manifest.variant_count_per_scenario differs from the pinned 4-variant contract".to_owned());
+    }
+    let declared_families_array = manifest.get("scenario_families").and_then(Value::as_array)
+        .ok_or_else(|| "manifest.scenario_families must be an array".to_owned())?;
+    let mut declared_families: BTreeMap<String, (String, String)> = BTreeMap::new();
+    for item in declared_families_array {
+        let id = required_str(item, "scenario_id", "manifest.scenario_families")?.to_owned();
+        let family = required_str(item, "family", "manifest.scenario_families")?.to_owned();
+        let title = required_str(item, "title", "manifest.scenario_families")?.to_owned();
+        if declared_families.insert(id.clone(), (family, title)).is_some() {
+            return Err(format!("manifest repeats scenario_families id {}", id));
+        }
+    }
+    if declared_families.len() != expected_scenarios {
+        return Err("manifest scenario_families count differs from unique_scenario_count".to_owned());
+    }
     if expected_count != 28 || expected_scenarios != 7 {
         return Err("this verifier version requires the frozen 28-record / 7-scenario contract".to_owned());
     }
@@ -261,9 +281,30 @@ pub fn verify_bytes(
         }
     }
 
+    for (scenario_id, scenario) in &scenarios {
+        let declared = declared_families.get(scenario_id)
+            .ok_or_else(|| format!("scenario {} is absent from manifest.scenario_families", scenario_id))?;
+        if scenario.family.as_deref() != Some(declared.0.as_str()) {
+            return Err(format!("scenario {} family differs from manifest", scenario_id));
+        }
+        if scenario.title.as_deref() != Some(declared.1.as_str()) {
+            return Err(format!("scenario {} title differs from manifest", scenario_id));
+        }
+    }
+    for scenario_id in declared_families.keys() {
+        if !scenarios.contains_key(scenario_id) {
+            return Err(format!("manifest scenario {} has no fixture records", scenario_id));
+        }
+    }
+
     let declared_distribution = manifest.get("variant_distribution")
         .and_then(Value::as_object)
         .ok_or_else(|| "manifest.variant_distribution must be an object".to_owned())?;
+    let actual_distribution_keys: BTreeSet<String> = variant_distribution.keys().cloned().collect();
+    let declared_distribution_keys: BTreeSet<String> = declared_distribution.keys().cloned().collect();
+    if actual_distribution_keys != declared_distribution_keys {
+        return Err("manifest.variant_distribution keys differ from observed variants".to_owned());
+    }
     for (kind, actual) in &variant_distribution {
         let declared = declared_distribution.get(kind).and_then(Value::as_u64)
             .ok_or_else(|| format!("manifest.variant_distribution missing {}", kind))? as usize;
@@ -326,6 +367,16 @@ fn validate_schema_contract(schema: &Value) -> Result<(), String> {
         .ok_or_else(|| "schema.properties must be an object".to_owned())?;
     let required = string_set(schema.get("required"), "schema.required")?;
     let property_names: BTreeSet<String> = properties.keys().cloned().collect();
+    let pinned_fields: BTreeSet<String> = [
+        "scenario_id", "scenario_version", "scenario_family", "title", "variant_id",
+        "variant_kind", "variant_axis", "variant_description", "deterministic_seed",
+        "execution_profile", "policy_version", "policies_under_comparison", "baseline_policy",
+        "initial_conditions", "exogenous_events", "expected_invariants", "observables",
+        "known_model_limits", "claim_ceiling"
+    ].into_iter().map(str::to_owned).collect();
+    if property_names != pinned_fields || required != pinned_fields {
+        return Err("schema field set differs from this verifier version".to_owned());
+    }
     if required != property_names {
         return Err("schema.required and schema.properties must describe the same selected top-level contract".to_owned());
     }
@@ -587,6 +638,41 @@ mod tests {
         manifest["schema_sha256"] = json!(sha256_hex(changed_schema.as_bytes()));
         let manifest_text = serde_json::to_string(&manifest).unwrap();
         assert!(verify_bytes(FIXTURE.as_bytes(), &manifest_text, &changed_schema).unwrap_err().contains("must forbid additional top-level properties"));
+    }
+
+
+    #[test]
+    fn manifest_variant_count_must_match_pinned_contract() {
+        let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+        manifest["variant_count_per_scenario"] = json!(3);
+        let text = serde_json::to_string(&manifest).unwrap();
+        assert!(verify_bytes(FIXTURE.as_bytes(), &text, SCHEMA).unwrap_err().contains("variant_count_per_scenario differs"));
+    }
+
+    #[test]
+    fn manifest_distribution_rejects_undeclared_variant_keys() {
+        let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+        manifest["variant_distribution"]["other"] = json!(1);
+        let text = serde_json::to_string(&manifest).unwrap();
+        assert!(verify_bytes(FIXTURE.as_bytes(), &text, SCHEMA).unwrap_err().contains("variant_distribution keys differ"));
+    }
+
+    #[test]
+    fn scenario_family_and_title_are_bound_to_manifest() {
+        let (bytes, manifest) = rewritten_fixture(|rows| rows[0]["scenario_family"] = json!("invented_family"));
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("family differs from manifest"));
+    }
+
+    #[test]
+    fn schema_drift_fails_even_if_its_manifest_digest_is_updated() {
+        let mut schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        schema["properties"]["opaque_wisdom_score"] = json!({"type":"number"});
+        schema["required"].as_array_mut().unwrap().push(json!("opaque_wisdom_score"));
+        let text_schema = serde_json::to_string_pretty(&schema).unwrap() + "\n";
+        let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+        manifest["schema_sha256"] = json!(sha256_hex(text_schema.as_bytes()));
+        let text_manifest = serde_json::to_string(&manifest).unwrap();
+        assert!(verify_bytes(FIXTURE.as_bytes(), &text_manifest, &text_schema).unwrap_err().contains("schema field set differs"));
     }
 
     #[test]
