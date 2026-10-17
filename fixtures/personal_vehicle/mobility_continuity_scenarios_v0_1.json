@@ -1,0 +1,791 @@
+{
+  "schema_version": "household-mobility-continuity-benchmark/0.1",
+  "benchmark_id": "mobility-continuity-sa-0.1",
+  "created_date": "2026-10-17",
+  "market": "South Africa",
+  "status": "synthetic benchmark design; no field outcomes or vehicle approval implied",
+  "architecture_profiles": [
+    {
+      "id": "single_vehicle_baseline",
+      "label": "Single-vehicle baseline archetype",
+      "fallback_capacity_fraction": 0,
+      "stocked_critical_part_coverage_days": 0,
+      "parameter_status": "synthetic_fixture_value_not_observed",
+      "fallback_mode_eligible_for_synthetic_test": false
+    },
+    {
+      "id": "single_vehicle_repairability_oriented",
+      "label": "Repairability-oriented single vehicle with limited synthetic fallback capacity",
+      "fallback_capacity_fraction": 0.15,
+      "stocked_critical_part_coverage_days": 7,
+      "parameter_status": "synthetic_fixture_value_not_observed",
+      "fallback_mode_eligible_for_synthetic_test": true
+    },
+    {
+      "id": "household_mobility_bundle",
+      "label": "Primary vehicle plus complementary mobility archetype",
+      "fallback_capacity_fraction": 0.55,
+      "stocked_critical_part_coverage_days": 7,
+      "parameter_status": "synthetic_fixture_value_not_observed",
+      "fallback_mode_eligible_for_synthetic_test": true
+    }
+  ],
+  "stress_profiles": [
+    {
+      "id": "nominal",
+      "repair_delay_days": 0,
+      "critical_part_fill_fraction": 1,
+      "fuel_cost_multiplier": 1,
+      "household_budget_retention_fraction": 1,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "repair_delay",
+      "repair_delay_days": 21,
+      "critical_part_fill_fraction": 1,
+      "fuel_cost_multiplier": 1,
+      "household_budget_retention_fraction": 1,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "critical_part_unavailability",
+      "repair_delay_days": 35,
+      "critical_part_fill_fraction": 0,
+      "fuel_cost_multiplier": 1,
+      "household_budget_retention_fraction": 1,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "fuel_price_shock",
+      "repair_delay_days": 0,
+      "critical_part_fill_fraction": 1,
+      "fuel_cost_multiplier": 1.5,
+      "household_budget_retention_fraction": 1,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "cashflow_contraction",
+      "repair_delay_days": 0,
+      "critical_part_fill_fraction": 1,
+      "fuel_cost_multiplier": 1,
+      "household_budget_retention_fraction": 0.7,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "repair_delay_plus_fuel_price_shock",
+      "repair_delay_days": 21,
+      "critical_part_fill_fraction": 1,
+      "fuel_cost_multiplier": 1.5,
+      "household_budget_retention_fraction": 1,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "critical_part_plus_cashflow_contraction",
+      "repair_delay_days": 35,
+      "critical_part_fill_fraction": 0,
+      "fuel_cost_multiplier": 1,
+      "household_budget_retention_fraction": 0.7,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    },
+    {
+      "id": "combined_supply_fuel_cashflow_shock",
+      "repair_delay_days": 35,
+      "critical_part_fill_fraction": 0,
+      "fuel_cost_multiplier": 1.5,
+      "household_budget_retention_fraction": 0.7,
+      "parameter_status": "synthetic_fixture_value_not_observed"
+    }
+  ],
+  "demand_profile": {
+    "essential_trips_per_week": 12,
+    "discretionary_trips_per_week": 8,
+    "parameter_status": "normalized_synthetic_workload_not_a_population_estimate"
+  },
+  "dispatch_policy": {
+    "active_safety_hold_action": "deny_dispatch",
+    "unqualified_configuration_action": "deny_dispatch",
+    "fallback_counting_rule": "count_only_when_legal_accessible_available_and_capacity_sufficient"
+  },
+  "required_metrics": [
+    "essential_trip_fulfillment_ratio",
+    "unmet_essential_trip_count",
+    "out_of_service_hours",
+    "time_to_safe_recovery_p50_hours",
+    "time_to_safe_recovery_p90_hours",
+    "cost_per_fulfilled_essential_trip_r",
+    "fallback_accessibility_fraction",
+    "uncertainty_interval_coverage"
+  ],
+  "benchmark_targets": {
+    "safety_dispatch_violations_max": 0,
+    "negative_control_false_accepts_max": 0,
+    "nominal_essential_trip_fulfillment_ratio_min": 0.95,
+    "stress_essential_trip_fulfillment_ratio_min": 0.9,
+    "p90_recovery_improvement_vs_baseline_min": 0.25,
+    "unknown_lifecycle_costs_imputed_as_zero_max": 0,
+    "repeat_run_report_digest_match_min": 1,
+    "target_status": "proposed_acceptance_targets_not_achieved_results"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "MC-BASE-NOMINAL",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "nominal",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-REPAIR_DELAY",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "repair_delay",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 21,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-CRITICAL_PART_UNAVAILABILITY",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "critical_part_unavailability",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-FUEL_PRICE_SHOCK",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "fuel_price_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-CASHFLOW_CONTRACTION",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "cashflow_contraction",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-REPAIR_DELAY_PLUS_FUEL_PRICE_SHOCK",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "repair_delay_plus_fuel_price_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 21,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-CRITICAL_PART_PLUS_CASHFLOW_CONTRACTION",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "critical_part_plus_cashflow_contraction",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BASE-COMBINED_SUPPLY_FUEL_CASHFLOW_SHOCK",
+      "architecture_id": "single_vehicle_baseline",
+      "stressor_id": "combined_supply_fuel_cashflow_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-NOMINAL",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "nominal",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-REPAIR_DELAY",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "repair_delay",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 21,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-CRITICAL_PART_UNAVAILABILITY",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "critical_part_unavailability",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-FUEL_PRICE_SHOCK",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "fuel_price_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-CASHFLOW_CONTRACTION",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "cashflow_contraction",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-REPAIR_DELAY_PLUS_FUEL_PRICE_SHOCK",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "repair_delay_plus_fuel_price_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 21,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-CRITICAL_PART_PLUS_CASHFLOW_CONTRACTION",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "critical_part_plus_cashflow_contraction",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-REPAIR-COMBINED_SUPPLY_FUEL_CASHFLOW_SHOCK",
+      "architecture_id": "single_vehicle_repairability_oriented",
+      "stressor_id": "combined_supply_fuel_cashflow_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-NOMINAL",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "nominal",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-REPAIR_DELAY",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "repair_delay",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 21,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-CRITICAL_PART_UNAVAILABILITY",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "critical_part_unavailability",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-FUEL_PRICE_SHOCK",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "fuel_price_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-CASHFLOW_CONTRACTION",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "cashflow_contraction",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 0,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch",
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-REPAIR_DELAY_PLUS_FUEL_PRICE_SHOCK",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "repair_delay_plus_fuel_price_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 21,
+        "critical_part_fill_fraction": 1,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 1
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-CRITICAL_PART_PLUS_CASHFLOW_CONTRACTION",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "critical_part_plus_cashflow_contraction",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    },
+    {
+      "scenario_id": "MC-BUNDLE-COMBINED_SUPPLY_FUEL_CASHFLOW_SHOCK",
+      "architecture_id": "household_mobility_bundle",
+      "stressor_id": "combined_supply_fuel_cashflow_shock",
+      "evidence_class": "synthetic_scenario_input",
+      "demand": {
+        "essential_trips_per_week": 12,
+        "discretionary_trips_per_week": 8
+      },
+      "stress_parameters": {
+        "repair_delay_days": 35,
+        "critical_part_fill_fraction": 0,
+        "fuel_cost_multiplier": 1.5,
+        "household_budget_retention_fraction": 0.7
+      },
+      "safety_policy": {
+        "active_safety_hold": false,
+        "configuration_qualified_for_simulation": true,
+        "active_safety_hold_action": "deny_dispatch",
+        "unqualified_configuration_action": "deny_dispatch"
+      },
+      "reported_outputs": null
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-01",
+      "anti_pattern": "safety_hold_bypassed",
+      "must_reject": true,
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": true,
+        "dispatch_allowed": true,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
+    },
+    {
+      "id": "NC-02",
+      "anti_pattern": "unknown_lifecycle_cost_imputed_as_zero",
+      "must_reject": true,
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": 0,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
+    },
+    {
+      "id": "NC-03",
+      "anti_pattern": "synthetic_result_relabelled_as_observed",
+      "must_reject": true,
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "observed_field_measurement",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
+    },
+    {
+      "id": "NC-04",
+      "anti_pattern": "unavailable_fallback_counted_as_served",
+      "must_reject": true,
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": false,
+        "trips_demanded": 1,
+        "trips_counted_served": 1,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
+    },
+    {
+      "id": "NC-05",
+      "anti_pattern": "advertised_from_price_treated_as_lifecycle_cost",
+      "must_reject": true,
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "advertised_from",
+        "claimed_as_lifecycle_cost": true
+      }
+    }
+  ],
+  "evidence_boundary": {
+    "all_scenario_inputs_synthetic": true,
+    "observed_outcomes_present": false,
+    "safety_or_regulatory_approval_implied": false,
+    "notes": [
+      "All scenario values are synthetic fixtures for verifier and model smoke tests, not empirical forecasts.",
+      "Parameter values must be replaced or calibrated from dated evidence before evaluating a real household or vehicle.",
+      "A trip may count as served only when the chosen mode is legal, accessible, available, within deadline and has sufficient capacity.",
+      "A safe dispatch prohibition is a hard constraint and cannot be traded against cost or trip-fulfilment scores."
+    ]
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:vehicle:personalization-capability-set:0.1",
+  "title": "Synthetic Vehicle Personalization Capability Set v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "capability_sets",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "vehicle-personalization-capability-set/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_capability_fixture"
+    },
+    "capability_sets": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/capability_set"
+      }
+    },
+    "claim_ceiling": {
+      "const": "synthetic capability matching only; no claim about a real vehicle's support, compatibility or safety"
+    }
+  },
+  "$defs": {
+    "capability_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "vehicle_configuration_ref",
+        "context",
+        "profile_changes_blocked_while_moving",
+        "features"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "demo_parked_vehicle",
+            "demo_moving_vehicle"
+          ]
+        },
+        "vehicle_configuration_ref": {
+          "const": "synthetic_vehicle_config_demo_v0_1"
+        },
+        "context": {
+          "enum": [
+            "parked",
+            "moving"
+          ]
+        },
+        "profile_changes_blocked_while_moving": {
+          "const": true
+        },
+        "features": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "supported_themes",
+            "max_text_scale",
+            "supports_reduced_motion",
+            "supports_climate_control",
+            "allowed_temperature_range_c",
+            "supports_ambient_lighting",
+            "supported_ambient_colors",
+            "max_ambient_intensity_fraction",
+            "supports_seat_memory",
+            "supported_listening_styles",
+            "supported_cue_styles",
+            "max_preferred_volume_fraction",
+            "supports_large_controls",
+            "supports_captions",
+            "supports_tactile_feedback",
+            "supported_voice_modes",
+            "local_encrypted_storage",
+            "local_export_supported",
+            "local_delete_supported",
+            "neutral_reset_supported"
+          ],
+          "properties": {
+            "supported_themes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "warm_light",
+                  "dark_low_glare",
+                  "high_contrast",
+                  "calm_neutral"
+                ]
+              }
+            },
+            "max_text_scale": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1.3
+            },
+            "supports_reduced_motion": {
+              "type": "boolean"
+            },
+            "supports_climate_control": {
+              "type": "boolean"
+            },
+            "allowed_temperature_range_c": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number",
+                "minimum": 15,
+                "maximum": 30
+              }
+            },
+            "supports_ambient_lighting": {
+              "type": "boolean"
+            },
+            "supported_ambient_colors": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "off",
+                  "warm_amber",
+                  "soft_blue",
+                  "soft_green",
+                  "neutral_white"
+                ]
+              }
+            },
+            "max_ambient_intensity_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.25
+            },
+            "supports_seat_memory": {
+              "type": "boolean"
+            },
+            "supported_listening_styles": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "quiet",
+                  "balanced",
+                  "music_first",
+                  "spoken_word"
+                ]
+              }
+            },
+            "supported_cue_styles": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "short_tone",
+                  "soft_tone",
+                  "spoken_on_request",
+                  "haptic_when_supported"
+                ]
+              }
+            },
+            "max_preferred_volume_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.45
+            },
+            "supports_large_controls": {
+              "type": "boolean"
+            },
+            "supports_captions": {
+              "type": "boolean"
+            },
+            "supports_tactile_feedback": {
+              "type": "boolean"
+            },
+            "supported_voice_modes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "off",
+                  "on_request",
+                  "hands_free_when_supported"
+                ]
+              }
+            },
+            "local_encrypted_storage": {
+              "const": true
+            },
+            "local_export_supported": {
+              "const": true
+            },
+            "local_delete_supported": {
+              "const": true
+            },
+            "neutral_reset_supported": {
+              "const": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

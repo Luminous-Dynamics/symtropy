@@ -1,0 +1,83 @@
+name: Vehicle Personalization Capability Planner
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json"
+      - "fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json"
+      - "schemas/transport/vehicle_personalization_capability_set_v0_1.schema.json"
+      - "fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json"
+      - "docs/tech/VEHICLE_PERSONALIZATION_AND_OWNERSHIP_JOY_V0_1.md"
+      - "tools/vehicle-personalization-plan/**"
+      - ".github/workflows/vehicle-personalization-plan.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json"
+      - "fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json"
+      - "schemas/transport/vehicle_personalization_capability_set_v0_1.schema.json"
+      - "fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json"
+      - "docs/tech/VEHICLE_PERSONALIZATION_AND_OWNERSHIP_JOY_V0_1.md"
+      - "tools/vehicle-personalization-plan/**"
+      - ".github/workflows/vehicle-personalization-plan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vehicle-personalization-plan-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check planner formatting
+        run: cargo fmt --manifest-path tools/vehicle-personalization-plan/Cargo.toml -- --check
+      - name: Run capability-match and safety-boundary tests
+        run: cargo test --manifest-path tools/vehicle-personalization-plan/Cargo.toml --all-targets
+      - name: Compile all profiles against parked and moving capability sets
+        shell: bash
+        run: |
+          cargo run --manifest-path tools/vehicle-personalization-plan/Cargo.toml -- \
+            --profile-schema schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json \
+            --profile-set fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json \
+            --capability-schema schemas/transport/vehicle_personalization_capability_set_v0_1.schema.json \
+            --capabilities fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json \
+            > "$RUNNER_TEMP/vehicle-personalization-plan.json"
+          jq -e '
+            .evidence_class == "synthetic_capability_match_output"
+            and .preview_only == true
+            and .hardware_or_vehicle_control_calls == 0
+            and .profile_count == 4
+            and .capability_set_count == 2
+            and .plan_count == 8
+            and (.plans | length == 8)
+            and all(.plans[];
+              .preview_only == true
+              and .hardware_or_vehicle_control_calls == 0
+              and .safety_boundary.vehicle_dynamics_or_controls_modified == false
+              and .privacy_boundary.profile_preferences_written_to_vehicle == false
+            )
+            and all(.plans[] | select(.context == "moving");
+              all(.decisions[] | select(.disposition != "not_requested");
+                .disposition == "defer_until_parked"
+              )
+            )
+          ' "$RUNNER_TEMP/vehicle-personalization-plan.json"
+          sha256sum "$RUNNER_TEMP/vehicle-personalization-plan.json"
+      - name: Upload capability-aware preview report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vehicle-personalization-plan-${{ github.sha }}
+          path: ${{ runner.temp }}/vehicle-personalization-plan.json
+          if-no-files-found: error
+          retention-days: 30

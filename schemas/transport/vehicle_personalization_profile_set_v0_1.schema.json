@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:vehicle:personalization-profile-set:0.1",
+  "title": "Vehicle Personalization Profile Set and Adversarial Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "profiles",
+    "negative_controls",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "vehicle-personalization-profile-set/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_profile_fixture"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/negative_control"
+      }
+    },
+    "claim_ceiling": {
+      "const": "synthetic profile-contract and policy-guard tests only; no production vehicle, human-factors, accessibility or safety claim"
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "profile_id",
+        "label",
+        "evidence_class",
+        "display_preferences",
+        "cabin_preferences",
+        "audio_preferences",
+        "accessibility_preferences",
+        "interaction_policy",
+        "privacy",
+        "reversibility"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "vehicle-personalization-profile/0.1"
+        },
+        "profile_id": {
+          "enum": [
+            "vpf_daily001",
+            "vpf_access001",
+            "vpf_shared001",
+            "vpf_guest0001"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "evidence_class": {
+          "const": "synthetic_profile_fixture"
+        },
+        "display_preferences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "theme",
+            "text_scale",
+            "contrast",
+            "reduced_motion"
+          ],
+          "properties": {
+            "theme": {
+              "enum": [
+                "warm_light",
+                "dark_low_glare",
+                "high_contrast",
+                "calm_neutral"
+              ]
+            },
+            "text_scale": {
+              "enum": [
+                1,
+                1.15,
+                1.3
+              ]
+            },
+            "contrast": {
+              "enum": [
+                "standard",
+                "high"
+              ]
+            },
+            "reduced_motion": {
+              "type": "boolean"
+            }
+          }
+        },
+        "cabin_preferences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "preferred_temperature_c",
+            "ambient_light",
+            "ambient_intensity_fraction",
+            "seat_preset_ref",
+            "apply_context"
+          ],
+          "properties": {
+            "preferred_temperature_c": {
+              "type": "number",
+              "minimum": 18,
+              "maximum": 25
+            },
+            "ambient_light": {
+              "enum": [
+                "off",
+                "warm_amber",
+                "soft_blue",
+                "soft_green",
+                "neutral_white"
+              ]
+            },
+            "ambient_intensity_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.25
+            },
+            "seat_preset_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^seat_[a-z0-9]{4,20}$"
+            },
+            "apply_context": {
+              "const": "parked_only"
+            }
+          }
+        },
+        "audio_preferences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "listening_style",
+            "preferred_cue_style",
+            "preferred_volume_fraction",
+            "warning_audibility_policy"
+          ],
+          "properties": {
+            "listening_style": {
+              "enum": [
+                "quiet",
+                "balanced",
+                "music_first",
+                "spoken_word"
+              ]
+            },
+            "preferred_cue_style": {
+              "enum": [
+                "short_tone",
+                "soft_tone",
+                "spoken_on_request",
+                "haptic_when_supported"
+              ]
+            },
+            "preferred_volume_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.45
+            },
+            "warning_audibility_policy": {
+              "const": "manufacturer_defined_non_overridable"
+            }
+          }
+        },
+        "accessibility_preferences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "large_controls",
+            "optional_captions",
+            "tactile_feedback",
+            "voice_assistance",
+            "simplified_moving_ui"
+          ],
+          "properties": {
+            "large_controls": {
+              "type": "boolean"
+            },
+            "optional_captions": {
+              "enum": [
+                "off",
+                "on_when_available"
+              ]
+            },
+            "tactile_feedback": {
+              "type": "boolean"
+            },
+            "voice_assistance": {
+              "enum": [
+                "off",
+                "on_request",
+                "hands_free_when_supported"
+              ]
+            },
+            "simplified_moving_ui": {
+              "const": true
+            }
+          }
+        },
+        "interaction_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "moving_ui_policy",
+            "profile_changes_while_moving",
+            "safety_critical_settings",
+            "manual_override",
+            "unsupported_preference_behavior"
+          ],
+          "properties": {
+            "moving_ui_policy": {
+              "const": "minimal_low_distraction"
+            },
+            "profile_changes_while_moving": {
+              "const": "blocked"
+            },
+            "safety_critical_settings": {
+              "const": "manufacturer_controlled_non_overridable"
+            },
+            "manual_override": {
+              "const": "always_available"
+            },
+            "unsupported_preference_behavior": {
+              "const": "preserve_but_do_not_apply_and_explain"
+            }
+          }
+        },
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "storage_mode",
+            "cloud_sync_mode",
+            "cloud_sync_consent",
+            "telemetry_mode",
+            "telemetry_consent",
+            "profile_scope",
+            "clear_on_session_end",
+            "retention_days",
+            "local_export_enabled",
+            "local_delete_enabled"
+          ],
+          "properties": {
+            "storage_mode": {
+              "const": "device_local_encrypted"
+            },
+            "cloud_sync_mode": {
+              "enum": [
+                "disabled",
+                "explicit_opt_in"
+              ]
+            },
+            "cloud_sync_consent": {
+              "type": "boolean"
+            },
+            "telemetry_mode": {
+              "enum": [
+                "disabled",
+                "explicit_opt_in"
+              ]
+            },
+            "telemetry_consent": {
+              "type": "boolean"
+            },
+            "profile_scope": {
+              "enum": [
+                "private",
+                "shared_household",
+                "guest"
+              ]
+            },
+            "clear_on_session_end": {
+              "type": "boolean"
+            },
+            "retention_days": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 365
+            },
+            "local_export_enabled": {
+              "const": true
+            },
+            "local_delete_enabled": {
+              "const": true
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "cloud_sync_mode": {
+                    "const": "explicit_opt_in"
+                  }
+                },
+                "required": [
+                  "cloud_sync_mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "cloud_sync_consent": {
+                    "const": true
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "cloud_sync_mode": {
+                    "const": "disabled"
+                  }
+                },
+                "required": [
+                  "cloud_sync_mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "cloud_sync_consent": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "telemetry_mode": {
+                    "const": "explicit_opt_in"
+                  }
+                },
+                "required": [
+                  "telemetry_mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "telemetry_consent": {
+                    "const": true
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "telemetry_mode": {
+                    "const": "disabled"
+                  }
+                },
+                "required": [
+                  "telemetry_mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "telemetry_consent": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "profile_scope": {
+                    "const": "guest"
+                  }
+                },
+                "required": [
+                  "profile_scope"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "cloud_sync_mode": {
+                    "const": "disabled"
+                  },
+                  "cloud_sync_consent": {
+                    "const": false
+                  },
+                  "telemetry_mode": {
+                    "const": "disabled"
+                  },
+                  "telemetry_consent": {
+                    "const": false
+                  },
+                  "clear_on_session_end": {
+                    "const": true
+                  },
+                  "retention_days": {
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "reversibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "neutral_reset_available",
+            "settings_export_format",
+            "personalization_modules_replaceable"
+          ],
+          "properties": {
+            "neutral_reset_available": {
+              "const": true
+            },
+            "settings_export_format": {
+              "const": "versioned_open_json"
+            },
+            "personalization_modules_replaceable": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "negative_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "profile_id",
+        "operation",
+        "property",
+        "mutation_value",
+        "expected_rejection",
+        "must_reject"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "NC-PERS-01",
+            "NC-PERS-02",
+            "NC-PERS-03",
+            "NC-PERS-04",
+            "NC-PERS-05",
+            "NC-PERS-06",
+            "NC-PERS-07",
+            "NC-PERS-08"
+          ]
+        },
+        "profile_id": {
+          "enum": [
+            "vpf_daily001",
+            "vpf_access001",
+            "vpf_shared001",
+            "vpf_guest0001"
+          ]
+        },
+        "operation": {
+          "enum": [
+            "add_root_property",
+            "replace_interaction_policy",
+            "replace_privacy",
+            "replace_cabin_preferences",
+            "replace_reversibility"
+          ]
+        },
+        "property": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "mutation_value": {
+          "type": [
+            "object",
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "expected_rejection": {
+          "enum": [
+            "unknown_property",
+            "safety_policy_override",
+            "moving_ui_not_restricted",
+            "cloud_sync_without_consent",
+            "telemetry_without_consent",
+            "guest_data_persistence",
+            "excessive_ambient_intensity",
+            "irreversible_profile_customization"
+          ]
+        },
+        "must_reject": {
+          "const": true
+        }
+      }
+    }
+  }
+}

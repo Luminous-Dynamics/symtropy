@@ -1,0 +1,499 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:mobility:south-africa-vehicle-localization-matrix:0.1",
+  "title": "South African Vehicle Localization Scenario Matrix v0.1",
+  "description": "A sensitivity matrix with intentionally unresolved costs and explicit legal/evidence gates; not a manufacturing cost model or eligibility opinion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "matrix_id",
+    "created_date",
+    "market",
+    "status",
+    "provenance",
+    "route_definitions",
+    "volume_tiers",
+    "supply_conditions",
+    "scenario_count_expected",
+    "scenarios",
+    "negative_controls",
+    "required_cost_categories",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "south-africa-vehicle-localization-scenario-matrix/0.1"
+    },
+    "matrix_id": {
+      "const": "mobility-localization-sa-v0.1"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "market": {
+      "const": "South Africa"
+    },
+    "status": {
+      "const": "synthetic scenario matrix for engineering/economic sensitivity only; no costed route or approval"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_source_ids",
+        "source_registry_path",
+        "notes"
+      ],
+      "properties": {
+        "policy_source_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "source_registry_path": {
+          "type": "string",
+          "minLength": 8
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "route_definitions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "route_gate",
+          "localization_status",
+          "policy_source_ids",
+          "invariants",
+          "unlock_evidence"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "import_complete_vehicle",
+              "import_qualified_modules_local_service",
+              "local_value_add_conditional"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "route_gate": {
+            "enum": [
+              "market_baseline_only",
+              "requires_module_and_supplier_qualification",
+              "blocked_until_written_authority_confirmation"
+            ]
+          },
+          "localization_status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_source_ids": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 8
+            }
+          },
+          "invariants": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "unlock_evidence": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "volume_tiers": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "vehicles_per_year",
+          "note"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "pilot_250",
+              "small_series_2500",
+              "scale_25000"
+            ]
+          },
+          "vehicles_per_year": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "supply_conditions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "fx_multiplier",
+          "imported_part_lead_time_multiplier",
+          "available_supplier_fraction",
+          "demand_multiplier",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "stable_supply",
+              "supply_fx_stress"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fx_multiplier": {
+            "type": "number",
+            "minimum": 0
+          },
+          "imported_part_lead_time_multiplier": {
+            "type": "number",
+            "minimum": 0
+          },
+          "available_supplier_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "demand_multiplier": {
+            "type": "number",
+            "minimum": 0
+          },
+          "status": {
+            "const": "illustrative_sensitivity_input_not_observation"
+          }
+        }
+      }
+    },
+    "scenario_count_expected": {
+      "const": 18
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "route_id",
+          "route_gate",
+          "localization_status",
+          "volume_tier_id",
+          "vehicles_per_year",
+          "supply_condition_id",
+          "shock_inputs",
+          "cost_model_status",
+          "costs",
+          "policy_source_ids",
+          "route_invariants",
+          "unlock_evidence",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^LOC_[A-Z0-9_]+$"
+          },
+          "route_id": {
+            "enum": [
+              "import_complete_vehicle",
+              "import_qualified_modules_local_service",
+              "local_value_add_conditional"
+            ]
+          },
+          "route_gate": {
+            "enum": [
+              "market_baseline_only",
+              "requires_module_and_supplier_qualification",
+              "blocked_until_written_authority_confirmation"
+            ]
+          },
+          "localization_status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "volume_tier_id": {
+            "enum": [
+              "pilot_250",
+              "small_series_2500",
+              "scale_25000"
+            ]
+          },
+          "vehicles_per_year": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "supply_condition_id": {
+            "enum": [
+              "stable_supply",
+              "supply_fx_stress"
+            ]
+          },
+          "shock_inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "foreign_exchange_cost_multiplier",
+              "imported_part_lead_time_multiplier",
+              "assumed_supplier_availability_fraction",
+              "annual_demand_multiplier",
+              "input_class"
+            ],
+            "properties": {
+              "foreign_exchange_cost_multiplier": {
+                "type": "number",
+                "minimum": 0
+              },
+              "imported_part_lead_time_multiplier": {
+                "type": "number",
+                "minimum": 0
+              },
+              "assumed_supplier_availability_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "annual_demand_multiplier": {
+                "type": "number",
+                "minimum": 0
+              },
+              "input_class": {
+                "const": "illustrative_sensitivity_input_not_observation"
+              }
+            }
+          },
+          "cost_model_status": {
+            "const": "not_computed_missing_dated_quotes_and_bom"
+          },
+          "costs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "vehicle_bom_zar",
+              "landed_import_cost_zar",
+              "local_labor_cost_zar",
+              "tooling_capex_zar",
+              "homologation_and_approval_cost_zar",
+              "warranty_and_rework_cost_zar",
+              "annual_parts_inventory_cost_zar",
+              "incentive_or_rebate_zar",
+              "ten_year_ownership_cost_zar"
+            ],
+            "properties": {
+              "vehicle_bom_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "landed_import_cost_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "local_labor_cost_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "tooling_capex_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "homologation_and_approval_cost_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "warranty_and_rework_cost_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "annual_parts_inventory_cost_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "incentive_or_rebate_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "ten_year_ownership_cost_zar": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          },
+          "policy_source_ids": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 8
+            }
+          },
+          "route_invariants": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "unlock_evidence": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "claim_ceiling": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "mutation",
+          "expected",
+          "invariant"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "LC01_UNCONFIRMED_INCENTIVE_AS_ZERO_COST",
+              "LC02_UNQUALIFIED_SAFETY_CRITICAL_LOCAL_SUBSTITUTE",
+              "LC03_SKD_ANNOUNCEMENT_TREATED_AS_COMPLETE_LEGAL_RULE",
+              "LC04_ADVERTISED_FROM_PRICE_AS_LANDED_COST",
+              "LC05_VOLUME_TIER_AS_FORECAST"
+            ]
+          },
+          "mutation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "enum": [
+              "reject_or_mark_blocked",
+              "reject_route_candidate",
+              "reject_eligibility_claim",
+              "reject_cost_claim",
+              "reject_forecast_claim"
+            ]
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_cost_categories": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+name: Vehicle Personalization Contract Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json"
+      - "fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json"
+      - "docs/tech/VEHICLE_PERSONALIZATION_AND_OWNERSHIP_JOY_V0_1.md"
+      - "tools/vehicle-personalization-audit/**"
+      - ".github/workflows/vehicle-personalization-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json"
+      - "fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json"
+      - "docs/tech/VEHICLE_PERSONALIZATION_AND_OWNERSHIP_JOY_V0_1.md"
+      - "tools/vehicle-personalization-audit/**"
+      - ".github/workflows/vehicle-personalization-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vehicle-personalization-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Run schema, privacy, safety-boundary and mutation tests
+        run: cargo test --manifest-path tools/vehicle-personalization-audit/Cargo.toml --all-targets
+      - name: Audit valid profiles and adversarial mutations
+        shell: bash
+        run: |
+          cargo run --manifest-path tools/vehicle-personalization-audit/Cargo.toml -- \
+            --schema schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json \
+            --fixture fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json \
+            > "$RUNNER_TEMP/vehicle-personalization-audit.json"
+          jq -e '
+            .evidence_class == "synthetic_contract_audit"
+            and .profile_count == 4
+            and .negative_control_count == 8
+            and .correctly_rejected_control_count == 8
+            and .false_accept_count == 0
+          ' "$RUNNER_TEMP/vehicle-personalization-audit.json"
+          sha256sum "$RUNNER_TEMP/vehicle-personalization-audit.json"
+      - name: Upload synthetic contract report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vehicle-personalization-audit-${{ github.sha }}
+          path: ${{ runner.temp }}/vehicle-personalization-audit.json
+          if-no-files-found: error
+          retention-days: 30
