@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:cross-appliance-architecture-morphology:0.1.0",
+  "title": "Cross-Appliance Architecture Morphology and Hybrid Portfolio",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "portfolio_id",
+    "status",
+    "claim_ceiling",
+    "families",
+    "design_patterns",
+    "hybrid_candidates",
+    "portfolio_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "portfolio_id": {
+      "const": "APPLIANCE-MORPHOLOGY-001"
+    },
+    "status": {
+      "const": "design_space_hypotheses_only"
+    },
+    "claim_ceiling": {
+      "const": "no_physical_compatibility_performance_savings_safety_or_superiority_claim"
+    },
+    "families": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "primary_function",
+          "critical_constraints",
+          "useful_output_metrics",
+          "service_boundary",
+          "variants",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "F1-WASHER",
+              "F2-DISHWASHER",
+              "F3-REFRIGERATOR-FREEZER",
+              "F4-HEAT-PUMP-DRYER",
+              "F5-WASHER-DRYER-COMBO",
+              "F6-HEAT-PUMP-WATER-HEATER",
+              "F7-RESIDENTIAL-HVAC",
+              "F8-COOKING-APPLIANCES",
+              "F9-VENTILATION-HRV"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 4
+          },
+          "primary_function": {
+            "type": "string",
+            "minLength": 15
+          },
+          "critical_constraints": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 12
+            }
+          },
+          "useful_output_metrics": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 8
+            }
+          },
+          "service_boundary": {
+            "type": "string",
+            "minLength": 20
+          },
+          "variants": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "description",
+                "hypothesis",
+                "tradeoffs",
+                "required_tests",
+                "status"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9-]+$"
+                },
+                "kind": {
+                  "enum": [
+                    "control",
+                    "targeted_serviceability",
+                    "hybrid_candidate",
+                    "orthogonal_trade"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 15
+                },
+                "hypothesis": {
+                  "type": "string",
+                  "minLength": 20
+                },
+                "tradeoffs": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "string",
+                    "minLength": 10
+                  }
+                },
+                "required_tests": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "string",
+                    "minLength": 10
+                  }
+                },
+                "status": {
+                  "const": "hypothesis_not_validated"
+                }
+              }
+            }
+          },
+          "status": {
+            "const": "family_profile_not_physically_validated"
+          }
+        }
+      }
+    },
+    "design_patterns": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "mechanism",
+          "benefit_hypothesis",
+          "failure_modes",
+          "validation_metrics",
+          "applicable_families",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^M[0-9]{2}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 5
+          },
+          "mechanism": {
+            "type": "string",
+            "minLength": 20
+          },
+          "benefit_hypothesis": {
+            "type": "string",
+            "minLength": 20
+          },
+          "failure_modes": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "validation_metrics": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "minLength": 8
+            }
+          },
+          "applicable_families": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "const": "hypothesis_not_validated"
+          }
+        }
+      }
+    },
+    "hybrid_candidates": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "family_ids",
+          "pattern_ids",
+          "combination",
+          "benefit_hypothesis",
+          "non_claims",
+          "key_trades",
+          "discriminating_tests",
+          "next_gate",
+          "physical_interchangeability",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^H[0-9]{2}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 5
+          },
+          "family_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "pattern_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "combination": {
+            "type": "string",
+            "minLength": 20
+          },
+          "benefit_hypothesis": {
+            "type": "string",
+            "minLength": 20
+          },
+          "non_claims": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 15
+            }
+          },
+          "key_trades": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "discriminating_tests": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "minLength": 10
+            }
+          },
+          "next_gate": {
+            "enum": [
+              "desk_study",
+              "controlled_disassembly",
+              "control_pilot",
+              "single_factor_physical_trial",
+              "hybrid_physical_trial",
+              "independent_replication"
+            ]
+          },
+          "physical_interchangeability": {
+            "const": "none_claimed"
+          },
+          "status": {
+            "const": "hypothesis_not_validated"
+          }
+        }
+      }
+    },
+    "portfolio_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unknown_policy",
+        "safety_policy",
+        "component_reuse_policy",
+        "prioritization_policy",
+        "initial_pilots",
+        "market_rule",
+        "no_winner_claim"
+      ],
+      "properties": {
+        "unknown_policy": {
+          "const": "unknown_not_zero"
+        },
+        "safety_policy": {
+          "const": "non_compensatory_product_specific_hard_gates"
+        },
+        "component_reuse_policy": {
+          "const": "shared_service_contracts_do_not_imply_shared_physical_components"
+        },
+        "prioritization_policy": {
+          "const": "value_of_information_cost_and_risk_before_breadth"
+        },
+        "initial_pilots": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "enum": [
+              "washer_service_spine",
+              "heat_pump_dryer_air_side_service"
+            ]
+          }
+        },
+        "market_rule": {
+          "const": "verify_jurisdiction_specific_rules_before_design_freeze"
+        },
+        "no_winner_claim": {
+          "const": true
+        }
+      }
+    }
+  }
+}
