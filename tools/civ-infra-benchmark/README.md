@@ -21,6 +21,9 @@ The frozen fixture contains three intentionally different candidate alignments. 
 | A-shortest | 880 m | 8.0% | 3,520 m³ | 1,760 m³ | 5,280 m³ | Infeasible: grade, earthworks and drainage limits |
 | B-low-earthworks | 980 m | 4.2% | 1,470 m³ | 980 m³ | 2,450 m³ | Infeasible: power-duct clearance |
 | C-reference | 1,080 m | 3.5% | 2,160 m³ | 1,620 m³ | 3,780 m³ | Feasible for explicitly modelled synthetic checks |
+| D-resilient-detour | 1,200 m | 2.5% | 2,400 m³ | 1,800 m³ | 4,200 m³ | Feasible; longer but gentler profile |
+
+The V0 Pareto frontier uses only three minimization metrics—route length, maximum absolute grade, and total earthworks—and admits only candidates that pass every explicitly modelled synthetic check. Under that declared trade space, C-reference and D-resilient-detour are both non-dominated: C is shorter and needs less earthwork, while D has the gentler profile. This is a bounded synthetic demonstration of a Pareto set, not evidence that either real-world alternative is preferable.
 
 The cross-section cut/fill areas, profile, utility locations, flow/capacity values and constraints are invented fixtures. The grade and volumes are calculated from those inputs; they are not derived from surveyed terrain or a full corridor solid. C is not a real-world qualified road design.
 
