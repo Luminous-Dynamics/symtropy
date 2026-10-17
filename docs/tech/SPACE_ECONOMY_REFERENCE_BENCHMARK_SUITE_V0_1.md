@@ -225,3 +225,40 @@ Prevention credits and active-removal credits are represented separately. A clai
 SOBU means *synthetic orbital burden unit* only. It is not a physical quantity, collision probability, validated debris-risk proxy, ESA Space Environment Health Index, ISO threshold, or proof of compliance. The example is not an orbital-dynamics simulation. It must not be used to assert real Earth-orbit economics, nor transferred to cislunar orbit or surface operations without a separate system boundary and validated physical basis. The benchmark verifies a decision contract; it does not certify a mission or policy.
 
 Follow-on calibration and data research is tracked in [BENCH-SPACE-005](https://github.com/Luminous-Dynamics/symtropy/issues/1759).
+
+ 
+## Active reference extension — verified industrial capability closure
+
+The standalone example `tools/space-economy-bench/examples/industrial_closure_reference.rs` tests a further paradigm shift: evaluate the closure of a *capability dependency graph*, not the headline fraction of local material or a label saying "ISRU available." This is a separate synthetic extension and does not change the frozen six-scenario v0.1 JSON corpus.
+
+The direction is consistent with NASA's 2026 Lunar Enabling Infrastructure Accelerator, whose stated gaps include connected surface power, ISRU, advanced manufacturing and nanomaterials systems ([NASA announcement](https://www.nasa.gov/news-release/nasa-calls-for-proposals-to-accelerate-lunar-surface-technologies/); [infrastructure context](https://www.nasa.gov/directorates/stmd/nasa-seeks-industry-input-to-accelerate-lunar-surface-technologies/)). It is also consistent with ESA's longer-term circular-space-economy framing around servicing, maintenance, repair, reuse and recycling ([ESA Space Environment Report 2026](https://www.esa.int/Space_Safety/Space_Debris/ESA_Space_Environment_Report_2026)). These sources motivate connected capability modeling; they do not validate the fixture graph or its costs.
+
+### Distinct metrics
+
+The receipt separately exposes:
+- Claimed local-content percentage.
+- Reported current operating status.
+- Whether the operational claim has verified evidence.
+- Whether the target is locally closed under the declared graph.
+- Explicit blocker IDs and reason codes.
+
+A target is locally closed in this synthetic contract only if it is operational, evidence-verified, locally operated, has no declared recurring import dependencies, and every dependency recursively meets the same requirements. Missing dependencies and dependency cycles fail closed. Cycle detection is conservative; this graph walk reports blockers and does not claim to compute globally minimal cut sets.
+
+### Synthetic oracle
+
+| Plan | Claimed local content | Lifecycle cost | Target operating now | Target locally closed |
+|---|---:|---:|---|---|
+| High local content | 92% | 95 SCU | Yes | **No** — unverified metal refining and imported recurring sensor module |
+| Closure first | 78% | 120 SCU | Yes | Yes under the declared synthetic graph |
+
+The point is not that local electronics manufacturing is an established or near-term lunar capability. That node is a synthetic fixture. Rather, the benchmark must make a high-local-content claim insufficient to override one unverified production dependency or an imported recurring bottleneck. The closure-first plan has a higher synthetic lifecycle cost, but passes the specified dependency-closure gate.
+
+### Proposed targets
+
+- 100% rejection of missing dependency, unverified process, recurring-import, nonlocal-operation, and dependency-cycle negative controls for the expected reason.
+- Zero locally-closed target claims if any mandatory dependency is unverified, nonlocal, or dependent on recurring external supply.
+- Operational-now and locally-closed results remain separate fields; the former cannot imply the latter.
+- Every graph input and source revision has a deterministic digest/receipt; unknown capability claims remain blockers.
+- For any empirical version, publish the service horizon, stockpile policy, wear-out/replacement rates, energy and material budgets, process yields, evidence classes, and dependency provenance. Evaluate the same service target under stress-tested alternatives rather than comparing arbitrary local-content percentages.
+
+Research tracking: [BENCH-SPACE-006 — verified industrial capability closure and bootstrap bottlenecks](https://github.com/Luminous-Dynamics/symtropy/issues/1765).
