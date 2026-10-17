@@ -807,7 +807,7 @@ mod tests {
         assert_eq!(repeated.evsi_numerator, 1_670_000_000);
         assert_eq!(complementary.gross_value_numerator, 7_566_000_000);
         assert_eq!(complementary.evsi_numerator, 2_566_000_000);
-        assert_eq!(complementary.outcomes[1].selected_reward_numerator, 0);
+        assert_eq!(complementary.outcomes[1].selected_reward_numerator, 266_000_000);
         assert_eq!(complementary.outcomes[2].selected_reward_numerator, 1_466_000_000);
     }
 
