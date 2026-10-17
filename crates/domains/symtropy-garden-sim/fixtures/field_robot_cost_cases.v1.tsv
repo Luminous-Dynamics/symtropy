@@ -1,0 +1,26 @@
+# FIELD-ROBOT-COST-BENCH-V1
+case_id	expected_result	rationale
+baseline_cost_components_match_hand_calculated_oracle	CALCULATED_PROVISIONAL	Hand-calculated annual cost components and normalized costs match exactly
+complete_source_references_change_evidence_disposition_not_math	CALCULATED_SOURCE_REFERENCED	All source references are declared; the evaluator does not authenticate them
+estimated_route_data_makes_result_provisional	CALCULATED_PROVISIONAL	Estimated route evidence yields provisional outputs
+missing_cost_evidence_blocks_calculation	BLOCKED	Explicitly missing capital evidence blocks calculation
+stale_evidence_blocks_even_when_numeric_values_look_favorable	BLOCKED	Stale route source blocks otherwise plausible numeric values
+conflicting_repair_evidence_blocks_ranking_inputs	BLOCKED	Conflicting repair evidence blocks model output
+duplicate_evidence_domains_block	BLOCKED	Duplicate evidence domain is rejected
+missing_evidence_domain_blocks	BLOCKED	Required site-geometry evidence record is absent
+malformed_source_digest_blocks	BLOCKED	Malformed source artifact digest is rejected
+invalid_currency_code_blocks	BLOCKED	Currency code must contain three uppercase ASCII letters
+unsupported_schema_blocks	BLOCKED	Unrecognized contract version is blocked
+zero_output_blocks_per_unit_cost	BLOCKED	Zero completed units would make per-unit cost undefined
+zero_completed_area_blocks_hectare_cost	BLOCKED	A supplied zero-area denominator is invalid
+zero_useful_life_blocks_capital_annualization	BLOCKED	Capital annualization requires positive useful life
+salvage_value_above_acquisition_cost_blocks	BLOCKED	Salvage above acquisition is invalid
+supervision_is_subset_of_labor_not_double_counted	BLOCKED	Supervision cannot exceed the total operator-labor time
+zero_route_missions_have_zero_route_and_mobilization_cost	CALCULATED_PROVISIONAL	No missions means zero external route and mobilization cost
+route_distance_increases_logistics_cost	CALCULATED_PROVISIONAL	Doubling route distance increases the declared distance-based logistics cost
+no_robot_baseline_is_modelled_without_fake_capital_cost	CALCULATED_PROVISIONAL	Manual/no-new-robot option remains a valid cost baseline
+exact_ceiling_arithmetic_never_rounds_cost_down	CALCULATED_PROVISIONAL	Minor-unit costs round upward conservatively
+route_distance_overflow_blocks_without_wrapping	BLOCKED	Overflow in route distance is blocked rather than wrapped
+annual_time_over_budget_blocks	BLOCKED	Machine time beyond the annual operating envelope is blocked
+total_cost_overflow_blocks_without_partial_breakdown	BLOCKED	Overflow in total cost does not return a partial result
+exact_integer_cost_values_round_trip_as_decimal_strings	ROUNDTRIP_VALID	Large integer inputs serialize as decimal strings without precision loss
