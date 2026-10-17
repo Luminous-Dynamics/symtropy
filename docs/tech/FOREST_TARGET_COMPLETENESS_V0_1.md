@@ -60,6 +60,23 @@ Only viewpoints that reveal at least one required feature are enumerated. A view
 The receipt now includes the target-oracle viewpoint sequence and its independently checked cost fields, candidate count and expanded-state count, per-target truth/visibility, per-case complete-target regret for greedy, lookahead, and the cell-coverage oracle, aggregate ratios where the denominator is nonzero, and worst-case per-case regret for each split. The ratio is serialized as null when the target oracle completes zero targets. The cell-coverage oracle stays separate and can score fewer useful forestry targets despite seeing more total cells.
 
 This makes target-completeness regret measurable rather than inferred from raw cell coverage. It does not establish a production-grade target-aware planner: the current operational baselines remain unchanged, and the exact oracle is a tiny-instance reference only.
+## Frozen v0.1 target-seed result
+
+Hosted exact-head run `39031554713` passed at source SHA `f28d8ad7424ee2a196d1dac0e5ea25ce99cb6d29`, including 9 cell-planner tests, 15 target-audit tests, all 60 evaluations, receipt assertions and upload of exact-input receipts.
+
+Held-out aggregate: 36 scenario-seed cases × 3 synthetic targets = 108 targets.
+
+| Method | Complete targets | Required features observed |
+|---|---:|---:|
+| Target-objective exhaustive oracle | 60/108 (55.56%) | 198/288 (68.75%) |
+| Two-step cell-coverage lookahead | 41/108 (37.96%) | 169/288 (58.68%) |
+| Exhaustive cell-coverage oracle | 39/108 (36.11%) | 167/288 (57.99%) |
+| Greedy cell-coverage planner | 36/108 (33.33%) | 160/288 (55.56%) |
+
+The exact target-objective oracle found 19 more complete targets than two-step cell-coverage lookahead on these fixed-template / held-out-target-layout cases. This is evidence that the objective matters within this discrete toy model, **not** evidence of a 17.6-percentage-point field improvement. There are still held-out cases where all current methods observe zero target features. Worst-case per-case completeness regret is two targets for each baseline in this corpus. The largest enumerated search was 14,165 states with up to 99 candidate viewpoints.
+
+Interpretation: keep hard budget/return checks, but promote the target-specific objective into a practical planning heuristic. The next research gates are new map topologies independent from target seeds, explicit target-unreachable classification, a larger corpus, realistic 3D geometry and independent field calibration. The tiny exact oracle is a reference; production methods should be evaluated on regret, worst case and compute cost, not judged by this oracle’s score alone.
+
 ## Research basis
 
 - [OA-NBV: Occlusion-Aware Next-Best-View Planning for Human-Centered Active Perception](https://arxiv.org/abs/2603.11072) studies target-centric visibility and completeness with feasible viewpoints. Its reported success and observation improvements are for its own human-centered experiments, not forestry.
