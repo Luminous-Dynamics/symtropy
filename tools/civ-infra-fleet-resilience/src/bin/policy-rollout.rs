@@ -690,7 +690,8 @@ mod tests {
 
     #[test]
     fn replanning_waits_until_the_event_is_observable() {
-        let report = verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
+        let report =
+            verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
         let b0 = report.policy_results.iter().find(|item| item.policy_id == "B0").unwrap();
         let b1 = report.policy_results.iter().find(|item| item.policy_id == "B1").unwrap();
         let b2 = report.policy_results.iter().find(|item| item.policy_id == "B2").unwrap();
@@ -706,7 +707,8 @@ mod tests {
 
     #[test]
     fn synthetic_acceptance_requires_final_inspection() {
-        let report = verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
+        let report =
+            verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
         for policy in report.policy_results {
             if policy.accepted_synthetic_work {
                 assert_eq!(policy.completed_task_count, 4);
