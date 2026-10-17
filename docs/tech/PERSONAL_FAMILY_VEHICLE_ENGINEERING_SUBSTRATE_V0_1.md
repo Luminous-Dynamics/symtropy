@@ -14,6 +14,16 @@
 
 This specification does **not** propose another universal solver or duplicate the multimodal network optimizer. It adds an engineering-focused benchmark contract connecting a physical-vehicle model, repairability metadata, lifecycle economics and evidence-qualified simulation.
 
+
+
+## Current artifact and independent-verifier status (2026-10-17)
+
+The draft includes a frozen 21-case JSON corpus at `fixtures/personal_vehicle/scenario_corpus_v0_1.json`, plus a standalone Rust contract verifier at `tools/personal-vehicle-corpus-audit/`. The verifier is deliberately separate from the physics implementation and checks exact corpus identity/census, case identity and kind, declared status semantics, critical negative-control decisions, selected required invariants and a SHA-256 report digest. It contains mutation-oriented unit tests for duplicate IDs, overload promotion, out-of-domain promotion, solver-identity mutation, weakened negative-control class, invalid units, missing invariants and removal of the synthetic claim ceiling.
+
+A path-scoped workflow at `.github/workflows/personal-vehicle-corpus-audit.yml` pins Rust 1.96.0 and runs formatting, verifier tests and a report against the checked-in corpus. The code has been authored and committed on this PR branch, but **it has not been compiled or executed in this environment**. The current commit’s hosted CI must be checked at exact head; queued, skipped, or absent runs are not a pass.
+
+This verifier checks corpus-contract semantics; it does not compute any vehicle dynamics and does not validate the correctness or fidelity of a physics solver. Even a clean verifier result is only evidence that the frozen synthetic corpus and its explicit guardrails match the contract.
+
 ## Core paradigm shift: design a vehicle and its maintenance ecosystem jointly
 
 Optimize across:
