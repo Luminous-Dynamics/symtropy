@@ -1262,7 +1262,11 @@ mod tests {
                 evaluator_version: EVALUATOR_VERSION.to_string(),
                 base_fixture_sha256: sha256_hex(fixture_bytes()),
                 generator: "lcg64-6364136223846793005-1442695040888963407".to_string(),
-                mutator: "per-candidate grade+=lcg%300/100; capacity+=lcg%150/10; clearance+=lcg%100/1000; base-demand+=lcg%200/10".to_string(),
+                mutator: concat!(
+                    "per-candidate grade+=lcg%300/100; capacity+=lcg%150/10; ",
+                    "clearance+=lcg%100/1000; base-demand+=lcg%200/10"
+                )
+                .to_string(),
                 initial_seed: "0xD3211A2026".to_string(),
                 generated_fixture_count: case_records.len(),
                 total_candidate_state_evaluations: evaluations,
