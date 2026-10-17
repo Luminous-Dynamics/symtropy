@@ -330,6 +330,22 @@ fn exact_policy_selection(models: &[LikelihoodModel]) -> Result<Value, String> {
         return Err("nominal/maximin/minimax-regret analytical policy oracle mismatch".to_owned());
     }
 
+    let no_measurement = scores.iter().find(|score| score.policy == Policy::NoMeasurement)
+        .ok_or_else(|| "no-measurement candidate missing".to_owned())?;
+    let always_assay = scores.iter().find(|score| score.policy == Policy::AlwaysBuyAssay)
+        .ok_or_else(|| "direct-assay candidate missing".to_owned())?;
+    let calibrate_then_adapt = scores.iter().find(|score| score.policy == Policy::CalibrateThenAdapt)
+        .ok_or_else(|| "calibration-gated candidate missing".to_owned())?;
+    if no_measurement.worst_case_value_numerator != 5_000_000_000
+        || no_measurement.max_regret_numerator != 1_500_000_000
+        || always_assay.worst_case_value_numerator != 3_000_000_000
+        || always_assay.max_regret_numerator != 2_000_000_000
+        || calibrate_then_adapt.worst_case_value_numerator != 4_700_000_000
+        || calibrate_then_adapt.max_regret_numerator != 300_000_000
+    {
+        return Err("maximin / minimax-regret numerical oracle mismatch".to_owned());
+    }
+
     let baseline = baseline_value_numerator();
     let evpi = perfect_information_value_numerator() - baseline;
     let model_reports = models.iter().map(|model| {
