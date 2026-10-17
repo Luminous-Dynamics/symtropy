@@ -252,6 +252,15 @@ fn validate_schedule(schedule: &ObservationSchedule) -> Result<(), SettlementErr
     let mut ids = BTreeSet::new();
     for record in &schedule.records {
         validate_record(record)?;
+        if matches!(&record.disposition, ObservationDisposition::Stale { .. })
+            && record.available_tick.saturating_sub(record.sample_tick)
+                <= record.freshness_window_ticks
+        {
+            return Err(SettlementError(format!(
+                "source marks observation {} stale inside its freshness window",
+                record.observation_id
+            )));
+        }
         if !ids.insert(record.observation_id.clone()) {
             return Err(SettlementError(format!(
                 "duplicate observation ID {} in schedule",
@@ -281,16 +290,7 @@ fn validate_record(record: &ObservationRecord) -> Result<(), SettlementError> {
 
     match &record.disposition {
         ObservationDisposition::Current { .. } => {}
-        ObservationDisposition::Stale { .. } => {
-            if record.available_tick.saturating_sub(record.sample_tick)
-                <= record.freshness_window_ticks
-            {
-                return Err(SettlementError(format!(
-                    "stale observation {} is inside its declared freshness window",
-                    record.observation_id
-                )));
-            }
-        }
+        ObservationDisposition::Stale { .. } => {}
         ObservationDisposition::Missing { reason_ref }
         | ObservationDisposition::Revoked { reason_ref } => {
             valid_identifier(reason_ref, "observation reason reference")?;
