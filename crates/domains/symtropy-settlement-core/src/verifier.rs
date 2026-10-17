@@ -82,13 +82,51 @@ pub fn verify_timeline_report(
             )));
         }
         let mut tick_event_ids = BTreeSet::new();
-        for event_id in &tick.applied_event_ids {
-            if !tick_event_ids.insert(event_id.clone())
-                || !global_event_ids.insert(event_id.clone())
+        let mut prior_sequence = None;
+        let mut declared_inflows = BTreeMap::<String, u64>::new();
+        for event in &tick.applied_events {
+            if event.tick != tick.tick {
+                return Err(SettlementError(format!(
+                    "event {} is attributed to the wrong tick",
+                    event.event_id
+                )));
+            }
+            if !tick_event_ids.insert(event.event_id.clone())
+                || !global_event_ids.insert(event.event_id.clone())
             {
                 return Err(SettlementError(format!(
-                    "duplicate applied event ID {event_id}"
+                    "duplicate applied event ID {}",
+                    event.event_id
                 )));
+            }
+            if prior_sequence.is_some_and(|sequence| sequence >= event.sequence) {
+                return Err(SettlementError(format!(
+                    "event sequence is not strictly increasing at tick {}",
+                    tick.tick
+                )));
+            }
+            prior_sequence = Some(event.sequence);
+            if !is_sha256_hex(&event.event_sha256) {
+                return Err(SettlementError(format!(
+                    "event {} has malformed payload digest",
+                    event.event_id
+                )));
+            }
+            let encoded_event = serde_json::to_vec(&event.event)
+                .map_err(|error| SettlementError(format!("serialize event receipt: {error}")))?;
+            if sha256_hex(&encoded_event) != event.event_sha256 {
+                return Err(SettlementError(format!(
+                    "event {} payload digest mismatch",
+                    event.event_id
+                )));
+            }
+            if let crate::timeline::SettlementEventKind::ResourceInflow { supply_id, units } =
+                &event.event
+            {
+                let total = declared_inflows.entry(supply_id.clone()).or_default();
+                *total = total
+                    .checked_add(*units)
+                    .ok_or_else(|| SettlementError("event inflow total overflow".into()))?;
             }
         }
 
@@ -183,6 +221,21 @@ pub fn verify_timeline_report(
                 "component identity/generation set changed at tick {}",
                 tick.tick
             )));
+        }
+        for event in &tick.applied_events {
+            if let crate::timeline::SettlementEventKind::ComponentStateChanged {
+                component_id,
+                generation,
+                ..
+            } = &event.event
+            {
+                if current_generations.get(component_id.as_str()) != Some(generation) {
+                    return Err(SettlementError(format!(
+                        "event {} references an unrepresented component generation",
+                        event.event_id
+                    )));
+                }
+            }
         }
 
         let current_floor_ids: BTreeSet<String> = tick
@@ -296,6 +349,16 @@ pub fn verify_timeline_report(
             if !transition.conserves() {
                 return Err(SettlementError(format!(
                     "resource conservation failed for {} at tick {}",
+                    transition.supply_id, tick.tick
+                )));
+            }
+            let expected_inflow = declared_inflows
+                .get(&transition.supply_id)
+                .copied()
+                .unwrap_or(0);
+            if transition.inflow_units != expected_inflow {
+                return Err(SettlementError(format!(
+                    "event receipts and inflow ledger disagree for {} at tick {}",
                     transition.supply_id, tick.tick
                 )));
             }
