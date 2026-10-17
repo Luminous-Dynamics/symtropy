@@ -66,7 +66,7 @@ struct PlannerPlan {
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 struct Viewpoint { x: usize, y: usize, heading: Heading }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum TargetKind { TrunkDiameterEdges, LogEndContour }
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -76,7 +76,7 @@ struct Target {
     center_cell: usize,
     required_feature_cells: Vec<usize>,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct TargetScore {
     target_id: String,
     kind: TargetKind,
@@ -87,7 +87,7 @@ struct TargetScore {
     completeness_basis_points: u16,
     complete: bool,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct MethodScore {
     budget_feasible: bool,
     target_count: usize,
@@ -206,7 +206,7 @@ impl Rng {
         }
     }
 }
-fn adjacent(map: &GridMap, cell: usize) -> Vec<usize> {
+fn adjacent(cell: usize) -> Vec<usize> {
     let p = xy(cell);
     let mut out = Vec::with_capacity(4);
     if p.y > 0 { out.push(idx(p.x, p.y - 1)); }
@@ -223,7 +223,7 @@ fn distances(map: &GridMap, start: usize) -> Vec<Option<u16>> {
     queue.push_back(start);
     while let Some(current) = queue.pop_front() {
         let next_distance = dist[current].unwrap_or(0).saturating_add(1);
-        for next in adjacent(map, current) {
+        for next in adjacent(current) {
             if clear(map, next) && dist[next].is_none() {
                 dist[next] = Some(next_distance);
                 queue.push_back(next);
