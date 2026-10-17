@@ -692,15 +692,82 @@ impl Acc {
         }
     }
 }
+#[derive(Default)]
+struct RegretAcc {
+    evaluation_count: usize,
+    oracle_complete_target_count: usize,
+    compared_complete_target_count: usize,
+    total_complete_target_regret: usize,
+    worst_case_complete_target_regret: usize,
+    worst_case_complete_target_ratio_basis_points: Option<u16>,
+    oracle_visible_feature_count: usize,
+    compared_visible_feature_count: usize,
+    visible_feature_delta_to_oracle_total: i64,
+    worst_case_visible_feature_delta_to_oracle: i64,
+}
+impl RegretAcc {
+    fn add(&mut self, oracle: &MethodScore, compared: &MethodScore) {
+        self.evaluation_count += 1;
+        self.oracle_complete_target_count += oracle.complete_target_count;
+        self.compared_complete_target_count += compared.complete_target_count;
+        let regret = oracle.complete_target_count.saturating_sub(compared.complete_target_count);
+        self.total_complete_target_regret += regret;
+        self.worst_case_complete_target_regret = self.worst_case_complete_target_regret.max(regret);
+        if let Some(ratio) = target_regret(oracle, compared).complete_target_ratio_basis_points {
+            self.worst_case_complete_target_ratio_basis_points = Some(
+                self.worst_case_complete_target_ratio_basis_points.map_or(ratio, |prior| prior.min(ratio))
+            );
+        }
+        self.oracle_visible_feature_count += oracle.visible_feature_count;
+        self.compared_visible_feature_count += compared.visible_feature_count;
+        let delta = oracle.visible_feature_count as i64 - compared.visible_feature_count as i64;
+        self.visible_feature_delta_to_oracle_total += delta;
+        if self.evaluation_count == 1 { self.worst_case_visible_feature_delta_to_oracle = delta; }
+        else { self.worst_case_visible_feature_delta_to_oracle = self.worst_case_visible_feature_delta_to_oracle.max(delta); }
+    }
+    fn finish(self) -> AggregateRegret {
+        AggregateRegret {
+            evaluation_count: self.evaluation_count,
+            oracle_complete_target_count: self.oracle_complete_target_count,
+            compared_complete_target_count: self.compared_complete_target_count,
+            total_complete_target_regret: self.total_complete_target_regret,
+            worst_case_complete_target_regret: self.worst_case_complete_target_regret,
+            complete_target_ratio_basis_points: if self.oracle_complete_target_count == 0 {
+                None
+            } else {
+                Some(basis_points(self.compared_complete_target_count, self.oracle_complete_target_count))
+            },
+            worst_case_complete_target_ratio_basis_points: self.worst_case_complete_target_ratio_basis_points,
+            oracle_visible_feature_count: self.oracle_visible_feature_count,
+            compared_visible_feature_count: self.compared_visible_feature_count,
+            visible_feature_delta_to_oracle_total: self.visible_feature_delta_to_oracle_total,
+            worst_case_visible_feature_delta_to_oracle: self.worst_case_visible_feature_delta_to_oracle,
+        }
+    }
+}
 fn summarize(evaluations: &[Evaluation], split: &str, seed_count: usize) -> SplitSummary {
     let mut greedy = Acc::default();
     let mut lookahead = Acc::default();
-    let mut oracle = Acc::default();
+    let mut coverage_oracle = Acc::default();
+    let mut target_oracle = Acc::default();
+    let mut greedy_regret = RegretAcc::default();
+    let mut lookahead_regret = RegretAcc::default();
     let mut count = 0usize;
     for e in evaluations.iter().filter(|e| e.split == split) {
-        count += 1; greedy.add(&e.greedy); lookahead.add(&e.lookahead); oracle.add(&e.coverage_oracle);
+        count += 1;
+        greedy.add(&e.greedy);
+        lookahead.add(&e.lookahead);
+        coverage_oracle.add(&e.coverage_oracle);
+        target_oracle.add(&e.target_oracle.score);
+        greedy_regret.add(&e.target_oracle.score, &e.greedy);
+        lookahead_regret.add(&e.target_oracle.score, &e.lookahead);
     }
-    SplitSummary { seed_count, evaluation_count: count, greedy: greedy.finish(), lookahead: lookahead.finish(), coverage_oracle: oracle.finish() }
+    SplitSummary {
+        seed_count, evaluation_count: count,
+        greedy: greedy.finish(), lookahead: lookahead.finish(),
+        coverage_oracle: coverage_oracle.finish(), target_objective_oracle: target_oracle.finish(),
+        greedy_vs_target_oracle: greedy_regret.finish(), lookahead_vs_target_oracle: lookahead_regret.finish(),
+    }
 }
 fn build_receipt(
     c: &Corpus, target_bytes: &[u8], planner_bytes: &[u8], source_commit: String,
@@ -711,7 +778,9 @@ fn build_receipt(
     Receipt {
         result: "validated", suite_id: c.suite_id.clone(), suite_version: c.suite_version.clone(),
         evidence_class: c.evidence_class.clone(), claim_ceiling: c.claim_ceiling.clone(),
-        generator_version: c.generator_version.clone(), source_commit,
+        generator_version: c.generator_version.clone(),
+        target_objective: "maximize complete targets; then maximize visible required feature samples; then minimize budgeted steps; then minimize viewpoint count; final ties use stable candidate order".into(),
+        source_commit,
         planner_source_commit: planner.source_commit.clone(), planner_corpus_sha256: planner.corpus_sha256.clone(),
         planner_receipt_sha256: hash(planner_bytes), target_corpus_sha256: hash(target_bytes),
         scenario_count: c.scenario_bindings.len(), training_seed_count: c.training_seeds.len(),
@@ -746,6 +815,25 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
                 greedy: score_plan(&map, &scenario.greedy, &targets)?,
                 lookahead: score_plan(&map, &scenario.two_step_lookahead, &targets)?,
                 coverage_oracle: score_plan(&map, &scenario.exhaustive_oracle, &targets)?,
+                target_oracle: TargetOracleSolver::new(&map, &targets, config.clone())?.solve()?,
+                greedy_vs_target_oracle: TargetRegret {
+                    oracle_complete_target_count: 0,
+                    compared_complete_target_count: 0,
+                    complete_target_regret: 0,
+                    complete_target_ratio_basis_points: None,
+                    oracle_visible_feature_count: 0,
+                    compared_visible_feature_count: 0,
+                    visible_feature_delta_to_oracle: 0,
+                },
+                lookahead_vs_target_oracle: TargetRegret {
+                    oracle_complete_target_count: 0,
+                    compared_complete_target_count: 0,
+                    complete_target_regret: 0,
+                    complete_target_ratio_basis_points: None,
+                    oracle_visible_feature_count: 0,
+                    compared_visible_feature_count: 0,
+                    visible_feature_delta_to_oracle: 0,
+                },
             });
         }
     }
