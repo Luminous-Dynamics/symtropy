@@ -252,44 +252,36 @@ pub fn verify_policy_trace(
             })
         });
 
-        match &decision.payload.disposition {
-            DecisionDisposition::NoAction { .. } => {}
-            DecisionDisposition::RepairSuppressedPending {
-                target_component,
-                target_generation,
-                pending_action_id,
-            } => {
-                let key = (target_component.clone(), *target_generation);
-                if pending
-                    .get(&key)
-                    .is_none_or(|existing| existing.action_id != *pending_action_id)
-                {
-                    return Err(SettlementError(format!(
-                        "suppressed repair at tick {expected_tick} does not reference the active pending request"
-                    )));
-                }
+        let mut expected_decision = evaluate_baseline_policy(&policy, &frame)?;
+        let expected_request = match &expected_decision.payload.disposition {
+            DecisionDisposition::RepairRequested { request } => Some(request.clone()),
+            _ => None,
+        };
+        if let Some(request) = expected_request {
+            let key = (request.target_component.clone(), request.target_generation);
+            if let Some(existing) = pending.get(&key) {
+                expected_decision = rewrite_as_pending_suppression(
+                    expected_decision,
+                    request.target_component,
+                    request.target_generation,
+                    existing.action_id.clone(),
+                )?;
+            } else {
+                pending.insert(
+                    key,
+                    PendingRepair {
+                        requested_at_tick: expected_tick,
+                        action_id: request.action_id,
+                    },
+                );
             }
-            DecisionDisposition::RepairRequested { request } => {
-                let key = (request.target_component.clone(), request.target_generation);
-                if pending.contains_key(&key) {
-                    return Err(SettlementError(format!(
-                        "duplicate repair request for {} at tick {expected_tick}",
-                        request.target_component
-                    )));
-                }
-            }
+        }
+        if &expected_decision != decision {
+            return Err(SettlementError(format!(
+                "policy decision at tick {expected_tick} differs from the declared baseline rule"
+            )));
         }
         verify_policy_decision_with_policy_and_frame(decision, &frame, &policy)?;
-        if let DecisionDisposition::RepairRequested { request } = &decision.payload.disposition {
-            let key = (request.target_component.clone(), request.target_generation);
-            pending.insert(
-                key,
-                PendingRepair {
-                    requested_at_tick: expected_tick,
-                    action_id: request.action_id.clone(),
-                },
-            );
-        }
     }
     Ok(())
 }
