@@ -973,6 +973,16 @@ mod tests {
             let mut input = base_input();
             input.world_id = format!("generated-{world:03}");
             let square_world = world % 2 != 0;
+            input.measurement_model.model_id = if square_world {
+                "synthetic-dimensionless-square".to_owned()
+            } else {
+                "synthetic-length-identity".to_owned()
+            };
+            input.measurement_model.model_artifact_ref = if square_world {
+                "synthetic-models/dimensionless-square-v1".to_owned()
+            } else {
+                "synthetic-models/length-identity-v1".to_owned()
+            };
             input.measurement_model.input_unit = if square_world {
                 Unit::Dimensionless
             } else {
