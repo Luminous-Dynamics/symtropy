@@ -32,3 +32,6 @@ A successful receipt means only that the pinned synthetic scenario corpus satisf
 ## Typed executable assertions
 
 The 28 scenario records contain 144 typed assertion specifications. Kinds include numeric upper bound, collection coverage, required field presence, metric-zero, scenario-value equality, boolean-true and field-absence. Every scenario forbids the metrics `/metrics/global_wisdom_score` and `/metrics/consciousness_score`. The Rust report evaluator recomputes each result from the scenario and run payload and rejects a runner report that declares a different status. These test fixtures are synthetic and their mock reports are verifier tests—not simulated policy results.
+
+
+Pinned run-report schema SHA-256: `cc3e80c4c140062c0ad76b318693c1a5feb13e5686bcd86c8be9ee10a45e47b8`. The `verify-run` path independently evaluates 144 per-scenario typed assertions across the frozen corpus; unit tests construct mock reports solely to test the verifier. This does not run the Symtropy simulator or qualify any policy.
