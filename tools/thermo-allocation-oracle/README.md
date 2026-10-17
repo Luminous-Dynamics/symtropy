@@ -28,13 +28,24 @@ joint optimum assigns 8 quanta to each agent (8/3 original units each):
 well 10 sends 4 to agent 1 and 8 to agent 2; well 20 sends 4 to agent 1 and
 8 to agent 3.
 
-The objective is lexicographic max-min fairness on total accepted amount:
-sort agent totals from smallest to largest and maximize the sorted vector
-lexicographically. Ties are broken by the lexicographically smallest canonical
-edge matrix (well IDs, then agent IDs). This is a baseline, not a claim that
-raw amount is the universally correct fairness unit. Demand-normalized service,
-urgency, priority classes, and utility-weighted objectives are separate policy
-choices and should be reported as separate candidates.
+The tool compares two explicit leximin objectives over the *same feasible
+allocation graph*:
+
+- **Absolute amount:** sort accepted amounts from smallest to largest and
+  maximize that vector lexicographically. This produces totals [8, 8, 8].
+- **Capacity-normalized amount:** compare exact fractions amount/cap, sort them
+  from smallest to largest, and maximize that ratio vector lexicographically
+  using integer cross-multiplication (no floating-point division). This
+  produces totals [7, 9, 8], with sorted normalized profile [2/3, 3/4, 7/9].
+
+Ties within an objective are broken by the lexicographically smallest canonical
+edge matrix (well IDs, then agent IDs). The normalized objective is appropriate
+only when each cap really represents the recipient's demand/service target. If
+the cap is merely a physical safety ceiling, it must not be silently reused as
+need; add an explicit need/weight field and compare that policy separately.
+Neither objective is universally correct. The point is to make the policy
+choice visible and benchmark its consequences instead of hiding it inside the
+allocator.
 
 ## Compared policies and metrics
 
@@ -44,15 +55,18 @@ choices and should be reported as separate candidates.
   enforcing remaining shared caps. It is feasible but can be order-sensitive.
 - **Independent-source negative control:** each well resets its local recipient
   ledger. It deliberately exposes cross-well cap violations.
-- **Metrics:** sorted leximin profile, first rank of divergence from the oracle,
-  L1/max-agent order sensitivity, source/cap/eligibility feasibility, and search
+- **Policy metrics:** sorted absolute profile, exact-rational capacity-normalized
+  profile, first rank of divergence from the selected objective's oracle,
+  L1/max-agent order sensitivity, aggregate cap violation units, and search
   node/leaf counts.
 
 ## Fixture acceptance results
 
 | Check | Expected |
 |---|---:|
-| Joint oracle profile | [8, 8, 8] |
+| Absolute-amount oracle totals/profile | [8, 8, 8] |
+| Capacity-normalized oracle totals by agent ID | [7, 9, 8] |
+| Capacity-normalized sorted exact-ratio profile | [2/3, 3/4, 7/9] |
 | Oracle capacity violations | 0 |
 | Sequential, well order 10 then 20 | agent totals [9, 6, 9] |
 | Sequential, well order 20 then 10 | agent totals [9, 9, 6] |
