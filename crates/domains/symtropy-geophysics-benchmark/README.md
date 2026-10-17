@@ -7,6 +7,8 @@ A dependency-free, deterministic fixture package for GEO-SIM-001. Its purpose is
 - Two dimensionless state coordinates and two observation channels.
 - Complementary sensors, a weakly observed high-mode proxy, an exact null mode, and a correlated duplicate measurement.
 - Explicit model-relative times, covariance checks, stable fixture IDs, provenance and claim ceiling.
+- A frozen public manifest records the four operators, full measurement covariances, observations, and expected covariance-whitened singular values/ranks; hidden state truth is deliberately absent.
+- A 2x2 covariance-whitened local observability oracle reports singular values, rank, condition number only when full rank, and weak/null directions. It is an H0 reference, not a large-system solver.
 - Estimator-facing API does not contain ground-truth values. Truth fixtures are only compiled for unit tests or when the explicit `benchmark-scoring` feature is enabled.
 
 These are algebraic benchmark controls, not physical geodynamo outputs, observations of Earth, or a validated Earth-interior forward model. The state coordinates are not calibrated physical units.
