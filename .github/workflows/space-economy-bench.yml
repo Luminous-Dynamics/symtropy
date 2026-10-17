@@ -261,6 +261,10 @@ jobs:
             and .surveys[0].purchase_survey == true
             and .surveys[0].decision_after_positive == "build_local_oxygen"
             and .surveys[0].decision_after_negative == "import_oxygen"
+            and .surveys[0].posterior_rich_site_probability_after_positive_bps == 9000
+            and .surveys[0].posterior_rich_site_probability_after_negative_bps == 1000
+            and .surveys[1].posterior_rich_site_probability_after_positive_bps == 6000
+            and .surveys[1].posterior_rich_site_probability_after_negative_bps == 4000
             and .surveys[1].evsi.numerator == 0
             and .surveys[1].purchase_survey == false
             and .surveys[1].decision_after_positive == .surveys[1].decision_after_negative
