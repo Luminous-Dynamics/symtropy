@@ -544,6 +544,32 @@ mod tests {
     }
 
     #[test]
+    fn missing_stale_out_of_domain_and_contradictory_evidence_are_blocked() {
+        let summary = validate_outcome_fixtures_bytes(
+            EMBEDDED_OUTCOME_CORPUS.as_bytes(),
+            EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
+        );
+        let result = summary
+            .results
+            .iter()
+            .find(|item| item.comparison_id == "SPR-P-004")
+            .unwrap();
+        for candidate_id in [
+            "stale-evidence-optimist",
+            "missing-evidence-optimist",
+            "out-of-domain-evidence",
+            "contradictory-evidence",
+        ] {
+            let candidate = result
+                .candidate_dispositions
+                .iter()
+                .find(|item| item.candidate_id == candidate_id)
+                .unwrap();
+            assert_eq!(candidate.disposition, "blocked_evidence");
+        }
+    }
+
+    #[test]
     fn schema_rejects_unknown_candidate_fields() {
         let mut corpus: Value =
             serde_json::from_str(EMBEDDED_OUTCOME_CORPUS).expect("valid outcomes");
