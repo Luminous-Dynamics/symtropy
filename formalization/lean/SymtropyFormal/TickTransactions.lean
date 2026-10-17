@@ -48,6 +48,18 @@ def activeTickIsClosed (s : TickLedger) : Prop :=
         tick.resultStateDigest = some resultDigest
   | some _, none => False
 
+/-- Runtime transition guard for an in-progress tick. Recheck the receipt-chain
+link and monotonic ID at each mutation boundary, so malformed externally
+constructed model states fail closed instead of relying only on beginTick. -/
+def activeTickCanAdvance (s : TickLedger) (tick : TickRecord) : Prop :=
+  tick.resultStateDigest = none ∧
+    (match s.lastFinalized with
+      | none => True
+      | some (lastId, _) => lastId < tick.id) ∧
+    (match s.lastFinalized with
+      | none => True
+      | some (_, resultDigest) => resultDigest = tick.priorStateDigest)
+
 /-- Gate for opening a new tick: prior tick closed, ID strictly increasing,
 and prior-state digest linked to the last committed result. -/
 def beginAllowed (s : TickLedger) (id priorDigest : Nat) : Prop :=
@@ -79,7 +91,7 @@ def applyPhysics (s : TickLedger) (id : Nat) : Option TickLedger :=
   match s.active with
   | none => none
   | some tick =>
-      if tick.id = id ∧ tick.phase = .begun then
+      if tick.id = id ∧ tick.phase = .begun ∧ activeTickCanAdvance s tick then
         some { s with active := some { tick with phase := .physicsApplied } }
       else
         none
@@ -95,15 +107,18 @@ def finalizeTick (s : TickLedger) (id resultDigest : Nat) :
       if tick.id = id then
         match tick.phase, tick.resultStateDigest with
         | .physicsApplied, none =>
-            some {
-              s with
-              active := some {
-                tick with
-                phase := .finalized
-                resultStateDigest := some resultDigest
+            if activeTickCanAdvance s tick then
+              some {
+                s with
+                active := some {
+                  tick with
+                  phase := .finalized
+                  resultStateDigest := some resultDigest
+                }
+                lastFinalized := some (tick.id, resultDigest)
               }
-              lastFinalized := some (tick.id, resultDigest)
-            }
+            else
+              none
         | .finalized, some previousResult =>
             if previousResult = resultDigest then some s else none
         | _, _ => none
@@ -162,5 +177,26 @@ theorem finalize_conflicting_result_is_rejected
     (hConflict : previousResult ≠ newResult) :
     finalizeTick s id newResult = none := by
   simp [finalizeTick, hActive, hId, hPhase, hPrevious, hConflict]
+
+theorem applyPhysics_rejects_prepopulated_result
+    (s : TickLedger) (tick : TickRecord) (previousResult : Nat)
+    (hActive : s.active = some tick)
+    (hPhase : tick.phase = .begun)
+    (hResult : tick.resultStateDigest = some previousResult) :
+    applyPhysics s tick.id = none := by
+  simp [applyPhysics, hActive, hPhase, activeTickCanAdvance, hResult]
+
+theorem finalize_rejects_unlinked_tick
+    (s : TickLedger) (tick : TickRecord) (resultDigest lastId previousResult : Nat)
+    (hActive : s.active = some tick)
+    (hPhase : tick.phase = .physicsApplied)
+    (hNoResult : tick.resultStateDigest = none)
+    (hLast : s.lastFinalized = some (lastId, previousResult))
+    (hMismatch : tick.priorStateDigest ≠ previousResult) :
+    finalizeTick s tick.id resultDigest = none := by
+  have hWrongLink : previousResult ≠ tick.priorStateDigest :=
+    fun h => hMismatch h.symm
+  simp [finalizeTick, hActive, hPhase, hNoResult, activeTickCanAdvance,
+    hLast, hWrongLink]
 
 end SymtropyFormal
