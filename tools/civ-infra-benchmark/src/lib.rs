@@ -187,6 +187,7 @@ pub struct BenchmarkReport {
     pub input_sha256: String,
     pub claim_ceiling: String,
     pub candidates: Vec<CandidateResult>,
+    pub pareto_frontier_candidate_ids: Vec<String>,
     pub schedule_conflicts: Vec<ScheduleConflict>,
     pub resource_schedule_feasible: bool,
 }
@@ -780,6 +781,39 @@ fn evaluate_candidate(
     }
 }
 
+fn candidate_dominates(left: &CandidateResult, right: &CandidateResult) -> bool {
+    let no_worse = left.metrics.route_length_m <= right.metrics.route_length_m
+        && left.metrics.derived_max_grade_percent <= right.metrics.derived_max_grade_percent
+        && left.metrics.derived_total_earthworks_m3
+            <= right.metrics.derived_total_earthworks_m3;
+    let strictly_better = left.metrics.route_length_m < right.metrics.route_length_m
+        || left.metrics.derived_max_grade_percent < right.metrics.derived_max_grade_percent
+        || left.metrics.derived_total_earthworks_m3
+            < right.metrics.derived_total_earthworks_m3;
+    no_worse && strictly_better
+}
+
+fn compute_pareto_frontier(candidates: &[CandidateResult]) -> Vec<String> {
+    let eligible: Vec<&CandidateResult> = candidates
+        .iter()
+        .filter(|candidate| {
+            candidate.disposition == CandidateDisposition::FeasibleForSyntheticCase
+        })
+        .collect();
+    let mut frontier: Vec<String> = eligible
+        .iter()
+        .filter(|candidate| {
+            !eligible.iter().any(|other| {
+                other.candidate_id != candidate.candidate_id
+                    && candidate_dominates(other, candidate)
+            })
+        })
+        .map(|candidate| candidate.candidate_id.clone())
+        .collect();
+    frontier.sort();
+    frontier
+}
+
 fn schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConflict> {
     let capacities: BTreeMap<&str, u32> = fixture
         .resources
@@ -850,6 +884,7 @@ pub fn evaluate_json(bytes: &[u8]) -> Result<BenchmarkReport, Vec<String>> {
         .collect();
     candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
 
+    let pareto_frontier_candidate_ids = compute_pareto_frontier(&candidates);
     let schedule_conflicts = schedule_conflicts(&fixture);
     Ok(BenchmarkReport {
         schema_version: REPORT_SCHEMA_V1.to_string(),
@@ -857,6 +892,7 @@ pub fn evaluate_json(bytes: &[u8]) -> Result<BenchmarkReport, Vec<String>> {
         input_sha256: sha256_hex(bytes),
         claim_ceiling: CLAIM_CEILING.to_string(),
         candidates,
+        pareto_frontier_candidate_ids,
         resource_schedule_feasible: schedule_conflicts.is_empty(),
         schedule_conflicts,
     })
@@ -1203,6 +1239,9 @@ pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(),
                 .to_string(),
         );
     }
+    if report.pareto_frontier_candidate_ids != compute_pareto_frontier(&expected_candidates) {
+        errors.push("Pareto frontier disagrees with reference candidate metrics".to_string());
+    }
 
     let expected_schedule = reference_schedule_conflicts(&fixture);
     if report.schedule_conflicts != expected_schedule {
@@ -1258,6 +1297,14 @@ mod tests {
             dispositions.get("C-reference"),
             Some(&CandidateDisposition::FeasibleForSyntheticCase)
         );
+        assert_eq!(
+            dispositions.get("D-resilient-detour"),
+            Some(&CandidateDisposition::FeasibleForSyntheticCase)
+        );
+        assert_eq!(
+            report.pareto_frontier_candidate_ids,
+            vec!["C-reference".to_string(), "D-resilient-detour".to_string()]
+        );
 
         let shortest = report
             .candidates
@@ -1294,6 +1341,16 @@ mod tests {
             .iter()
             .find(|candidate| candidate.candidate_id == "C-reference")
             .expect("reference candidate exists");
+        let detour = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "D-resilient-detour")
+            .expect("detour candidate exists");
+        assert_eq!(detour.metrics.route_length_m, 1200.0);
+        assert_eq!(detour.metrics.derived_max_grade_percent, 2.5);
+        assert_eq!(detour.metrics.derived_cut_volume_m3, 2400.0);
+        assert_eq!(detour.metrics.derived_fill_volume_m3, 1800.0);
+        assert_eq!(detour.metrics.derived_total_earthworks_m3, 4200.0);
         assert_eq!(reference.metrics.route_length_m, 1080.0);
         assert_eq!(reference.metrics.derived_max_grade_percent, 3.5);
         assert_eq!(reference.metrics.derived_cut_volume_m3, 2160.0);
@@ -1655,6 +1712,15 @@ mod tests {
         assert!(errors.iter().any(|error| {
             error.contains("longitudinal profile cannot produce a finite grade")
         }));
+    }
+
+    #[test]
+    fn altered_pareto_frontier_is_rejected_by_reference_checker() {
+        let bytes = fixture_bytes();
+        let mut report = evaluate_json(&bytes).expect("fixture should evaluate");
+        report.pareto_frontier_candidate_ids = vec!["A-shortest".to_string()];
+        let errors = verify_report(&bytes, &report).expect_err("Pareto tampering must fail");
+        assert!(errors.iter().any(|error| error.contains("Pareto frontier")));
     }
 
 }
