@@ -25,7 +25,22 @@
     "rank_tolerance": {
       "absolute": 1e-12,
       "relative": 1e-12
-    }
+    },
+    "prior_mean": [
+      0,
+      0
+    ],
+    "prior_covariance": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "information_gain": "expected_information_gain_nats = 0.5 * ln(det(I + Sa * H^T * R^-1 * H)); Sa is the declared prior covariance"
   },
   "fixtures": [
     {
@@ -74,7 +89,8 @@
         ],
         "condition_number": 1,
         "null_space_basis": []
-      }
+      },
+      "expected_information_gain_nats": 1.6094379124341003
     },
     {
       "id": "h0-weak-high-mode",
@@ -122,7 +138,8 @@
         ],
         "condition_number": 20,
         "null_space_basis": []
-      }
+      },
+      "expected_information_gain_nats": 0.8096941216436342
     },
     {
       "id": "h0-exact-null-mode",
@@ -175,7 +192,8 @@
             1
           ]
         ]
-      }
+      },
+      "expected_information_gain_nats": 0.5493061443340549
     },
     {
       "id": "h0-correlated-duplicate",
@@ -228,7 +246,8 @@
             1
           ]
         ]
-      }
+      },
+      "expected_information_gain_nats": 0.8067249769620305
     }
   ],
   "acceptance_checks": [
