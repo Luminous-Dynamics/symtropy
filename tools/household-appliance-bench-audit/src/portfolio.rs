@@ -302,7 +302,9 @@ fn audit_values(
             .filter_map(Value::as_str)
             .collect();
         if index > 0 && !compare_against.contains("W0-RETAIL-CONTROL") {
-            errors.push(format!("{id}: every candidate/trade must compare against W0 retail control"));
+            errors.push(format!(
+                "{id}: every candidate/trade must compare against W0 retail control"
+            ));
         }
         if variant
             .get("required_measurements")
@@ -327,7 +329,9 @@ fn audit_values(
     if text_at(protocol, "status") != Some("draft_pending_control_selection")
         || text_at(protocol, "claim_ceiling") != Some("no_measurements_no_comparison_claim")
     {
-        errors.push("washer benchmark protocol must remain draft and make no measurement claim".to_owned());
+        errors.push(
+            "washer benchmark protocol must remain draft and make no measurement claim".to_owned(),
+        );
     }
     let control_plan = protocol.get("control_plan");
     if control_plan
@@ -336,7 +340,10 @@ fn audit_values(
         .is_none_or(|count| count < 3)
         || text_at(control_plan.unwrap_or(&Value::Null), "selection_state") != Some("not_selected")
     {
-        errors.push("washer control plan must specify at least three comparable units and remain not selected".to_owned());
+        errors.push(
+            "washer control plan must specify at least three comparable units and remain not selected"
+                .to_owned(),
+        );
     }
     if text_at(protocol.get("workload_plan").unwrap_or(&Value::Null), "status")
         != Some("not_frozen")
@@ -345,7 +352,10 @@ fn audit_values(
             "status",
         ) != Some("not_selected")
     {
-        errors.push("washer workload/instrumentation cannot be called frozen before control selection".to_owned());
+        errors.push(
+            "washer workload/instrumentation cannot be called frozen before control selection"
+                .to_owned(),
+        );
     }
     let freeze = protocol.get("analysis_freeze");
     for (key, expected) in [
@@ -363,7 +373,9 @@ fn audit_values(
         ),
     ] {
         if text_at(freeze.unwrap_or(&Value::Null), key) != Some(expected) {
-            errors.push(format!("washer analysis freeze {key} violates the control-first sequence"));
+            errors.push(format!(
+                "washer analysis freeze {key} violates the control-first sequence"
+            ));
         }
     }
     if text_at(
@@ -397,14 +409,19 @@ fn audit_values(
     if protocol_metrics.len() != EXPECTED_WASHER_METRICS.len()
         || EXPECTED_WASHER_METRICS.iter().any(|id| !metric_ids.contains(*id))
     {
-        errors.push("washer benchmark metric set must retain the reviewed 11 dimensions".to_owned());
+        errors.push(
+            "washer benchmark metric set must retain the reviewed 11 dimensions".to_owned(),
+        );
     }
     if text_at(
         protocol.get("service_trials").unwrap_or(&Value::Null),
         "status",
     ) != Some("not_scheduled")
     {
-        errors.push("washer service trials must remain unscheduled until controls and role gates are reviewed".to_owned());
+        errors.push(
+            "washer service trials must remain unscheduled until controls and role gates are reviewed"
+                .to_owned(),
+        );
     }
     let evidence_rules = protocol
         .get("evidence_rules")
