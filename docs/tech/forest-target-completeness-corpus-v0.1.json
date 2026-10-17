@@ -4,33 +4,63 @@
   "evidence_class": "synthetic",
   "claim_ceiling": "Seeded target-feature visibility on four frozen 5x5 occupancy templates only. Target geometry is an abstract grid-sample proxy, not calibrated tree or log geometry. The coverage oracle optimizes visible cells, not target completeness. No field inventory or hardware performance claim.",
   "generator_version": "target-local-points-xorshift64-v0.1",
-  "training_seeds": [101, 103, 107, 109],
-  "held_out_seeds": [1009, 1013, 1019, 1021, 1031, 1033],
+  "training_seeds": [
+    101,
+    103,
+    107,
+    109
+  ],
+  "held_out_seeds": [
+    1009,
+    1013,
+    1019,
+    1021,
+    1031,
+    1033
+  ],
   "target_count_per_case": 3,
   "scenario_bindings": [
     {
       "planner_scenario_id": "OPEN_GRID_BUDGETED",
-      "scene": "open_grid"
+      "scene": "open_grid",
+      "energy_budget_steps": 10,
+      "return_reserve_steps": 2,
+      "max_viewpoints": 3
     },
     {
       "planner_scenario_id": "OCCLUDED_CLEARING",
-      "scene": "occluded_clearing"
+      "scene": "occluded_clearing",
+      "energy_budget_steps": 12,
+      "return_reserve_steps": 2,
+      "max_viewpoints": 3
     },
     {
       "planner_scenario_id": "DISCONNECTED_BLOCKED_CORRIDOR",
-      "scene": "blocked_corridor"
+      "scene": "blocked_corridor",
+      "energy_budget_steps": 10,
+      "return_reserve_steps": 2,
+      "max_viewpoints": 3
     },
     {
       "planner_scenario_id": "UNKNOWN_BARRIER",
-      "scene": "unknown_barrier"
+      "scene": "unknown_barrier",
+      "energy_budget_steps": 10,
+      "return_reserve_steps": 2,
+      "max_viewpoints": 3
     },
     {
       "planner_scenario_id": "TIGHT_RETURN_RESERVE",
-      "scene": "open_grid"
+      "scene": "open_grid",
+      "energy_budget_steps": 4,
+      "return_reserve_steps": 2,
+      "max_viewpoints": 3
     },
     {
       "planner_scenario_id": "SINGLE_SCAN_BUDGET",
-      "scene": "open_grid"
+      "scene": "open_grid",
+      "energy_budget_steps": 7,
+      "return_reserve_steps": 2,
+      "max_viewpoints": 1
     }
   ]
 }
