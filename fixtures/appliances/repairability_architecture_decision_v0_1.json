@@ -296,7 +296,8 @@
           "threshold": null,
           "rationale": "Owner cash affordability depends on local price, tariffs, service availability and declared lifetime; no universal cutoff is assumed.",
           "evidence_needed": "Participant interviews and a transparent local-currency lifecycle model with sensitivity analysis.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "owner_outage_tolerance",
@@ -306,7 +307,8 @@
           "threshold": null,
           "rationale": "Acceptable outage depends on household needs and replacement access; threshold must be elicited, not guessed.",
           "evidence_needed": "Contextual user research and named outage scenarios.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "successful_useful_cycle_resource_burden",
@@ -316,7 +318,8 @@
           "threshold": null,
           "rationale": "Efficiency is useful only when cleaning, rinsing and spin-drying floors pass.",
           "evidence_needed": "Frozen matched-load performance protocol with calibrated energy measurement.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "water_burden_per_successful_cycle",
@@ -326,7 +329,8 @@
           "threshold": null,
           "rationale": "Water constraints and tariffs vary by location; use a declared successful load as denominator.",
           "evidence_needed": "Frozen load profile, metered water use and local context.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         }
       ]
     },
@@ -351,7 +355,8 @@
           "threshold": null,
           "rationale": "Travel, sourcing delays, diagnosis, hands-on work and verification all influence service time.",
           "evidence_needed": "Controlled scripts, timestamps, fault/task mix and exact tools/part IDs.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "first_visit_restoration_floor",
@@ -361,7 +366,8 @@
           "threshold": null,
           "rationale": "A repair counts only when relevant function and required checks are verified on the first visit.",
           "evidence_needed": "Documented task outcome, safe verification, participant qualification and denominator.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "added_interface_rework_limit",
@@ -371,7 +377,8 @@
           "threshold": null,
           "rationale": "Service connectors and seals may add error and repeat work; the acceptable limit needs data.",
           "evidence_needed": "Repeated assembly/service trials and a declared event denominator.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "customer_all_in_repair_cost",
@@ -381,7 +388,8 @@
           "threshold": null,
           "rationale": "Repair economics must include parts, labour, transport, failed attempts and rework.",
           "evidence_needed": "Dated part quotes/orders, labour assumptions and full repair receipts.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         }
       ]
     },
@@ -405,7 +413,8 @@
           "threshold": null,
           "rationale": "Delivery targets depend on market geography, customs, local stock and repair class.",
           "evidence_needed": "Dated accepted orders, exact-fit confirmation, dispatch and delivery receipt.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "stock_economics",
@@ -415,7 +424,8 @@
           "threshold": null,
           "rationale": "Dual sourcing and stock buffers can improve resilience but create working-capital and obsolescence burden.",
           "evidence_needed": "Supplier quotes, source independence, stock age, turnover and sensitivity model.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "supply_contribution_to_outage",
@@ -425,7 +435,8 @@
           "threshold": null,
           "rationale": "Elapsed outage includes parts sourcing; hands-on repair time alone hides supply failures.",
           "evidence_needed": "Start/stop timestamps, cancellations, substitutions, shipping and return times.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         }
       ]
     },
@@ -451,7 +462,8 @@
           "threshold": null,
           "rationale": "A smaller replaceable unit may reduce waste, but packaging, extra modules and failed repairs must also be considered.",
           "evidence_needed": "Measured mass balance for actual repair scope, discarded assemblies, reuse and returns.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "useful_function_resource_floor",
@@ -461,7 +473,8 @@
           "threshold": null,
           "rationale": "Resource-use claims require the same validated useful output and uncertainty disclosure.",
           "evidence_needed": "Matched cycle tests with preregistered cleaning/rinsing/spin floors and instrument calibration.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "water_resource_floor",
@@ -471,7 +484,8 @@
           "threshold": null,
           "rationale": "Water use must be compared on successful function under declared incoming water and load conditions.",
           "evidence_needed": "Metered matched-cycle measurements and contextual assumptions.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "interface_lifecycle_trade",
@@ -481,7 +495,8 @@
           "threshold": null,
           "rationale": "Added modular interfaces can undermine lifecycle gains if they increase leakage, rework or failure.",
           "evidence_needed": "Longitudinal/service-event evidence and sensitivity analysis.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         }
       ]
     },
@@ -506,7 +521,8 @@
           "threshold": null,
           "rationale": "Outage consequences vary by mission and backup capacity; no universal timeout is assumed.",
           "evidence_needed": "Scenario-specific owner/operator interview and elapsed-time logging from faults through verified return to service.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "critical_part_availability_floor",
@@ -516,7 +532,8 @@
           "threshold": null,
           "rationale": "Remote operation depends on the right compatible parts being delivered, not on catalogue visibility.",
           "evidence_needed": "Exact-fit supply record, route/geography and dated delivery trials.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         },
         {
           "id": "verified_first_visit_floor",
@@ -526,7 +543,8 @@
           "threshold": null,
           "rationale": "Repeat trips are costly where travel is long or service teams are scarce.",
           "evidence_needed": "Named remote service scenario, task and qualification profile, parts/tool readiness and post-repair proof.",
-          "status": "threshold_not_frozen"
+          "status": "threshold_not_frozen",
+          "frozen_before_candidate_measurements": false
         }
       ]
     }
