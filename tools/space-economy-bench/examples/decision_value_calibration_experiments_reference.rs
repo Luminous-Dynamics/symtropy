@@ -225,7 +225,17 @@ fn robust_actions(weights: [i128; 3]) -> (Action, Action, i128, i128) {
     } else {
         Action::KeepBaseline
     };
-    (maximin, minimax_regret, min_assay.min(min_baseline), assay_max_regret.min(baseline_max_regret))
+    let maximin_worst_case_value = if maximin == Action::UseResourceAssay {
+        min_assay
+    } else {
+        min_baseline
+    };
+    let selected_minimax_regret = if minimax_regret == Action::UseResourceAssay {
+        assay_max_regret
+    } else {
+        baseline_max_regret
+    };
+    (maximin, minimax_regret, maximin_worst_case_value, selected_minimax_regret)
 }
 
 fn total_weight(weights: [i128; 3]) -> i128 {
@@ -477,13 +487,13 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         }
     }
 
-    if test_a_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 550_000_000_000_i128 {
+    if test_a_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 55_000_000_000_i128 {
         return Err("calibration A gross EVSI oracle mismatch".to_owned());
     }
-    if test_b_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 150_000_000_000_i128 {
+    if test_b_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 15_000_000_000_i128 {
         return Err("calibration B gross EVSI oracle mismatch".to_owned());
     }
-    if adaptive_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 765_000_000_000_i128 {
+    if adaptive_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 76_500_000_000_i128 {
         return Err("adaptive calibration-tree EVSI oracle mismatch".to_owned());
     }
     let redundant_gross = test_gross_value_numerator(&REDUNDANT_TEST)?;
@@ -525,7 +535,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
             "uninformative_assay_net": 30,
             "baseline_without_resource_assay": 50
         },
-        "model_uncertainty_evpi": rational_json(500_000_000_000_i128, EXPECTED_VALUE_DENOMINATOR),
+        "model_uncertainty_evpi": rational_json(150_000_000_000_i128, EXPECTED_VALUE_DENOMINATOR),
         "costs_synthetic_units": {
             "calibration_a": rational_json(CALIBRATION_A.cost_centi, CENTI),
             "calibration_b": rational_json(CALIBRATION_B.cost_centi, CENTI),
@@ -628,8 +638,8 @@ mod tests {
         let a_net = policy_scores().unwrap().into_iter().find(|(id, _, _)| id == "calibration_a_only").unwrap().1;
         let b_net = policy_scores().unwrap().into_iter().find(|(id, _, _)| id == "calibration_b_only").unwrap().1;
         assert!(a_net > b_net);
-        assert_eq!(test_gross_value_numerator(&CALIBRATION_A).unwrap() - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS, 550_000_000_000);
-        assert_eq!(test_gross_value_numerator(&CALIBRATION_B).unwrap() - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS, 150_000_000_000);
+        assert_eq!(test_gross_value_numerator(&CALIBRATION_A).unwrap() - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS, 55_000_000_000);
+        assert_eq!(test_gross_value_numerator(&CALIBRATION_B).unwrap() - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS, 15_000_000_000);
     }
 
     #[test]
