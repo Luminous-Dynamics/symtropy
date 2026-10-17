@@ -287,6 +287,16 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                 candidate.id
             ));
         }
+        if candidate
+            .profile_points
+            .first()
+            .is_some_and(|point| point.station_m.abs() > 1.0e-9)
+        {
+            errors.push(format!(
+                "candidate {} profile must start at station zero",
+                candidate.id
+            ));
+        }
         let mut previous_station = None;
         for (index, point) in candidate.profile_points.iter().enumerate() {
             if !point.station_m.is_finite()
@@ -1097,6 +1107,35 @@ mod tests {
         let first_bytes = serde_json::to_vec(&first_report).expect("first report serializes");
         let second_bytes = serde_json::to_vec(&second_report).expect("second report serializes");
         assert_eq!(first_bytes, second_bytes);
+    }
+
+    #[test]
+    fn derived_profile_grade_overrules_forged_declared_grade() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.profile_points[1].elevation_m = 60.0;
+        // Leave the claimed 3.5% grade untouched; the verifier must derive it.
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let report = evaluate_json(&modified).expect("finite profile remains structurally valid");
+        let result = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate result exists");
+        assert_eq!(result.disposition, CandidateDisposition::Infeasible);
+        assert!(result.findings.iter().any(|finding| {
+            finding.code == "grade_limit" && finding.status == CheckStatus::Violation
+        }));
+        assert!(result.findings.iter().any(|finding| {
+            finding.code == "declared_grade_matches_profile"
+                && finding.status == CheckStatus::Violation
+        }));
+        verify_report(&modified, &report).expect("reference recomputation must derive grade too");
     }
 
 }
