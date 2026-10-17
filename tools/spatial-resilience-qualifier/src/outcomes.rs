@@ -142,7 +142,8 @@ fn dominates(left: &Candidate, right: &Candidate) -> bool {
     }
 
     left.services.iter().any(|(requirement_id, left_hours)| {
-        right.services
+        right
+            .services
             .get(requirement_id)
             .is_some_and(|right_hours| left_hours > right_hours)
     }) || left.energy_units < right.energy_units
@@ -509,7 +510,11 @@ mod tests {
             EMBEDDED_OUTCOME_CORPUS.as_bytes(),
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
-        let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-001").unwrap();
+        let result = summary
+            .results
+            .iter()
+            .find(|item| item.comparison_id == "SPR-P-001")
+            .unwrap();
         let dominated = result
             .candidate_dispositions
             .iter()
