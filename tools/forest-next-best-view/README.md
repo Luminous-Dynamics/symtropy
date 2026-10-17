@@ -1,6 +1,6 @@
 # Forest Next-Best-View Benchmark v0.1
 
-Standalone, offline Rust benchmark comparing a deterministic marginal-gain greedy planner with an exhaustive oracle on tiny synthetic forest scenes. It has no ROS, network, hardware, motor, actuator, dispatch, or route-execution adapter.
+Standalone, offline Rust benchmark comparing a deterministic marginal-gain greedy planner, a two-step receding-horizon planner, and an exhaustive oracle on tiny synthetic forest scenes. It has no ROS, network, hardware, motor, actuator, dispatch, or route-execution adapter.
 
 ## Run
 
@@ -14,9 +14,11 @@ The receipt binds source revision, exact corpus bytes, map digest, and planner-c
 - Candidate viewpoints are traversable cells paired with cardinal headings.
 - Sensor visibility uses a fixed 180-degree forward field of view, radius 3 cells, and conservative grid ray casting. Unknown/obstacle cells may themselves be visible, but block visibility to cells behind them.
 - The greedy baseline chooses the reachable view with the largest marginal newly-visible-cell gain divided by max(incremental travel + heading-change cost, 1).
-- The exhaustive oracle enumerates unique viewpoint sequences up to the same viewpoint limit and energy budget. It maximizes unique visible cells, then minimizes total budgeted steps.
+- The two-step lookahead planner searches feasible extensions of up to two additional viewpoints, executes only the first choice, and replans. The exhaustive oracle enumerates unique viewpoint sequences up to the same viewpoint limit and energy budget. It maximizes unique visible cells, then minimizes total budgeted steps.
 - Every sequence pays travel, a simplified one-step heading-change cost, shortest-distance return to the start, and an explicit return reserve. The return leg is not credited with extra sensing.
 - Equal objectives use stable candidate order. The tiny-grid exhaustive search is intentionally capped at four viewpoints.
+
+The frozen six-scene reference model found the lookahead planner matched exhaustive coverage counts in all six cases, while the myopic greedy baseline reached only 82.60% and 68.75% of oracle coverage in two cases. This small-scene result is not a global approximation guarantee.
 
 ## Claim ceiling
 
