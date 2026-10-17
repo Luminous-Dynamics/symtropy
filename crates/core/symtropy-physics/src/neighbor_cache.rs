@@ -332,15 +332,18 @@ mod tests {
 
     #[test]
     fn opposing_motion_at_buffer_boundary_is_covered_or_forces_rebuild() {
-        let initial = [point(10, 0.0, 0.0), point(20, 3.0, 0.0)];
+        let initial = [point(10, 0.0, 0.0), point(20, 2.5, 0.0)];
         let cache = NeighborList2d::build(initial, 1.0, 2.0, 1.0).unwrap();
         assert!(cache.pairs().contains(&NeighborPair { a: 10, b: 20 }));
 
-        let moved = [point(10, 0.99, 0.0), point(20, 2.01, 0.0)];
+        // Opposing sub-threshold motion can bring a buffered pair into range.
+        let moved = [point(10, 0.99, 0.0), point(20, 1.51, 0.0)];
         assert!(!cache.requires_rebuild(&moved, 1.0, 2.0, 1.0).unwrap());
         assert!(exact_pairs(&moved, 1.0).contains(&NeighborPair { a: 10, b: 20 }));
 
-        let threshold = [point(10, 1.0, 0.0), point(20, 2.0, 0.0)];
+        // Reaching skin / 2 is conservative invalidation, even if the old list
+        // would still include this particular pair.
+        let threshold = [point(10, 1.0, 0.0), point(20, 1.5, 0.0)];
         assert!(cache.requires_rebuild(&threshold, 1.0, 2.0, 1.0).unwrap());
     }
 
