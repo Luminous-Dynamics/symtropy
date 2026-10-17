@@ -1,0 +1,178 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_kind": "synthetic_intervention_portfolio",
+  "portfolio_id": "synthetic-visitor-access-plan",
+  "claim_boundary": "Synthetic-only test data. Every cost range is invented to exercise algorithm behavior, not a quote or market price. This report cannot establish real-home accessibility or safety.",
+  "currency": "ZAR",
+  "budget_cap_upper_minor_units": 1250000,
+  "planning_horizon_months": 12,
+  "hard_constraints": [
+    {
+      "id": "resident-keeps-entry-choice",
+      "statement": "A notification never automatically unlocks the door or admits a visitor.",
+      "baseline_status": "satisfied_for_fixture",
+      "note": "Declared satisfied only inside this synthetic example."
+    },
+    {
+      "id": "offline-notification-path",
+      "statement": "A notification path remains available when internet access is unavailable.",
+      "baseline_status": "unresolved",
+      "note": "Requires an actual verified fallback; planning coverage is not evidence that the fallback works."
+    }
+  ],
+  "preferences": [
+    {
+      "id": "tactile-notification",
+      "statement": "Resident prefers tactile notification where practical.",
+      "baseline_status": "unresolved",
+      "note": "Preference is an optimization dimension, not a hard gate."
+    }
+  ],
+  "interventions": [
+    {
+      "id": "offline-tactile-unit",
+      "title": "Local tactile notification unit",
+      "depends_on": [],
+      "addresses_hard_constraint_ids": [
+        "offline-notification-path"
+      ],
+      "supports_preference_ids": [
+        "tactile-notification"
+      ],
+      "conflicts_with_preference_ids": [],
+      "cost": {
+        "cost_status": "known_range",
+        "basis": "synthetic_scenario",
+        "one_time_low_minor_units": 900000,
+        "one_time_high_minor_units": 1100000,
+        "annual_maintenance_low_minor_units": 20000,
+        "annual_maintenance_high_minor_units": 35000,
+        "source_ref": "synthetic://portfolio-demo/cost/offline-tactile-unit",
+        "observed_at": "2026-10-17T00:00:00Z"
+      },
+      "lead_time_days": {
+        "low": 5,
+        "high": 8
+      },
+      "resident_disruption_points": 4,
+      "access_gate": "cleared",
+      "delivery_state": "proposed",
+      "note": "Invented scenario values only; actual placement, device suitability, power and operation require assessment."
+    },
+    {
+      "id": "battery-backed-local-alert",
+      "title": "Battery-backed local alert",
+      "depends_on": [],
+      "addresses_hard_constraint_ids": [
+        "offline-notification-path"
+      ],
+      "supports_preference_ids": [],
+      "conflicts_with_preference_ids": [
+        "tactile-notification"
+      ],
+      "cost": {
+        "cost_status": "known_range",
+        "basis": "synthetic_scenario",
+        "one_time_low_minor_units": 600000,
+        "one_time_high_minor_units": 750000,
+        "annual_maintenance_low_minor_units": 30000,
+        "annual_maintenance_high_minor_units": 45000,
+        "source_ref": "synthetic://portfolio-demo/cost/battery-backed-local-alert",
+        "observed_at": "2026-10-17T00:00:00Z"
+      },
+      "lead_time_days": {
+        "low": 4,
+        "high": 6
+      },
+      "resident_disruption_points": 1,
+      "access_gate": "cleared",
+      "delivery_state": "proposed",
+      "note": "Invented scenario values only; battery, device and notification path are not tested."
+    },
+    {
+      "id": "tactile-haptic-receiver",
+      "title": "Tactile haptic receiver for local alert",
+      "depends_on": [
+        "battery-backed-local-alert"
+      ],
+      "addresses_hard_constraint_ids": [],
+      "supports_preference_ids": [
+        "tactile-notification"
+      ],
+      "conflicts_with_preference_ids": [],
+      "cost": {
+        "cost_status": "known_range",
+        "basis": "synthetic_scenario",
+        "one_time_low_minor_units": 350000,
+        "one_time_high_minor_units": 450000,
+        "annual_maintenance_low_minor_units": 10000,
+        "annual_maintenance_high_minor_units": 20000,
+        "source_ref": "synthetic://portfolio-demo/cost/tactile-haptic-receiver",
+        "observed_at": "2026-10-17T00:00:00Z"
+      },
+      "lead_time_days": {
+        "low": 2,
+        "high": 3
+      },
+      "resident_disruption_points": 1,
+      "access_gate": "cleared",
+      "delivery_state": "proposed",
+      "note": "Depends on the local alert; invented scenario values only."
+    },
+    {
+      "id": "unknown-cost-doorbell",
+      "title": "Alternative doorbell option with missing price evidence",
+      "depends_on": [],
+      "addresses_hard_constraint_ids": [],
+      "supports_preference_ids": [
+        "tactile-notification"
+      ],
+      "conflicts_with_preference_ids": [],
+      "cost": {
+        "cost_status": "unknown",
+        "basis": "synthetic_scenario",
+        "reason": "No comparable cost input was provided for this synthetic option.",
+        "source_ref": "synthetic://portfolio-demo/cost/unknown-cost-doorbell",
+        "observed_at": "2026-10-17T00:00:00Z"
+      },
+      "lead_time_days": {
+        "low": 2,
+        "high": 6
+      },
+      "resident_disruption_points": 1,
+      "access_gate": "cleared",
+      "delivery_state": "proposed",
+      "note": "Must remain outside budget-feasible frontier until attributable cost bounds exist."
+    },
+    {
+      "id": "landlord-fixed-wiring",
+      "title": "Fixed wiring intervention requiring permission",
+      "depends_on": [],
+      "addresses_hard_constraint_ids": [
+        "offline-notification-path"
+      ],
+      "supports_preference_ids": [],
+      "conflicts_with_preference_ids": [
+        "tactile-notification"
+      ],
+      "cost": {
+        "cost_status": "known_range",
+        "basis": "synthetic_scenario",
+        "one_time_low_minor_units": 1800000,
+        "one_time_high_minor_units": 2200000,
+        "annual_maintenance_low_minor_units": 5000,
+        "annual_maintenance_high_minor_units": 10000,
+        "source_ref": "synthetic://portfolio-demo/cost/landlord-fixed-wiring",
+        "observed_at": "2026-10-17T00:00:00Z"
+      },
+      "lead_time_days": {
+        "low": 14,
+        "high": 21
+      },
+      "resident_disruption_points": 3,
+      "access_gate": "pending",
+      "delivery_state": "proposed",
+      "note": "Permission remains pending; this option must not appear as budget-feasible."
+    }
+  ]
+}

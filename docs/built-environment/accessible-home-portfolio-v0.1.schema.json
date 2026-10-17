@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/built-environment/accessible-home-portfolio-v0.1.schema.json",
+  "title": "Accessible Home Intervention Portfolio v0.1",
+  "description": "Synthetic staged intervention portfolio. Semantic dependency, budget and Pareto checks require the Rust evaluator. Not a real-home assessment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_kind",
+    "portfolio_id",
+    "claim_boundary",
+    "currency",
+    "budget_cap_upper_minor_units",
+    "planning_horizon_months",
+    "hard_constraints",
+    "preferences",
+    "interventions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "fixture_kind": {
+      "const": "synthetic_intervention_portfolio"
+    },
+    "portfolio_id": {
+      "$ref": "#/$defs/id"
+    },
+    "claim_boundary": {
+      "type": "string",
+      "minLength": 30
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "budget_cap_upper_minor_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "planning_horizon_months": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 120
+    },
+    "hard_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/hardConstraint"
+      }
+    },
+    "preferences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/preference"
+      }
+    },
+    "interventions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/intervention"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+    },
+    "syntheticRef": {
+      "type": "string",
+      "pattern": "^synthetic://[a-z0-9/_-]+$"
+    },
+    "baselineStatus": {
+      "type": "string",
+      "enum": [
+        "satisfied_for_fixture",
+        "unresolved",
+        "conflicted"
+      ]
+    },
+    "costBasis": {
+      "type": "string",
+      "enum": [
+        "synthetic_scenario",
+        "estimate",
+        "quote"
+      ]
+    },
+    "accessGate": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "cleared",
+        "pending",
+        "denied"
+      ]
+    },
+    "deliveryState": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "quote_received",
+        "funded",
+        "installed",
+        "measured",
+        "professionally_reviewed"
+      ]
+    },
+    "hardConstraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "baseline_status",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 5
+        },
+        "baseline_status": {
+          "$ref": "#/$defs/baselineStatus"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "preference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "baseline_status",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 5
+        },
+        "baseline_status": {
+          "$ref": "#/$defs/baselineStatus"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dayRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "low",
+        "high"
+      ],
+      "properties": {
+        "low": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "high": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "knownCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cost_status",
+        "basis",
+        "one_time_low_minor_units",
+        "one_time_high_minor_units",
+        "annual_maintenance_low_minor_units",
+        "annual_maintenance_high_minor_units",
+        "source_ref",
+        "observed_at"
+      ],
+      "properties": {
+        "cost_status": {
+          "const": "known_range"
+        },
+        "basis": {
+          "$ref": "#/$defs/costBasis"
+        },
+        "one_time_low_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "one_time_high_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "annual_maintenance_low_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "annual_maintenance_high_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ref": {
+          "$ref": "#/$defs/syntheticRef"
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "unknownCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cost_status",
+        "basis",
+        "reason",
+        "source_ref",
+        "observed_at"
+      ],
+      "properties": {
+        "cost_status": {
+          "const": "unknown"
+        },
+        "basis": {
+          "$ref": "#/$defs/costBasis"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 5
+        },
+        "source_ref": {
+          "$ref": "#/$defs/syntheticRef"
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "costEvidence": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/knownCost"
+        },
+        {
+          "$ref": "#/$defs/unknownCost"
+        }
+      ]
+    },
+    "intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "depends_on",
+        "addresses_hard_constraint_ids",
+        "supports_preference_ids",
+        "conflicts_with_preference_ids",
+        "cost",
+        "lead_time_days",
+        "resident_disruption_points",
+        "access_gate",
+        "delivery_state",
+        "note"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "addresses_hard_constraint_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "supports_preference_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "conflicts_with_preference_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "cost": {
+          "$ref": "#/$defs/costEvidence"
+        },
+        "lead_time_days": {
+          "$ref": "#/$defs/dayRange"
+        },
+        "resident_disruption_points": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "access_gate": {
+          "$ref": "#/$defs/accessGate"
+        },
+        "delivery_state": {
+          "$ref": "#/$defs/deliveryState"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+name: Accessible home intervention portfolio planner
+
+on:
+  pull_request:
+    paths:
+      - "tools/accessible-home-portfolio-planner/**"
+      - "docs/built-environment/accessible-home-portfolio-v0.1*"
+      - ".github/workflows/accessible-home-portfolio-planner.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/accessible-home-portfolio-planner/**"
+      - "docs/built-environment/accessible-home-portfolio-v0.1*"
+      - ".github/workflows/accessible-home-portfolio-planner.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accessible-home-portfolio-planner-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Format, semantic mutation tests and synthetic portfolio receipt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Normalize formatting in ephemeral workspace
+        run: cargo fmt --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml -- --check
+      - name: Run mutation tests
+        run: cargo test --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml
+      - name: Evaluate synthetic portfolio fixture
+        run: |
+          cargo run --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml -- \
+            --input docs/built-environment/accessible-home-portfolio-v0.1.example.json \
+            --output /tmp/accessible-home-portfolio-report.json
+          grep -q '"intervention_count": 5' /tmp/accessible-home-portfolio-report.json
+          grep -q '"evaluated_subset_count": 32' /tmp/accessible-home-portfolio-report.json
+          grep -Eq '"input_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-portfolio-report.json
+          grep -q '"claim_limit":' /tmp/accessible-home-portfolio-report.json
