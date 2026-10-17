@@ -356,11 +356,88 @@ pub mod scoring;
 mod tests {
     use super::*;
 
+    const PUBLIC_MANIFEST: &str =
+        include_str!("../fixtures/h0-public-manifest.json");
+
     fn close(actual: f64, expected: f64) {
         assert!(
             (actual - expected).abs() <= 1.0e-12,
             "actual {actual} differs from expected {expected}"
         );
+    }
+
+    #[test]
+    fn frozen_public_manifest_matches_code_and_observability_references() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(PUBLIC_MANIFEST).expect("public manifest is valid JSON");
+        assert_eq!(manifest["benchmark_id"], "geo-sim-h0-known-truth-001");
+        assert_eq!(manifest["status"], "benchmark_specification_not_executed");
+        assert_eq!(manifest["claim_boundary"]["hidden_truth_is_in_public_manifest"], false);
+        let records = manifest["fixtures"].as_array().expect("fixtures array");
+        assert_eq!(records.len(), FixtureId::ALL.len());
+
+        for fixture_id in FixtureId::ALL {
+            let fixture = public_fixture(fixture_id);
+            let record = records
+                .iter()
+                .find(|record| record["id"] == fixture_id.as_str())
+                .expect("fixture ID is present in manifest");
+            assert_eq!(
+                record["parameter_ids"],
+                serde_json::to_value(fixture.parameter_ids).unwrap()
+            );
+            assert_eq!(
+                record["observation_ids"],
+                serde_json::to_value(fixture.observation_ids).unwrap()
+            );
+            assert_eq!(
+                record["observation_operator"],
+                serde_json::to_value(fixture.observation_operator).unwrap()
+            );
+            assert_eq!(
+                record["observation_covariance"],
+                serde_json::to_value(fixture.observation_covariance).unwrap()
+            );
+            assert_eq!(
+                record["observed_values"],
+                serde_json::to_value(fixture.observed_values).unwrap()
+            );
+            assert_eq!(
+                record["model_relative_seconds"],
+                serde_json::to_value(fixture.model_relative_seconds).unwrap()
+            );
+
+            let expected = &record["expected_observability"];
+            let report = fixture.analyze_observability(1e-12, 1e-12).unwrap();
+            assert_eq!(
+                report.numerical_rank,
+                expected["numerical_rank"].as_u64().unwrap() as usize,
+                "{}",
+                fixture_id.as_str()
+            );
+            let expected_singular_values = expected["singular_values"]
+                .as_array()
+                .expect("singular_values array");
+            for (actual, value) in report.singular_values.iter().zip(expected_singular_values) {
+                close(*actual, value.as_f64().unwrap());
+            }
+            match (report.condition_number, expected["condition_number"].as_f64()) {
+                (Some(actual), Some(expected)) => close(actual, expected),
+                (None, None) => {}
+                (actual, expected) => {
+                    panic!("condition number mismatch: {actual:?} vs {expected:?}");
+                }
+            }
+            let expected_null = expected["null_space_basis"]
+                .as_array()
+                .expect("null space array");
+            assert_eq!(report.null_space_basis.len(), expected_null.len());
+            for (actual, vector) in report.null_space_basis.iter().zip(expected_null) {
+                let values = vector.as_array().expect("null-space vector");
+                close(actual[0], values[0].as_f64().unwrap());
+                close(actual[1].abs(), values[1].as_f64().unwrap().abs());
+            }
+        }
     }
 
     #[test]
