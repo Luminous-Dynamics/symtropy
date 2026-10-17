@@ -905,7 +905,10 @@
         "required_route_tilt_deg": 15
       },
       "requires_human_transport": false,
-      "operating_notes": "Synthetic authorized-waterway delivery, including loading and cold-chain handover."
+      "operating_notes": "Synthetic authorized-waterway delivery, including loading and cold-chain handover.",
+      "allowed_modes": [
+        "watercraft"
+      ]
     },
     {
       "mission_id": "AMZ-ACCESSIBLE-PASSENGERS-01",
@@ -933,7 +936,10 @@
         "required_route_tilt_deg": 10
       },
       "requires_human_transport": true,
-      "operating_notes": "Synthetic short waterway passage with seated and wheelchair passengers; board/transfer and egress included."
+      "operating_notes": "Synthetic short waterway passage with seated and wheelchair passengers; board/transfer and egress included.",
+      "allowed_modes": [
+        "watercraft"
+      ]
     },
     {
       "mission_id": "CONGO-SCIENCE-SAMPLES-01",
@@ -959,7 +965,10 @@
         "required_route_tilt_deg": 8
       },
       "requires_human_transport": false,
-      "operating_notes": "Synthetic survey on an approved path with fragile instruments and contained samples."
+      "operating_notes": "Synthetic survey on an approved path with fragile instruments and contained samples.",
+      "allowed_modes": [
+        "wheeled_rover"
+      ]
     },
     {
       "mission_id": "CONGO-FIELD-CREW-01",
@@ -984,7 +993,10 @@
         "required_route_tilt_deg": 12
       },
       "requires_human_transport": true,
-      "operating_notes": "Synthetic movement of a two-person field crew between authorized sites."
+      "operating_notes": "Synthetic movement of a two-person field crew between authorized sites.",
+      "allowed_modes": [
+        "watercraft"
+      ]
     },
     {
       "mission_id": "ANTARCTIC-SCIENCE-INSTRUMENT-01",
@@ -1010,7 +1022,11 @@
         "required_route_tilt_deg": 10
       },
       "requires_human_transport": false,
-      "operating_notes": "Synthetic station resupply; cold-soak route with an instrument requiring a controlled compartment."
+      "operating_notes": "Synthetic station resupply; cold-soak route with an instrument requiring a controlled compartment.",
+      "allowed_modes": [
+        "sled",
+        "tracked_carrier"
+      ]
     },
     {
       "mission_id": "ANTARCTIC-STRETCHER-01",
@@ -1038,7 +1054,10 @@
         "required_route_tilt_deg": 6
       },
       "requires_human_transport": true,
-      "operating_notes": "Synthetic patient transfer envelope only; no clinical protocol or field clearance is implied."
+      "operating_notes": "Synthetic patient transfer envelope only; no clinical protocol or field clearance is implied.",
+      "allowed_modes": [
+        "tracked_carrier"
+      ]
     },
     {
       "mission_id": "SAHARA-REMOTE-TOOLS-01",
@@ -1064,7 +1083,10 @@
         "required_route_tilt_deg": 12
       },
       "requires_human_transport": false,
-      "operating_notes": "Synthetic hot-soak/dust mission on a surveyed route with tools and fragile inspection equipment."
+      "operating_notes": "Synthetic hot-soak/dust mission on a surveyed route with tools and fragile inspection equipment.",
+      "allowed_modes": [
+        "wheeled_rover"
+      ]
     },
     {
       "mission_id": "SAHARA-CREW-01",
@@ -1089,7 +1111,10 @@
         "required_route_tilt_deg": 12
       },
       "requires_human_transport": true,
-      "operating_notes": "Synthetic two-person crew transport with hot-ambient and occupant comfort requirements."
+      "operating_notes": "Synthetic two-person crew transport with hot-ambient and occupant comfort requirements.",
+      "allowed_modes": [
+        "ground_carrier"
+      ]
     },
     {
       "mission_id": "AFGHANISTAN-MEDICAL-SUPPLY-01",
@@ -1116,7 +1141,10 @@
         "required_route_tilt_deg": 12
       },
       "requires_human_transport": false,
-      "operating_notes": "Synthetic civilian route example; route hazard status intentionally unknown and must block operational readiness."
+      "operating_notes": "Synthetic civilian route example; route hazard status intentionally unknown and must block operational readiness.",
+      "allowed_modes": [
+        "wheeled_rover"
+      ]
     },
     {
       "mission_id": "AFGHANISTAN-STRETCHER-01",
@@ -1145,7 +1173,10 @@
         "required_route_tilt_deg": 8
       },
       "requires_human_transport": true,
-      "operating_notes": "Synthetic patient transport candidate, subject to authorized civilian route assessment; no route authorization is implied."
+      "operating_notes": "Synthetic patient transport candidate, subject to authorized civilian route assessment; no route authorization is implied.",
+      "allowed_modes": [
+        "ground_carrier"
+      ]
     }
   ],
   "gate_definitions": [
