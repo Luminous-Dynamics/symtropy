@@ -9,6 +9,7 @@ use std::process::ExitCode;
 
 mod decision;
 mod faults;
+mod morphology;
 mod portfolio;
 mod sourcing;
 mod stakeholder;
@@ -508,6 +509,13 @@ fn run() -> Result<(), String> {
             "--faults-schema and --faults-curriculum must be supplied together".to_owned(),
         );
     }
+    let morphology_schema_path = read_arg_path("--morphology-schema");
+    let morphology_portfolio_path = read_arg_path("--morphology-portfolio");
+    if morphology_schema_path.is_some() != morphology_portfolio_path.is_some() {
+        return Err(
+            "--morphology-schema and --morphology-portfolio must be supplied together".to_owned(),
+        );
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -658,6 +666,34 @@ fn run() -> Result<(), String> {
             "physical_fault_trials_completed": false,
             "local_prevalence_established": false,
             "product_safety_assessed": false
+        });
+    }
+
+    if let (Some(morphology_schema_path), Some(morphology_portfolio_path)) =
+        (morphology_schema_path, morphology_portfolio_path)
+    {
+        let morphology_schema_raw = fs::read_to_string(&morphology_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", morphology_schema_path.display()))?;
+        let morphology_portfolio_raw = fs::read_to_string(&morphology_portfolio_path)
+            .map_err(|error| format!("cannot read {}: {error}", morphology_portfolio_path.display()))?;
+        let morphology_summary = morphology::audit_morphology_texts(
+            &morphology_schema_raw,
+            &morphology_portfolio_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["cross_appliance_morphology"] = json!({
+            "status": "PASS_MORPHOLOGY_CONTRACT_ONLY",
+            "family_count": morphology_summary.family_count,
+            "variant_count": morphology_summary.variant_count,
+            "design_pattern_count": morphology_summary.pattern_count,
+            "hybrid_candidate_count": morphology_summary.hybrid_count,
+            "schema_sha256": morphology_summary.schema_sha256,
+            "portfolio_sha256": morphology_summary.portfolio_sha256,
+            "schema_path": morphology_schema_path.display().to_string(),
+            "portfolio_path": morphology_portfolio_path.display().to_string(),
+            "physical_interchangeability_established": false,
+            "winner_declared": false
         });
     }
 
