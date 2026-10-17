@@ -1,6 +1,6 @@
-# CIV-INFRA Fleet Resilience Manifest Verifier
+# CIV-INFRA Fleet Resilience Manifest and Tiny Schedule Oracle
 
-A small standalone Rust tool for validating the v0.1 synthetic fleet-resilience scenario manifest. It is deliberately separate from the production workspace and has no network or device-control path.
+A standalone Rust tool for validating the v0.1 synthetic fleet-resilience scenario manifest and exhaustively solving three deliberately tiny, static scheduling instances. It is isolated from the production workspace and has no network or device-control path.
 
 From the repository root:
 
@@ -10,14 +10,33 @@ cargo test --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml
 cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json
 ```
 
-The CLI emits a deterministic JSON report binding the SHA-256 of the exact input bytes. It validates the strict JSON schema, unique policy/resource/task/case/evidence IDs, references, positive capacities/durations, task dependencies and cycles, policy access to unobserved events, the frozen 13-case set, and event-injection/observation ordering.
+## What the executable does now
 
-The verifier's only positive disposition is `fixture_schema_valid_only`. It explicitly reports:
+1. Parses a strict versioned JSON schema and rejects unknown fields.
+2. Checks unique IDs and cross-references for policies, resources, the task DAG, disturbance cases, and evidence vocabulary.
+3. Rejects missing resources/evidence, task dependency cycles, invalid task/resource bounds, zero capacities/demands, invalid frozen-case counts, and observations that precede event injection.
+4. Computes SHA-256 over the exact fixture bytes.
+5. Exhaustively searches the explicitly bounded tiny schedule cases, including start times, precedence, alternative resource assignments, half-open tick intervals, and resource capacities.
+6. Compares computed minimum makespans with the frozen expected values and emits a deterministic, normalized report with the selected schedule and number of feasible schedules enumerated.
+
+The finite search is bounded to at most 5 tasks, a 6-tick horizon, at most 2 alternatives per task, and at most 4 resource demands per alternative. This is a reference oracle for small instances, not a general-purpose production scheduler. It uses the declared task durations and resource requirements; it does not infer engineering or physical capability.
+
+## Frozen finite reference outcomes
+
+- `O-001-parallel-branches`: minimum makespan 5 ticks.
+- `O-002-resource-alternative`: minimum makespan 4 ticks by assigning preparation to `oracle-robot-a`, allowing `oracle-robot-b` to prefabricate in parallel.
+- `O-003-horizon-infeasible`: no complete schedule fits the 3-tick horizon.
+
+These expected values are test assertions. They are not construction productivity measurements.
+
+## Claim ceiling
+
+The report's `validation_status` is `fixture_schema_valid_and_finite_schedule_oracle_checked`, and `finite_schedule_oracle_executed` is true. It deliberately also sets:
 
 - `benchmark_executed: false`
 - `policy_runs_performed: 0`
-- each case as `declared_not_simulated`
+- each disturbance case to `declared_not_simulated`
 
-This tool is **manifest preflight only**. It does not execute B0/B1/B2 policies, calculate robot task schedules, simulate failure recovery, establish physical robot capabilities, or prove construction safety/productivity. The independent finite scheduling/recovery oracle and actual policy comparison remain future work.
+Thus the oracle executes, but it does not run B0/B1/B2 planning policies or simulate injected failures and recovery. It does not validate hardware, field productivity, construction safety, or dispatch authority. The independent scheduling oracle is not yet an independent implementation or third-party audit.
 
-The included tests are intended to ensure unknown fields, duplicate identifiers, missing resource references, unknown evidence, impossible event timing, event-observation cheating and cyclic task dependencies fail closed. CI must run against the exact commit before any Rust execution is called verified.
+CI must run on the exact head before Rust execution is considered verified; queued or missing checks are not passes.
