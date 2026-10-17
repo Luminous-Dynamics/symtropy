@@ -32,7 +32,7 @@ jobs:
             .schema_version == "0.1.0" and
             .package == "SymtropyFormal" and
             (.contracts | length == 5) and
-            ([.contracts[].theorems[]] | unique | length == 49) and
+            ([.contracts[].theorems[]] | unique | length == 53) and
             (.negative_controls | length == 1) and
             (.dimension_system.unit_dimension_vectors | keys | sort) ==
               (.dimension_system.unit_theorems | keys | sort) and
