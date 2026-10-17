@@ -314,14 +314,18 @@ fn validate_envelope(
         errors.push(format!("{context}: invalid lateral interval"));
     }
     if !finite_nonnegative(envelope.uncertainty_m) {
-        errors.push(format!("{context}: uncertainty must be finite and non-negative"));
+        errors.push(format!(
+            "{context}: uncertainty must be finite and non-negative"
+        ));
     }
 
     match (envelope.elevation_min_m, envelope.elevation_max_m) {
         (Some(minimum), Some(maximum))
             if minimum.is_finite() && maximum.is_finite() && minimum < maximum => {}
         (None, None) if !require_elevation => {}
-        _ => errors.push(format!("{context}: invalid or unsupported elevation interval")),
+        _ => errors.push(format!(
+            "{context}: invalid or unsupported elevation interval"
+        )),
     }
 }
 
@@ -371,7 +375,10 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
             || !finite_nonnegative(candidate.declared_max_grade_percent)
             || !finite_nonnegative(candidate.declared_earthworks_m3)
         {
-            errors.push(format!("candidate {} contains invalid numeric input", candidate.id));
+            errors.push(format!(
+                "candidate {} contains invalid numeric input",
+                candidate.id
+            ));
         }
         if candidate.drainage_scenarios.is_empty() {
             errors.push(format!(
@@ -505,11 +512,9 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                 &mut errors,
             );
         }
-        let mut ordered_envelopes: Vec<&AxisEnvelope> =
-            candidate.road_envelopes.iter().collect();
-        ordered_envelopes.sort_by(|left, right| {
-            left.station_start_m.total_cmp(&right.station_start_m)
-        });
+        let mut ordered_envelopes: Vec<&AxisEnvelope> = candidate.road_envelopes.iter().collect();
+        ordered_envelopes
+            .sort_by(|left, right| left.station_start_m.total_cmp(&right.station_start_m));
         if ordered_envelopes
             .first()
             .is_some_and(|envelope| envelope.station_start_m.abs() > 1.0e-9)
@@ -602,14 +607,20 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                 .insert(resource.id.clone(), resource.capacity_units)
                 .is_some()
         {
-            errors.push(format!("empty, duplicate, or zero-capacity resource: {}", resource.id));
+            errors.push(format!(
+                "empty, duplicate, or zero-capacity resource: {}",
+                resource.id
+            ));
         }
     }
 
     let mut work_package_ids = BTreeSet::new();
     for package in &fixture.work_packages {
         if package.id.trim().is_empty() || !work_package_ids.insert(package.id.clone()) {
-            errors.push(format!("empty or duplicate work-package id: {}", package.id));
+            errors.push(format!(
+                "empty or duplicate work-package id: {}",
+                package.id
+            ));
         }
         for usage in &package.resource_uses {
             if !resource_capacities.contains_key(&usage.resource_id) {
@@ -635,13 +646,7 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
     }
 }
 
-fn planar_ranges_overlap(
-    a_start: f64,
-    a_end: f64,
-    b_start: f64,
-    b_end: f64,
-    padding: f64,
-) -> bool {
+fn planar_ranges_overlap(a_start: f64, a_end: f64, b_start: f64, b_end: f64, padding: f64) -> bool {
     a_start <= b_end + padding && b_start <= a_end + padding
 }
 
@@ -729,21 +734,20 @@ fn disposition_from_findings(findings: &[Finding]) -> CandidateDisposition {
                 || finding.code == "declared_earthworks_matches_sections")
     }) {
         CandidateDisposition::EvidenceInconsistent
-    } else if findings.iter().any(|finding| finding.status == CheckStatus::Unknown) {
+    } else if findings
+        .iter()
+        .any(|finding| finding.status == CheckStatus::Unknown)
+    {
         CandidateDisposition::UnknownReviewRequired
     } else {
         CandidateDisposition::FeasibleForSyntheticCase
     }
 }
 
-fn evaluate_candidate(
-    fixture: &CorridorFixture,
-    candidate: &CorridorCandidate,
-) -> CandidateResult {
-    let derived_grade = maximum_grade_percent(&candidate.profile_points)
-        .unwrap_or(f64::INFINITY);
-    let declaration_matches = (derived_grade - candidate.declared_max_grade_percent).abs()
-        <= 1.0e-9;
+fn evaluate_candidate(fixture: &CorridorFixture, candidate: &CorridorCandidate) -> CandidateResult {
+    let derived_grade = maximum_grade_percent(&candidate.profile_points).unwrap_or(f64::INFINITY);
+    let declaration_matches =
+        (derived_grade - candidate.declared_max_grade_percent).abs() <= 1.0e-9;
     let (cut_volume_m3, fill_volume_m3) =
         maximum_earthworks_volume(&candidate.cross_sections).unwrap_or((f64::INFINITY, 0.0));
     let derived_earthworks_m3 = cut_volume_m3 + fill_volume_m3;
@@ -784,8 +788,7 @@ fn evaluate_candidate(
             },
         },
     ];
-    let mut drainage_scenarios: Vec<&DrainageCase> =
-        candidate.drainage_scenarios.iter().collect();
+    let mut drainage_scenarios: Vec<&DrainageCase> = candidate.drainage_scenarios.iter().collect();
     drainage_scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     for scenario in drainage_scenarios {
         findings.push(Finding {
@@ -830,25 +833,19 @@ fn evaluate_candidate(
 fn candidate_dominates(left: &CandidateResult, right: &CandidateResult) -> bool {
     let no_worse = left.metrics.route_length_m <= right.metrics.route_length_m
         && left.metrics.derived_max_grade_percent <= right.metrics.derived_max_grade_percent
-        && left.metrics.derived_total_earthworks_m3
-            <= right.metrics.derived_total_earthworks_m3
-        && left.metrics.minimum_drainage_reserve_lps
-            >= right.metrics.minimum_drainage_reserve_lps;
+        && left.metrics.derived_total_earthworks_m3 <= right.metrics.derived_total_earthworks_m3
+        && left.metrics.minimum_drainage_reserve_lps >= right.metrics.minimum_drainage_reserve_lps;
     let strictly_better = left.metrics.route_length_m < right.metrics.route_length_m
         || left.metrics.derived_max_grade_percent < right.metrics.derived_max_grade_percent
-        || left.metrics.derived_total_earthworks_m3
-            < right.metrics.derived_total_earthworks_m3
-        || left.metrics.minimum_drainage_reserve_lps
-            > right.metrics.minimum_drainage_reserve_lps;
+        || left.metrics.derived_total_earthworks_m3 < right.metrics.derived_total_earthworks_m3
+        || left.metrics.minimum_drainage_reserve_lps > right.metrics.minimum_drainage_reserve_lps;
     no_worse && strictly_better
 }
 
 fn compute_pareto_frontier(candidates: &[CandidateResult]) -> Vec<String> {
     let eligible: Vec<&CandidateResult> = candidates
         .iter()
-        .filter(|candidate| {
-            candidate.disposition == CandidateDisposition::FeasibleForSyntheticCase
-        })
+        .filter(|candidate| candidate.disposition == CandidateDisposition::FeasibleForSyntheticCase)
         .collect();
     let mut frontier: Vec<String> = eligible
         .iter()
@@ -1028,9 +1025,7 @@ fn reference_utility_status(
     }
 }
 
-fn reference_minimum_drainage_reserve_lps(
-    scenarios: &[DrainageCase],
-) -> Option<f64> {
+fn reference_minimum_drainage_reserve_lps(scenarios: &[DrainageCase]) -> Option<f64> {
     scenarios.iter().try_fold(None, |minimum, scenario| {
         let reserve = scenario.capacity_lps - scenario.required_flow_lps;
         if !reserve.is_finite() {
@@ -1065,26 +1060,25 @@ fn reference_earthworks_volumes(sections: &[CrossSection]) -> Option<(f64, f64)>
     if sections.len() < 2 {
         return None;
     }
-    sections.windows(2).try_fold((0.0_f64, 0.0_f64), |volumes, pair| {
-        let run = pair[1].station_m - pair[0].station_m;
-        if !run.is_finite() || run <= 0.0 {
-            return None;
-        }
-        // Sum each half-interval contribution separately, rather than calling
-        // the producer's trapezoid helper.
-        let half_run = run / 2.0;
-        let cut = volumes.0
-            + half_run * pair[0].cut_area_m2
-            + half_run * pair[1].cut_area_m2;
-        let fill = volumes.1
-            + half_run * pair[0].fill_area_m2
-            + half_run * pair[1].fill_area_m2;
-        if cut.is_finite() && fill.is_finite() {
-            Some((cut, fill))
-        } else {
-            None
-        }
-    })
+    sections
+        .windows(2)
+        .try_fold((0.0_f64, 0.0_f64), |volumes, pair| {
+            let run = pair[1].station_m - pair[0].station_m;
+            if !run.is_finite() || run <= 0.0 {
+                return None;
+            }
+            // Sum each half-interval contribution separately, rather than calling
+            // the producer's trapezoid helper.
+            let half_run = run / 2.0;
+            let cut = volumes.0 + half_run * pair[0].cut_area_m2 + half_run * pair[1].cut_area_m2;
+            let fill =
+                volumes.1 + half_run * pair[0].fill_area_m2 + half_run * pair[1].fill_area_m2;
+            if cut.is_finite() && fill.is_finite() {
+                Some((cut, fill))
+            } else {
+                None
+            }
+        })
 }
 
 fn reference_candidate_result(
@@ -1092,11 +1086,10 @@ fn reference_candidate_result(
     candidate: &CorridorCandidate,
 ) -> CandidateResult {
     let mut findings = Vec::new();
-    let derived_grade = reference_maximum_grade_percent(&candidate.profile_points)
-        .unwrap_or(f64::INFINITY);
+    let derived_grade =
+        reference_maximum_grade_percent(&candidate.profile_points).unwrap_or(f64::INFINITY);
     let (cut_volume_m3, fill_volume_m3) =
-        reference_earthworks_volumes(&candidate.cross_sections)
-            .unwrap_or((f64::INFINITY, 0.0));
+        reference_earthworks_volumes(&candidate.cross_sections).unwrap_or((f64::INFINITY, 0.0));
     let derived_earthworks_m3 = cut_volume_m3 + fill_volume_m3;
 
     findings.push(Finding {
@@ -1134,8 +1127,7 @@ fn reference_candidate_result(
             CheckStatus::Violation
         },
     });
-    let mut drainage_scenarios: Vec<&DrainageCase> =
-        candidate.drainage_scenarios.iter().collect();
+    let mut drainage_scenarios: Vec<&DrainageCase> = candidate.drainage_scenarios.iter().collect();
     drainage_scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     for scenario in drainage_scenarios {
         findings.push(Finding {
@@ -1176,7 +1168,10 @@ fn reference_candidate_result(
         CandidateDisposition::Infeasible
     } else if evidence_inconsistent {
         CandidateDisposition::EvidenceInconsistent
-    } else if findings.iter().any(|finding| finding.status == CheckStatus::Unknown) {
+    } else if findings
+        .iter()
+        .any(|finding| finding.status == CheckStatus::Unknown)
+    {
         CandidateDisposition::UnknownReviewRequired
     } else {
         CandidateDisposition::FeasibleForSyntheticCase
@@ -1219,7 +1214,9 @@ fn reference_schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConfli
             let demand = assigned
                 .iter()
                 .filter(|usage| usage.start_tick < end && usage.end_tick > start)
-                .fold(0_u64, |sum, usage| sum.saturating_add(u64::from(usage.units)));
+                .fold(0_u64, |sum, usage| {
+                    sum.saturating_add(u64::from(usage.units))
+                });
             if demand > resource.capacity_units {
                 expected.push(ScheduleConflict {
                     resource_id: resource.id.clone(),
@@ -1253,10 +1250,7 @@ fn metrics_match(actual: &CandidateMetrics, expected: &CandidateMetrics) -> bool
             actual.derived_max_grade_percent,
             expected.derived_max_grade_percent,
         )
-        && close(
-            actual.derived_cut_volume_m3,
-            expected.derived_cut_volume_m3,
-        )
+        && close(actual.derived_cut_volume_m3, expected.derived_cut_volume_m3)
         && close(
             actual.derived_fill_volume_m3,
             expected.derived_fill_volume_m3,
@@ -1271,10 +1265,7 @@ fn metrics_match(actual: &CandidateMetrics, expected: &CandidateMetrics) -> bool
         )
 }
 
-fn candidate_results_match(
-    actual: &[CandidateResult],
-    expected: &[CandidateResult],
-) -> bool {
+fn candidate_results_match(actual: &[CandidateResult], expected: &[CandidateResult]) -> bool {
     actual.len() == expected.len()
         && actual.iter().zip(expected).all(|(actual, expected)| {
             actual.candidate_id == expected.candidate_id
@@ -1285,8 +1276,11 @@ fn candidate_results_match(
 }
 
 pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(), Vec<String>> {
-    let fixture: CorridorFixture = serde_json::from_slice(input_bytes)
-        .map_err(|error| vec![format!("invalid fixture JSON during reference check: {error}")])?;
+    let fixture: CorridorFixture = serde_json::from_slice(input_bytes).map_err(|error| {
+        vec![format!(
+            "invalid fixture JSON during reference check: {error}"
+        )]
+    })?;
     validate_fixture(&fixture)?;
     let mut errors = Vec::new();
 
@@ -1321,14 +1315,12 @@ pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(),
 
     let expected_schedule = reference_schedule_conflicts(&fixture);
     if report.schedule_conflicts != expected_schedule {
-        errors.push(
-            "resource schedule conflicts disagree with reference recomputation".to_string(),
-        );
+        errors
+            .push("resource schedule conflicts disagree with reference recomputation".to_string());
     }
     if report.resource_schedule_feasible != expected_schedule.is_empty() {
-        errors.push(
-            "resource_schedule_feasible disagrees with reference recomputation".to_string(),
-        );
+        errors
+            .push("resource_schedule_feasible disagrees with reference recomputation".to_string());
     }
 
     errors.sort();
@@ -1444,15 +1436,19 @@ mod tests {
         assert_eq!(reference.metrics.derived_fill_volume_m3, 1620.0);
         assert_eq!(reference.metrics.derived_total_earthworks_m3, 3780.0);
         assert_eq!(reference.metrics.minimum_drainage_reserve_lps, 10.0);
-        assert!(reference
-            .findings
-            .iter()
-            .all(|finding| finding.status == CheckStatus::Pass));
-        assert!(detour
-            .findings
-            .iter()
-            .filter(|finding| finding.code.starts_with("drainage_capacity:"))
-            .all(|finding| finding.status == CheckStatus::Pass));
+        assert!(
+            reference
+                .findings
+                .iter()
+                .all(|finding| finding.status == CheckStatus::Pass)
+        );
+        assert!(
+            detour
+                .findings
+                .iter()
+                .filter(|finding| finding.code.starts_with("drainage_capacity:"))
+                .all(|finding| finding.status == CheckStatus::Pass)
+        );
         assert!(!report.resource_schedule_feasible);
         assert_eq!(report.schedule_conflicts.len(), 1);
         assert_eq!(report.schedule_conflicts[0].resource_id, "excavator");
@@ -1470,7 +1466,10 @@ mod tests {
             .iter_mut()
             .find(|utility| utility.id == "legacy-comms-unknown")
             .expect("unknown utility fixture exists");
-        let occupancy = unknown.occupancy.as_mut().expect("horizontal envelope exists");
+        let occupancy = unknown
+            .occupancy
+            .as_mut()
+            .expect("horizontal envelope exists");
         occupancy.station_start_m = 300.0;
         occupancy.station_end_m = 450.0;
         occupancy.lateral_min_m = 15.0;
@@ -1515,7 +1514,11 @@ mod tests {
             .expect("reference candidate exists")
             .disposition = CandidateDisposition::Infeasible;
         let errors = verify_report(&bytes, &report).expect_err("tampering must fail");
-        assert!(errors.iter().any(|error| error.contains("reference recomputation")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("reference recomputation"))
+        );
     }
 
     #[test]
@@ -1525,7 +1528,11 @@ mod tests {
         fixture.utilities[0].coordinate_frame_id = "UNDECLARED_FRAME".to_string();
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let errors = evaluate_json(&modified).expect_err("frame mismatch must be rejected");
-        assert!(errors.iter().any(|error| error.contains("coordinate frame")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("coordinate frame"))
+        );
     }
 
     #[test]
@@ -1553,7 +1560,11 @@ mod tests {
         fixture.candidates[1].id = fixture.candidates[0].id.clone();
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let errors = evaluate_json(&modified).expect_err("duplicate IDs must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate candidate id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate candidate id"))
+        );
     }
     #[test]
     fn equivalent_input_order_preserves_semantics_but_changes_exact_byte_digest() {
@@ -1599,10 +1610,7 @@ mod tests {
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&modified).expect("large but representable demands evaluate");
         assert_eq!(report.schedule_conflicts.len(), 1);
-        assert!(
-            report.schedule_conflicts[0].observed_demand_units
-                > u64::from(u32::MAX)
-        );
+        assert!(report.schedule_conflicts[0].observed_demand_units > u64::from(u32::MAX));
         verify_report(&modified, &report).expect("reference checker should match wide arithmetic");
     }
 
@@ -1690,7 +1698,11 @@ mod tests {
         candidate.road_envelopes[0].elevation_max_m = Some(-15.5);
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let errors = evaluate_json(&modified).expect_err("inconsistent envelope must fail");
-        assert!(errors.iter().any(|error| error.contains("road envelope excludes profile")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("road envelope excludes profile"))
+        );
     }
 
     #[test]
@@ -1717,8 +1729,7 @@ mod tests {
             .find(|candidate| candidate.candidate_id == "C-reference")
             .expect("reference result exists");
         assert!(boundary_result.findings.iter().any(|finding| {
-            finding.code.starts_with("drainage_capacity:")
-                && finding.status == CheckStatus::Pass
+            finding.code.starts_with("drainage_capacity:") && finding.status == CheckStatus::Pass
         }));
         verify_report(&boundary_bytes, &boundary_report)
             .expect("reference check should accept exact capacity boundary");
@@ -1765,7 +1776,11 @@ mod tests {
             .expect("reference candidate exists");
         candidate.metrics.derived_total_earthworks_m3 = 0.0;
         let errors = verify_report(&bytes, &report).expect_err("metric tampering must fail");
-        assert!(errors.iter().any(|error| error.contains("candidate metrics")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("candidate metrics"))
+        );
     }
 
     #[test]
@@ -1812,9 +1827,11 @@ mod tests {
         candidate.profile_points[1].elevation_m = 1.0e308;
         let modified = serde_json::to_vec(&fixture).expect("finite input values serialize");
         let errors = evaluate_json(&modified).expect_err("overflowing grade must fail closed");
-        assert!(errors.iter().any(|error| {
-            error.contains("longitudinal profile cannot produce a finite grade")
-        }));
+        assert!(
+            errors.iter().any(|error| {
+                error.contains("longitudinal profile cannot produce a finite grade")
+            })
+        );
     }
 
     #[test]
@@ -1839,7 +1856,10 @@ mod tests {
             candidate.drainage_scenarios[0].scenario_id.clone();
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let errors = evaluate_json(&modified).expect_err("duplicate scenario IDs must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate drainage scenario id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate drainage scenario id"))
+        );
     }
-
 }
