@@ -33,8 +33,8 @@ Physical execution, procurement, land access, permits, traffic control and const
 
 Define a compact, fully synthetic site using a local engineering coordinate frame with a declared unit and vertical datum. The frozen fixture should contain:
 
-1. A 1 km planning corridor with a deterministic terrain profile and explicit terrain uncertainty.
-2. Three candidate road alignments with stationing, horizontal geometry, longitudinal profiles and cross-sections.
+1. An approximately 1 km planning corridor with a deterministic terrain profile and explicit terrain uncertainty; candidate lengths vary in the finite fixture to create explicit trade-offs.
+2. Four candidate road alignments with stationing, horizontal geometry, longitudinal profiles and cross-sections.
 3. One drainage crossing/culvert and at least three rainfall/flow scenarios supplied to a separately declared hydraulic model or a bounded synthetic hydraulic oracle.
 4. Parallel water, electrical and data utility envelopes, including one intentional crossing and one intentionally unresolved segment.
 5. No-go polygons, right-of-way limits, construction access, and an explicit record of missing subsurface/geotechnical evidence.
@@ -43,13 +43,14 @@ Define a compact, fully synthetic site using a local engineering coordinate fram
 
 All values, limits and geometries in V0 are invented test inputs, not site facts or engineering recommendations. Do not bake unstated statutory values into the verifier. Requirements and tolerances must be named inputs; any later real project needs the applicable local code and professional review.
 
-### Three intentionally different alternatives
+### Four intentionally different alternatives
 
 - **A — shortest alignment:** minimize nominal corridor length; include a seeded grade or earthworks violation.
-- **B — low-earthworks alignment:** reduce the declared earthworks proxy; include a seeded utility-clearance conflict.
-- **C — feasible reference alignment:** a hand-authored reference that satisfies the synthetic hard constraints while accepting a worse value on at least one soft objective.
+- **B — low-earthworks alignment:** lower cut/fill quantities, but include a seeded utility-clearance conflict.
+- **C — feasible reference alignment:** a feasible design with a shorter length and smaller cut/fill total, but a tighter grade/clearance margin than D.
+- **D — resilient detour:** a longer, gentler profile with more cut/fill that remains feasible and is therefore non-dominated under the V0 length/grade/earthworks trade space.
 
-The fixture must state exact expected constraint outcomes. If any candidate is intentionally infeasible, preserve its complete evaluation and rejection reasons rather than dropping it from the result. The benchmark should also include at least one scenario where two individually feasible work packages become infeasible when scheduled together due to a shared plant, crew, access window or material limit.
+The fixture must state exact expected constraint outcomes. In the current V0 report, the feasible-only Pareto frontier is computed over route length, maximum absolute grade and total cut-plus-fill volume, all minimized; it should contain C and D because neither dominates the other. This is a deliberately small, transparent objective set, not a universal transport value score. If any candidate is intentionally infeasible, preserve its complete evaluation and rejection reasons rather than dropping it from the result. The benchmark should also include at least one scenario where two individually feasible work packages become infeasible when scheduled together due to a shared plant, crew, access window or material limit.
 
 ### Executable V0 reference arithmetic
 
