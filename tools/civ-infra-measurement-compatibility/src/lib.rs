@@ -10,6 +10,7 @@ pub const FIXED_SCALE: i128 = 1_000_000;
 pub const MAX_STATES: usize = 100_000;
 pub const MAX_OUTCOMES: usize = 100_000;
 pub const MAX_COMPATIBILITY_EDGES: usize = 100_000;
+pub const MAX_INPUT_BYTES: usize = 4 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -198,7 +199,17 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-pub fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<CompatibilityReport, String> {
+pub fn evaluate_bytes(input_bytes: &[u8]) -> Result<CompatibilityReport, String> {
+    if input_bytes.len() > MAX_INPUT_BYTES {
+        return Err(format!("input byte count exceeds limit {MAX_INPUT_BYTES}"));
+    }
+    let input_sha256 = sha256_hex(input_bytes);
+    let input: CompatibilityInput = serde_json::from_slice(input_bytes)
+        .map_err(|err| format!("invalid compatibility input JSON: {err}"))?;
+    evaluate(&input, &input_sha256)
+}
+
+fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<CompatibilityReport, String> {
     if input.schema_version != SCHEMA_VERSION {
         return Err(format!(
             "unsupported schema_version {:?}; expected {:?}",
@@ -1115,6 +1126,28 @@ mod tests {
         assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("unsupported schema_version"));
         let input = base_input();
         assert!(evaluate(&input, "not-a-digest").unwrap_err().contains("input_sha256"));
+    }
+
+    #[test]
+    fn public_byte_entrypoint_binds_exact_raw_bytes() {
+        let raw = include_bytes!("../fixtures/compatibility-v0.1.json");
+        let report = evaluate_bytes(raw).expect("raw fixture evaluates");
+        assert_eq!(report.input_sha256, sha256_hex(raw));
+
+        let mut whitespace_variant = Vec::with_capacity(raw.len() + 1);
+        whitespace_variant.push(b' ');
+        whitespace_variant.extend_from_slice(raw);
+        let variant_report = evaluate_bytes(&whitespace_variant).expect("whitespace variant evaluates");
+        assert_ne!(report.input_sha256, variant_report.input_sha256);
+        assert_eq!(report.state_results, variant_report.state_results);
+    }
+
+    #[test]
+    fn public_byte_entrypoint_rejects_oversized_input_before_json_parse() {
+        let oversized = vec![b' '; MAX_INPUT_BYTES + 1];
+        assert!(evaluate_bytes(&oversized)
+            .unwrap_err()
+            .contains("input byte count exceeds limit"));
     }
 
     #[test]
