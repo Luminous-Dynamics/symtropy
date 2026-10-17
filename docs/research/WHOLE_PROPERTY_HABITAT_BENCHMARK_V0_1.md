@@ -98,6 +98,7 @@ The first corpus should be deterministic and wholly synthetic. Every case define
 | WP-016 | Project cost, schedule, embodied impacts, or supplier availability have sparse/uncertain inputs | Preserve ranges, scenarios, and unknowns; don't impute unknown cost/carbon/time as zero |
 | WP-017 | A small exhaustive design space with known constraints and outcomes | Compare the production candidate selector against a simple independent exhaustive oracle |
 | WP-018 | Frozen design passes initially, then one high-impact source/model/geometry revision occurs | Recompute every declared dependent result and preserve unrelated results only where dependency analysis proves safe reuse |
+| WP-019 | Compromised third-party cloud credentials attempt unauthorized subsystem changes before a network disconnect | Preserve independent authorization boundaries, local/manual fallback for essential functions, and explicit non-claim of penetration-test coverage |
 
 Later versions can add climate zones, building typologies, landscaping/ecoregions, furnishing products, construction methods, and real measured cases only after rights, privacy, source validity, and reviewer authority have been established.
 
@@ -157,7 +158,7 @@ Verify the adopted editions and jurisdictional requirements at project start; th
 ## 9. Execution plan
 
 1. Review this contract against the existing owners named above; resolve fields to existing types before freezing any schema.
-2. Use the frozen WP-001–WP-018 manifest and the standalone `tools/habitat-manifest-verifier` for strict structure and exact-byte integrity only. The independent semantic evaluator/golden oracle remains future work; it must verify expected dispositions and hard-gate behavior without sharing the candidate evaluator's decision code. Start with evidence-state correctness, change invalidation, and tiny exhaustive comparison before high-fidelity simulation.
+2. Use the frozen WP-001–WP-019 manifest and the standalone `tools/habitat-manifest-verifier` for strict structure and exact-byte integrity only. The independent semantic evaluator/golden oracle remains future work; it must verify expected dispositions and hard-gate behavior without sharing the candidate evaluator's decision code. Start with evidence-state correctness, change invalidation, and tiny exhaustive comparison before high-fidelity simulation.
 3. Implement the first Sol-Atlas read-only adapter for site, coverage, freshness and hard-constraint receipts only after PRs #129/#136/#140 provide a reviewed interface.
 4. Compose Symtropy's existing decision-impact/robustness work (#1769, #1789) to prioritize surveys and model runs by their ability to change feasibility or the Pareto set. Do not invent probabilities or expected value-of-information without calibrated observation models. Then compose Symthaea's design-alternative and uncertainty/reporting interfaces; do not give the model direct building-control or approval authority.
 5. Add one specialist simulation at a time (initial candidate: whole-building energy/comfort, then water balance), each with an authoritative reference set and explicit validity envelope.
