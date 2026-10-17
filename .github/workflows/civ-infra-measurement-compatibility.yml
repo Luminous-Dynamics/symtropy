@@ -56,7 +56,8 @@ jobs:
             .outcomes_per_world == 5 and
             .state_outcome_evaluations == 10000 and
             (.cases | length) == 100 and
-            .generated_compatibility_edges > 0
+            .generated_compatibility_edges > 0 and
+            .worlds_with_nonzero_discrepancy == 50
           ' "$CIV_INFRA_COMPATIBILITY_CORPUS_OUT"
 
       - name: Run frozen fixture through CLI
