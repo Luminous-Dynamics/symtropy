@@ -40,7 +40,7 @@ Counts describe this invented graph, not real-world project rework.
 
 ## Acceptance targets
 
-- 100% agreement with an independent dependency-ancestry oracle.
+- 100% agreement with an independent dependency-ancestry oracle across the frozen graph and 32 generated DAGs (4–24 nodes each, every node used as a trigger).
 - 0 stale, revoked, out-of-scope, digest-mismatched or incomplete-coverage critical evidence promoted as valid.
 - 100% invalidation of declared dependents after each seeded change.
 - 0 unrelated invalidations in material- and furnishing-substitution precision controls.
