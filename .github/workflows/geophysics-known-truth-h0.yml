@@ -1,0 +1,45 @@
+name: Geophysics known-truth H0
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/domains/symtropy-geophysics-benchmark/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/geophysics-known-truth-h0.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "crates/domains/symtropy-geophysics-benchmark/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/geophysics-known-truth-h0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geophysics-known-truth-h0-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  h0:
+    name: H0 analytical fixture tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --package symtropy-geophysics-benchmark -- --check
+      - name: Run known-truth fixture tests
+        run: cargo test -p symtropy-geophysics-benchmark --lib --locked
+      - name: Run Clippy
+        run: cargo clippy -p symtropy-geophysics-benchmark --all-targets --locked -- -D warnings

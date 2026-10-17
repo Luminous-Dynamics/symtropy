@@ -1,0 +1,16 @@
+[package]
+name = "symtropy-geophysics-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic known-truth fixtures for geophysical observability benchmarks"
+repository = "https://github.com/luminous-dynamics/symtropy"
+keywords = ["geophysics", "observability", "inverse-problems", "benchmark"]
+categories = ["science", "simulation"]
+
+[features]
+default = []
+benchmark-scoring = []
+
+[dev-dependencies]
+serde_json = "1.0"

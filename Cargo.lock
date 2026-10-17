@@ -9111,6 +9111,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-geophysics-benchmark"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-hdc-core"
 version = "0.1.0"
 dependencies = [
