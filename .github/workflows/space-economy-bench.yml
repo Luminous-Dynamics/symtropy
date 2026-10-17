@@ -439,9 +439,9 @@ jobs:
             and .value_of_information.calibration_b_evsi_before_cost.numerator == 15000000000
             and .value_of_information.adaptive_tree_evsi_before_cost.numerator == 76500000000
             and .value_of_information.uninformative_test_evsi.numerator == 0
-            and (.policy_comparison | length == 7)
-            and .selected_policy == "adaptive_a_then_b_after_positive"
-            and .exhaustive_policy_enumeration.candidate_count == 7
+            and (.policy_comparison | length == 10)
+            and .selected_policy == "adaptive_b_then_a_after_positive"
+            and .exhaustive_policy_enumeration.candidate_count == 10
             and .exhaustive_policy_enumeration.regret_vs_enumerated_candidate_policies.numerator == 0
             and ([.policy_comparison[] | select(.policy_id == "no_calibration") | .net_expected_value.numerator][0] == 1500000000000)
             and ([.policy_comparison[] | select(.policy_id == "calibration_a_only") | .net_expected_value.numerator][0] == 1525000000000)
@@ -449,6 +449,9 @@ jobs:
             and ([.policy_comparison[] | select(.policy_id == "adaptive_a_then_b_after_positive") | .net_expected_value.numerator][0] == 1543000000000)
             and ([.policy_comparison[] | select(.policy_id == "adaptive_a_then_b_after_negative") | .net_expected_value.numerator][0] == 1521000000000)
             and ([.policy_comparison[] | select(.policy_id == "adaptive_a_then_b_after_either_outcome") | .net_expected_value.numerator][0] == 1539000000000)
+            and ([.policy_comparison[] | select(.policy_id == "adaptive_b_then_a_after_positive") | .net_expected_value.numerator][0] == 1557000000000)
+            and ([.policy_comparison[] | select(.policy_id == "adaptive_b_then_a_after_negative") | .net_expected_value.numerator][0] == 1489500000000)
+            and ([.policy_comparison[] | select(.policy_id == "adaptive_b_then_a_after_either_outcome") | .net_expected_value.numerator][0] == 1539000000000)
             and ([.policy_comparison[] | select(.policy_id == "uninformative_test_negative_control") | .net_expected_value.numerator][0] == 1497000000000)
             and ([.branch_decisions.calibration_a[0].posterior_model_weights_unnormalized[].weight] == [9000,4000,1000])
             and ([.branch_decisions.calibration_a[1].posterior_model_weights_unnormalized[].weight] == [1000,6000,9000])
@@ -459,6 +462,11 @@ jobs:
             and .branch_decisions.adaptive_a_then_b_if_a_positive[0].posterior_expected_value_action == "use_resource_assay"
             and .branch_decisions.adaptive_a_then_b_if_a_positive[1].posterior_expected_value_action == "keep_baseline_no_assay"
             and .branch_decisions.adaptive_a_then_b_if_a_positive[2].posterior_expected_value_action == "keep_baseline_no_assay"
+            and .branch_decisions.adaptive_b_then_a_if_b_positive.first_outcome_positive.posterior_expected_value_action == "use_resource_assay"
+            and .branch_decisions.adaptive_b_then_a_if_b_positive.first_outcome_negative.posterior_expected_value_action == "keep_baseline_no_assay"
+            and .branch_decisions.adaptive_b_then_a_if_b_positive.negative_b_stop_no_a.posterior_expected_value_action == "keep_baseline_no_assay"
+            and .branch_decisions.adaptive_b_then_a_if_b_positive.first_outcome_positive.maximin_action == "keep_baseline_no_assay"
+            and .branch_decisions.adaptive_b_then_a_if_b_positive.first_outcome_positive.minimax_regret_action == "keep_baseline_no_assay"
             and .branch_decisions.calibration_a[0].maximin_action == "keep_baseline_no_assay"
             and .branch_decisions.calibration_a[0].minimax_regret_action == "keep_baseline_no_assay"
             and .negative_controls.uninformative_calibration.buy == false
@@ -466,6 +474,7 @@ jobs:
             and .negative_controls.missing_calibration_outcome.accepted == false
             and .negative_controls.unverified_calibration_accuracy_claim.accepted_for_update == false
             and .candidate_resource_use.adaptive_a_then_b_after_positive.budget_pass == true
+            and .candidate_resource_use.adaptive_b_then_a_after_positive.budget_pass == true
           ' space-economy-decision-value-calibration-experiments-receipt.json
 
       - name: Bind toolchain and dependency-lock provenance to receipts
