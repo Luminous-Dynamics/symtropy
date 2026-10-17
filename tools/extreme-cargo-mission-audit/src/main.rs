@@ -571,9 +571,12 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
                     push(&mut errors, &format!("{path}.required_gate_ids"), &format!("mandatory mission gate {always_required} is missing"));
                 }
             }
-            let mission_payload_records: Vec<&Value> = root["payload_profiles"].as_array().unwrap().iter()
-                .filter(|payload| payload["payload_id"].as_str().is_some_and(|pid| payloads.contains(pid)))
-                .collect();
+            let mission_payload_records: Vec<&Value> = root.get("payload_profiles")
+                .and_then(Value::as_array)
+                .map(|profiles| profiles.iter()
+                    .filter(|payload| payload["payload_id"].as_str().is_some_and(|pid| payloads.contains(pid)))
+                    .collect())
+                .unwrap_or_default();
             let has_human_payload = mission_payload_records.iter()
                 .any(|payload| payload["occupants"].as_u64().unwrap_or(0) > 0);
             let requires_human = item.get("requires_human_transport").and_then(Value::as_bool).unwrap_or(false);
@@ -1430,6 +1433,9 @@ mod tests {
         assert!(evaluate(&root).is_err());
         let mut root = fixture();
         root["assessments"][0]["load_layout"].as_array_mut().unwrap().pop();
+        assert!(evaluate(&root).is_err());
+        let mut root = fixture();
+        root["payload_profiles"] = json!("not-an-array");
         assert!(evaluate(&root).is_err());
     }
 }
