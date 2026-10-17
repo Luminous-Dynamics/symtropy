@@ -1,0 +1,38 @@
+name: Thermodynamic allocation oracle
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/thermo-allocation-oracle/**"
+      - ".github/workflows/thermo-allocation-oracle.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/thermo-allocation-oracle/**"
+      - ".github/workflows/thermo-allocation-oracle.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thermo-allocation-oracle-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-small-instance-oracle:
+    name: Exact finite-grid oracle (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format check
+        run: cargo fmt --manifest-path tools/thermo-allocation-oracle/Cargo.toml -- --check
+      - name: Unit tests
+        run: cargo test --manifest-path tools/thermo-allocation-oracle/Cargo.toml
+      - name: Reproducible audit report
+        run: cargo run --manifest-path tools/thermo-allocation-oracle/Cargo.toml -- --audit
