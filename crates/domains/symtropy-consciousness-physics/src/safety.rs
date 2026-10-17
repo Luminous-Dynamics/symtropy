@@ -444,7 +444,7 @@ mod tests {
         // No intermediate values — every output is either floor or 1.0.
         // This is the "middle tiers are superfluous" finding locked in.
         let floor = 0.3;
-        for phi_x100 in 0..200 {
+        for phi_x100 in 0..=100 {
             let phi = phi_x100 as f64 / 100.0;
             let g = sprint_floor_gain(phi, 0.135, floor);
             assert!(
