@@ -93,6 +93,9 @@ theorem rectangularSecondMoment_dimensions :
     PhysicalDimension.mul lengthDim (PhysicalDimension.pow lengthDim 3) =
       secondMomentAreaDim := by decide
 
+theorem rectangularSectionArea_dimensions :
+    PhysicalDimension.mul lengthDim lengthDim = areaDim := by decide
+
 theorem axialExtension_dimensions :
     PhysicalDimension.div
       (PhysicalDimension.mul forceDim lengthDim)
@@ -116,11 +119,23 @@ theorem simplySupportedUniformLoadDeflection_dimensions :
       (PhysicalDimension.mul youngsModulusDim secondMomentAreaDim) =
         lengthDim := by decide
 
+theorem axialBarStress_formula_dimensions :
+    PhysicalDimension.div forceDim areaDim = stressDim := by decide
+
 theorem axialStress_dimensions :
     stressDim = youngsModulusDim := by decide
 
 theorem bendingMoment_dimensions :
     PhysicalDimension.mul forceDim lengthDim = bendingMomentDim := by decide
+
+theorem beamBendingStress_dimensions :
+    PhysicalDimension.div
+      (PhysicalDimension.mul bendingMomentDim lengthDim)
+      secondMomentAreaDim = stressDim := by decide
+
+theorem simplySupportedUniformMaximumBendingMoment_dimensions :
+    PhysicalDimension.mul lineLoadDim (PhysicalDimension.pow lengthDim 2) =
+      bendingMomentDim := by decide
 
 theorem supportReaction_dimensions :
     forceDim = supportReactionDim := by decide
