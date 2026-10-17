@@ -178,6 +178,7 @@ fn verify_report_bytes(
         vec![format!("report does not match strict report schema: {error}")]
     })?;
 
+    validate_fixture(&fixture)?;
     let expected = expected_report(&fixture, fixture_bytes);
     let mut errors = Vec::new();
 
@@ -293,7 +294,7 @@ fn expected_report(fixture: &Fixture, fixture_bytes: &[u8]) -> TimelineReport {
                 .map(|case| case.case_id.clone())
                 .collect(),
         );
-        let newly_observed: Vec<PolicyObservation> = disturbances
+        let mut newly_observed: Vec<PolicyObservation> = disturbances
             .iter()
             .filter(|case| case.observable_tick == u64::from(tick))
             .map(|case| PolicyObservation {
@@ -307,6 +308,7 @@ fn expected_report(fixture: &Fixture, fixture_bytes: &[u8]) -> TimelineReport {
                 recovery_evidence: sorted_unique(case.recovery_evidence.clone()),
             })
             .collect();
+        newly_observed.sort_by(|left, right| left.case_id.cmp(&right.case_id));
         let newly_observed_event_ids = newly_observed
             .iter()
             .map(|observation| observation.case_id.clone())
@@ -374,22 +376,80 @@ fn expected_report(fixture: &Fixture, fixture_bytes: &[u8]) -> TimelineReport {
     }
 }
 
+fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+    if fixture.schema_version != "civ-infra-fleet-resilience/0.1" {
+        errors.push("unsupported fixture schema_version".to_string());
+    }
+    if fixture.fixture_id.trim().is_empty() || fixture.claim_ceiling.trim().is_empty() {
+        errors.push("fixture identity and claim_ceiling must be explicit".to_string());
+    }
+    if fixture.classification != "synthetic_only" {
+        errors.push("fixture classification must remain synthetic_only".to_string());
+    }
+    if fixture.disturbance_cases.len() != 13 {
+        errors.push("fixture must contain exactly 13 disturbance cases".to_string());
+    }
+
+    let mut seen = std::collections::BTreeSet::new();
+    for case in &fixture.disturbance_cases {
+        if !seen.insert(case.case_id.as_str()) {
+            errors.push(format!("duplicate case_id {}", case.case_id));
+        }
+        match disturbance_definition(&case.case_id) {
+            Some((expected_name, _)) if case.name == expected_name => {}
+            Some((expected_name, _)) => errors.push(format!(
+                "case {} expected frozen name {}, got {}",
+                case.case_id, expected_name, case.name
+            )),
+            None => errors.push(format!("unknown disturbance case ID {}", case.case_id)),
+        }
+        if case.observable_tick < case.injection_tick {
+            errors.push(format!(
+                "case {} is observable before injection",
+                case.case_id
+            ));
+        }
+    }
+
+    for number in 1..=13 {
+        let required = format!("R-{number:03}");
+        if !seen.contains(required.as_str()) {
+            errors.push(format!("required case {required} is missing"));
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        errors.sort();
+        errors.dedup();
+        Err(errors)
+    }
+}
+
 fn disturbance_kind(case_id: &str) -> &'static str {
+    disturbance_definition(case_id)
+        .map(|(_, kind)| kind)
+        .unwrap_or("unknown")
+}
+
+fn disturbance_definition(case_id: &str) -> Option<(&'static str, &'static str)> {
     match case_id {
-        "R-001" => "localization_lost",
-        "R-002" => "calibration_stale",
-        "R-003" => "communication_outage",
-        "R-004" => "robot_failure",
-        "R-005" => "late_material",
-        "R-006" => "material_mismatch",
-        "R-007" => "inspection_rejected",
-        "R-008" => "geometry_changed",
-        "R-009" => "resource_conflict",
-        "R-010" => "energy_reserve_infeasible",
-        "R-011" => "unknown_utility",
-        "R-012" => "approval_declined",
-        "R-013" => "capability_profile_stale",
-        _ => "unknown",
+        "R-001" => Some(("localization_lost", "localization_lost")),
+        "R-002" => Some(("tool_changed_calibration_stale", "calibration_stale")),
+        "R-003" => Some(("communication_outage", "communication_outage")),
+        "R-004" => Some(("excavator_failure_repairable", "robot_failure")),
+        "R-005" => Some(("material_arrives_late", "late_material")),
+        "R-006" => Some(("wrong_material_delivered", "material_mismatch")),
+        "R-007" => Some(("inspection_rejects_installation", "inspection_rejected")),
+        "R-008" => Some(("site_geometry_changed_after_schedule", "geometry_changed")),
+        "R-009" => Some(("capacity_one_tool_conflict", "resource_conflict")),
+        "R-010" => Some(("energy_return_reserve_infeasible", "energy_reserve_infeasible")),
+        "R-011" => Some(("unbounded_unknown_utility", "unknown_utility")),
+        "R-012" => Some(("human_approval_declined", "approval_declined")),
+        "R-013" => Some(("stale_capability_profile", "capability_profile_stale")),
+        _ => None,
     }
 }
 
@@ -471,6 +531,39 @@ mod tests {
         let errors =
             verify_report_bytes(EMBEDDED_FIXTURE.as_bytes(), &bytes).expect_err("claim must fail");
         assert!(errors.iter().any(|error| error.contains("must not claim policy simulation")));
+    }
+
+    #[test]
+    fn checker_rejects_changed_frozen_case_identity() {
+        let mut fixture: serde_json::Value =
+            serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should parse");
+        fixture["disturbance_cases"][7]["name"] =
+            serde_json::json!("geometry_change_known_early");
+        let altered_fixture =
+            serde_json::to_vec(&fixture).expect("altered fixture should serialize");
+        let report = report_bytes(EMBEDDED_FIXTURE.as_bytes());
+        let errors = verify_report_bytes(&altered_fixture, &report)
+            .expect_err("altered case identity must fail closed");
+        assert!(errors.iter().any(|error| error.contains("frozen name")));
+    }
+
+    #[test]
+    fn input_array_permutation_preserves_normalized_report_semantics() {
+        let mut fixture: serde_json::Value =
+            serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should parse");
+        fixture["disturbance_cases"]
+            .as_array_mut()
+            .expect("disturbance_cases is an array")
+            .reverse();
+        let altered_fixture =
+            serde_json::to_vec(&fixture).expect("permuted fixture should serialize");
+        let report = report_bytes(&altered_fixture);
+        let checked = verify_report_bytes(&altered_fixture, &report)
+            .expect("permuted input should verify");
+        assert_ne!(
+            checked.input_sha256,
+            format!("{:x}", Sha256::digest(EMBEDDED_FIXTURE.as_bytes()))
+        );
     }
 
     #[test]
