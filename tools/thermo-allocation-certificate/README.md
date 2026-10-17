@@ -61,7 +61,9 @@ unknown references, ineligible nonzero flows, source overspend, cap violation,
 overflow, conservation discrepancies, missing/mismatched accounting claims and
 a reported profile that differs from the recomputed profile. The CLI exits 0 for
 a feasible certificate, 1 for an infeasible/invalid certificate, and 2 for
-file/format errors.
+file/format errors. The focused workflow checks both the valid overlap fixture
+and a separate negative-control file that must exit with code 1 and report
+recipient_cap_violation.
 
 ## Exact overlap fixture
 
