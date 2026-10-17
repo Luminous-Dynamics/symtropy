@@ -27,7 +27,7 @@ The decision engine must never average away a critical safety failure or functio
 1. **Safety/protection:** independent hazard review and required product-specific safety verification. A critical failure rejects the variant, regardless of cost.
 2. **Core useful function:** preregistered cleaning, rinsing and spin-drying floors are met; failed function blocks efficiency claims.
 3. **Durability/reliability:** declared endurance and post-repair verification criteria are met before asserting lifecycle advantage.
-4. **Legal/conformity path:** applicable market-specific standards and regulatory route have been identified; an engineering score is not conformity evidence.
+4. **Test-phase legal/safety authorization:** applicable market-specific requirements and permissions for the planned lab/service test have been identified and satisfied. This is not a statement that final product conformity has been achieved; final conformity remains a separate release gate.
 
 Gate states are `unknown`, `pass` or `fail`. Unknown is not pass. Fail is a hard rejection. Only a candidate with every gate passing and every required comparison dimension backed by eligible evidence enters a comparative frontier.
 
@@ -37,7 +37,7 @@ Keep separate dimensions: lifecycle cash cost, downtime, hands-on time, energy, 
 
 For a **minimize** criterion with validated bounds `[lower, upper]`, A robustly dominates B only if A's upper bound is no greater than B's lower bound for every criterion, and is strictly lower for at least one. For a **maximize** criterion the inequalities reverse. If bounds overlap, report the pair as unresolved on that dimension; do not invent a winner. This is intentionally conservative. Bounds must represent stated uncertainty, not convenient ranges chosen after observing results.
 
-A candidate not robustly dominated is on the robust Pareto frontier; it is not automatically safe, best, or commercially optimal. If two candidates are incomparable, report the trade-off and select the next measurement that can most efficiently discriminate between them.
+A candidate not robustly dominated is on the robust Pareto frontier; it is not automatically safe, best, or commercially optimal. The rates are proportions in the closed interval [0, 1]; bounds for every criterion must be finite and non-negative. If two candidates are incomparable, report the trade-off and select the next measurement that can most efficiently discriminate between them.
 
 ## 3. What counts as eligible evidence
 
