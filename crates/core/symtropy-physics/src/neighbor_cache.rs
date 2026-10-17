@@ -181,6 +181,9 @@ impl NeighborList2d {
         if !build_radius.is_finite() || !(build_radius * build_radius).is_finite() {
             return Err(NeighborListError::BufferedRadiusOverflow);
         }
+        if !cell_size.is_finite() || cell_size <= 0.0 {
+            return Err(NeighborListError::SpatialGrid(SpatialGridError::InvalidCellSize));
+        }
         let configuration_changed = interaction_radius != self.interaction_radius
             || skin != self.skin
             || cell_size != self.cell_size;
@@ -402,6 +405,10 @@ mod tests {
         assert_eq!(
             cache.requires_rebuild(&[point(1, f64::NAN, 0.0)], 1.0, 1.0, 1.0),
             Err(NeighborListError::NonFinitePoint { id: 1 })
+        );
+        assert_eq!(
+            cache.requires_rebuild(&[point(1, 0.0, 0.0)], 1.0, 1.0, f64::NAN),
+            Err(NeighborListError::SpatialGrid(SpatialGridError::InvalidCellSize))
         );
         assert_eq!(
             cache.requires_rebuild(
