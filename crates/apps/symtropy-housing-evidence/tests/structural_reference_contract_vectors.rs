@@ -111,6 +111,13 @@ fn contract_vector_schema_and_identity_negative_controls_reject_mutations() {
         "removing a required output must fail schema validation"
     );
 
+    let mut unknown_output = baseline.clone();
+    unknown_output["vectors"][2]["expected"]["unrecognized_output"] = serde_json::json!(1.0);
+    assert!(
+        !corpus_schema_errors(&unknown_output).is_empty(),
+        "an unexpected output key must fail strict schema validation"
+    );
+
     let mut missing_input = baseline.clone();
     let removed_input = missing_input["vectors"][1]["inputs"]
         .as_object_mut()
@@ -122,12 +129,27 @@ fn contract_vector_schema_and_identity_negative_controls_reject_mutations() {
         "removing a required input must fail schema validation"
     );
 
+    let mut unknown_input = baseline.clone();
+    unknown_input["vectors"][1]["inputs"]["unrecognized_input"] = serde_json::json!(1.0);
+    assert!(
+        !corpus_schema_errors(&unknown_input).is_empty(),
+        "an unexpected input key must fail strict schema validation"
+    );
+
     let mut mismatched_load_kind = baseline.clone();
     mismatched_load_kind["vectors"][3]["load_case"]["kind"] =
         serde_json::json!("uniform_distributed_load");
     assert!(
         !corpus_schema_errors(&mismatched_load_kind).is_empty(),
         "a load case that conflicts with its contract ID must fail schema validation"
+    );
+
+    let mut conflicting_load_fields = baseline.clone();
+    conflicting_load_fields["vectors"][3]["load_case"]["load_N_per_m"] =
+        serde_json::json!(100.0);
+    assert!(
+        !corpus_schema_errors(&conflicting_load_fields).is_empty(),
+        "a point-load case must reject a simultaneously supplied line load"
     );
 
     let mut weakened_tolerance = baseline.clone();
