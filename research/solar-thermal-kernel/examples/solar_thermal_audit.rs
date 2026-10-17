@@ -152,23 +152,58 @@ fn verify_report(json: &str) -> Result<(), String> {
         return Err("synthetic fixture must not claim hardware validation".to_owned());
     }
 
+    // Pin all inputs so that a coherently rewritten report cannot silently
+    // redefine this canonical fixture and still pass its own equations.
+    for (key, expected) in [
+        ("incident_solar_j", 1_000_000.0),
+        ("optical_efficiency", 0.8),
+        ("receiver_loss_j", 100_000.0),
+        ("store_mass_kg", 1.0),
+        ("store_min_temperature_k", 300.0),
+        ("store_max_temperature_k", 500.0),
+        ("store_initial_temperature_k", 300.0),
+        ("cp_curve_low_temperature_k", 300.0),
+        ("cp_curve_low_j_per_kg_k", 1_000.0),
+        ("cp_curve_high_temperature_k", 500.0),
+        ("cp_curve_high_j_per_kg_k", 2_000.0),
+        ("maximum_charge_power_w", 10_000.0),
+        ("store_charge_effectiveness", 1.0),
+        ("charge_duration_s", 100.0),
+        ("maximum_discharge_power_w", 10_000.0),
+        ("discharge_duration_s", 100.0),
+        ("standing_loss_conductance_w_per_k", 10.0),
+        ("standing_loss_ambient_temperature_k", 300.0),
+        ("standing_loss_duration_s", 10.0),
+        ("exergy_reference_temperature_k", 300.0),
+        ("load_supply_temperature_k", 450.0),
+        ("minimum_heat_exchanger_approach_k", 10.0),
+        ("heat_exchanger_effectiveness", 0.9),
+        ("requested_useful_heat_j", 10_000.0),
+    ] {
+        near(&format!("canonical input {key}"), number(json, key)?, expected)?;
+    }
+
     let incident = required_nonnegative(json, "incident_solar_j")?;
+    let optical_efficiency = number(json, "optical_efficiency")?;
     let optical_loss = required_nonnegative(json, "optical_loss_j")?;
     let absorbed = required_nonnegative(json, "absorbed_solar_j")?;
     let receiver_loss = required_nonnegative(json, "receiver_loss_j")?;
     let captured = required_nonnegative(json, "useful_captured_heat_j")?;
-    near("incident = optical loss + absorbed", incident, optical_loss + absorbed)?;
+    near("absorbed solar formula", absorbed, incident * optical_efficiency)?;
+    near("optical loss formula", optical_loss, incident - absorbed)?;
     near("absorbed = receiver loss + captured heat", absorbed, receiver_loss + captured)?;
     near("incident solar ledger closure", incident, optical_loss + receiver_loss + captured)?;
 
     let mass = number(json, "store_mass_kg")?;
     let min_t = number(json, "store_min_temperature_k")?;
     let max_t = number(json, "store_max_temperature_k")?;
+    let initial_t = number(json, "store_initial_temperature_k")?;
     let low_t = number(json, "cp_curve_low_temperature_k")?;
     let high_t = number(json, "cp_curve_high_temperature_k")?;
     let low_cp = number(json, "cp_curve_low_j_per_kg_k")?;
     let high_cp = number(json, "cp_curve_high_j_per_kg_k")?;
     let max_charge_power = number(json, "maximum_charge_power_w")?;
+    let charge_effectiveness = number(json, "store_charge_effectiveness")?;
     let charge_duration = number(json, "charge_duration_s")?;
     let max_discharge_power = number(json, "maximum_discharge_power_w")?;
     let discharge_duration = number(json, "discharge_duration_s")?;
@@ -176,7 +211,9 @@ fn verify_report(json: &str) -> Result<(), String> {
     let ambient_t = number(json, "standing_loss_ambient_temperature_k")?;
     let loss_duration = number(json, "standing_loss_duration_s")?;
     let reference_t = number(json, "exergy_reference_temperature_k")?;
-    if mass <= 0.0 || min_t >= max_t || min_t < low_t || max_t > high_t
+    if mass <= 0.0 || min_t >= max_t || min_t != low_t || max_t != high_t
+        || initial_t != min_t || optical_efficiency < 0.0 || optical_efficiency > 1.0
+        || charge_effectiveness <= 0.0 || charge_effectiveness > 1.0
         || max_charge_power < 0.0 || max_discharge_power < 0.0
         || charge_duration <= 0.0 || discharge_duration <= 0.0 || loss_duration <= 0.0
         || conductance < 0.0 || ambient_t <= 0.0
@@ -184,29 +221,30 @@ fn verify_report(json: &str) -> Result<(), String> {
         return Err("invalid store or operating assumptions".to_owned());
     }
 
+    let initial_energy = total_store_energy(initial_t, mass, low_t, high_t, low_cp, high_cp)?;
+    let capacity = total_store_energy(max_t, mass, low_t, high_t, low_cp, high_cp)?;
     let accepted = required_nonnegative(json, "store_energy_accepted_j")?;
     let rejected = required_nonnegative(json, "store_energy_rejected_j")?;
     let t_charge = number(json, "store_temperature_after_charge_k")?;
-    near("charge input split", accepted + rejected, captured)?;
-    if accepted > max_charge_power * charge_duration + 1.0e-7 {
-        return Err("charge exceeds power × duration".to_owned());
-    }
+    let expected_accepted = captured
+        .min(max_charge_power * charge_duration)
+        .min((capacity - initial_energy).max(0.0));
+    near("accepted charge input", accepted, expected_accepted)?;
+    near("rejected charge input", rejected, captured - expected_accepted)?;
     near(
         "stored energy after charge",
-        total_store_energy(t_charge, mass, low_t, high_t, low_cp, high_cp)?,
-        accepted,
+        total_store_energy(t_charge, mass, low_t, high_t, low_cp, high_cp)? - initial_energy,
+        accepted * charge_effectiveness,
     )?;
 
     let loss = required_nonnegative(json, "standing_loss_j")?;
+    let energy_at_charge = total_store_energy(t_charge, mass, low_t, high_t, low_cp, high_cp)?;
     let expected_loss = (conductance * (t_charge - ambient_t).max(0.0) * loss_duration)
-        .min(accepted);
+        .min(energy_at_charge);
     near("standing loss model", loss, expected_loss)?;
     let t_after_loss = number(json, "store_temperature_after_loss_k")?;
-    near(
-        "stored energy after standing loss",
-        total_store_energy(t_after_loss, mass, low_t, high_t, low_cp, high_cp)?,
-        accepted - loss,
-    )?;
+    let energy_after_loss = total_store_energy(t_after_loss, mass, low_t, high_t, low_cp, high_cp)?;
+    near("stored energy after standing loss", energy_after_loss, energy_at_charge - loss)?;
 
     let before_discharge_exergy = required_nonnegative(json, "stored_exergy_before_discharge_j")?;
     near(
@@ -226,33 +264,38 @@ fn verify_report(json: &str) -> Result<(), String> {
     if effectiveness <= 0.0 || effectiveness > 1.0 || approach < 0.0 {
         return Err("invalid heat-exchanger assumptions".to_owned());
     }
+
+    let cutoff = supply_t + approach;
+    let energy_above_cutoff = if cutoff <= max_t {
+        (energy_after_loss
+            - total_store_energy(cutoff.max(min_t), mass, low_t, high_t, low_cp, high_cp)?).max(0.0)
+    } else {
+        0.0
+    };
+    let expected_withdrawn = if requested > 0.0 && t_after_loss > cutoff {
+        (requested / effectiveness)
+            .min(max_discharge_power * discharge_duration)
+            .min(energy_above_cutoff)
+    } else {
+        0.0
+    };
+    near("source heat withdrawn", withdrawn, expected_withdrawn)?;
     near("source heat split", withdrawn, delivered + exchanger_loss)?;
     near("heat-exchanger effectiveness", delivered, (withdrawn * effectiveness).min(requested))?;
     near("unmet load", unmet, requested - delivered)?;
-    if withdrawn > max_discharge_power * discharge_duration + 1.0e-7 {
-        return Err("discharge exceeds power × duration".to_owned());
-    }
-    let cutoff = supply_t + approach;
     if withdrawn > 0.0 && t_after_loss < cutoff {
         return Err("discharge occurred below the required temperature approach".to_owned());
-    }
-    if cutoff <= max_t {
-        let energy_above_cutoff =
-            (total_store_energy(t_after_loss, mass, low_t, high_t, low_cp, high_cp)?
-                - total_store_energy(cutoff.max(min_t), mass, low_t, high_t, low_cp, high_cp)?).max(0.0);
-        if withdrawn > energy_above_cutoff + 1.0e-7 {
-            return Err("discharge exceeds energy above temperature cutoff".to_owned());
-        }
-    } else if withdrawn > 0.0 {
-        return Err("discharge exceeds maximum store temperature".to_owned());
     }
 
     let final_t = number(json, "final_store_temperature_k")?;
     near(
         "final stored energy",
         total_store_energy(final_t, mass, low_t, high_t, low_cp, high_cp)?,
-        total_store_energy(t_after_loss, mass, low_t, high_t, low_cp, high_cp)? - withdrawn,
+        energy_after_loss - withdrawn,
     )?;
+    if withdrawn > 0.0 && final_t < cutoff {
+        return Err("final store temperature fell below the required temperature approach".to_owned());
+    }
     let final_exergy = required_nonnegative(json, "final_store_exergy_j")?;
     near(
         "final sensible exergy",
