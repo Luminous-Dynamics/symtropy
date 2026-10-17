@@ -498,12 +498,11 @@ mod tests {
 
     #[test]
     fn blank_jsonl_line_fails_closed() {
-        let mut bytes = FIXTURE.replace("\n", "\n\n").into_bytes();
+        let bytes = FIXTURE.replace("\n", "\n\n").into_bytes();
         let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
         manifest["fixture_sha256"] = json!(sha256_hex(&bytes));
         let text = serde_json::to_string(&manifest).unwrap();
         assert!(verify_bytes(&bytes, &text, SCHEMA).unwrap_err().contains("blank JSONL line"));
-        bytes.clear();
     }
 
     #[test]
@@ -514,14 +513,17 @@ mod tests {
 
     #[test]
     fn duplicate_seed_fails_closed() {
-        let (bytes, manifest) = rewritten_fixture(|rows| rows[1]["deterministic_seed"] = rows[0]["deterministic_seed"].clone());
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            let first_seed = rows[0]["deterministic_seed"].clone();
+            rows[1]["deterministic_seed"] = first_seed;
+        });
         assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("duplicate deterministic_seed"));
     }
 
     #[test]
     fn undeclared_variant_fails_closed() {
         let (bytes, manifest) = rewritten_fixture(|rows| rows[1]["variant_id"] = json!("maybe"));
-        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("violates the declared enum"));
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("undeclared variant_id maybe"));
     }
 
     #[test]
@@ -545,7 +547,8 @@ mod tests {
     #[test]
     fn duplicate_invariant_id_fails_closed() {
         let (bytes, manifest) = rewritten_fixture(|rows| {
-            rows[0]["expected_invariants"][1]["id"] = rows[0]["expected_invariants"][0]["id"].clone();
+            let first_id = rows[0]["expected_invariants"][0]["id"].clone();
+            rows[0]["expected_invariants"][1]["id"] = first_id;
         });
         assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("duplicates invariant id"));
     }
@@ -559,8 +562,7 @@ mod tests {
     #[test]
     fn missing_variant_fails_family_contract() {
         let (bytes, manifest) = rewritten_fixture(|rows| { rows.pop(); });
-        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("record_count mismatch")
-            || verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("exactly 4 variants"));
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("requires the frozen 28-record"));
     }
 
     #[test]
