@@ -957,6 +957,7 @@ mod tests {
             ("zero_useful_life_blocks_capital_annualization", "BLOCKED"),
             ("salvage_value_above_acquisition_cost_blocks", "BLOCKED"),
             ("supervision_is_subset_of_labor_not_double_counted", "BLOCKED"),
+            ("aggregate_operator_labor_can_exceed_one_machine_calendar_year", "CALCULATED_PROVISIONAL"),
             ("zero_route_missions_have_zero_route_and_mobilization_cost", "CALCULATED_PROVISIONAL"),
             ("route_distance_increases_logistics_cost", "CALCULATED_PROVISIONAL"),
             ("no_robot_baseline_is_modelled_without_fake_capital_cost", "CALCULATED_PROVISIONAL"),
