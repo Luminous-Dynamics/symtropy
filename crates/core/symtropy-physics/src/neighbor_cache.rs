@@ -177,20 +177,17 @@ impl NeighborList2d {
         if !build_radius.is_finite() || !(build_radius * build_radius).is_finite() {
             return Err(NeighborListError::BufferedRadiusOverflow);
         }
-        if interaction_radius != self.interaction_radius
+        let configuration_changed = interaction_radius != self.interaction_radius
             || skin != self.skin
-            || cell_size != self.cell_size
-        {
-            return Ok(true);
-        }
-        if current_points.len() != self.build_points.len() {
-            return Ok(true);
-        }
-
+            || cell_size != self.cell_size;
         let max_displacement = self.skin * 0.5;
         let max_displacement_squared = max_displacement * max_displacement;
         let mut seen = HashSet::with_capacity(current_points.len());
+        let mut rebuild_required =
+            configuration_changed || current_points.len() != self.build_points.len();
 
+        // Validate the entire supplied set before returning a topology/config
+        // invalidation. Malformed data must never be mistaken for a safe rebuild.
         for point in current_points {
             if !point.x.is_finite() || !point.y.is_finite() {
                 return Err(NeighborListError::NonFinitePoint { id: point.id });
@@ -199,19 +196,22 @@ impl NeighborList2d {
                 return Err(NeighborListError::DuplicateId { id: point.id });
             }
             let Some(build_position) = self.build_positions_by_id.get(&point.id) else {
-                return Ok(true);
+                rebuild_required = true;
+                continue;
             };
-            let dx = point.x - build_position[0];
-            let dy = point.y - build_position[1];
-            let displacement_squared = dx * dx + dy * dy;
-            // Equality is a conservative rebuild boundary. This avoids
-            // relying on floating-point equality to preserve list coverage.
-            if displacement_squared >= max_displacement_squared {
-                return Ok(true);
+            if !configuration_changed {
+                let dx = point.x - build_position[0];
+                let dy = point.y - build_position[1];
+                let displacement_squared = dx * dx + dy * dy;
+                // Equality is a conservative rebuild boundary. This avoids
+                // relying on floating-point equality to preserve list coverage.
+                if displacement_squared >= max_displacement_squared {
+                    rebuild_required = true;
+                }
             }
         }
 
-        Ok(false)
+        Ok(rebuild_required)
     }
 
     /// Candidate pair slice, sorted lexicographically with no self-pairs.
