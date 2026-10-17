@@ -41,7 +41,7 @@ fn bench_rebuild_vs_reuse_check(c: &mut Criterion) {
         for (density, spacing) in [("sparse", 20.0), ("dense", 1.0)] {
             let initial = points(count, spacing);
             let moved = translated(&initial, 0.1, -0.1);
-            let cache =
+            let mut cache =
                 NeighborList2d::build(initial.iter().copied(), INTERACTION_RADIUS, SKIN, CELL_SIZE)
                     .unwrap();
             assert!(
