@@ -372,6 +372,15 @@ jobs:
             and (.reference_source_sha256 | test("^[0-9a-f]{64}$"))
             and (.model_set_sha256 | test("^[0-9a-f]{64}$"))
             and .uncertainty_set.model_count == 3
+            and .model_specifications.schema_version == "0.1.0"
+            and (.model_specifications.models | length == 3)
+            and .model_specifications.models[0].model_id == "nominal_high_accuracy"
+            and .model_specifications.models[0].sensitivity_bps == 9000
+            and .model_specifications.models[0].specificity_bps == 9000
+            and .model_specifications.models[1].model_id == "moderate_accuracy"
+            and .model_specifications.models[1].sensitivity_bps == 7000
+            and .model_specifications.models[2].model_id == "uninformative_limit"
+            and .model_specifications.models[2].sensitivity_bps == 5000
             and .expected_value_without_measurement.numerator == 5000000000
             and .evpi.numerator == 5000000000
             and .uncertainty_set.models[0].gross_expected_value_if_assay_bought.numerator == 8500000000
