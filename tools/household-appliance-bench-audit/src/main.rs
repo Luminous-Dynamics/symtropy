@@ -7,6 +7,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+mod portfolio;
+
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
 const EXPECTED_CASE_IDS: [&str; 30] = [
     "HAP-001", "HAP-002", "HAP-003", "HAP-004", "HAP-005", "HAP-006", "HAP-007", "HAP-008",
@@ -476,14 +478,20 @@ fn read_arg_path(flag: &str) -> Option<PathBuf> {
 fn run() -> Result<(), String> {
     let schema_path = read_arg_path("--schema").unwrap_or_else(default_schema_path);
     let corpus_path = read_arg_path("--corpus").unwrap_or_else(default_corpus_path);
+    let portfolio_schema_path = read_arg_path("--portfolio-schema");
+    let portfolio_path = read_arg_path("--portfolio");
+    if portfolio_schema_path.is_some() != portfolio_path.is_some() {
+        return Err("--portfolio-schema and --portfolio must be supplied together".to_owned());
+    }
+
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
     let corpus_raw = fs::read_to_string(&corpus_path)
         .map_err(|error| format!("cannot read {}: {error}", corpus_path.display()))?;
 
     let summary = audit_texts(&schema_raw, &corpus_raw).map_err(|errors| errors.join("\n"))?;
-    let report = json!({
-        "report_version": "household-appliance-bench-audit/0.1",
+    let mut report = json!({
+        "report_version": "household-appliance-bench-audit/0.2",
         "status": "PASS_SYNTHETIC_CONTRACT_ONLY",
         "physical_qualification": false,
         "product_safety_assessment": false,
@@ -496,6 +504,33 @@ fn run() -> Result<(), String> {
         "schema_path": schema_path.display().to_string(),
         "corpus_path": corpus_path.display().to_string()
     });
+
+    if let (Some(portfolio_schema_path), Some(portfolio_path)) =
+        (portfolio_schema_path, portfolio_path)
+    {
+        let portfolio_schema_raw = fs::read_to_string(&portfolio_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", portfolio_schema_path.display()))?;
+        let portfolio_raw = fs::read_to_string(&portfolio_path)
+            .map_err(|error| format!("cannot read {}: {error}", portfolio_path.display()))?;
+        let portfolio_summary = portfolio::audit_portfolio_texts(
+            &portfolio_schema_raw,
+            &portfolio_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["large_appliance_portfolio"] = json!({
+            "status": "PASS_SYNTHETIC_PORTFOLIO_CONTRACT_ONLY",
+            "family_count": portfolio_summary.family_count,
+            "proposed_target_count": portfolio_summary.proposed_target_count,
+            "schema_sha256": portfolio_summary.schema_sha256,
+            "portfolio_sha256": portfolio_summary.portfolio_sha256,
+            "schema_path": portfolio_schema_path.display().to_string(),
+            "portfolio_path": portfolio_path.display().to_string(),
+            "physical_performance_established": false,
+            "product_safety_assessed": false
+        });
+    }
+
     println!(
         "{}",
         serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?
