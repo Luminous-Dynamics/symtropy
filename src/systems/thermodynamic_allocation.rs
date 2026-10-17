@@ -307,7 +307,10 @@ mod tests {
         assert_eq!(empty.unallocated_supply, 12.0);
 
         let zero_headroom = allocate_max_min(
-            [RecipientDemand { id: 1, headroom: 0.0 }],
+            [RecipientDemand {
+                id: 1,
+                headroom: 0.0,
+            }],
             12.0,
             3.0,
         )
@@ -343,7 +346,10 @@ mod tests {
     #[test]
     fn one_recipient_receives_only_accepted_headroom() {
         let result = allocate_max_min(
-            [RecipientDemand { id: 5, headroom: 0.25 }],
+            [RecipientDemand {
+                id: 5,
+                headroom: 0.25,
+            }],
             10.0,
             4.0,
         )
@@ -412,7 +418,10 @@ mod tests {
         );
         assert_eq!(
             allocate_max_min(
-                [RecipientDemand { id: 7, headroom: f64::NAN }],
+                [RecipientDemand {
+                    id: 7,
+                    headroom: f64::NAN,
+                }],
                 1.0,
                 1.0
             ),
