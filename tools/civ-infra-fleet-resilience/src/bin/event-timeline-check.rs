@@ -455,6 +455,12 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
         .iter()
         .filter_map(|task| task.get("task_id").and_then(serde_json::Value::as_str))
         .collect();
+    if evidence_ids.len() != fixture.evidence_vocabulary.len()
+        || resource_ids.len() != fixture.resources.len()
+        || task_ids.len() != fixture.task_graph.len()
+    {
+        errors.push("fixture resource, task, and evidence IDs must be present and unique".to_string());
+    }
 
     let mut seen = std::collections::BTreeSet::new();
     for case in &fixture.disturbance_cases {
