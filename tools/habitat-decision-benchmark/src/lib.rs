@@ -12,7 +12,10 @@ pub const REPORT_SCHEMA: &str = "luminous.habitat_decision_benchmark.report.v0.1
 pub const CLAIM_CEILING: &str =
     "synthetic_decision_impact_only_not_real_site_safety";
 const FIXTURE_SHA256: &str = "4c30be2c0e10c5a292a2dd2016860807a40caee2970253fda498b4022f87b8a9";
-const RANKING_POLICY: &str = "maximize_minimax_regret_reduction_per_cost_unit_then_minimize_post_regret_then_cost_then_duration_then_id";
+const RANKING_POLICY: &str = concat!(
+    "maximize_minimax_regret_reduction_per_cost_unit_",
+    "then_minimize_post_regret_then_cost_then_duration_then_id"
+);
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
