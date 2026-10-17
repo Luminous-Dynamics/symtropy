@@ -1,8 +1,8 @@
 use spatial_resilience_qualifier::{
-    validate_manifest_bytes, validate_outcome_fixtures_bytes, validate_timeline_fixtures_bytes,
-    OutcomeSummary, TimelineFixtureSummary, ValidationSummary, EMBEDDED_MANIFEST,
-    EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
-    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA,
+    EMBEDDED_MANIFEST, EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
+    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA, OutcomeSummary, TimelineFixtureSummary,
+    ValidationSummary, validate_manifest_bytes, validate_outcome_fixtures_bytes,
+    validate_timeline_fixtures_bytes,
 };
 use std::env;
 use std::fs;
@@ -113,7 +113,10 @@ fn emit_outcomes(summary: &OutcomeSummary, json_output: bool) {
     println!("corpus_sha256={}", summary.corpus_sha256);
     println!("schema_sha256={}", summary.schema_sha256);
     for result in &summary.results {
-        println!("comparison={} status={}", result.comparison_id, result.status);
+        println!(
+            "comparison={} status={}",
+            result.comparison_id, result.status
+        );
         for candidate in &result.candidate_dispositions {
             println!(
                 "  candidate={} disposition={}",
@@ -177,9 +180,7 @@ fn main() {
                 process::exit(1);
             }
         }
-        [mode, manifest_path, schema_path, flag]
-            if mode == "--validate" && flag == "--json" =>
-        {
+        [mode, manifest_path, schema_path, flag] if mode == "--validate" && flag == "--json" => {
             let manifest = read_file(manifest_path);
             let schema = read_file(schema_path);
             let summary = validate_manifest_bytes(&manifest, &schema);
