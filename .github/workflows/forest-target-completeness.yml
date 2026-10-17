@@ -58,6 +58,7 @@ jobs:
           source_commit="$(git rev-parse HEAD)"
           cargo run --quiet --manifest-path tools/forest-target-audit/Cargo.toml -- \
             forest-next-best-view-receipt.json \
+            --planner-corpus docs/tech/forest-next-best-view-corpus-v0.1.json \
             --target-corpus docs/tech/forest-target-completeness-corpus-v0.1.json \
             --source-commit "$source_commit" > forest-target-completeness-receipt.json
           jq -e '
