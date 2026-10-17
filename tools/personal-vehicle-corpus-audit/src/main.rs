@@ -43,6 +43,18 @@ const REQUIRED_NEGATIVE_IDS: [&str; 9] = [
     "PV20_NONCONVERGED_SOLVER",
     "PV21_OUT_OF_DOMAIN",
 ];
+const REQUIRED_SOURCE_IDS: [&str; 10] = [
+    "SRC_EPA_DYNAMOMETER_SCHEDULES",
+    "SRC_NHTSA_ADS_SCENARIO_FRAMEWORK",
+    "SRC_SAE_J1555_201910",
+    "SRC_ISO_21448_2022",
+    "SRC_ISO_26262_PART_3_2018",
+    "SRC_SA_MIB_REGISTRATION",
+    "SRC_SA_NRCs_LETTER_OF_AUTHORITY",
+    "SRC_SA_ROADWORTHINESS",
+    "SRC_UN_R155",
+    "SRC_UN_R156",
+];
 
 type AuditResult<T> = Result<T, Vec<String>>;
 
@@ -51,6 +63,8 @@ struct AuditSummary {
     case_count: usize,
     negative_control_count: usize,
     sha256: String,
+    source_registry_count: usize,
+    source_registry_sha256: String,
 }
 
 fn string_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -376,70 +390,220 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<AuditSumma
     }
 }
 
+
+fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(usize, String)> {
+    let mut errors = Vec::new();
+    check_exact_keys(
+        document,
+        &[
+            "schema_version",
+            "registry_id",
+            "created_date",
+            "status",
+            "policy",
+            "sources",
+            "next_evidence_gates",
+            "claim_ceiling",
+        ],
+        "source_registry",
+        &mut errors,
+    );
+    if string_at(document, "schema_version") != Some("vehicle-benchmark-source-registry/0.1") {
+        errors.push("source_registry.schema_version: unexpected version".to_owned());
+    }
+    if string_at(document, "registry_id") != Some("symtropy-personal-family-vehicle-source-registry-v0.1") {
+        errors.push("source_registry.registry_id: unexpected identity".to_owned());
+    }
+    if string_at(document, "status") != Some("source inventory only; rights/reuse and applicability require review") {
+        errors.push("source_registry.status: rights/reuse review status must remain explicit".to_owned());
+    }
+    if !document.get("policy").is_some_and(|policy| {
+        policy.get("no_vendoring_without_rights_review").and_then(Value::as_bool) == Some(true)
+            && policy.get("rules").and_then(Value::as_array).is_some_and(|rules| rules.len() >= 4)
+    }) {
+        errors.push("source_registry.policy: rights gate and source-claim rules are required".to_owned());
+    }
+
+    let Some(sources) = document.get("sources").and_then(Value::as_array) else {
+        return Err(vec!["source_registry.sources: expected array".to_owned()]);
+    };
+    if sources.len() != REQUIRED_SOURCE_IDS.len() {
+        errors.push(format!(
+            "source_registry.sources: expected {} entries, found {}",
+            REQUIRED_SOURCE_IDS.len(),
+            sources.len()
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    for (index, source) in sources.iter().enumerate() {
+        let at = format!("source_registry.sources[{index}]");
+        let Some(id) = string_at(source, "id") else {
+            errors.push(format!("{at}.id: missing or not a string"));
+            continue;
+        };
+        if !seen.insert(id.to_owned()) {
+            errors.push(format!("{at}: duplicate source id {id}"));
+        }
+        if !REQUIRED_SOURCE_IDS.contains(&id) {
+            errors.push(format!("{at}: unregistered source id {id}"));
+        }
+        for key in ["title", "organization", "accessed_on", "role", "evidence_class", "status"] {
+            if string_at(source, key).is_none_or(|value| value.trim().is_empty()) {
+                errors.push(format!("{at}.{key}: missing or blank"));
+            }
+        }
+        if !string_at(source, "url").is_some_and(|url| url.starts_with("https://")) {
+            errors.push(format!("{at}.url: source must use HTTPS"));
+        }
+        for key in ["usable_for", "not_usable_for", "rights_and_provenance"] {
+            let values = source.get(key).and_then(Value::as_array);
+            if !values.is_some_and(|values| {
+                !values.is_empty()
+                    && values.iter().all(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
+            }) {
+                errors.push(format!("{at}.{key}: explicit non-empty string list required"));
+            }
+        }
+    }
+    for id in REQUIRED_SOURCE_IDS {
+        if !seen.contains(id) {
+            errors.push(format!("source_registry: missing required source {id}"));
+        }
+    }
+    if !document.get("next_evidence_gates").and_then(Value::as_array).is_some_and(|items| items.len() >= 5) {
+        errors.push("source_registry.next_evidence_gates: at least five gates are required".to_owned());
+    }
+    let claims = document.get("claim_ceiling").and_then(Value::as_array);
+    if !claims.is_some_and(|items| {
+        items.iter().filter_map(Value::as_str).any(|text| text.contains("not a dataset license register"))
+            && items.iter().filter_map(Value::as_str).any(|text| text.contains("contains no measured vehicle data"))
+    }) {
+        errors.push("source_registry.claim_ceiling: source/measurement limits must be explicit".to_owned());
+    }
+
+    if errors.is_empty() {
+        Ok((sources.len(), format!("{:x}", Sha256::digest(raw_bytes))))
+    } else {
+        Err(errors)
+    }
+}
+
 fn default_corpus_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/personal_vehicle/scenario_corpus_v0_1.json")
 }
 
-fn read_cli() -> Result<PathBuf, String> {
+fn default_registry_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/personal_vehicle/benchmark_source_registry_v0_1.json")
+}
+
+fn read_cli() -> Result<(PathBuf, PathBuf), String> {
     let mut args = env::args_os().skip(1);
-    let mut path = None;
+    let mut corpus_path = None;
+    let mut registry_path = None;
     while let Some(arg) = args.next() {
         if arg == "--help" || arg == "-h" {
-            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH]");
-            println!("Checks the synthetic scenario corpus contract only; it does not run vehicle physics.");
+            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH]");
+            println!("Checks the synthetic scenario corpus and source-registry contract only; it does not run vehicle physics.");
             std::process::exit(0);
         } else if arg == "--corpus" {
             let Some(value) = args.next() else {
                 return Err("--corpus requires a path".to_owned());
             };
-            path = Some(PathBuf::from(value));
+            corpus_path = Some(PathBuf::from(value));
+        } else if arg == "--registry" {
+            let Some(value) = args.next() else {
+                return Err("--registry requires a path".to_owned());
+            };
+            registry_path = Some(PathBuf::from(value));
         } else {
             return Err(format!("unknown argument: {}", arg.to_string_lossy()));
         }
     }
-    Ok(path.unwrap_or_else(default_corpus_path))
+    Ok((
+        corpus_path.unwrap_or_else(default_corpus_path),
+        registry_path.unwrap_or_else(default_registry_path),
+    ))
 }
 
 fn main() -> ExitCode {
-    let path = match read_cli() {
-        Ok(path) => path,
+    let (corpus_path, registry_path) = match read_cli() {
+        Ok(paths) => paths,
         Err(error) => {
             eprintln!("CORPUS_AUDIT_FAIL: {error}");
             return ExitCode::from(2);
         }
     };
-    let raw = match fs::read(&path) {
+    let raw = match fs::read(&corpus_path) {
         Ok(raw) => raw,
         Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: cannot read {}: {error}", path.display());
+            eprintln!("CORPUS_AUDIT_FAIL: cannot read {}: {error}", corpus_path.display());
             return ExitCode::from(2);
         }
     };
     let document: Value = match serde_json::from_slice(&raw) {
         Ok(document) => document,
         Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: malformed JSON: {error}");
+            eprintln!("CORPUS_AUDIT_FAIL: malformed scenario JSON: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let registry_raw = match fs::read(&registry_path) {
+        Ok(raw) => raw,
+        Err(error) => {
+            eprintln!("CORPUS_AUDIT_FAIL: cannot read {}: {error}", registry_path.display());
+            return ExitCode::from(2);
+        }
+    };
+    let registry: Value = match serde_json::from_slice(&registry_raw) {
+        Ok(registry) => registry,
+        Err(error) => {
+            eprintln!("CORPUS_AUDIT_FAIL: malformed source registry JSON: {error}");
             return ExitCode::from(2);
         }
     };
 
-    match validate_corpus(&document, &raw) {
-        Ok(summary) => {
-            println!(
-                "CORPUS_AUDIT_PASS cases={} negative_controls={} sha256={}",
-                summary.case_count, summary.negative_control_count, summary.sha256
-            );
-            println!("CLAIM_CEILING synthetic corpus structure only; no physics/safety result");
-            ExitCode::SUCCESS
+    let mut errors = Vec::new();
+    let summary = match validate_corpus(&document, &raw) {
+        Ok(summary) => Some(summary),
+        Err(corpus_errors) => {
+            errors.extend(corpus_errors);
+            None
         }
-        Err(errors) => {
-            eprintln!("CORPUS_AUDIT_FAIL errors={}", errors.len());
-            for error in errors {
-                eprintln!("- {error}");
-            }
-            ExitCode::from(1)
+    };
+    let registry_result = match validate_source_registry(&registry, &registry_raw) {
+        Ok(result) => Some(result),
+        Err(registry_errors) => {
+            errors.extend(registry_errors);
+            None
         }
+    };
+
+    if errors.is_empty() {
+        let summary = summary.expect("summary exists when validation has no errors");
+        let (source_registry_count, source_registry_sha256) =
+            registry_result.expect("registry result exists when validation has no errors");
+        let report = AuditSummary {
+            case_count: summary.case_count,
+            negative_control_count: summary.negative_control_count,
+            sha256: summary.sha256,
+            source_registry_count,
+            source_registry_sha256,
+        };
+        println!(
+            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={}",
+            report.case_count, report.negative_control_count, report.sha256,
+            report.source_registry_count, report.source_registry_sha256
+        );
+        println!("CLAIM_CEILING synthetic scenario/registry structure only; no physics, licensing or safety result");
+        ExitCode::SUCCESS
+    } else {
+        eprintln!("CORPUS_AUDIT_FAIL errors={}", errors.len());
+        for error in errors {
+            eprintln!("- {error}");
+        }
+        ExitCode::from(1)
     }
 }
 
@@ -455,6 +619,38 @@ mod tests {
     fn validate_fixture(document: &Value) -> Result<AuditSummary, Vec<String>> {
         let bytes = serde_json::to_vec(document).expect("fixture serialization should succeed");
         validate_corpus(document, &bytes)
+    }
+
+    fn source_registry() -> Value {
+        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/benchmark_source_registry_v0_1.json"))
+            .expect("source registry should parse as JSON")
+    }
+
+    fn validate_source_registry_fixture(document: &Value) -> Result<(usize, String), Vec<String>> {
+        let bytes = serde_json::to_vec(document).expect("registry serialization should succeed");
+        validate_source_registry(document, &bytes)
+    }
+
+    #[test]
+    fn source_registry_has_complete_reviewed_census() {
+        let registry = source_registry();
+        let (count, digest) = validate_source_registry_fixture(&registry).expect("source registry contract");
+        assert_eq!(count, 10);
+        assert_eq!(digest.len(), 64);
+    }
+
+    #[test]
+    fn source_registry_cannot_hide_reuse_limits() {
+        let mut registry = source_registry();
+        registry["sources"][0].as_object_mut().expect("source object").remove("not_usable_for");
+        assert!(validate_source_registry_fixture(&registry).is_err());
+    }
+
+    #[test]
+    fn duplicate_source_ids_are_rejected() {
+        let mut registry = source_registry();
+        registry["sources"][1]["id"] = registry["sources"][0]["id"].clone();
+        assert!(validate_source_registry_fixture(&registry).is_err());
     }
 
     #[test]
