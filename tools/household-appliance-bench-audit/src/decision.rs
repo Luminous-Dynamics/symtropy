@@ -118,6 +118,9 @@ fn observation_is_rank_eligible(
     observation: Option<&Value>,
     criterion: &Value,
 ) -> bool {
+    if text_at(criterion, "status") != Some("method_frozen") {
+        return false;
+    }
     let Some(observation) = observation else {
         return false;
     };
@@ -548,6 +551,9 @@ mod tests {
 
     fn synthetic_scored_decision() -> Value {
         let mut decision = canonical_decision();
+        for criterion in decision["criteria"].as_array_mut().expect("criteria") {
+            criterion["status"] = json!("method_frozen");
+        }
         let criteria = decision["criteria"].as_array().expect("criteria").clone();
         for (candidate_index, candidate) in decision["candidates"]
             .as_array_mut()
@@ -562,8 +568,14 @@ mod tests {
             let mut observations = Vec::new();
             for (criterion_index, criterion) in criteria.iter().enumerate() {
                 let direction = text_at(criterion, "direction").unwrap_or("minimize");
+                let criterion_id = text_at(criterion, "id").unwrap_or("");
                 let lower_value = if direction == "minimize" {
                     (candidate_index * 10 + criterion_index) as f64
+                } else if matches!(
+                    criterion_id,
+                    "first_visit_verified_repair_rate" | "target_window_part_fulfilment_rate"
+                ) {
+                    0.95 - (candidate_index as f64 * 0.1)
                 } else {
                     100.0 - (candidate_index * 10 + criterion_index) as f64
                 };
