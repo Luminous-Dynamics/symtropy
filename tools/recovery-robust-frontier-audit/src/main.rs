@@ -556,6 +556,63 @@ mod tests {
         make_receipt(&raw, None, Some(value), None)
     }
 
+    fn independent_exhaustive_frontier(value: &Value) -> (Vec<String>, Vec<(String, String)>) {
+        // Deliberately separate test oracle: derive feasibility from gate rows,
+        // then enumerate each ordered plan pair and compare raw bounds directly.
+        let objective_ids: Vec<String> = value["objective_schema"]
+            .as_array().unwrap().iter()
+            .map(|objective| objective["id"].as_str().unwrap().to_string())
+            .collect();
+        let plans: Vec<(String, bool, BTreeMap<String, (i64, i64)>)> = value["plans"]
+            .as_array().unwrap().iter().map(|plan| {
+                let id = plan["id"].as_str().unwrap().to_string();
+                let feasible = plan["mandatory_gates"].as_array().unwrap().iter()
+                    .all(|gate| gate["status"].as_str() == Some("PASS"));
+                let mut values = BTreeMap::new();
+                for objective_id in &objective_ids {
+                    let interval = &plan["objective_intervals"][objective_id];
+                    values.insert(
+                        objective_id.clone(),
+                        (interval["lower"].as_i64().unwrap(), interval["upper"].as_i64().unwrap())
+                    );
+                }
+                (id, feasible, values)
+            }).collect();
+
+        let mut dominated = BTreeSet::new();
+        let mut pairs = Vec::new();
+        for (a_id, a_feasible, a_values) in &plans {
+            if !a_feasible { continue; }
+            for (b_id, b_feasible, b_values) in &plans {
+                if !b_feasible || a_id == b_id { continue; }
+                let mut every_dimension_separated = true;
+                let mut one_strict_margin = false;
+                for objective_id in &objective_ids {
+                    let a_upper = a_values[objective_id].1;
+                    let b_lower = b_values[objective_id].0;
+                    if a_upper > b_lower {
+                        every_dimension_separated = false;
+                        break;
+                    }
+                    if a_upper < b_lower {
+                        one_strict_margin = true;
+                    }
+                }
+                if every_dimension_separated && one_strict_margin {
+                    dominated.insert(b_id.clone());
+                    pairs.push((a_id.clone(), b_id.clone()));
+                }
+            }
+        }
+        pairs.sort();
+        let mut frontier: Vec<String> = plans.iter()
+            .filter(|(id, feasible, _)| *feasible && !dominated.contains(id))
+            .map(|(id, _, _)| id.clone())
+            .collect();
+        frontier.sort();
+        (frontier, pairs)
+    }
+
     #[test]
     fn frozen_corpus_passes_and_frontier_is_not_a_single_winner() {
         let receipt = make_receipt(EMBEDDED_CORPUS.as_bytes(), Some("b".repeat(40)), Some(embedded()), None);
@@ -599,6 +656,18 @@ mod tests {
         assert_eq!(certificate.objective_margins.len(), 3);
         assert!(certificate.objective_margins.iter().all(|margin| margin.margin >= 0));
         assert!(certificate.objective_margins.iter().any(|margin| margin.margin > 0));
+    }
+
+    #[test]
+    fn production_frontier_matches_independent_exhaustive_enumerator() {
+        let corpus = embedded();
+        let expected = independent_exhaustive_frontier(&corpus);
+        let receipt = audit(corpus);
+        let actual_pairs: Vec<(String, String)> = receipt.dominance_certificates.iter()
+            .map(|certificate| (certificate.dominator.clone(), certificate.dominated.clone()))
+            .collect();
+        assert_eq!(receipt.frontier, expected.0);
+        assert_eq!(actual_pairs, expected.1);
     }
 
     #[test]
