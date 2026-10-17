@@ -1091,6 +1091,16 @@ mod tests {
     }
 
     #[test]
+    fn oversized_cartesian_support_fails_closed_before_enumeration() {
+        let mut input = fixture();
+        input.storm_multiplier_support = (1..=100_001)
+            .map(|value| quantity(value as f64, Unit::Dimensionless))
+            .collect();
+        let errors = validate_fixture(&input);
+        assert!(errors.iter().any(|error| error.contains("exceeding cap 100000")));
+    }
+
+    #[test]
     fn derived_numeric_overflow_fails_closed() {
         let mut input = fixture();
         let candidate = input
