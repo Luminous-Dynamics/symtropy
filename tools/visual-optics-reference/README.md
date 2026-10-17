@@ -17,7 +17,7 @@ cargo clippy --manifest-path tools/visual-optics-reference/Cargo.toml --all-targ
 cargo fmt --manifest-path tools/visual-optics-reference/Cargo.toml -- --check
 ```
 
-This crate defines its own small Cargo workspace so it does not enlarge or change the dependency graph of the main Bevy workspace. It has no third-party dependencies.
+This crate defines its own small Cargo workspace so it does not enlarge or change the dependency graph of the main Bevy workspace. It has no third-party dependencies. A dedicated path-filtered workflow runs these three checks on PRs/pushes that touch this crate; its exact-head result still must be observed before claiming qualification.
 
 ## Current tests
 
