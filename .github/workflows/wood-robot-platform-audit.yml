@@ -49,8 +49,10 @@ jobs:
             --source-commit "$source_commit" > wood-robot-platform-audit-receipt.json
           jq -e '
             .result == "pass"
-            and .scenario_count == 22
+            and .scenario_count == 29
             and .aerial_scenario_count == 13
+            and (.decision_counts | has("blocked"))
+            and (.decision_counts | has("eligible_for_simulated_plan"))
             and .all_plan_only == true
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
