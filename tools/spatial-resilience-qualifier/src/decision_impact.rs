@@ -1327,7 +1327,8 @@ mod tests {
         corpus["cases"][0]["actions"][0]["cost_basis_id"] =
             Value::String("unreviewed-cost-source-v1".to_owned());
         let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
-        let summary = validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        let summary =
+            validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
         assert!(has_code(&summary, "DECISION_EXPECTATION_MISMATCH"));
     }
 
