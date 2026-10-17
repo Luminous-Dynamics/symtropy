@@ -1,0 +1,8 @@
+THERMO-TEMPORAL-TRACE	1
+CASE	alternating-service-two-ticks
+
+# OBS tick agent_id demand eligible allocation
+OBS	0	1	1	true	1
+OBS	0	2	1	true	0
+OBS	1	1	1	true	0
+OBS	1	2	1	true	1
