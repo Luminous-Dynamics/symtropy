@@ -497,3 +497,11 @@ The drift sub-benchmark keeps statistical drift detection distinct from metadata
 
 This is not evidence that a physical spectrometer will drift in these ways or that any lunar process is viable. It is a deterministic contract and negative-control suite only. Tracking issue: [BENCH-SPACE-014](https://github.com/Luminous-Dynamics/symtropy/issues/1860).
 
+Research anchors for the next implementation step:
+
+- [NIST — Recommended Calibration Interval](https://www.nist.gov/calibrations/recommended-calibration-interval): no single interval fits all instruments; interval selection depends on required accuracy, instrument stability and environment, and NIST describes control-chart-based measurement assurance as a way to characterize behavior over time.
+- [NIST/SEMATECH — CUSUM control charts](https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc323.htm): false-alarm probability and shift-detection power/delay must be considered together rather than optimizing raw detection speed alone.
+- [NIST — Drift](https://www.itl.nist.gov/div898/handbook/mpc/section4/mpc453.htm): check standards and time-series control charts can help expose and characterize measurement drift.
+
+The fixture deliberately uses a simple two-consecutive-residual detector so its accounting is inspectable. It is not claimed to outperform CUSUM/EWMA. A later benchmark should compare detectors at matched false-alarm budgets on held-out stable and shifted streams, then report average run length to false alarm, detection probability and delay by shift magnitude, autocorrelation sensitivity, and downstream decision regret. Sources motivate the tests; they do not validate this synthetic result.
+
