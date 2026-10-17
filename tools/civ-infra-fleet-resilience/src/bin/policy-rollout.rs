@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 use std::{env, fs, process};
 
 const EMBEDDED_FIXTURE: &str = include_str!(
-    "../../../docs/research/civ-infra-resilience/fixtures/policy-rollout-microcase-v0.1.json"
+    "../../../../docs/research/civ-infra-resilience/fixtures/policy-rollout-microcase-v0.1.json"
 );
 
 #[derive(Clone, Debug, Deserialize)]
@@ -449,7 +449,7 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         "capacity_one_resources_are_never_double_booked",
         "synthetic_completion_does_not_claim_physical_qualification",
     ] {
-        if !fixture.required_invariants.iter().any(|item| item == required) {
+        if !fixture.required_invariants.iter().any(|item| item.as_str() == required) {
             errors.push(format!("required invariant {required} is absent"));
         }
     }
@@ -555,7 +555,7 @@ fn run_policy(fixture: &Fixture, policy: Policy) -> PolicyResult {
             let prerequisites_complete = runtime[index].spec.requires.iter().all(|required| {
                 runtime
                     .iter()
-                    .any(|candidate| candidate.spec.task_id == *required
+                    .any(|candidate| candidate.spec.task_id.as_str() == required.as_str()
                         && candidate.state == TaskState::Complete)
             });
             if !prerequisites_complete {
