@@ -42,7 +42,7 @@
     {
       "id": "first_visit_verified_repair_rate",
       "direction": "maximize",
-      "unit": "verified_restorations_per_first_visit",
+      "unit": "fraction_of_declared_tasks_restored_and_verified_on_first_visit",
       "dimension": "serviceability",
       "method_definition": "Rate of declared repair tasks restored and post-checked on the first visit, with task mix and sample size disclosed.",
       "gate_conditioned": false,
@@ -87,7 +87,7 @@
     {
       "id": "target_window_part_fulfilment_rate",
       "direction": "maximize",
-      "unit": "verified_deliveries_within_target_window_per_accepted_order",
+      "unit": "fraction_of_accepted_orders_delivered_within_declared_window",
       "dimension": "supply_resilience",
       "method_definition": "Share of accepted exact-fit parts orders physically delivered within a target window in the named market; cancellations, substitutions and incomplete orders remain separate.",
       "gate_conditioned": false,
@@ -122,7 +122,7 @@
           "gate_id": "market_conformity_route",
           "status": "unknown",
           "evidence_id": null,
-          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+          "notes": "Applicable market requirements and permissions for this test phase are identified and satisfied; this is not a final product-conformity claim."
         }
       ],
       "observations": []
@@ -154,7 +154,7 @@
           "gate_id": "market_conformity_route",
           "status": "unknown",
           "evidence_id": null,
-          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+          "notes": "Applicable market requirements and permissions for this test phase are identified and satisfied; this is not a final product-conformity claim."
         }
       ],
       "observations": []
@@ -186,7 +186,7 @@
           "gate_id": "market_conformity_route",
           "status": "unknown",
           "evidence_id": null,
-          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+          "notes": "Applicable market requirements and permissions for this test phase are identified and satisfied; this is not a final product-conformity claim."
         }
       ],
       "observations": []
@@ -218,7 +218,7 @@
           "gate_id": "market_conformity_route",
           "status": "unknown",
           "evidence_id": null,
-          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+          "notes": "Applicable market requirements and permissions for this test phase are identified and satisfied; this is not a final product-conformity claim."
         }
       ],
       "observations": []
@@ -250,7 +250,7 @@
           "gate_id": "market_conformity_route",
           "status": "unknown",
           "evidence_id": null,
-          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+          "notes": "Applicable market requirements and permissions for this test phase are identified and satisfied; this is not a final product-conformity claim."
         }
       ],
       "observations": []
