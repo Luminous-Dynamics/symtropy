@@ -386,7 +386,8 @@
               "cargo_fit",
               "owner_control",
               "privacy",
-              "human_override"
+              "human_override",
+              "essential_trip_continuity"
             ]
           }
         },
