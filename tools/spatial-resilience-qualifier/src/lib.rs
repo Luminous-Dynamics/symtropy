@@ -191,9 +191,7 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
             "Manifest must identify JSON Schema Draft 2020-12.",
         );
     }
-    if root.get("benchmark_id").and_then(Value::as_str)
-        != Some("SPATIAL-RESILIENCE-TRAJECTORY")
-    {
+    if root.get("benchmark_id").and_then(Value::as_str) != Some("SPATIAL-RESILIENCE-TRAJECTORY") {
         summary.fail(
             "BENCHMARK_ID_MISMATCH",
             "$.benchmark_id",
@@ -207,9 +205,7 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
             "This verifier freezes version 0.1.0; introduce versioned logic for future contracts.",
         );
     }
-    if root.get("required_case_count").and_then(Value::as_u64)
-        != Some(EXPECTED_CASE_COUNT as u64)
-    {
+    if root.get("required_case_count").and_then(Value::as_u64) != Some(EXPECTED_CASE_COUNT as u64) {
         summary.fail(
             "REQUIRED_CASE_COUNT_MISMATCH",
             "$.required_case_count",
@@ -555,8 +551,7 @@ mod tests {
         manifest["registered_invariant_ids"][0] = Value::String("made_up_invariant".to_owned());
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
         let summary = validate_manifest_bytes(&bytes, EMBEDDED_SCHEMA.as_bytes());
-        assert!(has_code(&summary, "SCHEMA_VALIDATION_FAILED")
-            || has_code(&summary, "INVARIANT_REGISTRY_DRIFT"));
+        assert!(has_code(&summary, "SCHEMA_VALIDATION_FAILED") || has_code(&summary, "INVARIANT_REGISTRY_DRIFT"));
     }
 
     #[test]
