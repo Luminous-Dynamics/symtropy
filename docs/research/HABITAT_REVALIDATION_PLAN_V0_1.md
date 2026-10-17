@@ -51,3 +51,8 @@ Neither dominates the other: one costs less, one is faster. The planner returns 
 - 0 synthetic score or gate token interpreted as real-world authorization, safe design, or permit approval.
 
 Next: multiple targets and shared prerequisites; alternative evidence-producing task schemas; uncertainty ranges for task duration; performance tests at 100/1,000/10,000 artifacts; then measured revalidation effort. Real task libraries and gate policies require independent domain review.
+
+
+## Alternative-producer stress case
+
+The authored suite also augments the fixture in memory with two extra material-review tasks that produce the same evidence node but offer different synthetic cost/duration pairs. The four nondominated paths are independently expected at (11, 10), (12, 8), (15, 5) and (16, 4). A separate sequence oracle checks the planner's frontier. This is an important early stress case for alternative producers and trade-offs; it is not yet a large-graph scaling benchmark, and the Rust test is awaiting CI execution.
