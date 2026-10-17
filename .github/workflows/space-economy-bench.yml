@@ -43,6 +43,9 @@ jobs:
 
       - name: Run exact value-of-information reference tests
         run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference
+
+      - name: Run common-cause resilience reference tests
+        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference
       - name: Execute corpus validator and emit receipt
         shell: bash
         run: |
@@ -77,6 +80,22 @@ jobs:
             and .scenarios[1].decision.purchase_survey == false
           ' space-economy-voi-reference-receipt.json
 
+      - name: Execute common-cause resilience reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference -- \
+            --source-commit "$source_commit" > space-economy-common-cause-receipt.json
+          jq -e '
+            .result == "pass"
+            and .service_demand_units == 60
+            and .summary.shared_architecture_passes_single_provider_outage == true
+            and .summary.shared_architecture_fails_shared_power_bus_outage == true
+            and .summary.separate_architecture_passes_each_required_single_component_fault == true
+            and .summary.diverse_cost_premium_scu == 20
+          ' space-economy-common-cause-receipt.json
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
@@ -84,5 +103,6 @@ jobs:
           path: |
             space-economy-reference-receipt.json
             space-economy-voi-reference-receipt.json
+            space-economy-common-cause-receipt.json
           if-no-files-found: error
           retention-days: 90
