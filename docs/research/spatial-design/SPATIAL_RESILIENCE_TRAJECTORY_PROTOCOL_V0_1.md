@@ -1,0 +1,128 @@
+# Spatial Resilience Trajectory Benchmark v0.1
+
+**Status:** research contract and synthetic evaluator fixtures; not a building-performance model.  
+**Owner issue:** [SPATIAL-RESILIENCE-001 #1848](https://github.com/Luminous-Dynamics/symtropy/issues/1848)  
+**Parent:** [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766)  
+**Manifest:** `SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.json`  
+**Schema:** `SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json`
+
+## 1. Research question
+
+Compare design alternatives as **time-varying habitability and resident-defined service trajectories**, not just static geometry, annual average energy, or rendered appearance. A design is a candidate to evaluate; it is never itself evidence that a service or physical condition will be delivered.
+
+This first tranche freezes the evaluator's expected handling of outages, recurrence, repair delays, changing resident tasks, uncertainty, missing solvers, and provenance. It does not yet simulate heat transfer, airflow, thermal comfort, building energy, water systems, structural behavior, or life safety.
+
+## 2. Compose existing authority
+
+This contract connects rather than replaces existing work:
+
+- Spatial candidates and residents' stated task requirements: [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766) and [ACCESS-HOME-001 #1687](https://github.com/Luminous-Dynamics/symtropy/issues/1687).
+- Deterministic event timelines, resource conservation and service trajectories: [SETTLEMENT-TIME-001 #1739](https://github.com/Luminous-Dynamics/symtropy/issues/1739).
+- Common exogenous scenarios and fair paired policy comparison: [SETTLEMENT-POLICY-001 #1752](https://github.com/Luminous-Dynamics/symtropy/issues/1752).
+- Solver input/result contract and independent reference validation: [built-environment adapters #1790](https://github.com/Luminous-Dynamics/symtropy/issues/1790).
+- Evidence validity envelopes and dependency-aware invalidation: [HABITAT-EVIDENCE-003 #1846](https://github.com/Luminous-Dynamics/symtropy/issues/1846).
+- Exact geometry is not admitted until the provider gate in [PB-04d0 #683](https://github.com/Luminous-Dynamics/symtropy/issues/683) is satisfied.
+
+The initial fixture checker should not create a competing timeline engine, geometry authority, resident accessibility workflow, validity engine, or building-physics solver.
+
+## 3. Benchmark unit
+
+A benchmark run consists of:
+
+1. immutable candidate and requirement revisions;
+2. an exact shared exogenous-trace identity for all candidates in a paired comparison;
+3. an observation contract specifying what was available, when, and with what uncertainty;
+4. a model/solver receipt with declared scope, inputs, units, version, convergence, warnings and exclusions;
+5. a time-indexed outcome vector and case-level disposition;
+6. an independent checker result and content hashes.
+
+Keep **exogenous events**, **observations**, **policy actions**, and **realized outcomes** separate. A candidate or policy cannot know future disturbances by default. A missing solver result is unknown/blocked, not zero consumption, zero discomfort, or successful service.
+
+## 4. Required outcome vector
+
+Where valid model outputs exist, report separately:
+
+- resident-defined essential-task and service-floor hours preserved, retaining per-task and per-person breakdowns;
+- thermal exceedance degree-hours/duration under a declared applicable profile;
+- time to first degradation, reserve exhaustion, first restoration and stable recovery;
+- energy/water per delivered service unit and reserve autonomy under the declared demand trace;
+- operating cost and embodied/operational carbon only when the data and calculation methods are declared;
+- fault detection, service access, part delay, repair and re-verification duration;
+- design-change cost, disruption, reversibility and preservation of resident-stated requirements;
+- uncertainty/scenario spread, calibration domain, solver status and unmodeled factors.
+
+Thermal outputs are not medical or life-safety determinations. Cost, carbon, comfort, aesthetics or nominal efficiency cannot compensate for a hard-floor violation. Do not collapse individual resident task outcomes into an average that hides a blocked person. Preserve Pareto alternatives and explain trade-offs instead of selecting a universal scalar winner.
+
+## 5. Synthetic fixtures in v0.1
+
+The JSON manifest contains 15 contract cases. These are evaluator fixtures, not evidence of model accuracy:
+
+- static ranking reversal under a declared outage trace;
+- missing solver and incomplete model domain;
+- stale weather or geometry invalidation;
+- unit mismatch rejection;
+- recurrence between first restoration and stable-recovery window;
+- missing repair part;
+- unequal exogenous traces in a paired comparison;
+- future-event leakage to a policy;
+- forbidden hard-floor compensation by a soft objective;
+- uncertainty outside a preregistered stability tolerance;
+- a resident-stated task change that requires reopening the design decision;
+- a service panel/repair-access defect;
+- duplicate event delivery and deterministic replay;
+- scoped invalidation after a causal input change;
+- preservation of unresolved dissent and separately held preferences.
+
+Each fixture specifies invariant IDs, a negative-control mutation and the expected disposition. Expected dispositions assert **how the evaluator must handle a case**, not physical performance values.
+
+## 6. Independent oracle and negative controls
+
+The future Rust-first verifier should:
+
+- validate the manifest against its JSON Schema and enforce semantic uniqueness of case IDs;
+- require exact candidate revisions and the same exogenous trace identity in paired comparisons;
+- reject malformed units, missing required metadata, invalid event ordering and forbidden look-ahead;
+- verify stable-recovery logic against a deliberately simple independent finite-state oracle;
+- distinguish stale, out-of-scope, missing, contradictory and unknown evidence;
+- block hard-floor failures before Pareto ranking; soft-objective scores never turn an infeasible candidate feasible;
+- preserve candidate-level and resident-task-level outcomes and dissent;
+- emit a structured, deterministic report with stable failure codes and exact source digests.
+
+Mutations must be tested one at a time and in important combinations. The system under test must not author its own expected answers, oracle, held-out set, or validation tolerances.
+
+## 7. Evaluation gates
+
+### Gate A — contract mechanics
+
+- 100% schema and semantic validation of the frozen fixtures.
+- 100% deterministic replay on explicitly deterministic cases.
+- 100% agreement with an independent exhaustive/finite-state oracle on tiny known-answer event sequences.
+- Zero missing/out-of-domain solver results reported as passes.
+- Zero hard-floor violations hidden by a weighted average.
+- 100% detection of seeded stale revision, unit, trace identity, event-order, missing-input and solver-status mutations.
+- 100% duplicate delivery idempotence where the contract declares it; order-sensitive cases require an explicit tie-break.
+
+### Gate B — model adapter
+
+Add one qualified thermal/energy adapter only after comparison with independently validated reference cases. Report model/version, exact geometry/context inputs, weather and operating schedules, calibration scope, units, numerical/convergence status, uncertainty, exclusions and held-out results. Establish model-specific acceptance tolerances before evaluation; there is no universal tolerance for every building-performance metric.
+
+### Gate C — design-quality study
+
+Run at least 12 candidate configurations and matched stress traces, then scale to multiple climate/use profiles. Include fixtures where the static ranking reverses under outage or heat stress, where a repairable alternative recovers faster, and where a resident-stated requirement changes the acceptable design set. Freeze a held-out set before tuning. Report the Pareto set, per-objective spread, scenario failures, uncertainty and abstention; do not use one cross-domain score.
+
+### Gate D — field evidence
+
+Only after Gate B: compare predictions against measured performance where valid data exists, then preregister professional and resident-led task studies with consent and accessible study design. Report outcomes and disagreement by relevant cohort. No synthetic benchmark score establishes occupant benefit.
+
+## 8. Research basis
+
+- U.S. DOE, [About Building Energy Modeling](https://www.energy.gov/cmei/buildings/about-building-energy-modeling): whole-building energy modeling requires geometry, construction, systems and controls, occupancy/use schedules and local weather.
+- Amiri, Jemtrud & Chung (2025), [thermal resilience under power outage and varying climates](https://doi.org/10.1016/j.enconman.2025.121013): studies the divergence among passive survivability, comfort and energy objectives during outages.
+- Caieiro da Costa et al. (2026), [multi-objective thermal resilience in multifamily housing](https://doi.org/10.1016/j.enbuild.2025.116886): evaluates resistance, robustness and recovery separately under heatwave scenarios.
+- Martin-Goñi & Paris-Viviana (2026), [adaptability assessment for residential renovation](https://doi.org/10.1016/j.enbuild.2026.117654): motivates explicit functional/technical adaptability and preserving the value of existing buildings.
+
+These sources motivate the benchmark but do not validate any Symthaea/Symtropy implementation.
+
+## 9. Claim ceiling
+
+Passing Gate A proves only that the checker handles the declared synthetic contracts. It does not establish actual building energy use, thermal comfort, health outcomes, water reliability, structural adequacy, accessibility, safety, code compliance, construction feasibility or measured occupant benefit. Those claims require the relevant qualified model, evidence, independent validation and professional authority.
