@@ -628,14 +628,17 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
         write!(out, ",\"{key}\":{value:.9}").expect("writing to a String cannot fail");
     }
     number(&mut json, "exergy_reference_temperature_k", 300.0);
+    number(&mut json, "optical_efficiency", 0.8);
     number(&mut json, "store_mass_kg", 1.0);
     number(&mut json, "store_min_temperature_k", 300.0);
     number(&mut json, "store_max_temperature_k", 500.0);
+    number(&mut json, "store_initial_temperature_k", 300.0);
     number(&mut json, "cp_curve_low_temperature_k", 300.0);
     number(&mut json, "cp_curve_low_j_per_kg_k", 1_000.0);
     number(&mut json, "cp_curve_high_temperature_k", 500.0);
     number(&mut json, "cp_curve_high_j_per_kg_k", 2_000.0);
     number(&mut json, "maximum_charge_power_w", 10_000.0);
+    number(&mut json, "store_charge_effectiveness", 1.0);
     number(&mut json, "maximum_discharge_power_w", 10_000.0);
     number(&mut json, "standing_loss_conductance_w_per_k", 10.0);
     number(&mut json, "standing_loss_ambient_temperature_k", 300.0);
@@ -713,6 +716,9 @@ mod tests {
         assert!(first.contains("\"stored_exergy_before_discharge_j\""));
         assert!(first.contains("\"final_store_exergy_j\""));
         assert!(first.contains("\"exergy_reference_temperature_k\":300.000000000"));
+        assert!(first.contains("\"optical_efficiency\":0.800000000"));
+        assert!(first.contains("\"store_initial_temperature_k\":300.000000000"));
+        assert!(first.contains("\"store_charge_effectiveness\":1.000000000"));
         assert!(first.contains("\"standing_loss_ambient_temperature_k\":300.000000000"));
         assert!(first.contains("\"useful_captured_heat_j\":700000.000000000"));
         assert!(first.contains("\"unmet_useful_heat_j\":0.000000000"));
