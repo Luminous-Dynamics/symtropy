@@ -137,10 +137,25 @@ fn centered_field_of_view_fixture_matches_independent_equation_and_reference() {
     let right = ((f64::from(width) - intrinsics.cx) / intrinsics.fx).atan();
     let top = ((0.0 - intrinsics.cy) / intrinsics.fy).atan();
     let bottom = ((f64::from(height) - intrinsics.cy) / intrinsics.fy).atan();
-    assert_close(right - left, expected_h, tolerance, "analytic horizontal FOV");
+    assert_close(
+        right - left,
+        expected_h,
+        tolerance,
+        "analytic horizontal FOV",
+    );
     assert_close(bottom - top, expected_v, tolerance, "analytic vertical FOV");
-    assert_close(expected_h.to_degrees(), expected_h_deg, 1e-10, "horizontal degrees");
-    assert_close(expected_v.to_degrees(), expected_v_deg, 1e-10, "vertical degrees");
+    assert_close(
+        expected_h.to_degrees(),
+        expected_h_deg,
+        1e-10,
+        "horizontal degrees",
+    );
+    assert_close(
+        expected_v.to_degrees(),
+        expected_v_deg,
+        1e-10,
+        "vertical degrees",
+    );
 
     let actual = field_of_view(intrinsics, width, height)
         .expect("valid intrinsics and dimensions should produce FOV");
@@ -213,7 +228,12 @@ fn hlg_fixture_matches_independent_scene_oetf_equations_and_reference() {
         } else {
             (((signal - c) / a).exp() + b) / 12.0
         };
-        assert_close(oracle, expected, tolerance, "independent inverse HLG equation");
+        assert_close(
+            oracle,
+            expected,
+            tolerance,
+            "independent inverse HLG equation",
+        );
         assert_close(
             hlg_signal_to_scene(signal).expect("fixture HLG signal is in range"),
             expected,
@@ -228,8 +248,7 @@ fn hlg_fixture_matches_independent_scene_oetf_equations_and_reference() {
     {
         let scene = item.as_f64().expect("HLG round-trip value must be numeric");
         let signal = hlg_scene_to_signal(scene).expect("scene value is in range");
-        let reconstructed =
-            hlg_signal_to_scene(signal).expect("HLG encoded signal is in range");
+        let reconstructed = hlg_signal_to_scene(signal).expect("HLG encoded signal is in range");
         assert_close(reconstructed, scene, tolerance, "HLG scene OETF round trip");
     }
 }
@@ -261,7 +280,12 @@ fn pq_fixture_matches_independent_st2084_equations_and_reference() {
         let numerator = (powered - c1).max(0.0);
         let denominator = c2 - c3 * powered;
         let oracle = 10_000.0 * (numerator / denominator).powf(1.0 / m1);
-        assert_close(oracle, expected, nits_tolerance, "independent PQ EOTF equation");
+        assert_close(
+            oracle,
+            expected,
+            nits_tolerance,
+            "independent PQ EOTF equation",
+        );
         assert_close(
             pq_signal_to_nits(signal).expect("fixture signal is within PQ range"),
             expected,
@@ -283,7 +307,12 @@ fn pq_fixture_matches_independent_st2084_equations_and_reference() {
             let normalized = (nits / max_nits).powf(m1);
             ((c1 + c2 * normalized) / (1.0 + c3 * normalized)).powf(m2)
         };
-        assert_close(oracle, expected, signal_tolerance, "independent PQ OETF equation");
+        assert_close(
+            oracle,
+            expected,
+            signal_tolerance,
+            "independent PQ OETF equation",
+        );
         assert_close(
             nits_to_pq_signal(nits).expect("fixture luminance is within PQ range"),
             expected,
@@ -299,7 +328,12 @@ fn pq_fixture_matches_independent_st2084_equations_and_reference() {
         let nits = item.as_f64().expect("PQ round-trip value must be numeric");
         let signal = nits_to_pq_signal(nits).expect("round-trip luminance is in range");
         let reconstructed = pq_signal_to_nits(signal).expect("encoded signal is in range");
-        assert_close(reconstructed, nits, nits_tolerance, "PQ encode/decode round trip");
+        assert_close(
+            reconstructed,
+            nits,
+            nits_tolerance,
+            "PQ encode/decode round trip",
+        );
     }
 }
 
@@ -333,7 +367,12 @@ fn srgb_fixture_matches_independent_transfer_and_luminance_equations() {
         } else {
             ((encoded + 0.055) / 1.055).powf(2.4)
         };
-        assert_close(oracle, expected, tolerance, "independent sRGB decode equation");
+        assert_close(
+            oracle,
+            expected,
+            tolerance,
+            "independent sRGB decode equation",
+        );
         assert_close(
             srgb_channel_to_linear(encoded).expect("fixture channel is in range"),
             expected,
@@ -353,7 +392,12 @@ fn srgb_fixture_matches_independent_transfer_and_luminance_equations() {
         } else {
             1.055 * linear.powf(1.0 / 2.4) - 0.055
         };
-        assert_close(oracle, expected, tolerance, "independent sRGB encode equation");
+        assert_close(
+            oracle,
+            expected,
+            tolerance,
+            "independent sRGB encode equation",
+        );
         assert_close(
             linear_channel_to_srgb(linear).expect("fixture channel is in range"),
             expected,
@@ -391,7 +435,12 @@ fn srgb_fixture_matches_independent_transfer_and_luminance_equations() {
                 } else {
                     ((blue + 0.055) / 1.055).powf(2.4)
                 };
-        assert_close(oracle, expected, tolerance, "independent relative luminance");
+        assert_close(
+            oracle,
+            expected,
+            tolerance,
+            "independent relative luminance",
+        );
         assert_close(
             relative_luminance_from_srgb(red, green, blue).expect("fixture RGB is in gamut"),
             expected,
@@ -435,19 +484,29 @@ fn pixel_ray_roundtrip_fixture_matches_independent_equations_and_reference() {
         1.0,
     ];
     for (actual, expected) in oracle_ray.into_iter().zip(expected_ray) {
-        assert_close(
-            actual,
-            expected,
-            tolerance,
-            "analytic ray component",
-        );
+        assert_close(actual, expected, tolerance, "analytic ray component");
     }
 
     let actual_ray =
         ray_through_pixel(intrinsics, pixel).expect("finite pixel should back-project");
-    assert_close(actual_ray.x, expected_ray[0], tolerance, "implementation ray x");
-    assert_close(actual_ray.y, expected_ray[1], tolerance, "implementation ray y");
-    assert_close(actual_ray.z, expected_ray[2], tolerance, "implementation ray z");
+    assert_close(
+        actual_ray.x,
+        expected_ray[0],
+        tolerance,
+        "implementation ray x",
+    );
+    assert_close(
+        actual_ray.y,
+        expected_ray[1],
+        tolerance,
+        "implementation ray y",
+    );
+    assert_close(
+        actual_ray.z,
+        expected_ray[2],
+        tolerance,
+        "implementation ray z",
+    );
 
     let point = CameraPoint3 {
         x: expected_ray[0] * depth,
@@ -465,11 +524,20 @@ fn pixel_ray_roundtrip_fixture_matches_independent_equations_and_reference() {
     // Independent reprojection oracle, intentionally not calling project_point.
     let oracle_u = intrinsics.fx * point.x / point.z + intrinsics.cx;
     let oracle_v = intrinsics.fy * point.y / point.z + intrinsics.cy;
-    assert_close(oracle_u, expected_pixel[0], tolerance, "analytic reprojected u");
-    assert_close(oracle_v, expected_pixel[1], tolerance, "analytic reprojected v");
+    assert_close(
+        oracle_u,
+        expected_pixel[0],
+        tolerance,
+        "analytic reprojected u",
+    );
+    assert_close(
+        oracle_v,
+        expected_pixel[1],
+        tolerance,
+        "analytic reprojected v",
+    );
 
-    let actual_pixel =
-        project_point(intrinsics, point).expect("depth-scaled ray should project");
+    let actual_pixel = project_point(intrinsics, point).expect("depth-scaled ray should project");
     assert_close(
         actual_pixel.u,
         expected_pixel[0],
