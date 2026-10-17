@@ -346,7 +346,6 @@
       "controlled_temp_min_c": 2,
       "controlled_temp_max_c": 12,
       "max_payload_shock_g": 1.6,
-      "max_payload_tilt_deg": 20,
       "max_payload_vibration_rms_m_s2": 0.7,
       "has_securement": true,
       "has_containment": true,
@@ -358,7 +357,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 20
     },
     {
       "platform_id": "riverlink_accessible_ferry",
@@ -384,7 +384,6 @@
       "controlled_temp_min_c": 18,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 1,
-      "max_payload_tilt_deg": 15,
       "max_payload_vibration_rms_m_s2": 0.55,
       "has_securement": true,
       "has_containment": true,
@@ -396,7 +395,8 @@
       "has_emergency_egress": true,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 15
     },
     {
       "platform_id": "canopyedge_light_rover",
@@ -422,7 +422,6 @@
       "controlled_temp_min_c": 2,
       "controlled_temp_max_c": 35,
       "max_payload_shock_g": 0.9,
-      "max_payload_tilt_deg": 14,
       "max_payload_vibration_rms_m_s2": 0.55,
       "has_securement": true,
       "has_containment": true,
@@ -434,7 +433,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 14
     },
     {
       "platform_id": "congo_low_disturbance_rover",
@@ -458,7 +458,6 @@
       "controlled_temp_min_c": 2,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 0.65,
-      "max_payload_tilt_deg": 10,
       "max_payload_vibration_rms_m_s2": 0.4,
       "has_securement": true,
       "has_containment": true,
@@ -470,7 +469,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 10
     },
     {
       "platform_id": "polar_sled_train",
@@ -493,7 +493,6 @@
       "controlled_temp_min_c": null,
       "controlled_temp_max_c": null,
       "max_payload_shock_g": 1.4,
-      "max_payload_tilt_deg": 18,
       "max_payload_vibration_rms_m_s2": 0.9,
       "has_securement": true,
       "has_containment": true,
@@ -505,7 +504,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 18
     },
     {
       "platform_id": "polarcrawler_science_carrier",
@@ -530,7 +530,6 @@
       "controlled_temp_min_c": 2,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 0.8,
-      "max_payload_tilt_deg": 12,
       "max_payload_vibration_rms_m_s2": 0.5,
       "has_securement": true,
       "has_containment": true,
@@ -542,7 +541,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 12
     },
     {
       "platform_id": "polar_patient_carrier",
@@ -566,7 +566,6 @@
       "controlled_temp_min_c": 18,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 0.5,
-      "max_payload_tilt_deg": 8,
       "max_payload_vibration_rms_m_s2": 0.35,
       "has_securement": true,
       "has_containment": false,
@@ -578,7 +577,8 @@
       "has_emergency_egress": true,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 8
     },
     {
       "platform_id": "dunerunner_cargo_rover",
@@ -602,7 +602,6 @@
       "controlled_temp_min_c": 5,
       "controlled_temp_max_c": 35,
       "max_payload_shock_g": 1.1,
-      "max_payload_tilt_deg": 20,
       "max_payload_vibration_rms_m_s2": 0.75,
       "has_securement": true,
       "has_containment": true,
@@ -614,7 +613,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 20
     },
     {
       "platform_id": "dunerunner_crew_carrier",
@@ -637,7 +637,6 @@
       "controlled_temp_min_c": 18,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 1,
-      "max_payload_tilt_deg": 16,
       "max_payload_vibration_rms_m_s2": 0.65,
       "has_securement": true,
       "has_containment": false,
@@ -649,7 +648,8 @@
       "has_emergency_egress": true,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 16
     },
     {
       "platform_id": "aidrover_supply",
@@ -674,7 +674,6 @@
       "controlled_temp_min_c": 2,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 0.9,
-      "max_payload_tilt_deg": 15,
       "max_payload_vibration_rms_m_s2": 0.5,
       "has_securement": true,
       "has_containment": true,
@@ -686,7 +685,8 @@
       "has_emergency_egress": false,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 15
     },
     {
       "platform_id": "aidrover_patient_carrier",
@@ -710,7 +710,6 @@
       "controlled_temp_min_c": 18,
       "controlled_temp_max_c": 30,
       "max_payload_shock_g": 0.55,
-      "max_payload_tilt_deg": 9,
       "max_payload_vibration_rms_m_s2": 0.38,
       "has_securement": true,
       "has_containment": false,
@@ -722,7 +721,8 @@
       "has_emergency_egress": true,
       "has_privacy_controls": true,
       "has_recovery_plan": true,
-      "has_emergency_stop": true
+      "has_emergency_stop": true,
+      "maximum_safe_route_tilt_deg": 9
     }
   ],
   "mission_scenarios": [
@@ -746,7 +746,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 20,
         "max_ambient_temp_c": 38,
-        "max_payload_tilt_deg": 15
+        "required_route_tilt_deg": 15
       },
       "requires_human_transport": false,
       "operating_notes": "Synthetic authorized-waterway delivery, including loading and cold-chain handover."
@@ -772,7 +772,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 20,
         "max_ambient_temp_c": 38,
-        "max_payload_tilt_deg": 10
+        "required_route_tilt_deg": 10
       },
       "requires_human_transport": true,
       "operating_notes": "Synthetic short waterway passage with seated and wheelchair passengers; board/transfer and egress included."
@@ -797,7 +797,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 18,
         "max_ambient_temp_c": 35,
-        "max_payload_tilt_deg": 8
+        "required_route_tilt_deg": 8
       },
       "requires_human_transport": false,
       "operating_notes": "Synthetic survey on an approved path with fragile instruments and contained samples."
@@ -820,7 +820,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 18,
         "max_ambient_temp_c": 35,
-        "max_payload_tilt_deg": 12
+        "required_route_tilt_deg": 12
       },
       "requires_human_transport": true,
       "operating_notes": "Synthetic movement of a two-person field crew between authorized sites."
@@ -845,7 +845,7 @@
       "route_envelope": {
         "min_ambient_temp_c": -48,
         "max_ambient_temp_c": -18,
-        "max_payload_tilt_deg": 10
+        "required_route_tilt_deg": 10
       },
       "requires_human_transport": false,
       "operating_notes": "Synthetic station resupply; cold-soak route with an instrument requiring a controlled compartment."
@@ -871,7 +871,7 @@
       "route_envelope": {
         "min_ambient_temp_c": -48,
         "max_ambient_temp_c": -18,
-        "max_payload_tilt_deg": 6
+        "required_route_tilt_deg": 6
       },
       "requires_human_transport": true,
       "operating_notes": "Synthetic patient transfer envelope only; no clinical protocol or field clearance is implied."
@@ -896,7 +896,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 32,
         "max_ambient_temp_c": 52,
-        "max_payload_tilt_deg": 15
+        "required_route_tilt_deg": 15
       },
       "requires_human_transport": false,
       "operating_notes": "Synthetic hot-soak/dust mission on a surveyed route with tools and fragile inspection equipment."
@@ -920,7 +920,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 32,
         "max_ambient_temp_c": 52,
-        "max_payload_tilt_deg": 12
+        "required_route_tilt_deg": 12
       },
       "requires_human_transport": true,
       "operating_notes": "Synthetic two-person crew transport with hot-ambient and occupant comfort requirements."
@@ -946,7 +946,7 @@
       "route_envelope": {
         "min_ambient_temp_c": -12,
         "max_ambient_temp_c": 38,
-        "max_payload_tilt_deg": 12
+        "required_route_tilt_deg": 12
       },
       "requires_human_transport": false,
       "operating_notes": "Synthetic civilian route example; route hazard status intentionally unknown and must block operational readiness."
@@ -973,7 +973,7 @@
       "route_envelope": {
         "min_ambient_temp_c": -12,
         "max_ambient_temp_c": 38,
-        "max_payload_tilt_deg": 8
+        "required_route_tilt_deg": 8
       },
       "requires_human_transport": true,
       "operating_notes": "Synthetic patient transport candidate, subject to authorized civilian route assessment; no route authorization is implied."
