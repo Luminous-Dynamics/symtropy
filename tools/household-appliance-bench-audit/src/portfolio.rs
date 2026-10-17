@@ -95,12 +95,7 @@ fn audit_values(
         "no_physical_performance_or_conformity_claim",
         &mut errors,
     );
-    require_text_at(
-        schema,
-        "$id",
-        SCHEMA_ID,
-        &mut errors,
-    );
+    require_text_at(schema, "$id", SCHEMA_ID, &mut errors);
 
     let selection = portfolio.get("selection_policy");
     let first_family = selection.and_then(|value| text_at(value, "first_large_appliance"));
@@ -381,8 +376,9 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json"
     );
-    const PORTFOLIO: &str =
-        include_str!("../../../fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json");
+    const PORTFOLIO: &str = include_str!(
+        "../../../fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json"
+    );
 
     fn canonical_portfolio() -> Value {
         serde_json::from_str(PORTFOLIO).expect("canonical portfolio JSON must parse")
@@ -444,7 +440,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn open_repair_dataset_cannot_be_used_as_unqualified_washer_prevalence() {
         let mut portfolio = canonical_portfolio();
@@ -481,7 +476,8 @@ mod tests {
     fn washer_variant_matrix_must_keep_the_retail_control() {
         let mut portfolio = canonical_portfolio();
         portfolio["washer_architecture_variants"][0]["id"] = json!("W0-NEW-DESIGN");
-        let errors = audit_mutation(&portfolio).expect_err("retail control identity must be stable");
+        let errors = audit_mutation(&portfolio)
+            .expect_err("retail control identity must be stable");
         assert!(errors.iter().any(|error| error.contains("W0-RETAIL-CONTROL")));
     }
 
