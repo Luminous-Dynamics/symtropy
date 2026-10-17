@@ -189,6 +189,12 @@ fn check_aerial_scenario(s: &Scenario, errors: &mut Vec<String>) {
     }
     if value_str(o, "wildlife_disturbance_state") != Some("none_detected") {
         blocking_conditions.push(("WILDLIFE_DISTURBANCE_DETECTED", "wildlife_disturbance_state"));
+        if s.expected_decision != "blocked_safe_degraded_state" {
+            errors.push(format!("{id}: detected wildlife disturbance must stop/divert the planned sortie"));
+        }
+        if !has_reason(s, "NO_REPEAT_SORTIE_WITHOUT_HUMAN_REVIEW") {
+            errors.push(format!("{id}: wildlife disturbance must require human review before a repeat sortie"));
+        }
     }
     if value_str(o, "privacy_handling_state") != Some("configured_data_minimization") {
         blocking_conditions.push(("PRIVACY_HANDLING_NOT_CONFIGURED", "privacy_handling_state"));
@@ -214,6 +220,12 @@ fn check_aerial_scenario(s: &Scenario, errors: &mut Vec<String>) {
     }
     if value_bool(o, "contact_detected") != Some(false) {
         blocking_conditions.push(("PHYSICAL_CONTACT_DETECTED", "contact_detected"));
+        if s.expected_decision != "blocked_safe_degraded_state" {
+            errors.push(format!("{id}: physical contact must stop the simulated sortie"));
+        }
+        if !has_reason(s, "NO_CONTINUED_MISSION_AFTER_CONTACT") {
+            errors.push(format!("{id}: contact event must prohibit continuation of the mission"));
+        }
     }
     if value_str(o, "payload_release_state") != Some("none") {
         blocking_conditions.push(("PAYLOAD_RELEASE_PROHIBITED", "payload_release_state"));
