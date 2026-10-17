@@ -623,6 +623,60 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
         discharge_to_load(&config, after_loss, discharge_request)?;
     verify_discharge_report(&config, after_loss, discharge_request, discharge)?;
 
+    // Canonical analytic two-store cascade: cp = 1000 J/(kg K) in each store.
+    let cascade_high_curve = HeatCapacityCurve::new(vec![
+        HeatCapacityPoint::new(Kelvin::new(300.0)?, SpecificHeatJPerKgK::new(1_000.0)?),
+        HeatCapacityPoint::new(Kelvin::new(500.0)?, SpecificHeatJPerKgK::new(1_000.0)?),
+    ])?;
+    let cascade_high_config = StoreConfig::new(StoreConfigSpec {
+        mass: MassKg::new(1.0)?,
+        heat_capacity: cascade_high_curve,
+        min_temperature: Kelvin::new(300.0)?,
+        max_temperature: Kelvin::new(500.0)?,
+        initial_temperature: Kelvin::new(450.0)?,
+        max_charge_power: PowerW::new(10_000.0)?,
+        max_discharge_power: PowerW::new(10_000.0)?,
+        standing_loss_conductance: ThermalConductanceWPerK::new(0.0)?,
+    })?;
+    let cascade_low_curve = HeatCapacityCurve::new(vec![
+        HeatCapacityPoint::new(Kelvin::new(300.0)?, SpecificHeatJPerKgK::new(1_000.0)?),
+        HeatCapacityPoint::new(Kelvin::new(360.0)?, SpecificHeatJPerKgK::new(1_000.0)?),
+    ])?;
+    let cascade_low_config = StoreConfig::new(StoreConfigSpec {
+        mass: MassKg::new(1.0)?,
+        heat_capacity: cascade_low_curve,
+        min_temperature: Kelvin::new(300.0)?,
+        max_temperature: Kelvin::new(360.0)?,
+        initial_temperature: Kelvin::new(300.0)?,
+        max_charge_power: PowerW::new(10_000.0)?,
+        max_discharge_power: PowerW::new(10_000.0)?,
+        standing_loss_conductance: ThermalConductanceWPerK::new(0.0)?,
+    })?;
+    let cascade_high_start = cascade_high_config.initial_state();
+    let cascade_low_start = cascade_low_config.initial_state();
+    let cascade_request = cascade::CascadeTransferRequest {
+        requested_low_store_heat: EnergyJ::new(40_000.0)?,
+        minimum_approach: TemperatureDifferenceK::new(10.0)?,
+        heat_exchanger_effectiveness: Fraction::new(0.8)?,
+        duration: Seconds::new(10.0)?,
+    };
+    let (cascade_high_end, cascade_low_end, cascade_report) =
+        cascade::transfer_to_lower_temperature_store(
+            &cascade_high_config,
+            cascade_high_start,
+            &cascade_low_config,
+            cascade_low_start,
+            cascade_request,
+        )?;
+    cascade::verify_cascade_transfer_report(
+        &cascade_high_config,
+        cascade_high_start,
+        &cascade_low_config,
+        cascade_low_start,
+        cascade_request,
+        cascade_report,
+    )?;
+
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
@@ -668,6 +722,37 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "unmet_useful_heat_j", discharge.unmet_useful_heat.value());
     number(&mut json, "final_store_temperature_k", final_state.temperature.value());
     number(&mut json, "final_store_exergy_j", config.stored_exergy(final_state, Kelvin::new(300.0)?)?.value());
+
+    json.push_str(",\"cascade_fixture_id\":\"two-temperature-sensible-001\"");
+    number(&mut json, "cascade_high_store_mass_kg", 1.0);
+    number(&mut json, "cascade_high_store_min_temperature_k", 300.0);
+    number(&mut json, "cascade_high_store_max_temperature_k", 500.0);
+    number(&mut json, "cascade_high_store_initial_temperature_k", 450.0);
+    number(&mut json, "cascade_high_cp_low_temperature_k", 300.0);
+    number(&mut json, "cascade_high_cp_low_j_per_kg_k", 1_000.0);
+    number(&mut json, "cascade_high_cp_high_temperature_k", 500.0);
+    number(&mut json, "cascade_high_cp_high_j_per_kg_k", 1_000.0);
+    number(&mut json, "cascade_high_max_discharge_power_w", 10_000.0);
+    number(&mut json, "cascade_low_store_mass_kg", 1.0);
+    number(&mut json, "cascade_low_store_min_temperature_k", 300.0);
+    number(&mut json, "cascade_low_store_max_temperature_k", 360.0);
+    number(&mut json, "cascade_low_store_initial_temperature_k", 300.0);
+    number(&mut json, "cascade_low_cp_low_temperature_k", 300.0);
+    number(&mut json, "cascade_low_cp_low_j_per_kg_k", 1_000.0);
+    number(&mut json, "cascade_low_cp_high_temperature_k", 360.0);
+    number(&mut json, "cascade_low_cp_high_j_per_kg_k", 1_000.0);
+    number(&mut json, "cascade_requested_low_store_heat_j", cascade_report.requested_low_store_heat.value());
+    number(&mut json, "cascade_minimum_approach_k", 10.0);
+    number(&mut json, "cascade_heat_exchanger_effectiveness", 0.8);
+    number(&mut json, "cascade_duration_s", 10.0);
+    number(&mut json, "cascade_source_heat_withdrawn_j", cascade_report.source_heat_withdrawn.value());
+    number(&mut json, "cascade_low_store_heat_accepted_j", cascade_report.low_store_heat_accepted.value());
+    number(&mut json, "cascade_heat_exchanger_loss_j", cascade_report.heat_exchanger_loss.value());
+    number(&mut json, "cascade_unmet_low_store_heat_j", cascade_report.unmet_low_store_heat.value());
+    number(&mut json, "cascade_minimum_source_temperature_k", cascade_report.minimum_source_temperature.value());
+    number(&mut json, "cascade_high_store_final_temperature_k", cascade_high_end.temperature.value());
+    number(&mut json, "cascade_low_store_final_temperature_k", cascade_low_end.temperature.value());
+    json.push_str(",\"cascade_blocked_by_temperature\":false");
     json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
     Ok(json)
 }
