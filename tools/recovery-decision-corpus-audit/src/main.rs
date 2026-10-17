@@ -231,7 +231,7 @@ fn make_receipt(
                             }
                             for field in ["claim", "source_ref", "method", "evidence_class", "coverage", "freshness_class"] {
                                 if nonempty_string(record.get(field)).is_none() {
-                                    errors.push(format!("{evidence_label}: {field.to_ascii_uppercase()}_MISSING"));
+                                    errors.push(format!("{evidence_label}: {}_MISSING", field.to_ascii_uppercase()));
                                 }
                             }
                             if !nonempty_string(record.get("source_ref"))
