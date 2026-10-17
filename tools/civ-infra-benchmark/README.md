@@ -7,8 +7,8 @@ This is a small, standalone Rust reference harness for the first CIV-INFRA synth
 From the repository root:
 
     cargo fmt --manifest-path tools/civ-infra-benchmark/Cargo.toml -- --check
-    cargo test --manifest-path tools/civ-infra-benchmark/Cargo.toml
-    cargo run --manifest-path tools/civ-infra-benchmark/Cargo.toml -- tools/civ-infra-benchmark/fixtures/corridor-v0.1.json
+    cargo test --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml
+    cargo run --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml -- tools/civ-infra-benchmark/fixtures/corridor-v0.1.json
 
 The CLI reads the exact fixture bytes, validates the schema and declared metric coordinate frame, calculates SHA-256 over the bytes, evaluates all candidates, recomputes schedule findings through a separate reference-check path, and emits a deterministic JSON report. Invalid input or verifier disagreement returns a non-zero exit code.
 
@@ -27,6 +27,7 @@ It also includes one deliberately overcommitted excavator schedule. The referenc
 - All geometry and quantities are invented synthetic test values, not a real site or design recommendation.
 - V0 supports only an explicitly declared local metric coordinate frame; it rejects other units instead of attempting an implicit transform.
 - The utility envelope is an axis-aligned coarse proxy. It is not a CAD solid-intersection engine or a substitute for a qualified utility survey.
+- Grade, earthworks and drainage values are declared fixture attributes: the harness checks them against declared limits but does not derive grade from a terrain/alignment profile, earthworks from cross-sections, or flow capacity from a hydraulic solver.
 - The drainage check compares declared synthetic demand/capacity values. It does not run EPANET, SWMM or a calibrated hydraulic model.
 - The reference checker is a separate recomputation path in the same codebase, not an independently maintained implementation or third-party audit.
 - This package does not generate road geometry, solve an alignment, qualify pavement/structures/geotechnical design, produce IFC/InfraGML, or authorize procurement/construction.
