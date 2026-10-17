@@ -103,7 +103,7 @@
             "maximum": 50
           },
           "max_spin_rpm": {
-            "type": "integer",
+            "type": ["integer", "null"],
             "minimum": 0,
             "maximum": 5000
           },
