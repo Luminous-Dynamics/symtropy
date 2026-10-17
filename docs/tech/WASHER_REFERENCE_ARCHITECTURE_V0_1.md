@@ -181,6 +181,14 @@ Do not count only hands-on wrench time. Report median and P90 *total restoration
 
 Compare W1/W2/W3/W4 results against W0. Keep function, energy/water, repair success, safety and lifecycle cost separate. Choose a more modular design only if the net advantage persists after realistic module prices, connector/seal failure, inventory, availability and rework sensitivity. Use Pareto frontiers when one architecture trades lower resources for higher cost or longer cycle time; do not hide the trade in an undocumented scalar.
 
+### Machine-readable measurement plan
+
+The exact measurement inventory and preregistration gates are also represented in [`fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json`](https://github.com/Luminous-Dynamics/symtropy/blob/research/large-appliance-repairable-architecture-v0-1/fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json), under `washer_benchmark_protocol`, checked against the portfolio schema and shared audit utility. It currently remains `draft_pending_control_selection`: controls, workload variables and instruments are not yet selected, and service trials are not scheduled.
+
+The protocol uses three gates: (A) freeze control selection and measurement method before any measurements; (B) run a control-only pilot to estimate repeatability and instrument uncertainty; (C) freeze numeric functional non-inferiority margins, exclusions and analysis before collecting candidate-unit measurements. Unknown values remain unknown, not zero. Cleaning, rinsing and spin-drying quality are gates on whether a load counts as a successful output; electricity/water per cycle alone is not a valid superiority claim.
+
+The machine-readable metric set keeps separate 11 dimensions: cleaning, rinsing, spin-drying, water per successful load, energy per successful load, cycle duration, total restore time, repair cost, recurrence, critical safety findings, and discarded material. These are methods-to-freeze, not already measured outcomes.
+
 ## 8. Proposed acceptance targets (hypotheses, not results)
 
 - At least 25% lower median and P90 total restoration time on a preregistered common-fault set versus W0, without unsafe outcomes or functional regression.
