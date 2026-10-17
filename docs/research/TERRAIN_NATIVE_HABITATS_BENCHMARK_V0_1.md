@@ -120,7 +120,9 @@ The following authorities ground the hazard categories and are reference anchors
 - USGS Volcano Hazards Program and hazard assessments: https://www.usgs.gov/volcano-hazards
 - USGS, *Lahars: Origins, behavior and hazards* (2024): https://www.usgs.gov/publications/lahars-origins-behavior-and-hazards
 - USGS, *Sinkholes* (updated September 2026): https://www.usgs.gov/water-science-school/science/sinkholes
+- USGS, U.S. Landslide Inventory and Susceptibility Map (3 February 2025): https://www.usgs.gov/node/278589 — national susceptibility maps have explicit coverage/model limits and are screening evidence, not local ground-clearance evidence.
 - FHWA Geotechnical Technical Guidance Manual, including geotechnical investigations, slope stability, rock engineering, drainage, earthquake engineering and post-construction monitoring: https://highways.dot.gov/federal-lands/pddm/geotechnical
+- NIST, Building Digitization and Semantic Interoperability: https://www.nist.gov/programs-projects/building-digitization-and-semantic-interoperability — supports the lifecycle machine-readable building-data direction, not physical validity by itself.
 - FHWA, *Context Sensitive Rock Slope Design Solutions*: https://www.fhwa.dot.gov/clas/ctip/context_sensitive_rock_slope_design/ch_5_1.aspx
 
 These references are U.S.-based sources and do not define universal legal requirements. Their principles must be combined with the actual country's data, standards, jurisdiction, local geology and qualified design judgment.
