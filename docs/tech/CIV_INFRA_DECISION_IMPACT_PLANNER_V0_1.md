@@ -22,10 +22,10 @@ Inputs contain:
 - A versioned set of candidate IDs.
 - A finite list of named states. Every state has a candidate-by-candidate partition into feasible, infeasible or unknown, plus a frontier subset of feasible candidates.
 - A reference to the upstream case/report that produced the decision signature.
-- Candidate survey/measurement actions. Each action supplies non-empty outcome buckets that must partition the complete state set exactly once.
+- Candidate survey/measurement actions. Each action supplies a required outcome-model reference, an optional SHA-256 digest, and non-empty outcome buckets that must partition the complete state set exactly once.
 - Optional cost and duration estimates, with explicit units and a provenance basis.
 
-The v0.1 planner verifies the internal consistency and decision consequences of these supplied signatures and partitions. It **does not** independently derive engineering constraints, verify an upstream report blob, predict the real outcome of a proposed survey, or establish that a measurement is feasible or safe. Optional upstream report digests are syntax-checked; they are not looked up in an artifact store. Those are explicit future integration requirements, not silently assumed capabilities.
+The v0.1 planner verifies the internal consistency and decision consequences of these supplied signatures and partitions. It **does not** independently derive engineering constraints, verify an upstream report blob or outcome-model artifact, predict the real outcome of a proposed survey, or establish that a measurement is feasible or safe. Optional upstream-report and outcome-model digests are syntax-checked and preserved; they are not looked up in an artifact store. Those are explicit future integration requirements, not silently assumed capabilities.
 
 The frozen input is synthetic. Cost/time numbers are intentionally invented solely to test retention and reporting. No hydrology, utility, terrain or construction solver is invoked.
 
@@ -63,12 +63,12 @@ Estimated cost and duration are emitted side-by-side, with units and the basis o
 The evaluator rejects:
 
 - Unsupported schema versions and unknown JSON fields.
-- Empty or duplicate candidate, state, action or outcome identifiers.
+- Empty or duplicate candidate, state, action or outcome identifiers; a missing outcome-model reference.
 - A candidate missing from the feasible/infeasible/unknown classification, or assigned to more than one class.
 - A frontier candidate not in that state's feasible class.
 - An outcome with no states.
 - Unknown state references, duplicate state membership, or a partition that omits any declared state.
-- A malformed supplied SHA-256 digest, invalid estimates, and oversized evaluation workloads.
+- A malformed supplied upstream-report or outcome-model SHA-256 digest, invalid estimates, and oversized evaluation workloads. Model digests are references only until a future adapter retrieves and verifies the exact bytes.
 
 It does not fill an absent state with a zero-probability guess, implicitly infer independence, normalize an incomplete partition, or treat unknown candidates as infeasible. If a state signature contains unknown candidate status, that uncertainty remains visible in the signature and therefore in the decision ambiguity metrics.
 
