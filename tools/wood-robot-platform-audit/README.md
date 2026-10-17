@@ -12,11 +12,11 @@ cargo run --quiet --manifest-path tools/wood-robot-platform-audit/Cargo.toml -- 
   --source-commit "$(git rev-parse HEAD)" > wood-robot-platform-audit-receipt.json
 ```
 
-The source commit must be a 40-character hexadecimal Git SHA. The receipt binds the exact corpus bytes via SHA-256, source commit, scenario counts, decisions and contract findings.
+The source commit must be a 40-character hexadecimal Git SHA. The receipt binds the exact corpus bytes via SHA-256, source commit, scenario/aerial/salvage counts, decisions and contract findings.
 
 ## Frozen corpus
 
-The v0.1.0 corpus contains 29 unique scenarios: 13 aerial Forest Scout cases, plus shop/construction and seven deadwood-salvage/extraction cases. All are plan-only synthetic fixtures; every expected physical-actuation value must remain false.
+The v0.1.0 corpus contains 29 unique scenarios: 13 aerial Forest Scout cases and seven deadwood-salvage/extraction cases, alongside shop/construction controls. All are plan-only synthetic fixtures; every expected physical-actuation value must remain false.
 
 ## Contract covered
 
