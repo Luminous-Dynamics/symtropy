@@ -48,11 +48,12 @@ jobs:
           jq -e '
             .result == "pass"
             and .schema_version == "recovery-decision-scenarios-v0.1"
-            and .scenario_count == 14
-            and .unique_scenario_count == 14
+            and .scenario_count == 17
+            and .unique_scenario_count == 17
             and .domain_profile_count == 8
             and .gate_status_counts.BLOCK == 3
-            and .gate_status_counts.UNKNOWN == 16
+            and .gate_status_counts.PASS == 13
+            and .gate_status_counts.UNKNOWN == 19
             and .all_plan_only == true
             and .claim_ceiling == "NO_ACTUATION_AUTHORIZED"
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
