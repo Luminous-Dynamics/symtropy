@@ -895,7 +895,7 @@ mod tests {
             let outcome_count = 1 + ((world + action_index) % 5);
             let mut outcome_states = vec![Vec::new(); outcome_count];
             for state_index in 0..20usize {
-                let bucket = (state_index * (action_index + 1) + world) % outcome_count;
+                let bucket = (state_index + world * (action_index + 1)) % outcome_count;
                 outcome_states[bucket].push(format!("w{world:03}-s{state_index:02}"));
             }
             let outcomes = outcome_states
