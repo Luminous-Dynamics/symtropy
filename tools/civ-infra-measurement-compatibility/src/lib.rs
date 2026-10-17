@@ -1059,6 +1059,7 @@ mod tests {
     fn deterministic_replay_and_generated_interval_oracle() {
         let mut case_count = 0usize;
         let mut generated_edges = 0usize;
+        let mut worlds_with_nonzero_discrepancy = 0usize;
         let mut corpus = Vec::new();
         for world in 0..100i64 {
             let mut input = base_input();
@@ -1085,10 +1086,19 @@ mod tests {
                 Transform::Identity
             };
             input.measurement_model.input_domain = interval(0, 2_000_000);
+            let discrepancy_radius = if world % 4 == 0 || world % 4 == 3 {
+                25_000
+            } else {
+                0
+            };
             input.measurement_model.model_discrepancy = ModelDiscrepancy {
                 unit: if square_world { Unit::Dimensionless } else { Unit::Meter },
-                interval: interval(0, 0),
-                basis: "synthetic zero-discrepancy assumption; not calibrated".to_owned(),
+                interval: interval(-discrepancy_radius, discrepancy_radius),
+                basis: if discrepancy_radius == 0 {
+                    "synthetic zero-discrepancy assumption; not calibrated".to_owned()
+                } else {
+                    "synthetic nonzero discrepancy perturbation; not calibrated".to_owned()
+                },
             };
             input.states.clear();
             for state_index in 0..20i64 {
@@ -1119,6 +1129,9 @@ mod tests {
                     bin("o4", Unit::Meter, 1_650_000, 2_000_000),
                 ]
             };
+            if discrepancy_radius != 0 {
+                worlds_with_nonzero_discrepancy += 1;
+            }
             let serialized = serde_json::to_vec(&input).expect("generated input serializes");
             let hash = sha256_hex(&serialized);
             let report = evaluate(&input, &hash).expect("generated input evaluates");
@@ -1127,7 +1140,7 @@ mod tests {
             // Independent direct interval-overlap oracle (does not use evaluator helpers).
             let mut oracle_pairs = BTreeSet::<(String, String)>::new();
             for state in &input.states {
-                let (lo, hi) = if square_world {
+                let (base_lo, base_hi) = if square_world {
                     let lower = i128::from(state.input_interval.lower_ticks);
                     let upper = i128::from(state.input_interval.upper_ticks);
                     let lower_squared = lower * lower;
@@ -1142,6 +1155,15 @@ mod tests {
                         i128::from(state.input_interval.upper_ticks) * 1000,
                     )
                 };
+                let discrepancy_factor = if square_world { 1 } else { 1000 };
+                let discrepancy_lo = i128::from(
+                    input.measurement_model.model_discrepancy.interval.lower_ticks,
+                ) * discrepancy_factor;
+                let discrepancy_hi = i128::from(
+                    input.measurement_model.model_discrepancy.interval.upper_ticks,
+                ) * discrepancy_factor;
+                let lo = base_lo + discrepancy_lo;
+                let hi = base_hi + discrepancy_hi;
                 for bin in &input.outcomes {
                     let (blo, bhi) = if square_world {
                         (
@@ -1184,6 +1206,7 @@ mod tests {
             }));
         }
         assert_eq!(case_count, 100 * 20 * 5);
+        assert_eq!(worlds_with_nonzero_discrepancy, 50);
         assert!(generated_edges > 0);
 
         if let Ok(path) = env::var("CIV_INFRA_COMPATIBILITY_CORPUS_OUT") {
@@ -1196,6 +1219,7 @@ mod tests {
                 "outcomes_per_world": 5,
                 "state_outcome_evaluations": case_count,
                 "generated_compatibility_edges": generated_edges,
+                "worlds_with_nonzero_discrepancy": worlds_with_nonzero_discrepancy,
                 "claim_ceiling": "synthetic interval compatibility software oracle only",
                 "cases": corpus
             });
