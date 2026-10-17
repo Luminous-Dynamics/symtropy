@@ -735,15 +735,22 @@ mod tests {
     #[test]
     fn invalid_budget_or_fuel_parameters_fail_closed() {
         let (_, _, mut corpus, model) = frozen_inputs();
-        let scenario = corpus["scenarios"].as_array_mut().expect("array").iter_mut()
+        {
+            let scenario = corpus["scenarios"].as_array_mut().expect("array").iter_mut()
+                .find(|item| text_at(item, "architecture_id") == Some("single_vehicle_baseline")
+                    && text_at(item, "stressor_id") == Some("nominal"))
+                .expect("baseline nominal");
+            scenario["stress_parameters"]["fuel_cost_multiplier"] = json!(0.0);
+        }
+        let scenario = corpus["scenarios"].as_array().expect("array").iter()
             .find(|item| text_at(item, "architecture_id") == Some("single_vehicle_baseline")
                 && text_at(item, "stressor_id") == Some("nominal"))
-            .expect("baseline nominal");
-        scenario["stress_parameters"]["fuel_cost_multiplier"] = json!(0.0);
+            .expect("modified baseline nominal")
+            .clone();
         let architecture = find_by_id(
             corpus["architecture_profiles"].as_array().expect("array"),
             "single_vehicle_baseline"
         ).expect("architecture");
-        assert!(simulate_scenario(scenario, architecture, &model).is_err());
+        assert!(simulate_scenario(&scenario, architecture, &model).is_err());
     }
 }
