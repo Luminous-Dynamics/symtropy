@@ -15,7 +15,8 @@
     "benchmark_policy",
     "families",
     "references",
-    "washer_architecture_variants"
+    "washer_architecture_variants",
+    "washer_benchmark_protocol"
   ],
   "properties": {
     "schema_version": {
@@ -346,6 +347,273 @@
           },
           "status": {
             "const": "proposed_no_measurements"
+          }
+        }
+      }
+    },
+    "washer_benchmark_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "status",
+        "claim_ceiling",
+        "control_plan",
+        "workload_plan",
+        "instrumentation_plan",
+        "metrics",
+        "analysis_freeze",
+        "service_trials",
+        "evidence_rules"
+      ],
+      "properties": {
+        "protocol_id": {
+          "const": "WASHER-BENCHMARK-PROTOCOL-001"
+        },
+        "status": {
+          "const": "draft_pending_control_selection"
+        },
+        "claim_ceiling": {
+          "const": "no_measurements_no_comparison_claim"
+        },
+        "control_plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_units",
+            "selection_state",
+            "matching_fields",
+            "documented_fields"
+          ],
+          "properties": {
+            "minimum_units": {
+              "type": "integer",
+              "minimum": 3
+            },
+            "selection_state": {
+              "const": "not_selected"
+            },
+            "matching_fields": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "documented_fields": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            }
+          }
+        },
+        "workload_plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "variables_to_freeze",
+            "functional_outputs",
+            "deviation_policy"
+          ],
+          "properties": {
+            "status": {
+              "const": "not_frozen"
+            },
+            "variables_to_freeze": {
+              "type": "array",
+              "minItems": 8,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "functional_outputs": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "deviation_policy": {
+              "type": "string",
+              "minLength": 20
+            }
+          }
+        },
+        "instrumentation_plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "required_channels",
+            "calibration_policy",
+            "raw_data_policy"
+          ],
+          "properties": {
+            "status": {
+              "const": "not_selected"
+            },
+            "required_channels": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "calibration_policy": {
+              "type": "string",
+              "minLength": 20
+            },
+            "raw_data_policy": {
+              "type": "string",
+              "minLength": 20
+            }
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "dimension",
+              "unit",
+              "denominator",
+              "method",
+              "comparison_rule",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{2,63}$"
+              },
+              "dimension": {
+                "enum": [
+                  "functional_output",
+                  "resource_use",
+                  "serviceability",
+                  "lifecycle_cost",
+                  "reliability",
+                  "sourcing",
+                  "safety_gate"
+                ]
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 2
+              },
+              "denominator": {
+                "type": "string",
+                "minLength": 3
+              },
+              "method": {
+                "type": "string",
+                "minLength": 15
+              },
+              "comparison_rule": {
+                "enum": [
+                  "noninferiority_after_control_pilot",
+                  "lower_is_better_after_control_pilot",
+                  "higher_is_better_after_control_pilot",
+                  "descriptive_separate_gate",
+                  "not_comparable_until_defined"
+                ]
+              },
+              "status": {
+                "const": "method_to_be_frozen_before_candidate_measurements"
+              }
+            }
+          }
+        },
+        "analysis_freeze": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stage_a",
+            "stage_b",
+            "stage_c",
+            "missing_data_policy",
+            "no_post_hoc_rule"
+          ],
+          "properties": {
+            "stage_a": {
+              "const": "freeze_measurement_method_and_control_selection_before_any_measurements"
+            },
+            "stage_b": {
+              "const": "control_only_pilot_establishes_repeatability_and_instrument_uncertainty"
+            },
+            "stage_c": {
+              "const": "freeze_numeric_margins_exclusions_and_analysis_before_candidate_measurements"
+            },
+            "missing_data_policy": {
+              "const": "unknown_not_zero"
+            },
+            "no_post_hoc_rule": {
+              "type": "string",
+              "minLength": 30
+            }
+          }
+        },
+        "service_trials": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "fault_tasks",
+            "time_components",
+            "outcome_fields",
+            "role_boundary"
+          ],
+          "properties": {
+            "status": {
+              "const": "not_scheduled"
+            },
+            "fault_tasks": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "time_components": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "outcome_fields": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 5
+              }
+            },
+            "role_boundary": {
+              "type": "string",
+              "minLength": 30
+            }
+          }
+        },
+        "evidence_rules": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "string",
+            "minLength": 20
           }
         }
       }
