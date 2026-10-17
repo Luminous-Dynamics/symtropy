@@ -414,7 +414,12 @@ pub fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compat
         } else {
             "nanometre ticks; interval endpoints are normalized, not displayed-unit values".to_owned()
         },
-        claim_ceiling: "finite_typed_intervals_and_declared_transform_only; model_artifacts_not_resolved; no_probability_or_physical_validity_claim".to_owned(),
+        claim_ceiling: concat!(
+            "finite_typed_intervals_and_declared_transform_only; ",
+            "model_artifacts_not_resolved; ",
+            "no_probability_or_physical_validity_claim"
+        )
+        .to_owned(),
         state_count: normalized_states.len(),
         outcome_count: normalized_bins.len(),
         compatibility_edge_count,
@@ -482,7 +487,12 @@ fn build_observed_update(
             compatible_state_ids: all_states,
             decision_signature_class_count: distinct_signature_count(states, None),
             decision_discordant_pairs_remaining: discordant_pairs(&signature_counts(states, None)),
-            update_note: "observed value lies outside every declared outcome bin; preserve the entire prior state set and investigate model/domain/support mismatch".to_owned(),
+            update_note: concat!(
+                "observed value lies outside every declared outcome bin; ",
+                "preserve the entire prior state set and investigate ",
+                "model/domain/support mismatch"
+            )
+            .to_owned(),
         });
     }
 
@@ -515,7 +525,12 @@ fn build_observed_update(
             compatible_state_ids: all_states,
             decision_signature_class_count: distinct_signature_count(states, None),
             decision_discordant_pairs_remaining: discordant_pairs(&signature_counts(states, None)),
-            update_note: "observed value matches an outcome bin but no declared state output envelope supports it; preserve the entire prior state set and investigate model/support mismatch".to_owned(),
+            update_note: concat!(
+                "observed value matches an outcome bin but no declared state output ",
+                "envelope supports it; preserve the entire prior state set and investigate ",
+                "model/support mismatch"
+            )
+            .to_owned(),
         });
     }
 
@@ -527,7 +542,11 @@ fn build_observed_update(
         decision_signature_class_count: signature_counts.len(),
         decision_discordant_pairs_remaining: discordant_pairs(&signature_counts),
         compatible_state_ids: compatible_states,
-        update_note: "only states whose declared output envelope contains the observation remain; out-of-domain states remain possible. No probabilities are assigned".to_owned(),
+        update_note: concat!(
+            "only states whose declared output envelope contains the observation remain; ",
+            "out-of-domain states remain possible. No probabilities are assigned"
+        )
+        .to_owned(),
     })
 }
 
