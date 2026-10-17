@@ -27,12 +27,17 @@ fn main() -> ExitCode {
     let report = match verify_fixture_bytes(&bytes) {
         Ok(report) => report,
         Err(errors) => {
-            for error in errors { eprintln!("revalidation fixture rejected: {error}"); }
+            for error in errors {
+                eprintln!("revalidation fixture rejected: {error}");
+            }
             return ExitCode::from(3);
         }
     };
     match serde_json::to_string_pretty(&report) {
-        Ok(json) => { println!("{json}"); ExitCode::SUCCESS }
+        Ok(json) => {
+            println!("{json}");
+            ExitCode::SUCCESS
+        }
         Err(error) => {
             eprintln!("error: could not serialize report: {error}");
             ExitCode::from(4)
