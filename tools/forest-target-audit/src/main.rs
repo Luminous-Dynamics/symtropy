@@ -35,7 +35,7 @@ enum Scene { OpenGrid, OccludedClearing, BlockedCorridor, UnknownBarrier }
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum Occupancy { Clear, Obstacle, Unknown }
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 enum Heading { North, East, South, West }
 
