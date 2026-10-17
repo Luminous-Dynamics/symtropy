@@ -1000,6 +1000,7 @@ mod tests {
                 "input_sha256": hash,
                 "input": input,
                 "oracle_compatibility_edges": oracle_edges,
+                "oracle_compatibility_pairs": oracle_pairs_json,
                 "report": report
             }));
         }
@@ -1012,8 +1013,8 @@ mod tests {
                 "generator": "seeded-interval-mutator-v1",
                 "seed_base": 20261017,
                 "world_count": 100,
-                "states_per_world": 10,
-                "outcomes_per_world": 3,
+                "states_per_world": 20,
+                "outcomes_per_world": 5,
                 "state_outcome_evaluations": case_count,
                 "generated_compatibility_edges": generated_edges,
                 "claim_ceiling": "synthetic interval compatibility software oracle only",
