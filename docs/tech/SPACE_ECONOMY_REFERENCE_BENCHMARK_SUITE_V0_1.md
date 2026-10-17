@@ -394,3 +394,32 @@ All calculations use a common fixed integer joint-probability denominator. The i
 6. **Calibration:** before any physical claims, validate predicted probabilities on held-out, independently ground-truthed data and report calibration error and decision regret against observed outcomes.
 
 This is a synthetic algorithm contract, not a calibrated lunar exploration strategy. Its numbers are not geological priors, field-assay sensitivity, reserve estimates, actual costs, or mission investment recommendations. The USGS framework motivates treating resource certainty and recoverability as distinct states; it does not calibrate this fixture: [USGS lunar resource assessment](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022).
+
+## Active reference extension — correlation-aware resource evidence
+
+[BENCH-SPACE-011](https://github.com/Luminous-Dynamics/symtropy/issues/1824) adds `tools/space-economy-bench/examples/correlated_assay_evidence_reference.rs`. This extends the sequential-exploration work without changing the frozen six-scenario v0.1 corpus.
+
+The model has two hidden states that can invalidate naïve evidence fusion: (1) a shared calibration mode in which two assays reuse the same latent measurement result, and (2) a 20% chance that the sampled patch is not representative of the site-wide resource. Outcomes in the unrepresentative state are uninformative about the site-wide rich/poor state. Conditional on a representative patch, the A/B pair has a 50% shared-calibration mode; the emitted joint probabilities are exact fixed-denominator likelihoods.
+
+| Portfolio/model | Gross value | EVSI | Cost | Net value |
+|---|---:|---:|---:|---:|
+| No measurement | 50 | 0 | 0 | 50 |
+| A only | 61 | 11 | 4 | 57 |
+| A+B with shared-mode likelihood | 66.7 | 16.7 | 10 | 56.7 |
+| A+B under a false independence assumption | 70.62 | 20.62 | 10 | 60.62, rejected from selection |
+| A+C with a separate, verified fixture failure domain | 75.66 | 25.66 | 9 | 66.66 |
+
+The naïve model estimates the double-positive posterior at 89.01%, versus 81.08% under the joint likelihood that represents shared calibration and sample representativeness. Its gross expected value is 3.92 synthetic units higher than the correctly specified correlated model. The receipt retains the naïve calculation as a diagnostic negative control, but rejects it for selection because its independence claim conflicts with its provenance.
+
+The complementary candidate uses a different calibration domain and a separately modeled sampling patch. The fixture assumes conditional independence only after those likelihood and domain contracts are explicitly given; merely naming two distinct instruments would not prove independence.
+
+### Constraints and acceptance targets
+
+- Exhaustive enumeration of this finite candidate set must select `complementary_assay_a_c` with exactly zero regret under the declared model.
+- Every likelihood row must sum to 10,000 basis points and the joint observation masses must sum to the global probability denominator.
+- Enforce hard budgets: at most two assays, two sample units, four power units and two elapsed hours. A three-assay overrun is rejected.
+- Missing dependence metadata, uncalibrated measurements, unmodeled spatial representativeness, missing results and false shared-domain independence claims receive zero incremental evidence credit.
+- Preserve (0 \le EVSI \le EVPI); probability calculations and policy scoring must not use floating-point rounding.
+- For empirical claims, require independently ground-truthed site/epoch samples, calibration records, conditional-dependence estimates, held-out probability calibration and reported decision regret before setting acceptance thresholds.
+
+The fixture is motivated by metrology practice that treats correlated uncertainty explicitly; see [NIST's correlation review](https://www.nist.gov/publications/correlation-uncertainty-measurement-discussion-state-art-techniques), [NIST covariance propagation guidance](https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc55.htm), and this [review of Bayesian fusion with unknown correlation](https://www.sciencedirect.com/science/article/pii/S1566253517302890). These sources do not calibrate the numerical fixture. No result here establishes lunar resource recoverability, field-sample representativeness, assay performance, economic viability or mission readiness.
