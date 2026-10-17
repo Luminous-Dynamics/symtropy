@@ -6,7 +6,7 @@ A deterministic fixture package with no runtime dependencies (the manifest-consi
 
 - Two dimensionless state coordinates and two observation channels.
 - Complementary sensors, a weakly observed high-mode proxy, an exact null mode, and a correlated duplicate measurement.
-- Explicit model-relative times, covariance checks, stable fixture IDs, provenance and claim ceiling.
+- Explicit model-relative times, covariance checks, stable fixture IDs, provenance and claim ceiling; simultaneous channels may share a timestamp, and only decreasing time sequences are rejected.
 - A frozen public manifest records the four operators, full measurement covariances, observations, and expected covariance-whitened singular values/ranks; hidden state truth is deliberately absent.
 - A 2x2 covariance-whitened local observability oracle reports singular values, rank, condition number only when full rank, and weak/null directions. It is an H0 reference, not a large-system solver.
 - An exact Gaussian expected-information-gain oracle evaluates `0.5 * ln(det(I + Sa Hᵀ R⁻¹ H))` in nats, using the full covariance matrices from the fixture.
@@ -35,4 +35,4 @@ cargo fmt --package symtropy-geophysics-benchmark -- --check
 
 No empirical performance benchmark has been run yet. The source is a small H0 control surface, not a geodynamo solver.
 
-Sixteen Rust tests are authored, including exact comparisons with the public fixture manifest. They are not yet executed; check the exact-head CI workflows before claiming qualification.
+Nineteen Rust tests are authored, including exact comparisons with the public fixture manifest. They are not yet executed; check the exact-head CI workflows before claiming qualification.
