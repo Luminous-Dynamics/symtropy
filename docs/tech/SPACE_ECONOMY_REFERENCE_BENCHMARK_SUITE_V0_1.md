@@ -185,3 +185,43 @@ The standalone example `tools/space-economy-bench/examples/supplier_concentratio
 For capacity shares 50/20/15/15, HHI is 3,350 and the loss of the 50-unit supplier leaves 50 units against demand 70. For shares 25/25/25/25, HHI is 2,500 and any single provider loss leaves 75 units. The second portfolio costs 18% more in this synthetic fixture, but it is the only one that passes the mandatory N-1 service gate.
 
 This supplements, rather than changes, the frozen six-scenario v0.1 corpus. HHI is reported as a descriptive concentration metric for the stated portfolio—not proof of market power or an outage probability. Deterministic fault coverage is not a probability model.
+
+ 
+## Active reference extension — orbital sustainability as common-pool infrastructure
+
+The standalone example `tools/space-economy-bench/examples/orbital_externality_reference.rs` adds an explicit, deterministic test of whether lifecycle decisions externalize orbital burden. It is a separate extension; the original v0.1 six-scenario JSON corpus remains frozen.
+
+### Motivation from current evidence
+
+ESA's [Space Environment Report 2026](https://www.esa.int/Space_Safety/Space_Debris/ESA_Space_Environment_Report_2026), published 14 September 2026 and based on data through the end of 2025, reports a sharp deterioration in its long-term Space Environment Health Index and concludes that end-of-life disposal and prevention need to be complemented by active debris removal. Its health index is an ESA-defined model, not a unit used by this benchmark. OECD's [Space Economy at a Glance 2026, chapter 4](https://www.oecd.org/en/publications/the-space-economy-at-a-glance-2026_cbf9b240-en/full-report/managing-vulnerabilities-dependencies-and-sustainability-risks-of-the-space-economy_4d97ef6d.html) separately identifies orbital sustainability, launch concentration, supply-chain dependencies, and wider externalities as systemic risks.
+
+That motivates a paradigm shift from treating orbital occupancy and end-of-life consequences as free side effects to treating them as constraints on shared infrastructure. It does **not** justify treating debris as one universal scalar or assuming the same model applies to low Earth orbit, lunar orbit, and the lunar surface.
+
+### Executable synthetic contract
+
+The example uses five declared options, a 90-unit qualified-service floor and a synthetic residual-burden budget of 15 units:
+
+| Option | Accounted lifecycle cost | Residual synthetic burden | Contract outcome |
+|---|---:|---:|---|
+| Cheap disposable | 60 SCU | 32 SOBU | Rejected: burden budget exceeded |
+| Design for removal | 82 SCU | 13 SOBU | Feasible |
+| Service and reuse | 88 SCU | 8 SOBU | Feasible |
+| Unverified cleanup claim | 63 SCU | 32 SOBU | Rejected: claimed removal receives zero credit |
+| Under service floor | 60 SCU | 8 SOBU | Rejected: qualified-service floor missed |
+
+The executable oracle must preserve both `design_for_removal` and `service_and_reuse` on the feasible Pareto frontier: one is cheaper; the other leaves less residual burden. It must not select the cheap disposable option just because that option has the lowest accounting cost. An end-of-life provision is included in lifecycle cost rather than left out of the accounting boundary.
+
+Prevention credits and active-removal credits are represented separately. A claimed but unverified prevention or removal amount contributes zero to the accepted credit. Verified credits cannot exceed the remaining synthetic burden. The receipt includes a per-option gate result, rejection reason codes, a source commit, source digest, and a strict claim ceiling.
+
+### Required future benchmarks
+
+- **Tier 0 integrity:** 100% rejection of the frozen unverified-removal and burden-budget negative controls; 0 unverified burden credits; 0 accepted options below the qualified-service floor; cost includes the explicitly declared end-of-life provision; exact input/source provenance in the receipt.
+- **Tier 1 decision quality:** preserve all feasible cost/burden/service Pareto alternatives; reject sustainability-gate violations before cost ranking; demonstrate cost and burden sensitivity with independently recomputable arithmetic rather than an opaque weighted scalar.
+- **Tier 2 external validity:** replace SOBU fixture inputs only with regime-specific, independently sourced quantities and a reviewed conversion model. Publish the orbit regime, epoch, time horizon, uncertainty, collision/debris model, data provenance/licence, and calibration corpus. Compare predictions with held-out observations or an independently maintained model.
+- **Tier 3 operations:** test end-of-life disposal success, passivation, servicing/removal interface availability, conjunction-avoidance burden, and verified removal outcomes as distinct measures. Report these separately; do not collapse them into one number without an explicit model and sensitivity study.
+
+### Limitations
+
+SOBU means *synthetic orbital burden unit* only. It is not a physical quantity, collision probability, validated debris-risk proxy, ESA Space Environment Health Index, ISO threshold, or proof of compliance. The example is not an orbital-dynamics simulation. It must not be used to assert real Earth-orbit economics, nor transferred to cislunar orbit or surface operations without a separate system boundary and validated physical basis. The benchmark verifies a decision contract; it does not certify a mission or policy.
+
+Follow-on calibration and data research is tracked in [BENCH-SPACE-005](https://github.com/Luminous-Dynamics/symtropy/issues/1751) (issue number is assigned by GitHub when created; replace this placeholder with the actual issue URL before considering this document finalized).
