@@ -75,7 +75,7 @@ Airlift is not automatically ecologically preferable. It can avoid road construc
 
 ### Synthetic salvage and airlift benchmark scenarios
 
-The corpus includes scenarios for recently dead timber with completed screening, a habitat tree that must be retained, uncertain permission/protection status, suspected pest/pathogen risk, a cheaper feasible cable option, a remote high-value helicopter candidate, and a declining live tree requiring a separate silvicultural decision. They all remain simulation-only; even a positive screening result includes `NO_EXTRACTION_AUTHORIZED`.
+The corpus includes scenarios for recently dead timber with completed screening, a habitat tree that must be retained, uncertain permission/protection status, suspected pest/pathogen risk, a cheaper feasible cable option, a remote high-value helicopter candidate, and a declining live tree requiring a separate silvicultural decision. They all remain simulation-only; even a positive screening result includes `NO_EXTRACTION_AUTHORIZED`. The dedicated work tracker is [WOOD-SALVAGE-001](https://github.com/Luminous-Dynamics/symtropy/issues/1838).
 
 Proposed acceptance rules:
 - 100% block when ownership/site consent, required permits, protected-status check, ecological retention disposition, hazard assessment or biosecurity clearance is missing/unknown.
