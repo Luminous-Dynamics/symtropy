@@ -17,7 +17,7 @@ cargo clippy --manifest-path tools/visual-optics-reference/Cargo.toml --all-targ
 cargo fmt --manifest-path tools/visual-optics-reference/Cargo.toml -- --check
 ```
 
-This crate defines its own small Cargo workspace so it does not enlarge or change the dependency graph of the main Bevy workspace. It has no third-party dependencies. A dedicated path-filtered workflow runs these three checks on PRs/pushes that touch this crate; its exact-head result still must be observed before claiming qualification.
+This crate defines its own small Cargo workspace so it does not enlarge or change the dependency graph of the main Bevy workspace. The reference library has no third-party runtime dependencies; integration tests use serde_json as a dev-only dependency to parse the checked-in analytic fixtures. A dedicated path-filtered workflow runs these three checks on PRs/pushes that touch this crate; its exact-head result still must be observed before claiming qualification.
 
 ## Current tests
 
@@ -28,7 +28,7 @@ This crate defines its own small Cargo workspace so it does not enlarge or chang
 - non-finite coordinates and invalid intrinsics are rejected;
 - finite inputs whose arithmetic overflows to a non-finite output are rejected.
 
-These are source-level test cases added in the current research PR. The path-filtered workflow first failed at rustfmt because the source had not been formatted. That exact formatting diff was corrected and the ray/FOV tests were then added; the latest focused workflow was queued when last inspected, so the revised source has not yet been reported as passing.
+The current source includes unit and integration tests, and a path-filtered workflow runs formatting, Clippy and tests. An earlier focused run failed at rustfmt; that exact formatting diff was corrected before subsequent features were added. The latest workflow has been queued/pending while the fixture-contract tests are added, so no passing status is claimed here.
 
 ## Evidence boundary
 
