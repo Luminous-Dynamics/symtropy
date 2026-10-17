@@ -129,8 +129,6 @@ fn validate_special_case(case: &Value, errors: &mut Vec<String>) {
         }
         "PV05_PAYLOAD_CG_SHIFT" => {
             let payload = number_at(inputs, "payload_kg");
-            let limit = number_at(&Value::Object(inputs.as_object().cloned().unwrap_or_default()), "unused");
-            let _ = limit;
             if !matches!(payload, Some(p) if p >= 0.0 && p <= 400.0) {
                 errors.push("PV05_PAYLOAD_CG_SHIFT: payload must remain within the synthetic 400 kg envelope".to_owned());
             }
