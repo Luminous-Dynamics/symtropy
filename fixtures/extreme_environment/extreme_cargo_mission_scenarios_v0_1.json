@@ -344,7 +344,7 @@
       "ambient_temp_min_c": 5,
       "ambient_temp_max_c": 42,
       "controlled_temp_min_c": 2,
-      "controlled_temp_max_c": 12,
+      "controlled_temp_max_c": 8,
       "max_payload_shock_g": 1.6,
       "max_payload_vibration_rms_m_s2": 0.7,
       "has_securement": true,
@@ -371,7 +371,8 @@
         "bulk_cargo",
         "cold_chain",
         "seated_passengers",
-        "wheelchair_user"
+        "wheelchair_user",
+        "field_crew"
       ],
       "max_payload_kg": 900,
       "bay_dimensions_mm": {
@@ -396,7 +397,7 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 15
+      "maximum_safe_route_tilt_deg": 12
     },
     {
       "platform_id": "canopyedge_light_rover",
@@ -420,7 +421,7 @@
       "ambient_temp_min_c": 10,
       "ambient_temp_max_c": 40,
       "controlled_temp_min_c": 2,
-      "controlled_temp_max_c": 35,
+      "controlled_temp_max_c": 8,
       "max_payload_shock_g": 0.9,
       "max_payload_vibration_rms_m_s2": 0.55,
       "has_securement": true,
@@ -434,7 +435,7 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 14
+      "maximum_safe_route_tilt_deg": 10
     },
     {
       "platform_id": "congo_low_disturbance_rover",
@@ -456,7 +457,7 @@
       "ambient_temp_min_c": 10,
       "ambient_temp_max_c": 40,
       "controlled_temp_min_c": 2,
-      "controlled_temp_max_c": 30,
+      "controlled_temp_max_c": 8,
       "max_payload_shock_g": 0.65,
       "max_payload_vibration_rms_m_s2": 0.4,
       "has_securement": true,
@@ -505,7 +506,7 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 18
+      "maximum_safe_route_tilt_deg": 12
     },
     {
       "platform_id": "polarcrawler_science_carrier",
@@ -528,7 +529,7 @@
       "ambient_temp_min_c": -55,
       "ambient_temp_max_c": 5,
       "controlled_temp_min_c": 2,
-      "controlled_temp_max_c": 30,
+      "controlled_temp_max_c": 8,
       "max_payload_shock_g": 0.8,
       "max_payload_vibration_rms_m_s2": 0.5,
       "has_securement": true,
@@ -591,7 +592,7 @@
         "fragile_instrument",
         "contained_liquid"
       ],
-      "max_payload_kg": 180,
+      "max_payload_kg": 250,
       "bay_dimensions_mm": {
         "length": 1100,
         "width": 900,
@@ -600,9 +601,9 @@
       "ambient_temp_min_c": 0,
       "ambient_temp_max_c": 60,
       "controlled_temp_min_c": 5,
-      "controlled_temp_max_c": 35,
-      "max_payload_shock_g": 1.1,
-      "max_payload_vibration_rms_m_s2": 0.75,
+      "controlled_temp_max_c": 8,
+      "max_payload_shock_g": 0.9,
+      "max_payload_vibration_rms_m_s2": 0.6,
       "has_securement": true,
       "has_containment": true,
       "has_occupant_restraints": false,
@@ -614,7 +615,7 @@
       "has_privacy_controls": true,
       "has_recovery_plan": true,
       "has_emergency_stop": true,
-      "maximum_safe_route_tilt_deg": 20
+      "maximum_safe_route_tilt_deg": 14
     },
     {
       "platform_id": "dunerunner_crew_carrier",
@@ -672,7 +673,7 @@
       "ambient_temp_min_c": -15,
       "ambient_temp_max_c": 45,
       "controlled_temp_min_c": 2,
-      "controlled_temp_max_c": 30,
+      "controlled_temp_max_c": 8,
       "max_payload_shock_g": 0.9,
       "max_payload_vibration_rms_m_s2": 0.5,
       "has_securement": true,
@@ -896,7 +897,7 @@
       "route_envelope": {
         "min_ambient_temp_c": 32,
         "max_ambient_temp_c": 52,
-        "required_route_tilt_deg": 15
+        "required_route_tilt_deg": 12
       },
       "requires_human_transport": false,
       "operating_notes": "Synthetic hot-soak/dust mission on a surveyed route with tools and fragile inspection equipment."
