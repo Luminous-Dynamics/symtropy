@@ -438,18 +438,25 @@ mod tests {
         }
     }
 
-    fn frame(
-        observation: super::super::observation::ObservationRecord,
+    fn frame_with_records(
+        records: Vec<super::super::observation::ObservationRecord>,
         decision_tick: u64,
     ) -> PolicyInformationFrame {
         build_policy_information_frame(
             &ObservationSchedule {
                 schema_version: crate::observation::OBSERVATION_SCHEMA_VERSION,
-                records: vec![observation],
+                records,
             },
             decision_tick,
         )
         .unwrap()
+    }
+
+    fn frame(
+        observation: super::super::observation::ObservationRecord,
+        decision_tick: u64,
+    ) -> PolicyInformationFrame {
+        frame_with_records(vec![observation], decision_tick)
     }
 
     #[test]
@@ -562,6 +569,7 @@ mod tests {
     }
 
     #[test]
+    #[test]
     fn highest_priority_then_stable_id_breaks_multi_failure_ties() {
         let mut definition = policy(BaselineStrategy::ReactiveRepair);
         definition.repair_rules.push(RepairRule {
@@ -588,25 +596,29 @@ mod tests {
         let mut pump = grid.clone();
         pump.observation_id = "pump-reading".into();
         pump.target_component = ComponentId::parse("pump").unwrap();
+
         let decision = evaluate_baseline_policy(
             &definition,
-            &frame(grid, 1),
+            &frame_with_records(vec![grid.clone(), pump.clone()], 1),
         )
         .unwrap();
         assert!(matches!(
             &decision.payload.disposition,
             DecisionDisposition::RepairRequested { request }
-                if request.target_component.as_str() == "grid"
+                if request.target_component.as_str() == "pump"
         ));
-        let pump_only_decision = evaluate_baseline_policy(
+
+        // Equal priority uses stable component ID ordering, not observation arrival order.
+        definition.repair_rules[1].priority = 100;
+        let tied = evaluate_baseline_policy(
             &definition,
-            &frame(pump, 1),
+            &frame_with_records(vec![pump, grid], 1),
         )
         .unwrap();
         assert!(matches!(
-            &pump_only_decision.payload.disposition,
+            &tied.payload.disposition,
             DecisionDisposition::RepairRequested { request }
-                if request.target_component.as_str() == "pump"
+                if request.target_component.as_str() == "grid"
         ));
     }
 
