@@ -1,0 +1,149 @@
+{
+  "schema_version": "adaptive-recovery-regret-v0.1",
+  "algorithm_id": "scenario-observation-regret-frontier-v0.1",
+  "decision_profile_id": "photovoltaic_second_life_synthetic_v0.1",
+  "case_id": "ARR-PV-001",
+  "status": "synthetic-logic-fixture",
+  "scenario_count": 3,
+  "policy_count": 3,
+  "units": {
+    "scenario_cost": "synthetic_eur_cents_per_scenario",
+    "regret": "synthetic_eur_cents_per_scenario",
+    "inspection": "synthetic_eur_cents"
+  },
+  "scenario_semantics": {
+    "probabilities_supplied": false,
+    "aggregation": "unweighted scenario sum; not an expected-value estimate or probability distribution",
+    "regret_definition": "chosen eligible-action cost plus incurred inspection cost minus cheapest gate-PASS operation cost in that scenario",
+    "infeasible_policy": "any selected operation with BLOCK/UNKNOWN gate makes the policy ineligible for the scenario set",
+    "observation_model": "initial decisions may depend only on initial_observation; a post_inspection_observation is accessible only after choosing inspect"
+  },
+  "claim_ceiling": {
+    "expected_actuation": false,
+    "real_world_measurements": false,
+    "field_accuracy_claimed": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "scenarios": [
+    {
+      "id": "PV01_SCREEN_ONLY_INSULATION_PASS",
+      "initial_observation": "screen_only",
+      "post_inspection_observation": "insulation_pass",
+      "action_options": {
+        "reuse": {
+          "cost_cents": 100,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_ELECTRICAL_PROFILE_PASS"
+        },
+        "recycle": {
+          "cost_cents": 200,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_QUALIFIED_RECYCLING_ROUTE"
+        },
+        "hold": {
+          "cost_cents": 250,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_SAFE_HOLD"
+        }
+      }
+    },
+    {
+      "id": "PV02_SCREEN_ONLY_INSULATION_FAIL",
+      "initial_observation": "screen_only",
+      "post_inspection_observation": "insulation_fail",
+      "action_options": {
+        "reuse": {
+          "cost_cents": 100,
+          "gate_status": "BLOCK",
+          "reason_code": "INSULATION_SAFETY_FAILURE_BLOCKS_REUSE"
+        },
+        "recycle": {
+          "cost_cents": 150,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_QUALIFIED_RECYCLING_ROUTE"
+        },
+        "hold": {
+          "cost_cents": 250,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_SAFE_HOLD"
+        }
+      }
+    },
+    {
+      "id": "PV03_KNOWN_DAMAGE",
+      "initial_observation": "known_damage",
+      "post_inspection_observation": null,
+      "action_options": {
+        "reuse": {
+          "cost_cents": 100,
+          "gate_status": "BLOCK",
+          "reason_code": "KNOWN_DAMAGE_BLOCKS_REUSE"
+        },
+        "recycle": {
+          "cost_cents": 180,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_QUALIFIED_RECYCLING_ROUTE"
+        },
+        "hold": {
+          "cost_cents": 240,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_SAFE_HOLD"
+        }
+      }
+    }
+  ],
+  "policies": [
+    {
+      "id": "static_reuse",
+      "initial_decisions": {
+        "screen_only": "reuse",
+        "known_damage": "reuse"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": false,
+      "expected_ineligible_scenario_ids": [
+        "PV02_SCREEN_ONLY_INSULATION_FAIL",
+        "PV03_KNOWN_DAMAGE"
+      ],
+      "expected_total_scenario_cost_cents": null,
+      "expected_worst_regret_cents": null,
+      "expected_total_regret_cents": null
+    },
+    {
+      "id": "recycle_only",
+      "initial_decisions": {
+        "screen_only": "recycle",
+        "known_damage": "recycle"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": true,
+      "expected_ineligible_scenario_ids": [],
+      "expected_total_scenario_cost_cents": 530,
+      "expected_worst_regret_cents": 100,
+      "expected_total_regret_cents": 100
+    },
+    {
+      "id": "inspect_then_route",
+      "initial_decisions": {
+        "screen_only": "inspect",
+        "known_damage": "recycle"
+      },
+      "post_inspection_decisions": {
+        "insulation_pass": "reuse",
+        "insulation_fail": "recycle"
+      },
+      "inspection_cost_cents": 60,
+      "expected_feasible": true,
+      "expected_ineligible_scenario_ids": [],
+      "expected_total_scenario_cost_cents": 550,
+      "expected_worst_regret_cents": 60,
+      "expected_total_regret_cents": 120
+    }
+  ],
+  "expected_frontier": [
+    "inspect_then_route",
+    "recycle_only"
+  ]
+}
