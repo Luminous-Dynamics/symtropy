@@ -451,17 +451,27 @@ fn evaluate_policy(
                     errors.push(format!("{policy_id}:{}: NEGATIVE_REGRET", scenario.id));
                 }
                 if let Some(cost) = maybe_total {
-                    total_cost = total_cost.and_then(|total| total.checked_add(cost));
-                    if total_cost.is_none() {
-                        errors.push(format!("{policy_id}: TOTAL_COST_OVERFLOW"));
+                    if let Some(total) = total_cost {
+                        match total.checked_add(cost) {
+                            Some(next) => total_cost = Some(next),
+                            None => {
+                                total_cost = None;
+                                errors.push(format!("{policy_id}: TOTAL_COST_OVERFLOW"));
+                            }
+                        }
                     }
                 } else {
                     total_cost = None;
                 }
                 if let Some(regret) = maybe_regret {
-                    total_regret = total_regret.and_then(|total| total.checked_add(regret));
-                    if total_regret.is_none() {
-                        errors.push(format!("{policy_id}: TOTAL_REGRET_OVERFLOW"));
+                    if let Some(total) = total_regret {
+                        match total.checked_add(regret) {
+                            Some(next) => total_regret = Some(next),
+                            None => {
+                                total_regret = None;
+                                errors.push(format!("{policy_id}: TOTAL_REGRET_OVERFLOW"));
+                            }
+                        }
                     }
                     worst_regret = worst_regret.map(|worst| worst.max(regret));
                 } else {
@@ -635,11 +645,11 @@ fn make_receipt(
         let (scenarios, observation_classes, operation_names) = parse_scenarios(root, &profile_id, &mut errors);
         scenario_count = scenarios.len();
         operation_action_count = operation_names.len();
-        let policies = match root.get("policies").and_then(Value::as_array) {
-            Some(policies) if !policies.is_empty() => policies,
+        let policies: Vec<&Value> = match root.get("policies").and_then(Value::as_array) {
+            Some(policies) if !policies.is_empty() => policies.iter().collect(),
             _ => {
                 errors.push("POLICIES_MISSING_OR_EMPTY".to_string());
-                &Vec::new()
+                Vec::new()
             }
         };
         policy_count = policies.len();
