@@ -183,7 +183,7 @@ These are **proposed targets for preregistration**, not empirical results or uni
 
 - **Physical validity:** 100% of accepted traces pass independent balance and capacity checks; all seeded invalid traces are rejected.
 - **Reproducibility:** 100% deterministic replay agreement for the declared deterministic mode, including exact manifest and report-digest verification.
-- **Practical service gain:** target at least a 15% relative reduction in held-out essential-service deficit-hours against the strongest feasible non-Symthaea baseline, with the 95% interval excluding no improvement. If variance makes this too easy or impossible to interpret, revise the target before—not after—the confirmatory evaluation.
+- **Policy-effect gate:** compose with the existing Living City policy-robustness target in [Symthaea #7618](https://github.com/Luminous-Dynamics/symthaea/issues/7618): a provisional target of at least 20% lower worst-case essential-service person-hours than the floor-first baseline. This domain profile does not independently claim that target is met. Align the exact denominator, scenario set, and duration metric first; mean deficit-hours and worst-case person-hours are distinct measures. Any additional water/energy-specific minimum effect must be preregistered with domain stakeholders before unblinding.
 - **Distributional guardrail:** no material degradation in the worst-served decile or critical-facility service; set the absolute non-inferiority margin with stakeholder input before unblinding.
 - **Robustness:** benefit must persist across multiple distinct held-out scenario families, not just seed variants of one template.
 - **Mechanism evidence:** the declared causal ablation must materially shrink the claimed benefit. If it does not, retract or narrow the mechanism claim.
@@ -217,19 +217,19 @@ These works motivate robustness, centralized/decentralized comparisons, and eval
 
 ## Implementation sequence
 
-1. **Protocol and schema:** freeze units, action/observation contract, scenario manifest, outcome schema, and independent verification boundary.
-2. **Rust mechanics:** implement the smallest deterministic coupled energy/water world with hand-computable fixtures.
-3. **Accounting tests:** add conservation, capacity, unit, seed, identity, and tamper tests before adding a cognitive policy.
-4. **Baselines:** implement greedy and proportional control, followed by independently checked max-min/leximin and small-world oracle references.
-5. **Scenario engine:** add held-out scarcity, component-failure, telemetry, and strategic-agent families.
-6. **Symthaea adapter and ablations:** constrain the action surface and compare under equal observations and budgets.
-7. **Frozen evaluation:** generate manifests, run the predeclared experiment, compute uncertainty and tail metrics, and publish failures alongside successful outcomes.
-8. **External data:** add public-data replay only after source semantics and limitations are documented; then seek domain review for any laboratory evaluation.
+1. **Freeze the domain profile:** declare unit conventions, water/energy action fields, critical-service mappings, manifest extensions, and metric denominators.
+2. **Reuse the shared harness:** build against the Living City policy-robustness work in [Symthaea #7618](https://github.com/Luminous-Dynamics/symthaea/issues/7618) and its report/receipt path [PR #7664](https://github.com/Luminous-Dynamics/symthaea/pull/7664). Do not create a second scenario runner or competing report format.
+3. **Integrate the shared world model:** coordinate with [Symtropy PR #1730](https://github.com/Luminous-Dynamics/symtropy/pull/1730) and [Symtropy issue #1739](https://github.com/Luminous-Dynamics/symtropy/issues/1739) for allocation pools, resource ledgers, bounded-duration actions, and temporal recovery. Verify current heads/status before depending on their APIs; do not fork a parallel city kernel.
+4. **Add the domain extension:** implement explicit electric-storage, raw-water, treatment, and potable-water ledger extensions with hand-computable fixtures and an independent recomputation verifier.
+5. **Reuse and qualify policies:** compare the shared harness's deployable baselines and Symthaea candidate on matched observations, action budgets, and scenario realizations; add domain-specific max-min or oracle comparators only where they are independently checked.
+6. **Extend held-out cases:** add coupled pump/grid/storage failures, correlated scarcity, telemetry faults, and strategically distorted demand to the existing scenario families.
+7. **Run the shared evaluation:** use one manifest/receipt/assessor contract, report service and fairness metrics, and retain failed runs and uncertainty intervals.
+8. **Add external data only after provenance review:** public-data replay precedes any operator-reviewed or laboratory evaluation.
 
 Keep the initial harness Rust-first. A documentation change is not an implementation, and no stage should be described as complete until exact artifacts and checks support it.
 
 ## Related work and integration boundaries
 
-This protocol is complementary to the repository's energy-ledger hardening and max-min regeneration allocator work (for example, [PR #1622](https://github.com/Luminous-Dynamics/symtropy/pull/1622) and [PR #1748](https://github.com/Luminous-Dynamics/symtropy/pull/1748), at the time this document was drafted). It does not assume those PRs are merged or validated. Reuse their implementations only after reviewing the exact code and checks; maintain an independent outcome verifier.
+The benchmark is a **domain profile**, not a parallel evaluation framework. The shared policy-robustness harness and its matched-world receipts live in [Symthaea #7618](https://github.com/Luminous-Dynamics/symthaea/issues/7618) and [draft PR #7664](https://github.com/Luminous-Dynamics/symthaea/pull/7664). Relevant Symtropy integration points are the settlement/allocation kernel in [PR #1730](https://github.com/Luminous-Dynamics/symtropy/pull/1730), temporal transitions and recovery in [issue #1739](https://github.com/Luminous-Dynamics/symtropy/issues/1739), energy-ledger hardening in [PR #1622](https://github.com/Luminous-Dynamics/symtropy/pull/1622), and max-min regeneration allocation in [PR #1748](https://github.com/Luminous-Dynamics/symtropy/pull/1748). This document does not assume any of those changes are merged or validated; check exact heads and outcomes before integration.
 
-The existing cooperation examples remain useful for mechanism research. This benchmark adds the missing applied question: whether a policy can preserve essential service under real constraints, with an auditable distribution of benefits and harms.
+Reuse the shared scenario manifest, policy interface, run receipt, comparison format, and fail-closed assessor. This profile's distinct contribution is the coupled water/electricity domain model, units, physical inventory equations, service/fairness outcomes, and external-data provenance. An independent verifier must still recompute water and energy balances; a valid policy receipt alone does not prove domain physics. Existing cooperation examples remain useful for mechanism research but are not substitutes for this applied qualification.
