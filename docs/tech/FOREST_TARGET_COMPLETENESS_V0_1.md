@@ -24,7 +24,7 @@ The audit independently recomputes line-of-sight, field of view and range agains
 - Two-step receding-horizon lookahead.
 - Exhaustive oracle for the **cell-coverage objective**.
 
-The third method is not a target-completeness oracle. Its target score is only a comparator. A later iteration must add a separate exact target-objective oracle before reporting regret against that objective.
+The cell-coverage oracle is not a target-completeness oracle; its target score remains a comparator. The target-objective oracle described below enumerates a separate feasibility-bounded objective before reporting regret against it.
 
 The seeded target generator creates localized two-sample trunk-edge tasks and four-sample log-end-contour tasks. A feature receives credit only if at least one selected viewpoint observes its cell within range and the 180° FOV, with conservative obstacle/unknown-cell occlusion. Standing in the same cell as a required feature does not count as observing it. A target is complete only when every required feature sample is visible across the selected viewpoints.
 
@@ -57,7 +57,7 @@ Its lexicographic objective is versioned in the emitted receipt:
 
 Only viewpoints that reveal at least one required feature are enumerated. A viewpoint that adds no new required feature cannot improve either primary objective and is not needed to optimize the final cost/fewer-viewpoints tie-break under this simplified metric model. All candidates are constrained to the traversable component reachable from the start. The result is still exact only for this declared discrete candidate set and simple step/turn costs.
 
-The receipt now includes the target-oracle viewpoint sequence and its independently checked cost fields, per-target truth/visibility, per-case complete-target regret for greedy and lookahead, aggregate ratios where the denominator is nonzero, and worst-case per-case regret for each split. The ratio is serialized as null when the target oracle completes zero targets. The cell-coverage oracle stays separate and can score fewer useful forestry targets despite seeing more total cells.
+The receipt now includes the target-oracle viewpoint sequence and its independently checked cost fields, per-target truth/visibility, per-case complete-target regret for greedy, lookahead, and the cell-coverage oracle, aggregate ratios where the denominator is nonzero, and worst-case per-case regret for each split. The ratio is serialized as null when the target oracle completes zero targets. The cell-coverage oracle stays separate and can score fewer useful forestry targets despite seeing more total cells.
 
 This makes target-completeness regret measurable rather than inferred from raw cell coverage. It does not establish a production-grade target-aware planner: the current operational baselines remain unchanged, and the exact oracle is a tiny-instance reference only.
 ## Research basis
@@ -75,7 +75,7 @@ These are targets to work toward, not achieved results or forestry standards.
 |---|---|---|
 | Contract v0.1 | 100% plan feasibility; zero train/test seed overlap; zero impossible target-completeness credit; exact deterministic replay | Focused Rust tests and exact-head workflow receipt |
 | Target-objective oracle | 100% feasible oracle plans; no feasible greedy/lookahead plan may beat the oracle's lexicographic score; publish held-out and worst-case regret | Exhaustive tiny-scene target-feature search, independent route-cost verification and receipt assertions |
-| Target-aware planning | Add a *target-objective* exhaustive oracle for tiny scenes; aim for ≥90% of its held-out aggregate score and publish worst-case regret per scene | Same feature definition, sensor budget, return reserve and seed split for every planner |
+| Target-aware planning | Build a practical target-aware receding-horizon selector; aim for ≥90% of the exact tiny-scene target-oracle complete-target score on held-out layouts and publish worst-case regret | Same feature definition, sensor budget, return reserve and seed split for every planner |
 | Generalization | At least 1,000 procedurally generated scenes, distinct tuning/acceptance seeds, multiple occluder arrangements, narrow passages, unknown space and distractor objects | Held-out target and map-generation manifests, hashes, per-scenario results and mutation/negative controls |
 | Field calibration | Report DBH bias, MAE, RMSE, p50/p90/p95 error, detection precision/recall and incomplete-target rate, stratified by diameter, species, occlusion, sensor and terrain | Independent annotated plots/point clouds, calibration records, uncertainty intervals and a preregistered protocol |
 | Aspirational field target | For a defined platform and calibrated operating envelope, explore median absolute DBH error ≤2 cm for trees under 30 cm DBH and p90 absolute error ≤4 cm; separately report larger-tree strata | Repeated paired field plots and confidence intervals; do not substitute synthetic scores or one paper’s result |
