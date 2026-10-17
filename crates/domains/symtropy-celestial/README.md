@@ -29,9 +29,9 @@ It measures one-period orbital closure, energy drift, linear/angular momentum an
 
 Run the focused tests from the Symtropy workspace:
 
-\`\`\`bash
+```bash
 cargo test -p symtropy-celestial
-\`\`\`
+```
 
 ## Scientific boundaries
 
