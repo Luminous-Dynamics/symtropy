@@ -5,7 +5,7 @@ This is a dependency-free, isolated Rust package containing small analytical ref
 
 ## Scope
 
-The current reference implements ideal rectified pinhole projection, pixel-to-ray back-projection, and geometric horizontal/vertical field-of-view calculations from pinhole intrinsics. It does not model lens distortion, surface projection, photometry, HDR response, wave optics, spatial light modulators, display electronics, eye fit, vignetting or physical calibration.
+The current reference implements ideal rectified pinhole projection, pixel-to-ray back-projection, geometric horizontal/vertical field-of-view calculations, and bounded sRGB transfer/relative-luminance functions. The sRGB functions are an SDR mathematical baseline only. This crate does not model lens distortion, surface projection, absolute photometry, HDR transfer functions, wave optics, spatial light modulators, display electronics, eye fit, vignetting or physical calibration.
 
 ## Run locally
 
