@@ -105,3 +105,21 @@ The synthetic high-local-content plan claims 92% local content and lower lifecyc
 The receipt intentionally reports local-content percentage, current operating status, evidence verification, and local closure separately. It contains named negative controls for missing dependencies and dependency cycles. A cycle blocker is the graph walk's explicit conservative failure, not a claim to compute a globally minimal cut set.
 
 The closure definition is specific to the declared graph and horizon: every node must be operational, evidence-verified, locally operated, and free of declared recurring external inputs, with the same requirements applying recursively to dependencies. Real applications must separately define the service horizon, stockpiles, wear-out/replacement rates, energy/material budgets, and evidence quality. See [BENCH-SPACE-006](https://github.com/Luminous-Dynamics/symtropy/issues/1765).
+
+## Time-horizon service viability under resupply shocks
+
+The example `tools/space-economy-bench/examples/temporal_resilience_reference.rs` moves beyond a static closure graph to a small, deterministic 12-month service-availability contract. It includes nominal and delayed imported-spare delivery, a verified local-repair path, and an unverified-repair negative control.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example temporal_resilience_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example temporal_resilience_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+With synthetic failure months 2, 6, and 10 and a 75% service-availability floor over 12 months, the nominal import-spares case delivers 9 service months and consumes 3 spares. Delayed arrivals at months 7 and 11 reduce service to 7 months (58.33%), with a 2-month maximum outage, and fail the floor. Verified local repair recovers by the next month after each of three failures and achieves 9 service months with zero externally sourced spares consumed. The unverified-repair claim receives no repair credit and delivers only one service month in its negative-control case.
+
+The model uses explicit event semantics: deliveries arrive at period start; failures happen within a period; service recovery is no earlier than the following period. The architecture-level gate requires every scenario declared for that architecture to meet the service floor before lifecycle cost is considered. Under these fixtures, the imported-spares architecture fails the delay shock; the higher-cost verified-local-repair architecture is the cheapest robust-feasible choice among the declared options.
+
+All failures, delivery dates, repair durations, availability floor and costs are synthetic. This is not a calibrated reliability model, an inventory-optimization model, a lunar operating forecast, or mission qualification. Future empirical versions need service-specific failure evidence, lead-time distributions, wear-out/replacement models, stockpile policy, repair capacity, energy/material budgets, and independent held-out validation. Follow-up: [BENCH-SPACE-007](https://github.com/Luminous-Dynamics/symtropy/issues/1792).
