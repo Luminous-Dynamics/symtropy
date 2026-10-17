@@ -255,6 +255,12 @@ fn pathway_json(path: &Pathway) -> Result<Value, String> {
     }))
 }
 
+fn find_pathway<'a>(paths: &'a [Pathway], pathway_id: &str) -> Result<&'a Pathway, String> {
+    paths.iter()
+        .find(|path| path.pathway_id == pathway_id)
+        .ok_or_else(|| format!("missing pathway {pathway_id}"))
+}
+
 fn execute(source_commit: &str) -> Result<Value, String> {
     if source_commit.len() != 40
         || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
@@ -270,12 +276,10 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         validate_pathway(path)?;
     }
 
-    let get = |id: &str| paths.iter().find(|path| path.pathway_id == id)
-        .ok_or_else(|| format!("missing pathway {id}"));
-    let shielding = get("regolith_to_bulk_shielding_aggregate")?;
-    let oxygen = get("regolith_to_oxygen")?;
-    let water = get("polar_volatiles_to_purified_water")?;
-    let electrolysis = get("polar_volatiles_to_electrolysis_products")?;
+    let shielding = find_pathway(&paths, "regolith_to_bulk_shielding_aggregate")?;
+    let oxygen = find_pathway(&paths, "regolith_to_oxygen")?;
+    let water = find_pathway(&paths, "polar_volatiles_to_purified_water")?;
+    let electrolysis = find_pathway(&paths, "polar_volatiles_to_electrolysis_products")?;
 
     if shielding.product_mass_kg()? != 900
         || shielding.firm_product_mass_in_fixture_kg()? != 900
