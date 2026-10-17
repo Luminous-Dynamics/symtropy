@@ -6,7 +6,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-#[cfg(test)]
 mod repair_graph_audit;
 
 const CORPUS_SCHEMA: &str = "personal-family-vehicle-scenario-corpus/0.1";
@@ -845,11 +844,20 @@ fn main() -> ExitCode {
         }
     };
 
+    let repair_graph_count = match repair_graph_audit::validate_fixture_corpus() {
+        Ok(count) => Some(count),
+        Err(graph_errors) => {
+            errors.extend(graph_errors.into_iter().map(|error| format!("repair_task_graph: {error}")));
+            None
+        }
+    };
+
     if errors.is_empty() {
         let summary = summary.expect("scenario summary exists after successful validation");
         let (source_registry_count, source_registry_sha256) =
             registry_result.expect("source registry result exists after successful validation");
         let evidence = evidence_result.expect("evidence envelope result exists after successful validation");
+        let repair_graph_fixture_count = repair_graph_count.expect("repair graph fixture count exists after successful validation");
         let report = AuditSummary {
             case_count: summary.case_count,
             negative_control_count: summary.negative_control_count,
@@ -861,7 +869,7 @@ fn main() -> ExitCode {
             evidence_fixtures_sha256: evidence.fixtures_sha256,
         };
         println!(
-            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={} evidence_fixtures={} envelope_schema_sha256={} envelope_fixtures_sha256={}",
+            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={} evidence_fixtures={} envelope_schema_sha256={} envelope_fixtures_sha256={} repair_graph_fixtures={}",
             report.case_count,
             report.negative_control_count,
             report.sha256,
@@ -869,9 +877,10 @@ fn main() -> ExitCode {
             report.source_registry_sha256,
             report.evidence_fixture_count,
             report.evidence_schema_sha256,
-            report.evidence_fixtures_sha256
+            report.evidence_fixtures_sha256,
+            repair_graph_fixture_count
         );
-        println!("CLAIM_CEILING synthetic corpus/registry/evidence-envelope contracts only; no physics, signature, licensing or safety result");
+        println!("CLAIM_CEILING synthetic corpus/registry/evidence-envelope/repair-graph contracts only; no physics, signature, licensing, workmanship or safety result");
         ExitCode::SUCCESS
     } else {
         eprintln!("CORPUS_AUDIT_FAIL errors={}", errors.len());
