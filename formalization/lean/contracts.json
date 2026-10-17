@@ -492,6 +492,9 @@
         "vector_id": "mechanics.simply-supported.uniform-load.fixture.v1",
         "contract_id": "mechanics.simply_supported.uniform_load.v1"
       }
-    ]
+    ],
+    "corpus_schema_path": "docs/built-environment/benchmarks/structural-reference-contract-vectors.schema.json",
+    "corpus_schema_commit": "1c0ee11e8947f58b8681fd5675325cd7b8c13008",
+    "corpus_schema_status": "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED"
   }
 }
