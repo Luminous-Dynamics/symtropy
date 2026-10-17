@@ -75,6 +75,20 @@ fn string_set(value: &Value, path: &str, errors: &mut Vec<String>) -> BTreeSet<S
     found
 }
 
+fn nonempty_string_array(value: &Value, path: &str, errors: &mut Vec<String>) {
+    match value.as_array() {
+        Some(items) if !items.is_empty() => {
+            for (index, item) in items.iter().enumerate() {
+                if !item.as_str().is_some_and(|text| !text.trim().is_empty()) {
+                    push(errors, &format!("{path}[{index}]"), "expected non-empty string");
+                }
+            }
+        }
+        Some(_) => push(errors, path, "expected non-empty array"),
+        None => push(errors, path, "expected array"),
+    }
+}
+
 fn add_id(
     value: &Value,
     key: &str,
@@ -184,11 +198,8 @@ fn audit_input(
                 add_id(item, "environment_id", &path, &mut environment_ids, &mut errors);
                 nonempty(item, "label", &path, &mut errors);
                 nonempty(item, "regional_caveat", &path, &mut errors);
-                for key in ["design_constraints", "ecological_no_go"] {
-                    if item.get(key).and_then(Value::as_array).is_none() {
-                        push(&mut errors, &format!("{path}.{key}"), "expected array");
-                    }
-                }
+                nonempty_string_array(&item["design_constraints"], &format!("{path}.design_constraints"), &mut errors);
+                nonempty_string_array(&item["ecological_no_go"], &format!("{path}.ecological_no_go"), &mut errors);
             }
         }
         _ => push(&mut errors, "environments", "expected at least five environment archetypes"),
@@ -205,9 +216,7 @@ fn audit_input(
                 add_id(item, "platform_id", &path, &mut platform_ids, &mut errors);
                 nonempty(item, "platform_class", &path, &mut errors);
                 nonempty(item, "description", &path, &mut errors);
-                if item.get("declared_limits").and_then(Value::as_array).is_none() {
-                    push(&mut errors, &format!("{path}.declared_limits"), "expected array");
-                }
+                nonempty_string_array(&item["declared_limits"], &format!("{path}.declared_limits"), &mut errors);
             }
         }
         _ => push(&mut errors, "platform_archetypes", "expected a non-empty array"),
@@ -230,8 +239,12 @@ fn audit_input(
                 let mission = nonempty(scenario, "mission_class", &path, &mut errors);
                 let required_gates = string_set(&scenario["required_gate_ids"], &format!("{path}.required_gate_ids"), &mut errors);
                 let required_metrics = string_set(&scenario["required_metric_ids"], &format!("{path}.required_metric_ids"), &mut errors);
-                if scenario.get("no_go_actions").and_then(Value::as_array).is_none() {
-                    push(&mut errors, &format!("{path}.no_go_actions"), "expected non-empty list");
+                nonempty_string_array(&scenario["no_go_actions"], &format!("{path}.no_go_actions"), &mut errors);
+                if required_gates.is_empty() {
+                    push(&mut errors, &format!("{path}.required_gate_ids"), "must not be empty");
+                }
+                if required_metrics.is_empty() {
+                    push(&mut errors, &format!("{path}.required_metric_ids"), "must not be empty");
                 }
                 if let Some(env) = env.as_deref() {
                     if !environment_ids.contains(env) {
@@ -692,6 +705,12 @@ mod tests {
         assert!(evaluate(&root).is_err());
         let mut root = fixture();
         root["deployment_recommended"] = json!(true);
+        assert!(evaluate(&root).is_err());
+        let mut root = fixture();
+        root["mission_scenarios"][0]["no_go_actions"] = json!([]);
+        assert!(evaluate(&root).is_err());
+        let mut root = fixture();
+        root["platform_archetypes"][0]["declared_limits"] = json!([]);
         assert!(evaluate(&root).is_err());
     }
 }
