@@ -35,6 +35,15 @@ pub struct MeasurementModel {
     pub input_unit: Unit,
     pub input_domain: Interval,
     pub transform: Transform,
+    pub model_discrepancy: ModelDiscrepancy,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ModelDiscrepancy {
+    pub unit: Unit,
+    pub interval: Interval,
+    pub basis: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -98,6 +107,7 @@ pub struct CompatibilityReport {
     pub measurement_model_artifact_ref: String,
     pub measurement_model_artifact_sha256: Option<String>,
     pub transform: Transform,
+    pub model_discrepancy: ModelDiscrepancy,
     pub output_dimension: String,
     pub output_tick_representation: String,
     pub claim_ceiling: String,
@@ -237,6 +247,17 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
     {
         return Err("square_non_negative_dimensionless requires dimensionless input".to_owned());
     }
+    validate_same_dimension(
+        output_unit(model),
+        model.model_discrepancy.unit,
+        "model discrepancy",
+    )?;
+    validate_interval(model.model_discrepancy.interval, "model_discrepancy.interval")?;
+    validate_name(&model.model_discrepancy.basis, "model_discrepancy.basis")?;
+    let discrepancy = canonical_interval(
+        model.model_discrepancy.unit,
+        model.model_discrepancy.interval,
+    )?;
 
     if input.states.is_empty() {
         return Err("states must not be empty".to_owned());
@@ -306,7 +327,8 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
             // Out-of-domain predictions cannot safely rule out any outcome.
             (None, all_outcome_ids.clone(), false)
         } else {
-            let predicted = transform_interval(state_interval, model.transform)?;
+            let transformed = transform_interval(state_interval, model.transform)?;
+            let predicted = apply_model_discrepancy(transformed, discrepancy)?;
             let compatible: Vec<String> = normalized_bins
                 .iter()
                 .filter(|bin| overlaps(predicted, bin.interval))
@@ -415,6 +437,7 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
         measurement_model_artifact_ref: model.model_artifact_ref.clone(),
         measurement_model_artifact_sha256: model.model_artifact_sha256.clone(),
         transform: model.transform,
+        model_discrepancy: model.model_discrepancy.clone(),
         output_dimension: if output_unit(model) == Unit::Dimensionless {
             "dimensionless".to_owned()
         } else {
@@ -578,6 +601,24 @@ fn signature_counts(states: &[NormalizedState], ids: Option<&BTreeSet<String>>) 
         }
     }
     counts
+}
+
+fn apply_model_discrepancy(
+    predicted: CanonicalInterval,
+    discrepancy: CanonicalInterval,
+) -> Result<CanonicalInterval, String> {
+    let lower = predicted
+        .lower
+        .checked_add(discrepancy.lower)
+        .ok_or_else(|| "model discrepancy lower-bound addition overflow".to_owned())?;
+    let upper = predicted
+        .upper
+        .checked_add(discrepancy.upper)
+        .ok_or_else(|| "model discrepancy upper-bound addition overflow".to_owned())?;
+    if lower > upper {
+        return Err("model discrepancy produced an invalid output interval".to_owned());
+    }
+    Ok(CanonicalInterval { lower, upper })
 }
 
 fn transform_interval(input: CanonicalInterval, transform: Transform) -> Result<CanonicalInterval, String> {
@@ -780,6 +821,11 @@ mod tests {
                 input_unit: Unit::Meter,
                 input_domain: interval(0, 2_000_000),
                 transform: Transform::Identity,
+                model_discrepancy: ModelDiscrepancy {
+                    unit: Unit::Meter,
+                    interval: interval(0, 0),
+                    basis: "synthetic zero-discrepancy assumption; not calibrated".to_owned(),
+                },
             },
             states: vec![
                 state("short", Unit::Millimeter, 500_000_000, 900_000_000, "decision-A"),
@@ -817,6 +863,40 @@ mod tests {
             .expect("millimeters");
         assert_eq!(a.lower, b.lower);
         assert_eq!(a.upper, b.upper);
+    }
+
+    #[test]
+    fn model_discrepancy_envelope_widens_possible_outcomes() {
+        let mut input = base_input();
+        input.states = vec![state(
+            "between-bins",
+            Unit::Meter,
+            1_100_000,
+            1_100_000,
+            "decision-between-bins",
+        )];
+        input.outcomes = vec![
+            bin("left", Unit::Meter, 0, 1_050_000),
+            bin("right", Unit::Meter, 1_150_000, 2_000_000),
+        ];
+        input.measurement_model.model_discrepancy.interval = interval(-200_000, 200_000);
+        input.measurement_model.model_discrepancy.basis =
+            "synthetic bounded discrepancy for test only; not calibrated".to_owned();
+        let report = evaluate(&input, &digest(&input)).expect("discrepancy widens output");
+        assert_eq!(report.state_results[0].possible_outcome_ids, vec!["left", "right"]);
+        assert_eq!(report.state_results[0].predicted_output_interval, Some(interval(900_000_000, 1_300_000_000)));
+        assert!(report.state_results[0].output_range_has_uncovered_regions);
+        assert_eq!(report.model_discrepancy, input.measurement_model.model_discrepancy);
+    }
+
+    #[test]
+    fn model_discrepancy_overflow_fails_closed() {
+        assert!(apply_model_discrepancy(
+            CanonicalInterval { lower: i64::MAX - 1, upper: i64::MAX },
+            CanonicalInterval { lower: 0, upper: 1 },
+        )
+        .unwrap_err()
+        .contains("overflow"));
     }
 
     #[test]
@@ -1005,6 +1085,11 @@ mod tests {
                 Transform::Identity
             };
             input.measurement_model.input_domain = interval(0, 2_000_000);
+            input.measurement_model.model_discrepancy = ModelDiscrepancy {
+                unit: if square_world { Unit::Dimensionless } else { Unit::Meter },
+                interval: interval(0, 0),
+                basis: "synthetic zero-discrepancy assumption; not calibrated".to_owned(),
+            };
             input.states.clear();
             for state_index in 0..20i64 {
                 let low = (state_index * 95_000 + world * 1_000) % 1_700_000;
