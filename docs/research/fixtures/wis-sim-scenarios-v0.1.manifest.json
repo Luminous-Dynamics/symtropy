@@ -1,0 +1,71 @@
+{
+  "manifest_version": "wis-sim-scenario-manifest/0.1",
+  "corpus_id": "WIS-SIM-001",
+  "corpus_version": "0.1",
+  "fixture_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl",
+  "fixture_sha256": "f3dade9be39258ad3d801230af91a212a454cb2272ba72f0f241dfbd4051c0a6",
+  "hash_algorithm": "SHA-256",
+  "record_format": "JSON Lines; UTF-8; newline-terminated",
+  "record_count": 28,
+  "unique_scenario_count": 7,
+  "variant_count_per_scenario": 4,
+  "variant_distribution": {
+    "baseline": 7,
+    "adversarial": 21
+  },
+  "schema_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.schema.json",
+  "schema_sha256": "a5e3dc5010c4126e93e3d144dd52a7895fac5314540033f3038fca33565ac6aa",
+  "seed_policy": "Fixed deterministic_seed per case; no ambient randomness permitted for fixture qualification.",
+  "policy_comparison_set": [
+    "no_intervention_v0",
+    "individual_greedy_v0",
+    "majority_vote_v0",
+    "cooperative_deliberation_v0"
+  ],
+  "baseline_policy": "no_intervention_v0",
+  "execution_profile": "symtropy-discrete-synthetic-v1",
+  "required_run_identity": [
+    "scenario_id",
+    "scenario_version",
+    "variant_id",
+    "fixture_sha256",
+    "policy_version",
+    "engine_revision",
+    "toolchain_profile",
+    "deterministic_seed"
+  ],
+  "metrics": [
+    "task outcome per predeclared invariant",
+    "resource efficiency",
+    "distribution by agent/group",
+    "unknowns retained or wrongly promoted",
+    "objection persistence/resolution",
+    "revision after qualified evidence change",
+    "reversibility and recovery cost",
+    "false-claim acceptance under status pressure",
+    "worst-group regression",
+    "replay identity"
+  ],
+  "acceptance": {
+    "scenario_count_min": 7,
+    "adversarial_variants_min_per_scenario": 3,
+    "deterministic_replay_match": 1,
+    "subgroup_harm_hidden_by_aggregate_allowed": 0,
+    "unresolved_objection_erasure_allowed": 0,
+    "unknown_to_verified_promotions_allowed": 0,
+    "consciousness_or_wisdom_scalar_emission_allowed": 0
+  },
+  "status": "typed scenario assertions and independent run-report evaluator authored; tests and simulation not executed",
+  "claim_ceiling": "Defines inputs and invariants for future deterministic simulation runs; does not validate model assumptions, human behaviour, consciousness, wisdom, spiritual interventions or real-world outcomes.",
+  "no_human_data": true,
+  "no_real_world_forecast": true,
+  "schema_validation_status": "STRICT_SCHEMA_PINNED; NOT_VALIDATED_WITH_JSON_SCHEMA_ENGINE",
+  "verifier": {
+    "path": "tools/wis-sim-fixture-verifier",
+    "authored_test_count": 35,
+    "execution_status": "NOT_EXECUTED",
+    "scope": "hash-first validation of fixture, scenario schema and run-report schema; pinned field sets; variant coverage; unique seeds; policy/family/assertion binding; typed assertion validation; independent run-report identity and assertion evaluation. It is not full JSON Schema validation and is not a simulation engine."
+  },
+  "run_report_schema_path": "docs/research/fixtures/wis-sim-run-report-v0.1.schema.json",
+  "run_report_schema_sha256": "cc3e80c4c140062c0ad76b318693c1a5feb13e5686bcd86c8be9ee10a45e47b8"
+}
