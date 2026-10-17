@@ -18,6 +18,7 @@ pub enum ModelError {
     InitialTemperatureOutOfRange,
     ReceiverLossExceedsAbsorbedEnergy,
     InvalidDischargeEfficiency,
+    EnergyAboveStoreCapacity,
     ReportMismatch(&'static str),
 }
 
@@ -35,6 +36,7 @@ impl fmt::Display for ModelError {
             Self::InitialTemperatureOutOfRange => write!(f, "store temperature is outside configured bounds"),
             Self::ReceiverLossExceedsAbsorbedEnergy => write!(f, "receiver loss exceeds absorbed solar energy"),
             Self::InvalidDischargeEfficiency => write!(f, "exchanger effectiveness must be in (0, 1]"),
+            Self::EnergyAboveStoreCapacity => write!(f, "requested stored energy exceeds configured capacity"),
             Self::ReportMismatch(n) => write!(f, "independent report verification failed: {n}"),
         }
     }
@@ -187,7 +189,7 @@ pub struct CollectorReport {
 
 pub fn capture_solar(input: CollectorInput) -> Result<CollectorReport, ModelError> {
     let absorbed = input.incident_solar.value() * input.optical_efficiency.value();
-    if input.receiver_loss.value() > absorbed + 1.0e-9 {
+    if input.receiver_loss.value() > absorbed {
         return Err(ModelError::ReceiverLossExceedsAbsorbedEnergy);
     }
     Ok(CollectorReport {
@@ -202,7 +204,7 @@ pub fn capture_solar(input: CollectorInput) -> Result<CollectorReport, ModelErro
 /// Recomputes the collector report from the input, rather than trusting reported totals.
 pub fn verify_collector_report(input: CollectorInput, claimed: CollectorReport) -> Result<(), ModelError> {
     let absorbed = input.incident_solar.value() * input.optical_efficiency.value();
-    if input.receiver_loss.value() > absorbed + 1.0e-9 {
+    if input.receiver_loss.value() > absorbed {
         return Err(ModelError::ReceiverLossExceedsAbsorbedEnergy);
     }
     let optical_loss = input.incident_solar.value() - absorbed;
@@ -278,7 +280,7 @@ fn stored_energy_at(c: &StoreConfig, t: Kelvin) -> Result<EnergyJ, ModelError> {
 fn temperature_at_energy(c: &StoreConfig, target: EnergyJ) -> Result<Kelvin, ModelError> {
     let cap = stored_energy_at(c, c.max_temperature)?.value();
     if target.value() > cap + 1.0e-8 * cap.max(1.0) {
-        return Err(ModelError::MustBeNonNegative("energy_above_store_capacity"));
+        return Err(ModelError::EnergyAboveStoreCapacity);
     }
     let target = target.value().min(cap).max(0.0);
     let (mut low, mut high) = (c.min_temperature.value(), c.max_temperature.value());
