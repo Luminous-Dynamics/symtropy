@@ -68,6 +68,26 @@
       "id": "allocation.negative-control",
       "theorem": "SymtropyFormal.over_budget_waterline_certificate_is_rejected",
       "claim": "A certificate that over-allocates the source budget is rejected."
+    },
+    {
+      "id": "allocation.empty-demand",
+      "theorem": "SymtropyFormal.empty_demand_waterline_certificate_is_accepted",
+      "claim": "Empty demand leaves supply unallocated and is accepted."
+    },
+    {
+      "id": "allocation.zero-supply",
+      "theorem": "SymtropyFormal.zero_supply_waterline_certificate_is_accepted",
+      "claim": "Zero supply allocates zero even with positive caps."
+    },
+    {
+      "id": "allocation.capacity-limited",
+      "theorem": "SymtropyFormal.capacity_limited_waterline_certificate_is_accepted",
+      "claim": "When supply exceeds total capacity, all recipients saturate and the certificate closes to total capacity."
+    },
+    {
+      "id": "allocation.negative-cap-rejected",
+      "theorem": "SymtropyFormal.negative_cap_waterline_certificate_is_rejected",
+      "claim": "A negative recipient cap causes certificate rejection."
     }
   ],
   "fixtures": [
@@ -100,6 +120,56 @@
         "1",
         "3",
         "3"
+      ],
+      "expected": "REJECT"
+    },
+    {
+      "id": "empty-demand",
+      "supply": "9",
+      "caps": [],
+      "waterline": "0",
+      "allocations": [],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "zero-supply",
+      "supply": "0",
+      "caps": [
+        "4",
+        "5"
+      ],
+      "waterline": "0",
+      "allocations": [
+        "0",
+        "0"
+      ],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "supply-above-capacity",
+      "supply": "10",
+      "caps": [
+        "1",
+        "2"
+      ],
+      "waterline": "3",
+      "allocations": [
+        "1",
+        "2"
+      ],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "negative-cap",
+      "supply": "1",
+      "caps": [
+        "-1",
+        "2"
+      ],
+      "waterline": "0",
+      "allocations": [
+        "-1",
+        "0"
       ],
       "expected": "REJECT"
     }
