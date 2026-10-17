@@ -38,6 +38,7 @@ Research:
 - Output/by-product volume ledger with complete, partial and unknown modes.
 - Strict parsing that rejects unknown keys, invalid units, unordered geometry, malformed defects and duplicate IDs.
 - Structural-use boards require qualified grade evidence and a passing inspection.
+- An ellipse-per-section trapezoid integrator independently estimates log volume from section stations and checks the declared gross-volume estimate against a separate geometry tolerance.
 - Complete-ledger reconciliation within declared tolerance; partial outputs cannot exceed the input-volume envelope beyond tolerance; unknown observations cannot carry quantitative outputs.
 - Deterministic receipt binding the exact corpus bytes and source commit.
 
@@ -57,6 +58,7 @@ These targets are proposals, not standards or demonstrated results. Freeze them 
 ### Gate B — physical/accounting correctness
 
 - Every board volume is recomputable from integer dimensions.
+- Geometry-derived volume (ellipse area per station integrated by a trapezoid rule) agrees with the declared gross-volume estimate within a separate predeclared tolerance.
 - Complete-ledger cases close within predeclared measurement uncertainty; no silent balancing.
 - Partial observations remain explicitly partial and are never reported as fully reconciled.
 - Report volume, board count, dimensions, grade mix and residual/by-product totals per log.

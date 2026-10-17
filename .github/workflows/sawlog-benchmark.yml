@@ -61,6 +61,7 @@ jobs:
             and ([.scenarios[].accounting_status] == ["within_tolerance", "partial_only"])
             and ([.scenarios[].section_station_count] == [4, 5])
             and ([.scenarios[].defect_count] == [0, 2])
+            and (.scenarios | all(.absolute_geometry_delta_mm3 <= .geometry_tolerance_mm3))
           ' sawlog-benchmark-receipt.json
       - name: Upload deterministic contract receipt
         uses: actions/upload-artifact@v4

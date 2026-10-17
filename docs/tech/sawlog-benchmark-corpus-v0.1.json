@@ -18,7 +18,7 @@
         "species_code": "SYN-HARDWOOD-A",
         "species_evidence_state": "synthetic",
         "length_mm": 3000,
-        "gross_volume_mm3": 250000000,
+        "gross_volume_mm3": 245044227,
         "gross_volume_method": "synthetic_reference_volume",
         "source": {
           "source_id": "synthetic-generator-v1",
@@ -109,10 +109,11 @@
           "sawdust_volume_mm3": 15000000,
           "chips_volume_mm3": 8000000,
           "bark_volume_mm3": 4000000,
-          "slabs_and_trim_volume_mm3": 210500000,
+          "slabs_and_trim_volume_mm3": 205544227,
           "rejects_volume_mm3": 0
         }
-      }
+      },
+      "geometry_tolerance_ppm": 10000
     },
     {
       "scenario_id": "SYNTHETIC_SWEEP_AND_KNOT_PARTIAL",
@@ -123,7 +124,7 @@
         "species_code": "SYN-HARDWOOD-B",
         "species_evidence_state": "synthetic",
         "length_mm": 3200,
-        "gross_volume_mm3": 330000000,
+        "gross_volume_mm3": 280230065,
         "gross_volume_method": "synthetic_reference_volume",
         "source": {
           "source_id": "synthetic-generator-v1",
@@ -255,7 +256,8 @@
           "slabs_and_trim_volume_mm3": 100000000,
           "rejects_volume_mm3": 4000000
         }
-      }
+      },
+      "geometry_tolerance_ppm": 20000
     }
   ]
 }

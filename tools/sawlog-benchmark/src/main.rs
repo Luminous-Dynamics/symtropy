@@ -25,6 +25,7 @@ struct Scenario {
     scenario_id: String,
     evidence_class: String,
     accounting_tolerance_ppm: u32,
+    geometry_tolerance_ppm: u32,
     log: LogGeometry,
     machine: MachineConfig,
     observation: ObservedRun,
@@ -155,6 +156,9 @@ struct ScenarioSummary {
     section_station_count: usize,
     defect_count: usize,
     gross_log_volume_mm3: u64,
+    geometry_volume_estimate_mm3: u128,
+    absolute_geometry_delta_mm3: u128,
+    geometry_tolerance_mm3: u128,
     observed_board_count: usize,
     observed_board_volume_mm3: u128,
     known_byproduct_volume_mm3: u128,
@@ -192,6 +196,30 @@ fn totals(s: &Scenario) -> Check<(u128, u128, u128)> {
     let combined = boards.checked_add(byproducts).ok_or_else(|| format!("{}: total volume overflow", s.scenario_id))?;
     Ok((boards, byproducts, combined))
 }
+fn estimated_geometry_volume_mm3(log: &LogGeometry) -> Check<u128> {
+    // Each measured section is treated as an ellipse. Integrate its area along the
+    // log axis with a trapezoid rule; the result is a reference estimate, not CT truth.
+    let mut volume = 0.0_f64;
+    for pair in log.stations.windows(2) {
+        let left = &pair[0];
+        let right = &pair[1];
+        let left_area = std::f64::consts::PI
+            * (left.major_diameter_mm as f64)
+            * (left.minor_diameter_mm as f64)
+            / 4.0;
+        let right_area = std::f64::consts::PI
+            * (right.major_diameter_mm as f64)
+            * (right.minor_diameter_mm as f64)
+            / 4.0;
+        let dx = (right.axial_position_mm - left.axial_position_mm) as f64;
+        volume += (left_area + right_area) * 0.5 * dx;
+    }
+    if !volume.is_finite() || volume <= 0.0 || volume > u64::MAX as f64 {
+        return Err(format!("{}: geometry-derived volume is outside representable bounds", log.log_id));
+    }
+    Ok(volume.round() as u128)
+}
+
 fn validate(c: &Corpus) -> Check<()> {
     nonempty(&c.suite_id, "suite_id", "corpus")?;
     nonempty(&c.suite_version, "suite_version", "corpus")?;
@@ -215,6 +243,7 @@ fn validate_scenario(s: &Scenario) -> Check<()> {
     nonempty(ctx, "scenario_id", "scenario")?;
     if s.evidence_class != "synthetic" { return Err(format!("{ctx}: v0.1 accepts synthetic scenarios only")); }
     if s.accounting_tolerance_ppm > 1_000_000 { return Err(format!("{ctx}: accounting tolerance exceeds 100%")); }
+    if s.geometry_tolerance_ppm > 1_000_000 { return Err(format!("{ctx}: geometry tolerance exceeds 100%")); }
     let l = &s.log;
     nonempty(&l.log_id, "log_id", ctx)?;
     nonempty(&l.species_code, "species_code", ctx)?;
@@ -245,7 +274,17 @@ fn validate_scenario(s: &Scenario) -> Check<()> {
         if p.ellipse_rotation_mdeg >= 360_000 || p.uncertainty_ppm > 1_000_000 {
             return Err(format!("{ctx}: invalid section rotation or uncertainty"));
         }
+        if p.center_x_mm.unsigned_abs() > MAX_MM || p.center_y_mm.unsigned_abs() > MAX_MM {
+            return Err(format!("{ctx}: section center offsets exceed measurement bounds"));
+        }
         max_diameter = max_diameter.max(p.major_diameter_mm);
+    }
+    let geometry_volume = estimated_geometry_volume_mm3(l)?;
+    let declared_gross = u128::from(l.gross_volume_mm3);
+    let geometry_delta = geometry_volume.abs_diff(declared_gross);
+    let geometry_tolerance = declared_gross * u128::from(s.geometry_tolerance_ppm) / 1_000_000;
+    if geometry_delta > geometry_tolerance {
+        return Err(format!("{ctx}: geometry-derived volume differs from declared gross volume by {geometry_delta} mm3 (tolerance {geometry_tolerance} mm3)"));
     }
     if l.defects.len() > 1000 { return Err(format!("{ctx}: defect count exceeds 1000")); }
     let mut defect_ids = BTreeSet::new();
@@ -316,6 +355,9 @@ fn summary(s: &Scenario) -> Check<ScenarioSummary> {
     let (boards, byproducts, combined) = totals(s)?;
     let gross = u128::from(s.log.gross_volume_mm3);
     let delta = (s.observation.status == ObservationStatus::Complete).then(|| combined.abs_diff(gross));
+    let geometry_volume = estimated_geometry_volume_mm3(&s.log)?;
+    let geometry_delta = geometry_volume.abs_diff(gross);
+    let geometry_tolerance = gross * u128::from(s.geometry_tolerance_ppm) / 1_000_000;
     let status = match s.observation.status {
         ObservationStatus::Complete => "within_tolerance",
         ObservationStatus::Partial => "partial_only",
@@ -324,7 +366,9 @@ fn summary(s: &Scenario) -> Check<ScenarioSummary> {
     Ok(ScenarioSummary {
         scenario_id: s.scenario_id.clone(), log_id: s.log.log_id.clone(), evidence_class: s.evidence_class.clone(),
         length_mm: s.log.length_mm, section_station_count: s.log.stations.len(), defect_count: s.log.defects.len(),
-        gross_log_volume_mm3: s.log.gross_volume_mm3, observed_board_count: s.observation.boards.len(),
+        gross_log_volume_mm3: s.log.gross_volume_mm3, geometry_volume_estimate_mm3: geometry_volume,
+        absolute_geometry_delta_mm3: geometry_delta, geometry_tolerance_mm3: geometry_tolerance,
+        observed_board_count: s.observation.boards.len(),
         observed_board_volume_mm3: boards, known_byproduct_volume_mm3: byproducts, known_output_volume_mm3: combined,
         absolute_accounting_delta_mm3: delta, accounting_status: status,
         grade_rule_id: s.machine.grade_rule_id.clone(), grade_rule_version: s.machine.grade_rule_version.clone(),
@@ -380,6 +424,12 @@ mod tests {
         let mut c = corpus();
         c.scenarios[0].log.stations.swap(1, 2);
         assert!(validate(&c).unwrap_err().contains("strictly increasing"));
+    }
+    #[test]
+    fn declared_gross_volume_must_match_geometry_within_tolerance() {
+        let mut c = corpus();
+        c.scenarios[0].log.gross_volume_mm3 += 20_000_000;
+        assert!(validate(&c).unwrap_err().contains("geometry-derived volume differs"));
     }
     #[test]
     fn complete_ledger_cannot_hide_volume_gap() {
