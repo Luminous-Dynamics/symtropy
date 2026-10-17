@@ -169,7 +169,7 @@ fn pq_fixture_matches_independent_st2084_equations_and_reference() {
     let c1 = number_at(&fixture, &["profile", "constants", "c1"]);
     let c2 = number_at(&fixture, &["profile", "constants", "c2"]);
     let c3 = number_at(&fixture, &["profile", "constants", "c3"]);
-    let max_nits = number_at(&fixture, &["profile", "luminance_domain_nits", "1"]);
+    let max_nits = array_number_at(&fixture, &["profile", "luminance_domain_nits"], 1);
     let signal_tolerance = number_at(&fixture, &["tolerance", "signal"]);
     let nits_tolerance = number_at(&fixture, &["tolerance", "luminance_nits"]);
 
