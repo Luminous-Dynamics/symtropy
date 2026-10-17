@@ -39,3 +39,19 @@ cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example
 With the synthetic prior P(rich)=0.40, build payoffs (+100 if rich, −150 if poor), import payoff 0, 90% sensitivity/specificity, and survey cost 10, the analytical reference gives expected value 0 without a survey, gross value 27 after a positive-survey-only build policy, net incremental survey value +17, and perfect-information value 40. A 50%/50% uninformative survey has zero information value and must not be purchased at positive cost.
 
 These numbers are intentionally synthetic. They validate the value-of-information arithmetic and the stop/continue decision contract, not lunar geology, a survey instrument, or an actual ISRU investment. See Symtropy issue #1738: https://github.com/Luminous-Dynamics/symtropy/issues/1738.
+
+## Correlated-failure reference (active research slice)
+
+`tools/space-economy-bench/examples/common_cause_reference.rs` contrasts two relay topologies that both survive either single relay failure. In the synthetic low-cost topology, both relays depend on one power bus; failure of that bus removes all capacity. The costlier topology uses separately named power domains and survives each declared individual provider or controller fault. It never claims those domains are statistically independent.
+
+Run:
+
+```sh
+cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference
+cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The fixture uses demand 60, two 70-capacity relays, listed synthetic cost 65 for the shared-bus option and 85 for the separated-controller option. The point is not to estimate actual relay costs; it is to show why node count is not sufficient evidence of resilience. See [BENCH-SPACE-003](https://github.com/Luminous-Dynamics/symtropy/issues/1749).
+
+The receipt reports named fault applicability, remaining service capacity and unmet demand. A fault not present in a topology is labelled `not_applicable`, never silently counted as a pass.

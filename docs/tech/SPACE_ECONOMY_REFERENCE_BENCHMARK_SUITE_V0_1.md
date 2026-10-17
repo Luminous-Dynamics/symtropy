@@ -167,3 +167,12 @@ These references motivate interoperability, sustainability, and integrated-resou
 6. Add externally sourced datasets and realistic uncertainty only when their provenance and interpretation can be independently reviewed.
 
 The first milestone is successful rejection of incorrect claims, not a grand-economy visualization. The suite succeeds when it can tell us that a plan is infeasible, a proposed saving is illusory, or the available evidence is insufficient—and can show another reviewer exactly why.
+
+ 
+## Active reference extension — correlated failure domains
+
+The standalone reference suite now has a follow-up deterministic fault-set comparison for cislunar relay topologies: [BENCH-SPACE-003](https://github.com/Luminous-Dynamics/symtropy/issues/1749). Two providers can pass provider-level N-1 checks while sharing an upstream power/controller dependency whose failure disables both.
+
+The executable example `tools/space-economy-bench/examples/common_cause_reference.rs` makes this distinction explicit. It compares a 65-SCU synthetic shared-bus option with an 85-SCU synthetic separate-controller option under demand 60 and two 70-capacity relays. The first topology passes either provider outage but fails its shared-bus outage; the second survives each individual provider/controller fault represented in its own topology.
+
+This is a separate extension and does **not** alter or silently add a seventh scenario to the frozen v0.1 corpus. The example verifies named, deterministic component-dependency cases. It does not assign failure probabilities, claim statistical independence, or qualify actual cislunar infrastructure. A future probability model requires FMEA/hazard evidence and calibration.

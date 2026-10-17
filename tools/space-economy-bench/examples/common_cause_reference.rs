@@ -20,56 +20,6 @@ struct Architecture {
     claim_ceiling: &'static str,
 }
 
-#[derive(Clone, Copy, Debug)]
-struct FaultCase {
-    id: &'static str,
-    failed_component: Option<&'static str>,
-}
-
-const DEMAND: u64 = 60;
-const SHARED_PROVIDERS: [Provider; 2] = [
-    Provider { id: "relay-a", capacity: 70, power_domain: "power/shared-bus" },
-    Provider { id: "relay-b", capacity: 70, power_domain: "power/shared-bus" },
-];
-const DIVERSE_PROVIDERS: [Provider; 2] = [
-    Provider { id: "relay-a", capacity: 70, power_domain: "power/bus-a" },
-    Provider { id: "relay-b", capacity: 70, power_domain: "power/bus-b" },
-];
-const SHARED_REQUIRED: [&str; 3] = [
-    "provider/relay-a",
-    "provider/relay-b",
-    "power/shared-bus",
-];
-const DIVERSE_REQUIRED: [&str; 4] = [
-    "provider/relay-a",
-    "provider/relay-b",
-    "power/bus-a",
-    "power/bus-b",
-];
-const ARCHITECTURES: [Architecture; 2] = [
-    Architecture {
-        id: "shared_power_controller",
-        cost_scu: 65,
-        providers: &SHARED_PROVIDERS,
-        required_faults: &SHARED_REQUIRED,
-        claim_ceiling: "Synthetic topology contract only; no empirical failure probability or independence claim.",
-    },
-    Architecture {
-        id: "separate_power_controllers",
-        cost_scu: 85,
-        providers: &DIVERSE_PROVIDERS,
-        required_faults: &DIVERSE_REQUIRED,
-        claim_ceiling: "Synthetic topology contract only; separate IDs do not establish statistically independent failures.",
-    },
-];
-const FAULTS: [FaultCase; 5] = [
-    FaultCase { id: "provider/relay-a", failed_component: Some("provider/relay-a") },
-    FaultCase { id: "provider/relay-b", failed_component: Some("provider/relay-b") },
-    FaultCase { id: "power/shared-bus", failed_component: Some("power/shared-bus") },
-    FaultCase { id: "power/bus-a", failed_component: Some("power/bus-a") },
-    FaultCase { id: "power/bus-b", failed_component: Some("power/bus-b") },
-];
-
 fn capacity_after_fault(architecture: &Architecture, failed: &BTreeSet<&str>) -> u64 {
     architecture.providers.iter()
         .filter(|provider| {
