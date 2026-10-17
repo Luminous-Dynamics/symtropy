@@ -86,6 +86,27 @@ pub enum FixtureValidationError {
     CovarianceNotPositiveDefinite,
     InvalidTimeAxis,
     NonFiniteState,
+    InvalidTolerance,
+    NonFiniteIntermediate,
+}
+
+
+/// Local, covariance-whitened observability summary for this 2x2 H0 control.
+///
+/// Numerical rank depends on the declared tolerances and observation covariance.
+/// This is a tiny analytic reference diagnostic, not a global-identifiability
+/// proof or a replacement for a reviewed SVD backend on large problems.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObservabilitySummary {
+    pub whitened_operator: [[f64; 2]; 2],
+    /// Singular values in descending order.
+    pub singular_values: [f64; 2],
+    pub numerical_rank: usize,
+    pub condition_number: Option<f64>,
+    /// Right-space null/weak directions in parameter order.
+    pub null_space_basis: Vec<[f64; 2]>,
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
 }
 
 impl PublicObservationFixture {
@@ -134,6 +155,120 @@ impl PublicObservationFixture {
             return Err(FixtureValidationError::InvalidTimeAxis);
         }
         Ok(())
+    }
+
+    /// Analyze local observability after whitening by the full observation covariance.
+    ///
+    /// The 2x2 singular values are computed from the closed-form eigenvalues of
+    /// WᵀW, where W = L⁻¹H and R = LLᵀ. This is an exact low-order H0 oracle,
+    /// not a replacement for a reviewed numerical backend on large problems.
+    pub fn analyze_observability(
+        &self,
+        absolute_tolerance: f64,
+        relative_tolerance: f64,
+    ) -> Result<ObservabilitySummary, FixtureValidationError> {
+        self.validate()?;
+        if !absolute_tolerance.is_finite()
+            || !relative_tolerance.is_finite()
+            || absolute_tolerance < 0.0
+            || relative_tolerance < 0.0
+            || (absolute_tolerance == 0.0 && relative_tolerance == 0.0)
+        {
+            return Err(FixtureValidationError::InvalidTolerance);
+        }
+
+        let covariance = self.observation_covariance;
+        let l00 = covariance[0][0].sqrt();
+        let l10 = covariance[1][0] / l00;
+        let pivot = covariance[1][1] - l10 * l10;
+        if !l00.is_finite()
+            || l00 <= 0.0
+            || !l10.is_finite()
+            || !pivot.is_finite()
+            || pivot <= 0.0
+        {
+            return Err(FixtureValidationError::NonFiniteIntermediate);
+        }
+        let l11 = pivot.sqrt();
+
+        // W = L⁻¹ H, so W has unit observation-error covariance.
+        let h = self.observation_operator;
+        let whitened = [
+            [h[0][0] / l00, h[0][1] / l00],
+            [
+                (h[1][0] - l10 * h[0][0] / l00) / l11,
+                (h[1][1] - l10 * h[0][1] / l00) / l11,
+            ],
+        ];
+        if whitened.iter().flatten().any(|value| !value.is_finite()) {
+            return Err(FixtureValidationError::NonFiniteIntermediate);
+        }
+
+        // Eigenvalues of WᵀW. Use det(W)^2 / lambda_max for the small
+        // eigenvalue to reduce cancellation in rank-deficient fixtures.
+        let alpha = whitened[0][0] * whitened[0][0] + whitened[1][0] * whitened[1][0];
+        let beta = whitened[0][0] * whitened[0][1] + whitened[1][0] * whitened[1][1];
+        let gamma = whitened[0][1] * whitened[0][1] + whitened[1][1] * whitened[1][1];
+        let discriminant = (alpha - gamma).hypot(2.0 * beta);
+        let lambda_max = 0.5 * (alpha + gamma + discriminant);
+        let determinant =
+            whitened[0][0] * whitened[1][1] - whitened[0][1] * whitened[1][0];
+        let lambda_min = if lambda_max > 0.0 {
+            (determinant * determinant / lambda_max).max(0.0)
+        } else {
+            0.0
+        };
+        if !alpha.is_finite()
+            || !beta.is_finite()
+            || !gamma.is_finite()
+            || !lambda_max.is_finite()
+            || !lambda_min.is_finite()
+        {
+            return Err(FixtureValidationError::NonFiniteIntermediate);
+        }
+
+        let singular_values = [lambda_max.sqrt(), lambda_min.sqrt()];
+        let threshold = absolute_tolerance.max(relative_tolerance * singular_values[0]);
+        let numerical_rank = singular_values
+            .iter()
+            .filter(|value| **value > threshold)
+            .count();
+        let condition_number = if numerical_rank == 2 && singular_values[1] > 0.0 {
+            Some(singular_values[0] / singular_values[1])
+        } else {
+            None
+        };
+
+        let mut null_space_basis = Vec::new();
+        if numerical_rank == 0 {
+            null_space_basis.push([1.0, 0.0]);
+            null_space_basis.push([0.0, 1.0]);
+        } else if numerical_rank == 1 {
+            let candidate_a = [beta, lambda_min - alpha];
+            let candidate_b = [lambda_min - gamma, beta];
+            let norm_a = candidate_a[0].hypot(candidate_a[1]);
+            let norm_b = candidate_b[0].hypot(candidate_b[1]);
+            let candidate = if norm_a >= norm_b { candidate_a } else { candidate_b };
+            let norm = candidate[0].hypot(candidate[1]);
+            let null_vector = if norm > 0.0 && norm.is_finite() {
+                [candidate[0] / norm, candidate[1] / norm]
+            } else if alpha <= gamma {
+                [1.0, 0.0]
+            } else {
+                [0.0, 1.0]
+            };
+            null_space_basis.push(null_vector);
+        }
+
+        Ok(ObservabilitySummary {
+            whitened_operator: whitened,
+            singular_values,
+            numerical_rank,
+            condition_number,
+            null_space_basis,
+            absolute_tolerance,
+            relative_tolerance,
+        })
     }
 
     /// Forward-project a candidate state through H. This method never reveals fixture truth.
@@ -310,4 +445,53 @@ mod tests {
         invalid.observation_operator[0][0] = f64::INFINITY;
         assert_eq!(invalid.validate(), Err(FixtureValidationError::NonFiniteOperator));
     }
+    #[test]
+    fn complementary_sensors_are_full_rank_with_unit_condition_number() {
+        let fixture = public_fixture(FixtureId::ComplementarySensors);
+        let report = fixture.analyze_observability(1e-12, 1e-12).unwrap();
+        assert_eq!(report.numerical_rank, 2);
+        assert_eq!(report.null_space_basis.len(), 0);
+        close(report.singular_values[0], 2.0);
+        close(report.singular_values[1], 2.0);
+        close(report.condition_number.unwrap(), 1.0);
+    }
+
+    #[test]
+    fn weak_high_mode_reports_large_condition_number_not_fake_rank_loss() {
+        let fixture = public_fixture(FixtureId::WeakHighMode);
+        let report = fixture.analyze_observability(1e-12, 1e-12).unwrap();
+        assert_eq!(report.numerical_rank, 2);
+        close(report.condition_number.unwrap(), 20.0);
+        assert!(report.singular_values[1] < report.singular_values[0] / 10.0);
+    }
+
+    #[test]
+    fn exact_null_mode_and_correlated_duplicate_remain_rank_deficient_after_whitening() {
+        for fixture_id in [FixtureId::ExactNullMode, FixtureId::CorrelatedDuplicate] {
+            let report = public_fixture(fixture_id)
+                .analyze_observability(1e-12, 1e-12)
+                .unwrap();
+            assert_eq!(report.numerical_rank, 1, "{}", fixture_id.as_str());
+            assert_eq!(report.condition_number, None);
+            assert_eq!(report.null_space_basis.len(), 1);
+            assert!(report.null_space_basis[0][1].abs() > 0.999_999);
+        }
+    }
+
+    #[test]
+    fn observability_rejects_zero_negative_or_non_finite_tolerances() {
+        let fixture = public_fixture(FixtureId::ComplementarySensors);
+        for (absolute, relative) in [
+            (0.0, 0.0),
+            (-1.0, 1e-8),
+            (1e-8, f64::NAN),
+            (f64::INFINITY, 1e-8),
+        ] {
+            assert_eq!(
+                fixture.analyze_observability(absolute, relative),
+                Err(FixtureValidationError::InvalidTolerance)
+            );
+        }
+    }
+
 }
