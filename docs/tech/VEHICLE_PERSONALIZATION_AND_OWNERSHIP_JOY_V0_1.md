@@ -123,9 +123,26 @@ A small formative pilot is for finding usability defects, not claiming populatio
 
 ## 9. Implementation artifacts and claim boundary
 
-- Profile contract and negative-control bundle: schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json and fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json.
-- Standalone Rust schema/semantic auditor: tools/vehicle-personalization-audit/.
-- Focused workflow: .github/workflows/vehicle-personalization-audit.yml.
+- Profile contract and eight negative controls: schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json and fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json.
+- Standalone Rust schema/semantic auditor with mutation tests: tools/vehicle-personalization-audit/.
+- Synthetic vehicle capability manifest contract and parked/moving fixtures: schemas/transport/vehicle_personalization_capability_set_v0_1.schema.json and fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json.
+- Capability-aware preview compiler: tools/vehicle-personalization-plan/. It generates a deterministic preview for four synthetic profiles across parked/moving contexts, defers changes while moving, preserves unsupported preferences with reasons, and never calls hardware or vehicle controls.
+- Focused workflows: .github/workflows/vehicle-personalization-audit.yml and .github/workflows/vehicle-personalization-plan.yml.
 - Design and human-factors research tracker: VEHICLE-USER-FIT-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1801).
+
+
+
+## 10. Capability-aware preview compiler
+
+The companion planner takes one owner profile and a versioned capability manifest, then emits a preview plan. It uses explicit dispositions:
+
+- **preview_apply_if_owner_confirms** — the requested preference is within declared capabilities, and the current context is parked.
+- **preserve_unapplied** — a capability is absent or a requested value exceeds a declared limit. The original preference remains intact and the plan explains why it cannot be applied; no silent clamp or false capability claim is permitted.
+- **defer_until_parked** — profile changes are requested while the vehicle is in the moving context.
+- **not_requested** — the profile does not define a value for that feature; the planner invents no preference.
+
+The preview reports zero hardware/vehicle-control calls. It is not an actuator driver. The synthetic demo deliberately lacks seat memory, limits supported text scale to 1.15 and ambient intensity to 0.15, so the accessibility and calm profiles exercise explainable capability mismatches. Those are illustrative fixture values, not claims about a production vehicle.
+
+A real implementation must independently authenticate the active driver, resolve exact hardware/software configuration, enforce manufacturer safety constraints, persist preferences only with explicit authority, and get confirmation from the user before applying a preview. It must fail closed on stale/unknown capabilities, incompatible firmware, or safety-policy changes. The planner alone is not sufficient authorization to write vehicle settings.
 
 The contract is an input to future product engineering, not a running in-car personalization system. The auditor can prove that the listed synthetic profile contract and its seeded invalid cases obey the rules encoded here. It cannot demonstrate enjoyment, comfort, accessibility, distraction reduction, privacy security in deployed hardware, legal compliance or vehicle safety. Those require implementation review, real tests and suitable evidence.
