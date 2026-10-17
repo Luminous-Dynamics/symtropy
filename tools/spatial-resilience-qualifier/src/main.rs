@@ -1,8 +1,9 @@
 use spatial_resilience_qualifier::{
-    EMBEDDED_MANIFEST, EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
-    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA, OutcomeSummary, TimelineFixtureSummary,
-    ValidationSummary, validate_manifest_bytes, validate_outcome_fixtures_bytes,
-    validate_timeline_fixtures_bytes,
+    EMBEDDED_DECISION_IMPACT_CORPUS, EMBEDDED_DECISION_IMPACT_SCHEMA, EMBEDDED_MANIFEST,
+    EMBEDDED_ORACLE_CORPUS, EMBEDDED_ORACLE_SCHEMA, EMBEDDED_OUTCOME_CORPUS,
+    EMBEDDED_OUTCOME_SCHEMA, EMBEDDED_SCHEMA, DecisionImpactSummary, OutcomeSummary,
+    TimelineFixtureSummary, ValidationSummary, validate_decision_impact_bytes,
+    validate_manifest_bytes, validate_outcome_fixtures_bytes, validate_timeline_fixtures_bytes,
 };
 use std::env;
 use std::fs;
@@ -13,7 +14,9 @@ fn usage() -> &'static str {
         "Usage: spatial-resilience-qualifier --check [--json] | --oracle-check [--json] | ",
         "--validate MANIFEST.json SCHEMA.json [--json] | ",
         "--oracle-validate CORPUS.json SCHEMA.json [--json] | ",
-        "--outcome-check [--json] | --outcome-validate CORPUS.json SCHEMA.json [--json]"
+        "--outcome-check [--json] | --outcome-validate CORPUS.json SCHEMA.json [--json] | ",
+        "--decision-impact-check [--json] | ",
+        "--decision-impact-validate CORPUS.json SCHEMA.json [--json]"
     )
 }
 
@@ -123,6 +126,62 @@ fn emit_outcomes(summary: &OutcomeSummary, json_output: bool) {
                 candidate.candidate_id, candidate.disposition
             );
         }
+    }
+    for failure in &summary.failures {
+        println!(
+            "{} path={} detail={}",
+            failure.code, failure.path, failure.detail
+        );
+    }
+}
+
+fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
+    if json_output {
+        match serde_json::to_string_pretty(summary) {
+            Ok(serialized) => println!("{serialized}"),
+            Err(error) => {
+                eprintln!("REPORT_SERIALIZATION_FAILED: {error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
+
+    let state = if summary.passed { "PASS" } else { "FAIL" };
+    println!("{state}: spatial-resilience decision-impact evaluator");
+    println!(
+        "benchmark_id={} version={} cases={} cases_passed={}",
+        summary.benchmark_id.as_deref().unwrap_or("unknown"),
+        summary.version.as_deref().unwrap_or("unknown"),
+        summary.cases_seen,
+        summary.cases_passed
+    );
+    println!("corpus_sha256={}", summary.corpus_sha256);
+    println!("schema_sha256={}", summary.schema_sha256);
+    for case in &summary.results {
+        println!("case={}", case.case_id);
+        println!(
+            "  baseline_robust={:?} baseline_pareto={:?}",
+            case.baseline.robust_feasible_candidate_ids,
+            case.baseline.pareto_candidate_ids
+        );
+        for action in &case.actions {
+            println!(
+                "  action={} status={} decision_relevant={} hard_change={} pareto_change={} worst_states={:?} cost={} duration={}",
+                action.action_id,
+                action.status,
+                action.decision_relevant,
+                action.changes_hard_feasible_set,
+                action.changes_pareto_set,
+                action.worst_case_remaining_state_count,
+                action.estimated_cost_units,
+                action.estimated_duration_ticks
+            );
+            if !action.rejection_codes.is_empty() {
+                println!("    rejection_codes={:?}", action.rejection_codes);
+            }
+        }
+        println!("  recommended_action_order={:?}", case.recommended_action_order);
     }
     for failure in &summary.failures {
         println!(
@@ -245,6 +304,46 @@ fn main() {
             let schema = read_file(schema_path);
             let summary = validate_outcome_fixtures_bytes(&corpus, &schema);
             emit_outcomes(&summary, true);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode] if mode == "--decision-impact-check" => {
+            let summary = validate_decision_impact_bytes(
+                EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
+                EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
+            );
+            emit_decision_impact(&summary, false);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, flag] if mode == "--decision-impact-check" && flag == "--json" => {
+            let summary = validate_decision_impact_bytes(
+                EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
+                EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
+            );
+            emit_decision_impact(&summary, true);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, corpus_path, schema_path] if mode == "--decision-impact-validate" => {
+            let corpus = read_file(corpus_path);
+            let schema = read_file(schema_path);
+            let summary = validate_decision_impact_bytes(&corpus, &schema);
+            emit_decision_impact(&summary, false);
+            if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, corpus_path, schema_path, flag]
+            if mode == "--decision-impact-validate" && flag == "--json" =>
+        {
+            let corpus = read_file(corpus_path);
+            let schema = read_file(schema_path);
+            let summary = validate_decision_impact_bytes(&corpus, &schema);
+            emit_decision_impact(&summary, true);
             if !summary.passed {
                 process::exit(1);
             }
