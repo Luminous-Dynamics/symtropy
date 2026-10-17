@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use civ_infra_benchmark::{evaluate_json, verify_report};
 use std::env;
 use std::fs;
