@@ -30,7 +30,7 @@ Do not treat a queued or missing CI run as measurement evidence. Do not mix numb
 
 ## 3. Frozen workload matrix
 
-The adjacent machine-readable file **fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json** defines the v0.1 profile names and parameters. A future generator must be deterministic for a fixed generator version, seed, and profile. It must emit the materialized input and digest used in each run; a profile name alone is not a reproducible fixture.
+The adjacent machine-readable file **fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json** defines the v0.1 profile names and parameters. The [contract workflow](https://github.com/Luminous-Dynamics/symtropy/blob/research/whole-property-habitat-benchmark-v0-1/.github/workflows/habitat-revalidation-scale-contract.yml) checks the matrix shape and wording about unmeasured targets; it does not run the search algorithm or produce performance results. A future generator must be deterministic for a fixed generator version, seed, and profile. It must emit the materialized input and digest used in each run; a profile name alone is not a reproducible fixture.
 
 The profiles intentionally stress different failure modes:
 
@@ -59,7 +59,7 @@ Never weaken the micro-oracle, invalid-input cases, or negative controls to impr
 
 ## 5. Measurements and reporting
 
-For each profile, run 5 warm-ups and 30 measured trials per workload/configuration. Report median (p50), p95, p99, minimum/maximum, and sample count. Keep raw trial records; don't report a percentile without its sample count. For small deterministic cases, also report work counters because wall-time noise may dominate.
+For each profile, run 5 warm-ups and at least 30 measured trials per workload/configuration for p50/p95, and retain every raw trial. Report median (p50), p95, minimum/maximum, and sample count. Report p99 as a formal percentile only with at least 1,000 measured trials for that exact workload/configuration; otherwise mark p99 unavailable, report the observed maximum, and state the sample count. Do not imply that the maximum from 30 runs is a reliable p99 estimate. For small deterministic cases, also report work counters because wall-time noise may dominate.
 
 Report at least:
 
