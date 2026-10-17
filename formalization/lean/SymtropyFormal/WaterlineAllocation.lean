@@ -134,4 +134,50 @@ theorem over_budget_waterline_certificate_is_rejected :
   norm_num [WaterlineCertificate.accepted, overBudgetWaterlineCertificate,
     allocateAtWaterline]
 
+/-- Empty eligible demand leaves all source supply unallocated. -/
+def emptyDemandWaterlineCertificate : WaterlineCertificate where
+  supply := 9
+  caps := []
+  waterline := 0
+
+theorem empty_demand_waterline_certificate_is_accepted :
+    emptyDemandWaterlineCertificate.accepted := by
+  norm_num [WaterlineCertificate.accepted, emptyDemandWaterlineCertificate,
+    allocateAtWaterline]
+
+/-- Zero supply assigns nothing even when recipients have positive capacity. -/
+def zeroSupplyWaterlineCertificate : WaterlineCertificate where
+  supply := 0
+  caps := [4, 5]
+  waterline := 0
+
+theorem zero_supply_waterline_certificate_is_accepted :
+    zeroSupplyWaterlineCertificate.accepted := by
+  norm_num [WaterlineCertificate.accepted, zeroSupplyWaterlineCertificate,
+    allocateAtWaterline]
+
+/-- If source supply exceeds all caps, every recipient saturates and the
+unassignable remainder stays outside the recipient allocations. -/
+def capacityLimitedWaterlineCertificate : WaterlineCertificate where
+  supply := 10
+  caps := [1, 2]
+  waterline := 3
+
+theorem capacity_limited_waterline_certificate_is_accepted :
+    capacityLimitedWaterlineCertificate.accepted := by
+  norm_num [WaterlineCertificate.accepted, capacityLimitedWaterlineCertificate,
+    allocateAtWaterline]
+
+/-- A negative recipient cap is rejected even if the aggregate could otherwise
+be made to look numerically plausible. -/
+def negativeCapWaterlineCertificate : WaterlineCertificate where
+  supply := 1
+  caps := [-1, 2]
+  waterline := 0
+
+theorem negative_cap_waterline_certificate_is_rejected :
+    ¬ negativeCapWaterlineCertificate.accepted := by
+  norm_num [WaterlineCertificate.accepted, negativeCapWaterlineCertificate,
+    allocateAtWaterline]
+
 end SymtropyFormal
