@@ -72,7 +72,13 @@ Every run binds the following fields or explicit equivalent references:
 
 The normalized report should be deterministic and ordered canonically. A producer-supplied digest is not independently verified simply because it parses; the verifier must recompute hashes from the actual bytes it can access and independently recompute required arithmetic/invariants.
 
-Unknown values must remain unknown. Distinguish an **unknown with a conservative bounded search envelope** from an **unbounded unknown with no defensible location envelope**: the former blocks clearance when a candidate intersects its uncertainty envelope; the latter blocks positive clearance claims for every candidate until a bounded extent is established. An absent subsurface utility record is not proof that the space is clear. Missing geotechnical data is not zero geotechnical risk. A missing cost is not zero cost.
+Use distinct dispositions for:
+- **Infeasible:** at least one supported physical hard constraint fails.
+- **EvidenceInconsistent:** a derived engineering quantity disagrees with a redundant declared value, without a separately demonstrated physical constraint failure.
+- **UnknownReviewRequired:** necessary evidence is absent, bounded uncertainty intersects the corridor, or a relevant claim cannot be supported.
+- **FeasibleForSyntheticCase:** all explicitly modelled checks pass for this synthetic fixture only.
+
+Do not collapse these dispositions into one readiness score. Unknown values must remain unknown. Distinguish an **unknown with a conservative bounded search envelope** from an **unbounded unknown with no defensible location envelope**: the former blocks clearance when a candidate intersects its uncertainty envelope; the latter blocks positive clearance claims for every candidate until a bounded extent is established. An absent subsurface utility record is not proof that the space is clear. Missing geotechnical data is not zero geotechnical risk. A missing cost is not zero cost.
 
 ## 5. Independent-verifier rules
 
