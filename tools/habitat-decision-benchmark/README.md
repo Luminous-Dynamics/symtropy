@@ -26,7 +26,10 @@ feasible across every state consistent with that outcome. It reports maximum
 residual-state count, worst-case regret relative to the best candidate if the state
 were known, regret reduction relative to no investigation, and regret reduction per
 declared cost unit. Ranking uses deterministic minimax regret without priors or
-outcome probabilities. It is **not expected value of information**.
+outcome probabilities. It is **not expected value of information**. V0.1 assumes
+perfectly discriminating observations and does not model noise, missed detections,
+inconclusive results, failed instruments, or correlated evidence. Future versions
+must model these as explicit states/outcomes instead of inventing likelihoods.
 
 The frozen authored expectation is that the combined survey ranks first (4.8 regret
 units reduced per synthetic cost unit), followed by the flood survey (3.0), then the
