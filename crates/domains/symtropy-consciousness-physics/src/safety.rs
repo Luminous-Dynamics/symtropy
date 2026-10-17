@@ -290,7 +290,10 @@ mod tests {
 
     #[test]
     fn checked_phi_rejects_invalid_domain_and_nonfinite_values() {
-        assert_eq!(SafetyTier::try_from_phi(f64::NAN), Err(InvalidPhi::NonFinite));
+        assert_eq!(
+            SafetyTier::try_from_phi(f64::NAN),
+            Err(InvalidPhi::NonFinite)
+        );
         assert_eq!(
             SafetyTier::try_from_phi(f64::INFINITY),
             Err(InvalidPhi::NonFinite)
