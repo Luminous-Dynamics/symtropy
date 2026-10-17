@@ -298,7 +298,7 @@ pub fn assess_field_robot_cost_sensitivity_v1(
     }
 
     let mut scenarios = request.scenarios.clone();
-    scenarios.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
+    scenarios.sort_by_key(|scenario| scenario.scenario_id.clone());
 
     let mut cases = Vec::with_capacity(scenarios.len());
     let mut annual_totals = Vec::new();
