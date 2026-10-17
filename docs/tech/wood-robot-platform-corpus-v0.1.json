@@ -12,7 +12,7 @@
     "uncertainty": "mm",
     "altitude": "m_above_ground_level"
   },
-  "expected_scenario_count": 20,
+  "expected_scenario_count": 22,
   "scenarios": [
     {
       "scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
@@ -839,6 +839,99 @@
       ],
       "expected_actuation": false,
       "scenario_id": "SYNTHETIC_WOODROBOT_020_AERIAL_PAYLOAD_RELEASE_PROHIBITED"
+    },
+    {
+      "platform_profile": "P0_AERIAL_FOREST_SCOUT",
+      "task_type": "canopy_scale_non_contact_forest_survey",
+      "material_state": "forest_stand_context",
+      "observations": {
+        "flight_permission_state": "verified",
+        "site_permission_state": "granted",
+        "airspace_state": "clear",
+        "geofence_state": "valid",
+        "weather_state": "within_declared_envelope",
+        "wildlife_policy_state": "approved_site_specific_profile",
+        "wildlife_disturbance_state": "none_detected",
+        "privacy_handling_state": "configured_data_minimization",
+        "recovery_plan_state": "verified_designated_recovery_area",
+        "flight_profile": "straight_pass_no_hover",
+        "altitude_m": 80,
+        "configured_min_altitude_m": 60,
+        "contact_detected": true,
+        "payload_release_state": "none",
+        "launch_recovery_state": "approved_existing_clearing",
+        "sensor_package": "rgb_photogrammetry",
+        "localization_state": "valid",
+        "remaining_energy_wh": 300,
+        "required_return_reserve_wh": 60,
+        "human_approval": "approved"
+      },
+      "hard_constraints": {
+        "require_site_permission": true,
+        "require_aviation_authorization": true,
+        "require_clear_airspace_and_geofence": true,
+        "require_weather_inside_declared_envelope": true,
+        "require_site_specific_wildlife_policy": true,
+        "require_privacy_handling": true,
+        "require_verified_recovery_plan": true,
+        "require_no_physical_contact": true,
+        "prohibit_payload_release": true,
+        "require_return_reserve": true,
+        "prohibit_default_under_canopy_flight": true
+      },
+      "expected_decision": "blocked_safe_degraded_state",
+      "expected_reason_codes": [
+        "PHYSICAL_CONTACT_DETECTED",
+        "NO_CONTINUED_MISSION_AFTER_CONTACT"
+      ],
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_021_AERIAL_CONTACT_DETECTED"
+    },
+    {
+      "platform_profile": "P0_AERIAL_FOREST_SCOUT",
+      "task_type": "canopy_scale_non_contact_forest_survey",
+      "material_state": "forest_stand_context",
+      "observations": {
+        "flight_permission_state": "verified",
+        "site_permission_state": "granted",
+        "airspace_state": "clear",
+        "geofence_state": "valid",
+        "weather_state": "within_declared_envelope",
+        "wildlife_policy_state": "approved_site_specific_profile",
+        "wildlife_disturbance_state": "none_detected",
+        "privacy_handling_state": "configured_data_minimization",
+        "recovery_plan_state": "verified_designated_recovery_area",
+        "flight_profile": "under_canopy_autonomous",
+        "altitude_m": 80,
+        "configured_min_altitude_m": 60,
+        "contact_detected": false,
+        "payload_release_state": "none",
+        "launch_recovery_state": "approved_existing_clearing",
+        "sensor_package": "rgb_photogrammetry",
+        "localization_state": "valid",
+        "remaining_energy_wh": 300,
+        "required_return_reserve_wh": 60,
+        "human_approval": "approved"
+      },
+      "hard_constraints": {
+        "require_site_permission": true,
+        "require_aviation_authorization": true,
+        "require_clear_airspace_and_geofence": true,
+        "require_weather_inside_declared_envelope": true,
+        "require_site_specific_wildlife_policy": true,
+        "require_privacy_handling": true,
+        "require_verified_recovery_plan": true,
+        "require_no_physical_contact": true,
+        "prohibit_payload_release": true,
+        "require_return_reserve": true,
+        "prohibit_default_under_canopy_flight": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "UNDER_CANOPY_NOT_ALLOWED_IN_DEFAULT_PROFILE"
+      ],
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_022_AERIAL_UNDER_CANOPY_DEFAULT_REJECT"
     }
   ]
 }
