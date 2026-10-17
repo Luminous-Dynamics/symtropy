@@ -1,7 +1,7 @@
 {
   "schema_version": "visual-projector-pinhole-v0",
   "case_id": "VIS-PROJ-PINHOLE-AXIS-001",
-  "status": "PROPOSED_NOT_EXECUTED",
+  "status": "UNQUALIFIED",
   "evidence_class": "ANALYTIC_REFERENCE",
   "model": {
     "name": "rectified_pinhole_projection",
