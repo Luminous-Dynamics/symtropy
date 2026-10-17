@@ -278,7 +278,8 @@
               "official_regulation",
               "official_guidance",
               "existing_standard_project",
-              "internal_issue"
+              "internal_issue",
+              "open_dataset"
             ]
           },
           "scope_note": {
