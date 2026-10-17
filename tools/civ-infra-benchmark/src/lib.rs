@@ -863,15 +863,60 @@ fn reference_utility_status(
     }
 }
 
+fn reference_maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
+    if points.len() < 2 {
+        return None;
+    }
+    points.windows(2).try_fold(0.0_f64, |maximum, pair| {
+        let run = pair[1].station_m - pair[0].station_m;
+        if !run.is_finite() || run <= 0.0 {
+            return None;
+        }
+        let grade = 100.0 * ((pair[1].elevation_m - pair[0].elevation_m).abs() / run);
+        if grade.is_finite() {
+            Some(maximum.max(grade))
+        } else {
+            None
+        }
+    })
+}
+
+fn reference_earthworks_volumes(sections: &[CrossSection]) -> Option<(f64, f64)> {
+    if sections.len() < 2 {
+        return None;
+    }
+    sections.windows(2).try_fold((0.0_f64, 0.0_f64), |volumes, pair| {
+        let run = pair[1].station_m - pair[0].station_m;
+        if !run.is_finite() || run <= 0.0 {
+            return None;
+        }
+        // Sum each half-interval contribution separately, rather than calling
+        // the producer's trapezoid helper.
+        let half_run = run / 2.0;
+        let cut = volumes.0
+            + half_run * pair[0].cut_area_m2
+            + half_run * pair[1].cut_area_m2;
+        let fill = volumes.1
+            + half_run * pair[0].fill_area_m2
+            + half_run * pair[1].fill_area_m2;
+        if cut.is_finite() && fill.is_finite() {
+            Some((cut, fill))
+        } else {
+            None
+        }
+    })
+}
+
 fn reference_candidate_result(
     fixture: &CorridorFixture,
     candidate: &CorridorCandidate,
 ) -> CandidateResult {
     let mut findings = Vec::new();
-    let derived_grade = maximum_grade_percent(&candidate.profile_points)
+    let derived_grade = reference_maximum_grade_percent(&candidate.profile_points)
         .unwrap_or(f64::INFINITY);
     let (cut_volume_m3, fill_volume_m3) =
-        maximum_earthworks_volume(&candidate.cross_sections).unwrap_or((f64::INFINITY, 0.0));
+        reference_earthworks_volumes(&candidate.cross_sections)
+            .unwrap_or((f64::INFINITY, 0.0));
     let derived_earthworks_m3 = cut_volume_m3 + fill_volume_m3;
 
     findings.push(Finding {
