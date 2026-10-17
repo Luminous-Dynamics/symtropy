@@ -122,7 +122,7 @@ pub fn verify_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, Vec<String>
 
 /// Exposed for adversarial tests and independent experiments. Production CLI uses
 /// verify_fixture_bytes, which also pins the exact frozen source bytes.
-pub fn evaluate_fixture(
+fn evaluate_fixture(
     fixture: &DecisionFixture,
     input_sha256: String,
 ) -> Result<BenchmarkReport, Vec<String>> {
@@ -457,7 +457,7 @@ fn compare_action_scores(a: &ActionScore, b: &ActionScore) -> Ordering {
         .then_with(|| a.action_id.cmp(&b.action_id))
 }
 
-pub fn fixture_sha256(bytes: &[u8]) -> String {
+fn fixture_sha256(bytes: &[u8]) -> String {
     sha256_hex(bytes)
 }
 
