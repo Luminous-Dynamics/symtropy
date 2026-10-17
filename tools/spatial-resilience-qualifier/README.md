@@ -20,9 +20,11 @@ cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --che
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --oracle-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --outcome-check --json
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --decision-impact-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --validate path/to/manifest.json path/to/schema.json --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --oracle-validate path/to/timeline-corpus.json path/to/timeline-schema.json --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --outcome-validate path/to/outcome-corpus.json path/to/outcome-schema.json --json
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --decision-impact-validate path/to/decision-impact-corpus.json path/to/decision-impact-schema.json --json
 ```
 
 The JSON receipt includes exact SHA-256 hashes of the manifest and schema, case and invariant counts, a pass/fail bit, stable failure codes and JSON instance paths. Exit codes are 0 for a passing validation, 1 for invalid inputs/contracts and 2 for CLI or file-read failures.
@@ -30,6 +32,8 @@ The JSON receipt includes exact SHA-256 hashes of the manifest and schema, case 
 The separate machine-readable timeline oracle corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json` contains eight expected event-sequence outcomes and its own Draft 2020-12 schema. `--oracle-check` executes these fixtures through the finite-state oracle and emits a content-hashed JSON receipt; `--oracle-validate` applies the same process to an external corpus.
 
 The paired-outcome corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.json` has its own schema and five known-answer comparisons. `--outcome-check` enforces common trace identity/revision, preserves each resident/task service floor independently, excludes stale or out-of-domain evidence, applies the declared uncertainty limit before ranking, and computes a Pareto frontier over service-hours (maximize) and synthetic energy, repair time, and cost units (minimize). Exact ties are retained as distinct alternatives; a weighted sum cannot rescue an infeasible candidate. All numeric values in that corpus are synthetic mechanics fixtures, not physical predictions.
+
+The decision-impact corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.json` contains eight finite-state worlds. It validates each measurement action's source revision, evidence state, unknowns resolved and a mutually exclusive/exhaustive outcome partition; then recomputes robust-feasible and Pareto sets for each outcome. The output reports a decision-impact vector and a declared lexicographic action ordering (critical-unknown resolution, hard-feasibility change, Pareto change, worst-case residual-state count, cost, duration and action ID), with no probability or expected-VoI estimate. The corpus tests when a targeted survey should outrank a costly scan and when high-volume measurement has no decision impact.
 
 ## Negative controls in the authored test suite
 
@@ -44,7 +48,7 @@ The paired-outcome corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_PA
 - a recovery window that extends past the horizon;
 - zero-length stability window and event beyond the declared horizon.
 
-28 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
+37 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
 
 ## Versioning and trust boundaries
 
