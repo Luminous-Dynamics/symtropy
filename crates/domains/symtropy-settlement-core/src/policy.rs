@@ -120,6 +120,28 @@ pub struct PolicyDecision {
     pub payload_sha256: String,
 }
 
+fn has_conflicting_current_component_observation(
+    frame: &PolicyInformationFrame,
+    candidate: &super::observation::ObservationRecord,
+    proposed: KnownComponentCondition,
+) -> bool {
+    frame.payload.observations.iter().any(|other| {
+        if other.observation_id == candidate.observation_id
+            || other.target_component != candidate.target_component
+            || other.target_generation != candidate.target_generation
+        {
+            return false;
+        }
+        match &other.disposition {
+            ObservationDisposition::Conflicting { .. } => true,
+            ObservationDisposition::Current {
+                value: ObservedValue::ComponentCondition { condition },
+            } => *condition != proposed,
+            _ => false,
+        }
+    })
+}
+
 pub fn evaluate_baseline_policy(
     definition: &PolicyDefinition,
     frame: &PolicyInformationFrame,
@@ -146,6 +168,13 @@ pub fn evaluate_baseline_policy(
                 else {
                     continue;
                 };
+                if has_conflicting_current_component_observation(
+                    frame,
+                    observation,
+                    KnownComponentCondition::Failed,
+                ) {
+                    continue;
+                }
 
                 for rule in &canonical.repair_rules {
                     if rule.target_component == observation.target_component
@@ -324,6 +353,11 @@ pub fn verify_policy_decision_with_frame(
             }
         );
         if !is_current_failure
+            || has_conflicting_current_component_observation(
+                frame,
+                observation,
+                KnownComponentCondition::Failed,
+            )
             || observation.target_component != request.target_component
             || observation.target_generation != request.target_generation
         {
@@ -703,6 +737,37 @@ mod tests {
                 DecisionDisposition::NoAction { .. }
             ));
         }
+    }
+
+    #[test]
+    fn contradictory_current_observations_block_repair() {
+        let failed = failed_observation(
+            ObservationDisposition::Current {
+                value: ObservedValue::ComponentCondition {
+                    condition: KnownComponentCondition::Failed,
+                },
+            },
+            1,
+            1,
+        );
+        let mut available = failed.clone();
+        available.observation_id = "grid-available-reading".into();
+        available.source_id = "grid-backup-sensor".into();
+        available.disposition = ObservationDisposition::Current {
+            value: ObservedValue::ComponentCondition {
+                condition: KnownComponentCondition::Available,
+            },
+        };
+        let frame = frame_with_records(vec![failed, available], 1);
+        let decision = evaluate_baseline_policy(
+            &policy(BaselineStrategy::ReactiveRepair),
+            &frame,
+        )
+        .unwrap();
+        assert!(matches!(
+            &decision.payload.disposition,
+            DecisionDisposition::NoAction { .. }
+        ));
     }
 
     #[test]
