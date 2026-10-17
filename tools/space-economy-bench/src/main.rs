@@ -615,7 +615,15 @@ mod tests {
         let mut root = corpus();
         let scenarios = root["scenarios"].as_array_mut().unwrap();
         scenarios[1]["id"] = scenarios[0]["id"].clone();
-        assert!(validate(&root, &"a".repeat(40), "digest").is_err());
+        assert!(validate(&root, &"a".repeat(40), &"b".repeat(64)).is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_commit_and_corpus_digest_before_receipt() {
+        let root = corpus();
+        let valid_digest = format!("{:x}", Sha256::digest(include_bytes!("../../../docs/tech/space-economy-benchmark-corpus-v0.1.json")));
+        assert!(validate(&root, "invalid", &valid_digest).is_err());
+        assert!(validate(&root, &"a".repeat(40), "invalid").is_err());
     }
 
     #[test]
