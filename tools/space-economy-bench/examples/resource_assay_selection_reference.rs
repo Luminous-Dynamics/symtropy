@@ -354,7 +354,7 @@ mod tests {
         let result = evaluate_survey(&SURVEYS[1]).unwrap();
         assert_eq!(result.evsi_numerator, 0);
         assert_eq!(result.net_incremental_value_numerator, -200_000_000);
-        assert!(!result.choose_build_after_positive || !result.choose_build_after_negative);
+        assert_eq!(result.choose_build_after_positive, result.choose_build_after_negative);
         assert!(!result.purchase);
     }
 
