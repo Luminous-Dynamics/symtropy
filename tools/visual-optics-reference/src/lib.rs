@@ -136,6 +136,78 @@ pub fn linear_channel_to_srgb(linear: f64) -> Result<f64, TransferError> {
     }
 }
 
+const HLG_A: f64 = 0.178_832_77;
+const HLG_B: f64 = 0.284_668_92;
+const HLG_C: f64 = 0.559_910_73;
+
+/// Encodes normalized scene-linear light as a normalized BT.2100 HLG signal.
+///
+/// This is the scene-referred HLG OETF. It does not calculate display luminance,
+/// display system gamma, black-level lift, the HLG OOTF/EOTF, or physical panel
+/// response. Use an explicit display-system model for those separate steps.
+///
+/// The published rounded HLG constants cause tiny endpoint round-off; the
+/// canonical white endpoint is returned as exactly 1.0.
+///
+/// # Errors
+///
+/// Returns an error for non-finite or out-of-range input.
+pub fn hlg_scene_to_signal(scene_linear: f64) -> Result<f64, TransferError> {
+    if !scene_linear.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    if !(0.0..=1.0).contains(&scene_linear) {
+        return Err(TransferError::OutOfRange);
+    }
+    if scene_linear == 1.0 {
+        return Ok(1.0);
+    }
+
+    let signal = if scene_linear <= (1.0 / 12.0) {
+        (3.0 * scene_linear).sqrt()
+    } else {
+        HLG_A * (12.0 * scene_linear - HLG_B).ln() + HLG_C
+    };
+
+    if !signal.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    Ok(signal.clamp(0.0, 1.0))
+}
+
+/// Decodes a normalized BT.2100 HLG signal into normalized scene-linear light.
+///
+/// This is the inverse of the scene-referred HLG OETF only. It does not
+/// implement the display-side OOTF/EOTF and does not return cd/m². The standard
+/// publishes rounded constants, so this implementation clamps only the tiny
+/// numerical endpoint drift back into the declared [0, 1] domain.
+///
+/// # Errors
+///
+/// Returns an error for non-finite or out-of-range input.
+pub fn hlg_signal_to_scene(signal: f64) -> Result<f64, TransferError> {
+    if !signal.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    if !(0.0..=1.0).contains(&signal) {
+        return Err(TransferError::OutOfRange);
+    }
+    if signal == 1.0 {
+        return Ok(1.0);
+    }
+
+    let scene_linear = if signal <= 0.5 {
+        (signal * signal) / 3.0
+    } else {
+        (((signal - HLG_C) / HLG_A).exp() + HLG_B) / 12.0
+    };
+
+    if !scene_linear.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    Ok(scene_linear.clamp(0.0, 1.0))
+}
+
 const PQ_M1: f64 = 2610.0 / 16_384.0;
 const PQ_M2: f64 = 2523.0 / 32.0;
 const PQ_C1: f64 = 3424.0 / 4_096.0;
@@ -659,6 +731,83 @@ mod tests {
                 linear_channel_to_srgb(input),
                 Err(TransferError::OutOfRange)
             );
+        }
+    }
+
+    #[test]
+    fn hlg_oetf_matches_bt2100_reference_points() {
+        assert_eq!(hlg_scene_to_signal(0.0), Ok(0.0));
+        assert_close(
+            hlg_scene_to_signal(1.0 / 12.0).expect("valid scene light"),
+            0.5,
+            1e-15,
+        );
+        assert_close(
+            hlg_scene_to_signal(0.18).expect("valid scene light"),
+            0.672_358_132_598_092_5,
+            1e-8,
+        );
+        assert_close(
+            hlg_scene_to_signal(0.75).expect("valid scene light"),
+            0.947_098_639_616_496_9,
+            1e-8,
+        );
+        assert_eq!(hlg_scene_to_signal(1.0), Ok(1.0));
+    }
+
+    #[test]
+    fn hlg_inverse_matches_bt2100_reference_points() {
+        assert_eq!(hlg_signal_to_scene(0.0), Ok(0.0));
+        assert_close(
+            hlg_signal_to_scene(0.25).expect("valid HLG signal"),
+            0.020_833_333_333_333_332,
+            1e-15,
+        );
+        assert_close(
+            hlg_signal_to_scene(0.5).expect("valid HLG signal"),
+            1.0 / 12.0,
+            1e-15,
+        );
+        assert_close(
+            hlg_signal_to_scene(0.75).expect("valid HLG signal"),
+            0.264_962_559_786_400_15,
+            1e-8,
+        );
+        assert_eq!(hlg_signal_to_scene(1.0), Ok(1.0));
+    }
+
+    #[test]
+    fn hlg_oetf_and_inverse_round_trip_scene_light() {
+        for scene in [0.0, 0.001, 1.0 / 12.0, 0.18, 0.5, 0.75, 0.999, 1.0] {
+            let signal = hlg_scene_to_signal(scene).expect("scene value is in range");
+            let reconstructed =
+                hlg_signal_to_scene(signal).expect("encoded HLG signal is in range");
+            assert_close(reconstructed, scene, 1e-7);
+        }
+    }
+
+    #[test]
+    fn hlg_oetf_is_monotonic_over_a_deterministic_grid() {
+        let mut previous = hlg_scene_to_signal(0.0).expect("zero is in range");
+        for index in 1..=1000 {
+            let scene = f64::from(index) / 1000.0;
+            let actual = hlg_scene_to_signal(scene).expect("grid value is in range");
+            assert!(actual >= previous, "HLG OETF decreased at scene value {scene}");
+            previous = actual;
+        }
+        assert_eq!(previous, 1.0);
+    }
+
+    #[test]
+    fn hlg_transfer_rejects_non_finite_and_out_of_range_inputs() {
+        for input in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(hlg_scene_to_signal(input), Err(TransferError::NonFiniteInput));
+            assert_eq!(hlg_signal_to_scene(input), Err(TransferError::NonFiniteInput));
+        }
+
+        for input in [-0.001, 1.001] {
+            assert_eq!(hlg_scene_to_signal(input), Err(TransferError::OutOfRange));
+            assert_eq!(hlg_signal_to_scene(input), Err(TransferError::OutOfRange));
         }
     }
 
