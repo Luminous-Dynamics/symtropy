@@ -49,6 +49,16 @@
       "id": "tick.finalize.conflict",
       "theorem": "SymtropyFormal.finalize_conflicting_result_is_rejected",
       "claim": "A second finalization with a conflicting result digest is rejected."
+    },
+    {
+      "id": "tick.physics.no-preexisting-result",
+      "theorem": "SymtropyFormal.applyPhysics_rejects_prepopulated_result",
+      "claim": "A begun tick carrying a pre-existing result digest cannot advance to physics-applied."
+    },
+    {
+      "id": "tick.finalize.state-link",
+      "theorem": "SymtropyFormal.finalize_rejects_unlinked_tick",
+      "claim": "A finalization whose active tick prior-state digest disagrees with the last result is rejected."
     }
   ],
   "known_answer_cases": [
