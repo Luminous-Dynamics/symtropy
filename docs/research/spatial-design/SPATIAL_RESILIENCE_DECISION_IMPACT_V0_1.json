@@ -106,7 +106,9 @@
                 "width-fail"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         },
         {
           "action_id": "full-3d-scan",
@@ -129,7 +131,9 @@
                 "width-fail"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -177,7 +181,11 @@
               ],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         },
         {
           "action_id": "full-3d-scan",
@@ -214,7 +222,11 @@
               ],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 10,
+          "estimated_duration_ticks": 4,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -309,7 +321,9 @@
                 "climate-hot"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         },
         {
           "action_id": "mean-load-probe",
@@ -332,7 +346,9 @@
                 "climate-hot"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -382,7 +398,11 @@
               ],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 7,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         },
         {
           "action_id": "mean-load-probe",
@@ -419,7 +439,11 @@
               ],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -501,7 +525,9 @@
                 "utility-conflict"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -522,7 +548,11 @@
           "changes_pareto_set": false,
           "worst_case_remaining_state_count": null,
           "newly_robust_feasible_candidate_ids": [],
-          "outcomes": []
+          "outcomes": [],
+          "estimated_cost_units": 3,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -590,7 +620,9 @@
                 "panel-blocked"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -611,7 +643,11 @@
           "changes_pareto_set": false,
           "worst_case_remaining_state_count": null,
           "newly_robust_feasible_candidate_ids": [],
-          "outcomes": []
+          "outcomes": [],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -705,7 +741,9 @@
                 "wall-obstructed"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         },
         {
           "action_id": "wall-survey-plus-qualified-fire-review",
@@ -730,7 +768,9 @@
                 "wall-obstructed"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -768,7 +808,11 @@
               "pareto_candidate_ids": [],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         },
         {
           "action_id": "wall-survey-plus-qualified-fire-review",
@@ -806,7 +850,11 @@
               ],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 4,
+          "estimated_duration_ticks": 3,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -876,7 +924,9 @@
                 "heat-high"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -897,7 +947,11 @@
           "changes_pareto_set": false,
           "worst_case_remaining_state_count": null,
           "newly_robust_feasible_candidate_ids": [],
-          "outcomes": []
+          "outcomes": [],
+          "estimated_cost_units": 1,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": []
@@ -989,7 +1043,9 @@
                 "climate-hot"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -1037,7 +1093,11 @@
               ],
               "compatible_state_count": 1
             }
-          ]
+          ],
+          "estimated_cost_units": 3,
+          "estimated_duration_ticks": 2,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": [
@@ -1110,7 +1170,9 @@
                 "ceiling-leak"
               ]
             }
-          ]
+          ],
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_baseline": {
@@ -1129,7 +1191,11 @@
           "changes_pareto_set": false,
           "worst_case_remaining_state_count": null,
           "newly_robust_feasible_candidate_ids": [],
-          "outcomes": []
+          "outcomes": [],
+          "estimated_cost_units": 2,
+          "estimated_duration_ticks": 1,
+          "cost_basis_id": "synthetic-cost-basis-v1",
+          "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
       "expected_recommended_action_order": []
