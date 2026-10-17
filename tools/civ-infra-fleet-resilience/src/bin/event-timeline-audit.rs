@@ -178,7 +178,7 @@ impl DisturbanceKind {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct EventTimelineReport {
     schema_version: String,
     fixture_id: String,
@@ -196,7 +196,7 @@ struct EventTimelineReport {
     explicit_limitations: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct Counts {
     disturbance_cases: usize,
     typed_disturbance_kinds: usize,
@@ -208,7 +208,7 @@ struct Counts {
     referenced_tasks: usize,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct EventCaseReport {
     case_id: String,
     disturbance_kind: String,
@@ -223,14 +223,14 @@ struct EventCaseReport {
     timeline_status: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct EvaluatorTick {
     tick: u32,
     injected_event_ids: Vec<String>,
     events_injected_but_not_yet_observable: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct PolicyTick {
     tick: u32,
     newly_observed_event_ids: Vec<String>,
@@ -866,6 +866,34 @@ mod tests {
         let mutated = serde_json::to_vec(&value).expect("mutated fixture serializes");
         let errors = audit_fixture_bytes(&mutated).expect_err("impossible timing must reject");
         assert!(errors.iter().any(|error| error.contains("observable before injection")));
+    }
+
+    #[test]
+    fn fixture_array_order_does_not_change_queue_results() {
+        let baseline = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let mut value: serde_json::Value =
+            serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture JSON parses");
+        value["disturbance_cases"]
+            .as_array_mut()
+            .expect("disturbance_cases is an array")
+            .reverse();
+        let reordered_bytes = serde_json::to_vec(&value).expect("reordered fixture serializes");
+        let reordered = audit_fixture_bytes(&reordered_bytes).expect("reordered fixture should audit");
+
+        assert_ne!(baseline.input_sha256, reordered.input_sha256);
+        assert_eq!(baseline.event_cases, reordered.event_cases);
+        assert_eq!(baseline.evaluator_timeline, reordered.evaluator_timeline);
+        assert_eq!(baseline.policy_timeline, reordered.policy_timeline);
+    }
+
+    #[test]
+    fn duplicate_case_ids_are_rejected() {
+        let mut value: serde_json::Value =
+            serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture JSON parses");
+        value["disturbance_cases"][12]["case_id"] = serde_json::json!("R-001");
+        let mutated = serde_json::to_vec(&value).expect("mutated fixture serializes");
+        let errors = audit_fixture_bytes(&mutated).expect_err("duplicate IDs must fail closed");
+        assert!(errors.iter().any(|error| error.contains("duplicate case_id")));
     }
 
     #[test]
