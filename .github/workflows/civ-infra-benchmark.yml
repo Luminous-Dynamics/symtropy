@@ -41,14 +41,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          fixture="tools/civ-infra-benchmark/fixtures/corridor-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
           report="$RUNNER_TEMP/civ-infra-report.json"
-          cargo run --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml -- tools/civ-infra-benchmark/fixtures/corridor-v0.1.json > "$report"
-          jq -e '
+          cargo run --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
             .schema_version == "luminous.civ_infra.corridor_report.v0.1" and
+            .input_sha256 == $expected_sha and
             .claim_ceiling == "synthetic_case_only_not_real_world_qualified" and
             ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "infeasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
+              select(.code == "grade_limit" and .status == "violation")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
+              select(.code == "earthworks_budget" and .status == "violation")] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "B-low-earthworks" and .disposition == "infeasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-low-earthworks") | .findings[] |
+              select(.code == "utility_clearance:power-duct-known" and .status == "violation")] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "C-reference" and .disposition == "feasible_for_synthetic_case")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
+              select(.code == "declared_grade_matches_profile" and .status == "pass")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
+              select(.code == "declared_earthworks_matches_sections" and .status == "pass")] | length) == 1 and
             (.resource_schedule_feasible == false) and
             (.schedule_conflicts | length) == 1 and
             .schedule_conflicts[0].resource_id == "excavator" and
