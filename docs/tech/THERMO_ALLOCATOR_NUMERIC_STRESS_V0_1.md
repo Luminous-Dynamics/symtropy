@@ -17,6 +17,18 @@ The new deterministic unit test covers:
 
 The property loops are deterministic and repeatable; they are stress/differential corpora, not a statistical proof or a performance benchmark. A separate Python model experiment exercised the corresponding IEEE-754 allocator path against the rational oracle for the same quarter-unit distribution: 4,096 cases passed, with a maximum absolute allocation difference of approximately 5.7e-12. This is model-level evidence only, not execution of the new Rust test.
 
+## Manual scaling harness
+
+The source now includes an ignored benchmark test. After Rust tooling is available, run it from the repository root:
+
+```sh
+cargo test allocator_scaling_benchmark -- --ignored --nocapture
+```
+
+It reports p50/p95/p99 elapsed nanoseconds and the final allocated/unallocated totals for 0, 1, 2, 10, 1,000, 10,000, and 100,000 recipients. It uses two warm-up runs, then 50 samples for sizes below 10,000, 20 samples at 10,000, and 15 samples at 100,000. Workload generation occurs outside the timed region; each sample includes the allocator's own input collection, validation, sorting, and allocation.
+
+There are intentionally no hard wall-clock assertions. Record the exact source SHA, `rustc -Vv`, profile/flags, CPU model, operating system, and power mode before comparing results. These sample counts support an initial p95/p99 diagnostic, not a statistically strong tail-latency claim. Run larger repeated batches for release qualification.
+
 ## Numeric assurance boundary
 
 Subnormal supplies may not be divisible into equal, non-zero representable `f64` allocations. The safe response can be to leave a small residual unallocated rather than overspend. Therefore record **under-utilization** separately from conservation failure. The current test asserts hard safety and permutation invariance, not optimal utilization or exact-real max-min fairness.
