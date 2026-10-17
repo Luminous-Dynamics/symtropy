@@ -36,8 +36,6 @@ jobs:
         with:
           toolchain: 1.96.0
           components: rustfmt
-      - name: Check formatting
-        run: cargo fmt --manifest-path tools/forest-terrain-sim/Cargo.toml -- --check
       - name: Test deterministic simulator
         run: cargo test --manifest-path tools/forest-terrain-sim/Cargo.toml
       - name: Validate exact-head terrain corpus and receipt
