@@ -591,8 +591,8 @@ mod tests {
         assert_eq!(report.gross_circularity_policy_id, "high-loop");
         assert_eq!(report.expected_impact_policy_id, "high-loop");
         assert_eq!(report.minimax_regret_policy_id, "verified-reuse");
-        assert_eq!(result(&report, "high-loop").expected_ghg_gco2e, Some(34_896));
-        assert_eq!(result(&report, "verified-reuse").expected_ghg_gco2e, Some(38_084));
+        assert_eq!(result(&report, "high-loop").expected_ghg_gco2e, Some(40_776));
+        assert_eq!(result(&report, "verified-reuse").expected_ghg_gco2e, Some(41_361));
         assert_eq!(result(&report, "verified-reuse").max_regret_gco2e, Some(8_490));
         assert_eq!(result(&report, "high-loop").max_regret_gco2e, Some(9_800));
         assert_eq!(report.expected_ghg_cost_frontier_ids, vec!["high-loop", "verified-reuse"]);
@@ -623,17 +623,23 @@ mod tests {
     }
 
     #[test]
-    fn substitution_uncertainty_can_reverse_the_expected_impact_choice() {
+    fn zero_substitution_credit_can_reverse_the_expected_impact_choice() {
         let mut manifest = fixture_manifest();
+        manifest.scenarios.iter_mut()
+            .find(|scenario| scenario.id == "stable-supply")
+            .expect("stable scenario exists")
+            .probability_bp = 5_000;
         let weak = manifest.scenarios.iter_mut()
             .find(|scenario| scenario.id == "weak-displacement")
             .expect("weak scenario exists");
+        weak.probability_bp = 4_000;
         weak.substitution_cap_bp = 0;
         let bytes = serde_json::to_vec(&manifest).expect("mutated fixture serializes");
         let report = evaluate(&bytes, "mutated-source").expect("mutated scenario remains valid");
         assert_eq!(report.expected_impact_policy_id, "verified-reuse");
         assert_eq!(report.minimax_regret_policy_id, "verified-reuse");
-        assert_eq!(result(&report, "high-loop").expected_ghg_gco2e, Some(38_256));
+        assert_eq!(result(&report, "high-loop").expected_ghg_gco2e, Some(46_152));
+        assert_eq!(result(&report, "verified-reuse").expected_ghg_gco2e, Some(44_541));
     }
 
     #[test]
