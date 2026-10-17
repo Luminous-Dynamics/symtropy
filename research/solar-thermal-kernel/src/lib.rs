@@ -700,10 +700,12 @@ mod tests {
         let first = canonical_demo_receipt().unwrap();
         let second = canonical_demo_receipt().unwrap();
         assert_eq!(first, second);
-        assert!(first.starts_with("{\\"schema\\":\\"solar-thermal-kernel-receipt-v0.1\\""));
+        assert!(first.starts_with("{\\"schema\\":\\"solar-thermal-kernel-report-v0.1\\""));
         assert!(first.contains("\\"all_verifiers_passed\\":true"));
         assert!(first.contains("\\"hardware_validated\\":false"));
         assert!(first.contains("\\"claim_level\\":\\"synthetic-mechanics-only\\""));
+        assert!(first.contains("\\"source_binding\\":\\"not-source-hash-bound\\""));
+        assert!(first.contains("\\"assumptions_id\\":\\"analytic-cp-linear-two-point-v0.1\\""));
         assert!(first.contains("\\"stored_exergy_before_discharge_j\\""));
         assert!(first.contains("\\"final_store_exergy_j\\""));
     }
