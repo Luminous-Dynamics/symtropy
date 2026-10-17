@@ -8,8 +8,7 @@
 //! fit models, calculate scores, or establish physical truth.
 
 use super::{
-    array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text,
-    JsonValue,
+    JsonValue, array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text,
 };
 use serde::Serialize;
 use std::collections::BTreeSet;
@@ -140,7 +139,12 @@ fn validate_task(task: &JsonValue, index: usize) -> Result<String, String> {
         &format!("{path}.status"),
         TASK_STATUSES[index],
     )?;
-    for key in ["estimand", "label_definition", "sample_policy", "benchmark_goal"] {
+    for key in [
+        "estimand",
+        "label_definition",
+        "sample_policy",
+        "benchmark_goal",
+    ] {
         require_nonempty_text(field(task, key, &path)?, &format!("{path}.{key}"))?;
     }
     require_exact_string_set(
@@ -172,7 +176,9 @@ fn validate_task(task: &JsonValue, index: usize) -> Result<String, String> {
 
 fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
     if bytes.len() > MAX_CONTRACT_BYTES {
-        return Err(format!("benchmark contract exceeds {MAX_CONTRACT_BYTES} bytes"));
+        return Err(format!(
+            "benchmark contract exceeds {MAX_CONTRACT_BYTES} bytes"
+        ));
     }
     let root = parse_strict(bytes)?;
     exact_keys(
@@ -214,24 +220,44 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         "source.id",
         "cyport_us_port_tropical_cyclone_resilience",
     )?;
-    expect_text(field(source, "revision", "source")?, "source.revision", SOURCE_REVISION)?;
+    expect_text(
+        field(source, "revision", "source")?,
+        "source.revision",
+        SOURCE_REVISION,
+    )?;
     expect_text(field(source, "path", "source")?, "source.path", SOURCE_PATH)?;
     expect_text(
         field(source, "git_blob_sha1", "source")?,
         "source.git_blob_sha1",
         SOURCE_BLOB_SHA1,
     )?;
-    if integer(field(source, "byte_length", "source")?, "source.byte_length")? != SOURCE_BYTES {
+    if integer(
+        field(source, "byte_length", "source")?,
+        "source.byte_length",
+    )? != SOURCE_BYTES
+    {
         return Err("source.byte_length: pinned byte length mismatch".to_owned());
     }
 
     let split = field(&root, "split_manifest", "root")?;
     exact_keys(
         split,
-        &["path", "schema_id", "schema_version", "split_unit", "splits", "total_storms", "total_rows"],
+        &[
+            "path",
+            "schema_id",
+            "schema_version",
+            "split_unit",
+            "splits",
+            "total_storms",
+            "total_rows",
+        ],
         "split_manifest",
     )?;
-    expect_text(field(split, "path", "split_manifest")?, "split_manifest.path", SPLIT_PATH)?;
+    expect_text(
+        field(split, "path", "split_manifest")?,
+        "split_manifest.path",
+        SPLIT_PATH,
+    )?;
     expect_text(
         field(split, "schema_id", "split_manifest")?,
         "split_manifest.schema_id",
@@ -242,13 +268,20 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         "split_manifest.schema_version",
         SPLIT_MANIFEST_SCHEMA_VERSION,
     )?;
-    expect_text(field(split, "split_unit", "split_manifest")?, "split_manifest.split_unit", "SID")?;
+    expect_text(
+        field(split, "split_unit", "split_manifest")?,
+        "split_manifest.split_unit",
+        "SID",
+    )?;
     let expected_splits = [
         ("train", "2015-2020", 59_u64, 1_471_u64),
         ("calibration", "2021", 13_u64, 308_u64),
         ("test", "2022-2023", 18_u64, 148_u64),
     ];
-    let observed_splits = array(field(split, "splits", "split_manifest")?, "split_manifest.splits")?;
+    let observed_splits = array(
+        field(split, "splits", "split_manifest")?,
+        "split_manifest.splits",
+    )?;
     if observed_splits.len() != expected_splits.len() {
         return Err("split_manifest.splits: expected exactly three frozen partitions".to_owned());
     }
@@ -256,16 +289,30 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         let path = format!("split_manifest.splits[{index}]");
         let observed = &observed_splits[index];
         exact_keys(observed, &["name", "years", "storms", "rows"], &path)?;
-        expect_text(field(observed, "name", &path)?, &format!("{path}.name"), name)?;
-        expect_text(field(observed, "years", &path)?, &format!("{path}.years"), years)?;
+        expect_text(
+            field(observed, "name", &path)?,
+            &format!("{path}.name"),
+            name,
+        )?;
+        expect_text(
+            field(observed, "years", &path)?,
+            &format!("{path}.years"),
+            years,
+        )?;
         if integer(field(observed, "storms", &path)?, &format!("{path}.storms"))? != *storms
             || integer(field(observed, "rows", &path)?, &format!("{path}.rows"))? != *rows
         {
             return Err(format!("{path}: frozen storm or row totals differ"));
         }
     }
-    let storms = integer(field(split, "total_storms", "split_manifest")?, "split_manifest.total_storms")?;
-    let rows = integer(field(split, "total_rows", "split_manifest")?, "split_manifest.total_rows")?;
+    let storms = integer(
+        field(split, "total_storms", "split_manifest")?,
+        "split_manifest.total_storms",
+    )?;
+    let rows = integer(
+        field(split, "total_rows", "split_manifest")?,
+        "split_manifest.total_rows",
+    )?;
     if storms != 90 || rows != 1_927 {
         return Err("split_manifest: frozen total counts differ".to_owned());
     }
@@ -296,7 +343,10 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         "feature_policy.split_group_key",
         "SID",
     )?;
-    for key in ["forecast_issue_time_required", "point_in_time_provenance_required"] {
+    for key in [
+        "forecast_issue_time_required",
+        "point_in_time_provenance_required",
+    ] {
         match field(features, key, "feature_policy")? {
             JsonValue::Bool(true) => {}
             _ => return Err(format!("feature_policy.{key}: must remain true")),
@@ -308,7 +358,11 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         &["ID", "SID", "PID"],
     )?;
     require_exact_string_set(
-        field(features, "outcome_or_post_event_fields_forbidden", "feature_policy")?,
+        field(
+            features,
+            "outcome_or_post_event_fields_forbidden",
+            "feature_policy",
+        )?,
         "feature_policy.outcome_or_post_event_fields_forbidden",
         &[
             "total_impact",
@@ -331,7 +385,9 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
     )?
     .is_empty()
     {
-        return Err("feature_policy.allowed_feature_fields must remain empty pending audit".to_owned());
+        return Err(
+            "feature_policy.allowed_feature_fields must remain empty pending audit".to_owned(),
+        );
     }
     require_nonempty_text(
         field(features, "data_availability_gate", "feature_policy")?,
@@ -340,7 +396,10 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
 
     let tasks = array(field(&root, "tasks", "root")?, "tasks")?;
     if tasks.len() != TASK_IDS.len() {
-        return Err(format!("tasks: expected exactly {} frozen task definitions", TASK_IDS.len()));
+        return Err(format!(
+            "tasks: expected exactly {} frozen task definitions",
+            TASK_IDS.len()
+        ));
     }
     let task_ids = tasks
         .iter()
@@ -390,30 +449,61 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         JsonValue::Bool(false) => {}
         _ => return Err("protocol.raw_accuracy_primary_metric must remain false".to_owned()),
     }
-    expect_text(field(protocol, "calibration_split", "protocol")?, "protocol.calibration_split", "calibration")?;
-    expect_text(field(protocol, "test_split", "protocol")?, "protocol.test_split", "test")?;
-    expect_text(field(protocol, "group_key", "protocol")?, "protocol.group_key", "SID")?;
+    expect_text(
+        field(protocol, "calibration_split", "protocol")?,
+        "protocol.calibration_split",
+        "calibration",
+    )?;
+    expect_text(
+        field(protocol, "test_split", "protocol")?,
+        "protocol.test_split",
+        "test",
+    )?;
+    expect_text(
+        field(protocol, "group_key", "protocol")?,
+        "protocol.group_key",
+        "SID",
+    )?;
     expect_text(
         field(protocol, "uncertainty_method", "protocol")?,
         "protocol.uncertainty_method",
         "storm_cluster_bootstrap",
     )?;
-    if integer(field(protocol, "bootstrap_replicates", "protocol")?, "protocol.bootstrap_replicates")? < 1_000 {
+    if integer(
+        field(protocol, "bootstrap_replicates", "protocol")?,
+        "protocol.bootstrap_replicates",
+    )? < 1_000
+    {
         return Err("protocol.bootstrap_replicates must be at least 1000".to_owned());
     }
     if integer(
-        field(protocol, "suppress_confirmatory_language_if_positive_test_storm_clusters_below", "protocol")?,
+        field(
+            protocol,
+            "suppress_confirmatory_language_if_positive_test_storm_clusters_below",
+            "protocol",
+        )?,
         "protocol.suppress_confirmatory_language_if_positive_test_storm_clusters_below",
     )? < 1
     {
-        return Err("protocol must suppress confirmatory claims when positive test storms are sparse".to_owned());
+        return Err(
+            "protocol must suppress confirmatory claims when positive test storms are sparse"
+                .to_owned(),
+        );
     }
-    integer(field(protocol, "random_seed", "protocol")?, "protocol.random_seed")?;
+    integer(
+        field(protocol, "random_seed", "protocol")?,
+        "protocol.random_seed",
+    )?;
 
     let reproduction = field(&root, "paper_reproduction", "root")?;
     exact_keys(
         reproduction,
-        &["status", "paper_doi", "distinction", "required_before_comparison"],
+        &[
+            "status",
+            "paper_doi",
+            "distinction",
+            "required_before_comparison",
+        ],
         "paper_reproduction",
     )?;
     expect_text(
@@ -431,11 +521,19 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
         "paper_reproduction.distinction",
     )?;
     require_array_strings(
-        field(reproduction, "required_before_comparison", "paper_reproduction")?,
+        field(
+            reproduction,
+            "required_before_comparison",
+            "paper_reproduction",
+        )?,
         "paper_reproduction.required_before_comparison",
         true,
     )?;
-    require_array_strings(field(&root, "claim_ceiling", "root")?, "claim_ceiling", true)?;
+    require_array_strings(
+        field(&root, "claim_ceiling", "root")?,
+        "claim_ceiling",
+        true,
+    )?;
 
     Ok(BenchmarkContractReport {
         status: "BENCHMARK_TASK_CONTRACT_VALIDATED_NOT_MODEL_VALIDATED",
@@ -455,11 +553,15 @@ fn validate_contract(bytes: &[u8]) -> Result<BenchmarkContractReport, String> {
 }
 
 pub fn run_cli(path: &str) -> Result<(), String> {
-    let metadata = fs::metadata(path).map_err(|error| format!("cannot stat benchmark contract {path}: {error}"))?;
+    let metadata = fs::metadata(path)
+        .map_err(|error| format!("cannot stat benchmark contract {path}: {error}"))?;
     if metadata.len() > MAX_CONTRACT_BYTES as u64 {
-        return Err(format!("benchmark contract exceeds {MAX_CONTRACT_BYTES} bytes"));
+        return Err(format!(
+            "benchmark contract exceeds {MAX_CONTRACT_BYTES} bytes"
+        ));
     }
-    let bytes = fs::read(path).map_err(|error| format!("cannot read benchmark contract {path}: {error}"))?;
+    let bytes = fs::read(path)
+        .map_err(|error| format!("cannot read benchmark contract {path}: {error}"))?;
     let report = validate_contract(&bytes)?;
     println!(
         "{}",
@@ -480,7 +582,10 @@ mod tests {
     #[test]
     fn frozen_benchmark_contract_validates_without_claiming_model_evaluation() {
         let report = validate_contract(CONTRACT).expect("benchmark contract should validate");
-        assert_eq!(report.status, "BENCHMARK_TASK_CONTRACT_VALIDATED_NOT_MODEL_VALIDATED");
+        assert_eq!(
+            report.status,
+            "BENCHMARK_TASK_CONTRACT_VALIDATED_NOT_MODEL_VALIDATED"
+        );
         assert_eq!(report.task_count, 4);
         assert_eq!(report.split_storm_count, 90);
         assert_eq!(report.split_row_count, 1_927);
@@ -495,7 +600,11 @@ mod tests {
         let mut root: Value = serde_json::from_slice(CONTRACT).unwrap();
         root["feature_policy"]["allowed_feature_fields"] = serde_json::json!(["WIND"]);
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_contract(&changed).unwrap_err().contains("allowed_feature_fields"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("allowed_feature_fields")
+        );
     }
 
     #[test]
@@ -503,7 +612,11 @@ mod tests {
         let mut root: Value = serde_json::from_slice(CONTRACT).unwrap();
         root["tasks"][0]["permitted_feature_fields"] = serde_json::json!(["total_impact"]);
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_contract(&changed).unwrap_err().contains("permitted_feature_fields"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("permitted_feature_fields")
+        );
     }
 
     #[test]
@@ -511,7 +624,11 @@ mod tests {
         let mut root: Value = serde_json::from_slice(CONTRACT).unwrap();
         root["protocol"]["group_key"] = Value::String("PID".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_contract(&changed).unwrap_err().contains("protocol.group_key"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("protocol.group_key")
+        );
     }
 
     #[test]
@@ -519,7 +636,11 @@ mod tests {
         let mut root: Value = serde_json::from_slice(CONTRACT).unwrap();
         root["paper_reproduction"]["status"] = Value::String("BLIND_TEST".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_contract(&changed).unwrap_err().contains("paper_reproduction.status"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("paper_reproduction.status")
+        );
     }
 
     #[test]
@@ -530,6 +651,10 @@ mod tests {
             "\"schema_version\": \"0.1.0\", \"schema_version\": \"0.1.0\",",
             1,
         );
-        assert!(validate_contract(raw.as_bytes()).unwrap_err().contains("duplicate object key"));
+        assert!(
+            validate_contract(raw.as_bytes())
+                .unwrap_err()
+                .contains("duplicate object key")
+        );
     }
 }
