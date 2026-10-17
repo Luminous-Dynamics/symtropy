@@ -1022,8 +1022,7 @@
         "SCREENING_ONLY",
         "SITE_REVIEW_COMPLETE",
         "NO_EXTRACTION_AUTHORIZED"
-      ],
-      "evidence_class": "synthetic"
+      ]
     },
     {
       "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
@@ -1054,8 +1053,7 @@
       "expected_decision": "blocked",
       "expected_reason_codes": [
         "DEADWOOD_RETENTION_REQUIRED"
-      ],
-      "evidence_class": "synthetic"
+      ]
     },
     {
       "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
@@ -1094,8 +1092,7 @@
         "HAZARD_REVIEW_INCOMPLETE",
         "BIOSECURITY_HOLD",
         "NO_MOVEMENT_BEFORE_CLEARANCE"
-      ],
-      "evidence_class": "synthetic"
+      ]
     },
     {
       "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
@@ -1127,8 +1124,7 @@
       "expected_reason_codes": [
         "BIOSECURITY_HOLD",
         "NO_MOVEMENT_BEFORE_CLEARANCE"
-      ],
-      "evidence_class": "synthetic"
+      ]
     },
     {
       "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
@@ -1167,8 +1163,7 @@
         "SYNTHETIC_COST_COMPARISON_ONLY",
         "CABLE_YARDER_SELECTED_LOWER_DECLARED_COST",
         "NO_EXTRACTION_AUTHORIZED"
-      ],
-      "evidence_class": "synthetic"
+      ]
     },
     {
       "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
@@ -1216,8 +1211,7 @@
         "HELICOPTER_ONLY_A_CANDIDATE_FOR_REVIEW",
         "SYNTHETIC_COST_COMPARISON_ONLY",
         "NO_EXTRACTION_AUTHORIZED"
-      ],
-      "evidence_class": "synthetic"
+      ]
     },
     {
       "scenario_id": "SYNTHETIC_WOODROBOT_029_DECLINING_LIVE_TREE_NEEDS_SEPARATE_DECISION",
