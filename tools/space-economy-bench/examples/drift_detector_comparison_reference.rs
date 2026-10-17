@@ -274,8 +274,8 @@ fn percentile(sorted_values: &[usize], percentile_bps: usize) -> Option<usize> {
     if sorted_values.is_empty() {
         return None;
     }
-    let rank_zero_based = ((sorted_values.len() - 1) * percentile_bps).div_ceil(10_000);
-    sorted_values.get(rank_zero_based).copied()
+    let rank_one_based = (sorted_values.len() * percentile_bps).div_ceil(10_000);
+    sorted_values.get(rank_one_based.saturating_sub(1)).copied()
 }
 
 fn condition_json(
@@ -547,8 +547,9 @@ mod tests {
     #[test]
     fn percentile_reports_are_monotone_for_sorted_values() {
         let values = [1_usize, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        assert!(percentile(&values, 5_000) <= percentile(&values, 9_000));
-        assert!(percentile(&values, 9_000) <= percentile(&values, 9_500));
+        assert_eq!(percentile(&values, 5_000), Some(5));
+        assert_eq!(percentile(&values, 9_000), Some(9));
+        assert_eq!(percentile(&values, 9_500), Some(10));
         assert_eq!(percentile(&[], 9_000), None);
     }
 
@@ -562,6 +563,18 @@ mod tests {
         assert_eq!(receipt["partition_integrity"]["seed_ranges_disjoint"], true);
         assert_eq!(receipt["partition_integrity"]["held_out_streams_used_for_threshold_tuning"], false);
         assert_eq!(receipt["summary"]["all_training_thresholds_within_false_alarm_budget"], true);
+        assert_eq!(receipt["detector_comparisons"][0]["frozen_threshold_milli"], 4_000);
+        assert_eq!(receipt["detector_comparisons"][1]["frozen_threshold_milli"], 10_000);
+        assert_eq!(receipt["detector_comparisons"][2]["frozen_threshold_milli"], 1_500);
+        assert_eq!(receipt["held_out_null_results"][0]["false_alarm_episodes"], 0);
+        assert_eq!(receipt["held_out_null_results"][1]["false_alarm_episodes"], 0);
+        assert_eq!(receipt["held_out_null_results"][2]["false_alarm_episodes"], 4);
+        assert_eq!(receipt["detector_comparisons"][0]["conditions"][4]["detected_after_shift"], 4);
+        assert_eq!(receipt["detector_comparisons"][0]["conditions"][4]["missed"], 60);
+        assert_eq!(receipt["detector_comparisons"][1]["conditions"][4]["detected_after_shift"], 64);
+        assert_eq!(receipt["detector_comparisons"][1]["conditions"][8]["detected_after_shift"], 64);
+        assert_eq!(receipt["detector_comparisons"][2]["conditions"][4]["detected_after_shift"], 60);
+        assert_eq!(receipt["detector_comparisons"][2]["conditions"][6]["detected_within_5_samples"], 39);
         assert_eq!(receipt["model_specification_sha256"].as_str().unwrap().len(), 64);
     }
 
