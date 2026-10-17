@@ -191,7 +191,7 @@ The harness must remain able to run R0/R1 tests quickly without waiting for a fu
 
 ## 11. Research basis
 
-NIST's 5 October 2026 report, [On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices](https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing-modeling-and-metrology-practices), discusses risk-based credibility assessment and scaling verification, validation and uncertainty quantification to model influence and decision consequence. This specification adopts that framing as a design principle, not as a claim of conformance.
+NIST's 5 October 2026 report, [On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices](https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing), discusses risk-based credibility assessment and scaling verification, validation and uncertainty quantification to model influence and decision consequence. This specification adopts that framing as a design principle, not as a claim of conformance.
 
 EPA's [SWMM model and manuals](https://www.epa.gov/water-research/storm-water-management-model-swmm) provide the established hydraulic simulator. The proposed contribution is not to replace SWMM; it is to preserve evidence, uncertain inputs, quality gates and decision consequences across engineering alternatives and tool boundaries.
 
