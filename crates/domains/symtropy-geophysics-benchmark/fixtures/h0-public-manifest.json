@@ -19,7 +19,7 @@
     "observation_dimension": 2,
     "observation_equation": "y = H x",
     "covariance_role": "full observation-error covariance R; off-diagonal entries are preserved",
-    "time_axis": "model_relative_seconds",
+    "time_axis": "model_relative_seconds; observation channels in each H0 fixture are simultaneous, equal timestamps are valid, and decreasing time order is invalid",
     "units": "synthetic_dimensionless",
     "randomness": "not_used_exact_analytic_fixture",
     "rank_tolerance": {
@@ -80,7 +80,7 @@
       ],
       "model_relative_seconds": [
         0,
-        1
+        0
       ],
       "expected_observability": {
         "numerical_rank": 2,
@@ -145,7 +145,7 @@
       ],
       "model_relative_seconds": [
         0,
-        1
+        0
       ],
       "expected_observability": {
         "numerical_rank": 2,
@@ -210,7 +210,7 @@
       ],
       "model_relative_seconds": [
         0,
-        1
+        0
       ],
       "expected_observability": {
         "numerical_rank": 1,
@@ -280,7 +280,7 @@
       ],
       "model_relative_seconds": [
         0,
-        1
+        0
       ],
       "expected_observability": {
         "numerical_rank": 1,
