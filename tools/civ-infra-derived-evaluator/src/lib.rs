@@ -773,6 +773,7 @@ mod tests {
     struct GeneratedCaseEvidence {
         fixture_id: String,
         input_sha256: String,
+        input_json: String,
         candidate_state_evaluations: usize,
         oracle_dispositions: BTreeMap<String, Disposition>,
         evaluated_dispositions: BTreeMap<String, Disposition>,
@@ -783,8 +784,10 @@ mod tests {
     #[derive(Serialize)]
     struct GeneratedCorpusEvidence {
         schema_version: String,
+        evaluator_version: String,
         base_fixture_sha256: String,
         generator: String,
+        mutator: String,
         initial_seed: String,
         generated_fixture_count: usize,
         total_candidate_state_evaluations: usize,
@@ -1242,6 +1245,8 @@ mod tests {
             case_records.push(GeneratedCaseEvidence {
                 fixture_id: input.fixture_id.clone(),
                 input_sha256: sha256_hex(&bytes),
+                input_json: String::from_utf8(bytes.clone())
+                    .expect("generated fixture is valid UTF-8 JSON"),
                 candidate_state_evaluations: input.candidates.len() * input.states.len(),
                 oracle_dispositions: expected_dispositions,
                 evaluated_dispositions: actual_dispositions,
@@ -1254,8 +1259,10 @@ mod tests {
         if let Ok(path) = std::env::var("CIV_INFRA_DERIVED_CORPUS_OUT") {
             let evidence = GeneratedCorpusEvidence {
                 schema_version: "luminous.civ_infra.derived_corpus.v0.1".to_string(),
+                evaluator_version: EVALUATOR_VERSION.to_string(),
                 base_fixture_sha256: sha256_hex(fixture_bytes()),
                 generator: "lcg64-6364136223846793005-1442695040888963407".to_string(),
+                mutator: "per-candidate grade+=lcg%300/100; capacity+=lcg%150/10; clearance+=lcg%100/1000; base-demand+=lcg%200/10".to_string(),
                 initial_seed: "0xD3211A2026".to_string(),
                 generated_fixture_count: case_records.len(),
                 total_candidate_state_evaluations: evaluations,
