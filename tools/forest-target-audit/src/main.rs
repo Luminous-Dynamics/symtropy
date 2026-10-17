@@ -205,7 +205,7 @@ fn neighbors_for_target(map: &GridMap, center: usize) -> Vec<usize> {
     (0..N).filter(|i| {
         if *i == center || !clear(map, *i) { return false; }
         let p = xy(*i);
-        (p.x.abs_diff(c.x) <= 2) && (p.y.abs_diff(c.y) <= 2)
+        (p.x.abs_diff(c.x) <= 2) && (p.y.abs_diff(c.y) <= 2) && line_of_sight(map, center, *i)
     }).collect()
 }
 fn make_target(map: &GridMap, rng: &mut Rng, target_id: String, kind: TargetKind) -> Check<Target> {
@@ -221,8 +221,10 @@ fn make_target(map: &GridMap, rng: &mut Rng, target_id: String, kind: TargetKind
             let features: Vec<usize> = nearby.iter().copied().take(required).collect();
             let valid = match kind {
                 TargetKind::TrunkDiameterEdges => {
-                    features.iter().any(|i| xy(*i).x < c.x)
-                        && features.iter().any(|i| xy(*i).x > c.x)
+                    let a = xy(features[0]);
+                    let b = xy(features[1]);
+                    (a.y == c.y && b.y == c.y && ((a.x < c.x && b.x > c.x) || (b.x < c.x && a.x > c.x)))
+                        || (a.x == c.x && b.x == c.x && ((a.y < c.y && b.y > c.y) || (b.y < c.y && a.y > c.y)))
                 }
                 TargetKind::LogEndContour => {
                     let xs: BTreeSet<usize> = features.iter().map(|i| xy(*i).x).collect();
