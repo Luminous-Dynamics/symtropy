@@ -241,6 +241,16 @@ fn to_json(scenario: &Scenario, result: &Simulation) -> Value {
     })
 }
 
+fn find_result<'a>(
+    results: &'a [(Scenario, Simulation)],
+    scenario_id: &str,
+) -> Result<&'a Simulation, String> {
+    results.iter()
+        .find(|(scenario, _)| scenario.scenario_id == scenario_id)
+        .map(|(_, result)| result)
+        .ok_or_else(|| format!("missing oracle scenario {scenario_id}"))
+}
+
 fn execute(source_commit: &str) -> Result<Value, String> {
     if source_commit.len() != 40
         || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
@@ -257,16 +267,11 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         results.push((scenario, simulate(&scenario)?));
     }
 
-    let lookup = |scenario_id: &str| -> Result<&Simulation, String> {
-        results.iter().find(|(scenario, _)| scenario.scenario_id == scenario_id)
-            .map(|(_, result)| result)
-            .ok_or_else(|| format!("missing oracle scenario {scenario_id}"))
-    };
-    let nominal_import = lookup("import_spares_nominal")?;
-    let delayed_import = lookup("import_spares_resupply_delayed")?;
-    let local_nominal = lookup("verified_local_repair_nominal")?;
-    let local_shock = lookup("verified_local_repair_resupply_shock")?;
-    let unverified_repair = lookup("unverified_repair_negative_control")?;
+    let nominal_import = find_result(&results, "import_spares_nominal")?;
+    let delayed_import = find_result(&results, "import_spares_resupply_delayed")?;
+    let local_nominal = find_result(&results, "verified_local_repair_nominal")?;
+    let local_shock = find_result(&results, "verified_local_repair_resupply_shock")?;
+    let unverified_repair = find_result(&results, "unverified_repair_negative_control")?;
 
     if nominal_import.service_months != 9
         || nominal_import.externally_sourced_spares_consumed != 3
