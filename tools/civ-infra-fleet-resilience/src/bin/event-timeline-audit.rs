@@ -438,7 +438,9 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
         });
     }
 
-    if let Err(mut timeline_errors) = validate_timeline_separation(&events, &evaluator_timeline, &policy_timeline) {
+    if let Err(mut timeline_errors) =
+        validate_timeline_separation(&events, &evaluator_timeline, &policy_timeline)
+    {
         errors.append(&mut timeline_errors);
         errors.sort();
         errors.dedup();
@@ -539,7 +541,9 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         errors.push("qualification_status must remain proposed_not_executed".to_string());
     }
     if fixture.clock.unit != "fixture_tick" || fixture.clock.interval_semantics != "half_open" {
-        errors.push("v0.1 timeline requires fixture_tick and half_open interval semantics".to_string());
+        errors.push(
+            "v0.1 timeline requires fixture_tick and half_open interval semantics".to_string(),
+        );
     }
     if fixture.evidence_vocabulary.is_empty()
         || fixture.policies.is_empty()
@@ -592,14 +596,21 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         .iter()
         .map(|task| task.task_id.as_str())
         .collect();
-    let evidence_ids: BTreeSet<&str> = fixture.evidence_vocabulary.iter().map(String::as_str).collect();
+    let evidence_ids: BTreeSet<&str> = fixture
+        .evidence_vocabulary
+        .iter()
+        .map(String::as_str)
+        .collect();
 
     for resource in &fixture.resources {
         if resource.resource_id.trim().is_empty()
             || resource.resource_kind.trim().is_empty()
             || resource.capacity == 0
         {
-            errors.push(format!("resource {} has invalid identity, kind, or capacity", resource.resource_id));
+            errors.push(format!(
+                "resource {} has invalid identity, kind, or capacity",
+                resource.resource_id
+            ));
         }
     }
     for task in &fixture.task_graph {
@@ -608,12 +619,18 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         }
         for dependency in &task.requires {
             if !task_ids.contains(dependency.as_str()) {
-                errors.push(format!("task {} references unknown dependency {}", task.task_id, dependency));
+                errors.push(format!(
+                    "task {} references unknown dependency {}",
+                    task.task_id, dependency
+                ));
             }
         }
         for evidence in &task.acceptance_evidence {
             if !evidence_ids.contains(evidence.as_str()) {
-                errors.push(format!("task {} references unknown acceptance evidence {}", task.task_id, evidence));
+                errors.push(format!(
+                    "task {} references unknown acceptance evidence {}",
+                    task.task_id, evidence
+                ));
             }
         }
     }
@@ -638,7 +655,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
 
     for case in &fixture.disturbance_cases {
         if DisturbanceKind::for_case(case).is_none() {
-            errors.push(format!("case {} has an unknown or changed frozen disturbance kind/name", case.case_id));
+            errors.push(format!(
+                "case {} has an unknown or changed frozen disturbance kind/name",
+                case.case_id
+            ));
         }
         if case.event.trim().is_empty() {
             errors.push(format!("case {} has an empty event name", case.case_id));
@@ -652,11 +672,17 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push(format!("case {} exceeds the bounded audit horizon", case.case_id));
         }
         if case.recovery_evidence.is_empty() || case.required_invariants.is_empty() {
-            errors.push(format!("case {} must declare recovery evidence and invariants", case.case_id));
+            errors.push(format!(
+                "case {} must declare recovery evidence and invariants",
+                case.case_id
+            ));
         }
         for resource_id in &case.affected_resources {
             if !resource_ids.contains(resource_id.as_str()) {
-                errors.push(format!("case {} references unknown resource {}", case.case_id, resource_id));
+                errors.push(format!(
+                    "case {} references unknown resource {}",
+                    case.case_id, resource_id
+                ));
             }
         }
         for task_id in &case.affected_tasks {
@@ -666,31 +692,50 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         }
         for evidence in &case.recovery_evidence {
             if !evidence_ids.contains(evidence.as_str()) {
-                errors.push(format!("case {} references unknown recovery evidence {}", case.case_id, evidence));
+                errors.push(format!(
+                    "case {} references unknown recovery evidence {}",
+                    case.case_id, evidence
+                ));
             }
         }
     }
 
     if fixture.tiny_schedule_cases.len() != 3 {
-        errors.push("frozen v0.1 fixture must contain exactly three tiny schedule cases".to_string());
+        errors.push(
+            "frozen v0.1 fixture must contain exactly three tiny schedule cases".to_string(),
+        );
     }
     for case in &fixture.tiny_schedule_cases {
         if case.case_id.trim().is_empty() || case.horizon_ticks == 0 || case.tasks.is_empty() {
-            errors.push("tiny schedule case identity, horizon, and tasks must be non-empty".to_string());
+            errors.push(
+                "tiny schedule case identity, horizon, and tasks must be non-empty".to_string(),
+            );
         }
         if let Some(expected) = case.expected_min_makespan_ticks {
             if expected > case.horizon_ticks {
-                errors.push(format!("tiny schedule case {} expects makespan beyond horizon", case.case_id));
+                errors.push(format!(
+                    "tiny schedule case {} expects makespan beyond horizon",
+                    case.case_id
+                ));
             }
         }
         for task in &case.tasks {
-            if task.task_id.trim().is_empty() || task.duration_ticks == 0 || task.alternatives.is_empty() {
-                errors.push(format!("tiny schedule task in {} has invalid identity, duration, or alternatives", case.case_id));
+            if task.task_id.trim().is_empty()
+                || task.duration_ticks == 0
+                || task.alternatives.is_empty()
+            {
+                errors.push(format!(
+                    "tiny schedule task in {} has invalid identity, duration, or alternatives",
+                    case.case_id
+                ));
             }
             for alternative in &task.alternatives {
                 for demand in &alternative.resource_demands {
                     if demand.resource_id.trim().is_empty() || demand.units == 0 {
-                        errors.push(format!("tiny schedule case {} contains invalid resource demand", case.case_id));
+                        errors.push(format!(
+                            "tiny schedule case {} contains invalid resource demand",
+                            case.case_id
+                        ));
                     }
                 }
             }
@@ -724,7 +769,9 @@ fn validate_timeline_separation(
                     "policy-visible projection leaks {} before observable_tick at tick {}",
                     case_id, policy.tick
                 )),
-                None => errors.push(format!("policy-visible projection references unknown event {case_id}")),
+                None => errors.push(format!(
+                    "policy-visible projection references unknown event {case_id}"
+                )),
             }
         }
 
@@ -736,18 +783,27 @@ fn validate_timeline_separation(
                 .collect(),
         );
         if policy.visible_event_ids != expected_visible {
-            errors.push(format!("policy-visible projection is incomplete or reordered at tick {}", policy.tick));
+            errors.push(format!(
+                "policy-visible projection is incomplete or reordered at tick {}",
+                policy.tick
+            ));
         }
 
         let expected_hidden = sorted_unique(
             events
                 .iter()
-                .filter(|event| event.injection_tick <= evaluator.tick && event.observable_tick > evaluator.tick)
+                .filter(|event| {
+                    event.injection_tick <= evaluator.tick
+                        && event.observable_tick > evaluator.tick
+                })
                 .map(|event| event.case_id.clone())
                 .collect(),
         );
         if evaluator.events_injected_but_not_yet_observable != expected_hidden {
-            errors.push(format!("evaluator hidden-event set is incorrect at tick {}", evaluator.tick));
+            errors.push(format!(
+                "evaluator hidden-event set is incorrect at tick {}",
+                evaluator.tick
+            ));
         }
 
         let expected_observation_queue = PolicyObservationQueue::from_events(events);
@@ -759,7 +815,10 @@ fn validate_timeline_separation(
         if policy.newly_observed_events != expected_observations
             || policy.newly_observed_event_ids != expected_new_observations
         {
-            errors.push(format!("new observation release set is incorrect at tick {}", policy.tick));
+            errors.push(format!(
+                "new observation release set is incorrect at tick {}",
+                policy.tick
+            ));
         }
         let expected_injections = sorted_unique(
             events
@@ -774,7 +833,10 @@ fn validate_timeline_separation(
 
         for newly_observed in &policy.newly_observed_event_ids {
             if !policy.visible_event_ids.contains(newly_observed) {
-                errors.push(format!("newly observed event {} is not in visible set at tick {}", newly_observed, policy.tick));
+                errors.push(format!(
+                    "newly observed event {} is not in visible set at tick {}",
+                    newly_observed, policy.tick
+                ));
             }
         }
     }
@@ -859,7 +921,8 @@ mod tests {
 
     #[test]
     fn canonical_corpus_produces_thirteen_typed_events() {
-        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let report =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         assert_eq!(report.counts.disturbance_cases, 13);
         assert_eq!(report.counts.typed_disturbance_kinds, 13);
         assert_eq!(report.counts.delayed_observations, 3);
@@ -882,7 +945,12 @@ mod tests {
 
         let evaluator_two = report.evaluator_timeline.iter().find(|tick| tick.tick == 2).unwrap();
         assert!(evaluator_two.injected_event_ids.iter().any(|id| id == "R-008"));
-        assert!(evaluator_two.events_injected_but_not_yet_observable.iter().any(|id| id == "R-008"));
+        assert!(
+            evaluator_two
+                .events_injected_but_not_yet_observable
+                .iter()
+                .any(|id| id == "R-008")
+        );
     }
 
     #[test]
@@ -974,7 +1042,8 @@ mod tests {
 
     #[test]
     fn fixture_array_order_does_not_change_queue_results() {
-        let baseline = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let baseline =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let mut value: serde_json::Value =
             serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture JSON parses");
         value["disturbance_cases"]
@@ -982,7 +1051,8 @@ mod tests {
             .expect("disturbance_cases is an array")
             .reverse();
         let reordered_bytes = serde_json::to_vec(&value).expect("reordered fixture serializes");
-        let reordered = audit_fixture_bytes(&reordered_bytes).expect("reordered fixture should audit");
+        let reordered =
+            audit_fixture_bytes(&reordered_bytes).expect("reordered fixture should audit");
 
         assert_ne!(baseline.input_sha256, reordered.input_sha256);
         assert_eq!(baseline.event_cases, reordered.event_cases);
@@ -1072,7 +1142,8 @@ mod tests {
         let baseline = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let mut whitespace_variant = EMBEDDED_FIXTURE.as_bytes().to_vec();
         whitespace_variant.push(b' ');
-        let replay = audit_fixture_bytes(&whitespace_variant).expect("trailing JSON whitespace is valid");
+        let replay =
+            audit_fixture_bytes(&whitespace_variant).expect("trailing JSON whitespace is valid");
         assert_eq!(baseline.counts.disturbance_cases, replay.counts.disturbance_cases);
         assert_ne!(baseline.input_sha256, replay.input_sha256);
     }
