@@ -27,7 +27,7 @@ cargo run --locked --manifest-path tools/civ-infra-measurement-compatibility/Car
 
 - Frozen four-state, three-outcome synthetic fixture with meter/millimeter conversion and a supported observation that leaves multiple states possible.
 - 20 authored Rust tests for unit conversion, nonlinear outward rounding, overlapping boundaries, unsupported observations, out-of-domain state handling, model-support gaps, provenance syntax, order invariance, and a direct interval-overlap oracle.
-- Generated suite: 100 seeded worlds × 20 states × 5 outcome bins = 10,000 state-outcome evaluations. The independent direct-overlap oracle compares the full state/outcome compatibility-edge set, not just a matching count.
+- Generated suite: 100 seeded worlds × 20 states × 5 outcome bins = 10,000 state/outcome evaluations. Fifty worlds use length identity (meter/millimeter-compatible) and fifty use the nonlinear dimensionless square. The independent oracle compares the full state/outcome edge set, independently propagating square bounds with outward rounding.
 - CI writes full generated inputs, SHA-256 digests, reports, reference edge counts and an artifact checksum manifest. The workflow is scoped to this crate plus its protocol and checks out the exact PR head.
 - Pre-allocation cap: 100,000 state/outcome combinations, deliberately conservative for v0.1 memory use.
 
