@@ -25,6 +25,9 @@ struct Corpus {
 struct ScenarioBinding {
     planner_scenario_id: String,
     scene: Scene,
+    energy_budget_steps: u16,
+    return_reserve_steps: u16,
+    max_viewpoints: u8,
 }
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -145,14 +148,23 @@ struct Receipt {
     held_out: SplitSummary,
     evaluations: Vec<Evaluation>,
 }
-#[derive(Debug, Clone)]
-struct GridMap { cells: Vec<Occupancy> }
+#[derive(Debug, Clone, Serialize)]
+struct GridMap { width: usize, height: usize, cells: Vec<Occupancy> }
+#[derive(Debug, Clone, Serialize)]
+struct PlannerConfig {
+    start_cell: usize, energy_budget_steps: u16, return_reserve_steps: u16, max_viewpoints: u8,
+    sensor_range_cells: i32, horizontal_fov_degrees: u16, turn_cost_steps: u16,
+    greedy_algorithm: String, oracle_algorithm: String, lookahead_algorithm: String,
+}
 #[derive(Debug, Clone, Copy)]
 struct Coord { x: usize, y: usize }
 #[derive(Debug, Clone)]
 struct Rng(u64);
 
 fn hash(bytes: &[u8]) -> String { format!("{:x}", Sha256::digest(bytes)) }
+fn digest_json<T: Serialize>(value: &T) -> Check<String> {
+    serde_json::to_vec(value).map(|bytes| hash(&bytes)).map_err(|e| e.to_string())
+}
 fn idx(x: usize, y: usize) -> usize { y * W + x }
 fn xy(i: usize) -> Coord { Coord { x: i % W, y: i / W } }
 fn clear(map: &GridMap, cell: usize) -> bool { map.cells.get(cell) == Some(&Occupancy::Clear) }
@@ -164,7 +176,7 @@ fn map_for(scene: Scene) -> GridMap {
         Scene::BlockedCorridor => for y in 0..W { cells[idx(2, y)] = Occupancy::Obstacle; },
         Scene::UnknownBarrier => for y in 1..W { cells[idx(2, y)] = Occupancy::Unknown; },
     }
-    GridMap { cells }
+    GridMap { width: W, height: W, cells }
 }
 fn rng_for(seed: u64, scenario_id: &str) -> Rng {
     let mut fnv = 0xcbf29ce484222325_u64;
@@ -312,6 +324,20 @@ fn score_plan(map: &GridMap, plan: &PlannerPlan, targets: &[Target]) -> Check<Me
         targets: target_scores,
     })
 }
+fn config_for(binding: &ScenarioBinding) -> PlannerConfig {
+    PlannerConfig {
+        start_cell: 0,
+        energy_budget_steps: binding.energy_budget_steps,
+        return_reserve_steps: binding.return_reserve_steps,
+        max_viewpoints: binding.max_viewpoints,
+        sensor_range_cells: RANGE,
+        horizontal_fov_degrees: 180,
+        turn_cost_steps: 1,
+        greedy_algorithm: "marginal_gain / max(incremental_cost, 1), stable candidate-order tie-break".into(),
+        oracle_algorithm: "exhaustive unique-viewpoint sequences; maximize unique visible cells, then minimize budgeted steps".into(),
+        lookahead_algorithm: "receding horizon; select first action from best feasible sequence of up to two added viewpoints".into(),
+    }
+}
 fn validate_corpus(c: &Corpus) -> Check<()> {
     if c.suite_id.trim().is_empty() || c.suite_version.trim().is_empty()
         || c.generator_version.trim().is_empty() || c.claim_ceiling.trim().is_empty() {
@@ -427,6 +453,8 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
     for binding in &c.scenario_bindings {
         let scenario = by_id.get(binding.planner_scenario_id.as_str()).ok_or_else(|| format!("missing plan {}", binding.planner_scenario_id))?;
         let map = map_for(binding.scene);
+        if digest_json(&map)? != scenario.map_sha256 { return Err(format!("{}: planner map digest does not match target-audit geometry", binding.planner_scenario_id)); }
+        if digest_json(&config_for(binding))? != scenario.config_sha256 { return Err(format!("{}: planner config digest does not match target-audit binding", binding.planner_scenario_id)); }
         let seeds: Vec<(&str, u64)> = c.training_seeds.iter().map(|s| ("training", *s))
             .chain(c.held_out_seeds.iter().map(|s| ("held_out", *s))).collect();
         for (split, seed) in seeds {
