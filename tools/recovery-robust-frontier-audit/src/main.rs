@@ -26,6 +26,8 @@ struct Plan {
 struct ObjectiveMargin {
     objective_id: String,
     unit: String,
+    dominator_upper: i64,
+    dominated_lower: i64,
     margin: i64,
 }
 
@@ -38,8 +40,16 @@ struct DominanceCertificate {
 }
 
 #[derive(Debug, Serialize)]
+struct GateDecision {
+    gate: String,
+    status: String,
+    reason_code: String,
+}
+
+#[derive(Debug, Serialize)]
 struct IneligiblePlan {
     id: String,
+    gate_decisions: Vec<GateDecision>,
     reasons: Vec<String>,
 }
 
@@ -133,6 +143,8 @@ fn robustly_dominates(
         margins.push(ObjectiveMargin {
             objective_id: objective_id.clone(),
             unit: unit.clone(),
+            dominator_upper: a_interval.upper,
+            dominated_lower: b_interval.lower,
             margin,
         });
     }
@@ -321,6 +333,7 @@ fn make_receipt(
                     let mut gate_names = BTreeSet::new();
                     let mut plan_is_feasible = true;
                     let mut exclusion_reasons = Vec::new();
+                    let mut gate_decisions = Vec::new();
                     for (gate_index, gate) in gates.iter().enumerate() {
                         let gate_label = format!("{id}: GATE_{}", gate_index + 1);
                         let gate_name = nonempty_string(gate.get("gate"));
@@ -332,25 +345,29 @@ fn make_receipt(
                         } else {
                             errors.push(format!("{gate_label}_NAME_MISSING"));
                         }
-                        match nonempty_string(gate.get("status")) {
+                        let status_value = nonempty_string(gate.get("status"));
+                        let reason_value = reason.unwrap_or("REASON_CODE_MISSING");
+                        if reason.is_none() {
+                            errors.push(format!("{gate_label}_REASON_CODE_MISSING"));
+                        }
+                        match status_value {
                             Some("PASS") => {}
                             Some("BLOCK") => {
                                 plan_is_feasible = false;
-                                match reason {
-                                    Some(reason) => exclusion_reasons.push(reason.to_string()),
-                                    None => errors.push(format!("{gate_label}_REASON_CODE_MISSING")),
-                                }
+                                exclusion_reasons.push(reason_value.to_string());
                             }
                             Some("UNKNOWN") => {
                                 plan_is_feasible = false;
-                                match reason {
-                                    Some(reason) => exclusion_reasons.push(reason.to_string()),
-                                    None => errors.push(format!("{gate_label}_REASON_CODE_MISSING")),
-                                }
+                                exclusion_reasons.push(reason_value.to_string());
                             }
                             Some(other) => errors.push(format!("{gate_label}_STATUS_UNSUPPORTED: {other}")),
                             None => errors.push(format!("{gate_label}_STATUS_MISSING")),
                         }
+                        gate_decisions.push(GateDecision {
+                            gate: gate_name.unwrap_or("GATE_NAME_MISSING").to_string(),
+                            status: status_value.unwrap_or("STATUS_MISSING").to_string(),
+                            reason_code: reason_value.to_string(),
+                        });
                     }
 
                     match value.get("expected_feasible").and_then(Value::as_bool) {
@@ -362,7 +379,11 @@ fn make_receipt(
                     if !plan_is_feasible {
                         exclusion_reasons.sort();
                         exclusion_reasons.dedup();
-                        ineligible_plans.push(IneligiblePlan { id: id.clone(), reasons: exclusion_reasons });
+                        ineligible_plans.push(IneligiblePlan {
+                            id: id.clone(),
+                            gate_decisions: gate_decisions.clone(),
+                            reasons: exclusion_reasons,
+                        });
                     }
 
                     let intervals = match value.get("objective_intervals").and_then(Value::as_object) {
@@ -420,10 +441,6 @@ fn make_receipt(
 
         let mut computed_feasible: Vec<String> = plans.iter().filter(|plan| plan.feasible).map(|plan| plan.id.clone()).collect();
         computed_feasible.sort();
-        let mut computed_ineligible: Vec<String> = plans.iter().filter(|plan| !plan.feasible).map(|plan| plan.id.clone()).collect();
-        computed_ineligible.sort();
-        let _ = computed_ineligible;
-
         if computed_feasible.is_empty() {
             errors.push("NO_FEASIBLE_PLANS".to_string());
         }
@@ -435,7 +452,8 @@ fn make_receipt(
         }
 
         let (frontier, certificates) = sorted_frontier(&plans, &objective_units);
-        if frontier != expected_frontier {
+        let expected_frontier_matches = frontier == expected_frontier;
+        if !expected_frontier_matches {
             errors.push("EXPECTED_FRONTIER_MISMATCH".to_string());
         }
         let actual_pairs: Vec<(String, String)> = certificates.iter()
@@ -463,7 +481,7 @@ fn make_receipt(
             ineligible_plans,
             frontier,
             dominance_certificates: certificates,
-            expected_frontier_matches: errors.iter().all(|error| error != "EXPECTED_FRONTIER_MISMATCH"),
+            expected_frontier_matches,
             expected_certificates_match,
             all_plan_only,
             claim_ceiling: "NO_ACTUATION_AUTHORIZED".to_string(),
@@ -655,7 +673,8 @@ mod tests {
     #[test]
     fn duplicate_plan_ids_are_rejected() {
         let mut corpus = embedded();
-        corpus["plans"][1]["id"] = corpus["plans"][0]["id"].clone();
+        let duplicate_id = corpus["plans"][0]["id"].clone();
+        corpus["plans"][1]["id"] = duplicate_id;
         let receipt = audit(corpus);
         assert!(receipt.errors.iter().any(|error| error.contains("DUPLICATE_PLAN_ID")));
     }
@@ -705,6 +724,18 @@ mod tests {
         corpus["expected_frontier"] = json!(["remote_haul_and_process"]);
         let receipt = audit(corpus);
         assert!(receipt.errors.iter().any(|error| error.contains("EXPECTED_FRONTIER_MISMATCH")));
+    }
+
+    #[test]
+    fn adding_objectives_in_different_order_preserves_frontier() {
+        let mut corpus = embedded();
+        corpus["objective_schema"].as_array_mut().unwrap().reverse();
+        let receipt = audit(corpus);
+        assert_eq!(receipt.frontier, vec![
+            "fast_local_specialist".to_string(),
+            "local_sorted_reuse".to_string(),
+            "uncertain_remote_extraction".to_string()
+        ]);
     }
 
     #[test]
