@@ -847,6 +847,19 @@ mod tests {
     fn stale_timeline_evidence_blocks_floor_and_can_recover_when_refreshed() {
         let mut input = fixture();
         input.horizon_ticks = 3;
+        let grid_supply = input
+            .initial_scenario
+            .resource_supplies
+            .iter_mut()
+            .find(|supply| supply.supply_id == "grid-energy")
+            .unwrap();
+        grid_supply.capacity_units = 180;
+        let grid_limit = input
+            .stock_limits
+            .iter_mut()
+            .find(|limit| limit.supply_id == "grid-energy")
+            .unwrap();
+        grid_limit.maximum_stock_units = 180;
         input.events = vec![
             SettlementEvent {
                 event_id: "grid-stale".into(),
