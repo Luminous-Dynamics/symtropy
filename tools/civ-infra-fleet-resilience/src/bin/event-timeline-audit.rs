@@ -849,7 +849,7 @@ mod tests {
             .find(|observation| observation.case_id == "R-008")
             .expect("geometry revision observation should release at tick four");
         assert_eq!(geometry.observed_at_tick, 4);
-        assert_eq!(geometry.event_name, "site_geometry_revision_changed");
+        assert_eq!(geometry.event_name, "workface_geometry_revision_changed");
         assert!(geometry.invalidates.iter().any(|item| item == "site-snapshot"));
         assert!(geometry.affected_tasks.iter().any(|item| item == "trench-segment-01"));
 
