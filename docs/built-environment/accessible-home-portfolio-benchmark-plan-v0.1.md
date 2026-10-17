@@ -15,11 +15,11 @@ Sources:
 ## Paradigm shifts
 
 1. **One-shot recommendation → staged intervention portfolio.** Compare sequences and prerequisite relationships, not isolated products.
-2. **Weighted score → constraint gates plus Pareto frontier.** Hard constraints remain non-negotiable; cost, annual maintenance, lead time, disruption and preference alignment are displayed as distinct dimensions.
+2. **Weighted score → constraint gates plus Pareto frontier.** Hard constraints remain non-negotiable. Compare upper capital cost, total cost over a declared planning horizon, lead time, disruption and preference alignment without hiding trade-offs in a weighted score; show annual maintenance separately.
 3. **Exact price fantasy → ranges, provenance and unknowns.** The planner refuses to silently treat missing quotes as zero, and a range crossing the budget cap remains uncertain.
 4. **Cheapest upfront → lifecycle burden.** Track recurring maintenance separately from capital cost, and later expand to energy, consumables, replacement cycles, resident/carer time and repair latency when reliable scoped evidence exists.
 5. **Ignore the housing system → permission and implementation gates.** A technically plausible intervention requiring unavailable landlord permission is not reported as budget-feasible.
-6. **Plan equals outcome → stage-specific evidence.** Proposed, quoted, funded, installed, measured and professionally reviewed remain separate; a planned remediation is never counted as proof that a hard constraint is currently satisfied.
+6. **Plan equals outcome → stage-specific evidence.** Proposed, quoted, funded, installed, measured and professionally reviewed remain separate; a planned remediation is never counted as proof that a hard constraint is currently satisfied. A preference conflict is cleared only by an explicit intervention-to-conflict resolution edge.
 7. **Universal preference score → visible resident-specific trade-offs.** Preferences remain optimization dimensions, not gates that can override hard requirements. The same numeric disruption rubric is comparable only within the declared context.
 8. **Opaque optimization → reproducible decision support.** Enumerate a small bounded space exactly, report why alternatives are excluded, preserve input hashes and publish mutation cases before scaling up.
 
@@ -38,9 +38,9 @@ Sources:
 
 ## Scale and performance
 
-The first evaluator enumerates all subsets for at most 20 interventions (maximum 1,048,576 subsets). This is deliberately auditable but exponential, so do not raise the cap without benchmarks.
+The first evaluator enumerates all subsets for at most 20 interventions (maximum 1,048,576 subsets), incrementally updates its Pareto frontier, and fails closed above a 20,000-plan frontier cap. This is deliberately auditable but exponential; worst-case frontier growth remains a known limit, so do not raise either cap without benchmarks.
 
-Measure 5, 10, 15 and 20 interventions; vary hard-constraint coverage, dependency density, preference conflict, permission gates and proportion of unknown quotes. Use 30 timed repetitions after warm-up; report median/p95 runtime, peak RSS, hardware/OS, Rust compiler, build profile, input byte size/hash and frontier cardinality. The scale target remains open until baseline runs exist. Compare an independent exhaustive reference implementation before considering branch-and-bound or integer programming.
+Measure 5, 10, 15 and 20 interventions; vary hard-constraint coverage, dependency density, preference conflict, permission gates and proportion of unknown quotes. Use 30 timed repetitions after warm-up; report median/p95 runtime, peak RSS, hardware/OS, Rust compiler, build profile, input byte size/hash and frontier cardinality. The scale target remains open until baseline runs exist. Compare an independent exhaustive reference implementation before considering branch-and-bound or integer programming. The current Pareto objectives are upper capital cost and capital-plus-linearly-prorated annual maintenance across the specified horizon, critical-path lead time, disruption points and preference penalty; annual maintenance remains separately visible.
 
 ## Expansion path
 
