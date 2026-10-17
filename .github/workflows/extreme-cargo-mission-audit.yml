@@ -50,8 +50,8 @@ jobs:
             and .mission_scenario_count == 10
             and .assessment_count == 21
             and .eligible_for_human_review_count == 9
-            and .blocked_hard_gate_count == 7
-            and .blocked_platform_mismatch_count == 3
+            and .blocked_hard_gate_count == 8
+            and .blocked_platform_mismatch_count == 2
             and .needs_gate_evidence_count == 2
             and .not_assessable_incomplete_metrics_count == 0
             and .weighted_utility_score_produced == false
