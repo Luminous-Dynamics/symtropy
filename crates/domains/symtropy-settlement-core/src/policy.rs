@@ -79,6 +79,8 @@ pub struct RepairRequest {
     pub trigger_observation_id: String,
     pub trigger_observation_sha256: String,
     pub decision_tick: u64,
+    pub dispatch_latency_ticks: u64,
+    pub repair_duration_ticks: u64,
     pub not_before_tick: u64,
     pub expected_completion_tick: u64,
     pub required_parts_supply_id: String,
@@ -185,7 +187,8 @@ pub fn evaluate_baseline_policy(
                     rule.target_generation,
                     observation.observation_id
                 );
-                let action_id = format!("action:{}", &sha256_hex(action_material.as_bytes())[..32]);
+                let action_digest = sha256_hex(action_material.as_bytes());
+                let action_id = format!("action:{}", &action_digest[..32]);
                 DecisionDisposition::RepairRequested {
                     request: RepairRequest {
                         action_id,
@@ -194,6 +197,8 @@ pub fn evaluate_baseline_policy(
                         trigger_observation_id: observation.observation_id.clone(),
                         trigger_observation_sha256,
                         decision_tick: frame.payload.decision_tick,
+                        dispatch_latency_ticks: rule.dispatch_latency_ticks,
+                        repair_duration_ticks: rule.repair_duration_ticks,
                         not_before_tick,
                         expected_completion_tick,
                         required_parts_supply_id: rule.required_parts_supply_id.clone(),
@@ -282,7 +287,7 @@ pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), Settlemen
             if request.target_generation == 0
                 || request.required_parts_units == 0
                 || request.required_crew_units == 0
-                || request.repair_duration_ticks() == 0
+                || request.repair_duration_ticks == 0
             {
                 return Err(SettlementError(
                     "repair request has a zero generation, cost, crew or duration".into(),
@@ -298,11 +303,19 @@ pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), Settlemen
                     "repair request decision tick mismatches its decision receipt".into(),
                 ));
             }
-            if request.not_before_tick < request.decision_tick
-                || request.expected_completion_tick <= request.not_before_tick
+            let expected_dispatch = request
+                .decision_tick
+                .checked_add(request.dispatch_latency_ticks)
+                .ok_or_else(|| SettlementError("repair dispatch tick overflow".into()))?;
+            let expected_completion = request
+                .not_before_tick
+                .checked_add(request.repair_duration_ticks)
+                .ok_or_else(|| SettlementError("repair completion tick overflow".into()))?;
+            if request.not_before_tick != expected_dispatch
+                || request.expected_completion_tick != expected_completion
             {
                 return Err(SettlementError(
-                    "repair request has invalid dispatch/completion ordering".into(),
+                    "repair request dispatch/completion ticks disagree with declared latency".into(),
                 ));
             }
             if payload.strategy != BaselineStrategy::ReactiveRepair {
@@ -313,13 +326,6 @@ pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), Settlemen
         }
     }
     Ok(())
-}
-
-impl RepairRequest {
-    fn repair_duration_ticks(&self) -> u64 {
-        self.expected_completion_tick
-            .saturating_sub(self.not_before_tick)
-    }
 }
 
 fn validate_policy_definition(definition: &PolicyDefinition) -> Result<(), SettlementError> {
@@ -392,9 +398,7 @@ fn is_sha256_hex(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::observation::{
-        ObservationSchedule, build_policy_information_frame,
-    };
+    use crate::observation::{build_policy_information_frame, ObservationSchedule};
 
     fn failed_observation(
         disposition: ObservationDisposition,
@@ -568,7 +572,6 @@ mod tests {
         ));
     }
 
-    #[test]
     #[test]
     fn highest_priority_then_stable_id_breaks_multi_failure_ties() {
         let mut definition = policy(BaselineStrategy::ReactiveRepair);
