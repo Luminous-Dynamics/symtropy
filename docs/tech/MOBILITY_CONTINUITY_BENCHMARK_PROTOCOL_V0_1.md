@@ -22,14 +22,32 @@ The benchmark extends vehicle repairability research—where spare-parts availab
 
 - Scenario contract: `schemas/transport/mobility_continuity_scenario_v0_1.schema.json`
 - Frozen synthetic matrix: `fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json`
-- Independent Rust audit: `tools/mobility-continuity-audit/`
-- Path-scoped CI: `.github/workflows/mobility-continuity-audit.yml`
+- Model configuration schema and frozen inputs: `schemas/transport/mobility_continuity_model_config_v0_1.schema.json`, `fixtures/personal_vehicle/mobility_continuity_model_config_v0_1.json`
+- Independent Rust contract/negative-control audit: `tools/mobility-continuity-audit/`
+- Independent Rust deterministic proxy simulator: `tools/mobility-continuity-simulator/`
+- Contract audit workflow: `.github/workflows/mobility-continuity-audit.yml`
+- Simulator test/report workflow: `.github/workflows/mobility-continuity-simulator.yml`
 
 The fixture's 12 essential trips and 8 discretionary trips per week are normalized synthetic workload values for deterministic smoke tests, not a South African household travel estimate. Architecture readiness and stress parameters are equally synthetic and must not be represented as actual product capabilities or forecasts.
 
-**Verifier scope limitation:** v0.1 validates schema, matrix completeness, frozen parameters and fail-closed policy declarations, and executes a small reference policy guard against five explicit adversarial-control inputs. This checks that the seeded anti-patterns trigger the stated contract rules. It does not run a fleet/vehicle simulator or prove that a production candidate engine actually applies those guards; no vehicle outcome or real-world false-accept rate is measured.
+**Verifier/model boundary:** the contract audit checks schema, matrix completeness, frozen parameters and fail-closed declarations, and executes a small reference policy guard against five seeded adversarial controls. The new deterministic simulator now calculates synthetic annual trip fulfilment, unmet trips, primary-vehicle outage hours, descriptive recovery times, budget-constrained primary/fallback trips, and limited variable spend for all 15 scenarios. These outputs remain a deliberately simplified proxy. They do not validate vehicle physics, model actual South African services or costs, prove production decision-engine integration, or produce a real-world false-accept rate.
 
 ## 3. Metrics and calculation contract
+
+### Deterministic proxy simulator v0.1
+
+The executable model is a small deterministic discrete-time replay, not a calibrated fleet or physical vehicle simulation. It evaluates every row in the 3 × 5 corpus and emits a report with SHA-256 input digests and a deterministic report digest.
+
+- Horizon: 364 days (52 seven-day weeks), 12 essential trip opportunities per week.
+- Synthetic failure events: days 30 and 210, with 8 hours of hands-on work per event before adding a scenario's parts/repair delay.
+- Parts-stock sensitivity: effective part wait is `max(0, repair_delay_days - min(stock_coverage_days, repair_delay_days) × (1 - critical_part_fill_fraction))`. This deliberately simple inventory credit exercises the contract; it is not an estimate of real supplier lead times.
+- Budget stress: a synthetic weekly essential-mobility budget of R240; primary energy cost begins at R20 per essential trip and is multiplied by the scenario's fuel-cost multiplier; fallback trip cost is assumed to be R35. Cash-flow contraction scales the weekly budget. These values are fixture constants, not dated retail-price data, actual trip costs, or advice.
+- Fallback capacity: the declared fraction is floored to a per-week trip cap and only operates when the architecture fixture explicitly marks the hypothetical fallback eligible for the synthetic test. That flag does not establish actual accessibility, availability, legality, capacity, or service hours.
+- Fail-closed rule: an active safety hold or a closed synthetic configuration gate disables primary-vehicle dispatch over the evaluation horizon. Fallback trips are evaluated separately; an unsafe primary vehicle is never treated as dispatched.
+- Cost ceiling: the simulator may report synthetic primary-energy and fallback-mode spend only. Whole-life cost per fulfilled trip remains null because acquisition, financing, insurance, maintenance, repairs, depreciation and other necessary inputs are absent.
+- Recovery percentiles: P50/P90 are descriptive nearest-rank values over two fixed hypothetical repair events. They are not stable statistical estimates or population percentiles.
+
+The simulator is useful now to exercise calculation logic and make sensitivity assumptions inspectable. Do not tune its fictional parameters to make an archetype look better; replace them only with sourced, rights-cleared, timestamped evidence and preregistered observations. The report carries its evidence class as `synthetic_simulated_output` and a claim ceiling that excludes road, workshop, household and population claims.
 
 Every report must carry the input/configuration digest, model and source revision, evidence class, units, sampling method, uncertainty, missingness, limitations, and maximum justified claim. Use the shared [engineering evidence envelope](./../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json) when publishing results across projects.
 
@@ -75,7 +93,7 @@ Fuel-cost inputs must be dated, regional and grade-specific. The [Department of 
 
 ### Phase A — model contract and negative controls
 
-- Run schema and semantic audits on a frozen exact-head corpus.
+- Run schema/semantic audits and simulator unit/mutation tests on a frozen exact-head corpus; retain emitted input digests and generated synthetic reports.
 - Verify the complete architecture × stressor Cartesian product and all negative controls.
 - Freeze the metric formula, trip denominator, time windows, task categories, exclusions, and stopping rules before examining candidate outcomes.
 - Do not treat this phase as model or vehicle validation.
@@ -104,6 +122,20 @@ Fuel-cost inputs must be dated, regional and grade-specific. The [Department of 
 
 - Only observe legally operable, appropriately approved configurations with informed consent and a safe stop protocol. Do not treat this document as authorization to prototype or modify a road vehicle.
 - Report real-world outcomes only with evidence envelopes and source-consistent claims. Never transfer a synthetic percentage directly to public claims, funding claims or purchasing advice.
+
+
+## 8. Research rationale and external boundaries
+
+This benchmark connects established ideas rather than claiming a new repairability standard:
+
+- Ruiz-Pastor and Mesa's [Product Repairability Index (2023)](https://www.sciencedirect.com/science/article/pii/S0959652623005929) considers component importance, disassembly/assembly, repair information, spare-parts availability and self-diagnosis aids. The proposed household extension asks how repair delay changes essential mobility outcomes.
+- The 2026 [stakeholder-centered repairability index](https://www.sciencedirect.com/science/article/pii/S2666789426000255) argues that repairability ratings can differ among users, maintenance teams and designers. This supports reporting household and workshop perspectives separately rather than relying on one universal score.
+- Research on [simulation-based optimization of maintenance and spare-parts demand](https://www.sciencedirect.com/science/article/pii/S0925527318304924) uses maintenance data and discrete-event simulation to study repair time and parts interactions. It motivates eventual event-level modeling calibrated to actual evidence; the v0.1 proxy is far simpler and uses no empirical failure distribution.
+- Work on [measuring public-transit disruption and accessibility](https://www.sciencedirect.com/science/article/abs/pii/S0966692323002417) distinguishes scheduled from realizable accessibility under disruption. This motivates the conservative rule that hypothetical fallback capacity must not count as service until it is genuinely available and usable.
+
+For South African road use, the official [Government Letter of Authority guidance](https://www.gov.za/services/register-motor-vehicle/letter-authority-respect-motor-vehicle) states that relevant imported, built or modified vehicles require an LOA before registration/licensing, subject to the applicable process. The [NRCS importing-vehicles page](https://www.nrcs.org.za/automotive/importing-vehicles/) discusses conformity and LOA requirements. Confirm exact applicability with NRCS for the specific build, import or modification; no software artifact in this work grants approval.
+
+The South African Government's [5 October 2026 fuel-pricing notice](https://www.gov.za/news/media-statements/minister-gwede-mantashe-announces-adjustment-fuel-prices-effective-7-0) documents a R3.33/L increase for 95-octane petrol effective 7 October 2026. That establishes one dated stress event—not the current pump price for every zone, a forecast, or a value used to calibrate the synthetic R20/trip constant.
 
 ## 7. What success would look like
 
