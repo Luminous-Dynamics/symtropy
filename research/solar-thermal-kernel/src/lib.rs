@@ -622,7 +622,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
         "{\"schema\":\"solar-thermal-kernel-receipt-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\""
     );
     fn number(out: &mut String, key: &str, value: f64) {
-        out.push_str(&format!(",\"{}\":{:.9}", key, value));
+        out.push_str(&format!(",\"{key}\":{value:.9}"));
     }
     number(&mut json, "incident_solar_j", collector.incident_solar.value());
     number(&mut json, "optical_loss_j", collector.optical_loss.value());
