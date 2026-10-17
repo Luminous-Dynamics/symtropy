@@ -1,0 +1,64 @@
+name: CIV-INFRA Robust Oracle
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-robust-oracle/**"
+      - ".github/workflows/civ-infra-robust-oracle.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-robust-oracle/**"
+      - ".github/workflows/civ-infra-robust-oracle.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  robust-oracle:
+    name: Finite-state robust oracle checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-infra-robust-oracle/Cargo.toml -- --check
+      - name: Run adversarial and exhaustive-oracle tests
+        env:
+          CIV_INFRA_CORPUS_OUT: ${{ runner.temp }}/civ-infra-robust-corpus.json
+        run: cargo test --locked --manifest-path tools/civ-infra-robust-oracle/Cargo.toml
+      - name: Upload generated finite-world oracle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: civ-infra-robust-corpus-${{ github.sha }}
+          path: ${{ runner.temp }}/civ-infra-robust-corpus.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Emit and verify fixture digest and expected outcomes
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="tools/civ-infra-robust-oracle/fixtures/robust-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/robust-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-robust-oracle/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.robust_report.v0.1" and
+            .input_sha256 == $expected_sha and
+            .claim_ceiling == "declared_finite_synthetic_states_only" and
+            ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "conditionally_feasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-resilient" and .disposition == "robust_feasible_for_declared_set")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-fragile-clearance" and .disposition == "conditionally_feasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "D-high-margin" and .disposition == "robust_feasible_for_declared_set")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "E-overcapacity" and .disposition == "robust_infeasible_for_declared_set")] | length) == 1 and
+            .robust_pareto_frontier_candidate_ids == ["B-resilient", "D-high-margin"]
+          ' "$report"
