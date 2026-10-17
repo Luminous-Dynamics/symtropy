@@ -133,7 +133,7 @@ This document is a research contract. It does not implement slope stability, flo
 
 Implementation order:
 1. Review interface ownership with existing Sol-Atlas and Symtropy contracts.
-2. Freeze the 14-case synthetic manifest and add an independent structural / semantic checker.
+2. Use the pinned structural verifier in `tools/habitat-manifest-verifier` for the exact 14-case terrain manifest; the independent semantic evaluator/golden oracle remains future work.
 3. Implement exact conservative gate composition over declared evidence receipts.
 4. Add uncertainty/currentness and dependency-invalidation adversarial tests.
 5. Add one qualified external hazard / geotechnical adapter at a time after licensing, coordinate systems, coverage and review rules are specified.
