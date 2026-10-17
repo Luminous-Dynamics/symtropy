@@ -709,6 +709,29 @@ mod tests {
     }
 
     #[test]
+    fn shared_bias_cannot_be_counted_as_independent_sensor_information() {
+        let mut fixture = public_fixture(FixtureId::CorrelatedDuplicate);
+        fixture.observation_covariance = [[1.25, 1.0], [1.0, 1.25]];
+        let shared_bias_gain = fixture.expected_information_gain_nats().unwrap();
+
+        let mut dropped_correlation = fixture.clone();
+        dropped_correlation.observation_covariance = [[1.25, 0.0], [0.0, 1.25]];
+        let diagonalized_gain = dropped_correlation
+            .expected_information_gain_nats()
+            .unwrap();
+
+        let mut omitted_bias = fixture.clone();
+        omitted_bias.observation_covariance = [[0.25, 0.0], [0.0, 0.25]];
+        let no_bias_gain = omitted_bias.expected_information_gain_nats().unwrap();
+
+        close(shared_bias_gain, 0.31799438335999836);
+        close(diagonalized_gain, 0.4777557225137182);
+        close(no_bias_gain, 1.0986122886681098);
+        assert!(shared_bias_gain < diagonalized_gain);
+        assert!(diagonalized_gain < no_bias_gain);
+    }
+
+    #[test]
     fn correlated_duplicate_does_not_receive_independent_sensor_information_credit() {
         let fixture = public_fixture(FixtureId::CorrelatedDuplicate);
         let correlated_gain = fixture.expected_information_gain_nats().unwrap();
