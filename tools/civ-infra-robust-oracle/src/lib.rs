@@ -209,7 +209,8 @@ fn validate_cartesian_state_coverage(fixture: &RobustFixture, errors: &mut Vec<S
         };
         if next_len > MAX_EXHAUSTIVE_STATES {
             errors.push(format!(
-                "state coverage: Cartesian product has {next_len} states, exceeding R0 cap {MAX_EXHAUSTIVE_STATES}"
+                "state coverage: Cartesian product has {next_len} states, exceeding R0 cap \
+                 {MAX_EXHAUSTIVE_STATES}"
             ));
             return;
         }
@@ -244,7 +245,8 @@ fn validate_cartesian_state_coverage(fixture: &RobustFixture, errors: &mut Vec<S
 
     if observed_tuples != expected_tuples || observed_tuples.len() != fixture.states.len() {
         errors.push(format!(
-            "state coverage: exhaustive Cartesian support requires {} unique joint states, but fixture provides {} states and {} unique joint tuples",
+            "state coverage: exhaustive Cartesian support requires {} unique joint states, \
+             but fixture provides {} states and {} unique joint tuples",
             expected_tuples.len(),
             fixture.states.len(),
             observed_tuples.len()
@@ -818,7 +820,9 @@ mod tests {
         fixture.states[3].values = fixture.states[2].values.clone();
         let bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
         let errors =
-            evaluate_json(&bytes).expect_err("duplicate joint tuple leaves one support tuple absent");
+            evaluate_json(&bytes).expect_err(
+                "duplicate joint tuple leaves one support tuple absent",
+            );
         assert!(errors.iter().any(|error| error.contains("state coverage")));
     }
 
