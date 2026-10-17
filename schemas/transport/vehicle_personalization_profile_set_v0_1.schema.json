@@ -28,8 +28,8 @@
     },
     "negative_controls": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 8,
+      "maxItems": 8,
       "items": {
         "$ref": "#/$defs/negative_control"
       }
@@ -467,7 +467,8 @@
             "NC-PERS-04",
             "NC-PERS-05",
             "NC-PERS-06",
-            "NC-PERS-07"
+            "NC-PERS-07",
+            "NC-PERS-08"
           ]
         },
         "profile_id": {
@@ -483,7 +484,8 @@
             "add_root_property",
             "replace_interaction_policy",
             "replace_privacy",
-            "replace_cabin_preferences"
+            "replace_cabin_preferences",
+            "replace_reversibility"
           ]
         },
         "property": {
@@ -508,7 +510,8 @@
             "cloud_sync_without_consent",
             "telemetry_without_consent",
             "guest_data_persistence",
-            "excessive_ambient_intensity"
+            "excessive_ambient_intensity",
+            "irreversible_profile_customization"
           ]
         },
         "must_reject": {
