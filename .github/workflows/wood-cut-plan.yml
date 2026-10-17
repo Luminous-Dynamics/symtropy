@@ -60,6 +60,7 @@ jobs:
             and .scenario_count == 3
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].pareto_plan_count] == [6, 21, 2])
             and (.scenarios | all(.status == "pass" and .pareto_plan_count > 0))
           ' wood-cut-plan-reference-receipt.json
 
