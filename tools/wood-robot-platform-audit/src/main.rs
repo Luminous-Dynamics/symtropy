@@ -763,7 +763,6 @@ mod tests {
         let scenario = corpus.scenarios.iter_mut()
             .find(|s| s.scenario_id == "SYNTHETIC_WOODROBOT_024_DEADWOOD_RETAINED_FOR_HABITAT")
             .expect("habitat retention fixture exists");
-        scenario.observations.insert("deadwood_retention_disposition".to_owned(), json!("approved_for_removal_after_ecological_review"));
         scenario.expected_decision = "eligible_for_simulated_plan".to_owned();
         assert!(validate(&corpus).is_err());
     }
