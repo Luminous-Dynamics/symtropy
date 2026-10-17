@@ -3,7 +3,7 @@
 //! Units: energy J, power W, time s, absolute temperature K, mass kg,
 //! and specific heat J/(kg K). Store energy is measured relative to Tmin.
 
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, fmt::Write as _};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModelError {
@@ -622,7 +622,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
     fn number(out: &mut String, key: &str, value: f64) {
-        out.push_str(&format!(",\"{key}\":{value:.9}"));
+        write!(out, ",\"{key}\":{value:.9}").expect("writing to a String cannot fail");
     }
     number(&mut json, "exergy_reference_temperature_k", 300.0);
     number(&mut json, "store_mass_kg", 1.0);
