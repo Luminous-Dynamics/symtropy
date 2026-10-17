@@ -323,47 +323,55 @@ fn action_for_weights(weights: [i128; 3]) -> Action {
 }
 
 fn adaptive_gross_value_numerator(
-    run_b_after_a_positive: bool,
-    run_b_after_a_negative: bool,
+    first: &CalibrationTest,
+    second: &CalibrationTest,
+    run_second_after_positive: bool,
+    run_second_after_negative: bool,
 ) -> Result<i128, String> {
-    validate_test(&CALIBRATION_A)?;
-    validate_test(&CALIBRATION_B)?;
+    validate_test(first)?;
+    validate_test(second)?;
+    if first.calibration_domain == second.calibration_domain {
+        return Err("adaptive tests require distinct verified calibration domains".to_owned());
+    }
 
-    let a_positive = update_weights(PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, true)?;
-    let a_negative = update_weights(PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, false)?;
+    let first_positive = update_weights(PRIOR_MODEL_WEIGHTS, first, true)?;
+    let first_negative = update_weights(PRIOR_MODEL_WEIGHTS, first, false)?;
 
-    let branch_gross = |weights: [i128; 3], run_b: bool| -> Result<i128, String> {
-        if run_b {
-            let b_positive = update_weights(weights, &CALIBRATION_B, true)?;
-            let b_negative = update_weights(weights, &CALIBRATION_B, false)?;
-            Ok(action_value_weighted(b_positive, action_for_weights(b_positive))
-                + action_value_weighted(b_negative, action_for_weights(b_negative)))
+    let branch_gross = |weights: [i128; 3], run_second: bool| -> Result<i128, String> {
+        if run_second {
+            let second_positive = update_weights(weights, second, true)?;
+            let second_negative = update_weights(weights, second, false)?;
+            Ok(action_value_weighted(second_positive, action_for_weights(second_positive))
+                + action_value_weighted(second_negative, action_for_weights(second_negative)))
         } else {
-            // Lift a branch that stops after A into the common two-stage mass.
+            // Lift a branch that stops after the first calibration into the
+            // common two-stage probability denominator.
             Ok(action_value_weighted(weights, action_for_weights(weights)) * BASIS_POINTS)
         }
     };
 
-    Ok(branch_gross(a_positive, run_b_after_a_positive)?
-        + branch_gross(a_negative, run_b_after_a_negative)?)
+    Ok(branch_gross(first_positive, run_second_after_positive)?
+        + branch_gross(first_negative, run_second_after_negative)?)
 }
 
 fn adaptive_expected_test_cost_numerator(
-    run_b_after_a_positive: bool,
-    run_b_after_a_negative: bool,
+    first: &CalibrationTest,
+    second: &CalibrationTest,
+    run_second_after_positive: bool,
+    run_second_after_negative: bool,
 ) -> i128 {
-    let a_positive_mass = total_weight(update_weights(
-        PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, true
+    let positive_mass = total_weight(update_weights(
+        PRIOR_MODEL_WEIGHTS, first, true
     ).expect("validated static test"));
-    let a_negative_mass = total_weight(update_weights(
-        PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, false
+    let negative_mass = total_weight(update_weights(
+        PRIOR_MODEL_WEIGHTS, first, false
     ).expect("validated static test"));
-    let mut cost = DIRECT_CALIBRATION_A_COST_CENTI * GLOBAL_MASS;
-    if run_b_after_a_positive {
-        cost += CALIBRATION_B_COST_CENTI * a_positive_mass * BASIS_POINTS;
+    let mut cost = first.cost_centi * GLOBAL_MASS;
+    if run_second_after_positive {
+        cost += second.cost_centi * positive_mass * BASIS_POINTS;
     }
-    if run_b_after_a_negative {
-        cost += CALIBRATION_B_COST_CENTI * a_negative_mass * BASIS_POINTS;
+    if run_second_after_negative {
+        cost += second.cost_centi * negative_mass * BASIS_POINTS;
     }
     cost
 }
@@ -376,12 +384,18 @@ fn policy_scores() -> Result<Vec<(String, i128, i128)>, String> {
         - CALIBRATION_A.cost_centi * total_mass;
     let test_b = test_gross_value_numerator(&CALIBRATION_B)?
         - CALIBRATION_B.cost_centi * total_mass;
-    let adaptive_after_positive = adaptive_gross_value_numerator(true, false)?
-        - adaptive_expected_test_cost_numerator(true, false);
-    let adaptive_after_negative = adaptive_gross_value_numerator(false, true)?
-        - adaptive_expected_test_cost_numerator(false, true);
-    let adaptive_both_branches = adaptive_gross_value_numerator(true, true)?
-        - adaptive_expected_test_cost_numerator(true, true);
+    let adaptive_ab_after_positive = adaptive_gross_value_numerator(&CALIBRATION_A, &CALIBRATION_B, true, false)?
+        - adaptive_expected_test_cost_numerator(&CALIBRATION_A, &CALIBRATION_B, true, false);
+    let adaptive_ab_after_negative = adaptive_gross_value_numerator(&CALIBRATION_A, &CALIBRATION_B, false, true)?
+        - adaptive_expected_test_cost_numerator(&CALIBRATION_A, &CALIBRATION_B, false, true);
+    let adaptive_ab_both_branches = adaptive_gross_value_numerator(&CALIBRATION_A, &CALIBRATION_B, true, true)?
+        - adaptive_expected_test_cost_numerator(&CALIBRATION_A, &CALIBRATION_B, true, true);
+    let adaptive_ba_after_positive = adaptive_gross_value_numerator(&CALIBRATION_B, &CALIBRATION_A, true, false)?
+        - adaptive_expected_test_cost_numerator(&CALIBRATION_B, &CALIBRATION_A, true, false);
+    let adaptive_ba_after_negative = adaptive_gross_value_numerator(&CALIBRATION_B, &CALIBRATION_A, false, true)?
+        - adaptive_expected_test_cost_numerator(&CALIBRATION_B, &CALIBRATION_A, false, true);
+    let adaptive_ba_both_branches = adaptive_gross_value_numerator(&CALIBRATION_B, &CALIBRATION_A, true, true)?
+        - adaptive_expected_test_cost_numerator(&CALIBRATION_B, &CALIBRATION_A, true, true);
     let redundant = test_gross_value_numerator(&REDUNDANT_TEST)?
         - REDUNDANT_TEST.cost_centi * total_mass;
 
@@ -389,9 +403,12 @@ fn policy_scores() -> Result<Vec<(String, i128, i128)>, String> {
         ("no_calibration".to_owned(), no_test, denominator),
         ("calibration_a_only".to_owned(), test_a, denominator),
         ("calibration_b_only".to_owned(), test_b, denominator),
-        ("adaptive_a_then_b_after_positive".to_owned(), adaptive_after_positive, denominator),
-        ("adaptive_a_then_b_after_negative".to_owned(), adaptive_after_negative, denominator),
-        ("adaptive_a_then_b_after_either_outcome".to_owned(), adaptive_both_branches, denominator),
+        ("adaptive_a_then_b_after_positive".to_owned(), adaptive_ab_after_positive, denominator),
+        ("adaptive_a_then_b_after_negative".to_owned(), adaptive_ab_after_negative, denominator),
+        ("adaptive_a_then_b_after_either_outcome".to_owned(), adaptive_ab_both_branches, denominator),
+        ("adaptive_b_then_a_after_positive".to_owned(), adaptive_ba_after_positive, denominator),
+        ("adaptive_b_then_a_after_negative".to_owned(), adaptive_ba_after_negative, denominator),
+        ("adaptive_b_then_a_after_either_outcome".to_owned(), adaptive_ba_both_branches, denominator),
         ("uninformative_test_negative_control".to_owned(), redundant, denominator),
     ];
     Ok(scores)
