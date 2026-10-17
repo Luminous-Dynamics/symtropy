@@ -340,3 +340,34 @@ The regolith oxygen fixture assumes 400 kg oxygen inventory in a 1,000 kg batch 
 - Reports include yield intervals/sensitivity, kWh/kg qualified product, tailings/residuals, consumables and wear-part needs, throughput, repair downtime, purity, and cost per delivered qualified kilogram.
 
 Follow-on: [BENCH-SPACE-008 — resource evidence to auditable production chains and coproducts](https://github.com/Luminous-Dynamics/symtropy/issues/1803). See the broader [Lunar Resource-to-Production Chain Map v0.1](SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md) for resource evidence tiers, proposed first industries, process chains, and staged benchmark gates.
+
+ 
+## Active reference extension — resource-survey selection by decision value
+
+The example `tools/space-economy-bench/examples/resource_assay_selection_reference.rs` closes a loop between site uncertainty and production-route decisions. It is separate from the frozen six-scenario v0.1 corpus. Rather than reward more observations in the abstract, it compares the best action without a survey against the action policy after each possible survey result, then subtracts the survey cost.
+
+### Synthetic exact oracle
+
+Prior probability of a rich site is 50%. Building local oxygen-production capability yields +200 decision units at a rich site and -100 at a poor site; importing oxygen is a zero-payoff fallback.
+
+- Best value without survey: 50 synthetic units.
+- Expected value of perfect information (EVPI): 50 units.
+- Verified 90% sensitivity/specificity direct assay costing 10 units: EVSI 35, net incremental value +25. Build after a positive result; import after a negative result.
+- Verified 60% sensitivity/specificity lower-resolution assay costing 2 units: EVSI zero because the optimal action remains the same after either result; don't buy it.
+- Uninformative 50%/50% assay costing 1: EVSI zero and don't buy.
+- Unverified claim of 90%/90% accuracy: the accepted model uses an uninformative 50%/50% likelihood, grants zero information credit, and doesn't buy it.
+
+The values are exact integer/rational calculations under the synthetic model. They are not lunar prior probabilities, real survey sensitivity, geological confidence, dollars, or a project investment recommendation.
+
+### Proposed targets
+
+- EVSI is computed against the optimal baseline action; it cannot be negative when the information can be ignored and the best action retained.
+- EVSI must never exceed EVPI under the same action/payoff model.
+- A survey is purchased only if net incremental value is positive; all non-positive-value positive-cost surveys are rejected.
+- Unsupported assay-performance claims contribute zero information credit.
+- Increasing assay cost while leaving its likelihood model unchanged cannot improve net survey value.
+- In later multi-stage versions, choose the next measurement only after assessing whether it can change the preferred route, reduce decision loss, or unblock a critical evidence gate. The model must represent survey fatigue, mission/lander time, sample limits and destructive sampling where relevant.
+
+Research motivation is grounded in the [USGS lunar resource assessment](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022) and [NASA's ISRU overview](https://www.nasa.gov/overview-in-situ-resource-utilization/), which highlight the gap between possible occurrence, site-specific characteristics, recoverability and qualified commodity production. Sources motivate the benchmark but do not calibrate these synthetic assay values.
+
+Tracking issue: [BENCH-SPACE-009 — choose resource surveys by decision value, not data volume](https://github.com/Luminous-Dynamics/symtropy/issues/1813).
