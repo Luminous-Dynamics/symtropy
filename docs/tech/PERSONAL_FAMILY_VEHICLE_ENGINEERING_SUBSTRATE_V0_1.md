@@ -33,6 +33,23 @@ The repairability task graph expresses versioned service steps, exact component 
 The source registry distinguishes standardized input schedules such as EPA UDDS/FTP/HWFET/US06/SC03 from measured candidate-vehicle validation data, links NHTSA's staged ADS testing framework for later autonomy, and lists SAE/ISO and South African approval references with reuse/applicability caveats. No outside dataset or normative standard text is vendored. The registry is an inventory, not a completed legal or data-rights review.
 
 Even a successful verifier result establishes only schema/corpus/evidence-label conformance. It does not compute vehicle dynamics, verify cryptographic signatures, adjudicate data rights, prove a source authentic, establish legal title, qualify a physical vehicle or repair procedure, measure workshop performance, or establish source applicability in a target jurisdiction.
+
+## Repairability compiler: service procedures become explicit task graphs
+
+The next workstream adds `schemas/transport/repair_task_graph_v0_1.schema.json`, 16 synthetic fixtures at `fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json`, and an independent Rust package at `tools/repair-task-graph-audit/`.
+
+The graph separates task nodes from dependency edges. Nodes bind exact vehicle configuration and component revision, step kind, tool availability, safety preconditions and duration provenance. The initial validator requires:
+- unique task IDs, known edge endpoints, no duplicate edges and a directed acyclic graph;
+- every task to reach the declared post-repair verification node, which must be terminal;
+- safe isolation upstream of every task that explicitly requires it and of access/removal/repair/reassembly tasks;
+- hard-stop preconditions to be marked as required before the task;
+- estimated duration for a `procedure_hypothesis`, versus repeated, source-bound observation-shaped durations for an `observed_workshop_trial`;
+- explicit units, procedure reuse status and a claim ceiling.
+
+The 16 fixtures contain two accepted synthetic graph shapes, six semantic-negative controls (cycle, duplicate node ID, dangling edge, missing post-check, missing isolation, duplicate edge), and eight schema-negative controls. Even the “observed” fixture uses synthetic numbers—it only tests the *shape* required of a measurement record, not any actual workshop outcome. The standalone verifier has been added to the existing path-scoped Rust workflow. Source assets were committed and JSON/semantic fixture expectations were inspected in-session, but this new Rust verifier has not been compiled or executed here; the exact-head workflow must establish that evidence.
+
+This is a useful paradigm shift because “repairability” is no longer one score or a vague CAD attribute: the same versioned graph can support access analysis, tool/parts dependencies, measured technician timing, downtime and rework accounting, and whole-life cost tradeoffs. However, graph validity does not prove a repair sequence is mechanically safe or complete. Only an approved procedure and controlled physical workshop trials can establish those claims.
+
 ## Core paradigm shift: design a vehicle and its maintenance ecosystem jointly
 
 Optimize across:
