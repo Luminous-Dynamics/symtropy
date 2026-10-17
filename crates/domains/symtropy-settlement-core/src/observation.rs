@@ -141,9 +141,9 @@ pub fn build_policy_information_frame(
             if decision_tick.saturating_sub(record.sample_tick)
                 > record.freshness_window_ticks
             {
-                if let ObservationDisposition::Current { value } = record.disposition {
+                if let ObservationDisposition::Current { value } = &record.disposition {
                     record.disposition = ObservationDisposition::Stale {
-                        last_value: value,
+                        last_value: value.clone(),
                     };
                 }
             }
@@ -403,6 +403,30 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first.payload.observations.len(), 1);
         assert_eq!(first.payload.observations[0].observation_id, "grid-now");
+    }
+
+    #[test]
+    fn current_observation_ages_into_stale_at_decision_time() {
+        let frame = build_policy_information_frame(
+            &schedule(vec![record(
+                "old-but-once-current",
+                0,
+                0,
+                ObservationDisposition::Current {
+                    value: ObservedValue::ComponentCondition {
+                        condition: KnownComponentCondition::Available,
+                    },
+                },
+            )]),
+            3,
+        )
+        .unwrap();
+        assert!(matches!(
+            &frame.payload.observations[0].disposition,
+            ObservationDisposition::Stale { .. }
+        ));
+        assert_eq!(frame.payload.observations[0].sample_tick, 0);
+        assert_eq!(frame.payload.observations[0].available_tick, 0);
     }
 
     #[test]
