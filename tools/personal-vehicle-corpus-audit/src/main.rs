@@ -126,7 +126,9 @@ fn case_by_id<'a>(cases: &'a [Value], id: &str) -> Option<&'a Value> {
 
 #[cfg(test)]
 fn case_by_id_mut<'a>(cases: &'a mut [Value], id: &str) -> Option<&'a mut Value> {
-    cases.iter_mut().find(|case| string_at(case, "id") == Some(id))
+    cases
+        .iter_mut()
+        .find(|case| string_at(case, "id") == Some(id))
 }
 
 fn has_invariant(case: &Value, invariant: &str) -> bool {
@@ -184,7 +186,9 @@ fn validate_special_case(case: &Value, errors: &mut Vec<String>) {
             let before = number_at(inputs, "road_mu_before");
             let after = number_at(inputs, "road_mu_after");
             if !matches!((before, after), (Some(a), Some(b)) if a > b && b >= 0.0 && a <= 1.0) {
-                errors.push("PV03_FRICTION_TRANSITION: must declare a valid friction drop".to_owned());
+                errors.push(
+                    "PV03_FRICTION_TRANSITION: must declare a valid friction drop".to_owned(),
+                );
             }
         }
         "PV05_PAYLOAD_CG_SHIFT" => {
@@ -193,47 +197,76 @@ fn validate_special_case(case: &Value, errors: &mut Vec<String>) {
                 errors.push("PV05_PAYLOAD_CG_SHIFT: payload must remain within the synthetic 400 kg envelope".to_owned());
             }
             if number_at(inputs, "payload_cg_z_m").is_none() {
-                errors.push("PV05_PAYLOAD_CG_SHIFT: center-of-gravity height is required".to_owned());
+                errors
+                    .push("PV05_PAYLOAD_CG_SHIFT: center-of-gravity height is required".to_owned());
             }
         }
         "PV06_OVERLOAD" => {
             let payload = number_at(inputs, "payload_kg");
             let limit = number_at(inputs, "payload_profile_limit_kg");
-            if !matches!((payload, limit), (Some(p), Some(l)) if p > l) || disposition != "reject_before_simulation" {
-                errors.push("PV06_OVERLOAD: overload must exceed limit and be rejected before simulation".to_owned());
+            if !matches!((payload, limit), (Some(p), Some(l)) if p > l)
+                || disposition != "reject_before_simulation"
+            {
+                errors.push(
+                    "PV06_OVERLOAD: overload must exceed limit and be rejected before simulation"
+                        .to_owned(),
+                );
             }
         }
         "PV11_TIRE_REVISION_CHANGE" => {
-            if string_at(inputs, "scenario_tire_revision") == string_at(inputs, "calibrated_tire_revision")
+            if string_at(inputs, "scenario_tire_revision")
+                == string_at(inputs, "calibrated_tire_revision")
                 || disposition != "reject_as_mismatched_configuration"
             {
-                errors.push("PV11_TIRE_REVISION_CHANGE: mismatched tire revisions must be rejected".to_owned());
+                errors.push(
+                    "PV11_TIRE_REVISION_CHANGE: mismatched tire revisions must be rejected"
+                        .to_owned(),
+                );
             }
         }
         "PV13_SENSOR_BIAS_STALE_CALIBRATION" => {
             let age = number_at(inputs, "calibration_age_days");
             let max_age = number_at(inputs, "max_calibration_age_days");
-            if !matches!((age, max_age), (Some(a), Some(m)) if a > m) || disposition != "insufficient_evidence" {
-                errors.push("PV13_SENSOR_BIAS_STALE_CALIBRATION: stale calibration must cause abstention".to_owned());
+            if !matches!((age, max_age), (Some(a), Some(m)) if a > m)
+                || disposition != "insufficient_evidence"
+            {
+                errors.push(
+                    "PV13_SENSOR_BIAS_STALE_CALIBRATION: stale calibration must cause abstention"
+                        .to_owned(),
+                );
             }
         }
         "PV16_INCOMPATIBLE_PART" => {
             let installed = string_at(inputs, "installed_part_revision");
-            let allowed = inputs.get("allowed_part_revisions").and_then(Value::as_array);
-            let is_compatible = allowed.is_some_and(|values| values.iter().any(|value| value.as_str() == installed));
+            let allowed = inputs
+                .get("allowed_part_revisions")
+                .and_then(Value::as_array);
+            let is_compatible = allowed
+                .is_some_and(|values| values.iter().any(|value| value.as_str() == installed));
             if is_compatible || disposition != "reject_as_mismatched_configuration" {
-                errors.push("PV16_INCOMPATIBLE_PART: incompatible part revision must not be accepted".to_owned());
+                errors.push(
+                    "PV16_INCOMPATIBLE_PART: incompatible part revision must not be accepted"
+                        .to_owned(),
+                );
             }
         }
         "PV17_INVALID_UNITS" => {
-            let speed_unit = inputs.get("speed").and_then(|v| v.get("unit")).and_then(Value::as_str);
+            let speed_unit = inputs
+                .get("speed")
+                .and_then(|v| v.get("unit"))
+                .and_then(Value::as_str);
             if speed_unit != Some("horsepower") || disposition != "reject_before_simulation" {
-                errors.push("PV17_INVALID_UNITS: invalid speed units must be rejected before simulation".to_owned());
+                errors.push(
+                    "PV17_INVALID_UNITS: invalid speed units must be rejected before simulation"
+                        .to_owned(),
+                );
             }
         }
         "PV18_MISSING_PROVENANCE" => {
             let solver = string_at(inputs, "solver_id");
-            let source_is_null = inputs.get("parameter_source_ref").is_some_and(Value::is_null);
+            let source_is_null = inputs
+                .get("parameter_source_ref")
+                .is_some_and(Value::is_null);
             if solver != Some("") || !source_is_null || disposition != "insufficient_evidence" {
                 errors.push("PV18_MISSING_PROVENANCE: missing solver/source must remain insufficient evidence".to_owned());
             }
@@ -242,14 +275,20 @@ fn validate_special_case(case: &Value, errors: &mut Vec<String>) {
             let manifest_solver = string_at(inputs, "manifest_solver_version");
             let result_solver = string_at(inputs, "result_solver_version");
             if manifest_solver == result_solver || disposition != "reject_as_tampered_evidence" {
-                errors.push("PV19_SOLVER_IDENTITY_MUTATION: solver provenance mismatch must be rejected".to_owned());
+                errors.push(
+                    "PV19_SOLVER_IDENTITY_MUTATION: solver provenance mismatch must be rejected"
+                        .to_owned(),
+                );
             }
         }
         "PV20_NONCONVERGED_SOLVER" => {
             if string_at(inputs, "solver_status") != Some("non_converged")
                 || disposition != "simulation_failure_not_promoted"
             {
-                errors.push("PV20_NONCONVERGED_SOLVER: non-converged result must not be promoted".to_owned());
+                errors.push(
+                    "PV20_NONCONVERGED_SOLVER: non-converged result must not be promoted"
+                        .to_owned(),
+                );
             }
         }
         "PV21_OUT_OF_DOMAIN" => {
@@ -260,7 +299,9 @@ fn validate_special_case(case: &Value, errors: &mut Vec<String>) {
             let out_of_domain = matches!((speed, max_speed), (Some(s), Some(m)) if s > m)
                 || matches!((temperature, max_temperature), (Some(t), Some(m)) if t > m);
             if !out_of_domain || disposition != "insufficient_evidence" {
-                errors.push("PV21_OUT_OF_DOMAIN: out-of-domain input must result in abstention".to_owned());
+                errors.push(
+                    "PV21_OUT_OF_DOMAIN: out-of-domain input must result in abstention".to_owned(),
+                );
             }
         }
         _ => {}
@@ -289,9 +330,13 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
         errors.push(format!("corpus.schema_version: expected {CORPUS_SCHEMA}"));
     }
     if string_at(document, "status") != Some(CORPUS_STATUS) {
-        errors.push(format!("corpus.status: synthetic/non-validated status must be preserved"));
+        errors.push(format!(
+            "corpus.status: synthetic/non-validated status must be preserved"
+        ));
     }
-    if string_at(document, "corpus_id") != Some("symtropy-personal-family-road-vehicle-synthetic-v0.1") {
+    if string_at(document, "corpus_id")
+        != Some("symtropy-personal-family-road-vehicle-synthetic-v0.1")
+    {
         errors.push("corpus.corpus_id: unexpected corpus identity".to_owned());
     }
 
@@ -304,7 +349,10 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
     }
     let assumptions = profile.get("assumptions").and_then(Value::as_array);
     if !assumptions.is_some_and(|values| values.len() >= 3 && values.iter().all(Value::is_string)) {
-        errors.push("vehicle_profile.assumptions: at least three explicit assumptions are required".to_owned());
+        errors.push(
+            "vehicle_profile.assumptions: at least three explicit assumptions are required"
+                .to_owned(),
+        );
     }
 
     let semantics = document.get("status_semantics").and_then(Value::as_object);
@@ -316,7 +364,10 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
     if !claims.is_some_and(|values| {
         !values.is_empty()
             && values.iter().all(Value::is_string)
-            && values.iter().filter_map(Value::as_str).any(|value| value.contains("No case establishes physical braking"))
+            && values
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|value| value.contains("No case establishes physical braking"))
     }) {
         errors.push("claim_ceiling: explicit physical-evidence limit is required".to_owned());
     }
@@ -326,7 +377,11 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
         return Err(errors);
     };
     if cases.len() != REQUIRED_IDS.len() {
-        errors.push(format!("cases: expected {} entries, found {}", REQUIRED_IDS.len(), cases.len()));
+        errors.push(format!(
+            "cases: expected {} entries, found {}",
+            REQUIRED_IDS.len(),
+            cases.len()
+        ));
     }
 
     let mut seen_ids = BTreeSet::new();
@@ -335,7 +390,14 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
         let at = format!("cases[{index}]");
         check_exact_keys(
             case,
-            &["id", "kind", "description", "inputs", "required_invariants", "expected_disposition"],
+            &[
+                "id",
+                "kind",
+                "description",
+                "inputs",
+                "required_invariants",
+                "expected_disposition",
+            ],
             &at,
             &mut errors,
         );
@@ -381,19 +443,27 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
                                 errors.push(format!("{at}: duplicate invariant {text}"));
                             }
                         }
-                        _ => errors.push(format!("{at}: every invariant must be a non-empty string")),
+                        _ => {
+                            errors.push(format!("{at}: every invariant must be a non-empty string"))
+                        }
                     }
                 }
             }
-            _ => errors.push(format!("{at}.required_invariants: must be a non-empty array")),
+            _ => errors.push(format!(
+                "{at}.required_invariants: must be a non-empty array"
+            )),
         }
 
         if let Some(disposition) = string_at(case, "expected_disposition") {
             if !semantics.is_some_and(|values| values.contains_key(disposition)) {
-                errors.push(format!("{at}: disposition {disposition} has no declared semantics"));
+                errors.push(format!(
+                    "{at}: disposition {disposition} has no declared semantics"
+                ));
             }
         } else {
-            errors.push(format!("{at}.expected_disposition: missing or not a string"));
+            errors.push(format!(
+                "{at}.expected_disposition: missing or not a string"
+            ));
         }
         validate_special_case(case, &mut errors);
     }
@@ -436,7 +506,6 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSu
     }
 }
 
-
 fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(usize, String)> {
     let mut errors = Vec::new();
     check_exact_keys(
@@ -457,17 +526,31 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
     if string_at(document, "schema_version") != Some("vehicle-benchmark-source-registry/0.1") {
         errors.push("source_registry.schema_version: unexpected version".to_owned());
     }
-    if string_at(document, "registry_id") != Some("symtropy-personal-family-vehicle-source-registry-v0.1") {
+    if string_at(document, "registry_id")
+        != Some("symtropy-personal-family-vehicle-source-registry-v0.1")
+    {
         errors.push("source_registry.registry_id: unexpected identity".to_owned());
     }
-    if string_at(document, "status") != Some("source inventory only; rights/reuse and applicability require review") {
-        errors.push("source_registry.status: rights/reuse review status must remain explicit".to_owned());
+    if string_at(document, "status")
+        != Some("source inventory only; rights/reuse and applicability require review")
+    {
+        errors.push(
+            "source_registry.status: rights/reuse review status must remain explicit".to_owned(),
+        );
     }
     if !document.get("policy").is_some_and(|policy| {
-        policy.get("no_vendoring_without_rights_review").and_then(Value::as_bool) == Some(true)
-            && policy.get("rules").and_then(Value::as_array).is_some_and(|rules| rules.len() >= 4)
+        policy
+            .get("no_vendoring_without_rights_review")
+            .and_then(Value::as_bool)
+            == Some(true)
+            && policy
+                .get("rules")
+                .and_then(Value::as_array)
+                .is_some_and(|rules| rules.len() >= 4)
     }) {
-        errors.push("source_registry.policy: rights gate and source-claim rules are required".to_owned());
+        errors.push(
+            "source_registry.policy: rights gate and source-claim rules are required".to_owned(),
+        );
     }
 
     let Some(sources) = document.get("sources").and_then(Value::as_array) else {
@@ -493,7 +576,14 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
         if !REQUIRED_SOURCE_IDS.contains(&id) {
             errors.push(format!("{at}: unregistered source id {id}"));
         }
-        for key in ["title", "organization", "accessed_on", "role", "evidence_class", "status"] {
+        for key in [
+            "title",
+            "organization",
+            "accessed_on",
+            "role",
+            "evidence_class",
+            "status",
+        ] {
             if string_at(source, key).is_none_or(|value| value.trim().is_empty()) {
                 errors.push(format!("{at}.{key}: missing or blank"));
             }
@@ -505,9 +595,13 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
             let values = source.get(key).and_then(Value::as_array);
             if !values.is_some_and(|values| {
                 !values.is_empty()
-                    && values.iter().all(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
+                    && values
+                        .iter()
+                        .all(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
             }) {
-                errors.push(format!("{at}.{key}: explicit non-empty string list required"));
+                errors.push(format!(
+                    "{at}.{key}: explicit non-empty string list required"
+                ));
             }
         }
     }
@@ -516,15 +610,29 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
             errors.push(format!("source_registry: missing required source {id}"));
         }
     }
-    if !document.get("next_evidence_gates").and_then(Value::as_array).is_some_and(|items| items.len() >= 5) {
-        errors.push("source_registry.next_evidence_gates: at least five gates are required".to_owned());
+    if !document
+        .get("next_evidence_gates")
+        .and_then(Value::as_array)
+        .is_some_and(|items| items.len() >= 5)
+    {
+        errors.push(
+            "source_registry.next_evidence_gates: at least five gates are required".to_owned(),
+        );
     }
     let claims = document.get("claim_ceiling").and_then(Value::as_array);
     if !claims.is_some_and(|items| {
-        items.iter().filter_map(Value::as_str).any(|text| text.contains("not a dataset license register"))
-            && items.iter().filter_map(Value::as_str).any(|text| text.contains("contains no measured vehicle data"))
+        items
+            .iter()
+            .filter_map(Value::as_str)
+            .any(|text| text.contains("not a dataset license register"))
+            && items
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|text| text.contains("contains no measured vehicle data"))
     }) {
-        errors.push("source_registry.claim_ceiling: source/measurement limits must be explicit".to_owned());
+        errors.push(
+            "source_registry.claim_ceiling: source/measurement limits must be explicit".to_owned(),
+        );
     }
 
     if errors.is_empty() {
@@ -534,12 +642,7 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
     }
 }
 
-
-
-fn validate_baseline_matrix(
-    document: &Value,
-    source_registry: &Value,
-) -> AuditResult<usize> {
+fn validate_baseline_matrix(document: &Value, source_registry: &Value) -> AuditResult<usize> {
     let mut errors = Vec::new();
     check_exact_keys(
         document,
@@ -566,7 +669,10 @@ fn validate_baseline_matrix(
     if string_at(document, "status")
         != Some("screening shortlist only; not an endorsed design or purchase recommendation")
     {
-        errors.push("baseline_matrix.status: shortlist must not imply recommendation or endorsement".to_owned());
+        errors.push(
+            "baseline_matrix.status: shortlist must not imply recommendation or endorsement"
+                .to_owned(),
+        );
     }
     if string_at(document, "created_date") != Some("2026-10-17")
         || string_at(document, "market") != Some("South Africa")
@@ -577,26 +683,48 @@ fn validate_baseline_matrix(
 
     let policy = document.get("price_policy");
     if !policy.is_some_and(|policy| {
-        policy.get("must_reverify_before_use").and_then(Value::as_bool) == Some(true)
+        policy
+            .get("must_reverify_before_use")
+            .and_then(Value::as_bool)
+            == Some(true)
             && string_at(policy, "meaning").is_some_and(|text| text.contains("not quote"))
-            && policy.get("excludes").and_then(Value::as_array).is_some_and(|items| items.len() >= 5)
+            && policy
+                .get("excludes")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.len() >= 5)
     }) {
         errors.push("baseline_matrix.price_policy: dated advertised-from prices must be reverified and exclusions retained".to_owned());
     }
-    let rules = document.get("benchmark_selection_rules").and_then(Value::as_array);
+    let rules = document
+        .get("benchmark_selection_rules")
+        .and_then(Value::as_array);
     if !rules.is_some_and(|items| {
         items.len() >= 5
-            && items.iter().all(|item| item.as_str().is_some_and(|text| !text.trim().is_empty()))
-            && items.iter().filter_map(Value::as_str).any(|text| text.contains("not equivalent to lowest 10-year cost"))
+            && items
+                .iter()
+                .all(|item| item.as_str().is_some_and(|text| !text.trim().is_empty()))
+            && items
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|text| text.contains("not equivalent to lowest 10-year cost"))
     }) {
         errors.push("baseline_matrix.benchmark_selection_rules: comparability and low-price claim ceiling required".to_owned());
     }
     let claims = document.get("claim_ceiling").and_then(Value::as_array);
     if !claims.is_some_and(|items| {
-        items.iter().filter_map(Value::as_str).any(|text| text.contains("not verified dealer quotations"))
-            && items.iter().filter_map(Value::as_str).any(|text| text.contains("No cost-of-ownership"))
+        items
+            .iter()
+            .filter_map(Value::as_str)
+            .any(|text| text.contains("not verified dealer quotations"))
+            && items
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|text| text.contains("No cost-of-ownership"))
     }) {
-        errors.push("baseline_matrix.claim_ceiling: quote/spec/TCO limitations must remain explicit".to_owned());
+        errors.push(
+            "baseline_matrix.claim_ceiling: quote/spec/TCO limitations must remain explicit"
+                .to_owned(),
+        );
     }
 
     let source_ids: BTreeSet<String> = source_registry
@@ -620,7 +748,9 @@ fn validate_baseline_matrix(
         .collect();
 
     let Some(candidates) = document.get("candidates").and_then(Value::as_array) else {
-        return Err(vec!["baseline_matrix.candidates: expected array".to_owned()]);
+        return Err(vec![
+            "baseline_matrix.candidates: expected array".to_owned(),
+        ]);
     };
     if candidates.len() != REQUIRED_BASELINE_IDS.len() {
         errors.push(format!(
@@ -631,11 +761,26 @@ fn validate_baseline_matrix(
     }
 
     let expected_price_sources = BTreeMap::from([
-        ("BASELINE_TOYOTA_VITZ_ENTRY_HATCH", "SRC_TOYOTA_SA_MODEL_RANGE"),
-        ("BASELINE_SUZUKI_SWIFT_GL_MT", "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES"),
-        ("BASELINE_TOYOTA_STARLET_ENTRY_HATCH", "SRC_TOYOTA_SA_MODEL_RANGE"),
-        ("BASELINE_TOYOTA_STARLET_CROSS_ENTRY", "SRC_TOYOTA_SA_MODEL_RANGE"),
-        ("BASELINE_TOYOTA_RUMION_ENTRY_MPV", "SRC_TOYOTA_SA_MODEL_RANGE"),
+        (
+            "BASELINE_TOYOTA_VITZ_ENTRY_HATCH",
+            "SRC_TOYOTA_SA_MODEL_RANGE",
+        ),
+        (
+            "BASELINE_SUZUKI_SWIFT_GL_MT",
+            "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES",
+        ),
+        (
+            "BASELINE_TOYOTA_STARLET_ENTRY_HATCH",
+            "SRC_TOYOTA_SA_MODEL_RANGE",
+        ),
+        (
+            "BASELINE_TOYOTA_STARLET_CROSS_ENTRY",
+            "SRC_TOYOTA_SA_MODEL_RANGE",
+        ),
+        (
+            "BASELINE_TOYOTA_RUMION_ENTRY_MPV",
+            "SRC_TOYOTA_SA_MODEL_RANGE",
+        ),
     ]);
     let expected_prices_zar = BTreeMap::from([
         ("BASELINE_TOYOTA_VITZ_ENTRY_HATCH", 182400.0),
@@ -656,14 +801,22 @@ fn validate_baseline_matrix(
         if !REQUIRED_BASELINE_IDS.contains(&id.as_str()) {
             errors.push(format!("{at}: unregistered baseline candidate {id}"));
         }
-        for key in ["manufacturer", "model", "role", "price_source_id", "source_url"] {
+        for key in [
+            "manufacturer",
+            "model",
+            "role",
+            "price_source_id",
+            "source_url",
+        ] {
             if require_string(candidate, key, &at, &mut errors).is_none() {
                 continue;
             }
         }
         let price_source_id = string_at(candidate, "price_source_id").unwrap_or("");
         if !source_ids.contains(price_source_id) {
-            errors.push(format!("{at}: price source {price_source_id} is not in source registry"));
+            errors.push(format!(
+                "{at}: price source {price_source_id} is not in source registry"
+            ));
         }
         if let Some(expected_source) = expected_price_sources.get(id.as_str()) {
             if price_source_id != *expected_source {
@@ -674,10 +827,17 @@ fn validate_baseline_matrix(
         if !source_url.starts_with("https://") {
             errors.push(format!("{at}.source_url: must use HTTPS"));
         }
-        if source_urls.get(price_source_id).is_some_and(|registered| registered.as_str() != source_url) {
-            errors.push(format!("{at}: source_url does not match the registered source URL"));
+        if source_urls
+            .get(price_source_id)
+            .is_some_and(|registered| registered.as_str() != source_url)
+        {
+            errors.push(format!(
+                "{at}: source_url does not match the registered source URL"
+            ));
         }
-        let price = candidate.get("advertised_from_price_zar").and_then(Value::as_f64);
+        let price = candidate
+            .get("advertised_from_price_zar")
+            .and_then(Value::as_f64);
         if !matches!(price, Some(value) if value > 0.0) {
             errors.push(format!("{at}.advertised_from_price_zar: must be positive"));
         }
@@ -688,21 +848,32 @@ fn validate_baseline_matrix(
         }
         if let Some(spec_source_id) = string_at(candidate, "specification_source_id") {
             if !source_ids.contains(spec_source_id) {
-                errors.push(format!("{at}: specification source {spec_source_id} is not registered"));
+                errors.push(format!(
+                    "{at}: specification source {spec_source_id} is not registered"
+                ));
             }
             if let Some(spec_url) = string_at(candidate, "specification_source_url") {
-                if source_urls.get(spec_source_id).is_some_and(|registered| registered.as_str() != spec_url) {
-                    errors.push(format!("{at}: specification URL does not match source registry"));
+                if source_urls
+                    .get(spec_source_id)
+                    .is_some_and(|registered| registered.as_str() != spec_url)
+                {
+                    errors.push(format!(
+                        "{at}: specification URL does not match source registry"
+                    ));
                 }
             }
         } else if string_at(candidate, "specification_status").is_none() {
-            errors.push(format!("{at}: missing specification source or explicit pending status"));
+            errors.push(format!(
+                "{at}: missing specification source or explicit pending status"
+            ));
         }
         for key in ["compare_dimensions", "key_unknowns"] {
             let values = candidate.get(key).and_then(Value::as_array);
             if !values.is_some_and(|items| {
                 !items.is_empty()
-                    && items.iter().all(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
+                    && items
+                        .iter()
+                        .all(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
             }) {
                 errors.push(format!("{at}.{key}: explicit non-empty strings required"));
             }
@@ -732,10 +903,12 @@ fn evidence_class_matches(artifact_kind: &str, evidence_class: &str) -> bool {
     match artifact_kind {
         "design_candidate" => evidence_class == "hypothesis",
         "simulation_run" => evidence_class == "simulation",
-        "calibration_dataset" => {
-            ["bench_measurement", "instrumented_vehicle_test", "external_source"]
-                .contains(&evidence_class)
-        }
+        "calibration_dataset" => [
+            "bench_measurement",
+            "instrumented_vehicle_test",
+            "external_source",
+        ]
+        .contains(&evidence_class),
         "physical_measurement" => {
             ["bench_measurement", "instrumented_vehicle_test"].contains(&evidence_class)
         }
@@ -771,7 +944,9 @@ fn validate_evidence_envelope_fixtures(
     {
         Ok(validator) => Some(validator),
         Err(error) => {
-            errors.push(format!("evidence_schema: could not build validator: {error}"));
+            errors.push(format!(
+                "evidence_schema: could not build validator: {error}"
+            ));
             None
         }
     };
@@ -796,11 +971,14 @@ fn validate_evidence_envelope_fixtures(
     if string_at(fixtures_document, "status")
         != Some("synthetic-contract-fixtures-not-qualification")
     {
-        errors.push("evidence_fixtures.status: claim ceiling status must remain explicit".to_owned());
+        errors
+            .push("evidence_fixtures.status: claim ceiling status must remain explicit".to_owned());
     }
 
     let Some(fixtures) = fixtures_document.get("fixtures").and_then(Value::as_array) else {
-        return Err(vec!["evidence_fixtures.fixtures: expected array".to_owned()]);
+        return Err(vec![
+            "evidence_fixtures.fixtures: expected array".to_owned(),
+        ]);
     };
     if fixtures.len() != REQUIRED_EVIDENCE_FIXTURE_IDS.len() {
         errors.push(format!(
@@ -813,7 +991,12 @@ fn validate_evidence_envelope_fixtures(
     let mut seen = BTreeSet::new();
     for (index, fixture) in fixtures.iter().enumerate() {
         let at = format!("evidence_fixtures.fixtures[{index}]");
-        check_exact_keys(fixture, &["id", "expectation", "input", "reason"], &at, &mut errors);
+        check_exact_keys(
+            fixture,
+            &["id", "expectation", "input", "reason"],
+            &at,
+            &mut errors,
+        );
         let Some(id) = require_string(fixture, "id", &at, &mut errors) else {
             continue;
         };
@@ -859,7 +1042,9 @@ fn validate_evidence_envelope_fixtures(
             }
             "reject_schema" => {
                 if schema_errors.is_empty() {
-                    errors.push(format!("{at}: malformed envelope unexpectedly passed the schema"));
+                    errors.push(format!(
+                        "{at}: malformed envelope unexpectedly passed the schema"
+                    ));
                 }
             }
             "reject_semantics" => {
@@ -887,15 +1072,21 @@ fn validate_evidence_envelope_fixtures(
         }
     }
 
-    let claims = fixtures_document.get("claim_ceiling").and_then(Value::as_array);
+    let claims = fixtures_document
+        .get("claim_ceiling")
+        .and_then(Value::as_array);
     if !claims.is_some_and(|items| {
-        items.iter().filter_map(Value::as_str).any(|text| {
-            text.contains("No fixture establishes truth, physical performance")
-        }) && items.iter().filter_map(Value::as_str).any(|text| {
-            text.contains("Fixtures test schema shape and evidence-class compatibility only")
-        })
+        items
+            .iter()
+            .filter_map(Value::as_str)
+            .any(|text| text.contains("No fixture establishes truth, physical performance"))
+            && items.iter().filter_map(Value::as_str).any(|text| {
+                text.contains("Fixtures test schema shape and evidence-class compatibility only")
+            })
     }) {
-        errors.push("evidence_fixtures.claim_ceiling: evidence limits must remain explicit".to_owned());
+        errors.push(
+            "evidence_fixtures.claim_ceiling: evidence limits must remain explicit".to_owned(),
+        );
     }
 
     if errors.is_empty() {
@@ -943,8 +1134,12 @@ fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf, PathBuf), String> {
     let mut evidence_fixtures_path = None;
     while let Some(arg) = args.next() {
         if arg == "--help" || arg == "-h" {
-            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH] [--baseline PATH] [--envelope-schema PATH] [--envelope-fixtures PATH]");
-            println!("Checks synthetic scenario/source/baseline/evidence-envelope contracts only; it does not run vehicle physics.");
+            println!(
+                "Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH] [--baseline PATH] [--envelope-schema PATH] [--envelope-fixtures PATH]"
+            );
+            println!(
+                "Checks synthetic scenario/source/baseline/evidence-envelope contracts only; it does not run vehicle physics."
+            );
             std::process::exit(0);
         } else if arg == "--corpus" {
             let Some(value) = args.next() else {
@@ -985,16 +1180,17 @@ fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf, PathBuf), String> {
 }
 
 fn main() -> ExitCode {
-    let (corpus_path, registry_path, baseline_path, evidence_schema_path, evidence_fixtures_path) = match read_cli() {
-        Ok(paths) => paths,
-        Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: {error}");
-            return ExitCode::from(2);
-        }
-    };
+    let (corpus_path, registry_path, baseline_path, evidence_schema_path, evidence_fixtures_path) =
+        match read_cli() {
+            Ok(paths) => paths,
+            Err(error) => {
+                eprintln!("CORPUS_AUDIT_FAIL: {error}");
+                return ExitCode::from(2);
+            }
+        };
     let load_json = |path: &PathBuf, label: &str| -> Result<(Vec<u8>, Value), String> {
-        let raw = fs::read(path)
-            .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+        let raw =
+            fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
         let value = serde_json::from_slice(&raw)
             .map_err(|error| format!("malformed {label} JSON: {error}"))?;
         Ok((raw, value))
@@ -1014,27 +1210,30 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let (baseline_raw, baseline) = match load_json(&baseline_path, "South African baseline shortlist") {
-        Ok(value) => value,
-        Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: {error}");
-            return ExitCode::from(2);
-        }
-    };
-    let (evidence_schema_raw, evidence_schema) = match load_json(&evidence_schema_path, "engineering evidence schema") {
-        Ok(value) => value,
-        Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: {error}");
-            return ExitCode::from(2);
-        }
-    };
-    let (evidence_fixtures_raw, evidence_fixtures) = match load_json(&evidence_fixtures_path, "engineering evidence fixtures") {
-        Ok(value) => value,
-        Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: {error}");
-            return ExitCode::from(2);
-        }
-    };
+    let (baseline_raw, baseline) =
+        match load_json(&baseline_path, "South African baseline shortlist") {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("CORPUS_AUDIT_FAIL: {error}");
+                return ExitCode::from(2);
+            }
+        };
+    let (evidence_schema_raw, evidence_schema) =
+        match load_json(&evidence_schema_path, "engineering evidence schema") {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("CORPUS_AUDIT_FAIL: {error}");
+                return ExitCode::from(2);
+            }
+        };
+    let (evidence_fixtures_raw, evidence_fixtures) =
+        match load_json(&evidence_fixtures_path, "engineering evidence fixtures") {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("CORPUS_AUDIT_FAIL: {error}");
+                return ExitCode::from(2);
+            }
+        };
 
     let mut errors = Vec::new();
     let summary = match validate_corpus(&corpus, &corpus_raw) {
@@ -1074,7 +1273,11 @@ fn main() -> ExitCode {
     let repair_graph_count = match repair_graph_audit::validate_fixture_corpus() {
         Ok(count) => Some(count),
         Err(graph_errors) => {
-            errors.extend(graph_errors.into_iter().map(|error| format!("repair_task_graph: {error}")));
+            errors.extend(
+                graph_errors
+                    .into_iter()
+                    .map(|error| format!("repair_task_graph: {error}")),
+            );
             None
         }
     };
@@ -1083,9 +1286,12 @@ fn main() -> ExitCode {
         let summary = summary.expect("scenario summary exists after successful validation");
         let (source_registry_count, source_registry_sha256) =
             registry_result.expect("source registry result exists after successful validation");
-        let evidence = evidence_result.expect("evidence envelope result exists after successful validation");
-        let baseline_count = baseline_result.expect("baseline shortlist result exists after successful validation");
-        let repair_graph_fixture_count = repair_graph_count.expect("repair graph fixture count exists after successful validation");
+        let evidence =
+            evidence_result.expect("evidence envelope result exists after successful validation");
+        let baseline_count =
+            baseline_result.expect("baseline shortlist result exists after successful validation");
+        let repair_graph_fixture_count = repair_graph_count
+            .expect("repair graph fixture count exists after successful validation");
         let report = AuditSummary {
             case_count: summary.case_count,
             negative_control_count: summary.negative_control_count,
@@ -1112,7 +1318,9 @@ fn main() -> ExitCode {
             report.evidence_fixtures_sha256,
             repair_graph_fixture_count
         );
-        println!("CLAIM_CEILING synthetic scenario/evidence contracts and sourced price-screening snapshot only; no physics, licensing, TCO or safety result");
+        println!(
+            "CLAIM_CEILING synthetic scenario/evidence contracts and sourced price-screening snapshot only; no physics, licensing, TCO or safety result"
+        );
         ExitCode::SUCCESS
     } else {
         eprintln!("CORPUS_AUDIT_FAIL errors={}", errors.len());
@@ -1128,8 +1336,10 @@ mod tests {
     use super::*;
 
     fn corpus() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/scenario_corpus_v0_1.json"))
-            .expect("repository corpus should parse as JSON")
+        serde_json::from_str(include_str!(
+            "../../../fixtures/personal_vehicle/scenario_corpus_v0_1.json"
+        ))
+        .expect("repository corpus should parse as JSON")
     }
 
     fn validate_fixture(document: &Value) -> Result<ScenarioSummary, Vec<String>> {
@@ -1138,8 +1348,10 @@ mod tests {
     }
 
     fn baseline_matrix() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json"))
-            .expect("baseline shortlist should parse as JSON")
+        serde_json::from_str(include_str!(
+            "../../../fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json"
+        ))
+        .expect("baseline shortlist should parse as JSON")
     }
 
     fn validate_baseline_fixture(document: &Value, registry: &Value) -> Result<usize, Vec<String>> {
@@ -1170,18 +1382,25 @@ mod tests {
     #[test]
     fn baseline_candidate_census_cannot_drop_a_body_style() {
         let mut matrix = baseline_matrix();
-        matrix["candidates"].as_array_mut().expect("candidate array").pop();
+        matrix["candidates"]
+            .as_array_mut()
+            .expect("candidate array")
+            .pop();
         assert!(validate_baseline_fixture(&matrix, &source_registry()).is_err());
     }
 
     fn evidence_schema() -> Value {
-        serde_json::from_str(include_str!("../../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json"))
-            .expect("evidence envelope schema should parse as JSON")
+        serde_json::from_str(include_str!(
+            "../../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json"
+        ))
+        .expect("evidence envelope schema should parse as JSON")
     }
 
     fn evidence_fixtures() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json"))
-            .expect("evidence envelope fixtures should parse as JSON")
+        serde_json::from_str(include_str!(
+            "../../../fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json"
+        ))
+        .expect("evidence envelope fixtures should parse as JSON")
     }
 
     fn evidence_fixture_errors(schema: &Value, fixtures: &Value) -> Vec<String> {
@@ -1198,8 +1417,9 @@ mod tests {
         let fixtures = evidence_fixtures();
         let schema_bytes = serde_json::to_vec(&schema).expect("schema bytes");
         let fixtures_bytes = serde_json::to_vec(&fixtures).expect("fixture bytes");
-        let result = validate_evidence_envelope_fixtures(&schema, &fixtures, &schema_bytes, &fixtures_bytes)
-            .expect("evidence contract should pass");
+        let result =
+            validate_evidence_envelope_fixtures(&schema, &fixtures, &schema_bytes, &fixtures_bytes)
+                .expect("evidence contract should pass");
         assert_eq!(result.fixture_count, 15);
         assert_eq!(result.schema_sha256.len(), 64);
         assert_eq!(result.fixtures_sha256.len(), 64);
@@ -1209,7 +1429,10 @@ mod tests {
     fn simulation_cannot_be_promoted_to_instrumented_vehicle_evidence() {
         let mut fixtures = evidence_fixtures();
         let items = fixtures["fixtures"].as_array_mut().expect("fixture array");
-        let promoted = items.iter_mut().find(|item| item["id"] == "EV06_SIMULATION_PROMOTED_TO_PHYSICAL").expect("promotion fixture");
+        let promoted = items
+            .iter_mut()
+            .find(|item| item["id"] == "EV06_SIMULATION_PROMOTED_TO_PHYSICAL")
+            .expect("promotion fixture");
         promoted["expectation"] = Value::String("accept".to_owned());
         assert!(!evidence_fixture_errors(&evidence_schema(), &fixtures).is_empty());
     }
@@ -1218,7 +1441,10 @@ mod tests {
     fn independent_review_cannot_be_promoted_to_regulatory_receipt() {
         let mut fixtures = evidence_fixtures();
         let items = fixtures["fixtures"].as_array_mut().expect("fixture array");
-        let promoted = items.iter_mut().find(|item| item["id"] == "EV07_REVIEW_PROMOTED_TO_REGULATORY").expect("promotion fixture");
+        let promoted = items
+            .iter_mut()
+            .find(|item| item["id"] == "EV07_REVIEW_PROMOTED_TO_REGULATORY")
+            .expect("promotion fixture");
         promoted["expectation"] = Value::String("accept".to_owned());
         assert!(!evidence_fixture_errors(&evidence_schema(), &fixtures).is_empty());
     }
@@ -1227,14 +1453,19 @@ mod tests {
     fn envelope_schema_rejects_extra_sensitive_top_level_fields() {
         let mut fixtures = evidence_fixtures();
         let items = fixtures["fixtures"].as_array_mut().expect("fixture array");
-        let leak = items.iter_mut().find(|item| item["id"] == "EV02_VALID_SIMULATION").expect("simulation fixture");
+        let leak = items
+            .iter_mut()
+            .find(|item| item["id"] == "EV02_VALID_SIMULATION")
+            .expect("simulation fixture");
         leak["input"]["raw_vin"] = Value::String("SYNTHETICVIN0000001".to_owned());
         assert!(!evidence_fixture_errors(&evidence_schema(), &fixtures).is_empty());
     }
 
     fn source_registry() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/benchmark_source_registry_v0_1.json"))
-            .expect("source registry should parse as JSON")
+        serde_json::from_str(include_str!(
+            "../../../fixtures/personal_vehicle/benchmark_source_registry_v0_1.json"
+        ))
+        .expect("source registry should parse as JSON")
     }
 
     fn validate_source_registry_fixture(document: &Value) -> Result<(usize, String), Vec<String>> {
@@ -1245,7 +1476,8 @@ mod tests {
     #[test]
     fn source_registry_has_complete_reviewed_census() {
         let registry = source_registry();
-        let (count, digest) = validate_source_registry_fixture(&registry).expect("source registry contract");
+        let (count, digest) =
+            validate_source_registry_fixture(&registry).expect("source registry contract");
         assert_eq!(count, 15);
         assert_eq!(digest.len(), 64);
     }
@@ -1253,7 +1485,10 @@ mod tests {
     #[test]
     fn source_registry_cannot_hide_reuse_limits() {
         let mut registry = source_registry();
-        registry["sources"][0].as_object_mut().expect("source object").remove("not_usable_for");
+        registry["sources"][0]
+            .as_object_mut()
+            .expect("source object")
+            .remove("not_usable_for");
         assert!(validate_source_registry_fixture(&registry).is_err());
     }
 
@@ -1266,7 +1501,8 @@ mod tests {
 
     #[test]
     fn frozen_corpus_is_valid_and_has_expected_census() {
-        let result = validate_fixture(&corpus()).expect("frozen corpus should satisfy its contract");
+        let result =
+            validate_fixture(&corpus()).expect("frozen corpus should satisfy its contract");
         assert_eq!(result.case_count, 21);
         assert_eq!(result.negative_control_count, 9);
         assert_eq!(result.sha256.len(), 64);
@@ -1302,8 +1538,7 @@ mod tests {
     fn solver_identity_mutation_must_be_rejected() {
         let mut document = corpus();
         let cases = document["cases"].as_array_mut().expect("cases array");
-        case_by_id_mut(cases, "PV19_SOLVER_IDENTITY_MUTATION")
-            .expect("solver mutation case")["expected_disposition"] =
+        case_by_id_mut(cases, "PV19_SOLVER_IDENTITY_MUTATION").expect("solver mutation case")["expected_disposition"] =
             Value::String("eligible_for_model_evaluation".to_owned());
         assert!(validate_fixture(&document).is_err());
     }
