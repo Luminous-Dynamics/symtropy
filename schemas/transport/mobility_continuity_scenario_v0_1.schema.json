@@ -85,8 +85,8 @@
     },
     "stress_profiles": {
       "type": "array",
-      "minItems": 5,
-      "maxItems": 5,
+      "minItems": 8,
+      "maxItems": 8,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -105,7 +105,10 @@
               "repair_delay",
               "critical_part_unavailability",
               "fuel_price_shock",
-              "cashflow_contraction"
+              "cashflow_contraction",
+              "repair_delay_plus_fuel_price_shock",
+              "critical_part_plus_cashflow_contraction",
+              "combined_supply_fuel_cashflow_shock"
             ]
           },
           "repair_delay_days": {
@@ -228,8 +231,8 @@
     },
     "scenarios": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 24,
+      "maxItems": 24,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -261,7 +264,10 @@
               "repair_delay",
               "critical_part_unavailability",
               "fuel_price_shock",
-              "cashflow_contraction"
+              "cashflow_contraction",
+              "repair_delay_plus_fuel_price_shock",
+              "critical_part_plus_cashflow_contraction",
+              "combined_supply_fuel_cashflow_shock"
             ]
           },
           "evidence_class": {
