@@ -51,6 +51,10 @@ All values, limits and geometries in V0 are invented test inputs, not site facts
 
 The fixture must state exact expected constraint outcomes. If any candidate is intentionally infeasible, preserve its complete evaluation and rejection reasons rather than dropping it from the result. The benchmark should also include at least one scenario where two individually feasible work packages become infeasible when scheduled together due to a shared plant, crew, access window or material limit.
 
+### Executable V0 reference arithmetic
+
+The first standalone Rust harness ([PR #1756](https://github.com/Luminous-Dynamics/symtropy/pull/1756)) now computes maximum absolute longitudinal grade from station/elevation samples and compares that result with the redundant declared grade. It calculates cut and fill volumes by trapezoidal integration of the supplied cross-section areas, then checks the declared volume against that derived quantity and the synthetic limit. Road-envelope station intervals must cover the profile and their elevation bounds must contain its samples. This is more falsifiable than trusting aggregate grade/earthworks fields, but the cross-section areas are still invented inputs—not quantities derived from surveyed terrain or swept corridor solids. Drainage demand/capacity remains a synthetic declared-value comparison and is not the output of EPANET, SWMM, or a calibrated hydraulic solver.
+
 ## 4. Frozen inputs and output contract
 
 Every run binds the following fields or explicit equivalent references:
@@ -121,7 +125,7 @@ The values below are **project targets for the finite synthetic corpus**, not ob
 | Invalid-input rejection | Hostile fixtures rejected or explicitly blocked as specified | 100% |
 | Unresolved-case visibility | Ambiguous/out-of-scope cases retained as unknown/review required | 100% |
 
-Do not use a universal readiness score. Compare alternatives using a hard-constraint feasibility gate followed by a Pareto set over separately reported objectives, such as corridor length, declared earthworks proxy, lifecycle cost boundary, service disruption, environmental proxy, maintenance access and resilience. A weighted scalar may be shown only when the weights are an explicit, versioned policy input and the unweighted results remain available.
+Do not use a universal readiness score. Compare alternatives using a hard-constraint feasibility gate followed by a Pareto set over separately reported objectives, such as corridor length, derived cut/fill quantities from declared cross-section inputs, lifecycle cost boundary, service disruption, environmental proxy, maintenance access and resilience. A weighted scalar may be shown only when the weights are an explicit, versioned policy input and the unweighted results remain available.
 
 ### Baselines
 
