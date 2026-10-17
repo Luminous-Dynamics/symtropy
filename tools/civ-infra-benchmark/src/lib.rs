@@ -1391,6 +1391,7 @@ mod tests {
         assert_eq!(shortest.metrics.derived_cut_volume_m3, 3520.0);
         assert_eq!(shortest.metrics.derived_fill_volume_m3, 1760.0);
         assert_eq!(shortest.metrics.derived_total_earthworks_m3, 5280.0);
+        assert_eq!(shortest.metrics.minimum_drainage_reserve_lps, -70.0);
         assert!(shortest.findings.iter().any(|finding| {
             finding.code == "grade_limit" && finding.status == CheckStatus::Violation
         }));
@@ -1415,6 +1416,7 @@ mod tests {
             .iter()
             .find(|candidate| candidate.candidate_id == "B-low-earthworks")
             .expect("low-earthworks candidate exists");
+        assert_eq!(low_earthworks.metrics.minimum_drainage_reserve_lps, 10.0);
         assert!(low_earthworks.findings.iter().any(|finding| {
             finding.code == "utility_clearance:power-duct-known"
                 && finding.status == CheckStatus::Violation
@@ -1435,11 +1437,13 @@ mod tests {
         assert_eq!(detour.metrics.derived_cut_volume_m3, 2400.0);
         assert_eq!(detour.metrics.derived_fill_volume_m3, 1800.0);
         assert_eq!(detour.metrics.derived_total_earthworks_m3, 4200.0);
+        assert_eq!(detour.metrics.minimum_drainage_reserve_lps, 20.0);
         assert_eq!(reference.metrics.route_length_m, 1080.0);
         assert_eq!(reference.metrics.derived_max_grade_percent, 3.5);
         assert_eq!(reference.metrics.derived_cut_volume_m3, 2160.0);
         assert_eq!(reference.metrics.derived_fill_volume_m3, 1620.0);
         assert_eq!(reference.metrics.derived_total_earthworks_m3, 3780.0);
+        assert_eq!(reference.metrics.minimum_drainage_reserve_lps, 10.0);
         assert!(reference
             .findings
             .iter()
