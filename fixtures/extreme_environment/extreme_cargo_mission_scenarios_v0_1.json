@@ -924,7 +924,8 @@
         "accessible_transfer",
         "privacy_and_data_minimization",
         "human_supervision_and_stop",
-        "payload_layout_and_load_distribution"
+        "payload_layout_and_load_distribution",
+        "condition_control"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 20,
@@ -974,7 +975,8 @@
         "payload_securement",
         "occupant_restraints_and_egress",
         "human_supervision_and_stop",
-        "payload_layout_and_load_distribution"
+        "payload_layout_and_load_distribution",
+        "condition_control"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 18,
@@ -1027,7 +1029,8 @@
         "patient_care_access",
         "privacy_and_data_minimization",
         "human_supervision_and_stop",
-        "payload_layout_and_load_distribution"
+        "payload_layout_and_load_distribution",
+        "accessible_transfer"
       ],
       "route_envelope": {
         "min_ambient_temp_c": -48,
@@ -1133,7 +1136,8 @@
         "privacy_and_data_minimization",
         "human_supervision_and_stop",
         "explosive_hazard_route_evidence",
-        "payload_layout_and_load_distribution"
+        "payload_layout_and_load_distribution",
+        "accessible_transfer"
       ],
       "route_envelope": {
         "min_ambient_temp_c": -12,
@@ -1467,6 +1471,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1565,6 +1573,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
         }
       ],
       "metric_intervals": [
@@ -1663,6 +1675,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
         }
       ],
       "metric_intervals": [
@@ -1941,6 +1957,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2023,6 +2043,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "condition_control",
+          "status": "fail"
         }
       ],
       "metric_intervals": [
@@ -2305,6 +2329,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2378,7 +2406,7 @@
         },
         {
           "gate_id": "condition_control",
-          "status": "pass"
+          "status": "fail"
         },
         {
           "gate_id": "occupant_restraints_and_egress",
@@ -2399,6 +2427,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "fail"
         }
       ],
       "metric_intervals": [
@@ -2746,7 +2778,7 @@
         },
         {
           "gate_id": "condition_control",
-          "status": "pass"
+          "status": "fail"
         },
         {
           "gate_id": "occupant_restraints_and_egress",
@@ -2930,7 +2962,7 @@
         },
         {
           "gate_id": "condition_control",
-          "status": "pass"
+          "status": "fail"
         },
         {
           "gate_id": "privacy_and_data_minimization",
@@ -3053,6 +3085,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -3126,7 +3162,7 @@
         },
         {
           "gate_id": "condition_control",
-          "status": "pass"
+          "status": "fail"
         },
         {
           "gate_id": "occupant_restraints_and_egress",
@@ -3151,6 +3187,10 @@
         {
           "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
+        },
+        {
+          "gate_id": "accessible_transfer",
+          "status": "fail"
         }
       ],
       "metric_intervals": [
