@@ -68,7 +68,7 @@ The remaining test IDs split several of those dimensions across dedicated depth/
 - Chen et al. (2026), [Super-Snell scanning light-field display](https://doi.org/10.1038/s41566-026-01938-8).
 - [Quantifying spatial and angular resolution of light-field 3D displays](https://trepo.tuni.fi/bitstream/handle/10024/213976/LFResolutionMeasurement_JSTSP_final.pdf?sequence=-1).
 - [Camera-in-the-loop optical calibration, Optica 2026](https://opg.optica.org/abstract.cfm?uri=DH-2026-Tu1A.3).
-- Symtropy [visual optics reference package](https://github.com/Luminous-Dynamics/symtropy/tree/main/tools/visual-optics-reference).
+- Symtropy [visual optics reference package](https://github.com/Luminous-Dynamics/symtropy/tree/research/vis-optics-001-contract-2026-10-17/tools/visual-optics-reference).
 
 ## Limits
 
