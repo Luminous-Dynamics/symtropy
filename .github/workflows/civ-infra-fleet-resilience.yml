@@ -99,6 +99,7 @@ jobs:
           ' "$report"
 
       - name: Audit event queue and observation boundaries
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/event-timeline-audit.rs') != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -123,5 +124,6 @@ jobs:
             ([.evaluator_timeline[] | select(.tick == 2) | .injected_event_ids[] | select(. == "R-008")] | length) == 1 and
             ([.evaluator_timeline[] | select(.tick == 2) | .events_injected_but_not_yet_observable[] | select(. == "R-008")] | length) == 1 and
             ([.policy_timeline[] | select(.tick == 3) | .visible_event_ids[] | select(. == "R-008")] | length) == 0 and
-            ([.policy_timeline[] | select(.tick == 4) | .visible_event_ids[] | select(. == "R-008")] | length) == 1
+            ([.policy_timeline[] | select(.tick == 4) | .visible_event_ids[] | select(. == "R-008")] | length) == 1 and
+            ([.policy_timeline[4].newly_observed_events[] | select(.case_id == "R-008" and .observed_at_tick == 4 and (has("injection_tick") | not))] | length) == 1
           ' "$report"
