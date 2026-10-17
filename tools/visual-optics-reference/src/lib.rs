@@ -571,7 +571,7 @@ mod tests {
 
     #[test]
     fn srgb_transfer_round_trips_in_gamut_values() {
-        for encoded in [0.0, 0.001, 0.04045, 0.18, 0.5, 1.0] {
+        for encoded in [0.0, 0.001, 0.04044, 0.04046, 0.18, 0.5, 1.0] {
             let linear = srgb_channel_to_linear(encoded).expect("encoded channel is in gamut");
             let decoded = linear_channel_to_srgb(linear).expect("linear channel is in gamut");
             assert_close(decoded, encoded, 1e-12);
@@ -579,7 +579,7 @@ mod tests {
     }
 
     #[test]
-    fn sRGB_transfer_rejects_non_finite_and_out_of_range_channels() {
+    fn srgb_transfer_rejects_non_finite_and_out_of_range_channels() {
         for input in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
             assert_eq!(
                 srgb_channel_to_linear(input),
