@@ -244,7 +244,8 @@ mod tests {
 
     #[test]
     fn headroom_and_per_recipient_limit_bound_every_allocation() {
-        let recipients = demands();
+        let mut recipients = demands();
+        recipients.sort_unstable_by_key(|recipient| recipient.id);
         let result = allocate_max_min(recipients.clone(), 10_000.0, 7.0).unwrap();
         for (recipient, allocation) in recipients.iter().zip(&result.allocations) {
             assert!(allocation.amount >= 0.0);
