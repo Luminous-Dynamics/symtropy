@@ -686,7 +686,7 @@ fn audit(input: &Value) -> Result<Value, String> {
         let baseline = baseline_by_mission.get(mission_id).unwrap();
         let mission_cases: Vec<&Value> = scenario_assessments
             .iter()
-            .filter(|case| case["mission_id"].as_str() == Some(mission_id))
+            .filter(|case| case["mission_id"].as_str() == Some(mission_id.as_str()))
             .collect();
         let viable_cases = mission_cases
             .iter()
@@ -725,7 +725,7 @@ fn audit(input: &Value) -> Result<Value, String> {
     for environment_id in environment_ids {
         let environment_mission_ids: Vec<String> = mission_map
             .values()
-            .filter(|mission| mission["environment_id"].as_str() == Some(&environment_id))
+            .filter(|mission| mission["environment_id"].as_str() == Some(environment_id.as_str()))
             .map(|mission| mission["mission_id"].as_str().unwrap().to_string())
             .collect();
         let mut candidate_plan_count = 0usize;
