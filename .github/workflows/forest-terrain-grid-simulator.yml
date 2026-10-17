@@ -2,15 +2,17 @@ name: Forest Terrain Grid Simulator
 
 on:
   push:
-    branches: ["feat/forest-terrain-grid-simulator-v0-1"]
+    branches: ["feat/forest-terrain-grid-simulator-v0-1", "feat/forest-sensor-visibility-coverage-v0-1"]
     paths:
       - "docs/tech/forest-terrain-grid-corpus-v0.1.json"
+      - "docs/tech/FOREST_SENSOR_FOOTPRINT_COVERAGE_V0_1.md"
       - "tools/forest-terrain-sim/**"
       - ".github/workflows/forest-terrain-grid-simulator.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/tech/forest-terrain-grid-corpus-v0.1.json"
+      - "docs/tech/FOREST_SENSOR_FOOTPRINT_COVERAGE_V0_1.md"
       - "tools/forest-terrain-sim/**"
       - ".github/workflows/forest-terrain-grid-simulator.yml"
   workflow_dispatch:
