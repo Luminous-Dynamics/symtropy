@@ -198,11 +198,11 @@ impl NeighborList2d {
             if !seen.insert(point.id) {
                 return Err(NeighborListError::DuplicateId { id: point.id });
             }
-            let Some([build_x, build_y]) = self.build_positions_by_id.get(&point.id) else {
+            let Some(build_position) = self.build_positions_by_id.get(&point.id) else {
                 return Ok(true);
             };
-            let dx = point.x - build_x;
-            let dy = point.y - build_y;
+            let dx = point.x - build_position[0];
+            let dy = point.y - build_position[1];
             let displacement_squared = dx * dx + dy * dy;
             // Equality is a conservative rebuild boundary. This avoids
             // relying on floating-point equality to preserve list coverage.
