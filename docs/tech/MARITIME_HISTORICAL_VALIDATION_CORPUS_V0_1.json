@@ -49,7 +49,9 @@
         "dataset_sheet_and_column_inventory",
         "time_resolution_and_missingness_profile"
       ],
-      "last_modified_date": null
+      "last_modified_date": null,
+      "source_git_blob_sha1": null,
+      "declared_resource_byte_length": null
     },
     {
       "source_id": "cyport_us_port_tropical_cyclone_resilience",
@@ -58,8 +60,8 @@
       "landing_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
       "metadata_uri": "https://github.com/ChenchenMobility/Maritime-Data-CyPort/blob/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/README.md",
       "immutable_revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
-      "resource_path": "Repository directories: All_time_data/ and Tropical_cyclone_interaction/",
-      "resource_identifier": "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+      "resource_path": "Tropical_cyclone_interaction/interaction_data.csv",
+      "resource_identifier": "Maritime-Data-CyPort@5cb1d8778d3968c5e50d0b8cb8213f2414d692d3:Tropical_cyclone_interaction/interaction_data.csv#git_blob_sha1=21beb5b7673918143a0ab108b03acc3cccaeb330;bytes=643047",
       "last_modified_utc": null,
       "last_modified_date": null,
       "access_level": "public_repository",
@@ -97,8 +99,13 @@
         "component_level_terms_snapshot",
         "dataset_sheet_and_column_inventory",
         "temporal_resolution_and_missingness_profile",
-        "raw_vs_derived_field_map"
-      ]
+        "raw_vs_derived_field_map",
+        "source_git_blob_sha1",
+        "declared_resource_byte_length",
+        "git_blob_sha1_recomputation"
+      ],
+      "source_git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+      "declared_resource_byte_length": 643047
     },
     {
       "source_id": "bts_port_throughput_metrics",
@@ -140,7 +147,9 @@
         "actual_port_coverage",
         "null_and_revision_profile"
       ],
-      "last_modified_date": "2026-02-23"
+      "last_modified_date": "2026-02-23",
+      "source_git_blob_sha1": null,
+      "declared_resource_byte_length": null
     }
   ],
   "corpus_design": {

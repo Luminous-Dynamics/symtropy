@@ -1,0 +1,238 @@
+{
+  "schema_id": "luminous.symtropy.maritime.cyport-interaction-source-profile",
+  "schema_version": "0.1.0",
+  "status": "REMOTE_PINNED_GIT_BLOB_PROFILED_NOT_PERSISTED_OR_MODEL_VALIDATED",
+  "source": {
+    "publisher": "Chenchen Kuai and collaborators",
+    "repository": "https://github.com/ChenchenMobility/Maritime-Data-CyPort",
+    "revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+    "path": "Tropical_cyclone_interaction/interaction_data.csv",
+    "raw_uri": "https://raw.githubusercontent.com/ChenchenMobility/Maritime-Data-CyPort/5cb1d8778d3968c5e50d0b8cb8213f2414d692d3/Tropical_cyclone_interaction/interaction_data.csv",
+    "git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "declared_byte_length": 643047,
+    "independently_recomputed_git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "git_blob_identity_match": true,
+    "persisted_source_artifact": false,
+    "sha256_persisted_artifact": null,
+    "license_statement": "CyPort repository README declares CC BY 4.0; verify component-specific terms and attribution before reuse.",
+    "license_uri": "https://creativecommons.org/licenses/by/4.0/",
+    "citation": "Kuai, C., Li, Z., Zhang, Y., Wang, X. B., Lord, D., & Zhou, Y. (2026). U.S. port disruptions under tropical cyclones: Resilience analysis by harnessing multiple-source dataset. Transportation Research Part D: Transport and Environment, 157, 105420. https://doi.org/10.1016/j.trd.2026.105420"
+  },
+  "profile_method": {
+    "source_bytes_fetched_as_utf8_text": true,
+    "byte_length_matches_repository_tree": true,
+    "sha1_algorithm": "SHA-1 over Git object preimage: ASCII 'blob ' + decimal byte length + NUL + exact content bytes",
+    "schema_only": false,
+    "model_validation_performed": false,
+    "source_file_saved_in_symtropy": false
+  },
+  "observed": {
+    "byte_length": 643047,
+    "column_count": 56,
+    "data_rows": 1927,
+    "unique_interaction_ids": 1927,
+    "duplicate_interaction_id_rows": 0,
+    "unique_storm_ids": 90,
+    "unique_port_ids": 122,
+    "unique_storm_port_pairs": 1927,
+    "duplicate_storm_port_pair_rows": 0,
+    "date_ranges": {
+      "start_date_min": "2015-05-06",
+      "start_date_max": "2023-10-22",
+      "end_date_min": "2015-05-06",
+      "end_date_max": "2023-10-23"
+    },
+    "total_impact_column": {
+      "zero_rows": 1654,
+      "nonzero_rows": 273,
+      "zero_share": 0.8583290098598858,
+      "nonzero_share": 0.1416709901401147,
+      "nonzero_observed_values_min": 1,
+      "nonzero_observed_values_max": 10,
+      "description": "Equivalent days of vessel activity lost (total_impact); the paper states that originally non-integral total-impact values are rounded to the nearest integer for count-model analysis.",
+      "related_raw_or_proxy_fields": [
+        "total_impact_value (impact in vessel counts)",
+        "max_impact (maximum impact)",
+        "day_of_recover (recovery duration in days)"
+      ],
+      "modeling_caution": "Do not use total_impact == 0 alone as a no-disruption label. For the target defined as total_impact > 0, 273/1927 rows are positive; four additional zero-rounded rows retain recovery markers and nonzero total_impact_value/max_impact/day_of_recover."
+    },
+    "recovery_sentinels": {
+      "start_recovery_date_zero_or_na_rows": 1650,
+      "end_recovery_date_zero_or_na_rows": 1650,
+      "day_of_recover_zero_or_na_rows": 1650,
+      "interpretation": "1,650 rows have a zero/NA sentinel in each recovery field, all alongside total_impact=0. The paper says no detected impact window means vessel traffic remained in the normal range, but the exact row-level sentinel semantics should still be verified; do not call them right-censored without evidence. Four more total_impact=0 rows have all recovery markers present.",
+      "cross_tab": {
+        "zero_total_impact_and_all_three_recovery_fields_sentinel": 1650,
+        "zero_total_impact_with_all_three_recovery_fields_present": 4,
+        "nonzero_total_impact_with_all_three_recovery_fields_present": 273,
+        "mixed_sentinel_triplets": 0,
+        "interpretation": "The four zero-valued total_impact rows with recovery timestamps also have nonzero total_impact_value, max_impact, and day_of_recover. Since total_impact is rounded, zero cannot safely be equated with no detected disruption. Treat the three recovery fields as one coherent marker triplet, and validate exact semantics against the source construction method.",
+        "nonzero_impact_without_recovery_markers": 0,
+        "definition_of_contradiction": "Rows with nonzero rounded total_impact but all three recovery markers sentinel-coded are counted separately from partial/mixed marker triplets. The pinned table has none; if found in future versions, do not label them as mixed markers or silently discard them."
+      },
+      "reported_marker_state": {
+        "no_impact_window_recorded_rows": 1650,
+        "impact_window_recovery_markers_present_rows": 277,
+        "mixed_triplet_rows": 0,
+        "definition": "Presence-based source-derived state only: all three recovery fields are either sentinel-coded or present. The source paper links absent impact windows to normal traffic; this registry does not claim independent physical ground truth.",
+        "modeling_implication": "Treat impact-window detection and rounded impact magnitude as separate targets. A four-row class has total_impact rounded to zero but recovery markers present and other impact proxies nonzero.",
+        "nonzero_impact_without_recovery_markers_rows": 0
+      }
+    },
+    "temporal_coverage_by_start_year": {
+      "2015": 105,
+      "2016": 117,
+      "2017": 287,
+      "2018": 194,
+      "2019": 256,
+      "2020": 512,
+      "2021": 308,
+      "2022": 70,
+      "2023": 78
+    },
+    "episode_split": {
+      "policy_id": "cyport-sid-temporal-v0.1:train<=2020;calibration=2021;test>=2022",
+      "split_unit": "cyclone SID, never individual port-interaction row",
+      "date_basis": "earliest start_date among rows associated with each SID",
+      "train": {
+        "storms": 59,
+        "interaction_rows": 1471,
+        "unique_port_ids": 122,
+        "first_event_start": "2015-05-06",
+        "last_event_start": "2020-11-13"
+      },
+      "calibration": {
+        "storms": 13,
+        "interaction_rows": 308,
+        "unique_port_ids": 92,
+        "first_event_start": "2021-06-13",
+        "last_event_start": "2021-10-27"
+      },
+      "test": {
+        "storms": 18,
+        "interaction_rows": 148,
+        "unique_port_ids": 61,
+        "first_event_start": "2022-06-04",
+        "last_event_start": "2023-10-22"
+      },
+      "split_manifest_path": "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json",
+      "raw_source_recomputed_split_verification": "Not executed by Rust; summary derived independently from pinned CSV during source inspection.",
+      "warning": "The dataset is public, so this partition is reproducible, not a secret blind holdout against models already trained on this dataset."
+    },
+    "evaluation_notes": {
+      "independent_episode_count": 90,
+      "split_unit": "SID cyclone",
+      "train_rows": 1471,
+      "calibration_rows": 308,
+      "test_rows": 148,
+      "test_nonzero_rounded_total_impact_rows": 25,
+      "test_zero_rounded_total_impact_rows": 123,
+      "test_impact_window_markers_present_rows": 26,
+      "test_no_impact_window_recorded_rows": 122,
+      "warning": "These counts describe the frozen public-data split. The test partition is not a secret blind holdout, and any performance result needs storm-clustered uncertainty.",
+      "split_outcome_counts": {
+        "train": {
+          "zero_impact": 1266,
+          "nonzero_impact": 205,
+          "no_impact_window_recorded": 1263,
+          "markers_present": 208,
+          "mixed_markers": 0,
+          "nonzero_impact_without_markers": 0
+        },
+        "calibration": {
+          "zero_impact": 265,
+          "nonzero_impact": 43,
+          "no_impact_window_recorded": 265,
+          "markers_present": 43,
+          "mixed_markers": 0,
+          "nonzero_impact_without_markers": 0
+        },
+        "test": {
+          "zero_impact": 123,
+          "nonzero_impact": 25,
+          "no_impact_window_recorded": 122,
+          "markers_present": 26,
+          "mixed_markers": 0,
+          "nonzero_impact_without_markers": 0
+        }
+      }
+    }
+  },
+  "header_fields": [
+    "ID",
+    "SID",
+    "PID",
+    "port",
+    "PORT_LON",
+    "PORT_LAT",
+    "start_date",
+    "end_date",
+    "start_recovery_date",
+    "end_recovery_date",
+    "total_impact",
+    "total_impact_value",
+    "max_impact",
+    "day_of_recover",
+    "DD",
+    "CCD",
+    "BCD",
+    "SSHS",
+    "SSHS_1",
+    "SSHS_2",
+    "SSHS_3",
+    "SSHS_4",
+    "SSHS_5",
+    "IF_LANDFALL_CLOSE2PORT",
+    "IF_LANDFALL",
+    "WIND",
+    "PRESSURE",
+    "DISTANCE",
+    "Wind_speed",
+    "Surge_height",
+    "Rainfall",
+    "Port_ranking",
+    "D_normal",
+    "D_cyclone",
+    "C_normal",
+    "C_cyclone",
+    "B_normal",
+    "B_cyclone",
+    "E_normal",
+    "E_cyclone",
+    "Seaport",
+    "Pop_C",
+    "Pop_Tract",
+    "PCT_Pov",
+    "WF",
+    "PCT_TA",
+    "PCT_ACEW",
+    "PCT_TI",
+    "PCT_SV",
+    "SL",
+    "Railway_Length",
+    "Highway_Length",
+    "Dock_Count",
+    "Coast_Gulf_of_Mexico",
+    "Coast_Atlantic",
+    "Coast_Pacific"
+  ],
+  "interpretive_limits": [
+    "The 1927 rows are port-cyclone interactions, not 1927 independent storms. Group all ports and related records by SID before data splitting.",
+    "The 122 ports represented in the interaction table are not the same thing as the 145 principal ports described across the broader dataset.",
+    "The 1654 zero-valued total_impact records indicate strong imbalance in this column; do not redefine them as a specific severity category until the source definition is checked.",
+    "Vessel activity/counts are proxies for port activity and are not equivalent to cargo tonnage, delivered supplies or engineering safety.",
+    "Published derived resilience/network metrics must not be used as independent ground truth if they are constructed from the same underlying observations.",
+    "Zero total_impact is a rounded count outcome, not a guaranteed no-impact label: four zero-valued rows retain recovery markers and have nonzero total_impact_value/max_impact/day_of_recover.",
+    "Recovery-marker fields are coherent in the inspected table (1,650 all-sentinel triplets and 277 all-present triplets, no mixed triplets); if an importer observes a mixed triplet, retain it as a data-quality exception rather than imputing."
+  ],
+  "next_capture_gates": [
+    "Run --profile-cyport-interactions against a local copy and require exact Git blob SHA-1 identity for the pinned source.",
+    "Persist the local file only in a permitted research-data location with attribution and component-level terms recorded.",
+    "Record the profiler's SHA-256, byte length, source path, retrieval timestamp and tool version in a capture receipt.",
+    "Inspect the accompanying interaction-data descriptions and paper's definitions before assigning recovery/censoring labels.",
+    "Freeze cyclone-grouped splits before tuning; keep every port interaction for a storm together.",
+    "Compare transparent baselines and disclose the imbalance and missing-recovery counts per split.",
+    "Verify the frozen episode split manifest against the local CSV with --verify-cyport-episode-split before any scoring."
+  ]
+}

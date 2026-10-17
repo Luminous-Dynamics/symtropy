@@ -20,6 +20,10 @@ on:
       - 'docs/tech/MARITIME_RESILIENCE_FALSIFICATION_V0_1.md'
       - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.md'
       - 'docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json'
+      - 'docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json'
+      - 'docs/tech/CYPORT_EPISODE_SPLIT_V0_1.md'
+      - 'docs/tech/CYPORT_INTERACTION_SOURCE_PROFILE_V0_1.json'
+      - 'docs/tech/MARITIME_CYPORT_INTERACTION_PROFILE_V0_1.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.gitignore'
@@ -76,6 +80,12 @@ jobs:
 
       - name: Validate prospective historical corpus source registry
         run: cargo run --locked -p maritime-data-receipt -- --validate-historical-corpus-manifest docs/tech/MARITIME_HISTORICAL_VALIDATION_CORPUS_V0_1.json
+
+      - name: Check synthetic CyPort interaction CSV schema and profile
+        run: cargo run --locked -p maritime-data-receipt -- --profile-cyport-interactions crates/tools/maritime-data-receipt/tests/fixtures/cyport-interaction-profile-synthetic.csv
+
+      - name: Validate frozen CyPort cyclone-grouped temporal split manifest
+        run: cargo run --locked -p maritime-data-receipt -- --validate-cyport-episode-split-manifest docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json
 
       - name: Verify synthetic port identity crosswalk metadata
         run: cargo run --locked -p maritime-data-receipt -- --validate-port-crosswalk crates/tools/maritime-data-receipt/tests/fixtures/synthetic-port-crosswalk.json
