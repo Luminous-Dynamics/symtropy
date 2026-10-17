@@ -755,6 +755,41 @@ mod tests {
         }
     }
 
+    #[test]
+    fn selected_policies_satisfy_their_declared_objectives() {
+        let report = fixture_report();
+        let expected = result(&report, &report.expected_impact_policy_id);
+        let robust = result(&report, &report.minimax_regret_policy_id);
+        let gross = result(&report, &report.gross_circularity_policy_id);
+        for item in report.options.iter().filter(|item| item.eligible) {
+            assert!(
+                expected.expected_ghg_gco2e <= item.expected_ghg_gco2e,
+                "expected-impact policy must minimize expected GHG"
+            );
+            assert!(
+                robust.max_regret_gco2e <= item.max_regret_gco2e,
+                "minimax policy must minimize maximum regret"
+            );
+            for outcome in &item.scenarios {
+                assert!(outcome.regret_gco2e.is_some_and(|regret| regret <= outcome.total_ghg_gco2e));
+                assert!(outcome.total_ghg_gco2e >= report.scenario_oracles
+                    .iter()
+                    .find(|oracle| oracle.scenario_id == outcome.scenario_id)
+                    .expect("scenario oracle exists")
+                    .total_ghg_gco2e);
+            }
+        }
+        assert!(robust.max_regret_gco2e <= gross.max_regret_gco2e);
+    }
+
+    #[test]
+    fn arithmetic_overflow_is_rejected_without_wrapping() {
+        let mut manifest = fixture_manifest();
+        manifest.demand_units = u64::MAX;
+        let bytes = serde_json::to_vec(&manifest).expect("overflow fixture serializes");
+        assert!(evaluate(&bytes, "overflow-test").is_err());
+    }
+
     fn reference_totals(candidate: &Candidate, scenario: &Scenario, manifest: &Manifest) -> (u64, u64, u64, u64, u64) {
         // Deliberately expressed as direct integer equations rather than calling production helpers.
         let bp = 10_000_u64;
