@@ -662,6 +662,21 @@ mod tests {
     }
 
     #[test]
+    fn complementary_observations_beat_a_correlated_duplicate_at_equal_channel_count() {
+        let complementary =
+            public_fixture(FixtureId::ComplementarySensors)
+                .expected_information_gain_nats()
+                .unwrap();
+        let duplicate =
+            public_fixture(FixtureId::CorrelatedDuplicate)
+                .expected_information_gain_nats()
+                .unwrap();
+        close(complementary, 1.6094379124341003);
+        close(duplicate, 0.8067249769620305);
+        assert!(complementary > duplicate);
+    }
+
+    #[test]
     fn tightening_weak_mode_prior_reduces_expected_information_gain() {
         let mut fixture = public_fixture(FixtureId::WeakHighMode);
         let baseline = fixture.expected_information_gain_nats().unwrap();
