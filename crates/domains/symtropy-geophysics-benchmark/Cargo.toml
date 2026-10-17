@@ -11,3 +11,6 @@ categories = ["science", "simulation"]
 [features]
 default = []
 benchmark-scoring = []
+
+[dev-dependencies]
+serde_json = "1.0"
