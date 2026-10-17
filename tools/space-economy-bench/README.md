@@ -232,3 +232,34 @@ cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml 
 ```
 
 All rates, latent-state probabilities, payoffs and costs are synthetic. The calibration and representativeness flags validate only the benchmark fixture contract; they do not mean real lunar samples are representative. Research motivation: [NIST correlation in measurement uncertainty](https://www.nist.gov/publications/correlation-uncertainty-measurement-discussion-state-art-techniques), [NIST covariance propagation guidance](https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc55.htm), and the literature on [Bayesian data fusion with unknown correlation](https://www.sciencedirect.com/science/article/pii/S1566253517302890). Follow-up: [BENCH-SPACE-011](https://github.com/Luminous-Dynamics/symtropy/issues/1824).
+
+## Robust exploration under likelihood-model uncertainty
+
+The separate `tools/space-economy-bench/examples/robust_exploration_model_uncertainty_reference.rs` asks whether a good-looking measurement policy survives uncertainty about its own sensitivity/specificity. It compares three explicit models on a common exact basis-point grid: nominal 90%/90%, moderate 70%/70%, and an uninformative 50%/50% limit. Each model has the same 50% rich-site prior and synthetic build/import payoffs; it is not a site prior estimate.
+
+| Policy | Nominal-model net value | Worst-case net value | Worst-case regret |
+|---|---:|---:|---:|
+| No measurement | 50 | **50** | 15 |
+| Always buy assay (cost 20) | **65** | 30 | 20 |
+| Calibration gate then adapt | 62 | 47 | **3** |
+
+Three objectives intentionally select three different policies:
+- **Nominal optimizer:** buy the assay, because its net value is 65 under the 90%/90% model.
+- **Maximin expected utility:** take no measurement, because its minimum value is 50, versus 47 for the calibration-gated strategy and 30 for always buying.
+- **Minimax regret:** choose the calibration-gated strategy, whose maximum regret is only 3 across the declared models, compared with 15 and 20.
+
+This is the key contract: the policy objective must be visible. There is no objective-free single “best” action when the model itself is uncertain.
+
+The calibration gate is a deliberately idealized oracle that costs 3 units and perfectly identifies which of the three performance regimes applies. It purchases the 20-unit assay only in the high-accuracy regime; in the moderate and uninformative regimes it stops and retains the baseline decision. Its values are 62 in the high regime and 47 in the other two. This oracle is a benchmark control, not a proposal for a real instrument or a claim that calibration can perfectly identify the model.
+
+The receipt reports each model's gross information value, EVSI/EVPI bound, direct-assay net value, posterior after positive/negative observations, per-policy value vector, worst case, maximum regret, resource use, and the selected policy under each criterion. All calculations use exact integer weights under a denominator of 100,000,000. The nominal assay has positive incremental value of +15 units under the high-accuracy model but a negative incremental value of -20 under the uninformative limit, satisfying the key robustness negative control.
+
+Hard caps are two assays, two sample units, four power units and two elapsed hours. The unverified 99%/99% claim is excluded from the uncertainty set and receives zero selection credit. Eleven authored tests check probability mass, EVSI ≤ EVPI, objective-specific winners, the nominal-positive/worst-case-negative control, evidence rejection and budgets.
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example robust_exploration_model_uncertainty_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example robust_exploration_model_uncertainty_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+Research grounding: the 2026 paper [Robust Bayesian Decision Making under Adversarial Uncertainty](https://proceedings.mlr.press/v337/harikumar26a.html) argues for experiment selection that targets decision stability under plausible model misspecification rather than information gain or nominal optimality alone. NIST's [measurement-uncertainty guidance](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-5-combined-standard-uncertainty) also emphasizes accounting for covariances where relevant. These sources motivate the benchmark; they do not validate its synthetic values. Follow-up: [BENCH-SPACE-012](https://github.com/Luminous-Dynamics/symtropy/issues/1837).
