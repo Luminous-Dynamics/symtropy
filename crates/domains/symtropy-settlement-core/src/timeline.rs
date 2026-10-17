@@ -115,9 +115,21 @@ impl ResourceStockTransition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct AppliedEventReceipt {
+    pub event_id: String,
+    pub tick: u64,
+    pub sequence: u32,
+    pub event: SettlementEventKind,
+    /// Digest of the exact serialized event payload. This is an integrity link,
+    /// not a signature or proof that the event describes physical reality.
+    pub event_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SettlementTickReceipt {
     pub tick: u64,
-    pub applied_event_ids: Vec<String>,
+    pub applied_events: Vec<AppliedEventReceipt>,
     /// Snapshot evaluation uses the state and stock after this tick's events,
     /// before its reported resource allocation is deducted from closing stock.
     pub snapshot: SettlementReport,
@@ -191,7 +203,7 @@ pub fn evaluate_timeline(
             .map(|supply| (supply.supply_id.clone(), supply.capacity_units))
             .collect();
         let mut inflow_units = BTreeMap::<String, u64>::new();
-        let mut applied_event_ids = Vec::new();
+        let mut applied_events = Vec::new();
 
         while event_cursor < canonical.events.len()
             && canonical.events[event_cursor].tick == tick
@@ -260,7 +272,15 @@ pub fn evaluate_timeline(
                     })?;
                 }
             }
-            applied_event_ids.push(event.event_id.clone());
+            let event_bytes = serde_json::to_vec(&event.event)
+                .map_err(|error| SettlementError(format!("serialize event payload: {error}")))?;
+            applied_events.push(AppliedEventReceipt {
+                event_id: event.event_id.clone(),
+                tick: event.tick,
+                sequence: event.sequence,
+                event: event.event.clone(),
+                event_sha256: sha256_hex(&event_bytes),
+            });
             event_cursor += 1;
         }
 
@@ -331,7 +351,7 @@ pub fn evaluate_timeline(
         }
         tick_receipts.push(SettlementTickReceipt {
             tick,
-            applied_event_ids,
+            applied_events,
             snapshot,
             resource_transitions,
         });
