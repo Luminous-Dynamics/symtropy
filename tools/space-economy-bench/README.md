@@ -156,4 +156,4 @@ Consequently, a "potential" pathway output is not automatically "firm supply". F
 
 Recommended next inputs for real pathway comparison: site-specific grade/access measurements, mineralogical phases, extraction/purification recovery intervals, energy intensity under representative thermal/vacuum/dust conditions, product purity and acceptance specification, equipment life/wear parts, and data source/licence/epoch/resolution. Follow-up: [BENCH-SPACE-008](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
 
-For the broader resource-priority and chain roadmap, see [`docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md`](../../../docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md), which distinguishes resource occurrence from recoverable reserves and proposes staged production chains and gates.
+For the broader resource-priority and chain roadmap, see [`docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md`](../../docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md), which distinguishes resource occurrence from recoverable reserves and proposes staged production chains and gates.
