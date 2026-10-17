@@ -60,6 +60,8 @@ Use staged, evidence-qualified gates rather than one blended score.
 - **100% fail-closed unknown handling:** unresolved evidence never becomes permission.
 - **100% constraint enforcement:** zero plans admitted below required energy reserve, condition margin, accessibility/support, or deadline bounds.
 - **100% scenario/oracle agreement:** all committed stress cases, negative controls, malformed fixtures and generated perturbation matrices match an independently implemented reference.
+- **Exhaustive gate matrix:** all 3^6 = 729 combinations of six gate fields return the expected fail-closed disposition.
+- **Capability mask matrix:** all 2^6 = 64 required-capability combinations enforce every declared mission requirement.
 - **100% scenario accounting:** every declared stress case and every candidate in its mission has an explicit disposition.
 - **100% deterministic report:** identical normalized inputs produce byte-identical serialized report content regardless of ordering of independent input collections.
 - **Zero scalar winners:** never hide trade-offs behind a universal utility score.
