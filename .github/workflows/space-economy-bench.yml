@@ -77,6 +77,9 @@ jobs:
       - name: Run decision-value calibration experiment reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example decision_value_calibration_experiments_reference
 
+      - name: Run calibration transfer-shift reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example calibration_transfer_shift_reference
+
       - name: Run orbital sustainability externality reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
       - name: Execute corpus validator and emit receipt
@@ -477,6 +480,44 @@ jobs:
             and .candidate_resource_use.adaptive_b_then_a_after_positive.budget_pass == true
           ' space-economy-decision-value-calibration-experiments-receipt.json
 
+      - name: Execute calibration transfer-shift reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example calibration_transfer_shift_reference -- \\
+            --source-commit "$source_commit" > space-economy-calibration-transfer-shift-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .result == "pass"
+            and .source_commit == $source_commit
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.reference_source_sha256 | test("^[0-9a-f]{64}$"))
+            and (.calibration_envelope_sha256 | test("^[0-9a-f]{64}$"))
+            and (.drift_model_spec_sha256 | test("^[0-9a-f]{64}$"))
+            and .fixture_type == "synthetic_calibration_transfer_shift"
+            and .summary.scenario_count == 14
+            and .summary.out_of_domain_negative_control_count == 13
+            and .summary.naive_false_valid_claim_count == 13
+            and .summary.envelope_gate_false_valid_claim_count == 0
+            and .summary.envelope_gate_false_rejection_count == 0
+            and .summary.all_rejection_reason_codes_match == true
+            and .scenarios[0].scenario_id == "in_domain_control"
+            and .scenarios[0].envelope_validation.accepted == true
+            and (.negative_controls | length == 13)
+            and all(.negative_controls[]; .negative_control_pass == true and .evidence_credit_under_envelope_gate == 0)
+            and .drift_monitor.noise_only_false_alarm == false
+            and .drift_monitor.detection_index_zero_based == 5
+            and .drift_monitor.detection_delay_samples == 1
+            and .drift_monitor.shifted_samples_before_detection == 1
+            and .drift_monitor.synthetic_regret_avoided_units == 12
+            and .drift_monitor.synthetic_recalibration_cost_units == 7
+            and .drift_monitor.synthetic_net_value_of_recalibration_units == 5
+            and .partition_integrity.site_groups_disjoint == true
+            and .partition_integrity.temporal_order_pass == true
+            and .partition_integrity.test_data_used_for_fit_or_calibration == false
+            and .partition_integrity.integrity_pass == true
+          ' space-economy-calibration-transfer-shift-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -497,7 +538,8 @@ jobs:
             space-economy-sequential-resource-exploration-receipt.json \
             space-economy-correlated-assay-evidence-receipt.json \
             space-economy-robust-model-uncertainty-receipt.json \
-            space-economy-decision-value-calibration-experiments-receipt.json; do
+            space-economy-decision-value-calibration-experiments-receipt.json \\
+            space-economy-calibration-transfer-shift-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -527,6 +569,7 @@ jobs:
             space-economy-correlated-assay-evidence-receipt.json
             space-economy-robust-model-uncertainty-receipt.json
             space-economy-decision-value-calibration-experiments-receipt.json
+            space-economy-calibration-transfer-shift-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
