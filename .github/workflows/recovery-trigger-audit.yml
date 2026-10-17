@@ -1,0 +1,78 @@
+name: Recovery Trigger Contract Audit
+
+on:
+  push:
+    branches: ["docs/recovery-trigger-contract-v0-1"]
+    paths:
+      - "docs/tech/recovery-trigger-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_TRIGGER_CONTRACT_V0_1.md"
+      - "tools/recovery-trigger-audit/**"
+      - ".github/workflows/recovery-trigger-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/recovery-trigger-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_TRIGGER_CONTRACT_V0_1.md"
+      - "tools/recovery-trigger-audit/**"
+      - ".github/workflows/recovery-trigger-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-trigger-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-contract-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Run trigger boundary unit tests
+        run: cargo test --manifest-path tools/recovery-trigger-audit/Cargo.toml
+      - name: Evaluate trigger corpus at the exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-trigger-audit/Cargo.toml -- \
+            docs/tech/recovery-trigger-corpus-v0.1.json \
+            --source-commit "$source_commit" > recovery-trigger-receipt.json
+          jq -e '
+            .result == "pass"
+            and .schema_version == "recovery-trigger-contract-v0.1"
+            and .algorithm_id == "versioned-signpost-trigger-evaluator-v0.1"
+            and .trigger_count == 12
+            and .unique_case_count == 12
+            and .domain_profile_count == 3
+            and .expected_outcomes_match == true
+            and .all_review_only == true
+            and .all_plan_only == true
+            and .outcome_counts.TRIGGER_ACTIVE_REVIEW_REQUIRED == 5
+            and .outcome_counts.NO_TRIGGER == 1
+            and .outcome_counts.TRIGGER_CLEARED_REVIEW_REQUIRED == 1
+            and .outcome_counts.HOLD_STALE_EVIDENCE == 1
+            and .outcome_counts.HOLD_INSUFFICIENT_COVERAGE == 1
+            and .outcome_counts.REASSESS_CRITERIA_REGIME == 1
+            and .outcome_counts.HOLD_UNIT_MISMATCH == 1
+            and .outcome_counts.TRIGGER_LATE_REASSESSMENT_REQUIRED == 1
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+          ' recovery-trigger-receipt.json
+      - name: Upload exact-input trigger receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-trigger-receipt
+          path: recovery-trigger-receipt.json
+          if-no-files-found: error
