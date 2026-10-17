@@ -65,6 +65,9 @@ jobs:
       - name: Run resource-assay decision-value reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example resource_assay_selection_reference
 
+      - name: Run adaptive sequential exploration reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example sequential_resource_exploration_reference
+
       - name: Run orbital sustainability externality reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
       - name: Execute corpus validator and emit receipt
@@ -278,6 +281,40 @@ jobs:
             and all(.surveys[]; .evsi.numerator <= 5000000000)
           ' space-economy-resource-assay-selection-receipt.json
 
+      - name: Execute adaptive sequential resource exploration reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example sequential_resource_exploration_reference -- \
+            --source-commit "$source_commit" > space-economy-sequential-resource-exploration-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .result == "pass"
+            and .source_commit == $source_commit
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.reference_source_sha256 | test("^[0-9a-f]{64}$"))
+            and .probability_weight_denominator == 1000000000000
+            and .baseline.expected_value_without_measurement.numerator == 50000000000000
+            and .baseline.evpi.numerator == 50000000000000
+            and .direct_high_resolution_assay.net_expected_value.numerator == 65000000000000
+            and (.adaptive_policy.branches | length == 2)
+            and .adaptive_policy.branches[0].first_stage_outcome == "positive"
+            and .adaptive_policy.branches[0].conditional_evsi.numerator == 6500000000000
+            and .adaptive_policy.branches[0].purchase_followup == false
+            and .adaptive_policy.branches[1].first_stage_outcome == "negative"
+            and .adaptive_policy.branches[1].conditional_evsi.numerator == 23500000000000
+            and .adaptive_policy.branches[1].purchase_followup == true
+            and .adaptive_policy.gross_expected_value.numerator == 78500000000000
+            and .adaptive_policy.expected_survey_cost.numerator == 11000000000000
+            and .adaptive_policy.net_expected_value.numerator == 67500000000000
+            and .adaptive_policy.net_incremental_value_over_no_measurement.numerator == 17500000000000
+            and .adaptive_policy.net_advantage_over_direct_high_resolution_assay.numerator == 2500000000000
+            and .adaptive_policy.selected_followup_after_screen_outcomes == ["negative"]
+            and .high_cost_negative_control.stops_after_screen == true
+            and (.high_cost_negative_control.selected_followup_after_screen_outcomes | length == 0)
+            and .high_cost_negative_control.net_expected_value.numerator == 54000000000000
+          ' space-economy-sequential-resource-exploration-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -294,7 +331,8 @@ jobs:
             space-economy-industrial-closure-receipt.json \
             space-economy-temporal-resilience-receipt.json \
             space-economy-resource-chain-receipt.json \
-            space-economy-resource-assay-selection-receipt.json; do
+            space-economy-resource-assay-selection-receipt.json \
+            space-economy-sequential-resource-exploration-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -320,6 +358,7 @@ jobs:
             space-economy-temporal-resilience-receipt.json
             space-economy-resource-chain-receipt.json
             space-economy-resource-assay-selection-receipt.json
+            space-economy-sequential-resource-exploration-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
