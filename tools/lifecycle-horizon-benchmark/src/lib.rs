@@ -95,6 +95,7 @@ pub struct PolicySearchSpec {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct DispositionCount {
     pub disposition: Disposition,
     pub count: usize,
