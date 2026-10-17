@@ -1,0 +1,93 @@
+{
+  "schema_version": "luminous.civ_infra.derived_fixture.v0.1",
+  "fixture_id": "synthetic-primitive-derived-corridor-v0.1",
+  "ruleset": {
+    "id": "synthetic-corridor-rules",
+    "version": "0.1",
+    "max_grade_percent": { "value": 7.0, "unit": "percent" },
+    "max_earthworks_m3": { "value": 4000.0, "unit": "cubic_meters" },
+    "min_vertical_clearance_m": { "value": 0.15, "unit": "meter" }
+  },
+  "storm_multiplier_support": [
+    { "value": 1.0, "unit": "dimensionless" },
+    { "value": 1.5, "unit": "dimensionless" }
+  ],
+  "utility_encroachment_support_m": [
+    { "value": 0.0, "unit": "meter" },
+    { "value": 0.2, "unit": "meter" }
+  ],
+  "states": [
+    {
+      "id": "storm-low__encroach-low",
+      "storm_multiplier": { "value": 1.0, "unit": "dimensionless" },
+      "utility_encroachment_m": { "value": 0.0, "unit": "meter" }
+    },
+    {
+      "id": "storm-low__encroach-high",
+      "storm_multiplier": { "value": 1.0, "unit": "dimensionless" },
+      "utility_encroachment_m": { "value": 0.2, "unit": "meter" }
+    },
+    {
+      "id": "storm-high__encroach-low",
+      "storm_multiplier": { "value": 1.5, "unit": "dimensionless" },
+      "utility_encroachment_m": { "value": 0.0, "unit": "meter" }
+    },
+    {
+      "id": "storm-high__encroach-high",
+      "storm_multiplier": { "value": 1.5, "unit": "dimensionless" },
+      "utility_encroachment_m": { "value": 0.2, "unit": "meter" }
+    }
+  ],
+  "candidates": [
+    {
+      "id": "A-shortest",
+      "evidence_ref": "synthetic-candidate-A-v0.1",
+      "route_length_m": { "value": 900.0, "unit": "meter" },
+      "grade_percent": { "value": 8.0, "unit": "percent" },
+      "earthworks_m3": { "value": 2400.0, "unit": "cubic_meters" },
+      "drainage_capacity_lps": { "value": 100.0, "unit": "liters_per_second" },
+      "base_drainage_demand_lps": { "value": 60.0, "unit": "liters_per_second" },
+      "vertical_clearance_m": { "value": 0.5, "unit": "meter" }
+    },
+    {
+      "id": "B-balanced",
+      "evidence_ref": "synthetic-candidate-B-v0.1",
+      "route_length_m": { "value": 1200.0, "unit": "meter" },
+      "grade_percent": { "value": 5.0, "unit": "percent" },
+      "earthworks_m3": { "value": 3000.0, "unit": "cubic_meters" },
+      "drainage_capacity_lps": { "value": 120.0, "unit": "liters_per_second" },
+      "base_drainage_demand_lps": { "value": 70.0, "unit": "liters_per_second" },
+      "vertical_clearance_m": { "value": 0.4, "unit": "meter" }
+    },
+    {
+      "id": "C-fragile-clearance",
+      "evidence_ref": "synthetic-candidate-C-v0.1",
+      "route_length_m": { "value": 1050.0, "unit": "meter" },
+      "grade_percent": { "value": 6.0, "unit": "percent" },
+      "earthworks_m3": { "value": 2000.0, "unit": "cubic_meters" },
+      "drainage_capacity_lps": { "value": 110.0, "unit": "liters_per_second" },
+      "base_drainage_demand_lps": { "value": 60.0, "unit": "liters_per_second" },
+      "vertical_clearance_m": { "value": 0.28, "unit": "meter" }
+    },
+    {
+      "id": "D-resilient",
+      "evidence_ref": "synthetic-candidate-D-v0.1",
+      "route_length_m": { "value": 1400.0, "unit": "meter" },
+      "grade_percent": { "value": 4.0, "unit": "percent" },
+      "earthworks_m3": { "value": 3600.0, "unit": "cubic_meters" },
+      "drainage_capacity_lps": { "value": 145.0, "unit": "liters_per_second" },
+      "base_drainage_demand_lps": { "value": 80.0, "unit": "liters_per_second" },
+      "vertical_clearance_m": { "value": 0.65, "unit": "meter" }
+    },
+    {
+      "id": "E-under-capacity",
+      "evidence_ref": "synthetic-candidate-E-v0.1",
+      "route_length_m": { "value": 1100.0, "unit": "meter" },
+      "grade_percent": { "value": 6.0, "unit": "percent" },
+      "earthworks_m3": { "value": 1900.0, "unit": "cubic_meters" },
+      "drainage_capacity_lps": { "value": 50.0, "unit": "liters_per_second" },
+      "base_drainage_demand_lps": { "value": 60.0, "unit": "liters_per_second" },
+      "vertical_clearance_m": { "value": 0.5, "unit": "meter" }
+    }
+  ]
+}
