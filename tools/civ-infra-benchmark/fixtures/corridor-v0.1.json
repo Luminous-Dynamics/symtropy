@@ -215,11 +215,6 @@
           "uncertainty_m": 0.1
         }
       ],
-      "drainage": {
-        "scenario_id": "design-storm-synthetic-01",
-        "required_flow_lps": 170,
-        "capacity_lps": 150
-      },
       "declared_max_grade_percent": 8,
       "profile_points": [
         {
@@ -311,6 +306,23 @@
           "station_m": 880,
           "cut_area_m2": 4,
           "fill_area_m2": 2
+        }
+      ],
+      "drainage_scenarios": [
+        {
+          "scenario_id": "low-flow-synthetic-01",
+          "required_flow_lps": 100,
+          "capacity_lps": 150
+        },
+        {
+          "scenario_id": "design-storm-synthetic-01",
+          "required_flow_lps": 170,
+          "capacity_lps": 150
+        },
+        {
+          "scenario_id": "severe-storm-synthetic-01",
+          "required_flow_lps": 220,
+          "capacity_lps": 150
         }
       ]
     },
@@ -481,11 +493,6 @@
           "uncertainty_m": 0.1
         }
       ],
-      "drainage": {
-        "scenario_id": "design-storm-synthetic-01",
-        "required_flow_lps": 170,
-        "capacity_lps": 200
-      },
       "declared_max_grade_percent": 4.2,
       "profile_points": [
         {
@@ -581,6 +588,23 @@
           "station_m": 980,
           "cut_area_m2": 1.5,
           "fill_area_m2": 1
+        }
+      ],
+      "drainage_scenarios": [
+        {
+          "scenario_id": "low-flow-synthetic-01",
+          "required_flow_lps": 100,
+          "capacity_lps": 230
+        },
+        {
+          "scenario_id": "design-storm-synthetic-01",
+          "required_flow_lps": 170,
+          "capacity_lps": 230
+        },
+        {
+          "scenario_id": "severe-storm-synthetic-01",
+          "required_flow_lps": 220,
+          "capacity_lps": 230
         }
       ]
     },
@@ -751,11 +775,6 @@
           "uncertainty_m": 0.1
         }
       ],
-      "drainage": {
-        "scenario_id": "design-storm-synthetic-01",
-        "required_flow_lps": 150,
-        "capacity_lps": 210
-      },
       "declared_max_grade_percent": 3.5,
       "profile_points": [
         {
@@ -851,6 +870,23 @@
           "station_m": 1080,
           "cut_area_m2": 2,
           "fill_area_m2": 1.5
+        }
+      ],
+      "drainage_scenarios": [
+        {
+          "scenario_id": "low-flow-synthetic-01",
+          "required_flow_lps": 100,
+          "capacity_lps": 210
+        },
+        {
+          "scenario_id": "design-storm-synthetic-01",
+          "required_flow_lps": 150,
+          "capacity_lps": 210
+        },
+        {
+          "scenario_id": "severe-storm-synthetic-01",
+          "required_flow_lps": 200,
+          "capacity_lps": 210
         }
       ]
     },
@@ -1021,11 +1057,6 @@
           "uncertainty_m": 0.1
         }
       ],
-      "drainage": {
-        "scenario_id": "resilient-storm-synthetic-01",
-        "required_flow_lps": 120,
-        "capacity_lps": 260
-      },
       "declared_max_grade_percent": 2.5,
       "profile_points": [
         {
@@ -1121,6 +1152,23 @@
           "station_m": 1200,
           "cut_area_m2": 2,
           "fill_area_m2": 1.5
+        }
+      ],
+      "drainage_scenarios": [
+        {
+          "scenario_id": "low-flow-synthetic-01",
+          "required_flow_lps": 120,
+          "capacity_lps": 260
+        },
+        {
+          "scenario_id": "design-storm-synthetic-01",
+          "required_flow_lps": 170,
+          "capacity_lps": 260
+        },
+        {
+          "scenario_id": "severe-storm-synthetic-01",
+          "required_flow_lps": 240,
+          "capacity_lps": 260
         }
       ]
     }
