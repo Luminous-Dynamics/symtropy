@@ -215,13 +215,14 @@
             "demand": 4,
             "service_shortage_penalty": 5,
             "costs": {
-              "MODULAR": 4,
+              "MODULAR": 11,
               "BUILD_LARGE": 9
             },
             "service_outcome": {
               "MODULAR": "one-period shortfall before expansion",
               "BUILD_LARGE": "fully served"
-            }
+            },
+            "outcome_rule": "MODULAR total=4 initial cost + 2 expansion cost + 5 delay/service penalty; BUILD_LARGE total=9; high-demand scenario therefore reverses ranking."
           }
         ],
         "note": "The outcome ordering is illustrative and must be derived by the oracle once delay/service-cost rules are fully specified; this fixture requires ranking reversal across the frozen scenario pair."
