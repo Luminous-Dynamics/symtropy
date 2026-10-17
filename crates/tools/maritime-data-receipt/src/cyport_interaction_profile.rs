@@ -21,15 +21,61 @@ const PINNED_GIT_BLOB_SHA1: &str = "21beb5b7673918143a0ab108b03acc3cccaeb330";
 const PINNED_REVISION: &str = "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3";
 
 const EXPECTED_HEADER: &[&str] = &[
-    "ID", "SID", "PID", "port", "PORT_LON", "PORT_LAT", "start_date", "end_date",
-    "start_recovery_date", "end_recovery_date", "total_impact", "total_impact_value",
-    "max_impact", "day_of_recover", "DD", "CCD", "BCD", "SSHS", "SSHS_1", "SSHS_2",
-    "SSHS_3", "SSHS_4", "SSHS_5", "IF_LANDFALL_CLOSE2PORT", "IF_LANDFALL", "WIND",
-    "PRESSURE", "DISTANCE", "Wind_speed", "Surge_height", "Rainfall", "Port_ranking",
-    "D_normal", "D_cyclone", "C_normal", "C_cyclone", "B_normal", "B_cyclone",
-    "E_normal", "E_cyclone", "Seaport", "Pop_C", "Pop_Tract", "PCT_Pov", "WF",
-    "PCT_TA", "PCT_ACEW", "PCT_TI", "PCT_SV", "SL", "Railway_Length",
-    "Highway_Length", "Dock_Count", "Coast_Gulf_of_Mexico", "Coast_Atlantic",
+    "ID",
+    "SID",
+    "PID",
+    "port",
+    "PORT_LON",
+    "PORT_LAT",
+    "start_date",
+    "end_date",
+    "start_recovery_date",
+    "end_recovery_date",
+    "total_impact",
+    "total_impact_value",
+    "max_impact",
+    "day_of_recover",
+    "DD",
+    "CCD",
+    "BCD",
+    "SSHS",
+    "SSHS_1",
+    "SSHS_2",
+    "SSHS_3",
+    "SSHS_4",
+    "SSHS_5",
+    "IF_LANDFALL_CLOSE2PORT",
+    "IF_LANDFALL",
+    "WIND",
+    "PRESSURE",
+    "DISTANCE",
+    "Wind_speed",
+    "Surge_height",
+    "Rainfall",
+    "Port_ranking",
+    "D_normal",
+    "D_cyclone",
+    "C_normal",
+    "C_cyclone",
+    "B_normal",
+    "B_cyclone",
+    "E_normal",
+    "E_cyclone",
+    "Seaport",
+    "Pop_C",
+    "Pop_Tract",
+    "PCT_Pov",
+    "WF",
+    "PCT_TA",
+    "PCT_ACEW",
+    "PCT_TI",
+    "PCT_SV",
+    "SL",
+    "Railway_Length",
+    "Highway_Length",
+    "Dock_Count",
+    "Coast_Gulf_of_Mexico",
+    "Coast_Atlantic",
     "Coast_Pacific",
 ];
 
@@ -206,16 +252,28 @@ fn parse_csv(bytes: &[u8]) -> Result<Vec<Vec<String>>, String> {
         } else if after_quote {
             match byte {
                 b',' => {
-                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    row.push(decode_field(
+                        std::mem::take(&mut field),
+                        rows.len(),
+                        row.len(),
+                    )?);
                     after_quote = false;
                 }
                 b'\n' => {
-                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    row.push(decode_field(
+                        std::mem::take(&mut field),
+                        rows.len(),
+                        row.len(),
+                    )?);
                     push_nonblank_row(&mut rows, std::mem::take(&mut row));
                     after_quote = false;
                 }
                 b'\r' if bytes.get(index + 1) == Some(&b'\n') => {
-                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    row.push(decode_field(
+                        std::mem::take(&mut field),
+                        rows.len(),
+                        row.len(),
+                    )?);
                     push_nonblank_row(&mut rows, std::mem::take(&mut row));
                     index += 1;
                     after_quote = false;
@@ -239,14 +297,26 @@ fn parse_csv(bytes: &[u8]) -> Result<Vec<Vec<String>>, String> {
                     ));
                 }
                 b',' => {
-                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    row.push(decode_field(
+                        std::mem::take(&mut field),
+                        rows.len(),
+                        row.len(),
+                    )?);
                 }
                 b'\n' => {
-                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    row.push(decode_field(
+                        std::mem::take(&mut field),
+                        rows.len(),
+                        row.len(),
+                    )?);
                     push_nonblank_row(&mut rows, std::mem::take(&mut row));
                 }
                 b'\r' if bytes.get(index + 1) == Some(&b'\n') => {
-                    row.push(decode_field(std::mem::take(&mut field), rows.len(), row.len())?);
+                    row.push(decode_field(
+                        std::mem::take(&mut field),
+                        rows.len(),
+                        row.len(),
+                    )?);
                     push_nonblank_row(&mut rows, std::mem::take(&mut row));
                     index += 1;
                 }
@@ -351,7 +421,9 @@ fn parse_mdy_date(value: &str, path: &str) -> Result<String, String> {
             return Err(format!("{path}: invalid HH:MM time {time_part:?}"));
         }
         if tokens.next().is_some() {
-            return Err(format!("{path}: unexpected trailing date/time components in {value:?}"));
+            return Err(format!(
+                "{path}: unexpected trailing date/time components in {value:?}"
+            ));
         }
     }
     let mut pieces = date_part.split('/');
@@ -389,7 +461,10 @@ fn parse_mdy_date(value: &str, path: &str) -> Result<String, String> {
 
 fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
     if bytes.len() > MAX_CSV_BYTES {
-        return Err(format!("CyPort interaction CSV exceeds the {}-byte limit", MAX_CSV_BYTES));
+        return Err(format!(
+            "CyPort interaction CSV exceeds the {}-byte limit",
+            MAX_CSV_BYTES
+        ));
     }
     if bytes.len() == PINNED_BYTES {
         let observed_blob = git_blob_sha1(bytes);
@@ -431,8 +506,14 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         ("port", column_index(header, "port")?),
         ("start_date", column_index(header, "start_date")?),
         ("end_date", column_index(header, "end_date")?),
-        ("start_recovery_date", column_index(header, "start_recovery_date")?),
-        ("end_recovery_date", column_index(header, "end_recovery_date")?),
+        (
+            "start_recovery_date",
+            column_index(header, "start_recovery_date")?,
+        ),
+        (
+            "end_recovery_date",
+            column_index(header, "end_recovery_date")?,
+        ),
         ("total_impact", column_index(header, "total_impact")?),
         ("day_of_recover", column_index(header, "day_of_recover")?),
     ]);
@@ -468,19 +549,20 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         let port_id = record_field(record, &indexes, "PID", row_index + 2)?.to_owned();
         counts.storm_ids.insert(storm.clone());
         counts.port_ids.insert(port_id.clone());
-        if !counts.storm_port_pairs.insert((storm.clone(), port_id.clone())) {
+        if !counts
+            .storm_port_pairs
+            .insert((storm.clone(), port_id.clone()))
+        {
             counts.duplicate_pair_rows += 1;
         }
 
         let impact_raw = record_field(record, &indexes, "total_impact", row_index + 2)?;
-        let impact = impact_raw
-            .parse::<u64>()
-            .map_err(|_| {
-                format!(
-                    "CSV row {} has invalid non-negative integer total_impact {impact_raw:?}",
-                    row_index + 2
-                )
-            })?;
+        let impact = impact_raw.parse::<u64>().map_err(|_| {
+            format!(
+                "CSV row {} has invalid non-negative integer total_impact {impact_raw:?}",
+                row_index + 2
+            )
+        })?;
         if impact == 0 {
             counts.zero_total_impact_rows += 1;
         } else {
@@ -560,30 +642,35 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             impact_window_markers_present,
             mixed_marker_state,
             nonzero_impact_without_markers,
-        ) =
-            match (start_recovery_sentinel, end_recovery_sentinel, duration_sentinel) {
-                (true, true, true) if impact == 0 => {
-                    counts.zero_impact_all_recovery_sentinels += 1;
-                    (true, false, false, false)
-                }
-                (true, true, true) => {
-                    counts.nonzero_impact_without_recovery_markers += 1;
-                    (false, false, false, true)
-                }
-                (false, false, false) if impact == 0 => {
-                    counts.zero_impact_all_recovery_fields_present += 1;
-                    (false, true, false, false)
-                }
-                (false, false, false) => {
-                    counts.nonzero_impact_all_recovery_fields_present += 1;
-                    (false, true, false, false)
-                }
-                _ => {
-                    counts.mixed_recovery_field_states += 1;
-                    (false, false, true, false)
-                }
-            };
-        let group = counts.storm_groups.get_mut(&storm)
+        ) = match (
+            start_recovery_sentinel,
+            end_recovery_sentinel,
+            duration_sentinel,
+        ) {
+            (true, true, true) if impact == 0 => {
+                counts.zero_impact_all_recovery_sentinels += 1;
+                (true, false, false, false)
+            }
+            (true, true, true) => {
+                counts.nonzero_impact_without_recovery_markers += 1;
+                (false, false, false, true)
+            }
+            (false, false, false) if impact == 0 => {
+                counts.zero_impact_all_recovery_fields_present += 1;
+                (false, true, false, false)
+            }
+            (false, false, false) => {
+                counts.nonzero_impact_all_recovery_fields_present += 1;
+                (false, true, false, false)
+            }
+            _ => {
+                counts.mixed_recovery_field_states += 1;
+                (false, false, true, false)
+            }
+        };
+        let group = counts
+            .storm_groups
+            .get_mut(&storm)
             .ok_or_else(|| format!("missing cyclone group after row {}", row_index + 2))?;
         if impact == 0 {
             group.zero_total_impact_rows += 1;
@@ -727,9 +814,21 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             ("unique storms", counts.storm_ids.len(), 90usize),
             ("unique ports", counts.port_ids.len(), 122usize),
             ("unique interaction IDs", counts.ids.len(), 1_927usize),
-            ("unique storm-port pairs", counts.storm_port_pairs.len(), 1_927usize),
-            ("zero-impact rows", counts.zero_total_impact_rows, 1_654usize),
-            ("nonzero-impact rows", counts.nonzero_total_impact_rows, 273usize),
+            (
+                "unique storm-port pairs",
+                counts.storm_port_pairs.len(),
+                1_927usize,
+            ),
+            (
+                "zero-impact rows",
+                counts.zero_total_impact_rows,
+                1_654usize,
+            ),
+            (
+                "nonzero-impact rows",
+                counts.nonzero_total_impact_rows,
+                273usize,
+            ),
             (
                 "zero-impact rows with all recovery sentinels",
                 counts.zero_impact_all_recovery_sentinels,
@@ -756,15 +855,31 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                     + counts.nonzero_impact_all_recovery_fields_present,
                 277usize,
             ),
-            ("mixed recovery-field states", counts.mixed_recovery_field_states, 0usize),
+            (
+                "mixed recovery-field states",
+                counts.mixed_recovery_field_states,
+                0usize,
+            ),
             (
                 "nonzero impact without recovery markers",
                 counts.nonzero_impact_without_recovery_markers,
                 0usize,
             ),
-            ("start-recovery sentinels", counts.start_recovery_sentinels, 1_650usize),
-            ("end-recovery sentinels", counts.end_recovery_sentinels, 1_650usize),
-            ("recovery-day sentinels", counts.day_of_recover_sentinels, 1_650usize),
+            (
+                "start-recovery sentinels",
+                counts.start_recovery_sentinels,
+                1_650usize,
+            ),
+            (
+                "end-recovery sentinels",
+                counts.end_recovery_sentinels,
+                1_650usize,
+            ),
+            (
+                "recovery-day sentinels",
+                counts.day_of_recover_sentinels,
+                1_650usize,
+            ),
         ];
         for (name, actual, target) in expected {
             if actual != target {
@@ -789,8 +904,11 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 .iter()
                 .find(|summary| summary.split == name)
                 .ok_or_else(|| format!("missing expected split {name}"))?;
-            if (actual.storm_count, actual.interaction_rows, actual.unique_port_ids)
-                != (storms, interaction_rows, ports)
+            if (
+                actual.storm_count,
+                actual.interaction_rows,
+                actual.unique_port_ids,
+            ) != (storms, interaction_rows, ports)
             {
                 return Err(format!(
                     "pinned CyPort {name} split drift: expected ({storms} storms, {interaction_rows} rows, {ports} ports), observed ({} storms, {} rows, {} ports)",
@@ -800,14 +918,7 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
         }
         let expected_split_outcomes = [
             (
-                "train",
-                59usize,
-                1_471usize,
-                1_266usize,
-                205usize,
-                1_263usize,
-                208usize,
-                0usize,
+                "train", 59usize, 1_471usize, 1_266usize, 205usize, 1_263usize, 208usize, 0usize,
                 0usize,
             ),
             (
@@ -821,7 +932,9 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
                 0usize,
                 0usize,
             ),
-            ("test", 18usize, 148usize, 123usize, 25usize, 122usize, 26usize, 0usize, 0usize),
+            (
+                "test", 18usize, 148usize, 123usize, 25usize, 122usize, 26usize, 0usize, 0usize,
+            ),
         ];
         for (
             name,
@@ -872,7 +985,8 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
             || counts.event_ends.last().map(String::as_str) != Some("2023-10-23")
         {
             return Err(
-                "pinned CyPort event date range differs from the inspected source profile".to_owned(),
+                "pinned CyPort event date range differs from the inspected source profile"
+                    .to_owned(),
             );
         }
     }
@@ -931,26 +1045,50 @@ fn profile_bytes(bytes: &[u8]) -> Result<CyPortInteractionReport, String> {
     })
 }
 
-
 const MAX_SPLIT_MANIFEST_BYTES: usize = 500_000;
 const SPLIT_ROOT_KEYS: &[&str] = &[
-    "schema_id", "schema_version", "status", "source", "policy",
-    "split_summary", "total_unique_storms", "total_interaction_rows",
-    "outcomes_excluded_from_manifest", "episodes",
+    "schema_id",
+    "schema_version",
+    "status",
+    "source",
+    "policy",
+    "split_summary",
+    "total_unique_storms",
+    "total_interaction_rows",
+    "outcomes_excluded_from_manifest",
+    "episodes",
 ];
 const SPLIT_SOURCE_KEYS: &[&str] = &[
-    "repository", "revision", "path", "git_blob_sha1", "byte_length",
-    "license_statement", "license_uri", "citation",
+    "repository",
+    "revision",
+    "path",
+    "git_blob_sha1",
+    "byte_length",
+    "license_statement",
+    "license_uri",
+    "citation",
 ];
 const SPLIT_POLICY_KEYS: &[&str] = &[
-    "split_unit", "date_basis", "train", "calibration", "test",
-    "leakage_rule", "external_holdout_caveat",
+    "split_unit",
+    "date_basis",
+    "train",
+    "calibration",
+    "test",
+    "leakage_rule",
+    "external_holdout_caveat",
 ];
 const SPLIT_SUMMARY_KEYS: &[&str] = &[
-    "storms", "interaction_rows", "first_event_start", "last_event_start",
+    "storms",
+    "interaction_rows",
+    "first_event_start",
+    "last_event_start",
 ];
 const EPISODE_KEYS: &[&str] = &[
-    "sid", "first_event_start", "last_event_start", "interaction_rows", "split",
+    "sid",
+    "first_event_start",
+    "last_event_start",
+    "interaction_rows",
+    "split",
 ];
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -1005,9 +1143,10 @@ fn valid_iso_date(value: &str) -> bool {
     if bytes.len() != 10
         || bytes.get(4) != Some(&b'-')
         || bytes.get(7) != Some(&b'-')
-        || !bytes.iter().enumerate().all(|(index, byte)| {
-            index == 4 || index == 7 || byte.is_ascii_digit()
-        })
+        || !bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
     {
         return false;
     }
@@ -1148,7 +1287,8 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
     if super::integer(
         super::field(source, "byte_length", "split_manifest.source")?,
         "split_manifest.source.byte_length",
-    )? != PINNED_BYTES as u64 {
+    )? != PINNED_BYTES as u64
+    {
         return Err("split_manifest source byte length does not match the pinned CSV".to_owned());
     }
     super::expect_text(
@@ -1161,9 +1301,15 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
     super::exact_keys(policy, SPLIT_POLICY_KEYS, "split_manifest.policy")?;
     let expected_policy = [
         ("split_unit", "cyclone SID"),
-        ("date_basis", "earliest start_date among all interaction rows belonging to the SID"),
+        (
+            "date_basis",
+            "earliest start_date among all interaction rows belonging to the SID",
+        ),
         ("train", "earliest event start on or before 2020-12-31"),
-        ("calibration", "earliest event start during calendar year 2021"),
+        (
+            "calibration",
+            "earliest event start during calendar year 2021",
+        ),
         ("test", "earliest event start on or after 2022-01-01"),
         (
             "leakage_rule",
@@ -1222,8 +1368,13 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
             .checked_add(rows)
             .ok_or_else(|| "split manifest interaction row count overflow".to_owned())?;
         let sort_key = (first.clone(), storm_id.clone());
-        if previous_sort_key.as_ref().is_some_and(|previous| previous > &sort_key) {
-            return Err(format!("{path}: episodes must be sorted by first date then cyclone ID"));
+        if previous_sort_key
+            .as_ref()
+            .is_some_and(|previous| previous > &sort_key)
+        {
+            return Err(format!(
+                "{path}: episodes must be sorted by first date then cyclone ID"
+            ));
         }
         previous_sort_key = Some(sort_key);
         episodes.push(StormEpisodeSplit {
@@ -1237,12 +1388,16 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
         });
     }
     if episodes.len() != 90 {
-        return Err(format!("split manifest: expected 90 cyclone groups, found {}", episodes.len()));
+        return Err(format!(
+            "split manifest: expected 90 cyclone groups, found {}",
+            episodes.len()
+        ));
     }
     if super::integer(
         super::field(&root, "total_unique_storms", "split_manifest")?,
         "split_manifest.total_unique_storms",
-    )? != episodes.len() as u64 {
+    )? != episodes.len() as u64
+    {
         return Err("split_manifest.total_unique_storms does not match episode count".to_owned());
     }
     let declared_rows = super::integer(
@@ -1263,7 +1418,11 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
     )?;
     let computed_summaries = compute_split_summaries(&episodes)?;
     for summary in &computed_summaries {
-        let actual = super::field(summaries_json, summary.split, "split_manifest.split_summary")?;
+        let actual = super::field(
+            summaries_json,
+            summary.split,
+            "split_manifest.split_summary",
+        )?;
         super::exact_keys(
             actual,
             SPLIT_SUMMARY_KEYS,
@@ -1284,7 +1443,10 @@ fn parse_episode_split_manifest(bytes: &[u8]) -> Result<(JsonValue, ParsedSplitM
             || Some(actual_first) != summary.first_event_start.as_deref()
             || Some(actual_last) != summary.last_event_start.as_deref()
         {
-            return Err(format!("split manifest summary drift for {}", summary.split));
+            return Err(format!(
+                "split manifest summary drift for {}",
+                summary.split
+            ));
         }
     }
 
@@ -1376,17 +1538,17 @@ fn compare_episode_manifest_to_profile(
 }
 
 pub(super) fn validate_episode_split_manifest_cli(manifest_path: &str) -> Result<(), String> {
-    let metadata = fs::metadata(manifest_path)
-        .map_err(|error| {
-            format!("cannot stat CyPort episode split manifest {manifest_path}: {error}")
-        })?;
+    let metadata = fs::metadata(manifest_path).map_err(|error| {
+        format!("cannot stat CyPort episode split manifest {manifest_path}: {error}")
+    })?;
     if metadata.len() > MAX_SPLIT_MANIFEST_BYTES as u64 {
-        return Err(format!("CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
+        return Err(format!(
+            "CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"
+        ));
     }
-    let bytes = fs::read(manifest_path)
-        .map_err(|error| {
-            format!("cannot read CyPort episode split manifest {manifest_path}: {error}")
-        })?;
+    let bytes = fs::read(manifest_path).map_err(|error| {
+        format!("cannot read CyPort episode split manifest {manifest_path}: {error}")
+    })?;
     let report = validate_and_report_split_manifest(&bytes)?;
     println!(
         "{}",
@@ -1400,12 +1562,17 @@ pub(super) fn verify_episode_split_cli(csv_path: &str, manifest_path: &str) -> R
     let csv_metadata = fs::metadata(csv_path)
         .map_err(|error| format!("cannot stat CyPort interaction CSV {csv_path}: {error}"))?;
     if csv_metadata.len() > MAX_CSV_BYTES as u64 {
-        return Err(format!("CyPort interaction CSV exceeds the {}-byte limit", MAX_CSV_BYTES));
+        return Err(format!(
+            "CyPort interaction CSV exceeds the {}-byte limit",
+            MAX_CSV_BYTES
+        ));
     }
     let manifest_metadata = fs::metadata(manifest_path)
         .map_err(|error| format!("cannot stat CyPort split manifest {manifest_path}: {error}"))?;
     if manifest_metadata.len() > MAX_SPLIT_MANIFEST_BYTES as u64 {
-        return Err(format!("CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"));
+        return Err(format!(
+            "CyPort split manifest exceeds {MAX_SPLIT_MANIFEST_BYTES} bytes"
+        ));
     }
     let csv_bytes = fs::read(csv_path)
         .map_err(|error| format!("cannot read CyPort interaction CSV {csv_path}: {error}"))?;
@@ -1431,10 +1598,9 @@ pub(super) fn verify_episode_split_cli(csv_path: &str, manifest_path: &str) -> R
     };
     println!(
         "{}",
-        serde_json::to_string(&report)
-            .map_err(|error| {
-                format!("cannot serialize source-to-split verification report: {error}")
-            })?
+        serde_json::to_string(&report).map_err(|error| {
+            format!("cannot serialize source-to-split verification report: {error}")
+        })?
     );
     Ok(())
 }
@@ -1443,7 +1609,10 @@ pub(super) fn run_cli(csv_path: &str) -> Result<(), String> {
     let metadata = fs::metadata(csv_path)
         .map_err(|error| format!("cannot stat CyPort interaction CSV {csv_path}: {error}"))?;
     if metadata.len() > MAX_CSV_BYTES as u64 {
-        return Err(format!("CyPort interaction CSV exceeds the {}-byte limit", MAX_CSV_BYTES));
+        return Err(format!(
+            "CyPort interaction CSV exceeds the {}-byte limit",
+            MAX_CSV_BYTES
+        ));
     }
     let bytes = fs::read(csv_path)
         .map_err(|error| format!("cannot read CyPort interaction CSV {csv_path}: {error}"))?;
@@ -1490,13 +1659,21 @@ mod tests {
     #[test]
     fn empty_synthetic_splits_report_unknown_date_bounds_not_panics() {
         let report = profile_bytes(SYNTHETIC_FIXTURE).expect("synthetic fixture should profile");
-        let train = report.split_summaries.iter().find(|summary| summary.split == "train").unwrap();
+        let train = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "train")
+            .unwrap();
         let calibration = report
             .split_summaries
             .iter()
             .find(|summary| summary.split == "calibration")
             .unwrap();
-        let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
+        let test = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "test")
+            .unwrap();
         assert_eq!(train.storm_count, 0);
         assert_eq!(train.first_event_start, None);
         assert_eq!(train.last_event_start, None);
@@ -1519,16 +1696,26 @@ mod tests {
         assert_eq!(report.episode_groups[1].storm_id, "SYNTHETIC_STORM_B");
         assert_eq!(report.episode_groups[1].interaction_rows, 2);
         assert_eq!(report.episode_groups[1].split, "test");
-        let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
+        let test = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "test")
+            .unwrap();
         assert_eq!(test.storm_count, 2);
         assert_eq!(test.interaction_rows, 5);
         assert_eq!(test.unique_port_ids, Some(4));
-        let split_outcomes = report.split_outcome_summaries.iter()
-            .find(|summary| summary.split == "test").unwrap();
+        let split_outcomes = report
+            .split_outcome_summaries
+            .iter()
+            .find(|summary| summary.split == "test")
+            .unwrap();
         assert_eq!(split_outcomes.zero_total_impact_rows, 3);
         assert_eq!(split_outcomes.nonzero_total_impact_rows, 2);
         assert_eq!(split_outcomes.no_impact_window_recorded_rows, 2);
-        assert_eq!(split_outcomes.impact_window_recovery_markers_present_rows, 3);
+        assert_eq!(
+            split_outcomes.impact_window_recovery_markers_present_rows,
+            3
+        );
         assert_eq!(split_outcomes.mixed_recovery_field_state_rows, 0);
     }
 
@@ -1539,10 +1726,17 @@ mod tests {
     fn frozen_cyclone_split_manifest_has_consistent_totals_and_boundaries() {
         let report = validate_and_report_split_manifest(FROZEN_SPLIT_MANIFEST)
             .expect("frozen split manifest should validate");
-        assert_eq!(report.status, "EPISODE_SPLIT_MANIFEST_VALIDATED_NOT_SOURCE_RECOMPUTED");
+        assert_eq!(
+            report.status,
+            "EPISODE_SPLIT_MANIFEST_VALIDATED_NOT_SOURCE_RECOMPUTED"
+        );
         assert_eq!(report.episode_count, 90);
         assert_eq!(report.interaction_row_count, 1_927);
-        let train = report.split_summaries.iter().find(|summary| summary.split == "train").unwrap();
+        let train = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "train")
+            .unwrap();
         assert_eq!(train.storm_count, 59);
         assert_eq!(train.interaction_rows, 1_471);
         assert_eq!(train.unique_port_ids, None);
@@ -1555,7 +1749,11 @@ mod tests {
             .unwrap();
         assert_eq!(calibration.storm_count, 13);
         assert_eq!(calibration.interaction_rows, 308);
-        let test = report.split_summaries.iter().find(|summary| summary.split == "test").unwrap();
+        let test = report
+            .split_summaries
+            .iter()
+            .find(|summary| summary.split == "test")
+            .unwrap();
         assert_eq!(test.storm_count, 18);
         assert_eq!(test.interaction_rows, 148);
         assert!(!report.source_bytes_compared);
@@ -1579,9 +1777,11 @@ mod tests {
         let first_sid = root["episodes"][0]["sid"].clone();
         root["episodes"][1]["sid"] = first_sid;
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed)
-            .unwrap_err()
-            .contains("duplicate cyclone ID"));
+        assert!(
+            validate_and_report_split_manifest(&changed)
+                .unwrap_err()
+                .contains("duplicate cyclone ID")
+        );
     }
 
     #[test]
@@ -1589,9 +1789,11 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["episodes"][0]["split"] = Value::String("test".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed)
-            .unwrap_err()
-            .contains("split_manifest.episodes[0].split"));
+        assert!(
+            validate_and_report_split_manifest(&changed)
+                .unwrap_err()
+                .contains("split_manifest.episodes[0].split")
+        );
     }
 
     #[test]
@@ -1599,9 +1801,11 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["episodes"][0]["interaction_rows"] = Value::Number(serde_json::Number::from(28));
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed)
-            .unwrap_err()
-            .contains("row count mismatch"));
+        assert!(
+            validate_and_report_split_manifest(&changed)
+                .unwrap_err()
+                .contains("row count mismatch")
+        );
     }
 
     #[test]
@@ -1618,23 +1822,30 @@ mod tests {
         let mut root: Value = serde_json::from_slice(FROZEN_SPLIT_MANIFEST).unwrap();
         root["policy"]["external_holdout_caveat"] = Value::String("blind test".to_owned());
         let changed = serde_json::to_vec(&root).unwrap();
-        assert!(validate_and_report_split_manifest(&changed)
-            .unwrap_err()
-            .contains("public-data holdout limitations"));
+        assert!(
+            validate_and_report_split_manifest(&changed)
+                .unwrap_err()
+                .contains("public-data holdout limitations")
+        );
     }
 
     #[test]
     fn a_synthetic_profile_cannot_claim_a_pinned_source_split_match() {
         let profile = profile_bytes(SYNTHETIC_FIXTURE).unwrap();
         let (_, manifest) = parse_episode_split_manifest(FROZEN_SPLIT_MANIFEST).unwrap();
-        assert!(compare_episode_manifest_to_profile(&manifest, &profile)
-            .unwrap_err()
-            .contains("source identity must match pinned CyPort Git blob"));
+        assert!(
+            compare_episode_manifest_to_profile(&manifest, &profile)
+                .unwrap_err()
+                .contains("source identity must match pinned CyPort Git blob")
+        );
     }
 
     #[test]
     fn empty_git_blob_hash_matches_git_object_vector() {
-        assert_eq!(git_blob_sha1(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391");
+        assert_eq!(
+            git_blob_sha1(b""),
+            "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        );
     }
 
     #[test]
@@ -1648,7 +1859,10 @@ mod tests {
     fn header_drift_is_rejected() {
         let mut bytes = SYNTHETIC_FIXTURE.to_vec();
         let marker = b"PORT_LON";
-        let position = bytes.windows(marker.len()).position(|window| window == marker).unwrap();
+        let position = bytes
+            .windows(marker.len())
+            .position(|window| window == marker)
+            .unwrap();
         bytes[position] = b'X';
         assert!(profile_bytes(&bytes).unwrap_err().contains("header column"));
     }
@@ -1663,13 +1877,21 @@ mod tests {
             text.lines().take(4).collect::<Vec<_>>().join("\n"),
             truncated
         );
-        assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("fields; expected"));
+        assert!(
+            profile_bytes(changed.as_bytes())
+                .unwrap_err()
+                .contains("fields; expected")
+        );
     }
 
     #[test]
     fn unbalanced_quoted_field_is_rejected() {
         let bytes = b"ID,SID\n1,\"unterminated";
-        assert!(parse_csv(bytes).unwrap_err().contains("inside a quoted field"));
+        assert!(
+            parse_csv(bytes)
+                .unwrap_err()
+                .contains("inside a quoted field")
+        );
     }
 
     #[test]
@@ -1690,9 +1912,11 @@ mod tests {
         let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
         let changed = text.replacen("10/1/2022", "2/31/2022", 1);
         assert_ne!(text, changed);
-        assert!(profile_bytes(changed.as_bytes())
-            .unwrap_err()
-            .contains("impossible calendar date"));
+        assert!(
+            profile_bytes(changed.as_bytes())
+                .unwrap_err()
+                .contains("impossible calendar date")
+        );
     }
 
     #[test]
@@ -1700,7 +1924,11 @@ mod tests {
         let text = String::from_utf8(SYNTHETIC_FIXTURE.to_vec()).unwrap();
         let changed = text.replacen("10/4/2022 0:00", "10/4/2022 24:00", 1);
         assert_ne!(text, changed);
-        assert!(profile_bytes(changed.as_bytes()).unwrap_err().contains("invalid HH:MM time"));
+        assert!(
+            profile_bytes(changed.as_bytes())
+                .unwrap_err()
+                .contains("invalid HH:MM time")
+        );
     }
 
     #[test]
@@ -1729,7 +1957,11 @@ mod tests {
         let report = profile_bytes(changed.as_bytes()).unwrap();
         assert_eq!(report.nonzero_impact_without_recovery_markers_rows, 1);
         assert_eq!(report.mixed_recovery_field_state_rows, 0);
-        let test = report.split_outcome_summaries.iter().find(|x| x.split == "test").unwrap();
+        let test = report
+            .split_outcome_summaries
+            .iter()
+            .find(|x| x.split == "test")
+            .unwrap();
         assert_eq!(test.nonzero_impact_without_recovery_markers_rows, 1);
     }
 

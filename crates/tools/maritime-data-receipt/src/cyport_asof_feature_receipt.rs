@@ -9,7 +9,7 @@
 //! accessible to an operator at the declared time, or that a feature is approved.
 
 use super::{
-    array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, JsonValue,
+    JsonValue, array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -85,11 +85,7 @@ struct FeatureReceiptReport {
     claim_ceiling: &'static str,
 }
 
-fn text_field<'a>(
-    object: &'a JsonValue,
-    name: &str,
-    parent: &str,
-) -> Result<&'a str, String> {
+fn text_field<'a>(object: &'a JsonValue, name: &str, parent: &str) -> Result<&'a str, String> {
     let path = format!("{parent}.{name}");
     require_nonempty_text(field(object, name, parent)?, &path)
 }
@@ -128,7 +124,9 @@ fn valid_calendar_date(value: &str, path: &str) -> Result<(), String> {
         _ => 0,
     };
     if year == 0 || day == 0 || day > days_in_month {
-        return Err(format!("{path}: date is not a valid Gregorian calendar date"));
+        return Err(format!(
+            "{path}: date is not a valid Gregorian calendar date"
+        ));
     }
     Ok(())
 }
@@ -149,7 +147,9 @@ fn valid_utc_timestamp(value: &str, path: &str) -> Result<(), String> {
         || !bytes[14..16].iter().all(u8::is_ascii_digit)
         || !bytes[17..19].iter().all(u8::is_ascii_digit)
     {
-        return Err(format!("{path}: expected canonical UTC timestamp YYYY-MM-DDTHH:MM:SSZ"));
+        return Err(format!(
+            "{path}: expected canonical UTC timestamp YYYY-MM-DDTHH:MM:SSZ"
+        ));
     }
     valid_calendar_date(&value[0..10], path)?;
     let hour = value[11..13]
@@ -180,10 +180,9 @@ fn validate_value_and_missing_reason(feature: &JsonValue, index: usize) -> Resul
     let reason = field(feature, "missing_reason", &path)?;
     match (value, reason) {
         (JsonValue::Null, JsonValue::String(reason)) if !reason.trim().is_empty() => Ok(()),
-        (
-            JsonValue::Number(_) | JsonValue::String(_) | JsonValue::Bool(_),
-            JsonValue::Null,
-        ) => Ok(()),
+        (JsonValue::Number(_) | JsonValue::String(_) | JsonValue::Bool(_), JsonValue::Null) => {
+            Ok(())
+        }
         (JsonValue::Null, _) => Err(format!(
             "{path}.missing_reason: a missing value requires a non-empty reason"
         )),
@@ -213,7 +212,11 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
         ],
         "root",
     )?;
-    expect_text(field(&root, "schema_id", "root")?, "root.schema_id", SCHEMA_ID)?;
+    expect_text(
+        field(&root, "schema_id", "root")?,
+        "root.schema_id",
+        SCHEMA_ID,
+    )?;
     expect_text(
         field(&root, "schema_version", "root")?,
         "root.schema_version",
@@ -269,8 +272,10 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
         "source_dataset.git_blob_sha1",
         SOURCE_BLOB_SHA1,
     )?;
-    if integer(field(source, "byte_length", "source_dataset")?, "source_dataset.byte_length")?
-        != SOURCE_BYTES
+    if integer(
+        field(source, "byte_length", "source_dataset")?,
+        "source_dataset.byte_length",
+    )? != SOURCE_BYTES
     {
         return Err("source_dataset.byte_length: does not match pinned source".to_owned());
     }
@@ -308,20 +313,33 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
         exact_keys(feature, FEATURE_KEYS, &path)?;
         let name = text_field(feature, "feature_name", &path)?;
         if !seen_names.insert(name.to_owned()) {
-            return Err(format!("{path}.feature_name: duplicate feature name {name:?}"));
+            return Err(format!(
+                "{path}.feature_name: duplicate feature name {name:?}"
+            ));
         }
         let source_kind = text_field(feature, "source_kind", &path)?;
-        if !["ARCHIVED_FORECAST", "PUBLISHED_OBSERVATION", "STATIC_CONTEXT"]
-            .contains(&source_kind)
+        if ![
+            "ARCHIVED_FORECAST",
+            "PUBLISHED_OBSERVATION",
+            "STATIC_CONTEXT",
+        ]
+        .contains(&source_kind)
         {
             return Err(format!(
                 "{path}.source_kind: retrospective best-track and post-event data are forbidden"
             ));
         }
         let uri = text_field(feature, "source_uri", &path)?;
-        let hostname = uri.strip_prefix("https://").unwrap_or("").split('/').next().unwrap_or("");
+        let hostname = uri
+            .strip_prefix("https://")
+            .unwrap_or("")
+            .split('/')
+            .next()
+            .unwrap_or("");
         if hostname.is_empty() {
-            return Err(format!("{path}.source_uri: expected an HTTPS URI with a host"));
+            return Err(format!(
+                "{path}.source_uri: expected an HTTPS URI with a host"
+            ));
         }
         text_field(feature, "source_revision_or_product_id", &path)?;
         let relative_path = text_field(feature, "artifact_relative_path", &path)?;
@@ -332,18 +350,24 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
                 .components()
                 .any(|component| !matches!(component, Component::Normal(_)))
         {
-            return Err(format!("{path}.artifact_relative_path: unsafe relative path"));
+            return Err(format!(
+                "{path}.artifact_relative_path: unsafe relative path"
+            ));
         }
         let artifact_sha256 = text_field(feature, "artifact_sha256", &path)?;
         if !sha256_is_lower_hex(artifact_sha256) {
-            return Err(format!("{path}.artifact_sha256: expected 64 lowercase hex characters"));
+            return Err(format!(
+                "{path}.artifact_sha256: expected 64 lowercase hex characters"
+            ));
         }
         let artifact_byte_length = integer(
             field(feature, "artifact_byte_length", &path)?,
             &format!("{path}.artifact_byte_length"),
         )?;
         if artifact_byte_length == 0 || artifact_byte_length > MAX_ARTIFACT_BYTES {
-            return Err(format!("{path}.artifact_byte_length: outside allowed size bounds"));
+            return Err(format!(
+                "{path}.artifact_byte_length: outside allowed size bounds"
+            ));
         }
 
         let publication = text_field(feature, "source_publication_time_utc", &path)?;
@@ -366,7 +390,9 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
             ));
         }
         if available < publication {
-            return Err(format!("{path}.feature_available_at_utc: cannot precede publication"));
+            return Err(format!(
+                "{path}.feature_available_at_utc: cannot precede publication"
+            ));
         }
         if available > cutoff {
             return Err(format!(
@@ -379,11 +405,15 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
             ));
         }
         if valid_start > valid_end {
-            return Err(format!("{path}: forecast/valid interval starts after it ends"));
+            return Err(format!(
+                "{path}: forecast/valid interval starts after it ends"
+            ));
         }
         let units = text_field(feature, "units", &path)?;
         if ["unknown", "unverified", "unspecified"].contains(&units.to_ascii_lowercase().as_str()) {
-            return Err(format!("{path}.units: unresolved units are not admissible evidence"));
+            return Err(format!(
+                "{path}.units: unresolved units are not admissible evidence"
+            ));
         }
         text_field(feature, "derivation_id", &path)?;
         text_field(feature, "join_method", &path)?;
@@ -416,11 +446,12 @@ fn validate_receipt(bytes: &[u8]) -> Result<ReceiptFacts, String> {
 }
 
 fn verify_artifact_bytes(facts: &ReceiptFacts, artifact_root: &Path) -> Result<(), String> {
-    let root = artifact_root
-        .canonicalize()
-        .map_err(|error| {
-            format!("cannot resolve artifact root {}: {error}", artifact_root.display())
-        })?;
+    let root = artifact_root.canonicalize().map_err(|error| {
+        format!(
+            "cannot resolve artifact root {}: {error}",
+            artifact_root.display()
+        )
+    })?;
     if !root.is_dir() {
         return Err("artifact root must be a directory".to_owned());
     }
@@ -442,7 +473,10 @@ fn verify_artifact_bytes(facts: &ReceiptFacts, artifact_root: &Path) -> Result<(
         let metadata = fs::metadata(&canonical)
             .map_err(|error| format!("cannot stat artifact {}: {error}", canonical.display()))?;
         if metadata.len() > MAX_ARTIFACT_BYTES {
-            return Err(format!("artifact {} exceeds size limit", canonical.display()));
+            return Err(format!(
+                "artifact {} exceeds size limit",
+                canonical.display()
+            ));
         }
         let bytes = fs::read(&canonical)
             .map_err(|error| format!("cannot read artifact {}: {error}", canonical.display()))?;
@@ -456,7 +490,10 @@ fn verify_artifact_bytes(facts: &ReceiptFacts, artifact_root: &Path) -> Result<(
         }
         let observed = sha256_hex(&bytes);
         if observed != feature.sha256 {
-            return Err(format!("feature {:?}: artifact SHA-256 mismatch", feature.name));
+            return Err(format!(
+                "feature {:?}: artifact SHA-256 mismatch",
+                feature.name
+            ));
         }
     }
     Ok(())
@@ -466,7 +503,9 @@ pub fn run_cli(receipt_path: &str, artifact_root: &str) -> Result<(), String> {
     let metadata = fs::metadata(receipt_path)
         .map_err(|error| format!("cannot stat feature evidence receipt {receipt_path}: {error}"))?;
     if metadata.len() > MAX_RECEIPT_BYTES as u64 {
-        return Err(format!("feature evidence receipt exceeds {MAX_RECEIPT_BYTES} bytes"));
+        return Err(format!(
+            "feature evidence receipt exceeds {MAX_RECEIPT_BYTES} bytes"
+        ));
     }
     let bytes = fs::read(receipt_path)
         .map_err(|error| format!("cannot read feature evidence receipt {receipt_path}: {error}"))?;
@@ -504,14 +543,12 @@ mod tests {
     use super::*;
     use serde_json::Value;
 
-    const RECEIPT: &[u8] =
-        include_bytes!("../tests/fixtures/synthetic-asof-feature-receipt.json");
+    const RECEIPT: &[u8] = include_bytes!("../tests/fixtures/synthetic-asof-feature-receipt.json");
 
     #[test]
     fn json_schema_is_valid_and_matches_the_receipt_contract() {
-        let schema = include_str!(
-            "../../../../docs/tech/CYPORT_ASOF_FEATURE_RECEIPT_V0_1.schema.json"
-        );
+        let schema =
+            include_str!("../../../../docs/tech/CYPORT_ASOF_FEATURE_RECEIPT_V0_1.schema.json");
         let value: serde_json::Value =
             serde_json::from_str(schema).expect("receipt schema must be valid JSON");
         assert_eq!(
@@ -563,9 +600,7 @@ mod tests {
         let result = verify_artifact_bytes(&facts, &root);
         let _ = fs::remove_dir_all(&root);
         assert!(
-            result
-                .unwrap_err()
-                .contains("artifact SHA-256 mismatch"),
+            result.unwrap_err().contains("artifact SHA-256 mismatch"),
             "the verifier must reject a wrong artifact digest"
         );
     }
@@ -600,7 +635,11 @@ mod tests {
         let mut value: Value = serde_json::from_slice(RECEIPT).expect("valid fixture JSON");
         value["decision_cutoff_utc"] = serde_json::json!("2022-02-31T12:30:00Z");
         let changed = serde_json::to_vec(&value).expect("serialize mutated receipt");
-        assert!(validate_receipt(&changed).unwrap_err().contains("calendar date"));
+        assert!(
+            validate_receipt(&changed)
+                .unwrap_err()
+                .contains("calendar date")
+        );
     }
 
     #[test]
@@ -609,6 +648,10 @@ mod tests {
         value["features"][0]["value"] = serde_json::Value::Null;
         value["features"][0]["missing_reason"] = serde_json::Value::Null;
         let changed = serde_json::to_vec(&value).expect("serialize mutated receipt");
-        assert!(validate_receipt(&changed).unwrap_err().contains("missing value requires"));
+        assert!(
+            validate_receipt(&changed)
+                .unwrap_err()
+                .contains("missing value requires")
+        );
     }
 }

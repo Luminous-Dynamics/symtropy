@@ -7,7 +7,7 @@
 //! certify feature availability, run a historical replay, or fit a model.
 
 use super::{
-    array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text, JsonValue,
+    JsonValue, array, exact_keys, expect_text, field, integer, parse_strict, require_nonempty_text,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -97,8 +97,14 @@ fn require_string_set(value: &JsonValue, path: &str, expected: &[&str]) -> Resul
     if actual_set != expected_set {
         return Err(format!(
             "{path}: required set mismatch; missing={:?}, unknown={:?}",
-            expected_set.difference(&actual_set).copied().collect::<Vec<_>>(),
-            actual_set.difference(&expected_set).copied().collect::<Vec<_>>()
+            expected_set
+                .difference(&actual_set)
+                .copied()
+                .collect::<Vec<_>>(),
+            actual_set
+                .difference(&expected_set)
+                .copied()
+                .collect::<Vec<_>>()
         ));
     }
     Ok(())
@@ -116,9 +122,7 @@ fn require_integer_list(value: &JsonValue, path: &str, expected: &[u64]) -> Resu
     let actual = values
         .iter()
         .enumerate()
-        .map(|(index, value)| {
-            integer(value, &format!("{path}[{index}]"))
-        })
+        .map(|(index, value)| integer(value, &format!("{path}[{index}]")))
         .collect::<Result<Vec<_>, _>>()?;
     if actual != expected {
         return Err(format!("{path}: expected {expected:?}, found {actual:?}"));
@@ -156,7 +160,11 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         ],
         "root",
     )?;
-    expect_text(field(&root, "schema_id", "root")?, "root.schema_id", SCHEMA_ID)?;
+    expect_text(
+        field(&root, "schema_id", "root")?,
+        "root.schema_id",
+        SCHEMA_ID,
+    )?;
     expect_text(
         field(&root, "schema_version", "root")?,
         "root.schema_version",
@@ -203,7 +211,11 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         "source.git_blob_sha1",
         SOURCE_BLOB_SHA1,
     )?;
-    if integer(field(source, "byte_length", "source")?, "source.byte_length")? != SOURCE_BYTES {
+    if integer(
+        field(source, "byte_length", "source")?,
+        "source.byte_length",
+    )? != SOURCE_BYTES
+    {
         return Err("source.byte_length: does not match pinned CyPort source".to_owned());
     }
     expect_text(
@@ -225,10 +237,20 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
     let split = field(&root, "split_manifest", "root")?;
     exact_keys(
         split,
-        &["path", "schema_id", "schema_version", "split_unit", "test_period"],
+        &[
+            "path",
+            "schema_id",
+            "schema_version",
+            "split_unit",
+            "test_period",
+        ],
         "split_manifest",
     )?;
-    expect_text(field(split, "path", "split_manifest")?, "split_manifest.path", SPLIT_PATH)?;
+    expect_text(
+        field(split, "path", "split_manifest")?,
+        "split_manifest.path",
+        SPLIT_PATH,
+    )?;
     expect_text(
         field(split, "schema_id", "split_manifest")?,
         "split_manifest.schema_id",
@@ -239,7 +261,11 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         "split_manifest.schema_version",
         "0.1.0",
     )?;
-    expect_text(field(split, "split_unit", "split_manifest")?, "split_manifest.split_unit", "SID")?;
+    expect_text(
+        field(split, "split_unit", "split_manifest")?,
+        "split_manifest.split_unit",
+        "SID",
+    )?;
     expect_text(
         field(split, "test_period", "split_manifest")?,
         "split_manifest.test_period",
@@ -287,11 +313,19 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         "archive_candidate.completeness_claimed",
     )?;
     expect_true(
-        field(archive, "forecast_archive_may_supply_asof_features", "archive_candidate")?,
+        field(
+            archive,
+            "forecast_archive_may_supply_asof_features",
+            "archive_candidate",
+        )?,
         "archive_candidate.forecast_archive_may_supply_asof_features",
     )?;
     expect_false(
-        field(archive, "retrospective_best_track_allowed_as_predictor", "archive_candidate")?,
+        field(
+            archive,
+            "retrospective_best_track_allowed_as_predictor",
+            "archive_candidate",
+        )?,
         "archive_candidate.retrospective_best_track_allowed_as_predictor",
     )?;
     expect_text(
@@ -335,11 +369,16 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         "forecast_valid_time_required",
         "units_and_transformation_lineage_required",
     ] {
-        expect_true(field(policy, name, "replay_policy")?, &format!("replay_policy.{name}"))?;
+        expect_true(
+            field(policy, name, "replay_policy")?,
+            &format!("replay_policy.{name}"),
+        )?;
     }
     let feature_whitelist = field(policy, "feature_whitelist", "replay_policy")?;
     if !array(feature_whitelist, "replay_policy.feature_whitelist")?.is_empty() {
-        return Err("feature whitelist must stay empty until field evidence is reviewed".to_owned());
+        return Err(
+            "feature whitelist must stay empty until field evidence is reviewed".to_owned(),
+        );
     }
     expect_false(
         field(policy, "exact_lead_time_claim_allowed", "replay_policy")?,
@@ -389,16 +428,28 @@ fn validate_contract(bytes: &[u8]) -> Result<ReplayContractReport, String> {
         "FUTURE_TARGET_ONLY_NOT_CURRENTLY_EVALUABLE",
     )?;
     require_integer_list(
-        field(lead_targets, "candidate_lead_hours", "future_lead_time_targets")?,
+        field(
+            lead_targets,
+            "candidate_lead_hours",
+            "future_lead_time_targets",
+        )?,
         "future_lead_time_targets.candidate_lead_hours",
         REQUIRED_LEAD_HOURS,
     )?;
     expect_true(
-        field(lead_targets, "requires_timestamped_targets", "future_lead_time_targets")?,
+        field(
+            lead_targets,
+            "requires_timestamped_targets",
+            "future_lead_time_targets",
+        )?,
         "future_lead_time_targets.requires_timestamped_targets",
     )?;
     expect_true(
-        field(lead_targets, "requires_issue_time_and_valid_time", "future_lead_time_targets")?,
+        field(
+            lead_targets,
+            "requires_issue_time_and_valid_time",
+            "future_lead_time_targets",
+        )?,
         "future_lead_time_targets.requires_issue_time_and_valid_time",
     )?;
 
@@ -436,7 +487,9 @@ pub fn run_cli(path: &str) -> Result<(), String> {
     let metadata = fs::metadata(path)
         .map_err(|error| format!("cannot stat as-of replay contract {path}: {error}"))?;
     if metadata.len() > MAX_CONTRACT_BYTES as u64 {
-        return Err(format!("as-of replay contract exceeds {MAX_CONTRACT_BYTES} bytes"));
+        return Err(format!(
+            "as-of replay contract exceeds {MAX_CONTRACT_BYTES} bytes"
+        ));
     }
     let bytes = fs::read(path)
         .map_err(|error| format!("cannot read as-of replay contract {path}: {error}"))?;
@@ -476,7 +529,11 @@ mod tests {
         let mut value: Value = serde_json::from_slice(CONTRACT).expect("valid contract JSON");
         value["replay_policy"]["feature_whitelist"] = serde_json::json!(["WIND"]);
         let changed = serde_json::to_vec(&value).expect("serialize mutated contract");
-        assert!(validate_contract(&changed).unwrap_err().contains("feature_whitelist"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("feature_whitelist")
+        );
     }
 
     #[test]
@@ -484,7 +541,11 @@ mod tests {
         let mut value: Value = serde_json::from_slice(CONTRACT).expect("valid contract JSON");
         value["replay_policy"]["exact_lead_time_claim_allowed"] = serde_json::json!(true);
         let changed = serde_json::to_vec(&value).expect("serialize mutated contract");
-        assert!(validate_contract(&changed).unwrap_err().contains("exact_lead_time_claim_allowed"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("exact_lead_time_claim_allowed")
+        );
     }
 
     #[test]
@@ -505,6 +566,10 @@ mod tests {
         let mut value: Value = serde_json::from_slice(CONTRACT).expect("valid contract JSON");
         value["source"]["revision"] = serde_json::json!("main");
         let changed = serde_json::to_vec(&value).expect("serialize mutated contract");
-        assert!(validate_contract(&changed).unwrap_err().contains("source.revision"));
+        assert!(
+            validate_contract(&changed)
+                .unwrap_err()
+                .contains("source.revision")
+        );
     }
 }
