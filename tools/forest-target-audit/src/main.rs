@@ -54,7 +54,7 @@ struct PlannerScenario {
     map_sha256: String,
     config_sha256: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct PlannerPlan {
     budget_feasible: bool,
     outbound_cost_steps: u16,
@@ -99,6 +99,22 @@ struct MethodScore {
     targets: Vec<TargetScore>,
 }
 #[derive(Debug, Clone, Serialize)]
+struct TargetOracleResult {
+    objective: String,
+    plan: PlannerPlan,
+    score: MethodScore,
+}
+#[derive(Debug, Clone, Serialize)]
+struct TargetRegret {
+    oracle_complete_target_count: usize,
+    compared_complete_target_count: usize,
+    complete_target_regret: usize,
+    complete_target_ratio_basis_points: Option<u16>,
+    oracle_visible_feature_count: usize,
+    compared_visible_feature_count: usize,
+    visible_feature_delta_to_oracle: i64,
+}
+#[derive(Debug, Clone, Serialize)]
 struct Evaluation {
     planner_scenario_id: String,
     scene: Scene,
@@ -110,6 +126,9 @@ struct Evaluation {
     greedy: MethodScore,
     lookahead: MethodScore,
     coverage_oracle: MethodScore,
+    target_oracle: TargetOracleResult,
+    greedy_vs_target_oracle: TargetRegret,
+    lookahead_vs_target_oracle: TargetRegret,
 }
 #[derive(Debug, Clone, Serialize)]
 struct AggregateMethod {
@@ -123,12 +142,29 @@ struct AggregateMethod {
     worst_case_feature_visibility_basis_points: u16,
 }
 #[derive(Debug, Clone, Serialize)]
+struct AggregateRegret {
+    evaluation_count: usize,
+    oracle_complete_target_count: usize,
+    compared_complete_target_count: usize,
+    total_complete_target_regret: usize,
+    worst_case_complete_target_regret: usize,
+    complete_target_ratio_basis_points: Option<u16>,
+    worst_case_complete_target_ratio_basis_points: Option<u16>,
+    oracle_visible_feature_count: usize,
+    compared_visible_feature_count: usize,
+    visible_feature_delta_to_oracle_total: i64,
+    worst_case_visible_feature_delta_to_oracle: i64,
+}
+#[derive(Debug, Clone, Serialize)]
 struct SplitSummary {
     seed_count: usize,
     evaluation_count: usize,
     greedy: AggregateMethod,
     lookahead: AggregateMethod,
     coverage_oracle: AggregateMethod,
+    target_objective_oracle: AggregateMethod,
+    greedy_vs_target_oracle: AggregateRegret,
+    lookahead_vs_target_oracle: AggregateRegret,
 }
 #[derive(Debug, Serialize)]
 struct Receipt {
@@ -138,6 +174,7 @@ struct Receipt {
     evidence_class: String,
     claim_ceiling: String,
     generator_version: String,
+    target_objective: String,
     source_commit: String,
     planner_source_commit: String,
     planner_corpus_sha256: String,
