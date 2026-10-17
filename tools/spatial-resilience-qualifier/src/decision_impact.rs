@@ -256,7 +256,10 @@ fn parse_scenario(
             );
         }
 
-        let Some(state_result_values) = candidate_object.get("state_results").and_then(Value::as_array) else {
+        let Some(state_result_values) = candidate_object
+            .get("state_results")
+            .and_then(Value::as_array)
+        else {
             summary.fail(
                 "DECISION_STATE_RESULTS_MISSING",
                 format!("{candidate_path}.state_results"),
@@ -404,7 +407,11 @@ fn parse_scenario(
         for (outcome_index, outcome_value) in outcome_values.iter().enumerate() {
             let outcome_path = format!("{action_path}.outcomes[{outcome_index}]");
             let Some(outcome_object) = outcome_value.as_object() else {
-                summary.fail("DECISION_OUTCOME_INVALID", &outcome_path, "Outcome must be an object.");
+                summary.fail(
+                    "DECISION_OUTCOME_INVALID",
+                    &outcome_path,
+                    "Outcome must be an object.",
+                );
                 outcome_parse_failed = true;
                 continue;
             };
@@ -768,7 +775,11 @@ fn compare_action_expected(
     summary: &mut DecisionImpactSummary,
 ) {
     let Some(object) = expected.as_object() else {
-        summary.fail("DECISION_EXPECTED_ACTION_INVALID", path, "Expected action must be an object.");
+        summary.fail(
+            "DECISION_EXPECTED_ACTION_INVALID",
+            path,
+            "Expected action must be an object.",
+        );
         return;
     };
 
@@ -950,7 +961,12 @@ fn compare_case_expected(
         return;
     };
     if let Some(expected) = object.get("expected_baseline") {
-        compare_decision_set(expected, &actual.baseline, &format!("{path}.expected_baseline"), summary);
+        compare_decision_set(
+            expected,
+            &actual.baseline,
+            &format!("{path}.expected_baseline"),
+            summary,
+        );
     }
 
     let Some(expected_actions) = object.get("expected_actions").and_then(Value::as_array) else {
@@ -1174,10 +1190,28 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
         let case = summary.results.iter().find(|result| result.case_id == "SPR-V-005").unwrap();
-        let wall_only = case.actions.iter().find(|action| action.action_id == "wall-only-survey").unwrap();
-        let combined = case.actions.iter().find(|action| action.action_id == "wall-survey-plus-qualified-fire-review").unwrap();
-        assert!(wall_only.outcomes.iter().all(|outcome| outcome.robust_feasible_candidate_ids.is_empty()));
-        assert!(combined.outcomes.iter().any(|outcome| !outcome.robust_feasible_candidate_ids.is_empty()));
+        let wall_only = case
+            .actions
+            .iter()
+            .find(|action| action.action_id == "wall-only-survey")
+            .unwrap();
+        let combined = case
+            .actions
+            .iter()
+            .find(|action| action.action_id == "wall-survey-plus-qualified-fire-review")
+            .unwrap();
+        assert!(
+            wall_only
+                .outcomes
+                .iter()
+                .all(|outcome| outcome.robust_feasible_candidate_ids.is_empty())
+        );
+        assert!(
+            combined
+                .outcomes
+                .iter()
+                .any(|outcome| !outcome.robust_feasible_candidate_ids.is_empty())
+        );
     }
 
     #[test]
@@ -1198,10 +1232,26 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let incomplete = summary.results.iter().find(|result| result.case_id == "SPR-V-003").unwrap();
-        let overlapping = summary.results.iter().find(|result| result.case_id == "SPR-V-004").unwrap();
-        assert!(incomplete.actions[0].rejection_codes.contains(&"ACTION_PARTITION_INCOMPLETE".to_owned()));
-        assert!(overlapping.actions[0].rejection_codes.contains(&"ACTION_PARTITION_OVERLAP".to_owned()));
+        let incomplete = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-003")
+            .unwrap();
+        let overlapping = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-004")
+            .unwrap();
+        assert!(
+            incomplete.actions[0]
+                .rejection_codes
+                .contains(&"ACTION_PARTITION_INCOMPLETE".to_owned())
+        );
+        assert!(
+            overlapping.actions[0]
+                .rejection_codes
+                .contains(&"ACTION_PARTITION_OVERLAP".to_owned())
+        );
     }
 
     #[test]
@@ -1211,9 +1261,17 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
         let stale = summary.results.iter().find(|result| result.case_id == "SPR-V-006").unwrap();
-        let mis_scoped = summary.results.iter().find(|result| result.case_id == "SPR-V-008").unwrap();
+        let mis_scoped = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-008")
+            .unwrap();
         assert!(stale.actions[0].rejection_codes.contains(&"ACTION_EVIDENCE_NOT_VALID".to_owned()));
-        assert!(mis_scoped.actions[0].rejection_codes.contains(&"ACTION_UNKNOWN_NOT_DECLARED".to_owned()));
+        assert!(
+            mis_scoped.actions[0]
+                .rejection_codes
+                .contains(&"ACTION_UNKNOWN_NOT_DECLARED".to_owned())
+        );
     }
 
     #[test]
@@ -1222,7 +1280,8 @@ mod tests {
             serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
         corpus["cases"][0]["actions"][0]["probability"] = Value::from(0.8);
         let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
-        let summary = validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        let summary =
+            validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
         assert!(has_code(&summary, "DECISION_SCHEMA_VALIDATION_FAILED"));
     }
 
