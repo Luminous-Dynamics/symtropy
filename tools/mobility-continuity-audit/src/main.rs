@@ -98,6 +98,37 @@ fn check_number(
     }
 }
 
+fn detects_anti_pattern(control: &Value) -> bool {
+    let Some(input) = control.get("adversarial_input") else {
+        return false;
+    };
+    match text_at(control, "anti_pattern") {
+        Some("safety_hold_bypassed") => {
+            input.get("active_safety_hold").and_then(Value::as_bool) == Some(true)
+                && input.get("dispatch_allowed").and_then(Value::as_bool) == Some(true)
+        }
+        Some("unknown_lifecycle_cost_imputed_as_zero") => {
+            text_at(input, "lifecycle_cost_status") == Some("unknown")
+                && close_to(input.get("reported_lifecycle_cost_r").and_then(Value::as_f64), 0.0)
+        }
+        Some("synthetic_result_relabelled_as_observed") => {
+            text_at(input, "input_evidence_class") == Some("synthetic_scenario_input")
+                && text_at(input, "claimed_output_evidence_class")
+                    == Some("observed_field_measurement")
+        }
+        Some("unavailable_fallback_counted_as_served") => {
+            input.get("fallback_available").and_then(Value::as_bool) == Some(false)
+                && input.get("trips_demanded").and_then(Value::as_u64).unwrap_or(0) > 0
+                && input.get("trips_counted_served").and_then(Value::as_u64).unwrap_or(0) > 0
+        }
+        Some("advertised_from_price_treated_as_lifecycle_cost") => {
+            text_at(input, "price_basis") == Some("advertised_from")
+                && input.get("claimed_as_lifecycle_cost").and_then(Value::as_bool) == Some(true)
+        }
+        _ => false,
+    }
+}
+
 fn validate_semantics(corpus: &Value, errors: &mut Errors) -> AuditSummary {
     if text_at(corpus, "schema_version") != Some(VERSION) {
         errors.push(format!("schema_version must be {VERSION}"));
@@ -277,6 +308,11 @@ fn validate_semantics(corpus: &Value, errors: &mut Errors) -> AuditSummary {
                 }
                 if text_at(control, "evidence_class") != Some("negative_control") {
                     errors.push(format!("negative_controls[{index}]: wrong evidence class"));
+                }
+                if !detects_anti_pattern(control) {
+                    errors.push(format!(
+                        "negative_controls[{index}]: declared anti-pattern is not detected by the v0.1 policy guard"
+                    ));
                 }
                 actual_controls.insert((id.to_owned(), pattern.to_owned()));
             }
@@ -488,6 +524,29 @@ mod tests {
     fn rejects_synthetic_stressor_drift() {
         let (schema, mut corpus) = frozen_values();
         corpus["stress_profiles"][3]["fuel_cost_multiplier"] = json!(1.25);
+        assert!(audit(&schema, &corpus).is_err());
+    }
+
+    #[test]
+    fn executes_all_five_negative_control_guards() {
+        let (_, corpus) = frozen_values();
+        let controls = corpus["negative_controls"].as_array().expect("array");
+        assert_eq!(controls.len(), 5);
+        for control in controls {
+            assert!(detects_anti_pattern(control), "control did not trigger: {}", text_at(control, "id").unwrap_or("unknown"));
+        }
+    }
+
+    #[test]
+    fn rejects_control_mutation_that_removes_the_violation() {
+        let (schema, mut corpus) = frozen_values();
+        let control = corpus["negative_controls"]
+            .as_array_mut()
+            .expect("array")
+            .iter_mut()
+            .find(|control| text_at(control, "id") == Some("NC-01"))
+            .expect("NC-01 exists");
+        control["adversarial_input"]["dispatch_allowed"] = json!(false);
         assert!(audit(&schema, &corpus).is_err());
     }
 }
