@@ -372,7 +372,7 @@ fn validate_schema_contract(schema: &Value) -> Result<(), String> {
         "variant_kind", "variant_axis", "variant_description", "deterministic_seed",
         "execution_profile", "policy_version", "policies_under_comparison", "baseline_policy",
         "initial_conditions", "exogenous_events", "expected_invariants", "observables",
-        "known_model_limits", "claim_ceiling"
+        "assertion_specifications", "known_model_limits", "claim_ceiling"
     ].into_iter().map(str::to_owned).collect();
     if property_names != pinned_fields || required != pinned_fields {
         return Err("schema field set differs from this verifier version".to_owned());
@@ -442,11 +442,125 @@ fn validate_record_shape(record: &Value, schema: &Value, where_: &str) -> Result
             return Err(format!("{}.{} cannot be blank", where_, key));
         }
     }
+    validate_assertion_specifications(record, where_)?;
     let scenario_id = required_str(record, "scenario_id", where_)?;
     if !valid_scenario_id(scenario_id) {
         return Err(format!("{}.scenario_id has invalid format", where_));
     }
     Ok(())
+}
+
+
+fn validate_assertion_specifications(record: &Value, where_: &str) -> Result<(), String> {
+    let items = record.get("assertion_specifications").and_then(Value::as_array)
+        .ok_or_else(|| format!("{}.assertion_specifications must be an array", where_))?;
+    if items.len() < 3 {
+        return Err(format!("{}.assertion_specifications must declare at least three executable assertions", where_));
+    }
+    let allowed_kinds: BTreeSet<&str> = [
+        "numeric_upper_bound",
+        "collection_contains_all_ids",
+        "field_present",
+        "metric_zero",
+        "value_equals",
+        "boolean_true",
+    ].into_iter().collect();
+    let allowed_scopes: BTreeSet<&str> = [
+        "each_policy", "policy_matrix", "per_scenario", "paired_replay"
+    ].into_iter().collect();
+    let allowed_severities: BTreeSet<&str> = ["hard", "diagnostic"].into_iter().collect();
+    let mut seen_ids = BTreeSet::new();
+
+    for (index, item) in items.iter().enumerate() {
+        let context = format!("{}.assertion_specifications[{}]", where_, index);
+        let object = item.as_object().ok_or_else(|| format!("{} must be an object", context))?;
+        let allowed_fields: BTreeSet<&str> = [
+            "assertion_id", "assertion_kind", "scope", "severity",
+            "report_pointer", "scenario_pointer", "identity_field", "rationale"
+        ].into_iter().collect();
+        for key in object.keys() {
+            if !allowed_fields.contains(key.as_str()) {
+                return Err(format!("{} has undeclared field {}", context, key));
+            }
+        }
+        for key in ["assertion_id", "assertion_kind", "scope", "severity", "report_pointer", "rationale"] {
+            if !object.contains_key(key) {
+                return Err(format!("{} missing required field {}", context, key));
+            }
+        }
+        let id = required_str(item, "assertion_id", &context)?;
+        if !seen_ids.insert(id.to_owned()) {
+            return Err(format!("{} duplicates assertion_id {}", context, id));
+        }
+        let kind = required_str(item, "assertion_kind", &context)?;
+        if !allowed_kinds.contains(kind) {
+            return Err(format!("{} has undeclared assertion_kind {}", context, kind));
+        }
+        let scope = required_str(item, "scope", &context)?;
+        if !allowed_scopes.contains(scope) {
+            return Err(format!("{} has undeclared assertion scope {}", context, scope));
+        }
+        let severity = required_str(item, "severity", &context)?;
+        if !allowed_severities.contains(severity) {
+            return Err(format!("{} has undeclared assertion severity {}", context, severity));
+        }
+        let report_pointer = required_str(item, "report_pointer", &context)?;
+        if !valid_json_pointer(report_pointer) {
+            return Err(format!("{} report_pointer is not a valid absolute JSON Pointer", context));
+        }
+        let rationale = required_str(item, "rationale", &context)?;
+        if !rationale.to_ascii_lowercase().contains("must")
+            && !rationale.to_ascii_lowercase().contains("report")
+            && !rationale.to_ascii_lowercase().contains("expose")
+            && !rationale.to_ascii_lowercase().contains("retain")
+            && !rationale.to_ascii_lowercase().contains("keep")
+        {
+            return Err(format!("{} rationale should state a checkable obligation", context));
+        }
+        let scenario_pointer = item.get("scenario_pointer").and_then(Value::as_str);
+        let identity_field = item.get("identity_field").and_then(Value::as_str);
+        match kind {
+            "numeric_upper_bound" | "value_equals" => {
+                let pointer = scenario_pointer.ok_or_else(|| format!("{} {} requires scenario_pointer", context, kind))?;
+                if !valid_json_pointer(pointer) {
+                    return Err(format!("{} scenario_pointer is not a valid absolute JSON Pointer", context));
+                }
+            }
+            "collection_contains_all_ids" => {
+                let pointer = scenario_pointer.ok_or_else(|| format!("{} requires scenario_pointer", context))?;
+                if !valid_json_pointer(pointer) {
+                    return Err(format!("{} scenario_pointer is not a valid absolute JSON Pointer", context));
+                }
+                if identity_field.map(str::trim).filter(|value| !value.is_empty()).is_none() {
+                    return Err(format!("{} collection_contains_all_ids requires identity_field", context));
+                }
+            }
+            "field_present" | "metric_zero" | "boolean_true" => {}
+            _ => return Err(format!("{} has unsupported assertion kind {}", context, kind)),
+        }
+    }
+    Ok(())
+}
+
+fn valid_json_pointer(pointer: &str) -> bool {
+    if pointer.is_empty() || !pointer.starts_with('/') {
+        return false;
+    }
+    pointer.split('/').skip(1).all(|segment| {
+        let bytes = segment.as_bytes();
+        let mut index = 0;
+        while index < bytes.len() {
+            if bytes[index] == b'~' {
+                if index + 1 >= bytes.len() || !matches!(bytes[index + 1], b'0' | b'1') {
+                    return false;
+                }
+                index += 2;
+            } else {
+                index += 1;
+            }
+        }
+        true
+    })
 }
 
 fn require_exact_keys(value: &Value, expected: &[&str], where_: &str) -> Result<(), String> {
@@ -681,6 +795,46 @@ mod tests {
         manifest["schema_sha256"] = json!(sha256_hex(text_schema.as_bytes()));
         let text_manifest = serde_json::to_string(&manifest).unwrap();
         assert!(verify_bytes(FIXTURE.as_bytes(), &text_manifest, &text_schema).unwrap_err().contains("schema field set differs"));
+    }
+
+
+    #[test]
+    fn every_scenario_declares_machine_checkable_assertions() {
+        let report = good();
+        assert_eq!(report["record_count"], 28);
+        assert_eq!(report["selected_top_level_schema_contract"], "MATCH");
+    }
+
+    #[test]
+    fn missing_assertions_fail_closed() {
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            rows[0]["assertion_specifications"] = json!([]);
+        });
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("at least three executable assertions"));
+    }
+
+    #[test]
+    fn unknown_assertion_kind_fails_closed() {
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            rows[0]["assertion_specifications"][0]["assertion_kind"] = json!("global_wisdom_score");
+        });
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("undeclared assertion_kind"));
+    }
+
+    #[test]
+    fn assertion_json_pointers_must_be_well_formed() {
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            rows[0]["assertion_specifications"][0]["report_pointer"] = json!("metrics.allocation");
+        });
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("not a valid absolute JSON Pointer"));
+    }
+
+    #[test]
+    fn collection_assertions_require_identity_field() {
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            rows[0]["assertion_specifications"][1].as_object_mut().unwrap().remove("identity_field");
+        });
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("requires identity_field"));
     }
 
     #[test]
