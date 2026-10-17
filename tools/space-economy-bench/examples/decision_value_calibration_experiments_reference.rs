@@ -467,6 +467,10 @@ fn branch_reports() -> Result<Value, String> {
     let ab_positive_negative = update_weights(a_positive, &CALIBRATION_B, false)?;
     let ab_negative_positive = update_weights(a_negative, &CALIBRATION_B, true)?;
     let ab_negative_negative = update_weights(a_negative, &CALIBRATION_B, false)?;
+    let ba_positive_positive = update_weights(b_positive, &CALIBRATION_A, true)?;
+    let ba_positive_negative = update_weights(b_positive, &CALIBRATION_A, false)?;
+    let ba_negative_positive = update_weights(b_negative, &CALIBRATION_A, true)?;
+    let ba_negative_negative = update_weights(b_negative, &CALIBRATION_A, false)?;
 
     Ok(json!({
         "calibration_a": [
@@ -485,6 +489,15 @@ fn branch_reports() -> Result<Value, String> {
         "counterfactual_b_if_a_negative": [
             branch_report("a_negative_b_positive_not_run", ab_negative_positive, "counterfactual A- -> B+"),
             branch_report("a_negative_b_negative_not_run", ab_negative_negative, "counterfactual A- -> B-")
+        ],
+        "adaptive_b_then_a_if_b_positive": [
+            branch_report("b_positive_a_positive", ba_positive_positive, "B+ -> A+"),
+            branch_report("b_positive_a_negative", ba_positive_negative, "B+ -> A-"),
+            branch_report("b_negative_stop_no_a", b_negative, "B- -> stop")
+        ],
+        "counterfactual_a_if_b_negative": [
+            branch_report("b_negative_a_positive_not_run", ba_negative_positive, "counterfactual B- -> A+"),
+            branch_report("b_negative_a_negative_not_run", ba_negative_negative, "counterfactual B- -> A-")
         ]
     }))
 }
@@ -627,7 +640,8 @@ fn execute(source_commit: &str) -> Result<Value, String> {
             "no_calibration": resource_use_json(ResourceUse { calibration_tests: 0, samples: 0, power_units: 0, elapsed_hours: 0 }),
             "calibration_a_only": resource_use_json(ResourceUse { calibration_tests: 1, samples: 1, power_units: 2, elapsed_hours: 1 }),
             "calibration_b_only": resource_use_json(ResourceUse { calibration_tests: 1, samples: 1, power_units: 1, elapsed_hours: 1 }),
-            "adaptive_a_then_b_after_positive": resource_use_json(ResourceUse { calibration_tests: 2, samples: 2, power_units: 3, elapsed_hours: 2 })
+            "adaptive_a_then_b_after_positive": resource_use_json(ResourceUse { calibration_tests: 2, samples: 2, power_units: 3, elapsed_hours: 2 }),
+            "adaptive_b_then_a_after_positive": resource_use_json(ResourceUse { calibration_tests: 2, samples: 2, power_units: 3, elapsed_hours: 2 })
         },
         "branch_decisions": branch_reports,
         "policy_comparison": policy_reports,
@@ -838,5 +852,6 @@ mod tests {
         assert_eq!(receipt["model_set_sha256"].as_str().unwrap().len(), 64);
         assert_eq!(receipt["calibration_test_set_sha256"].as_str().unwrap().len(), 64);
         assert_eq!(receipt["branch_decisions"]["adaptive_a_then_b_if_a_positive"].as_array().unwrap().len(), 3);
+        assert_eq!(receipt["branch_decisions"]["adaptive_b_then_a_if_b_positive"].as_array().unwrap().len(), 3);
     }
 }
