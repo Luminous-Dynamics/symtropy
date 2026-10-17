@@ -8,6 +8,7 @@ and the [solar–thermal benchmark contract](https://github.com/Luminous-Dynamic
 
 - Interval-integrated solar energy split into optical loss, receiver loss, and useful heat.
 - A sensible store with a piecewise-linear specific-heat curve and trapezoidal enthalpy integration.
+- Sensible thermal exergy relative to a declared ambient/reference temperature, with separate J/kg and J types.
 - Sensible thermal exergy relative to a declared reference temperature, integrated from the same cp(T) curve; specific exergy (J/kg) and total exergy (J) have distinct types.
 - Power-bounded charge/discharge, explicit-Euler standing loss, and a minimum heat-exchanger approach-temperature gate.
 - Separate verifier functions that recompute reports from inputs and check energy closure.
