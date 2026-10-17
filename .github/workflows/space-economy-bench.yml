@@ -537,7 +537,7 @@ jobs:
             space-economy-sequential-resource-exploration-receipt.json \
             space-economy-correlated-assay-evidence-receipt.json \
             space-economy-robust-model-uncertainty-receipt.json \
-            space-economy-decision-value-calibration-experiments-receipt.json \\
+            space-economy-decision-value-calibration-experiments-receipt.json \
             space-economy-calibration-transfer-shift-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
