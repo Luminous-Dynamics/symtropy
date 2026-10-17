@@ -450,3 +450,37 @@ The calibration gate is an idealized perfect model-regime identifier included to
 - Before empirical use, preregister the allowed set or ambiguity region, keep validation data independent from calibration, and report held-out calibration/coverage plus decision regret.
 
 This design is conceptually aligned with [Robust Bayesian Decision Making under Adversarial Uncertainty](https://proceedings.mlr.press/v337/harikumar26a.html) (UAI 2026), which studies sequential experiment design for decision stability under plausible unexpected effects. NIST's [combined standard uncertainty guidance](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-5-combined-standard-uncertainty) supplies general metrology context for preserving recognized uncertainty/covariance terms. Neither source calibrates the example. No fixture value establishes lunar priors, actual assay rates, recoverable reserves, project costs or mission readiness.
+
+## Active reference extension — calibration tests selected by downstream value
+
+[BENCH-SPACE-013](https://github.com/Luminous-Dynamics/symtropy/issues/1847) adds `tools/space-economy-bench/examples/decision_value_calibration_experiments_reference.rs`. It replaces BENCH-SPACE-012's perfect model-regime identification gate with two imperfect calibration experiments and enumerates both test orders, the second-stage run/stop choice after each first-stage outcome, no-calibration and single-test baselines. The frozen six-scenario v0.1 corpus is unchanged.
+
+The three synthetic model regimes assign net assay decision values 65 / 35 / 30, while declining to use the resource assay preserves the baseline value 50. The finite model weights are equal by explicit fixture choice. Test A costs 1.00 with positive-likelihoods 90% / 40% / 10%; test B costs 0.25 with positive-likelihoods 70% / 20% / 30%; an uninformative test with 50% likelihood in every regime is included as a negative control at cost 0.10.
+
+| Calibration policy | Net expected value |
+|---|---:|
+| No calibration | 50.00 |
+| A only | 50.8333 |
+| B only | 50.25 |
+| A then B after A-positive only | 51.4333 |
+| A then B after A-negative only | 50.70 |
+| A then B after either A outcome | 51.30 |
+| B then A after B-positive only | **51.90** |
+| B then A after B-negative only | 49.65 |
+| B then A after either B outcome | 51.30 |
+| Uninformative test | 49.90 |
+
+The exact synthetic oracle selects `adaptive_b_then_a_after_positive`: run cheaper test B first, then acquire the more expensive test A only after B-positive. The expected gross utility is 52.55 and expected calibration spend is 0.65, giving net 51.90. Reverse order A then B after A-positive produces the same gross utility but higher expected spend (about 1.1167), lowering net value to 51.4333. Testing on either outcome is also dominated because the additional test does not change the downstream decision in the negative branch.
+
+Each outcome reports updated unnormalized model weights and posterior floors, then recomputes posterior-mean, maximin and minimax-regret actions. Under the finite uncertainty set as written, all likelihoods are nonzero, so robust objectives retain all three regimes and prefer the no-assay baseline in every branch; the posterior-mean action can differ by outcome. The perfect-information value over the model-class uncertainty is 5 units; calibration EVSI is bounded by this amount at every enumerated policy.
+
+### Acceptance targets
+
+- Enumerate no-calibration, A-only, B-only, uninformative negative control, and both two-test orders across all binary branch execution patterns.
+- Require the selected policy to match the exhaustive oracle and have zero regret among the declared candidates.
+- Exact probability-mass conservation, versioned model/test-set hashes, EVSI not exceeding EVPI, and hard sample/power/time limits.
+- No spend on a second-stage test in branches where it cannot change the downstream decision enough to exceed its cost.
+- Fail closed on missing outcome, unverified calibration likelihoods or shared standards treated as conditionally independent.
+- For real deployments, preregister the model set/priors, use held-out calibration data and report posterior calibration, uncertainty coverage and realized downstream decision regret.
+
+This is motivated by research on [calibration experimental design with field-response and model uncertainty](https://www.sciencedirect.com/science/article/pii/S0045782516302274) and NIST's guidance on [uncertainties of future values corrected with a calibration curve](https://www.itl.nist.gov/div898/handbook/mpc/section3/mpc367.htm). The implementation is an independent synthetic finite-tree benchmark, not a reproduction of those methods and not empirical evidence about lunar survey instruments, resources or economics.
