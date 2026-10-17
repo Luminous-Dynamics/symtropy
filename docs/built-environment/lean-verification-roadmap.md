@@ -117,3 +117,11 @@ Report exact numerators/denominators and revision identifiers; never use a singl
 ## Definition of done for this prototype
 
 Do not call these theorems verified until the exact proposed head has a successful Lean build and axiom audit. Do not call the Rust implementation verified until a separately reviewed refinement/conformance bridge and implementation-side tests exist. Do not call the solver or building physically validated without solver-appropriate numerical evidence, empirical evidence, uncertainty treatment and qualified review.
+
+## Shared Rust/Lean contract-vector bridge (candidate)
+
+PR #1653 now authors a versioned vector corpus at `docs/built-environment/benchmarks/structural-reference-contract-vectors-v1.json` (candidate corpus commit `5f28fba1096e84b1ebd1fa83661ed70558b67ba3`) and a Rust integration test at `crates/apps/symtropy-housing-evidence/tests/structural_reference_contract_vectors.rs`. The five vectors map by stable ID to the five contract families in `contracts.json`: rectangular section, axial bar, cantilever tip load, simply supported midpoint force, and simply supported uniform load.
+
+The manifest binding is explicitly `CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED`; the test is authored but not executed here. Exact-current-head CI must compile and run the Rust test, and exact-current-head Lean CI must build/audit the theorem sources, before any run is called passing. A future conformance report should bind (a) the corpus Git revision and content digest, (b) the Rust source/binary identity, (c) the Lean source/toolchain revision, (d) per-vector actual/expected values, units, and tolerance verdicts, and (e) negative-control results.
+
+This bridge improves traceability and makes regression drift easier to detect; it is not a proof that the Rust floating-point implementation refines the real-valued Lean specification. To establish a refinement argument, specify the input normalization, rounding/error bounds, overflow/underflow behavior, and output correspondence, then prove or independently check that argument. The vector corpus also shares a project-authored lineage with the formulas/fixtures, so an independent reviewer or separately implemented oracle remains important.
