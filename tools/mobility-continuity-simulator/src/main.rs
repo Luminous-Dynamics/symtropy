@@ -572,6 +572,27 @@ mod tests {
     }
 
     #[test]
+    fn scenario_and_model_config_fixtures_validate_against_draft_2020_12_schemas() {
+        let (scenario_schema, model_schema, corpus, model) = frozen_inputs();
+        let config_value: Value = serde_json::from_str(include_str!(
+            "../../../fixtures/personal_vehicle/mobility_continuity_model_config_v0_1.json"
+        )).expect("config fixture");
+        let scenario_validator = schema_validator(
+            &scenario_schema,
+            "urn:luminous-dynamics:mobility:continuity:scenario:0.1"
+        ).expect("scenario schema compiles");
+        let model_validator = schema_validator(
+            &model_schema,
+            "urn:luminous-dynamics:mobility:continuity:model-config:0.1"
+        ).expect("model schema compiles");
+        validate_instance(&scenario_validator, &corpus, "scenario corpus")
+            .expect("scenario fixture validates");
+        validate_instance(&model_validator, &config_value, "model config")
+            .expect("model config validates");
+        assert_eq!(model.horizon_days, 364);
+    }
+
+    #[test]
     fn produces_one_output_per_frozen_scenario() {
         let report = report_fixture();
         assert_eq!(report["scenario_count"].as_u64(), Some(15));
@@ -635,36 +656,49 @@ mod tests {
 
     #[test]
     fn safety_hold_never_dispatches_primary_vehicle() {
-        let (scenario_schema, _, mut corpus, model) = frozen_inputs();
-        let scenario = corpus["scenarios"].as_array_mut().expect("array").iter_mut()
+        let (_, _, mut corpus, model) = frozen_inputs();
+        {
+            let scenario = corpus["scenarios"].as_array_mut().expect("array").iter_mut()
+                .find(|item| text_at(item, "architecture_id") == Some("single_vehicle_baseline")
+                    && text_at(item, "stressor_id") == Some("nominal"))
+                .expect("baseline nominal");
+            scenario["safety_policy"]["active_safety_hold"] = json!(true);
+        }
+        let scenario = corpus["scenarios"].as_array().expect("array").iter()
             .find(|item| text_at(item, "architecture_id") == Some("single_vehicle_baseline")
                 && text_at(item, "stressor_id") == Some("nominal"))
-            .expect("baseline nominal");
-        scenario["safety_policy"]["active_safety_hold"] = json!(true);
+            .expect("modified baseline nominal")
+            .clone();
         let architecture = find_by_id(
             corpus["architecture_profiles"].as_array().expect("array"),
             "single_vehicle_baseline"
         ).expect("architecture");
-        let result = simulate_scenario(scenario, architecture, &model).expect("scenario simulation");
+        let result = simulate_scenario(&scenario, architecture, &model).expect("scenario simulation");
         assert_eq!(result["primary_dispatch_gate_open"], false);
         assert_eq!(result["primary_trips_fulfilled"].as_u64(), Some(0));
         assert_eq!(result["out_of_service_hours"].as_f64(), Some(364.0 * 24.0));
-        let _ = scenario_schema;
     }
 
     #[test]
     fn unqualified_configuration_never_dispatches_primary_vehicle() {
         let (_, _, mut corpus, model) = frozen_inputs();
-        let scenario = corpus["scenarios"].as_array_mut().expect("array").iter_mut()
+        {
+            let scenario = corpus["scenarios"].as_array_mut().expect("array").iter_mut()
+                .find(|item| text_at(item, "architecture_id") == Some("single_vehicle_baseline")
+                    && text_at(item, "stressor_id") == Some("nominal"))
+                .expect("baseline nominal");
+            scenario["safety_policy"]["configuration_qualified_for_simulation"] = json!(false);
+        }
+        let scenario = corpus["scenarios"].as_array().expect("array").iter()
             .find(|item| text_at(item, "architecture_id") == Some("single_vehicle_baseline")
                 && text_at(item, "stressor_id") == Some("nominal"))
-            .expect("baseline nominal");
-        scenario["safety_policy"]["configuration_qualified_for_simulation"] = json!(false);
+            .expect("modified baseline nominal")
+            .clone();
         let architecture = find_by_id(
             corpus["architecture_profiles"].as_array().expect("array"),
             "single_vehicle_baseline"
         ).expect("architecture");
-        let result = simulate_scenario(scenario, architecture, &model).expect("scenario simulation");
+        let result = simulate_scenario(&scenario, architecture, &model).expect("scenario simulation");
         assert_eq!(result["primary_trips_fulfilled"].as_u64(), Some(0));
         assert_eq!(result["out_of_service_hours"].as_f64(), Some(364.0 * 24.0));
     }
@@ -672,15 +706,22 @@ mod tests {
     #[test]
     fn nonqualified_fallback_is_not_counted_as_served() {
         let (_, _, mut corpus, model) = frozen_inputs();
-        let architecture = corpus["architecture_profiles"].as_array_mut().expect("array").iter_mut()
-            .find(|item| text_at(item, "id") == Some("household_mobility_bundle"))
-            .expect("bundle");
-        architecture["fallback_mode_eligible_for_synthetic_test"] = json!(false);
         let scenario = corpus["scenarios"].as_array().expect("array").iter()
             .find(|item| text_at(item, "architecture_id") == Some("household_mobility_bundle")
                 && text_at(item, "stressor_id") == Some("critical_part_unavailability"))
-            .expect("bundle part shortage");
-        let result = simulate_scenario(scenario, architecture, &model).expect("scenario simulation");
+            .expect("bundle part shortage")
+            .clone();
+        {
+            let architecture = corpus["architecture_profiles"].as_array_mut().expect("array").iter_mut()
+                .find(|item| text_at(item, "id") == Some("household_mobility_bundle"))
+                .expect("bundle");
+            architecture["fallback_mode_eligible_for_synthetic_test"] = json!(false);
+        }
+        let architecture = find_by_id(
+            corpus["architecture_profiles"].as_array().expect("array"),
+            "household_mobility_bundle"
+        ).expect("modified bundle");
+        let result = simulate_scenario(&scenario, architecture, &model).expect("scenario simulation");
         assert_eq!(result["fallback_trips_fulfilled"].as_u64(), Some(0));
     }
 
