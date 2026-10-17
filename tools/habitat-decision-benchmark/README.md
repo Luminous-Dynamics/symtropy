@@ -37,9 +37,10 @@ nothing about actual survey costs or the value of investigating a real parcel.
 
 The package includes a deliberately brute-force reference oracle, exact fixture-byte
 pinning, a standard SHA-256 known-answer test, exact metric assertions, and
-order-permutation checks. Adversarial tests cover unknown hazards, duplicate IDs,
-unknown fields, changed input bytes, incomplete or overlapping outcome partitions,
-and a state with no feasible candidate.
+order-permutation checks. Twelve authored unit tests cover these behaviors.
+Adversarial tests cover unknown hazards, duplicate IDs, unknown fields, changed input
+bytes, undeclared states, incomplete or overlapping outcome partitions, and a state
+with no feasible candidate.
 
 The fixture is a small synthetic abstraction, not a geological model. It does not
 recommend real sites or surveys, estimate physical-hazard probabilities, simulate
