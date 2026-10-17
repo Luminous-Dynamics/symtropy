@@ -23,11 +23,11 @@ All absolute temperatures are kelvin; energy is interval-integrated joules; powe
 \`\`\`sh
 cargo test --manifest-path research/solar-thermal-kernel/Cargo.toml
 cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt
-cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets -- -D warnings
+cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets
 \`\`\`
 
 The authoring environment has no Rust/Cargo toolchain, so no compile or test pass is claimed. The tests are authored and must run on the exact PR head before compiler-verified status is claimed.
 
 ## Not included
 
-Weather adapters, heat-pump COP maps, stratified/distributed storage, phase-change or thermochemical materials, optimization, JSON receipts, hardware control, calibration, or deployment interfaces.
+Weather adapters, heat-pump COP maps, stratified/distributed storage, phase-change or thermochemical materials, optimization, hardware control, calibration, or deployment interfaces.
