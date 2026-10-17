@@ -86,9 +86,9 @@ fn gate_status(candidate: &Value, expected_gate: &str) -> &'static str {
     let Some(gates) = candidate.get("hard_gates").and_then(Value::as_array) else {
         return "unknown";
     };
-    let mut matches = gates.iter().filter(|gate| {
-        text_at(gate, "gate_id") == Some(expected_gate)
-    });
+    let mut matches = gates
+        .iter()
+        .filter(|gate| text_at(gate, "gate_id") == Some(expected_gate));
     let Some(gate) = matches.next() else {
         return "unknown";
     };
@@ -114,10 +114,7 @@ fn any_gate_fails(candidate: &Value) -> bool {
         .any(|gate| gate_status(candidate, gate) == "fail")
 }
 
-fn observation_is_rank_eligible(
-    observation: Option<&Value>,
-    criterion: &Value,
-) -> bool {
+fn observation_is_rank_eligible(observation: Option<&Value>, criterion: &Value) -> bool {
     if text_at(criterion, "status") != Some("method_frozen") {
         return false;
     }
@@ -192,10 +189,8 @@ fn robustly_dominates(decision: &Value, a: &Value, b: &Value) -> bool {
         let Some(id) = text_at(criterion, "id") else {
             return false;
         };
-        let (Some(a_obs), Some(b_obs)) = (
-            observation_by_id(a, id),
-            observation_by_id(b, id),
-        ) else {
+        let (Some(a_obs), Some(b_obs)) = (observation_by_id(a, id), observation_by_id(b, id))
+        else {
             return false;
         };
         let (Some(a_lower), Some(a_upper), Some(b_lower), Some(b_upper)) = (
@@ -297,8 +292,7 @@ fn audit_values(
         || text_at(decision, "decision_id") != Some(DECISION_ID)
     {
         errors.push(
-            "decision identity/version must remain REPAIRABILITY-DECISION-001 v0.1.0"
-                .to_owned(),
+            "decision identity/version must remain REPAIRABILITY-DECISION-001 v0.1.0".to_owned(),
         );
     }
     if text_at(decision, "status") != Some("decision_profile_under_evaluation")
@@ -313,7 +307,9 @@ fn audit_values(
         || text_at(policy, "scoring_policy")
             != Some("non_compensatory_hard_gates_then_robust_pareto")
         || text_at(policy, "dominance_policy")
-            != Some("interval_bounds_must_separate_on_every_criterion_and_strictly_improve_at_least_one")
+            != Some(
+                "interval_bounds_must_separate_on_every_criterion_and_strictly_improve_at_least_one",
+            )
     {
         errors.push(
             "decision policy must preserve non-compensatory gates, unknown-not-zero and interval-robust dominance"
@@ -322,18 +318,26 @@ fn audit_values(
     }
 
     let Some(gates) = policy.get("hard_gate_ids").and_then(Value::as_array) else {
-        return Err(vec!["decision_policy.hard_gate_ids must be an array".to_owned()]);
+        return Err(vec![
+            "decision_policy.hard_gate_ids must be an array".to_owned(),
+        ]);
     };
     let gate_ids: Vec<&str> = gates.iter().filter_map(Value::as_str).collect();
     if gate_ids.as_slice() != EXPECTED_GATES.as_slice() {
-        errors.push(format!("hard gate IDs/order must remain {:?}", EXPECTED_GATES));
+        errors.push(format!(
+            "hard gate IDs/order must remain {:?}",
+            EXPECTED_GATES
+        ));
     }
 
     let Some(criteria) = decision.get("criteria").and_then(Value::as_array) else {
         return Err(vec!["criteria must be an array".to_owned()]);
     };
     if criteria.len() != EXPECTED_CRITERIA.len() {
-        errors.push(format!("decision must contain {} criteria", EXPECTED_CRITERIA.len()));
+        errors.push(format!(
+            "decision must contain {} criteria",
+            EXPECTED_CRITERIA.len()
+        ));
     }
     let mut criterion_ids = BTreeSet::new();
     for (index, criterion) in criteria.iter().enumerate() {
@@ -388,14 +392,18 @@ fn audit_values(
         }
         let candidate_gates = candidate.get("hard_gates").and_then(Value::as_array);
         if candidate_gates.is_none_or(|items| items.len() != EXPECTED_GATES.len()) {
-            errors.push(format!("{id}: every hard gate must be represented exactly once"));
+            errors.push(format!(
+                "{id}: every hard gate must be represented exactly once"
+            ));
         } else if let Some(items) = candidate_gates {
             let found: Vec<&str> = items
                 .iter()
                 .filter_map(|item| text_at(item, "gate_id"))
                 .collect();
             if found.iter().copied().collect::<BTreeSet<_>>().len() != found.len()
-                || EXPECTED_GATES.iter().any(|expected| !found.contains(expected))
+                || EXPECTED_GATES
+                    .iter()
+                    .any(|expected| !found.contains(expected))
             {
                 errors.push(format!("{id}: hard gate IDs must be unique and complete"));
             }
@@ -421,7 +429,9 @@ fn audit_values(
                     continue;
                 };
                 if !seen_observations.insert(metric_id.to_owned()) {
-                    errors.push(format!("{id}: duplicate observation for criterion {metric_id}"));
+                    errors.push(format!(
+                        "{id}: duplicate observation for criterion {metric_id}"
+                    ));
                 }
                 let Some(criterion) = criterion_by_id(decision, metric_id) else {
                     errors.push(format!("{id}: unknown observation criterion {metric_id}"));
@@ -445,7 +455,9 @@ fn audit_values(
                         ));
                     }
                     if text_at(observation, "unit") != text_at(criterion, "unit") {
-                        errors.push(format!("{id}.{metric_id}: unit does not match the criterion"));
+                        errors.push(format!(
+                            "{id}.{metric_id}: unit does not match the criterion"
+                        ));
                     }
                     if text_at(criterion, "status") != Some("method_frozen") {
                         errors.push(format!(
@@ -485,7 +497,9 @@ fn audit_values(
         }
     }
 
-    let experiment = decision.get("next_experiment_policy").unwrap_or(&Value::Null);
+    let experiment = decision
+        .get("next_experiment_policy")
+        .unwrap_or(&Value::Null);
     if text_at(experiment, "objective")
         != Some("maximize_decision_relevant_information_per_unit_cost_and_risk")
         || text_at(experiment, "existing_information_value_owner")
@@ -502,9 +516,8 @@ fn audit_values(
     }
 
     let assessment = evaluate_decision(decision);
-    let eligible_candidate_count = assessment["eligible_candidate_count"]
-        .as_u64()
-        .unwrap_or(0) as usize;
+    let eligible_candidate_count =
+        assessment["eligible_candidate_count"].as_u64().unwrap_or(0) as usize;
     let pareto_frontier_count = assessment["robust_pareto_frontier_count"]
         .as_u64()
         .unwrap_or(0) as usize;
@@ -541,9 +554,8 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/repairability_architecture_decision_v0_1.schema.json"
     );
-    const DECISION: &str = include_str!(
-        "../../../fixtures/appliances/repairability_architecture_decision_v0_1.json"
-    );
+    const DECISION: &str =
+        include_str!("../../../fixtures/appliances/repairability_architecture_decision_v0_1.json");
 
     fn canonical_decision() -> Value {
         serde_json::from_str(DECISION).expect("decision JSON must parse")
@@ -606,7 +618,11 @@ mod tests {
         assert_eq!(summary.observation_count, 0);
         assert_eq!(summary.eligible_candidate_count, 0);
         assert_eq!(summary.pareto_frontier_count, 0);
-        assert!(!assessment["physical_ranking_claim_permitted"].as_bool().unwrap());
+        assert!(
+            !assessment["physical_ranking_claim_permitted"]
+                .as_bool()
+                .unwrap()
+        );
         for candidate in assessment["candidate_assessments"].as_array().unwrap() {
             assert_eq!(candidate["status"], "blocked_unknown_gate");
         }
@@ -616,20 +632,29 @@ mod tests {
     fn failed_safety_gate_rejects_candidate_regardless_of_cost() {
         let mut decision = synthetic_scored_decision();
         decision["candidates"][0]["hard_gates"][0]["status"] = json!("fail");
-        assert_eq!(candidate_status(&decision, &decision["candidates"][0]), "rejected_hard_gate");
+        assert_eq!(
+            candidate_status(&decision, &decision["candidates"][0]),
+            "rejected_hard_gate"
+        );
     }
 
     #[test]
     fn unknown_hard_gate_blocks_candidate() {
         let mut decision = synthetic_scored_decision();
         decision["candidates"][0]["hard_gates"][0]["status"] = json!("unknown");
-        assert_eq!(candidate_status(&decision, &decision["candidates"][0]), "blocked_unknown_gate");
+        assert_eq!(
+            candidate_status(&decision, &decision["candidates"][0]),
+            "blocked_unknown_gate"
+        );
     }
 
     #[test]
     fn missing_criterion_prevents_comparison() {
         let mut decision = synthetic_scored_decision();
-        decision["candidates"][0]["observations"].as_array_mut().unwrap().pop();
+        decision["candidates"][0]["observations"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         assert_eq!(
             candidate_status(&decision, &decision["candidates"][0]),
             "insufficient_eligible_evidence"
@@ -670,7 +695,10 @@ mod tests {
     #[test]
     fn overlapping_bounds_do_not_create_a_false_winner() {
         let mut decision = synthetic_scored_decision();
-        for observation in decision["candidates"][1]["observations"].as_array_mut().unwrap() {
+        for observation in decision["candidates"][1]["observations"]
+            .as_array_mut()
+            .unwrap()
+        {
             observation["lower"] = json!(0.0);
             observation["upper"] = json!(5.0);
             if matches!(
