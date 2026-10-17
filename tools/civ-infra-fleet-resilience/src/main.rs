@@ -567,15 +567,15 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         if case.case_id.trim().is_empty() {
             errors.push("tiny schedule case id must not be empty".to_string());
         }
-        if case.horizon_ticks == 0 || case.horizon_ticks > 12 {
+        if case.horizon_ticks == 0 || case.horizon_ticks > 6 {
             errors.push(format!(
-                "case {} horizon must be between 1 and 12 ticks",
+                "case {} horizon must be between 1 and 6 ticks",
                 case.case_id
             ));
         }
-        if case.tasks.is_empty() || case.tasks.len() > 7 {
+        if case.tasks.is_empty() || case.tasks.len() > 5 {
             errors.push(format!(
-                "case {} must contain between 1 and 7 tasks",
+                "case {} must contain between 1 and 5 tasks",
                 case.case_id
             ));
         }
@@ -611,9 +611,9 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
                     case.case_id, task.task_id
                 ));
             }
-            if task.alternatives.is_empty() {
+            if task.alternatives.is_empty() || task.alternatives.len() > 2 {
                 errors.push(format!(
-                    "case {} task {} has no resource alternatives",
+                    "case {} task {} must have between 1 and 2 resource alternatives",
                     case.case_id, task.task_id
                 ));
             }
@@ -642,9 +642,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             for alternative in &task.alternatives {
                 if alternative.alternative_id.trim().is_empty()
                     || alternative.resource_demands.is_empty()
+                    || alternative.resource_demands.len() > 4
                 {
                     errors.push(format!(
-                        "case {} task {} has an empty alternative or no resource demands",
+                        "case {} task {} has an empty alternative or an invalid resource-demand count",
                         case.case_id, task.task_id
                     ));
                 }
