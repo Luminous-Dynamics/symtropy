@@ -73,3 +73,27 @@ jobs:
               "R-008", "R-009", "R-010", "R-011", "R-012", "R-013"
             ]
           ' "$report"
+
+      - name: Execute bounded recovery-policy microcase
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/policy-rollout-microcase-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-policy-rollout-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin policy-rollout -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.policy_rollout_report.v0.1" and
+            .input_sha256 == $expected_sha and
+            .classification == "synthetic_only" and
+            .validation_status == "single_synthetic_rollout_and_frozen_outcomes_checked" and
+            .benchmark_executed == true and
+            .simulated_cases == 1 and
+            .policy_runs_performed == 3 and
+            .event_injection_tick == 1 and
+            .event_observable_tick == 2 and
+            .all_expected_outcomes_matched == true and
+            ([.policy_results[] | select(.policy_id == "B0" and .status == "protective_stop_no_accepted_output" and .accepted_synthetic_work == false and .makespan_ticks == null and .completed_task_count == 0 and .interrupted_attempt_count == 1 and .event_observed_tick == null and .knowledge_leak_detected == false)] | length) == 1 and
+            ([.policy_results[] | select(.policy_id == "B1" and .status == "synthetic_acceptance_complete" and .accepted_synthetic_work == true and .makespan_ticks == 8 and .completed_task_count == 4 and .resource_reassignments == 0 and .event_observed_tick == 2 and .replan_tick == null and .knowledge_leak_detected == false)] | length) == 1 and
+            ([.policy_results[] | select(.policy_id == "B2" and .status == "synthetic_acceptance_complete" and .accepted_synthetic_work == true and .makespan_ticks == 6 and .completed_task_count == 4 and .resource_reassignments == 1 and .event_observed_tick == 2 and .replan_tick == 2 and .knowledge_leak_detected == false)] | length) == 1
+          ' "$report"
