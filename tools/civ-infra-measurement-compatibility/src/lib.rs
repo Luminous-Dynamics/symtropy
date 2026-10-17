@@ -972,25 +972,47 @@ mod tests {
         for world in 0..100i64 {
             let mut input = base_input();
             input.world_id = format!("generated-{world:03}");
+            let square_world = world % 2 != 0;
+            input.measurement_model.input_unit = if square_world {
+                Unit::Dimensionless
+            } else {
+                Unit::Meter
+            };
+            input.measurement_model.transform = if square_world {
+                Transform::SquareNonNegativeDimensionless
+            } else {
+                Transform::Identity
+            };
+            input.measurement_model.input_domain = interval(0, 2_000_000);
             input.states.clear();
             for state_index in 0..20i64 {
                 let low = (state_index * 95_000 + world * 1_000) % 1_700_000;
                 let high = (low + 300_000).min(2_000_000);
                 input.states.push(state(
                     &format!("w{world:03}-s{state_index:02}"),
-                    Unit::Meter,
+                    if square_world { Unit::Dimensionless } else { Unit::Meter },
                     low,
                     high,
                     &format!("decision-{}", (state_index + world) % 4),
                 ));
             }
-            input.outcomes = vec![
-                bin("o0", Unit::Meter, 0, 500_000),
-                bin("o1", Unit::Meter, 450_000, 900_000),
-                bin("o2", Unit::Meter, 850_000, 1_300_000),
-                bin("o3", Unit::Meter, 1_250_000, 1_700_000),
-                bin("o4", Unit::Meter, 1_650_000, 2_000_000),
-            ];
+            input.outcomes = if square_world {
+                vec![
+                    bin("o0", Unit::Dimensionless, 0, 500_000),
+                    bin("o1", Unit::Dimensionless, 450_000, 1_500_000),
+                    bin("o2", Unit::Dimensionless, 1_450_000, 2_500_000),
+                    bin("o3", Unit::Dimensionless, 2_450_000, 3_500_000),
+                    bin("o4", Unit::Dimensionless, 3_450_000, 4_000_000),
+                ]
+            } else {
+                vec![
+                    bin("o0", Unit::Meter, 0, 500_000),
+                    bin("o1", Unit::Meter, 450_000, 900_000),
+                    bin("o2", Unit::Meter, 850_000, 1_300_000),
+                    bin("o3", Unit::Meter, 1_250_000, 1_700_000),
+                    bin("o4", Unit::Meter, 1_650_000, 2_000_000),
+                ]
+            };
             let serialized = serde_json::to_vec(&input).expect("generated input serializes");
             let hash = sha256_hex(&serialized);
             let report = evaluate(&input, &hash).expect("generated input evaluates");
@@ -999,11 +1021,33 @@ mod tests {
             // Independent direct interval-overlap oracle (does not use evaluator helpers).
             let mut oracle_pairs = BTreeSet::<(String, String)>::new();
             for state in &input.states {
-                let lo = i128::from(state.input_interval.lower_ticks) * 1000;
-                let hi = i128::from(state.input_interval.upper_ticks) * 1000;
+                let (lo, hi) = if square_world {
+                    let lower = i128::from(state.input_interval.lower_ticks);
+                    let upper = i128::from(state.input_interval.upper_ticks);
+                    let lower_squared = lower * lower;
+                    let upper_squared = upper * upper;
+                    (
+                        lower_squared / FIXED_SCALE,
+                        (upper_squared + FIXED_SCALE - 1) / FIXED_SCALE,
+                    )
+                } else {
+                    (
+                        i128::from(state.input_interval.lower_ticks) * 1000,
+                        i128::from(state.input_interval.upper_ticks) * 1000,
+                    )
+                };
                 for bin in &input.outcomes {
-                    let blo = i128::from(bin.interval.lower_ticks) * 1000;
-                    let bhi = i128::from(bin.interval.upper_ticks) * 1000;
+                    let (blo, bhi) = if square_world {
+                        (
+                            i128::from(bin.interval.lower_ticks),
+                            i128::from(bin.interval.upper_ticks),
+                        )
+                    } else {
+                        (
+                            i128::from(bin.interval.lower_ticks) * 1000,
+                            i128::from(bin.interval.upper_ticks) * 1000,
+                        )
+                    };
                     if lo <= bhi && blo <= hi {
                         oracle_pairs.insert((state.state_id.clone(), bin.outcome_id.clone()));
                     }
