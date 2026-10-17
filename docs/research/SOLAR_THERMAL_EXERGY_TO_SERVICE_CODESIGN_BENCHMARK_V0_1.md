@@ -63,11 +63,19 @@ Use weather forecast errors, cloud transients, soiling, varying demand, componen
 
 Test robust and distribution-shift performance rather than optimize only a typical meteorological year. Preserve common weather traces across paired policy comparisons.
 
-### 3.6 Make the system repairable by design
+### 3.6 Treat high-temperature heat pumps and storage as a coupled machine
+
+Add an explicit experiment family comparing direct high-temperature heat-pump operation with heat-pump-plus-thermal-storage architectures. The hypothesis is that time-shifting and thermally buffering operation can change feasible operating hours, temperature lift, and service continuity; this must be derived from a validated performance map and storage model, not assumed from a fixed COP.
+
+Use identical service temperatures, load profiles, electricity-price traces, equipment bounds, and measurement planes. Report COP and net electricity separately from delivered steam/heat, storage charge/discharge losses, cycling and startup effects, delivered-temperature stability, useful service, installed cost, and lifecycle cost. Compare fixed dispatch, a constrained optimizer, and Symthaea-informed dispatch under equal observation and search budgets.
+
+A 2026 Journal of Energy Storage study evaluates TES integration with high-temperature heat pumps and reports large changes under particular extreme conditions. Treat that as a research lead to reproduce, not a portable guarantee or a target the Symthaea result is allowed to assume. The benchmark should reproduce the paper's relevant scenario first, inspect sensitivity and boundary assumptions, then test held-out duties. If the effect disappears under realistic cost, temperature, or cycling constraints, report that null result.
+
+### 3.7 Make the system repairable by design
 
 Treat cleaning access, replaceable absorber and insulation modules, pumps/valves, seals, sensors, corrosion inspection, fluid replacement, spare parts, and safe isolation as design variables. Report replacement frequency, maintenance labor, material replacement, downtime, embodied burden where data exist, and time to restore service. Avoid assuming a nominally efficient technology is practical when its servicing needs are prohibitive.
 
-### 3.7 Turn the model into an active scientist
+### 3.8 Turn the model into an active scientist
 
 Symthaea can propose the next simulation or measurement that most reduces decision-relevant uncertainty, not merely search a fixed design space. Test expected value of information per unit time and cost using a held-out evaluator.
 
@@ -278,6 +286,7 @@ Use only sources appropriate to the modeled technology and version. Initial refe
 - U.S. Department of Energy, **Solar for Industrial Processes**: explains CSP for direct process heat and PV paired with resistive heaters or heat pumps, plus low- and high-temperature applications: https://www.energy.gov/cmei/systems/solar-industrial-processes
 - NREL / National Laboratory of the Rockies, **SAM CSP publications and model references**: supported configurations, CSP modeling references, and thermal-storage / electric-thermal-storage studies: https://sam.nlr.gov/concentrating-solar-power/csp-publications.html
 - Wikoff et al. (2025), **Benchmarking Thermal Energy Storage Cost for Industrial Process Heat**, *Applied Energy* 402, article 126873, DOI: https://doi.org/10.1016/j.apenergy.2025.126873
+- **Evaluating the potential of thermal energy storage integration in enhancing high-temperature heat pump performance: A comprehensive analysis and optimization strategies**, *Journal of Energy Storage* 147 (20 February 2026), article 120344, DOI: https://doi.org/10.1016/j.est.2026.120344. Use its high-temperature heat-pump-plus-TES cases as a reproducible hypothesis; its reported gains are scenario-specific and not Symthaea evidence.
 - IEA Solar Heating and Cooling Task 62 reports, including **Mapping degradation of PCM and TCM** (September 2025): https://www.task62.iea-shc.org/reports
 - DOE, **Thermal Storage R&D for CSP Systems**: historical research targets and technology directions; do not silently treat old program targets as current universal acceptance standards: https://www.energy.gov/cmei/systems/thermal-storage-rd-csp-systems
 
