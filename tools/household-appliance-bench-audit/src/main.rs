@@ -9,10 +9,9 @@ use std::process::ExitCode;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
 const EXPECTED_CASE_IDS: [&str; 30] = [
-    "HAP-001", "HAP-002", "HAP-003", "HAP-004", "HAP-005", "HAP-006",
-    "HAP-007", "HAP-008", "HAP-009", "HAP-010", "HAP-011", "HAP-012",
-    "HAP-013", "HAP-014", "HAP-015", "HAP-016", "HAP-017", "HAP-018",
-    "HAP-019", "HAP-020", "HAP-021", "HAP-022", "HAP-023", "HAP-024",
+    "HAP-001", "HAP-002", "HAP-003", "HAP-004", "HAP-005", "HAP-006", "HAP-007", "HAP-008",
+    "HAP-009", "HAP-010", "HAP-011", "HAP-012", "HAP-013", "HAP-014", "HAP-015", "HAP-016",
+    "HAP-017", "HAP-018", "HAP-019", "HAP-020", "HAP-021", "HAP-022", "HAP-023", "HAP-024",
     "HAP-025", "HAP-026", "HAP-027", "HAP-028", "HAP-029", "HAP-030",
 ];
 
@@ -59,7 +58,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
 }
 
 fn case_by_id<'a>(cases: &'a [Value], id: &str) -> Option<&'a Value> {
-    cases.iter().find(|case| text_at(case, "case_id") == Some(id))
+    cases
+        .iter()
+        .find(|case| text_at(case, "case_id") == Some(id))
 }
 
 fn input_by_id<'a>(cases: &'a [Value], id: &str) -> Option<&'a Value> {
@@ -75,44 +76,30 @@ fn require_disposition(cases: &[Value], id: &str, expected: &str, errors: &mut E
     }
 }
 
-fn require_case_text(
-    cases: &[Value],
-    id: &str,
-    field: &str,
-    expected: &str,
-    errors: &mut Errors,
-) {
+fn require_case_text(cases: &[Value], id: &str, field: &str, expected: &str, errors: &mut Errors) {
     let actual = case_by_id(cases, id).and_then(|case| text_at(case, field));
     if actual != Some(expected) {
         errors.push(format!("{id}.{field}: expected {expected}, got {actual:?}"));
     }
 }
 
-fn require_input_text(
-    cases: &[Value],
-    id: &str,
-    field: &str,
-    expected: &str,
-    errors: &mut Errors,
-) {
+fn require_input_text(cases: &[Value], id: &str, field: &str, expected: &str, errors: &mut Errors) {
     let actual = input_by_id(cases, id).and_then(|input| text_at(input, field));
     if actual != Some(expected) {
-        errors.push(format!("{id}.input.{field}: expected {expected}, got {actual:?}"));
+        errors.push(format!(
+            "{id}.input.{field}: expected {expected}, got {actual:?}"
+        ));
     }
 }
 
-fn require_input_bool(
-    cases: &[Value],
-    id: &str,
-    field: &str,
-    expected: bool,
-    errors: &mut Errors,
-) {
+fn require_input_bool(cases: &[Value], id: &str, field: &str, expected: bool, errors: &mut Errors) {
     let actual = input_by_id(cases, id)
         .and_then(|input| input.get(field))
         .and_then(Value::as_bool);
     if actual != Some(expected) {
-        errors.push(format!("{id}.input.{field}: expected {expected}, got {actual:?}"));
+        errors.push(format!(
+            "{id}.input.{field}: expected {expected}, got {actual:?}"
+        ));
     }
 }
 
@@ -127,7 +114,9 @@ fn require_input_number(
         .and_then(|input| input.get(field))
         .and_then(Value::as_f64);
     if actual.is_none_or(|value| (value - expected).abs() > f64::EPSILON) {
-        errors.push(format!("{id}.input.{field}: expected {expected}, got {actual:?}"));
+        errors.push(format!(
+            "{id}.input.{field}: expected {expected}, got {actual:?}"
+        ));
     }
 }
 
@@ -139,8 +128,12 @@ fn require_input_number_pair_different(
     errors: &mut Errors,
 ) {
     let input = input_by_id(cases, id);
-    let a = input.and_then(|value| value.get(first)).and_then(Value::as_f64);
-    let b = input.and_then(|value| value.get(second)).and_then(Value::as_f64);
+    let a = input
+        .and_then(|value| value.get(first))
+        .and_then(Value::as_f64);
+    let b = input
+        .and_then(|value| value.get(second))
+        .and_then(Value::as_f64);
     if a.is_none() || b.is_none() || a == b {
         errors.push(format!(
             "{id}.input: {first} and {second} must both exist and differ for this negative control"
@@ -148,12 +141,7 @@ fn require_input_number_pair_different(
     }
 }
 
-fn require_input_number_is_zero(
-    cases: &[Value],
-    id: &str,
-    field: &str,
-    errors: &mut Errors,
-) {
+fn require_input_number_is_zero(cases: &[Value], id: &str, field: &str, errors: &mut Errors) {
     require_input_number(cases, id, field, 0.0, errors);
 }
 
@@ -168,7 +156,9 @@ fn require_case_has_assertion(cases: &[Value], id: &str, needle: &str, errors: &
                 .any(|assertion| assertion.contains(needle))
         });
     if !found {
-        errors.push(format!("{id}.assertions: missing required invariant text containing {needle:?}"));
+        errors.push(format!(
+            "{id}.assertions: missing required invariant text containing {needle:?}"
+        ));
     }
 }
 
@@ -177,7 +167,13 @@ fn check_critical_controls(cases: &[Value]) -> Errors {
 
     // Work-order status cannot replace evidence that the appliance's function was restored.
     require_disposition(cases, "HAP-005", "reject_claim", &mut errors);
-    require_input_text(cases, "HAP-005", "work_order_status", "completed", &mut errors);
+    require_input_text(
+        cases,
+        "HAP-005",
+        "work_order_status",
+        "completed",
+        &mut errors,
+    );
     require_input_text(cases, "HAP-005", "post_repair_test", "missing", &mut errors);
     require_case_has_assertion(
         cases,
@@ -188,7 +184,13 @@ fn check_critical_controls(cases: &[Value]) -> Errors {
 
     // A single nominal sample cannot establish a recurrence-free outcome.
     require_disposition(cases, "HAP-007", "reject_claim", &mut errors);
-    require_input_text(cases, "HAP-007", "recurrence_window", "missing", &mut errors);
+    require_input_text(
+        cases,
+        "HAP-007",
+        "recurrence_window",
+        "missing",
+        &mut errors,
+    );
     require_input_bool(cases, "HAP-007", "claim_recurrence_free", true, &mut errors);
 
     // Performance comparisons need matched delivered function.
@@ -200,7 +202,13 @@ fn check_critical_controls(cases: &[Value]) -> Errors {
         "baseline_airflow_m3_h",
         &mut errors,
     );
-    require_input_bool(cases, "HAP-009", "efficiency_superiority_claim", true, &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-009",
+        "efficiency_superiority_claim",
+        true,
+        &mut errors,
+    );
 
     // Unknown waiting time cannot be interpreted as zero.
     require_disposition(cases, "HAP-011", "reject_claim", &mut errors);
@@ -209,18 +217,42 @@ fn check_critical_controls(cases: &[Value]) -> Errors {
 
     // Hardware protection takes precedence over model confidence.
     require_disposition(cases, "HAP-014", "reject_claim", &mut errors);
-    require_input_bool(cases, "HAP-014", "critical_interlock_triggered", true, &mut errors);
-    require_input_text(cases, "HAP-014", "model_output", "safe_to_operate", &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-014",
+        "critical_interlock_triggered",
+        true,
+        &mut errors,
+    );
+    require_input_text(
+        cases,
+        "HAP-014",
+        "model_output",
+        "safe_to_operate",
+        &mut errors,
+    );
 
     // Qualification scope cannot broaden from one unit to a batch.
     require_disposition(cases, "HAP-016", "reject_claim", &mut errors);
     require_input_number(cases, "HAP-016", "qualified_units", 1.0, &mut errors);
-    require_input_bool(cases, "HAP-016", "batch_qualification_claim", true, &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-016",
+        "batch_qualification_claim",
+        true,
+        &mut errors,
+    );
 
     // Stress screening does not automatically prove a decade of field life.
     require_disposition(cases, "HAP-018", "reject_claim", &mut errors);
     require_input_number(cases, "HAP-018", "stress_screen_hours", 1000.0, &mut errors);
-    require_input_bool(cases, "HAP-018", "validated_acceleration_model", false, &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-018",
+        "validated_acceleration_model",
+        false,
+        &mut errors,
+    );
 
     // Unknown material burden cannot be coerced to zero.
     require_disposition(cases, "HAP-019", "reject_claim", &mut errors);
@@ -229,31 +261,79 @@ fn check_critical_controls(cases: &[Value]) -> Errors {
 
     // Essential operation must not require a cloud or network service.
     require_disposition(cases, "HAP-021", "reject_claim", &mut errors);
-    require_input_bool(cases, "HAP-021", "essential_function_requires_network", true, &mut errors);
-    require_input_text(cases, "HAP-021", "offline_function_test", "fail", &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-021",
+        "essential_function_requires_network",
+        true,
+        &mut errors,
+    );
+    require_input_text(
+        cases,
+        "HAP-021",
+        "offline_function_test",
+        "fail",
+        &mut errors,
+    );
 
     // Event data cannot be represented as unbiased population probability.
     require_disposition(cases, "HAP-023", "reject_claim", &mut errors);
-    require_input_text(cases, "HAP-023", "claim_scope", "general_population_probability", &mut errors);
+    require_input_text(
+        cases,
+        "HAP-023",
+        "claim_scope",
+        "general_population_probability",
+        &mut errors,
+    );
 
     // Synthetic results cannot be promoted to physical field evidence.
     require_disposition(cases, "HAP-027", "reject_claim", &mut errors);
-    require_input_text(cases, "HAP-027", "evidence_class", "synthetic_simulation", &mut errors);
-    require_input_text(cases, "HAP-027", "claimed_evidence_class", "physical_field", &mut errors);
+    require_input_text(
+        cases,
+        "HAP-027",
+        "evidence_class",
+        "synthetic_simulation",
+        &mut errors,
+    );
+    require_input_text(
+        cases,
+        "HAP-027",
+        "claimed_evidence_class",
+        "physical_field",
+        &mut errors,
+    );
 
     // Pilot-size repair trials do not justify an unplanned confirmatory quantile claim.
     require_disposition(cases, "HAP-028", "reject_claim", &mut errors);
-    require_input_bool(cases, "HAP-028", "analysis_plan_preregistered", false, &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-028",
+        "analysis_plan_preregistered",
+        false,
+        &mut errors,
+    );
 
     // A diagnosis hypothesis is not an observed cause.
     require_disposition(cases, "HAP-013", "reject_claim", &mut errors);
-    require_input_text(cases, "HAP-013", "source_class", "observed_cause", &mut errors);
+    require_input_text(
+        cases,
+        "HAP-013",
+        "source_class",
+        "observed_cause",
+        &mut errors,
+    );
     require_input_bool(cases, "HAP-013", "inspection_evidence", false, &mut errors);
 
     // More module boundaries are not, by themselves, proof of better repairability.
     require_disposition(cases, "HAP-025", "reject_claim", &mut errors);
     require_input_bool(cases, "HAP-025", "repair_time_measured", false, &mut errors);
-    require_input_bool(cases, "HAP-025", "repairability_superiority_claim", true, &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-025",
+        "repairability_superiority_claim",
+        true,
+        &mut errors,
+    );
 
     // Positive controls check that evidence remains scoped and that unknowns can be preserved.
     require_disposition(cases, "HAP-001", "accept_synthetic_contract", &mut errors);
@@ -262,11 +342,23 @@ fn check_critical_controls(cases: &[Value]) -> Errors {
     require_input_text(cases, "HAP-015", "diagnosis", "unknown", &mut errors);
     require_input_bool(cases, "HAP-015", "hardware_actuation", false, &mut errors);
     require_disposition(cases, "HAP-022", "accept_synthetic_contract", &mut errors);
-    require_input_text(cases, "HAP-022", "offline_function_test", "pass", &mut errors);
+    require_input_text(
+        cases,
+        "HAP-022",
+        "offline_function_test",
+        "pass",
+        &mut errors,
+    );
     require_input_bool(cases, "HAP-022", "remote_actuation", false, &mut errors);
     require_disposition(cases, "HAP-024", "accept_synthetic_contract", &mut errors);
     require_input_bool(cases, "HAP-024", "attribution", true, &mut errors);
-    require_input_bool(cases, "HAP-024", "full_dataset_embedded", false, &mut errors);
+    require_input_bool(
+        cases,
+        "HAP-024",
+        "full_dataset_embedded",
+        false,
+        &mut errors,
+    );
 
     errors
 }
@@ -331,8 +423,10 @@ fn audit_values(
         }
     }
 
-    let expected_ids: BTreeSet<String> =
-        EXPECTED_CASE_IDS.iter().map(|id| (*id).to_owned()).collect();
+    let expected_ids: BTreeSet<String> = EXPECTED_CASE_IDS
+        .iter()
+        .map(|id| (*id).to_owned())
+        .collect();
     for missing in expected_ids.difference(&seen) {
         errors.push(format!("required case {missing} is missing"));
     }
@@ -446,12 +540,10 @@ mod tests {
 
     #[test]
     fn canonical_corpus_passes_synthetic_contract_audit() {
-        let schema_raw = include_str!(
-            "../../../schemas/appliances/benchmark_scenario_corpus_v0_1.schema.json"
-        );
-        let corpus_raw = include_str!(
-            "../../../fixtures/household_appliance/benchmark_scenarios_v0_1.json"
-        );
+        let schema_raw =
+            include_str!("../../../schemas/appliances/benchmark_scenario_corpus_v0_1.schema.json");
+        let corpus_raw =
+            include_str!("../../../fixtures/household_appliance/benchmark_scenarios_v0_1.json");
         let summary = audit_texts(schema_raw, corpus_raw).expect("canonical corpus must qualify");
         assert_eq!(summary.fixture_count, 30);
         assert_eq!(summary.positive_controls, 11);
@@ -466,7 +558,11 @@ mod tests {
         let mut corpus = canonical_corpus();
         corpus["cases"][1]["case_id"] = json!("HAP-001");
         let errors = audit_mutation(&corpus).expect_err("duplicate identity must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate case_id HAP-001")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate case_id HAP-001"))
+        );
     }
 
     #[test]
@@ -482,15 +578,26 @@ mod tests {
         let mut corpus = canonical_corpus();
         corpus["cases"][13]["input"]["model_output"] = json!("unknown");
         let errors = audit_mutation(&corpus).expect_err("critical fixture mutation must fail");
-        assert!(errors.iter().any(|error| error.contains("HAP-014.input.model_output")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("HAP-014.input.model_output"))
+        );
     }
 
     #[test]
     fn missing_required_negative_control_is_rejected() {
         let mut corpus = canonical_corpus();
-        corpus["cases"].as_array_mut().expect("cases array").remove(26);
+        corpus["cases"]
+            .as_array_mut()
+            .expect("cases array")
+            .remove(26);
         let errors = audit_mutation(&corpus).expect_err("missing negative control must fail");
-        assert!(errors.iter().any(|error| error.contains("required case HAP-027 is missing")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("required case HAP-027 is missing"))
+        );
     }
 
     #[test]
