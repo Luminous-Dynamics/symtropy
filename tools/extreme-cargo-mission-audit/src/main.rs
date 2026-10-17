@@ -1395,6 +1395,34 @@ mod tests {
     }
 
     #[test]
+    fn payload_class_cannot_be_mislabeled_to_bypass_human_transport_gates() {
+        let mut root = fixture();
+        let payload = root["payload_profiles"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["payload_id"] == "stretcher_patient").unwrap();
+        payload["payload_class"] = json!("bulk_cargo");
+        assert!(evaluate(&root).is_err());
+    }
+
+    #[test]
+    fn mission_mode_must_match_the_declared_route_mode() {
+        let mut root = fixture();
+        let mission = root["mission_scenarios"].as_array_mut().unwrap().iter_mut()
+            .find(|m| m["mission_id"] == "AMZ-COLDCHAIN-01").unwrap();
+        mission["allowed_modes"] = json!(["aerial"]);
+        assert_eq!(disposition(&root, "amz-coldchain-01-riverlink_cargo_boat"), "blocked_platform_mismatch");
+    }
+
+    #[test]
+    fn combined_center_of_mass_must_remain_inside_declared_envelope() {
+        let mut root = fixture();
+        let platform = root["platform_profiles"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["platform_id"] == "riverlink_cargo_boat").unwrap();
+        platform["center_of_mass_limits_fraction"]["x"]["min"] = json!(0.9);
+        platform["center_of_mass_limits_fraction"]["x"]["max"] = json!(1.0);
+        assert_eq!(disposition(&root, "amz-coldchain-01-riverlink_cargo_boat"), "blocked_platform_mismatch");
+    }
+
+    #[test]
     fn input_reordering_yields_byte_identical_report() {
         let mut root = fixture();
         let before = serde_json::to_string(&report(&root)).unwrap();
