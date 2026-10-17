@@ -94,7 +94,6 @@ pub enum FixtureValidationError {
     InvalidTolerance,
     NonFiniteIntermediate,
 }
-
 /// Local, covariance-whitened observability summary for this 2x2 H0 control.
 ///
 /// Numerical rank depends on the declared tolerances and observation covariance.
