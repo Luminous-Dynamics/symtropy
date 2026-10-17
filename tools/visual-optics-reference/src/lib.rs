@@ -104,6 +104,9 @@ pub fn srgb_channel_to_linear(encoded: f64) -> Result<f64, TransferError> {
     if !(0.0..=1.0).contains(&encoded) {
         return Err(TransferError::OutOfRange);
     }
+    if encoded == 1.0 {
+        return Ok(1.0);
+    }
 
     if encoded <= 0.04045 {
         Ok(encoded / 12.92)
@@ -127,6 +130,9 @@ pub fn linear_channel_to_srgb(linear: f64) -> Result<f64, TransferError> {
     }
     if !(0.0..=1.0).contains(&linear) {
         return Err(TransferError::OutOfRange);
+    }
+    if linear == 1.0 {
+        return Ok(1.0);
     }
 
     if linear <= 0.003_130_8 {
