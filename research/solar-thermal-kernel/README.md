@@ -22,6 +22,7 @@ All absolute temperatures are kelvin; energy is interval-integrated joules; powe
 
 \`\`\`sh
 cargo test --manifest-path research/solar-thermal-kernel/Cargo.toml
+cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt
 cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets -- -D warnings
 \`\`\`
 
