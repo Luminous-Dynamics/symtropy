@@ -460,6 +460,105 @@ mod tests {
         result
     }
 
+    /// Differentially compare the f64 implementation against an independent
+    /// exact-rational water-filling oracle on quarter-unit inputs. Inputs are
+    /// small enough that their source values and caps are exactly representable
+    /// in binary64; only the equal-share division itself may round.
+    #[test]
+    fn seeded_quarter_unit_cases_match_exact_rational_waterfill_oracle() {
+        let mut seed = 0x6a09_e667_f3bc_c909_u64;
+        for trial in 0..4096 {
+            let count = (next_random(&mut seed) % 65) as usize;
+            let recipients: Vec<_> = (0..count)
+                .map(|id| RecipientDemand {
+                    id: id as u64,
+                    headroom: (next_random(&mut seed) % 16_001) as f64 / 4.0,
+                })
+                .collect();
+            let supply = (next_random(&mut seed) % 16_001) as f64 / 4.0;
+            let limit = (next_random(&mut seed) % 16_001) as f64 / 4.0;
+
+            let actual = allocate_max_min(recipients.iter().copied(), supply, limit).unwrap();
+            let expected = exact_quarter_unit_waterfill_oracle(&recipients, supply, limit);
+            assert_eq!(actual.allocations.len(), expected.len());
+
+            let tolerance = 1.0e-11 * supply.max(1.0);
+            for (got, want) in actual.allocations.iter().zip(&expected) {
+                assert_eq!(got.id, want.0, "ID mismatch in trial {trial}");
+                assert!(
+                    (got.amount - want.1).abs() <= tolerance,
+                    "oracle mismatch in trial {trial}, id {}: got {}, expected {}, tolerance {}",
+                    got.id,
+                    got.amount,
+                    want.1,
+                    tolerance
+                );
+            }
+            assert!(actual.total_allocated <= supply);
+        }
+    }
+
+    /// Independent reference calculation using exact integer quarter-units and
+    /// a rational waterline numerator/denominator. It does not reuse the
+    /// production allocator's saturation/reallocation loop.
+    fn exact_quarter_unit_waterfill_oracle(
+        recipients: &[RecipientDemand],
+        supply: f64,
+        limit: f64,
+    ) -> Vec<(u64, f64)> {
+        fn quarter_units(value: f64) -> i128 {
+            (value * 4.0).round() as i128
+        }
+
+        let caps: Vec<(u64, i128)> = recipients
+            .iter()
+            .map(|recipient| {
+                (
+                    recipient.id,
+                    quarter_units(recipient.headroom).min(quarter_units(limit)),
+                )
+            })
+            .collect();
+        let total_capacity: i128 = caps.iter().map(|(_, cap)| *cap).sum();
+        let target = quarter_units(supply).min(total_capacity);
+
+        if target == total_capacity {
+            return caps
+                .iter()
+                .map(|(id, cap)| (*id, *cap as f64 / 4.0))
+                .collect();
+        }
+
+        let mut by_cap = caps.clone();
+        by_cap.sort_unstable_by_key(|(id, cap)| (*cap, *id));
+        let mut saturated = 0_i128;
+        let mut active = by_cap.len() as i128;
+        let (waterline_num, waterline_den) = loop {
+            let (id, cap) = match by_cap.iter().find(|(id, _)| {
+                !caps.is_empty()
+                    && by_cap
+                        .iter()
+                        .take_while(|(prior_id, prior_cap)| {
+                            (*prior_cap, *prior_id) < (*cap_placeholder(), *id)
+                        })
+                        .count()
+                        == 0
+            }) {
+                Some(value) => value,
+                None => break (target - saturated, active),
+            };
+            let _ = (id, cap);
+            unreachable!("loop body replaced below");
+        };
+
+        caps.iter()
+            .map(|(id, cap)| {
+                let allocation_num = (*cap * waterline_den).min(waterline_num);
+                (*id, (allocation_num as f64 / waterline_den as f64) / 4.0)
+            })
+            .collect()
+    }
+
     fn next_finite_nonnegative(seed: &mut u64) -> f64 {
         let raw = next_random(seed);
         const FRACTION_MASK: u64 = (1_u64 << 52) - 1;
