@@ -853,6 +853,276 @@
           "fill_area_m2": 1.5
         }
       ]
+    },
+    {
+      "id": "D-resilient-detour",
+      "length_m": 1200,
+      "road_envelopes": [
+        {
+          "station_start_m": 0,
+          "station_end_m": 50,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -1.25,
+          "elevation_max_m": 0,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 50,
+          "station_end_m": 90,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -2.25,
+          "elevation_max_m": -1.25,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 90,
+          "station_end_m": 99,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -2.475,
+          "elevation_max_m": -2.25,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 99,
+          "station_end_m": 100,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -2.5,
+          "elevation_max_m": -2.475,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 100,
+          "station_end_m": 200,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -5,
+          "elevation_max_m": -2.5,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 200,
+          "station_end_m": 300,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -7.5,
+          "elevation_max_m": -5,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 300,
+          "station_end_m": 400,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -10,
+          "elevation_max_m": -7.5,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 400,
+          "station_end_m": 449,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -11.225,
+          "elevation_max_m": -10,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 449,
+          "station_end_m": 450,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -11.25,
+          "elevation_max_m": -11.225,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 450,
+          "station_end_m": 500,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -12.5,
+          "elevation_max_m": -11.25,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 500,
+          "station_end_m": 549,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -13.725,
+          "elevation_max_m": -12.5,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 549,
+          "station_end_m": 550,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -13.75,
+          "elevation_max_m": -13.725,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 550,
+          "station_end_m": 560,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -14,
+          "elevation_max_m": -13.75,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 560,
+          "station_end_m": 600,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -15,
+          "elevation_max_m": -14,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 600,
+          "station_end_m": 700,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -17.5,
+          "elevation_max_m": -15,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 700,
+          "station_end_m": 800,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -20,
+          "elevation_max_m": -17.5,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 800,
+          "station_end_m": 900,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -22.5,
+          "elevation_max_m": -20,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 900,
+          "station_end_m": 1200,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -30,
+          "elevation_max_m": -22.5,
+          "uncertainty_m": 0.1
+        }
+      ],
+      "drainage": {
+        "scenario_id": "resilient-storm-synthetic-01",
+        "required_flow_lps": 120,
+        "capacity_lps": 260
+      },
+      "declared_max_grade_percent": 2.5,
+      "profile_points": [
+        {
+          "station_m": 0,
+          "elevation_m": 0
+        },
+        {
+          "station_m": 50,
+          "elevation_m": -1.25
+        },
+        {
+          "station_m": 90,
+          "elevation_m": -2.25
+        },
+        {
+          "station_m": 99,
+          "elevation_m": -2.475
+        },
+        {
+          "station_m": 100,
+          "elevation_m": -2.5
+        },
+        {
+          "station_m": 200,
+          "elevation_m": -5
+        },
+        {
+          "station_m": 300,
+          "elevation_m": -7.5
+        },
+        {
+          "station_m": 400,
+          "elevation_m": -10
+        },
+        {
+          "station_m": 449,
+          "elevation_m": -11.225
+        },
+        {
+          "station_m": 450,
+          "elevation_m": -11.25
+        },
+        {
+          "station_m": 500,
+          "elevation_m": -12.5
+        },
+        {
+          "station_m": 549,
+          "elevation_m": -13.725
+        },
+        {
+          "station_m": 550,
+          "elevation_m": -13.75
+        },
+        {
+          "station_m": 560,
+          "elevation_m": -14
+        },
+        {
+          "station_m": 600,
+          "elevation_m": -15
+        },
+        {
+          "station_m": 700,
+          "elevation_m": -17.5
+        },
+        {
+          "station_m": 800,
+          "elevation_m": -20
+        },
+        {
+          "station_m": 900,
+          "elevation_m": -22.5
+        },
+        {
+          "station_m": 1200,
+          "elevation_m": -30
+        }
+      ],
+      "declared_earthworks_m3": 4200,
+      "cross_sections": [
+        {
+          "station_m": 0,
+          "cut_area_m2": 2,
+          "fill_area_m2": 1.5
+        },
+        {
+          "station_m": 600,
+          "cut_area_m2": 2,
+          "fill_area_m2": 1.5
+        },
+        {
+          "station_m": 1200,
+          "cut_area_m2": 2,
+          "fill_area_m2": 1.5
+        }
+      ]
     }
   ],
   "resources": [
