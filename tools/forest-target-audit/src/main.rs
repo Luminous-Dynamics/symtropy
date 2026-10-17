@@ -59,7 +59,7 @@ struct PlannerPlan {
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 struct Viewpoint { x: usize, y: usize, heading: Heading }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum TargetKind { TrunkDiameterEdges, LogEndContour }
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -339,16 +339,16 @@ fn validate_corpus(c: &Corpus) -> Check<()> {
     }
     Ok(())
 }
-fn validate_planner_receipt(receipt: &PlannerReceipt, c: &Corpus, source_commit: &str) -> Check<BTreeMap<String, &PlannerScenario>> {
+fn validate_planner_receipt<'a>(receipt: &'a PlannerReceipt, c: &Corpus, source_commit: &str) -> Check<BTreeMap<String, &'a PlannerScenario>> {
     if receipt.source_commit != source_commit { return Err("planner receipt source_commit does not match exact checked-out head".into()); }
     let mut scenarios = BTreeMap::new();
     for scenario in &receipt.scenarios {
-        if scenario.scenario_id.trim().is_empty() || scenarios.insert(scenario.scenario_id.as_str(), scenario).is_some() {
+        if scenario.scenario_id.trim().is_empty() || scenarios.insert(scenario.scenario_id.clone(), scenario).is_some() {
             return Err("empty or duplicate planner scenario id".into());
         }
     }
     let expected: BTreeSet<&str> = c.scenario_bindings.iter().map(|b| b.planner_scenario_id.as_str()).collect();
-    let actual: BTreeSet<&str> = scenarios.keys().copied().collect();
+    let actual: BTreeSet<&str> = scenarios.keys().map(String::as_str).collect();
     if expected != actual { return Err(format!("planner scenario IDs do not exactly match target bindings: expected {expected:?}, got {actual:?}")); }
     for scenario in scenarios.values() {
         if !scenario.greedy.budget_feasible || !scenario.two_step_lookahead.budget_feasible || !scenario.exhaustive_oracle.budget_feasible {
