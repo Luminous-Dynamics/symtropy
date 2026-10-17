@@ -216,7 +216,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
     }
 
     let mut registry = BTreeSet::new();
-    if let Some(values) = root.get("registered_invariant_ids").and_then(Value::as_array) {
+    if let Some(values) = root
+        .get("registered_invariant_ids")
+        .and_then(Value::as_array)
+    {
         for (index, value) in values.iter().enumerate() {
             if let Some(id) = value.as_str() {
                 if !registry.insert(id.to_owned()) {
@@ -228,8 +231,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
                 }
             }
         }
-        let expected: BTreeSet<String> =
-            EXPECTED_INVARIANTS.iter().map(|item| (*item).to_owned()).collect();
+        let expected: BTreeSet<String> = EXPECTED_INVARIANTS
+            .iter()
+            .map(|item| (*item).to_owned())
+            .collect();
         if registry != expected {
             summary.fail(
                 "INVARIANT_REGISTRY_DRIFT",
@@ -248,7 +253,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
         summary.fail(
             "CASE_COUNT_MISMATCH",
             "$.cases",
-            format!("Expected exactly {EXPECTED_CASE_COUNT} cases, got {}.", cases.len()),
+            format!(
+                "Expected exactly {EXPECTED_CASE_COUNT} cases, got {}.",
+                cases.len()
+            ),
         );
     }
 
@@ -296,7 +304,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
             }
         }
 
-        if let Some(required) = case_object.get("required_invariants").and_then(Value::as_array) {
+        if let Some(required) = case_object
+            .get("required_invariants")
+            .and_then(Value::as_array)
+        {
             for (invariant_index, invariant) in required.iter().enumerate() {
                 if let Some(invariant_id) = invariant.as_str() {
                     if !registry.contains(invariant_id) {
@@ -314,7 +325,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
             .get("negative_control")
             .and_then(Value::as_object)
         {
-            match negative_control.get("expected_disposition").and_then(Value::as_str) {
+            match negative_control
+                .get("expected_disposition")
+                .and_then(Value::as_str)
+            {
                 Some("reject_input" | "reject_claim") => {}
                 Some(other) => summary.fail(
                     "NEGATIVE_CONTROL_NOT_FAIL_CLOSED",
@@ -325,7 +339,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
             }
         }
 
-        if let Some(disposition) = case_object.get("expected_disposition").and_then(Value::as_str) {
+        if let Some(disposition) = case_object
+            .get("expected_disposition")
+            .and_then(Value::as_str)
+        {
             if !DISPOSITIONS.contains(&disposition) {
                 summary.fail(
                     "DISPOSITION_UNKNOWN",
@@ -336,8 +353,10 @@ fn semantic_checks(manifest: &Value, summary: &mut ValidationSummary) {
         }
     }
 
-    let expected_dimensions: BTreeSet<String> =
-        EXPECTED_DIMENSIONS.iter().map(|item| (*item).to_owned()).collect();
+    let expected_dimensions: BTreeSet<String> = EXPECTED_DIMENSIONS
+        .iter()
+        .map(|item| (*item).to_owned())
+        .collect();
     if dimensions != expected_dimensions {
         summary.fail(
             "DIMENSION_COVERAGE_DRIFT",
@@ -383,10 +402,16 @@ impl std::fmt::Display for OracleError {
                 write!(formatter, "stability window must be greater than zero")
             }
             Self::ConflictingDuplicate { id, generation } => {
-                write!(formatter, "conflicting duplicate event {id:?}, generation {generation}")
+                write!(
+                    formatter,
+                    "conflicting duplicate event {id:?}, generation {generation}"
+                )
             }
             Self::AmbiguousEventOrder { tick, sequence } => {
-                write!(formatter, "event order is ambiguous at tick {tick}, sequence {sequence}")
+                write!(
+                    formatter,
+                    "event order is ambiguous at tick {tick}, sequence {sequence}"
+                )
             }
         }
     }
@@ -510,7 +535,11 @@ mod tests {
     fn embedded_fixture_manifest_passes_schema_and_semantics() {
         let summary =
             validate_manifest_bytes(EMBEDDED_MANIFEST.as_bytes(), EMBEDDED_SCHEMA.as_bytes());
-        assert!(summary.passed, "unexpected failures: {:?}", summary.failures);
+        assert!(
+            summary.passed,
+            "unexpected failures: {:?}",
+            summary.failures
+        );
         assert_eq!(summary.cases_seen, EXPECTED_CASE_COUNT);
         assert_eq!(summary.invariant_registry_count, EXPECTED_INVARIANTS.len());
         assert_eq!(summary.manifest_sha256.len(), 64);
@@ -520,7 +549,10 @@ mod tests {
     #[test]
     fn duplicate_case_id_is_rejected_even_when_objects_differ() {
         let mut manifest: Value = serde_json::from_str(EMBEDDED_MANIFEST).expect("valid manifest");
-        let first_id = manifest["cases"][0]["id"].as_str().expect("case ID").to_owned();
+        let first_id = manifest["cases"][0]["id"]
+            .as_str()
+            .expect("case ID")
+            .to_owned();
         manifest["cases"][1]["id"] = Value::String(first_id);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
         let summary = validate_manifest_bytes(&bytes, EMBEDDED_SCHEMA.as_bytes());
@@ -629,7 +661,12 @@ mod tests {
 
     #[test]
     fn stability_window_overflow_is_not_reported_as_recovery() {
-        let timeline = [event("restore-near-max", u32::MAX, 1, ServiceEventKind::Restored)];
+        let timeline = [event(
+            "restore-near-max",
+            u32::MAX,
+            1,
+            ServiceEventKind::Restored,
+        )];
         assert_eq!(
             stable_recovery_tick(&timeline, false, 1, u32::MAX),
             Ok(None)
@@ -651,7 +688,6 @@ mod tests {
         assert!(has_code(&summary, "MANIFEST_JSON_INVALID"));
     }
 }
-
 
 pub const EMBEDDED_ORACLE_CORPUS: &str = include_str!(
     "../../../docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json"
@@ -792,7 +828,11 @@ pub fn validate_timeline_fixtures_bytes(
     }
 
     let Some(root) = corpus_value.as_object() else {
-        summary.fail("TIMELINE_CORPUS_ROOT_INVALID", "$", "Expected a JSON object.");
+        summary.fail(
+            "TIMELINE_CORPUS_ROOT_INVALID",
+            "$",
+            "Expected a JSON object.",
+        );
         return summary;
     };
 
@@ -806,7 +846,11 @@ pub fn validate_timeline_fixtures_bytes(
         .map(ToOwned::to_owned);
 
     let Some(cases) = root.get("cases").and_then(Value::as_array) else {
-        summary.fail("TIMELINE_CASES_MISSING", "$.cases", "Expected an array of cases.");
+        summary.fail(
+            "TIMELINE_CASES_MISSING",
+            "$.cases",
+            "Expected an array of cases.",
+        );
         return summary;
     };
     summary.cases_seen = cases.len();
@@ -882,9 +926,7 @@ pub fn validate_timeline_fixtures_bytes(
 
         let expected_tick = match object.get("expected_stable_recovery_tick") {
             Some(Value::Null) => None,
-            Some(value) => value
-                .as_u64()
-                .and_then(|number| u32::try_from(number).ok()),
+            Some(value) => value.as_u64().and_then(|number| u32::try_from(number).ok()),
             None => {
                 summary.fail(
                     "TIMELINE_EXPECTATION_MISSING",
@@ -949,7 +991,11 @@ mod timeline_fixture_tests {
             EMBEDDED_ORACLE_CORPUS.as_bytes(),
             EMBEDDED_ORACLE_SCHEMA.as_bytes(),
         );
-        assert!(summary.passed, "unexpected failures: {:?}", summary.failures);
+        assert!(
+            summary.passed,
+            "unexpected failures: {:?}",
+            summary.failures
+        );
         assert_eq!(summary.cases_seen, 8);
         assert_eq!(summary.cases_passed, 8);
         assert_eq!(summary.corpus_sha256.len(), 64);
@@ -960,11 +1006,13 @@ mod timeline_fixture_tests {
     fn duplicate_timeline_case_id_is_rejected() {
         let mut corpus: Value =
             serde_json::from_str(EMBEDDED_ORACLE_CORPUS).expect("valid timeline corpus");
-        let first_id = corpus["cases"][0]["id"].as_str().expect("case ID").to_owned();
+        let first_id = corpus["cases"][0]["id"]
+            .as_str()
+            .expect("case ID")
+            .to_owned();
         corpus["cases"][1]["id"] = Value::String(first_id);
         let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
-        let summary =
-            validate_timeline_fixtures_bytes(&bytes, EMBEDDED_ORACLE_SCHEMA.as_bytes());
+        let summary = validate_timeline_fixtures_bytes(&bytes, EMBEDDED_ORACLE_SCHEMA.as_bytes());
         assert!(has_code(&summary, "TIMELINE_CASE_ID_DUPLICATE"));
     }
 
@@ -982,17 +1030,14 @@ mod timeline_fixture_tests {
     #[test]
     fn timeline_corpus_schema_mismatch_is_rejected_before_execution() {
         let malformed_schema = br#"{"type":"object","required":["absent"]}"#;
-        let summary = validate_timeline_fixtures_bytes(
-            EMBEDDED_ORACLE_CORPUS.as_bytes(),
-            malformed_schema,
-        );
+        let summary =
+            validate_timeline_fixtures_bytes(EMBEDDED_ORACLE_CORPUS.as_bytes(), malformed_schema);
         assert!(has_code(&summary, "TIMELINE_SCHEMA_VALIDATION_FAILED"));
     }
 }
 
-
 pub mod outcomes;
 pub use outcomes::{
-    validate_outcome_fixtures_bytes, CandidateDisposition, ComparisonResult, OutcomeFailure,
-    OutcomeSummary, EMBEDDED_OUTCOME_CORPUS, EMBEDDED_OUTCOME_SCHEMA,
+    CandidateDisposition, ComparisonResult, EMBEDDED_OUTCOME_CORPUS, EMBEDDED_OUTCOME_SCHEMA,
+    OutcomeFailure, OutcomeSummary, validate_outcome_fixtures_bytes,
 };
