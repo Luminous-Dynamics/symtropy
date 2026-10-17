@@ -199,7 +199,7 @@ fn analyze_portfolio(portfolio: &Portfolio) -> Result<Value, String> {
     }))
 }
 
-fn control_result(capabilities: &'static [Capability], target_id: &str) -> Result<Analysis, String> {
+fn control_result(capabilities: &[Capability], target_id: &str) -> Result<Analysis, String> {
     let mut nodes = BTreeMap::new();
     for capability in capabilities {
         if nodes.insert(capability.id, capability).is_some() {
