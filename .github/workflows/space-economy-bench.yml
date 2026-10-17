@@ -38,24 +38,27 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt
 
+      - name: Resolve and freeze standalone dependency graph
+        run: cargo generate-lockfile --manifest-path tools/space-economy-bench/Cargo.toml
+
       - name: Run corpus validator unit tests
-        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml
 
       - name: Run exact value-of-information reference tests
-        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference
 
       - name: Run common-cause resilience reference tests
-        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference
 
       - name: Run supplier-concentration reference tests
-        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference
       - name: Execute corpus validator and emit receipt
         shell: bash
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
-          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml -- \
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml -- \
             docs/tech/space-economy-benchmark-corpus-v0.1.json \
             --source-commit "$source_commit" > space-economy-reference-receipt.json
           jq -e '
@@ -71,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference -- \
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example voi_reference -- \
             --source-commit "$source_commit" > space-economy-voi-reference-receipt.json
           jq -e '
             .result == "pass"
@@ -88,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference -- \
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference -- \
             --source-commit "$source_commit" > space-economy-common-cause-receipt.json
           jq -e '
             .result == "pass"
@@ -104,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference -- \
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference -- \
             --source-commit "$source_commit" > space-economy-supplier-concentration-receipt.json
           jq -e '
             .result == "pass"
@@ -118,6 +121,29 @@ jobs:
             and .diversification_cost_premium_percent_integer == 18
           ' space-economy-supplier-concentration-receipt.json
 
+      - name: Bind toolchain and dependency-lock provenance to receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          lock_path="tools/space-economy-bench/Cargo.lock"
+          lock_sha="$(sha256sum "$lock_path" | cut -d ' ' -f1)"
+          printf '%s  %s\n' "$lock_sha" "$lock_path" > space-economy-cargo-lock.sha256
+          for receipt in \
+            space-economy-reference-receipt.json \
+            space-economy-voi-reference-receipt.json \
+            space-economy-common-cause-receipt.json \
+            space-economy-supplier-concentration-receipt.json; do
+            tmp="$(mktemp)"
+            jq --arg lock_sha "$lock_sha" \
+               '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
+               "$receipt" > "$tmp"
+            mv "$tmp" "$receipt"
+            jq -e '
+              (.dependency_lock_sha256 | test("^[0-9a-f]{64}$"))
+              and .rust_toolchain == "1.96.0"
+            ' "$receipt"
+          done
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
@@ -127,5 +153,7 @@ jobs:
             space-economy-voi-reference-receipt.json
             space-economy-common-cause-receipt.json
             space-economy-supplier-concentration-receipt.json
+            tools/space-economy-bench/Cargo.lock
+            space-economy-cargo-lock.sha256
           if-no-files-found: error
           retention-days: 90

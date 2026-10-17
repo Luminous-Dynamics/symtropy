@@ -12,7 +12,7 @@ cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml -- \
   --source-commit "$(git rev-parse HEAD)"
 ```
 
-The command writes a JSON receipt to stdout and diagnostics to stderr. It refuses to produce a receipt if the scenario set, suite/version, units, expected mass/cost relations, hard-gate fixture, or required service-floor relationships are invalid. The receipt hashes the **exact input bytes**, binds the supplied 40-character source commit, and reports per-scenario fixture-validation results.
+The command writes a JSON receipt to stdout and diagnostics to stderr. It refuses to produce a receipt if the scenario set, suite/version, units, expected mass/cost relations, hard-gate fixture, or required service-floor relationships are invalid. The receipt hashes the **exact input bytes**, binds the supplied 40-character source commit, and reports per-scenario fixture-validation results. Direct dependency versions are pinned in Cargo.toml. The focused workflow generates a lockfile before testing, runs Cargo commands with --locked, adds its SHA-256 and pinned Rust toolchain to every receipt, and retains the lockfile alongside the receipts so the resolved transitive graph is inspectable.
 
 ## Claim ceiling
 
