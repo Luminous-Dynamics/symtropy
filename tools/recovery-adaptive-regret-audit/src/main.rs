@@ -1026,6 +1026,44 @@ mod tests {
     }
 
     #[test]
+    fn scenario_order_permutation_preserves_policy_metrics_and_frontier() {
+        let baseline = audit(embedded());
+        let mut corpus = embedded();
+        corpus["scenarios"].as_array_mut().unwrap().reverse();
+        let permuted = audit(corpus);
+        assert_eq!(baseline.frontier, permuted.frontier);
+        assert_eq!(baseline.feasible_policy_count, permuted.feasible_policy_count);
+        for (a, b) in baseline.policy_results.iter().zip(permuted.policy_results.iter()) {
+            assert_eq!(a.policy_id, b.policy_id);
+            assert_eq!(a.feasible_across_scenario_set, b.feasible_across_scenario_set);
+            assert_eq!(a.total_unweighted_scenario_cost_cents, b.total_unweighted_scenario_cost_cents);
+            assert_eq!(a.worst_case_regret_cents, b.worst_case_regret_cents);
+            assert_eq!(a.total_unweighted_regret_cents, b.total_unweighted_regret_cents);
+        }
+    }
+
+    #[test]
+    fn inspection_does_not_clear_an_independent_operation_gate() {
+        let mut corpus = embedded();
+        corpus["scenarios"][1]["action_options"]["cable"]["gate_status"] = json!("BLOCK");
+        corpus["scenarios"][1]["action_options"]["cable"]["reason_code"] = json!("INDEPENDENT_TEST_BLOCK");
+        let receipt = audit(corpus);
+        let policy = receipt.policy_results.iter().find(|p| p.policy_id == "inspect_then_adapt").unwrap();
+        assert!(!policy.feasible_across_scenario_set);
+        let outcome = policy.outcomes.iter().find(|o| o.scenario_id == "S02_ACCESS_CLEAR_HIGH_HANDLING").unwrap();
+        assert_eq!(outcome.outcome, "INELIGIBLE_BLOCK");
+        assert_eq!(outcome.reason_code.as_deref(), Some("INDEPENDENT_TEST_BLOCK"));
+    }
+
+    #[test]
+    fn scenario_probabilities_are_not_silently_admitted() {
+        let mut corpus = embedded();
+        corpus["scenario_semantics"]["probabilities_supplied"] = json!(true);
+        let receipt = audit(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("SCENARIO_PROBABILITIES_MUST_NOT_BE_FABRICATED")));
+    }
+
+    #[test]
     fn bad_source_commit_is_rejected() {
         let receipt = make_receipt(EMBEDDED_CORPUS.as_bytes(), Some("not-a-commit".to_string()), Some(embedded()), None);
         assert!(receipt.errors.iter().any(|e| e.contains("SOURCE_COMMIT_INVALID")));
