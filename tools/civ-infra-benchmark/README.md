@@ -31,6 +31,7 @@ It also includes one deliberately overcommitted excavator schedule. The referenc
 - All geometry and quantities are invented synthetic test values, not a real site or design recommendation.
 - V0 supports only an explicitly declared local metric coordinate frame; it rejects other units instead of attempting an implicit transform.
 - The utility envelope is an axis-aligned coarse proxy. It is not a CAD solid-intersection engine or a substitute for a qualified utility survey.
+- Utility evidence distinguishes bounded unknown (a conservative station/lateral envelope exists but depth or other important properties remain unknown) from unbounded unknown (no useful location envelope exists). Unbounded unknown utilities block clearance claims for every candidate; absence of geometry is never treated as clearance.
 - Maximum longitudinal grade is derived from the candidate's piecewise-linear station/elevation profile and checked against the declared grade. The declaration is retained as a consistency check, not trusted as the result.
 - Cut and fill volumes are derived by trapezoidal integration of the supplied cross-section cut/fill areas. Those areas themselves are synthetic inputs; they are not derived from a terrain mesh, surveyed ground surface or designed corridor solids.
 - Drainage demand/capacity values are declared fixture attributes and compared directly; V0 does not derive flow capacity from a hydraulic solver.
