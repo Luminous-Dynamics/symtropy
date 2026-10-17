@@ -507,7 +507,20 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     if test_b_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 15_000_000_000_i128 {
         return Err("calibration B gross EVSI oracle mismatch".to_owned());
     }
-    if adaptive_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 76_500_000_000_i128 {
+    let no_test_gross = NO_ASSAY_VALUE_CENTI * GLOBAL_MASS;
+    let evpi_numerator = 150_000_000_000_i128;
+    for (test_gross, label) in [
+        (test_a_gross, "calibration_a"),
+        (test_b_gross, "calibration_b"),
+        (redundant_gross, "uninformative_calibration"),
+        (adaptive_gross, "adaptive_calibration_tree"),
+    ] {
+        let evsi_numerator = test_gross - no_test_gross;
+        if evsi_numerator < 0 || evsi_numerator > evpi_numerator {
+            return Err(format!("{label}: calibration EVSI violates 0 <= EVSI <= EVPI"));
+        }
+    }
+    if adaptive_gross - no_test_gross != 76_500_000_000_i128 {
         return Err("adaptive calibration-tree EVSI oracle mismatch".to_owned());
     }
     let find_score = |id: &str| scores.iter().find(|(policy_id, _, _)| policy_id == id)
