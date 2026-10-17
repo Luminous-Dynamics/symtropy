@@ -23,7 +23,7 @@ Package: `tools/habitat-evidence-invalidation`
 
 The standalone Rust verifier pins exact fixture bytes, verifies each synthetic payload digest, rejects unknown fields and unknown/cyclic dependencies, and requires every `valid_for_claim` artifact to have complete declared coverage. A claim may be supported only when status, claim ID, scope ID, coverage and content digest match.
 
-For every event, it calculates transitive downstream invalidation. The trigger artifact becomes superseded; its dependents become invalidated. Duplicate delivery with identical ID and payload is idempotent; conflicting reuse of an event ID is rejected. Output ordering is canonical, so semantically irrelevant event/artifact ordering cannot change the report.
+Each change event is evaluated as an independent counterfactual, not combined into an invented chronology. For each event, it calculates transitive downstream invalidation: the trigger artifact is marked as superseded in that event's impact record, and the listed descendants are invalidated. This per-event reporting prevents one scenario's effects from contaminating another scenario's precision measurement. Duplicate delivery with identical ID and payload is idempotent; conflicting reuse of an event ID is rejected. Output ordering is canonical, so semantically irrelevant event/artifact ordering cannot change the report.
 
 A separate test oracle evaluates each artifact by tracing its own dependency ancestry to the trigger rather than calling the production forward-propagation routine.
 
