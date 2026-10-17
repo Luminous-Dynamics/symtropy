@@ -122,7 +122,10 @@
             "type": "boolean"
           },
           "status": {
-            "const": "method_definition_not_yet_frozen"
+            "enum": [
+              "method_definition_not_yet_frozen",
+              "method_frozen"
+            ]
           }
         }
       }
