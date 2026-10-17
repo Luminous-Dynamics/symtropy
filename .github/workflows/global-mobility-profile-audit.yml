@@ -1,0 +1,40 @@
+name: Global Mobility Profile Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/global_mobility_profile_v0_1.schema.json"
+      - "fixtures/global_mobility/global_mobility_profiles_v0_1.json"
+      - "tools/global-mobility-profile-audit/**"
+      - "docs/tech/GLOBAL_MOBILITY_ACCESS_AND_REGIONAL_DEPLOYMENT_BENCHMARK_V0_1.md"
+      - ".github/workflows/global-mobility-profile-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/global_mobility_profile_v0_1.schema.json"
+      - "fixtures/global_mobility/global_mobility_profiles_v0_1.json"
+      - "tools/global-mobility-profile-audit/**"
+      - "docs/tech/GLOBAL_MOBILITY_ACCESS_AND_REGIONAL_DEPLOYMENT_BENCHMARK_V0_1.md"
+      - ".github/workflows/global-mobility-profile-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: global-mobility-profile-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+      - name: Run semantic-auditor tests
+        run: cargo test --manifest-path tools/global-mobility-profile-audit/Cargo.toml
+      - name: Audit committed synthetic profile corpus
+        run: cargo run --manifest-path tools/global-mobility-profile-audit/Cargo.toml -- fixtures/global_mobility/global_mobility_profiles_v0_1.json
