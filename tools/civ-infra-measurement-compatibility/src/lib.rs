@@ -967,17 +967,31 @@ mod tests {
             let report = evaluate(&input, &hash).expect("generated input evaluates");
             assert_eq!(evaluate(&input, &hash).expect("replay"), report);
 
-            // Independent direct interval-overlap oracle (does not use planner helpers).
-            let oracle_edges: usize = input.states.iter().map(|state| {
+            // Independent direct interval-overlap oracle (does not use evaluator helpers).
+            let mut oracle_pairs = BTreeSet::<(String, String)>::new();
+            for state in &input.states {
                 let lo = i128::from(state.input_interval.lower_ticks) * 1000;
                 let hi = i128::from(state.input_interval.upper_ticks) * 1000;
-                input.outcomes.iter().filter(|bin| {
+                for bin in &input.outcomes {
                     let blo = i128::from(bin.interval.lower_ticks) * 1000;
                     let bhi = i128::from(bin.interval.upper_ticks) * 1000;
-                    lo <= bhi && blo <= hi
-                }).count()
-            }).sum();
-            assert_eq!(report.compatibility_edge_count, oracle_edges);
+                    if lo <= bhi && blo <= hi {
+                        oracle_pairs.insert((state.state_id.clone(), bin.outcome_id.clone()));
+                    }
+                }
+            }
+            let evaluated_pairs: BTreeSet<(String, String)> = report
+                .state_results
+                .iter()
+                .flat_map(|state| state.possible_outcome_ids.iter().map(move |outcome_id| {
+                    (state.state_id.clone(), outcome_id.clone())
+                }))
+                .collect();
+            assert_eq!(evaluated_pairs, oracle_pairs);
+            let oracle_edges = oracle_pairs.len();
+            let oracle_pairs_json: Vec<serde_json::Value> = oracle_pairs.iter().map(|(state_id, outcome_id)| {
+                serde_json::json!({ "state_id": state_id, "outcome_id": outcome_id })
+            }).collect();
             generated_edges += oracle_edges;
             case_count += input.states.len() * input.outcomes.len();
             corpus.push(serde_json::json!({
@@ -989,7 +1003,7 @@ mod tests {
                 "report": report
             }));
         }
-        assert_eq!(case_count, 100 * 10 * 3);
+        assert_eq!(case_count, 100 * 20 * 5);
         assert!(generated_edges > 0);
 
         if let Ok(path) = env::var("CIV_INFRA_COMPATIBILITY_CORPUS_OUT") {
