@@ -216,7 +216,19 @@ pub fn verify_bytes(
             return Err(format!("{} claim ceiling must explicitly limit itself to synthetic evidence", where_));
         }
 
+        let mut assertion_ids: Vec<String> = record["assertion_specifications"].as_array().unwrap()
+            .iter()
+            .map(|assertion| assertion.get("assertion_id").and_then(Value::as_str).unwrap().to_owned())
+            .collect();
+        assertion_ids.sort();
         let variant_map = scenarios.entry(scenario_id.to_owned()).or_default();
+        if let Some(previous_ids) = &variant_map.assertion_ids {
+            if previous_ids != &assertion_ids {
+                return Err(format!("{} changes assertion contract across variants", scenario_id));
+            }
+        } else {
+            variant_map.assertion_ids = Some(assertion_ids);
+        }
         if let Some(previous_family) = &variant_map.family {
             if previous_family != &scenario_family {
                 return Err(format!("{} changes scenario_family across variants", scenario_id));
@@ -350,6 +362,7 @@ pub fn verify_bytes(
 struct ScenarioVariants {
     family: Option<String>,
     title: Option<String>,
+    assertion_ids: Option<Vec<String>>,
     variants: BTreeMap<String, String>,
 }
 
@@ -464,6 +477,7 @@ fn validate_assertion_specifications(record: &Value, where_: &str) -> Result<(),
         "metric_zero",
         "value_equals",
         "boolean_true",
+        "field_absent",
     ].into_iter().collect();
     let allowed_scopes: BTreeSet<&str> = [
         "each_policy", "policy_matrix", "per_scenario", "paired_replay"
@@ -535,7 +549,7 @@ fn validate_assertion_specifications(record: &Value, where_: &str) -> Result<(),
                     return Err(format!("{} collection_contains_all_ids requires identity_field", context));
                 }
             }
-            "field_present" | "metric_zero" | "boolean_true" => {}
+            "field_present" | "metric_zero" | "boolean_true" | "field_absent" => {}
             _ => return Err(format!("{} has unsupported assertion kind {}", context, kind)),
         }
     }
@@ -835,6 +849,30 @@ mod tests {
             rows[0]["assertion_specifications"][1].as_object_mut().unwrap().remove("identity_field");
         });
         assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("requires identity_field"));
+    }
+
+
+    #[test]
+    fn scenario_variants_must_share_assertion_contract() {
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            let row = rows.iter_mut().find(|row| row["scenario_id"] == "WSS-001" && row["variant_id"] == "adversarial-pressure").unwrap();
+            row["assertion_specifications"].as_array_mut().unwrap().pop();
+        });
+        assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("changes assertion contract across variants"));
+    }
+
+    #[test]
+    fn global_wisdom_and_consciousness_fields_are_forbidden_assertions() {
+        let report = good();
+        assert_eq!(report["record_count"], 28);
+        for row in FIXTURE.lines().map(|line| serde_json::from_str::<Value>(line).unwrap()) {
+            assert!(row["assertion_specifications"].as_array().unwrap().iter().any(|a| {
+                a["assertion_kind"] == "field_absent" && a["report_pointer"] == "/metrics/global_wisdom_score"
+            }));
+            assert!(row["assertion_specifications"].as_array().unwrap().iter().any(|a| {
+                a["assertion_kind"] == "field_absent" && a["report_pointer"] == "/metrics/consciousness_score"
+            }));
+        }
     }
 
     #[test]
