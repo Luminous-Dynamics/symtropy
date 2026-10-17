@@ -312,11 +312,11 @@ fn pareto_frontier(plans: &[Plan]) -> Vec<Plan> {
         .iter()
         .filter(|candidate| {
             !plans.iter().any(|other| {
-            other.cost_units <= candidate.cost_units
-                && other.duration_units <= candidate.duration_units
-                && (other.cost_units < candidate.cost_units
-                    || other.duration_units < candidate.duration_units)
-        })
+                other.cost_units <= candidate.cost_units
+                    && other.duration_units <= candidate.duration_units
+                    && (other.cost_units < candidate.cost_units
+                        || other.duration_units < candidate.duration_units)
+            })
         })
         .cloned()
         .collect();
