@@ -6,6 +6,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+#[cfg(test)]
+mod repair_graph_audit;
+
 const CORPUS_SCHEMA: &str = "personal-family-vehicle-scenario-corpus/0.1";
 const CORPUS_STATUS: &str = "synthetic-research-fixture-not-validated-physics";
 const REQUIRED_IDS: [&str; 21] = [
