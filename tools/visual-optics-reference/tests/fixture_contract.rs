@@ -3,9 +3,9 @@
 
 use serde_json::Value;
 use symtropy_visual_optics_reference::{
-    CameraPoint3, PinholeIntrinsics, PixelPoint, field_of_view, linear_channel_to_srgb,
-    nits_to_pq_signal, pq_signal_to_nits, project_point, ray_through_pixel,
-    relative_luminance_from_srgb, srgb_channel_to_linear,
+    CameraPoint3, PinholeIntrinsics, PixelPoint, field_of_view, hlg_scene_to_signal,
+    hlg_signal_to_scene, linear_channel_to_srgb, nits_to_pq_signal, pq_signal_to_nits,
+    project_point, ray_through_pixel, relative_luminance_from_srgb, srgb_channel_to_linear,
 };
 
 const PINHOLE_AXIS_FIXTURE: &str =
@@ -18,6 +18,8 @@ const SRGB_FIXTURE: &str =
     include_str!("../../../docs/visual-technology/fixtures/srgb-transfer-and-luminance-001.json");
 const PQ_FIXTURE: &str =
     include_str!("../../../docs/visual-technology/fixtures/pq-st2084-eotf-oetf-001.json");
+const HLG_FIXTURE: &str =
+    include_str!("../../../docs/visual-technology/fixtures/hlg-scene-oetf-001.json");
 
 fn parse_fixture(text: &str) -> Value {
     serde_json::from_str(text).expect("checked-in visual fixture must be valid JSON")
@@ -154,6 +156,82 @@ fn centered_field_of_view_fixture_matches_independent_equation_and_reference() {
         tolerance,
         "implementation vertical FOV",
     );
+}
+
+#[test]
+fn hlg_fixture_matches_independent_scene_oetf_equations_and_reference() {
+    let fixture = parse_fixture(HLG_FIXTURE);
+    assert_fixture_is_not_self_qualifying(&fixture, "VIS-HLG-SCENE-OETF-REFERENCES-001");
+    assert_eq!(
+        value_at(&fixture, &["profile", "name"]).as_str(),
+        Some("ITU-R BT.2100-3 Hybrid Log-Gamma scene OETF")
+    );
+    assert_eq!(
+        value_at(&fixture, &["profile", "input_semantics"]).as_str(),
+        Some("normalized scene-linear light")
+    );
+    assert_eq!(
+        value_at(&fixture, &["profile", "output_semantics"]).as_str(),
+        Some("normalized nonlinear HLG signal")
+    );
+
+    let a = number_at(&fixture, &["profile", "constants", "a"]);
+    let b = number_at(&fixture, &["profile", "constants", "b"]);
+    let c = number_at(&fixture, &["profile", "constants", "c"]);
+    let scene_boundary = number_at(&fixture, &["profile", "branch_point_scene"]);
+    let signal_boundary = number_at(&fixture, &["profile", "branch_point_signal"]);
+    let tolerance = number_at(&fixture, &["tolerance"]);
+
+    for case in value_at(&fixture, &["scene_to_signal_cases"])
+        .as_array()
+        .expect("HLG scene-to-signal cases must be an array")
+    {
+        let scene = number_at(case, &["scene_linear"]);
+        let expected = number_at(case, &["expected_signal"]);
+        let oracle = if scene <= scene_boundary {
+            (3.0 * scene).sqrt()
+        } else {
+            a * (12.0 * scene - b).ln() + c
+        };
+        assert_close(oracle, expected, tolerance, "independent HLG OETF equation");
+        assert_close(
+            hlg_scene_to_signal(scene).expect("fixture scene value is in range"),
+            expected,
+            tolerance,
+            "HLG OETF implementation",
+        );
+    }
+
+    for case in value_at(&fixture, &["signal_to_scene_cases"])
+        .as_array()
+        .expect("HLG inverse cases must be an array")
+    {
+        let signal = number_at(case, &["signal"]);
+        let expected = number_at(case, &["expected_scene_linear"]);
+        let oracle = if signal <= signal_boundary {
+            (signal * signal) / 3.0
+        } else {
+            (((signal - c) / a).exp() + b) / 12.0
+        };
+        assert_close(oracle, expected, tolerance, "independent inverse HLG equation");
+        assert_close(
+            hlg_signal_to_scene(signal).expect("fixture HLG signal is in range"),
+            expected,
+            tolerance,
+            "HLG inverse implementation",
+        );
+    }
+
+    for item in value_at(&fixture, &["roundtrip_scene_linear"])
+        .as_array()
+        .expect("HLG round-trip values must be an array")
+    {
+        let scene = item.as_f64().expect("HLG round-trip value must be numeric");
+        let signal = hlg_scene_to_signal(scene).expect("scene value is in range");
+        let reconstructed =
+            hlg_signal_to_scene(signal).expect("HLG encoded signal is in range");
+        assert_close(reconstructed, scene, tolerance, "HLG scene OETF round trip");
+    }
 }
 
 #[test]
