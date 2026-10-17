@@ -211,15 +211,31 @@ mod tests {
 
     fn demands() -> Vec<RecipientDemand> {
         vec![
-            RecipientDemand { id: 30, headroom: 40.0 },
-            RecipientDemand { id: 10, headroom: 100.0 },
-            RecipientDemand { id: 20, headroom: 10.0 },
-            RecipientDemand { id: 40, headroom: 0.0 },
+            RecipientDemand {
+                id: 30,
+                headroom: 40.0,
+            },
+            RecipientDemand {
+                id: 10,
+                headroom: 100.0,
+            },
+            RecipientDemand {
+                id: 20,
+                headroom: 10.0,
+            },
+            RecipientDemand {
+                id: 40,
+                headroom: 0.0,
+            },
         ]
     }
 
     fn total(result: &AllocationResult) -> f64 {
-        result.allocations.iter().map(|allocation| allocation.amount).sum()
+        result
+            .allocations
+            .iter()
+            .map(|allocation| allocation.amount)
+            .sum()
     }
 
     #[test]
@@ -228,19 +244,30 @@ mod tests {
         let first = allocate_max_min(input.clone(), 35.0, 20.0).unwrap();
         let second = allocate_max_min(input.into_iter().rev(), 35.0, 20.0).unwrap();
         assert_eq!(first, second);
-        assert!(first
-            .allocations
-            .windows(2)
-            .all(|window| window[0].id < window[1].id));
+        assert!(
+            first
+                .allocations
+                .windows(2)
+                .all(|window| window[0].id < window[1].id)
+        );
     }
 
     #[test]
     fn constrained_recipient_saturates_and_remainder_is_redistributed() {
         let result = allocate_max_min(
             [
-                RecipientDemand { id: 1, headroom: 100.0 },
-                RecipientDemand { id: 2, headroom: 10.0 },
-                RecipientDemand { id: 3, headroom: 100.0 },
+                RecipientDemand {
+                    id: 1,
+                    headroom: 100.0,
+                },
+                RecipientDemand {
+                    id: 2,
+                    headroom: 10.0,
+                },
+                RecipientDemand {
+                    id: 3,
+                    headroom: 100.0,
+                },
             ],
             35.0,
             20.0,
@@ -293,8 +320,14 @@ mod tests {
     fn tiny_prior_allocation_does_not_get_lost_at_large_supply_scale() {
         let result = allocate_max_min(
             [
-                RecipientDemand { id: 1, headroom: 1.0e-16 },
-                RecipientDemand { id: 2, headroom: 10.0 },
+                RecipientDemand {
+                    id: 1,
+                    headroom: 1.0e-16,
+                },
+                RecipientDemand {
+                    id: 2,
+                    headroom: 10.0,
+                },
             ],
             1.0,
             10.0,
@@ -355,8 +388,7 @@ mod tests {
             let tolerance = 1.0e-9 * supply.max(1.0);
             assert!((returned_total - forward.total_allocated).abs() <= tolerance);
             assert!(
-                (forward.total_allocated + forward.unallocated_supply - supply).abs()
-                    <= tolerance
+                (forward.total_allocated + forward.unallocated_supply - supply).abs() <= tolerance
             );
         }
     }
@@ -545,7 +577,7 @@ mod tests {
         }
         let (waterline_num, waterline_den) =
             waterline.expect("target below total capacity has a waterline");
- 
+
         caps.iter()
             .map(|(id, cap)| {
                 let allocation_num = (*cap * waterline_den).min(waterline_num);
@@ -657,8 +689,14 @@ mod tests {
         assert_eq!(
             allocate_max_min(
                 [
-                    RecipientDemand { id: 7, headroom: 1.0 },
-                    RecipientDemand { id: 7, headroom: 2.0 },
+                    RecipientDemand {
+                        id: 7,
+                        headroom: 1.0,
+                    },
+                    RecipientDemand {
+                        id: 7,
+                        headroom: 2.0,
+                    },
                 ],
                 1.0,
                 1.0
