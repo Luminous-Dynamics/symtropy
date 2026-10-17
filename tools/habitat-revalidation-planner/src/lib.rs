@@ -255,13 +255,22 @@ fn enumerate_plans(
     duration: u64,
     results: &mut Vec<Plan>,
 ) {
-    let mut tasks: Vec<&RepairTask> = fixture.tasks.iter().collect();
+    let mut tasks: Vec<&RepairTask> = fixture
+        .tasks
+        .iter()
+        .collect();
     tasks.sort_by(|left, right| left.id.cmp(&right.id));
     for task in tasks {
         if used_tasks.contains(&task.id)
             || valid_artifacts.contains(&task.produces_artifact_id)
-            || !task.required_artifact_ids.iter().all(|id| valid_artifacts.contains(id))
-            || !task.required_gate_ids.iter().all(|id| fixture.available_gate_ids.contains(id))
+            || !task
+                .required_artifact_ids
+                .iter()
+                .all(|id| valid_artifacts.contains(id))
+            || !task
+                .required_gate_ids
+                .iter()
+                .all(|id| fixture.available_gate_ids.contains(id))
         {
             continue;
         }
@@ -537,7 +546,10 @@ mod tests {
                     break;
                 }
                 if valid.contains(&task.produces_artifact_id)
-                    || !task.required_artifact_ids.iter().all(|id| valid.contains(id))
+                    || !task
+                        .required_artifact_ids
+                        .iter()
+                        .all(|id| valid.contains(id))
                     || !task
                         .required_gate_ids
                         .iter()
