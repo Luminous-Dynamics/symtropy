@@ -434,7 +434,11 @@ mod tests {
 
         // The result itself reports allocations in stable-ID order. Recompute
         // the total in that same order so accounting uses one canonical sum.
-        assert_eq!(result.total_allocated, total(&result));
+        let mut recomputed_total = 0.0_f64;
+        for allocation in &result.allocations {
+            recomputed_total += allocation.amount;
+        }
+        assert_eq!(result.total_allocated, recomputed_total);
         let accounted = result.total_allocated + result.unallocated_supply;
         assert!(accounted.is_finite());
         assert!(accounted <= supply, "accounting exceeded source supply");
@@ -464,7 +468,7 @@ mod tests {
             return f64::from_bits(raw & FRACTION_MASK);
         }
         // Exponent 0..=2046 excludes NaN and infinity. The sign bit is zero.
-        let exponent = ((raw >> 53) % 2047) << 52;
+        let exponent = (raw >> 53).min(2046) << 52;
         f64::from_bits(exponent | (raw & FRACTION_MASK))
     }
 
