@@ -8,6 +8,7 @@ const CLAIM_CEILING: &str = "synthetic input contract only; this report is not a
 const FIXTURE: &str = include_str!("../../../docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl");
 const MANIFEST: &str = include_str!("../../../docs/research/fixtures/wis-sim-scenarios-v0.1.manifest.json");
 const SCHEMA: &str = include_str!("../../../docs/research/fixtures/wis-sim-scenarios-v0.1.schema.json");
+const RUN_REPORT_SCHEMA: &str = include_str!("../../../docs/research/fixtures/wis-sim-run-report-v0.1.schema.json");
 
 const EXPECTED_VARIANTS: [(&str, &str); 4] = [
     ("base", "baseline"),
@@ -64,6 +65,18 @@ pub fn verify_bytes(
     let schema: Value = serde_json::from_str(schema_text)
         .map_err(|error| format!("schema is not valid JSON: {}", error))?;
     validate_schema_contract(&schema)?;
+
+    let actual_run_report_schema_hash = sha256_hex(RUN_REPORT_SCHEMA.as_bytes());
+    let expected_run_report_schema_hash = required_str(&manifest, "run_report_schema_sha256", "manifest")?;
+    if actual_run_report_schema_hash != expected_run_report_schema_hash {
+        return Err(format!(
+            "run-report schema SHA-256 mismatch: manifest={}, actual={}",
+            expected_run_report_schema_hash, actual_run_report_schema_hash
+        ));
+    }
+    let run_report_schema: Value = serde_json::from_str(RUN_REPORT_SCHEMA)
+        .map_err(|error| format!("embedded run-report schema is not valid JSON: {}", error))?;
+    validate_run_report_schema_contract(&run_report_schema)?;
 
     let expected_count = manifest.get("record_count")
         .and_then(Value::as_u64)
