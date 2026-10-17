@@ -202,14 +202,18 @@ fn validate_fixture(input: &Value) -> Result<(), String> {
         if !mission_ids.insert(id.to_string()) {
             return Err(fail(&path, "duplicate mission_id"));
         }
-        if integer(mission, "deadline_minutes", &path)? <= 0 {
-            return Err(fail(&path, "deadline_minutes must be positive"));
+        let deadline = integer(mission, "deadline_minutes", &path)?;
+        if !(1..=100_000_000).contains(&deadline) {
+            return Err(fail(&path, "deadline_minutes must be between 1 and 100000000"));
         }
         let reserve = number(mission, "minimum_energy_reserve_pct", &path)?;
         if !(0.0..=100.0).contains(&reserve) {
             return Err(fail(&path, "minimum energy reserve must be between 0 and 100"));
         }
-        let _ = number(mission, "minimum_condition_margin_c", &path)?;
+        let condition_minimum = number(mission, "minimum_condition_margin_c", &path)?;
+        if !(-1000.0..=1000.0).contains(&condition_minimum) {
+            return Err(fail(&path, "minimum condition margin must be between -1000 and 1000"));
+        }
         let requirements = &mission["requirements"];
         let requirement_path = format!("{path}.requirements");
         exact_keys(requirements, &CAPABILITY_FIELDS, &requirement_path)?;
@@ -256,14 +260,18 @@ fn validate_fixture(input: &Value) -> Result<(), String> {
         if mode_chain.iter().any(|mode| mode.as_str().is_none_or(|s| s.trim().is_empty())) {
             return Err(fail(&format!("{path}.mode_chain"), "modes must be non-empty strings"));
         }
-        if integer(plan, "duration_minutes", &path)? <= 0 {
-            return Err(fail(&path, "duration_minutes must be positive"));
+        let duration = integer(plan, "duration_minutes", &path)?;
+        if !(1..=100_000_000).contains(&duration) {
+            return Err(fail(&path, "duration_minutes must be between 1 and 100000000"));
         }
         let reserve = number(plan, "energy_reserve_pct", &path)?;
         if !(0.0..=100.0).contains(&reserve) {
             return Err(fail(&path, "energy reserve must be between 0 and 100"));
         }
-        let _ = number(plan, "condition_margin_c", &path)?;
+        let condition_margin = number(plan, "condition_margin_c", &path)?;
+        if !(-1000.0..=1000.0).contains(&condition_margin) {
+            return Err(fail(&path, "condition margin must be between -1000 and 1000"));
+        }
         validate_capabilities(&plan["capabilities"], &format!("{path}.capabilities"), true)?;
         validate_gates(&plan["gates"], &format!("{path}.gates"), true)?;
     }
@@ -344,14 +352,18 @@ fn validate_fixture(input: &Value) -> Result<(), String> {
                 return Err(fail(&impact_path, "impact plan belongs to another mission"));
             }
             let _ = boolean(impact, "available", &impact_path)?;
-            if integer(impact, "duration_delta_minutes", &impact_path)? < 0 {
-                return Err(fail(&impact_path, "duration delta cannot be negative"));
+            let duration_delta = integer(impact, "duration_delta_minutes", &impact_path)?;
+            if !(0..=100_000_000).contains(&duration_delta) {
+                return Err(fail(&impact_path, "duration delta must be between 0 and 100000000"));
             }
             let energy_delta = number(impact, "energy_reserve_delta_pct", &impact_path)?;
             if !(-100.0..=100.0).contains(&energy_delta) {
                 return Err(fail(&impact_path, "energy reserve delta must be between -100 and 100"));
             }
-            let _ = number(impact, "condition_margin_delta_c", &impact_path)?;
+            let condition_delta = number(impact, "condition_margin_delta_c", &impact_path)?;
+            if !(-2000.0..=2000.0).contains(&condition_delta) {
+                return Err(fail(&impact_path, "condition margin delta must be between -2000 and 2000"));
+            }
             if let Some(overrides) = impact.get("capability_overrides") {
                 validate_capabilities(
                     overrides,
