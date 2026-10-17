@@ -1,45 +1,79 @@
 {
   "schema_version": "civ-infra-decision-impact/v0.1",
   "world_id": "synthetic-civil-corridor-demo-v0.1",
-  "candidate_ids": ["A-shortest", "B-balanced", "C-clearance-sensitive"],
+  "candidate_ids": [
+    "A-shortest",
+    "B-balanced",
+    "C-clearance-sensitive"
+  ],
   "state_signatures": [
     {
       "state_id": "dry-low-encroachment",
       "signature": {
-        "feasible_candidates": ["B-balanced"],
-        "infeasible_candidates": ["A-shortest", "C-clearance-sensitive"],
+        "feasible_candidates": [
+          "B-balanced"
+        ],
+        "infeasible_candidates": [
+          "A-shortest",
+          "C-clearance-sensitive"
+        ],
         "unknown_candidates": [],
-        "frontier_candidates": ["B-balanced"]
+        "frontier_candidates": [
+          "B-balanced"
+        ]
       },
       "upstream_case_ref": "synthetic-derived-report#dry-low-encroachment"
     },
     {
       "state_id": "dry-high-encroachment",
       "signature": {
-        "feasible_candidates": ["A-shortest", "B-balanced"],
-        "infeasible_candidates": ["C-clearance-sensitive"],
+        "feasible_candidates": [
+          "A-shortest",
+          "B-balanced"
+        ],
+        "infeasible_candidates": [
+          "C-clearance-sensitive"
+        ],
         "unknown_candidates": [],
-        "frontier_candidates": ["A-shortest", "B-balanced"]
+        "frontier_candidates": [
+          "A-shortest",
+          "B-balanced"
+        ]
       },
       "upstream_case_ref": "synthetic-derived-report#dry-high-encroachment"
     },
     {
       "state_id": "wet-low-encroachment",
       "signature": {
-        "feasible_candidates": ["B-balanced", "C-clearance-sensitive"],
-        "infeasible_candidates": ["A-shortest"],
+        "feasible_candidates": [
+          "B-balanced",
+          "C-clearance-sensitive"
+        ],
+        "infeasible_candidates": [
+          "A-shortest"
+        ],
         "unknown_candidates": [],
-        "frontier_candidates": ["B-balanced", "C-clearance-sensitive"]
+        "frontier_candidates": [
+          "B-balanced",
+          "C-clearance-sensitive"
+        ]
       },
       "upstream_case_ref": "synthetic-derived-report#wet-low-encroachment"
     },
     {
       "state_id": "wet-high-encroachment",
       "signature": {
-        "feasible_candidates": ["B-balanced"],
-        "infeasible_candidates": ["A-shortest", "C-clearance-sensitive"],
+        "feasible_candidates": [
+          "B-balanced"
+        ],
+        "infeasible_candidates": [
+          "A-shortest",
+          "C-clearance-sensitive"
+        ],
         "unknown_candidates": [],
-        "frontier_candidates": ["B-balanced"]
+        "frontier_candidates": [
+          "B-balanced"
+        ]
       },
       "upstream_case_ref": "synthetic-derived-report#wet-high-encroachment"
     }
@@ -61,13 +95,20 @@
       "outcomes": [
         {
           "outcome_id": "dry-like",
-          "state_ids": ["dry-low-encroachment", "dry-high-encroachment"]
+          "state_ids": [
+            "dry-low-encroachment",
+            "dry-high-encroachment"
+          ]
         },
         {
           "outcome_id": "wet-like",
-          "state_ids": ["wet-low-encroachment", "wet-high-encroachment"]
+          "state_ids": [
+            "wet-low-encroachment",
+            "wet-high-encroachment"
+          ]
         }
-      ]
+      ],
+      "outcome_model_ref": "synthetic-partition-model:broad-survey"
     },
     {
       "action_id": "targeted-survey",
@@ -83,11 +124,32 @@
         "basis": "invented synthetic fixture estimate; not measured"
       },
       "outcomes": [
-        { "outcome_id": "o1", "state_ids": ["dry-low-encroachment"] },
-        { "outcome_id": "o2", "state_ids": ["dry-high-encroachment"] },
-        { "outcome_id": "o3", "state_ids": ["wet-low-encroachment"] },
-        { "outcome_id": "o4", "state_ids": ["wet-high-encroachment"] }
-      ]
+        {
+          "outcome_id": "o1",
+          "state_ids": [
+            "dry-low-encroachment"
+          ]
+        },
+        {
+          "outcome_id": "o2",
+          "state_ids": [
+            "dry-high-encroachment"
+          ]
+        },
+        {
+          "outcome_id": "o3",
+          "state_ids": [
+            "wet-low-encroachment"
+          ]
+        },
+        {
+          "outcome_id": "o4",
+          "state_ids": [
+            "wet-high-encroachment"
+          ]
+        }
+      ],
+      "outcome_model_ref": "synthetic-partition-model:targeted-survey"
     },
     {
       "action_id": "cheap-check",
@@ -100,13 +162,20 @@
       "outcomes": [
         {
           "outcome_id": "matching-signature",
-          "state_ids": ["dry-low-encroachment", "wet-high-encroachment"]
+          "state_ids": [
+            "dry-low-encroachment",
+            "wet-high-encroachment"
+          ]
         },
         {
           "outcome_id": "mixed-signatures",
-          "state_ids": ["dry-high-encroachment", "wet-low-encroachment"]
+          "state_ids": [
+            "dry-high-encroachment",
+            "wet-low-encroachment"
+          ]
         }
-      ]
+      ],
+      "outcome_model_ref": "synthetic-partition-model:cheap-check"
     }
   ]
 }
