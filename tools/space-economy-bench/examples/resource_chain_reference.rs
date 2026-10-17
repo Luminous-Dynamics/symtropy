@@ -120,9 +120,6 @@ fn build_pathways() -> Result<Vec<Pathway>, String> {
     }
     let oxygen_from_water_kg = purified_water_kg * 8 / 9;
     let hydrogen_from_water_kg = purified_water_kg / 9;
-    let water_tailings_kg =
-        other_regolith_kg + unrecovered_water_kg + purification_reject_water_kg;
-
     let paths = vec![
         Pathway {
             pathway_id: "regolith_to_bulk_shielding_aggregate",
