@@ -532,6 +532,186 @@ mod tests {
         }
     }
 
+    #[test]
+    fn rational_waterline_oracle_covers_explicit_boundary_cases() {
+        let cases: Vec<(&str, Vec<RecipientDemand>, f64, f64, Vec<(u64, f64)>)> = vec![
+            ("empty demand", vec![], 3.0, 5.0, vec![]),
+            (
+                "zero supply",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 7.0,
+                    },
+                ],
+                0.0,
+                10.0,
+                vec![(1, 0.0), (2, 0.0)],
+            ),
+            (
+                "zero caps",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 0.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 0.0,
+                    },
+                ],
+                5.0,
+                10.0,
+                vec![(1, 0.0), (2, 0.0)],
+            ),
+            (
+                "supply above total capacity",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 1.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 3,
+                        headroom: 3.0,
+                    },
+                ],
+                20.0,
+                10.0,
+                vec![(1, 1.0), (2, 2.0), (3, 3.0)],
+            ),
+            (
+                "repeated caps",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 3,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 4,
+                        headroom: 2.0,
+                    },
+                ],
+                5.0,
+                10.0,
+                vec![(1, 1.25), (2, 1.25), (3, 1.25), (4, 1.25)],
+            ),
+            (
+                "exact saturation tie",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 3,
+                        headroom: 10.0,
+                    },
+                ],
+                6.0,
+                10.0,
+                vec![(1, 2.0), (2, 2.0), (3, 2.0)],
+            ),
+            (
+                "constrained then equal share",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 1.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 4.0,
+                    },
+                    RecipientDemand {
+                        id: 3,
+                        headroom: 10.0,
+                    },
+                ],
+                5.0,
+                10.0,
+                vec![(1, 1.0), (2, 2.0), (3, 2.0)],
+            ),
+            (
+                "zero per-recipient limit",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 1.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 2.0,
+                    },
+                ],
+                3.0,
+                0.0,
+                vec![(1, 0.0), (2, 0.0)],
+            ),
+            (
+                "second saturation threshold",
+                vec![
+                    RecipientDemand {
+                        id: 1,
+                        headroom: 2.0,
+                    },
+                    RecipientDemand {
+                        id: 2,
+                        headroom: 5.0,
+                    },
+                    RecipientDemand {
+                        id: 3,
+                        headroom: 8.0,
+                    },
+                ],
+                7.0,
+                10.0,
+                vec![(1, 2.0), (2, 2.5), (3, 2.5)],
+            ),
+        ];
+
+        for (name, recipients, supply, limit, expected) in cases {
+            let actual = allocate_max_min(recipients.iter().copied(), supply, limit).unwrap();
+            let oracle = exact_quarter_unit_waterfill_oracle(&recipients, supply, limit);
+            assert_eq!(oracle, expected, "reference oracle fixture mismatch: {name}");
+            assert_eq!(actual.allocations.len(), expected.len(), "length: {name}");
+            let tolerance = 1.0e-12 * supply.max(1.0);
+            for ((got, wanted), expected_item) in
+                actual.allocations.iter().zip(&oracle).zip(&expected)
+            {
+                assert_eq!(got.id, wanted.0, "oracle id: {name}");
+                assert_eq!(got.id, expected_item.0, "expected id: {name}");
+                assert!(
+                    (got.amount - wanted.1).abs() <= tolerance,
+                    "allocation mismatch in {name}: got {}, expected {}, tolerance {}",
+                    got.amount,
+                    wanted.1,
+                    tolerance
+                );
+            }
+        }
+    }
+
     /// Independent reference calculation using exact integer quarter-units and
     /// a rational waterline numerator/denominator. It does not reuse the
     /// production allocator's saturation/reallocation loop.
