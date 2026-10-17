@@ -686,7 +686,7 @@ fn audit(input: &Value) -> Result<Value, String> {
         let baseline = baseline_by_mission.get(mission_id).unwrap();
         let mission_cases: Vec<&Value> = scenario_assessments
             .iter()
-            .filter(|case| case["mission_id"].as_str() == Some(mission_id.as_str()))
+            .filter(|case| case["mission_id"].as_str() == Some(mission_id))
             .collect();
         let viable_cases = mission_cases
             .iter()
