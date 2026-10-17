@@ -98,6 +98,7 @@ pub struct CompatibilityReport {
     pub measurement_model_artifact_sha256: Option<String>,
     pub transform: Transform,
     pub output_dimension: String,
+    pub output_tick_representation: String,
     pub claim_ceiling: String,
     pub state_count: usize,
     pub outcome_count: usize,
@@ -238,14 +239,7 @@ pub fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compat
     if input.outcomes.len() > MAX_OUTCOMES {
         return Err(format!("outcome count exceeds limit {MAX_OUTCOMES}"));
     }
-    let potential_edges = input.states.len()
-        .checked_mul(input.outcomes.len())
-        .ok_or_else(|| "state-outcome compatibility count overflow".to_owned())?;
-    if potential_edges > MAX_COMPATIBILITY_EDGES {
-        return Err(format!(
-            "state-outcome compatibility count {potential_edges} exceeds limit {MAX_COMPATIBILITY_EDGES}"
-        ));
-    }
+    let potential_edges = validate_work_bound(input.states.len(), input.outcomes.len())?;
 
     let domain = canonical_interval(model.input_unit, model.input_domain)?;
     let mut bin_ids = BTreeSet::new();
@@ -415,6 +409,11 @@ pub fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compat
         } else {
             "length".to_owned()
         },
+        output_tick_representation: if output_unit(model) == Unit::Dimensionless {
+            "1e-6 of a dimensionless output unit".to_owned()
+        } else {
+            "nanometre ticks; interval endpoints are normalized, not displayed-unit values".to_owned()
+        },
         claim_ceiling: "finite_typed_intervals_and_declared_transform_only; model_artifacts_not_resolved; no_probability_or_physical_validity_claim".to_owned(),
         state_count: normalized_states.len(),
         outcome_count: normalized_bins.len(),
@@ -432,6 +431,18 @@ pub fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compat
         },
         observed_update,
     })
+}
+
+fn validate_work_bound(state_count: usize, outcome_count: usize) -> Result<usize, String> {
+    let potential_edges = state_count
+        .checked_mul(outcome_count)
+        .ok_or_else(|| "state-outcome compatibility count overflow".to_owned())?;
+    if potential_edges > MAX_COMPATIBILITY_EDGES {
+        return Err(format!(
+            "state-outcome compatibility count {potential_edges} exceeds limit {MAX_COMPATIBILITY_EDGES}"
+        ));
+    }
+    Ok(potential_edges)
 }
 
 fn build_observed_update(
@@ -980,15 +991,8 @@ mod tests {
 
     #[test]
     fn compatibility_work_bound_accepts_limit_and_rejects_over_limit() {
-        let mut input = base_input();
-        input.states = (0..1000)
-            .map(|i| state(&format!("s{i:04}"), Unit::Meter, 0, 10, "sig"))
-            .collect();
-        input.outcomes = (0..10_000)
-            .map(|i| bin(&format!("o{i:05}"), Unit::Meter, 0, 1))
-            .collect();
-        assert!(evaluate(&input, &digest(&input)).is_ok());
-        input.states.push(state("overflow-state", Unit::Meter, 0, 10, "sig"));
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("exceeds limit"));
+        assert_eq!(validate_work_bound(1_000, 10_000).expect("limit accepted"), MAX_COMPATIBILITY_EDGES);
+        assert!(validate_work_bound(1_001, 10_000).unwrap_err().contains("exceeds limit"));
+        assert!(validate_work_bound(usize::MAX, 2).unwrap_err().contains("overflow"));
     }
 }
