@@ -388,6 +388,52 @@ mod tests {
     }
 
     #[test]
+    fn generated_dag_sweep_matches_oracle_for_every_trigger_node() {
+        let base = read_fixture();
+        for graph_index in 0..32usize {
+            let node_count = 4 + graph_index % 21;
+            let mut fixture = base.clone();
+            fixture.artifacts = (0..node_count)
+                .map(|index| {
+                    let mut artifact = base.artifacts[index % base.artifacts.len()].clone();
+                    artifact.id = format!("G{graph_index:02}-NODE-{index:02}");
+                    artifact.kind = "generated_test_node".to_owned();
+                    artifact.claim_id = format!("claim-{index}");
+                    artifact.scope_id = format!("scope-{index}");
+                    artifact.version = 1;
+                    artifact.synthetic_payload =
+                        format!("SYNTHETIC GENERATED DAG | graph={graph_index} | node={index}");
+                    artifact.content_sha256 = sha256_hex(artifact.synthetic_payload.as_bytes());
+                    artifact.depends_on = (0..index)
+                        .filter(|parent| {
+                            parent + 1 == index
+                                || (graph_index * 31 + index * 7 + parent * 3) % 13 < 3
+                        })
+                        .map(|parent| {
+                            format!("G{graph_index:02}-NODE-{parent:02}")
+                        })
+                        .collect();
+                    artifact
+                })
+                .collect();
+            if graph_index % 2 == 1 {
+                fixture.artifacts.reverse();
+                for artifact in &mut fixture.artifacts {
+                    artifact.depends_on.reverse();
+                }
+            }
+            for trigger in &fixture.artifacts {
+                assert_eq!(
+                    invalidation_closure(&fixture, &trigger.id),
+                    reference_oracle(&fixture, &trigger.id),
+                    "generated graph {graph_index} oracle mismatch at {}",
+                    trigger.id
+                );
+            }
+        }
+    }
+
+    #[test]
     fn exact_frozen_bytes_are_required() {
         let mut changed = FIXTURE_BYTES.to_vec();
         changed.push(b' ');
