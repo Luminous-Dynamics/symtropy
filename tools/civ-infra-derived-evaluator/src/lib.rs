@@ -1015,6 +1015,28 @@ mod tests {
     }
 
     #[test]
+    fn missing_ruleset_state_or_candidate_evidence_reference_fails_closed() {
+        let mut input = fixture();
+        input.ruleset.evidence_ref.clear();
+        let bytes = serde_json::to_vec(&input).expect("fixture serializes");
+        let errors = evaluate_json(&bytes).expect_err("missing ruleset evidence ref must fail");
+        assert!(errors.iter().any(|error| error.contains("ruleset evidence_ref")));
+
+        let mut input = fixture();
+        input.states[0].evidence_ref.clear();
+        let bytes = serde_json::to_vec(&input).expect("fixture serializes");
+        let errors = evaluate_json(&bytes).expect_err("missing state evidence ref must fail");
+        assert!(errors.iter().any(|error| error.contains("state evidence_ref")));
+
+        let mut input = fixture();
+        input.candidates[0].evidence_ref.clear();
+        let bytes = serde_json::to_vec(&input).expect("fixture serializes");
+        let errors =
+            evaluate_json(&bytes).expect_err("missing candidate evidence ref must fail");
+        assert!(errors.iter().any(|error| error.contains("candidate")));
+    }
+
+    #[test]
     fn derivation_traces_retain_candidate_state_and_ruleset_evidence_refs() {
         let input = fixture();
         let report = evaluate_json(fixture_bytes()).expect("fixture evaluates");
