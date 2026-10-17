@@ -442,8 +442,8 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     let model_bytes = serde_json::to_vec(&model_spec).map_err(|error| error.to_string())?;
     let source_sha256 = sha256_hex(include_str!("drift_detector_comparison_reference.rs").as_bytes());
     let calibration_budget_pass = detector_reports.iter().all(|detector| {
-        detector["threshold_selection"]["false_alarm_rate_bps"].as_i64().unwrap_or(i64::MAX)
-            <= FALSE_ALARM_BUDGET_BPS
+        detector["threshold_selection"]["upper_95_percent_wilson_false_alarm_bps"].as_f64().unwrap_or(f64::INFINITY)
+            <= FALSE_ALARM_BUDGET_BPS as f64
     });
     if detector_reports.len() != 3
         || conditions.len() != 9
@@ -477,7 +477,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         "held_out_null_results": heldout_null,
         "detector_comparisons": detector_reports,
         "acceptance_targets": {
-            "training_false_alarm_rate_bps_at_most": FALSE_ALARM_BUDGET_BPS,
+            "training_false_alarm_wilson_95_upper_bps_at_most": FALSE_ALARM_BUDGET_BPS,
             "report_held_out_false_alarm_rate": true,
             "report_detection_probability_and_delay_by_shift": true,
             "report_pre_shift_false_alarms_and_pre_alarm_exposure": true,
