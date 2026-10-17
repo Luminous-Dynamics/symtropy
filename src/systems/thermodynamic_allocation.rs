@@ -321,6 +321,54 @@ mod tests {
     }
 
     #[test]
+    fn seeded_randomized_cases_preserve_order_caps_and_supply() {
+        let mut seed = 0x7a31_89c5_d4e2_106f_u64;
+        for trial in 0..64 {
+            let count = (next_random(&mut seed) % 129) as usize;
+            let mut recipients = Vec::with_capacity(count);
+            for id in 0..count {
+                let raw = next_random(&mut seed);
+                let headroom = ((raw >> 16) % 100_001) as f64 / 100.0;
+                recipients.push(RecipientDemand {
+                    id: id as u64,
+                    headroom,
+                });
+            }
+            let supply = ((next_random(&mut seed) >> 16) % 200_001) as f64 / 100.0;
+            let limit = ((next_random(&mut seed) >> 16) % 25_001) as f64 / 100.0;
+
+            let forward = allocate_max_min(recipients.clone(), supply, limit).unwrap();
+            let reverse =
+                allocate_max_min(recipients.iter().rev().copied(), supply, limit).unwrap();
+            assert_eq!(forward, reverse, "input-order mismatch in trial {trial}");
+            assert!(forward.total_allocated <= supply);
+            assert!(forward.unallocated_supply >= 0.0);
+
+            let mut returned_total = 0.0;
+            for (recipient, allocation) in recipients.iter().zip(&forward.allocations) {
+                let cap = recipient.headroom.min(limit);
+                assert!(allocation.amount.is_finite());
+                assert!(allocation.amount >= 0.0);
+                assert!(allocation.amount <= cap);
+                returned_total += allocation.amount;
+            }
+            let tolerance = 1.0e-9 * supply.max(1.0);
+            assert!((returned_total - forward.total_allocated).abs() <= tolerance);
+            assert!(
+                (forward.total_allocated + forward.unallocated_supply - supply).abs()
+                    <= tolerance
+            );
+        }
+    }
+
+    fn next_random(seed: &mut u64) -> u64 {
+        *seed = seed
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        *seed
+    }
+
+    #[test]
     fn malformed_supply_limit_headroom_and_duplicate_ids_fail_closed() {
         assert_eq!(
             allocate_max_min(demands(), f64::NAN, 1.0),
