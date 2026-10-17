@@ -76,6 +76,8 @@ struct Target {
 struct TargetScore {
     target_id: String,
     kind: TargetKind,
+    center_cell: usize,
+    required_feature_cells: Vec<usize>,
     required_feature_count: usize,
     visible_feature_count: usize,
     completeness_basis_points: u16,
@@ -311,6 +313,7 @@ fn score_plan(map: &GridMap, plan: &PlannerPlan, targets: &[Target]) -> Check<Me
         if complete { complete_total += 1; }
         target_scores.push(TargetScore {
             target_id: target.target_id.clone(), kind: target.kind.clone(),
+            center_cell: target.center_cell, required_feature_cells: target.required_feature_cells.clone(),
             required_feature_count: required, visible_feature_count: visible,
             completeness_basis_points: basis_points(visible, required), complete,
         });
