@@ -33,6 +33,8 @@ The four state combinations are exhaustively checked from two finite supports (s
 
 The expected Pareto set is B-balanced and D-resilient: B has shorter length and lower earthworks, while D has more drainage and clearance margin.
 
+The test suite runs 625 deterministic primitive-candidate variants (12,500 candidate-state evaluations) against an independent test-only rules oracle and Pareto calculation. In CI, `CIV_INFRA_DERIVED_CORPUS_OUT` enables a machine-readable manifest binding each generated input digest to the oracle/evaluated dispositions and Pareto set; the workflow uploads it as a 14-day artifact. It is generated test evidence, not a persisted source fixture for each case.
+
 ## Claim ceiling
 
 All data and rules are synthetic. The evaluator is not a terrain, utility-detection, hydraulic, geotechnical or civil-design solver. It does not establish model calibration, field validity, real-world safety, standards conformance, permitting, cost savings or construction authority. EPA SWMM should be used for real drainage simulation, with model provenance and diagnostics separately qualified; its manual says a successful run can still have excessive continuity error and warns that some numerical flow instabilities are not detected automatically.
