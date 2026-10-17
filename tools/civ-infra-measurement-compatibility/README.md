@@ -23,7 +23,7 @@ The public byte API hashes the exact raw JSON bytes itself, parses those same by
 - A state interval not wholly inside the model's declared domain is marked out-of-domain and remains compatible with every declared outcome. It is not silently clipped.
 - Every model carries an explicit, typed additive discrepancy interval and a basis statement. That envelope widens the transformed output interval with checked arithmetic; overflow fails closed. The fixture's zero-discrepancy value is a synthetic assumption, not calibration evidence.
 - If the predicted output interval extends into a region not covered by any outcome bin, the report flags the uncovered region.
-- If an observation matches no declared bin, or matches a bin but no state envelope supports it, the status becomes \`out_of_model_support\`; the prior state set is preserved, with an explicit request to investigate model/domain/support mismatch.
+- If an observation matches no declared bin, or matches a bin but no state envelope supports it, the status becomes \`out_of_model_support\`; the prior state set is preserved. Worst-case metrics over declared bins are conditional on declared support and are reported separately from the all-prior-states support-failure bound.
 - Cost or outcome likelihoods are not inferred. The report is a possibility/compatibility result, not a probability model.
 
 ## Evidence and tests
