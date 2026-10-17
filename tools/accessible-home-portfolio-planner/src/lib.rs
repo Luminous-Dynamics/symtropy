@@ -15,6 +15,7 @@ const FIXTURE: &str = include_str!(
 );
 const MAX_INTERVENTIONS: usize = 20;
 const MAX_QUOTE_EXAMPLES: usize = 12;
+const MAX_FRONTIER_SIZE: usize = 20_000;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -695,7 +696,7 @@ fn dominates(a: &CandidatePlan, b: &CandidatePlan) -> bool {
 fn plan_sort_key(plan: &CandidatePlan) -> (u64, u64, u64, u64, usize, String) {
     (
         plan.one_time_cost.high_minor_units,
-        plan.annual_maintenance_cost.high_minor_units,
+        plan.lifecycle_cost_over_horizon.high_minor_units,
         plan.lead_time_days_upper,
         plan.resident_disruption_points,
         plan.preference_penalty_count,
@@ -724,7 +725,7 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<PortfolioReport, Vec<String>> {
     let mut over_budget_candidate_count = 0u64;
     let mut budget_uncertain_candidate_count = 0u64;
     let mut within_budget_candidate_count = 0u64;
-    let mut budget_plans = Vec::new();
+    let mut pareto_frontier: Vec<CandidatePlan> = Vec::new();
 
     for mask in 0..evaluated_subset_count {
         let selected: BTreeSet<usize> = (0..intervention_count)
@@ -779,16 +780,18 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<PortfolioReport, Vec<String>> {
             continue;
         }
         within_budget_candidate_count += 1;
-        budget_plans.push(build_plan(&input, &selected, &order, &topo_rank)?);
+        let candidate = build_plan(&input, &selected, &order, &topo_rank)?;
+        if !pareto_frontier.iter().any(|existing| dominates(existing, &candidate)) {
+            pareto_frontier.retain(|existing| !dominates(&candidate, existing));
+            pareto_frontier.push(candidate);
+            if pareto_frontier.len() > MAX_FRONTIER_SIZE {
+                return Err(vec![format!(
+                    "Pareto frontier exceeds safety cap {MAX_FRONTIER_SIZE}; no truncated report was emitted"
+                )]);
+            }
+        }
     }
 
-    let mut pareto_frontier: Vec<CandidatePlan> = budget_plans.iter()
-        .enumerate()
-        .filter_map(|(i, candidate)| {
-            let dominated = budget_plans.iter().enumerate().any(|(j, other)| i != j && dominates(other, candidate));
-            if dominated { None } else { Some(candidate.clone()) }
-        })
-        .collect();
     pareto_frontier.sort_by_key(plan_sort_key);
 
     let digest = Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect();
@@ -874,6 +877,36 @@ mod tests {
         assert!(report.pareto_frontier.iter().any(|plan| {
             plan.selected_intervention_ids == vec!["battery-backed-local-alert".to_owned()]
                 && plan.conflicted_preference_ids.contains(&"tactile-notification".to_owned())
+        }));
+        assert!(report.pareto_frontier.iter().any(|plan| {
+            plan.selected_intervention_ids.iter().any(|id| id == "battery-backed-local-alert")
+                && plan.selected_intervention_ids.iter().any(|id| id == "tactile-haptic-receiver")
+                && plan.conflicted_preference_ids.is_empty()
+                && plan.preference_penalty_count == 0
+        }));
+    }
+
+    #[test]
+    fn lifecycle_cost_uses_declared_horizon() {
+        let value = fixture();
+        let report = eval_value(&value).expect("fixture validates");
+        let combined = report.pareto_frontier.iter().find(|plan| {
+            plan.selected_intervention_ids.iter().any(|id| id == "battery-backed-local-alert")
+                && plan.selected_intervention_ids.iter().any(|id| id == "tactile-haptic-receiver")
+        }).expect("combined plan retained on Pareto frontier");
+        assert_eq!(report.planning_horizon_months, 12);
+        assert_eq!(combined.lifecycle_cost_over_horizon.low_minor_units, 990_000);
+        assert_eq!(combined.lifecycle_cost_over_horizon.high_minor_units, 1_265_000);
+    }
+
+    #[test]
+    fn budget_range_crossing_cap_is_uncertain_not_robustly_affordable() {
+        let mut value = fixture();
+        value["budget_cap_upper_minor_units"] = json!(1_000_000);
+        let report = eval_value(&value).expect("fixture validates");
+        assert!(report.budget_uncertain_candidate_count > 0);
+        assert!(report.pareto_frontier.iter().all(|plan| {
+            plan.one_time_cost.high_minor_units <= 1_000_000
         }));
     }
 
