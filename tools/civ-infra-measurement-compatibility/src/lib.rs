@@ -944,9 +944,9 @@ mod tests {
             let mut input = base_input();
             input.world_id = format!("generated-{world:03}");
             input.states.clear();
-            for state_index in 0..10i64 {
-                let low = (state_index * 100_000 + world * 1_000) % 1_800_000;
-                let high = (low + 250_000).min(2_000_000);
+            for state_index in 0..20i64 {
+                let low = (state_index * 95_000 + world * 1_000) % 1_700_000;
+                let high = (low + 300_000).min(2_000_000);
                 input.states.push(state(
                     &format!("w{world:03}-s{state_index:02}"),
                     Unit::Meter,
@@ -955,6 +955,13 @@ mod tests {
                     &format!("decision-{}", (state_index + world) % 4),
                 ));
             }
+            input.outcomes = vec![
+                bin("o0", Unit::Meter, 0, 500_000),
+                bin("o1", Unit::Meter, 450_000, 900_000),
+                bin("o2", Unit::Meter, 850_000, 1_300_000),
+                bin("o3", Unit::Meter, 1_250_000, 1_700_000),
+                bin("o4", Unit::Meter, 1_650_000, 2_000_000),
+            ];
             let serialized = serde_json::to_vec(&input).expect("generated input serializes");
             let hash = sha256_hex(&serialized);
             let report = evaluate(&input, &hash).expect("generated input evaluates");
