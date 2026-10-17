@@ -1,0 +1,67 @@
+name: Forest Terrain Grid Simulator
+
+on:
+  push:
+    branches: ["feat/forest-terrain-grid-simulator-v0-1"]
+    paths:
+      - "docs/tech/forest-terrain-grid-corpus-v0.1.json"
+      - "tools/forest-terrain-sim/**"
+      - ".github/workflows/forest-terrain-grid-simulator.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/forest-terrain-grid-corpus-v0.1.json"
+      - "tools/forest-terrain-sim/**"
+      - ".github/workflows/forest-terrain-grid-simulator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forest-terrain-grid-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deterministic-simulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Test deterministic simulator
+        run: cargo test --manifest-path tools/forest-terrain-sim/Cargo.toml
+      - name: Validate exact-head terrain corpus and receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/forest-terrain-sim/Cargo.toml -- \
+            docs/tech/forest-terrain-grid-corpus-v0.1.json --source-commit "$source_commit" > forest-terrain-grid-receipt.json
+          jq -e '
+            .result == "validated"
+            and .scenario_count == 15
+            and .completed_count == 1
+            and .degraded_count == 2
+            and .blocked_count == 12
+            and .injected_fault_count == 10
+            and .fault_deadline_pass_count == 10
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and all(.scenarios[]; (.map_sha256 | test("^[0-9a-f]{64}$")) and (.config_sha256 | test("^[0-9a-f]{64}$")))
+          ' forest-terrain-grid-receipt.json
+      - name: Upload deterministic terrain receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: forest-terrain-grid-receipt
+          path: forest-terrain-grid-receipt.json
+          if-no-files-found: error
+          retention-days: 90
