@@ -436,7 +436,9 @@ mod tests {
 
     #[test]
     fn verifies_pinned_whole_property_fixture_bytes() {
-        let bytes = include_bytes!("../../../docs/research/fixtures/WHOLE_PROPERTY_HABITAT_SCENARIOS_V0_1.json");
+        let bytes = include_bytes!(
+            "../../../docs/research/fixtures/WHOLE_PROPERTY_HABITAT_SCENARIOS_V0_1.json"
+        );
         let report = verify_manifest_bytes(ManifestKind::WholeProperty, bytes).unwrap();
         assert_eq!(report.input_sha256, WHOLE_PROPERTY_SHA256);
         assert_eq!(report.scenario_count, 18);
@@ -446,7 +448,9 @@ mod tests {
 
     #[test]
     fn verifies_pinned_terrain_native_fixture_bytes() {
-        let bytes = include_bytes!("../../../docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json");
+        let bytes = include_bytes!(
+            "../../../docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json"
+        );
         let report = verify_manifest_bytes(ManifestKind::TerrainNative, bytes).unwrap();
         assert_eq!(report.input_sha256, TERRAIN_NATIVE_SHA256);
         assert_eq!(report.scenario_count, 14);
