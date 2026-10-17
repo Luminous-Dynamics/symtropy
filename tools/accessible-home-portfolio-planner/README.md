@@ -21,8 +21,8 @@ cargo run --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml -- 
 - All dependency graphs must be acyclic; selected plans must be dependency-closed. Independent actions can share a stage. The upper lead-time metric is a critical-path bound, not an implementation promise.
 - Capital and annual-maintenance costs are lower/upper ranges in integer minor currency units. The capital budget gate uses the upper bound; ranges that straddle the cap remain separately counted as budget-uncertain. Unknown cost is never substituted with zero and never enters the budget frontier.
 - A denied or pending access/permission gate excludes that subset from budget-feasible plans and is counted separately.
-- Preferences are optimization criteria, not hard gates. Explicit conflicts and unmet preferences are separately surfaced; their count is used only as one Pareto dimension, not as a universal resident value scale.
-- The Pareto frontier minimizes high-end capital cost, high-end annual maintenance, dependency-aware upper lead time, relative disruption points and preference penalty. A plan is removed only when another plan is no worse on every dimension and strictly better on at least one.
+- Preferences are optimization criteria, not hard gates. Conflicts and unmet preferences remain visible. A conflict is resolved only when a selected intervention explicitly names both the preference and the specific conflicting intervention; adding an unrelated preference-supporting action cannot silently erase a conflict.
+- The Pareto frontier minimizes high-end capital cost, high-end lifecycle cost over the declared horizon, dependency-aware upper lead time, relative disruption points and preference penalty. Annual maintenance is reported separately. Lifecycle costs linearly prorate the annual maintenance range for scenario comparison (lower bound rounded down, upper bound rounded up); real maintenance may be lumpy. A plan is removed only when another plan is no worse on every objective and strictly better on at least one.
 - Implementation-state values (proposed, quote received, funded, installed, measured, professionally reviewed) are carried into the report. They are not collapsed into a single "accessible" badge.
 
 ## Initial benchmark gates
@@ -37,7 +37,7 @@ Proposed acceptance thresholds (not measured here):
 - Identical input bytes produce identical output under a pinned build.
 - Public fixture contains invented IDs and synthetic costs only; no actual household evidence or prices.
 
-The current exhaustive search cap of 20 interventions means at most 1,048,576 subsets. This is intentionally auditable for the first prototype. Benchmark 5, 10, 15 and 20 interventions before raising the limit or adopting more complex optimization. Report median/p95, memory, compiler/build, input digest and exact environment.
+The current exhaustive search cap of 20 interventions means at most 1,048,576 subsets. Pareto filtering is incremental rather than all-pairs, and the evaluator fails closed if the frontier exceeds 20,000 plans rather than emitting a truncated result. This is intentionally bounded for the first prototype. Benchmark 5, 10, 15 and 20 interventions before raising the limit or adopting more complex optimization. Report median/p95, memory, compiler/build, input digest and exact environment.
 
 ## Limits
 
