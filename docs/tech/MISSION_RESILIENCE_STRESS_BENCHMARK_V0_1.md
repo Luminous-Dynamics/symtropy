@@ -18,7 +18,7 @@ The resilience unit is the mission's **plan set under a stated disturbance**, no
 
 ## Contract and disposition rules
 
-The fixture has three synthetic missions, nine candidate plans and six stress cases. Every plan includes a mode chain, duration bound, residual-energy percentage, condition-margin value, capabilities and six evidence gates. Each stress case names only the plans it changes; other candidates retain their baseline values. A declared impact may make a plan unavailable, add duration, reduce reserve or condition margin, override a capability, or change a gate state.
+The fixture spans five explicitly labeled environments (Amazon Basin, Congo Basin, Antarctica, Sahara and Afghanistan), five synthetic missions, fourteen candidate plans and ten stress cases. Every plan includes a mode chain, duration bound, residual-energy percentage, condition-margin value, capabilities and six evidence gates. Each stress case names only the plans it changes; other candidates retain their baseline values. A declared impact may make a plan unavailable, add duration, reduce reserve or condition margin, override a capability, or change a gate state.
 
 Gate values are explicitly **passed**, **unknown** or **failed**.
 
@@ -36,17 +36,18 @@ Expected outcome oracle for the committed fixture:
 
 | Benchmark dimension | Expected result |
 |---|---:|
-| Missions | 3 |
-| Candidate plans | 9 |
-| Baseline-feasible plans | 6 |
-| Stress cases | 6 |
-| Declared recoverable stress cases | 5 |
-| Recoverable cases retaining at least one feasible plan | 5/5 (100%) |
-| Intentionally unrecoverable negative controls | 1 |
-| Negative controls correctly producing no admissible plan | 1/1 |
-| Stress-case outcomes matching the declared oracle | 6/6 (100%) |
+| Environments | 5 |
+| Missions | 5 |
+| Candidate plans | 14 |
+| Baseline-feasible plans | 8 |
+| Stress cases | 10 |
+| Declared recoverable stress cases | 6 |
+| Recoverable cases retaining at least one feasible plan | 6/6 (100%) |
+| Intentionally unrecoverable / evidence-blocked negative controls | 4 |
+| Negative controls correctly producing no admissible plan | 4/4 |
+| Stress-case outcomes matching the declared oracle | 10/10 (100%) |
 
-These are deterministic regression expectations, not empirical resilience rates. The fixture is designed to exercise failure handling, not to estimate how often real weather, energy loss, closure or equipment faults occur. The "100%" values only mean that all five declared recoverable synthetic disruptions preserve a feasible candidate and the single deliberately impossible control is correctly refused.
+These are deterministic regression expectations, not empirical resilience rates. Environment-stratified summaries report mission count, candidate count, baseline feasible count, stress coverage, recoverable-case coverage, and correct negative-control refusal for each environment. The Afghanistan fixtures intentionally have no eligible baseline plan: unknown route authorization and hazard evidence remain unresolved; a failed hazard gate is a hard block. The fixture is designed to exercise failure handling, not to estimate how often real weather, energy loss, closure or equipment faults occur. The "100%" values only mean that all five declared recoverable synthetic disruptions preserve a feasible candidate and the single deliberately impossible control is correctly refused.
 
 The Pareto frontier minimizes duration while maximizing residual energy and condition margin. A candidate is removed only when another **eligible** candidate is no worse on all three measures and strictly better on at least one. Hard gates and mission constraints filter candidates before dominance analysis. Results are a set of trade-offs; the tool does not assign weights, manufacture probabilities, or select a universal winner.
 
