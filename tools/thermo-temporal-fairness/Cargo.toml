@@ -1,0 +1,16 @@
+[package]
+name = "thermo-temporal-fairness"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Exact temporal fairness and starvation metrics for allocation traces"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "thermo-temporal-fairness"
+path = "src/main.rs"
+
+[workspace]
