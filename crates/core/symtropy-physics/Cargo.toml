@@ -40,3 +40,7 @@ harness = false
 [[bench]]
 name = "spatial_grid_bench"
 harness = false
+
+[[bench]]
+name = "neighbor_cache_bench"
+harness = false
