@@ -423,3 +423,30 @@ The complementary candidate uses a different calibration domain and a separately
 - For empirical claims, require independently ground-truthed site/epoch samples, calibration records, conditional-dependence estimates, held-out probability calibration and reported decision regret before setting acceptance thresholds.
 
 The fixture is motivated by metrology practice that treats correlated uncertainty explicitly; see [NIST's correlation review](https://www.nist.gov/publications/correlation-uncertainty-measurement-discussion-state-art-techniques), [NIST covariance propagation guidance](https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc55.htm), and this [review of Bayesian fusion with unknown correlation](https://www.sciencedirect.com/science/article/pii/S1566253517302890). These sources do not calibrate the numerical fixture. No result here establishes lunar resource recoverability, field-sample representativeness, assay performance, economic viability or mission readiness.
+
+## Active reference extension — robust decisions under likelihood uncertainty
+
+[BENCH-SPACE-012](https://github.com/Luminous-Dynamics/symtropy/issues/1837) adds `tools/space-economy-bench/examples/robust_exploration_model_uncertainty_reference.rs`. It extends the assay and dependence benchmarks by treating likelihood performance as a finite uncertainty set rather than a single known sensitivity/specificity pair. The original six-scenario v0.1 corpus remains frozen.
+
+The declared model set is 90%/90% nominal, 70%/70% moderate, and 50%/50% uninformative, all under a 50% rich-site prior and the existing +200/-100 build payoff with zero-payoff import alternative. These are fixed synthetic model points, not fitted posterior ranges or measured instrument performance.
+
+| Policy | High-accuracy nominal value | Worst-case value | Maximum regret |
+|---|---:|---:|---:|
+| No measurement | 50 | 50 | 15 |
+| Always buy the assay (cost 20) | 65 | 30 | 20 |
+| Calibration gate, then adapt | 62 | 47 | 3 |
+
+The same candidate set produces different choices under different stated objectives. Nominal optimization chooses the direct assay. Maximin selects no measurement because its worst-case value remains 50. Minimax regret chooses the calibration gate, which costs 3 and buys the assay only for the high-accuracy regime; its worst-case regret is 3, versus 15 for no measurement and 20 for always buying.
+
+The calibration gate is an idealized perfect model-regime identifier included to expose the trade-off in a finite oracle. It does not represent a demonstrated calibration instrument. In the 50%/50% model, direct assay EVSI is zero but the assay still costs 20, so its net expected value falls to 30. The fixture therefore tests a survey that is positive under the nominal model and worse than the no-measurement baseline under a plausible alternative.
+
+### Acceptance targets and limitations
+
+- Exhaustively enumerate every candidate policy in the declared finite uncertainty set. Require exactly zero regret for the reported nominal, maximin and minimax-regret winners under their respective criteria.
+- Preserve exact probability-mass conservation, (0 \le EVSI \le EVPI), and hard budget compliance at each uncertainty-set point.
+- Report nominal value, worst-case value, and maximum regret side-by-side; no midpoint or implicit prior over models.
+- Reject an uncertainty set that lacks calibration/evidence provenance and give zero selection credit to unverified likelihood bounds.
+- Keep model uncertainty distinct from aleatoric observation uncertainty and explicitly name which uncertainty set/version is being optimized.
+- Before empirical use, preregister the allowed set or ambiguity region, keep validation data independent from calibration, and report held-out calibration/coverage plus decision regret.
+
+This design is conceptually aligned with [Robust Bayesian Decision Making under Adversarial Uncertainty](https://proceedings.mlr.press/v337/harikumar26a.html) (UAI 2026), which studies sequential experiment design for decision stability under plausible unexpected effects. NIST's [combined standard uncertainty guidance](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-5-combined-standard-uncertainty) supplies general metrology context for preserving recognized uncertainty/covariance terms. Neither source calibrates the example. No fixture value establishes lunar priors, actual assay rates, recoverable reserves, project costs or mission readiness.
