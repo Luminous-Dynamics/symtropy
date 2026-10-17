@@ -1041,3 +1041,11 @@ pub use outcomes::{
     CandidateDisposition, ComparisonResult, EMBEDDED_OUTCOME_CORPUS, EMBEDDED_OUTCOME_SCHEMA,
     OutcomeFailure, OutcomeSummary, validate_outcome_fixtures_bytes,
 };
+
+
+pub mod decision_impact;
+pub use decision_impact::{
+    validate_decision_impact_bytes, ActionImpact, DecisionCaseResult, DecisionImpactFailure,
+    DecisionImpactSummary, DecisionSet, OutcomeImpact, EMBEDDED_DECISION_IMPACT_CORPUS,
+    EMBEDDED_DECISION_IMPACT_SCHEMA,
+};
