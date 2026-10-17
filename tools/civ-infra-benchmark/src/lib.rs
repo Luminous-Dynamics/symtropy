@@ -105,7 +105,7 @@ pub struct CorridorCandidate {
     pub declared_earthworks_m3: f64,
     pub cross_sections: Vec<CrossSection>,
     pub road_envelopes: Vec<AxisEnvelope>,
-    pub drainage: DrainageCase,
+    pub drainage_scenarios: Vec<DrainageCase>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -351,13 +351,33 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
             || candidate.length_m <= 0.0
             || !finite_nonnegative(candidate.declared_max_grade_percent)
             || !finite_nonnegative(candidate.declared_earthworks_m3)
-            || !finite_nonnegative(candidate.drainage.required_flow_lps)
-            || !finite_nonnegative(candidate.drainage.capacity_lps)
         {
             errors.push(format!("candidate {} contains invalid numeric input", candidate.id));
         }
-        if candidate.drainage.scenario_id.trim().is_empty() {
-            errors.push(format!("candidate {} has no drainage scenario id", candidate.id));
+        if candidate.drainage_scenarios.is_empty() {
+            errors.push(format!(
+                "candidate {} needs at least one drainage scenario",
+                candidate.id
+            ));
+        }
+        let mut drainage_scenario_ids = BTreeSet::new();
+        for scenario in &candidate.drainage_scenarios {
+            if scenario.scenario_id.trim().is_empty()
+                || !drainage_scenario_ids.insert(scenario.scenario_id.clone())
+            {
+                errors.push(format!(
+                    "candidate {} has an empty or duplicate drainage scenario id",
+                    candidate.id
+                ));
+            }
+            if !finite_nonnegative(scenario.required_flow_lps)
+                || !finite_nonnegative(scenario.capacity_lps)
+            {
+                errors.push(format!(
+                    "candidate {} drainage scenario {} has invalid numeric input",
+                    candidate.id, scenario.scenario_id
+                ));
+            }
         }
         if candidate.profile_points.len() < 2 {
             errors.push(format!(
@@ -744,15 +764,20 @@ fn evaluate_candidate(
                 CheckStatus::Violation
             },
         },
-        Finding {
-            code: format!("drainage_capacity:{}", candidate.drainage.scenario_id),
-            status: if candidate.drainage.required_flow_lps <= candidate.drainage.capacity_lps {
+    ];
+    let mut drainage_scenarios: Vec<&DrainageCase> =
+        candidate.drainage_scenarios.iter().collect();
+    drainage_scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    for scenario in drainage_scenarios {
+        findings.push(Finding {
+            code: format!("drainage_capacity:{}", scenario.scenario_id),
+            status: if scenario.required_flow_lps <= scenario.capacity_lps {
                 CheckStatus::Pass
             } else {
                 CheckStatus::Violation
             },
-        },
-    ];
+        });
+    }
 
     let mut utilities: Vec<&UtilityAsset> = fixture.utilities.iter().collect();
     utilities.sort_by(|left, right| left.id.cmp(&right.id));
@@ -1069,14 +1094,19 @@ fn reference_candidate_result(
             CheckStatus::Violation
         },
     });
-    findings.push(Finding {
-        code: format!("drainage_capacity:{}", candidate.drainage.scenario_id),
-        status: if candidate.drainage.required_flow_lps > candidate.drainage.capacity_lps {
-            CheckStatus::Violation
-        } else {
-            CheckStatus::Pass
-        },
-    });
+    let mut drainage_scenarios: Vec<&DrainageCase> =
+        candidate.drainage_scenarios.iter().collect();
+    drainage_scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    for scenario in drainage_scenarios {
+        findings.push(Finding {
+            code: format!("drainage_capacity:{}", scenario.scenario_id),
+            status: if scenario.required_flow_lps > scenario.capacity_lps {
+                CheckStatus::Violation
+            } else {
+                CheckStatus::Pass
+            },
+        });
+    }
 
     for asset in &fixture.utilities {
         findings.push(Finding {
@@ -1609,7 +1639,12 @@ mod tests {
             .iter_mut()
             .find(|candidate| candidate.id == "C-reference")
             .expect("reference candidate exists");
-        candidate.drainage.required_flow_lps = candidate.drainage.capacity_lps;
+        let drainage_case = candidate
+            .drainage_scenarios
+            .iter_mut()
+            .find(|scenario| scenario.scenario_id == "design-storm-synthetic-01")
+            .expect("design storm case exists");
+        drainage_case.required_flow_lps = drainage_case.capacity_lps;
         let boundary_bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
         let boundary_report =
             evaluate_json(&boundary_bytes).expect("exact capacity boundary is valid");
@@ -1630,7 +1665,12 @@ mod tests {
             .iter_mut()
             .find(|candidate| candidate.id == "C-reference")
             .expect("reference candidate exists");
-        candidate.drainage.required_flow_lps += 0.001;
+        let drainage_case = candidate
+            .drainage_scenarios
+            .iter_mut()
+            .find(|scenario| scenario.scenario_id == "design-storm-synthetic-01")
+            .expect("design storm case exists");
+        drainage_case.required_flow_lps += 0.001;
         let exceeded_bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
         let exceeded_report =
             evaluate_json(&exceeded_bytes).expect("finite exceedance input remains valid");
