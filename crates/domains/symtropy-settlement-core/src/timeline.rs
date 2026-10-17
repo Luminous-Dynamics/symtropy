@@ -815,6 +815,74 @@ mod tests {
     }
 
     #[test]
+    fn later_floor_failure_is_retained_after_stable_recovery() {
+        let mut input = fixture();
+        input.horizon_ticks = 5;
+        input.events.push(SettlementEvent {
+            event_id: "grid-down-again".into(),
+            tick: 5,
+            sequence: 0,
+            event: SettlementEventKind::ComponentStateChanged {
+                component_id: id("grid"),
+                generation: 1,
+                state: ComponentState::Failed,
+            },
+        });
+
+        let report = evaluate_timeline(&input).unwrap();
+        let recovery = report
+            .payload
+            .floor_recovery
+            .iter()
+            .find(|floor| floor.floor_id == "water-floor")
+            .unwrap();
+        assert_eq!(recovery.first_non_met_tick, Some(1));
+        assert_eq!(recovery.first_restoration_tick, Some(3));
+        assert_eq!(recovery.stable_recovery_tick, Some(3));
+        assert_eq!(recovery.later_non_met_ticks, vec![5]);
+        assert_eq!(water_floor(&report, 5).status, FloorStatus::Breached);
+    }
+
+    #[test]
+    fn stale_timeline_evidence_blocks_floor_and_can_recover_when_refreshed() {
+        let mut input = fixture();
+        input.horizon_ticks = 3;
+        input.events = vec![
+            SettlementEvent {
+                event_id: "grid-stale".into(),
+                tick: 1,
+                sequence: 0,
+                event: SettlementEventKind::ComponentStateChanged {
+                    component_id: id("grid"),
+                    generation: 1,
+                    state: ComponentState::Unknown {
+                        cause: super::super::UnknownCause::StaleTelemetry,
+                    },
+                },
+            },
+            SettlementEvent {
+                event_id: "grid-evidence-refreshed".into(),
+                tick: 2,
+                sequence: 0,
+                event: SettlementEventKind::ComponentStateChanged {
+                    component_id: id("grid"),
+                    generation: 1,
+                    state: ComponentState::Available,
+                },
+            },
+        ];
+
+        let report = evaluate_timeline(&input).unwrap();
+        assert_eq!(water_floor(&report, 0).status, FloorStatus::Met);
+        assert_eq!(water_floor(&report, 1).status, FloorStatus::Blocked);
+        assert_eq!(water_floor(&report, 2).status, FloorStatus::Met);
+        let recovery = &report.payload.floor_recovery[0];
+        assert_eq!(recovery.first_non_met_tick, Some(1));
+        assert_eq!(recovery.first_restoration_tick, Some(2));
+        assert_eq!(recovery.stable_recovery_tick, Some(2));
+    }
+
+    #[test]
     fn duplicate_event_sequence_at_one_tick_is_rejected() {
         let mut input = fixture();
         input.events.push(SettlementEvent {
