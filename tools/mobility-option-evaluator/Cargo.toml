@@ -7,3 +7,5 @@ description = "Fail-closed synthetic evaluator for comparable regional mobility 
 
 [dependencies]
 serde_json = "1"
+
+[workspace]
