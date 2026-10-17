@@ -150,6 +150,7 @@ Use open standards as **exchange contracts**, not as proof of correctness:
 - [buildingSMART IDS 1.0](https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/) for machine-readable information requirements and checking delivered IFC model properties. IDS does not replace geometric, physical, legal, or safety analysis.
 - [ASHRAE Standard 223](https://data.ashrae.org/standard223/standard223.html) as a semantic model for building automation/system data, analytics, commissioning and digital-twin integration.
 - [NIST Building Digitization and Semantic Interoperability](https://www.nist.gov/programs-projects/building-digitization-and-semantic-interoperability) for lifecycle digital-twin and interoperable building-data motivation.
+- [NIST, Security and Trust Considerations for Digital Twin Technology / IR 8356](https://www.nist.gov/news-events/news/2025/02/security-and-trust-considerations-digital-twin-technology-nist-releases-ir) for the cyber-physical trust boundary; the benchmark's synthetic cyber case is not a penetration test or assurance certification.
 - [U.S. DOE Building Energy Modeling](https://www.energy.gov/cmei/buildings/about-building-energy-modeling) for the role of validated energy modeling in design/operations.
 - [FEMA P-361](https://www.fema.gov/sites/default/files/documents/fema_p-361_safe-rooms-for-tornadoes-and-hurricanes_122024.pdf) and [ANSI/ICC 500-2023](https://codes.iccsafe.org/content/ICC5002023P1/american-national-standard) only for their applicable storm-safe-room/shelter scopes.
 
