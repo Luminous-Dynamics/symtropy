@@ -591,8 +591,18 @@ impl<const D: usize> ConsciousnessField<D> {
             let effect = leakage.total_effect_at(pos);
             if let Some(entity) = self.entities.get_mut(handle) {
                 if effect > 0.0 {
+                    // Regeneration is an operational inflow, not negative
+                    // dissipation. Commit the reservoir update and diagnostic
+                    // inflow together so ledger failure cannot leave partial
+                    // bookkeeping. Record only the amount accepted by the
+                    // finite EnergyBudget, not the requested source strength.
+                    let previous_energy = entity.energy.clone();
+                    let available_before = entity.energy.available;
                     entity.energy.regenerate(effect);
-                    self.ledger.record_dissipation(-effect); // Energy enters 3D
+                    let accepted = entity.energy.available - available_before;
+                    if self.ledger.try_record_regeneration(accepted).is_err() {
+                        entity.energy = previous_energy;
+                    }
                 } else if effect < 0.0 {
                     let consumed = entity.energy.consume(effect.abs());
                     self.ledger.record_dissipation(consumed); // Energy exits 3D
@@ -1069,6 +1079,70 @@ mod tests {
             energy_after < energy_before,
             "energy should decrease near a sink: before={energy_before}, after={energy_after}"
         );
+    }
+
+    #[test]
+    fn dimensional_leakage_source_records_only_accepted_regeneration() {
+        use crate::dimensional_leakage::{DimensionalLeakage, LeakagePoint};
+
+        let mut field = ConsciousnessField::<3>::new();
+        let h = BodyHandle(0);
+        field.register(h, 100.0, 10.0);
+        {
+            let entity = field.entities.get_mut(&h).unwrap();
+            // Leave only 0.1 units of headroom so the source request is capped.
+            entity.energy.consume(0.1);
+        }
+        let available_before = field.entities.get(&h).unwrap().energy.available;
+
+        let mut leakage = DimensionalLeakage::new();
+        leakage.add_point(LeakagePoint::source(
+            nalgebra::SVector::from([0.0, 0.0, 0.0]),
+            1.0,
+            5.0,
+            50.0,
+        ));
+        leakage.enabled = true;
+        field.apply_dimensional_leakage(&leakage, &[(h, nalgebra::SVector::from([1.0, 0.0, 0.0]))]);
+
+        let available_after = field.entities.get(&h).unwrap().energy.available;
+        let balance = field.ledger.try_tick_balance().unwrap();
+        let accepted = available_after - available_before;
+        let requested = leakage.total_effect_at(&nalgebra::SVector::from([1.0, 0.0, 0.0]));
+        assert!(accepted > 0.0, "source should regenerate energy");
+        assert!(accepted < requested, "reservoir capacity should cap accepted regeneration");
+        assert_eq!(balance.regeneration_in, accepted);
+        assert_eq!(balance.energy_out, 0.0, "inflow must not be encoded as dissipation");
+    }
+
+    #[test]
+    fn dimensional_leakage_source_rolls_back_when_ledger_rejects_inflow() {
+        use crate::dimensional_leakage::{DimensionalLeakage, LeakagePoint};
+
+        let mut field = ConsciousnessField::<3>::new();
+        let h = BodyHandle(0);
+        field.register(h, 100.0, 10.0);
+        field.entities.get_mut(&h).unwrap().energy.consume(20.0);
+        let available_before = field.entities.get(&h).unwrap().energy.available;
+        let regenerated_before = field.entities.get(&h).unwrap().energy.regenerated_this_tick;
+
+        // Force the accounting path to reject the proposed inflow. The energy
+        // reservoir update must roll back with it rather than partially commit.
+        field.ledger.energy_out = f64::NAN;
+        let mut leakage = DimensionalLeakage::new();
+        leakage.add_point(LeakagePoint::source(
+            nalgebra::SVector::from([0.0, 0.0, 0.0]),
+            1.0,
+            5.0,
+            50.0,
+        ));
+        leakage.enabled = true;
+        field.apply_dimensional_leakage(&leakage, &[(h, nalgebra::SVector::from([1.0, 0.0, 0.0]))]);
+
+        let entity = field.entities.get(&h).unwrap();
+        assert_eq!(entity.energy.available, available_before);
+        assert_eq!(entity.energy.regenerated_this_tick, regenerated_before);
+        assert!(field.ledger.try_tick_balance().is_err(), "invalid ledger remains visibly invalid");
     }
 
     #[test]

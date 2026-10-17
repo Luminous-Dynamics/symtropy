@@ -1,22 +1,24 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-//! Thermodynamic closure: unifying consciousness energy and physics energy.
+//! Thermodynamic and operational-energy diagnostics for the consciousness/physics domain.
 //!
-//! This module implements the novel Joules-per-Phi energy accounting system.
-//! Every action costs physical energy from the consciousness budget. Collision
-//! impulses dissipate energy as heat. The total energy is tracked and conserved.
+//! This module contains an operational energy budget and a legacy action-cost /
+//! dissipation mismatch diagnostic. Neither alone establishes conservation of
+//! total physical energy. A first-law claim needs an explicit system boundary,
+//! reservoir-state changes, external inputs and sinks, and validated transfer
+//! semantics (see the physical-energy authority contract).
 //!
 //! # Key Quantities
 //!
 //! - **Landauer bound**: minimum work to erase one bit in an ideal isothermal
-//!   process, k_B * T * ln(2) ≈ 2.967 × 10⁻²¹ J at 310 K. This is a lower
-//!   bound for a specific logically irreversible operation, not a universal
-//!   energy cost for all information processing.
-//! - **Joules-per-Phi**: novel metric — how many Joules does it cost to
-//!   maintain a given Φ level? No one has published this.
-//! - **Conservation error**: measures violation of energy conservation law.
-//!   Should remain < 1% for a valid simulation.
+//!   process, k_B * T * ln(2), at the declared reference temperature. It is not
+//!   a universal energy cost for all information processing.
+//! - **Joules-per-Phi**: an experimental operational metric, not a calibrated
+//!   physical law or evidence that Φ is a physical reservoir.
+//! - **Action/dissipation mismatch**: legacy local diagnostic comparing two
+//!   accumulators. Regeneration is reported separately and not folded into this
+//!   mismatch; zero mismatch is not a system-wide conservation pass.
 
 /// Boltzmann constant in J/K; exact in the SI since the 2019 redefinition.
 pub const BOLTZMANN_CONSTANT_J_PER_K: f64 = 1.380_649e-23;
@@ -175,13 +177,19 @@ impl std::fmt::Display for ThermodynamicLedgerError {
 
 impl std::error::Error for ThermodynamicLedgerError {}
 
-/// Thermodynamic ledger: tracks energy flow through the consciousness-physics system.
+/// Legacy action/dissipation diagnostics plus separate operational regeneration telemetry.
 #[derive(Debug, Clone)]
 pub struct ThermodynamicLedger {
-    /// Total energy input this tick (forces applied, work done).
+    /// Total action cost recorded this tick. This legacy accumulator is not
+    /// necessarily external energy input to a complete physical system.
     pub energy_in: f64,
-    /// Total energy output this tick (dissipated as heat via damping/friction).
+    /// Total dissipation estimate recorded this tick. It is not a complete
+    /// physical heat ledger unless each transfer has a validated mechanism.
     pub energy_out: f64,
+    /// Accepted operational regeneration recorded this tick, separate from
+    /// dissipation. This telemetry is not included in the legacy mismatch
+    /// diagnostic and is not, by itself, a complete physical energy balance.
+    pub regeneration_in: f64,
     /// Phi-weighted energy integral: Σ(energy_i × phi_i) across all entities.
     /// Used to compute Joules-per-Phi.
     pub phi_energy_integral: f64,
@@ -189,7 +197,8 @@ pub struct ThermodynamicLedger {
     pub phi_change_total: f64,
     /// Cumulative energy consumed across all ticks.
     pub lifetime_energy: f64,
-    /// Cumulative conservation error across all ticks.
+    /// Cumulative legacy action/dissipation mismatch across all ticks; not a
+    /// complete physical conservation residual.
     pub lifetime_error: f64,
     /// Number of ticks processed.
     pub tick_count: u64,
@@ -200,6 +209,7 @@ impl ThermodynamicLedger {
         Self {
             energy_in: 0.0,
             energy_out: 0.0,
+            regeneration_in: 0.0,
             phi_energy_integral: 0.0,
             phi_change_total: 0.0,
             lifetime_energy: 0.0,
@@ -213,6 +223,8 @@ impl ThermodynamicLedger {
             && self.energy_in >= 0.0
             && self.energy_out.is_finite()
             && self.energy_out >= 0.0
+            && self.regeneration_in.is_finite()
+            && self.regeneration_in >= 0.0
             && self.phi_energy_integral.is_finite()
             && self.phi_energy_integral >= 0.0
             && (self.phi_energy_integral <= self.energy_in
@@ -299,6 +311,38 @@ impl ThermodynamicLedger {
         Ok(())
     }
 
+    /// Record accepted regeneration as a separate nonnegative operational inflow.
+    ///
+    /// This remains separate from energy_out and from the legacy
+    /// action/dissipation mismatch; no physical conservation claim follows from
+    /// recording this value.
+    pub fn record_regeneration(&mut self, energy: f64) {
+        let _ = self.try_record_regeneration(energy);
+    }
+
+    pub fn try_record_regeneration(
+        &mut self,
+        energy: f64,
+    ) -> Result<(), ThermodynamicLedgerError> {
+        if !energy.is_finite() || energy < 0.0 {
+            return Err(ThermodynamicLedgerError::InvalidEnergyAmount);
+        }
+        if !self.state_is_valid() {
+            return Err(ThermodynamicLedgerError::InvalidState);
+        }
+
+        let new_regeneration_in = self.regeneration_in + energy;
+        if !new_regeneration_in.is_finite() {
+            return Err(ThermodynamicLedgerError::NumericalOverflow);
+        }
+        if energy > 0.0 && new_regeneration_in <= self.regeneration_in {
+            return Err(ThermodynamicLedgerError::UnrepresentableTransfer);
+        }
+
+        self.regeneration_in = new_regeneration_in;
+        Ok(())
+    }
+
     /// Record a change in Phi for an entity. A single delta must be in [-1, 1].
     /// Invalid changes are rejected without mutating the ledger.
     pub fn record_phi_change(&mut self, delta_phi: f64) {
@@ -327,7 +371,8 @@ impl ThermodynamicLedger {
         Ok(())
     }
 
-    /// Finalize this tick: compute conservation error and accumulate.
+    /// Finalize this tick's legacy action/dissipation mismatch and accumulate it.
+    /// This is not whole-system energy conservation evidence.
     ///
     /// If direct writes to public fields have corrupted the ledger, this legacy
     /// wrapper returns non-finite sentinels and leaves the invalid state intact.
@@ -338,14 +383,16 @@ impl ThermodynamicLedger {
             energy_out: self.energy_out,
             balance: f64::NAN,
             conservation_error: f64::INFINITY,
+            regeneration_in: self.regeneration_in,
             joules_per_phi: None,
         })
     }
 
-    /// Validate and finalize a tick. The residual is normalized by the larger
-    /// of input/output energy, so a zero-input/nonzero-output imbalance cannot
-    /// be incorrectly reported as zero error. A genuinely empty ledger has
-    /// zero error. On failure, no counters are reset or accumulated.
+    /// Validate and finalize the local action/dissipation mismatch. The relative
+    /// mismatch uses the larger accumulator, so zero action cost with positive
+    /// dissipation is not reported as zero error. Regeneration is returned as a
+    /// separate flow and is not folded into this diagnostic. This method does
+    /// not close total-system energy accounting. On failure, no counters reset.
     pub fn try_tick_balance(&mut self) -> Result<TickBalance, ThermodynamicLedgerError> {
         if !self.state_is_valid() {
             return Err(ThermodynamicLedgerError::InvalidState);
@@ -381,6 +428,7 @@ impl ThermodynamicLedger {
         let result = TickBalance {
             energy_in: self.energy_in,
             energy_out: self.energy_out,
+            regeneration_in: self.regeneration_in,
             balance,
             conservation_error,
             joules_per_phi,
@@ -391,6 +439,7 @@ impl ThermodynamicLedger {
         self.tick_count = new_tick_count;
         self.energy_in = 0.0;
         self.energy_out = 0.0;
+        self.regeneration_in = 0.0;
         self.phi_energy_integral = 0.0;
         self.phi_change_total = 0.0;
         Ok(result)
@@ -436,9 +485,9 @@ impl ThermodynamicLedger {
             && Self::try_landauer_floor(bits).is_ok_and(|floor| energy >= floor)
     }
 
-    /// Lifetime conservation error rate normalized by the larger cumulative
-    /// input/error scale. This remains meaningful if inputs were zero but
-    /// outputs/errors were not; a truly empty history returns zero.
+    /// Lifetime action/dissipation mismatch rate normalized by the larger
+    /// cumulative action-cost/mismatch scale. This is not a physical conservation
+    /// error rate for the complete system.
     pub fn lifetime_error_rate(&self) -> f64 {
         if !self.state_is_valid() {
             return f64::INFINITY;
@@ -462,16 +511,19 @@ impl Default for ThermodynamicLedger {
     }
 }
 
-/// Result of a single tick's energy balance.
+/// Result of one tick's legacy action/dissipation diagnostic.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TickBalance {
-    /// Total energy consumed this tick.
+    /// Total action cost recorded this tick.
     pub energy_in: f64,
-    /// Total energy dissipated this tick.
+    /// Total dissipation estimate recorded this tick.
     pub energy_out: f64,
-    /// Net energy balance (should be near zero for conservation).
+    /// Accepted operational regeneration, reported separately.
+    pub regeneration_in: f64,
+    /// Difference between action-cost and dissipation accumulators only.
+    /// This is not a total-system energy-balance residual.
     pub balance: f64,
-    /// Fractional conservation error [0, 1].
+    /// Relative action/dissipation mismatch. Zero does not prove conservation.
     pub conservation_error: f64,
     /// Joules per unit Phi this tick (None if no Phi change).
     pub joules_per_phi: Option<f64>,
@@ -546,6 +598,10 @@ mod tests {
             );
             assert_eq!(
                 ledger.try_record_dissipation(bad),
+                Err(ThermodynamicLedgerError::InvalidEnergyAmount)
+            );
+            assert_eq!(
+                ledger.try_record_regeneration(bad),
                 Err(ThermodynamicLedgerError::InvalidEnergyAmount)
             );
         }
@@ -656,6 +712,42 @@ mod tests {
     }
 
     #[test]
+    fn regeneration_is_reported_separately_from_the_legacy_mismatch() {
+        let mut ledger = ThermodynamicLedger::new();
+        ledger.record_action(10.0, 0.5);
+        ledger.record_dissipation(10.0);
+        ledger.record_regeneration(4.0);
+
+        let balance = ledger.try_tick_balance().unwrap();
+        assert_eq!(balance.energy_in, 10.0);
+        assert_eq!(balance.energy_out, 10.0);
+        assert_eq!(balance.regeneration_in, 4.0);
+        // This is only the legacy action/dissipation mismatch. The presence
+        // of a zero mismatch does not turn this incomplete ledger into a
+        // whole-system conservation proof.
+        assert_eq!(balance.conservation_error, 0.0);
+        assert_eq!(ledger.regeneration_in, 0.0);
+    }
+
+    #[test]
+    fn regeneration_rejects_invalid_and_unrepresentable_flows() {
+        let mut ledger = ThermodynamicLedger::new();
+        for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -1.0] {
+            assert_eq!(
+                ledger.try_record_regeneration(bad),
+                Err(ThermodynamicLedgerError::InvalidEnergyAmount)
+            );
+        }
+
+        ledger.regeneration_in = f64::MAX;
+        assert_eq!(
+            ledger.try_record_regeneration(f64::MAX),
+            Err(ThermodynamicLedgerError::NumericalOverflow)
+        );
+        assert_eq!(ledger.regeneration_in, f64::MAX);
+    }
+
+    #[test]
     fn joules_per_phi() {
         let mut ledger = ThermodynamicLedger::new();
         // Entity with phi=0.8 consumes 100J
@@ -721,6 +813,7 @@ mod tests {
         // After tick, per-tick values should be reset
         assert!(ledger.energy_in < 1e-15);
         assert!(ledger.energy_out < 1e-15);
+        assert!(ledger.regeneration_in < 1e-15);
     }
 
     #[test]
