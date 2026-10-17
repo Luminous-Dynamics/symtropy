@@ -167,7 +167,9 @@ fn audit_values(
             .get("architecture_hypotheses")
             .and_then(Value::as_array);
         if architecture_hypotheses.is_none_or(|items| items.len() < 2) {
-            errors.push(format!("{id}: at least two architecture hypotheses are required"));
+            errors.push(format!(
+                "{id}: at least two architecture hypotheses are required"
+            ));
         }
         let metrics = family.get("function_metrics").and_then(Value::as_array);
         if metrics.is_none_or(|items| items.len() < 3) {
@@ -179,7 +181,9 @@ fn audit_values(
             .get("user_maintenance_tasks")
             .and_then(Value::as_array);
         if user_tasks.is_none_or(|tasks| tasks.is_empty()) {
-            errors.push(format!("{id}: permitted user maintenance boundary is missing"));
+            errors.push(format!(
+                "{id}: permitted user maintenance boundary is missing"
+            ));
         }
         let qualified_tasks = family
             .get("qualified_service_tasks")
@@ -210,7 +214,9 @@ fn audit_values(
             .and_then(Value::as_array);
         if regulatory_references.is_none_or(|refs| {
             refs.iter().any(|reference| {
-                reference.as_str().is_none_or(|url| !url.starts_with("https://"))
+                reference
+                    .as_str()
+                    .is_none_or(|url| !url.starts_with("https://"))
             })
         }) {
             errors.push(format!("{id}: regulation references must be HTTPS URLs"));
@@ -228,7 +234,9 @@ fn audit_values(
         .and_then(|policy| policy.get("proposed_targets"))
         .and_then(Value::as_array)
     else {
-        return Err(vec!["benchmark_policy.proposed_targets must be an array".to_owned()]);
+        return Err(vec![
+            "benchmark_policy.proposed_targets must be an array".to_owned(),
+        ]);
     };
     if targets.len() < 8 {
         errors.push(format!(
@@ -270,7 +278,9 @@ fn audit_values(
     let mut variant_ids = BTreeSet::new();
     for (index, variant) in variants.iter().enumerate() {
         let Some(id) = text_at(variant, "id") else {
-            errors.push(format!("washer_architecture_variants[{index}].id must be a string"));
+            errors.push(format!(
+                "washer_architecture_variants[{index}].id must be a string"
+            ));
             continue;
         };
         if !variant_ids.insert(id.to_owned()) {
@@ -311,17 +321,19 @@ fn audit_values(
             .and_then(Value::as_array)
             .is_none_or(|measurements| measurements.len() < 4)
         {
-            errors.push(format!("{id}: at least four required measurements must be named"));
+            errors.push(format!(
+                "{id}: at least four required measurements must be named"
+            ));
         }
     }
-    if variants.first().and_then(|variant| text_at(variant, "id"))
-        != Some("W0-RETAIL-CONTROL")
-    {
+    if variants.first().and_then(|variant| text_at(variant, "id")) != Some("W0-RETAIL-CONTROL") {
         errors.push("washer architecture matrix must begin with the retail control W0".to_owned());
     }
 
     let Some(protocol) = portfolio.get("washer_benchmark_protocol") else {
-        return Err(vec!["portfolio.washer_benchmark_protocol is required".to_owned()]);
+        return Err(vec![
+            "portfolio.washer_benchmark_protocol is required".to_owned(),
+        ]);
     };
     if text_at(protocol, "protocol_id") != Some("WASHER-BENCHMARK-PROTOCOL-001") {
         errors.push("washer benchmark protocol identity changed".to_owned());
@@ -345,8 +357,10 @@ fn audit_values(
                 .to_owned(),
         );
     }
-    if text_at(protocol.get("workload_plan").unwrap_or(&Value::Null), "status")
-        != Some("not_frozen")
+    if text_at(
+        protocol.get("workload_plan").unwrap_or(&Value::Null),
+        "status",
+    ) != Some("not_frozen")
         || text_at(
             protocol.get("instrumentation_plan").unwrap_or(&Value::Null),
             "status",
@@ -378,15 +392,13 @@ fn audit_values(
             ));
         }
     }
-    if text_at(
-        freeze.unwrap_or(&Value::Null),
-        "missing_data_policy",
-    ) != Some("unknown_not_zero")
-    {
+    if text_at(freeze.unwrap_or(&Value::Null), "missing_data_policy") != Some("unknown_not_zero") {
         errors.push("washer benchmark missing data must remain unknown, not zero".to_owned());
     }
     let Some(protocol_metrics) = protocol.get("metrics").and_then(Value::as_array) else {
-        return Err(vec!["washer_benchmark_protocol.metrics must be an array".to_owned()]);
+        return Err(vec![
+            "washer_benchmark_protocol.metrics must be an array".to_owned(),
+        ]);
     };
     let mut metric_ids = BTreeSet::new();
     for metric in protocol_metrics {
@@ -397,21 +409,22 @@ fn audit_values(
         if !metric_ids.insert(id.to_owned()) {
             errors.push(format!("duplicate washer protocol metric {id}"));
         }
-        if text_at(metric, "status")
-            != Some("method_to_be_frozen_before_candidate_measurements")
-        {
-            errors.push(format!("{id}: metric status cannot claim a frozen or measured method"));
+        if text_at(metric, "status") != Some("method_to_be_frozen_before_candidate_measurements") {
+            errors.push(format!(
+                "{id}: metric status cannot claim a frozen or measured method"
+            ));
         }
         if text_at(metric, "method").is_none_or(str::is_empty) {
             errors.push(format!("{id}: metric needs a declared method"));
         }
     }
     if protocol_metrics.len() != EXPECTED_WASHER_METRICS.len()
-        || EXPECTED_WASHER_METRICS.iter().any(|id| !metric_ids.contains(*id))
+        || EXPECTED_WASHER_METRICS
+            .iter()
+            .any(|id| !metric_ids.contains(*id))
     {
-        errors.push(
-            "washer benchmark metric set must retain the reviewed 11 dimensions".to_owned(),
-        );
+        errors
+            .push("washer benchmark metric set must retain the reviewed 11 dimensions".to_owned());
     }
     if text_at(
         protocol.get("service_trials").unwrap_or(&Value::Null),
@@ -434,8 +447,13 @@ fn audit_values(
         "Unknown parts delay, labour, cost, calibration or mass stays unknown",
         "Safety and conformity remain separate hard gates",
     ] {
-        if !evidence_rules.iter().any(|rule| rule.contains(required_rule)) {
-            errors.push(format!("washer benchmark evidence rule missing: {required_rule}"));
+        if !evidence_rules
+            .iter()
+            .any(|rule| rule.contains(required_rule))
+        {
+            errors.push(format!(
+                "washer benchmark evidence rule missing: {required_rule}"
+            ));
         }
     }
 
@@ -455,7 +473,9 @@ fn audit_values(
         "Open Repair Alliance repair-attempt dataset (October 2026 release)",
     ] {
         if !reference_titles.contains(required_reference) {
-            errors.push(format!("required source reference missing: {required_reference}"));
+            errors.push(format!(
+                "required source reference missing: {required_reference}"
+            ));
         }
     }
 
@@ -512,9 +532,8 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json"
     );
-    const PORTFOLIO: &str = include_str!(
-        "../../../fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json"
-    );
+    const PORTFOLIO: &str =
+        include_str!("../../../fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json");
 
     fn canonical_portfolio() -> Value {
         serde_json::from_str(PORTFOLIO).expect("canonical portfolio JSON must parse")
@@ -544,7 +563,11 @@ mod tests {
         let mut portfolio = canonical_portfolio();
         portfolio["families"][1]["id"] = json!("washing_machine");
         let errors = audit_mutation(&portfolio).expect_err("duplicate family must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate appliance family id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate appliance family id"))
+        );
     }
 
     #[test]
@@ -552,15 +575,19 @@ mod tests {
         let mut portfolio = canonical_portfolio();
         portfolio["selection_policy"]["first_large_appliance"] = json!("heat_pump_hvac");
         let errors = audit_mutation(&portfolio).expect_err("unreviewed target change must fail");
-        assert!(errors.iter().any(|error| error.contains("first_large_appliance")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("first_large_appliance"))
+        );
     }
 
     #[test]
     fn unmeasured_target_cannot_be_relabelled_as_result() {
         let mut portfolio = canonical_portfolio();
         portfolio["benchmark_policy"]["proposed_targets"][0]["status"] = json!("achieved");
-        let errors = audit_mutation(&portfolio)
-            .expect_err("proposed target must not become result");
+        let errors =
+            audit_mutation(&portfolio).expect_err("proposed target must not become result");
         assert!(!errors.is_empty());
     }
 
@@ -592,8 +619,7 @@ mod tests {
         let mut portfolio = canonical_portfolio();
         portfolio["washer_benchmark_protocol"]["analysis_freeze"]["missing_data_policy"] =
             json!("unknown_equals_zero");
-        let errors = audit_mutation(&portfolio)
-            .expect_err("unknown evidence cannot become zero");
+        let errors = audit_mutation(&portfolio).expect_err("unknown evidence cannot become zero");
         assert!(!errors.is_empty());
     }
 
@@ -613,8 +639,8 @@ mod tests {
     fn washer_protocol_requires_three_control_units() {
         let mut portfolio = canonical_portfolio();
         portfolio["washer_benchmark_protocol"]["control_plan"]["minimum_units"] = json!(1);
-        let errors = audit_mutation(&portfolio)
-            .expect_err("single control does not meet pilot floor");
+        let errors =
+            audit_mutation(&portfolio).expect_err("single control does not meet pilot floor");
         assert!(!errors.is_empty());
     }
 
@@ -645,8 +671,8 @@ mod tests {
     fn washer_variant_cannot_be_marked_as_measured_before_physical_tests() {
         let mut portfolio = canonical_portfolio();
         portfolio["washer_architecture_variants"][2]["status"] = json!("measured_pass");
-        let errors = audit_mutation(&portfolio)
-            .expect_err("an unmeasured variant must not be promoted");
+        let errors =
+            audit_mutation(&portfolio).expect_err("an unmeasured variant must not be promoted");
         assert!(!errors.is_empty());
     }
 
@@ -654,9 +680,13 @@ mod tests {
     fn washer_variant_matrix_must_keep_the_retail_control() {
         let mut portfolio = canonical_portfolio();
         portfolio["washer_architecture_variants"][0]["id"] = json!("W0-NEW-DESIGN");
-        let errors = audit_mutation(&portfolio)
-            .expect_err("retail control identity must be stable");
-        assert!(errors.iter().any(|error| error.contains("W0-RETAIL-CONTROL")));
+        let errors =
+            audit_mutation(&portfolio).expect_err("retail control identity must be stable");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("W0-RETAIL-CONTROL"))
+        );
     }
 
     #[test]
