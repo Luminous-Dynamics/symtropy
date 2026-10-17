@@ -80,6 +80,9 @@ jobs:
       - name: Run calibration transfer-shift reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example calibration_transfer_shift_reference
 
+      - name: Run drift-detector comparison reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example drift_detector_comparison_reference
+
       - name: Run orbital sustainability externality reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
       - name: Execute corpus validator and emit receipt
@@ -517,6 +520,38 @@ jobs:
             and .partition_integrity.integrity_pass == true
           ' space-economy-calibration-transfer-shift-receipt.json
 
+      - name: Execute drift-detector comparison reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example drift_detector_comparison_reference -- --source-commit "$source_commit" > space-economy-drift-detector-comparison-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .result == "pass"
+            and .source_commit == $source_commit
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.reference_source_sha256 | test("^[0-9a-f]{64}$"))
+            and (.model_specification_sha256 | test("^[0-9a-f]{64}$"))
+            and .fixture_type == "synthetic_seeded_drift_detector_comparison"
+            and .summary.detector_count == 3
+            and .summary.shift_condition_count == 9
+            and .summary.total_shift_episodes_per_detector == 576
+            and .summary.held_out_null_episodes == 256
+            and .summary.training_false_alarm_budget_bps == 100
+            and .summary.all_training_thresholds_within_false_alarm_budget == true
+            and .summary.thresholds_fitted_on_null_training_data_only == true
+            and .summary.held_out_streams_used_for_final_metrics == true
+            and .summary.detectors_are_not_ranked_by_delay_alone == true
+            and (.detector_comparisons | length == 3)
+            and all(.detector_comparisons[]; .threshold_selection.false_alarm_rate_bps <= 100 and .threshold_selection.threshold_frozen_before_held_out_scoring == true and (.conditions | length == 9))
+            and all(.detector_comparisons[].conditions[]; .episodes == 64 and .detection_probability_bps >= 0 and .detection_probability_bps <= 10000 and .miss_rate_bps >= 0 and .miss_rate_bps <= 10000 and .pre_shift_false_alarm_count >= 0 and .total_post_shift_observations_exposed_before_detection >= 0)
+            and (.held_out_null_results | length == 3)
+            and all(.held_out_null_results[]; .episodes == 256 and .false_alarm_rate_bps >= 0 and .false_alarm_rate_bps <= 10000 and .held_out_from_threshold_selection == true)
+            and .partition_integrity.seed_ranges_disjoint == true
+            and .partition_integrity.held_out_streams_used_for_threshold_tuning == false
+            and .partition_integrity.test_data_used_for_fit_or_calibration == false
+          ' space-economy-drift-detector-comparison-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -538,7 +573,8 @@ jobs:
             space-economy-correlated-assay-evidence-receipt.json \
             space-economy-robust-model-uncertainty-receipt.json \
             space-economy-decision-value-calibration-experiments-receipt.json \
-            space-economy-calibration-transfer-shift-receipt.json; do
+            space-economy-calibration-transfer-shift-receipt.json \
+            space-economy-drift-detector-comparison-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -569,6 +605,7 @@ jobs:
             space-economy-robust-model-uncertainty-receipt.json
             space-economy-decision-value-calibration-experiments-receipt.json
             space-economy-calibration-transfer-shift-receipt.json
+            space-economy-drift-detector-comparison-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
