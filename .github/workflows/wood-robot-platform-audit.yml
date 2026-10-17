@@ -51,6 +51,7 @@ jobs:
             .result == "pass"
             and .scenario_count == 29
             and .aerial_scenario_count == 13
+            and .salvage_scenario_count == 7
             and (.decision_counts | has("blocked"))
             and (.decision_counts | has("eligible_for_simulated_plan"))
             and .all_plan_only == true
