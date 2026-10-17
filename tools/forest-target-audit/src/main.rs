@@ -473,6 +473,12 @@ impl<'a> TargetOracleSolver<'a> {
         if config.energy_budget_steps <= config.return_reserve_steps {
             return Err("target oracle budget must exceed return reserve".into());
         }
+        let mut target_ids = BTreeSet::new();
+        for target in targets {
+            if target.target_id.trim().is_empty() || !target_ids.insert(target.target_id.as_str()) {
+                return Err("target oracle rejects empty or duplicate target IDs".into());
+            }
+        }
         let feature_cells: Vec<usize> = targets.iter()
             .flat_map(|t| t.required_feature_cells.iter().copied()).collect();
         if feature_cells.is_empty() || feature_cells.len() > 64 {
@@ -494,10 +500,10 @@ impl<'a> TargetOracleSolver<'a> {
             }
             target_masks.push(mask);
         }
-        let distances: Vec<Vec<Option<u16>>> = (0..N).map(|i| distances(map, i)).collect();
+        let distance_matrix: Vec<Vec<Option<u16>>> = (0..N).map(|i| distances(map, i)).collect();
         let mut candidates = Vec::new();
         for cell in 0..N {
-            if !clear(map, cell) || distances[config.start_cell][cell].is_none() { continue; }
+            if !clear(map, cell) || distance_matrix[config.start_cell][cell].is_none() { continue; }
             let p = xy(cell);
             for heading in [Heading::North, Heading::East, Heading::South, Heading::West] {
                 let view = Viewpoint { x: p.x, y: p.y, heading };
@@ -509,7 +515,7 @@ impl<'a> TargetOracleSolver<'a> {
                 }
             }
         }
-        Ok(Self { map, targets, config, candidates, distances, target_masks, best: None })
+        Ok(Self { map, targets, config, candidates, distances: distance_matrix, target_masks, best: None })
     }
     fn objective(&self, mask: u64) -> (usize, usize) {
         let complete = self.target_masks.iter().filter(|target_mask| (mask & **target_mask) == **target_mask).count();
@@ -930,6 +936,47 @@ mod tests {
         assert!(!score.targets[0].complete);
         assert_eq!(score.targets[0].completeness_basis_points, 5_000);
     }
+
+    #[test]
+    fn exact_target_oracle_dominates_a_feasible_baseline_under_its_lexicographic_objective() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let config = config_for(binding);
+        let baseline = PlannerPlan {
+            budget_feasible: true,
+            outbound_cost_steps: 0,
+            return_distance_steps: 0,
+            reserved_steps: config.return_reserve_steps,
+            total_budgeted_steps: config.return_reserve_steps,
+            viewpoints: vec![Viewpoint { x: 0, y: 0, heading: Heading::North }],
+        };
+        verify_plan_contract(&map, &baseline, &config, "test baseline").unwrap();
+        let baseline_score = score_plan(&map, &baseline, &targets).unwrap();
+        let oracle = TargetOracleSolver::new(&map, &targets, config.clone()).unwrap().solve().unwrap();
+        assert!(oracle.plan.budget_feasible);
+        assert!(oracle.score.complete_target_count >= baseline_score.complete_target_count);
+        if oracle.score.complete_target_count == baseline_score.complete_target_count {
+            assert!(oracle.score.visible_feature_count >= baseline_score.visible_feature_count);
+        }
+        assert_eq!(oracle.score.complete_target_count,
+            oracle.score.targets.iter().filter(|t| t.complete).count());
+        let mut unsupported = config;
+        unsupported.max_viewpoints = 4;
+        assert!(TargetOracleSolver::new(&map, &targets, unsupported).is_err());
+    }
+
+    #[test]
+    fn exact_target_oracle_rejects_duplicate_target_identity() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let mut targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        targets[1].target_id = targets[0].target_id.clone();
+        assert!(TargetOracleSolver::new(&map, &targets, config_for(binding)).is_err());
+    }
+
     #[test]
     fn serialized_scores_are_bounded_and_deterministic() {
         let map = map_for(Scene::OpenGrid);
