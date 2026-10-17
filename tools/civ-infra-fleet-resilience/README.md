@@ -40,3 +40,21 @@ The report's `validation_status` is `fixture_schema_valid_and_finite_schedule_or
 Thus the oracle executes, but it does not run B0/B1/B2 planning policies or simulate injected failures and recovery. It does not validate hardware, field productivity, construction safety, or dispatch authority. The independent scheduling oracle is not yet an independent implementation or third-party audit.
 
 CI must run on the exact head before Rust execution is considered verified; queued or missing checks are not passes.
+
+## First recovery-policy microcase
+
+A separate binary now executes one frozen synthetic robot-loss rollout and compares three lanes:
+
+- **B0 — protective-stop baseline:** an equipment-level interlock stops the campaign when the active task's resource fails; the planner is not granted early knowledge of the cause.
+- **B1 — local repair-and-retry:** retains the original assignment and restarts the interrupted task when the resource is declared available again.
+- **B2 — observation-gated replan:** after the fault becomes observable, reassigns the interrupted task to an explicitly listed alternative resource if it is currently available.
+
+Run it from the repository root:
+
+```sh
+cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin policy-rollout -- docs/research/civ-infra-resilience/fixtures/policy-rollout-microcase-v0.1.json
+```
+
+The frozen reference outcomes are B0: safe stop with no accepted synthetic output; B1: four tasks including final inspection completed at tick 8; B2: the same synthetic acceptance at tick 6 after one reassignment at tick 2. The two-tick difference is specific to this hand-authored case, not a performance estimate. The report hashes the exact fixture bytes and fails closed if policy outcomes do not match the fixture.
+
+This extends the *execution boundary* beyond the manifest-only tool, but only to one scenario and a small hand-coded discrete-tick model. It is not yet a rollout of all 13 declared disturbances, a general planner, physics, hardware validation, real inspection evidence, safe dispatch, or field-productivity measurement. The Rust compile and tests must pass on the exact commit before this executable is considered verified.
