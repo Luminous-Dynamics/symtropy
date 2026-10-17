@@ -561,6 +561,61 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
             for gate in &gates {
                 if !gate_ids.contains(gate) { push(&mut errors, &format!("{path}.required_gate_ids"), "undeclared gate ID"); }
             }
+            for always_required in [
+                "route_or_waterway_authorization",
+                "environmental_protection",
+                "recovery_plan",
+                "payload_layout_and_load_distribution",
+            ] {
+                if !gates.contains(always_required) {
+                    push(&mut errors, &format!("{path}.required_gate_ids"), &format!("mandatory mission gate {always_required} is missing"));
+                }
+            }
+            let mission_payload_records: Vec<&Value> = root["payload_profiles"].as_array().unwrap().iter()
+                .filter(|payload| payload["payload_id"].as_str().is_some_and(|pid| payloads.contains(pid)))
+                .collect();
+            let has_human_payload = mission_payload_records.iter()
+                .any(|payload| payload["occupants"].as_u64().unwrap_or(0) > 0);
+            let requires_human = item.get("requires_human_transport").and_then(Value::as_bool).unwrap_or(false);
+            if has_human_payload != requires_human {
+                push(&mut errors, &path, "requires_human_transport must match the mission's occupant payloads");
+            }
+            let needs_securement = mission_payload_records.iter()
+                .any(|payload| payload["securement_required"].as_bool() == Some(true));
+            if needs_securement && !gates.contains("payload_securement") {
+                push(&mut errors, &path, "securement-required payload is missing the payload_securement gate");
+            }
+            let needs_condition_control = mission_payload_records.iter()
+                .any(|payload| !payload["temperature_range_c"].is_null());
+            if needs_condition_control && !gates.contains("condition_control") {
+                push(&mut errors, &path, "temperature-constrained payload is missing condition_control");
+            }
+            let needs_accessibility = mission_payload_records.iter()
+                .any(|payload| payload["accessible_boarding_required"].as_bool() == Some(true));
+            if needs_accessibility && !gates.contains("accessible_transfer") {
+                push(&mut errors, &path, "accessible passenger mission is missing accessible_transfer");
+            }
+            let needs_patient_care = mission_payload_records.iter()
+                .any(|payload| payload["patient_support_required"].as_bool() == Some(true)
+                    || payload["caregiver_access_required"].as_bool() == Some(true));
+            if needs_patient_care && !gates.contains("patient_care_access") {
+                push(&mut errors, &path, "patient payload is missing patient_care_access");
+            }
+            let needs_privacy = mission_payload_records.iter()
+                .any(|payload| payload["privacy_sensitive"].as_bool() == Some(true));
+            if needs_privacy && !gates.contains("privacy_and_data_minimization") {
+                push(&mut errors, &path, "privacy-sensitive payload is missing privacy_and_data_minimization");
+            }
+            if has_human_payload && !gates.contains("occupant_restraints_and_egress") {
+                push(&mut errors, &path, "human transport is missing occupant_restraints_and_egress");
+            }
+            if has_human_payload && !gates.contains("human_supervision_and_stop") {
+                push(&mut errors, &path, "human transport is missing human_supervision_and_stop");
+            }
+            if item["environment_id"].as_str() == Some("afghanistan")
+                && !gates.contains("explosive_hazard_route_evidence") {
+                push(&mut errors, &path, "Afghanistan mission is missing the explosive-hazard route evidence gate");
+            }
             if let Some(id) = id { mission_gate_inventory.insert(id, gates); }
             let route = &item["route_envelope"];
             if !exact_keys(route, &["min_ambient_temp_c", "max_ambient_temp_c", "required_route_tilt_deg"]) {
