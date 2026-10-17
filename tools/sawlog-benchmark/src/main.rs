@@ -40,6 +40,7 @@ struct LogGeometry {
     gross_volume_mm3: u64,
     gross_volume_method: String,
     source: SourceMetadata,
+    geometry_source: SourceMetadata,
     stations: Vec<SectionStation>,
     defects: Vec<Defect>,
 }
@@ -145,6 +146,7 @@ struct Receipt {
     scenario_count: usize,
     corpus_sha256: String,
     source_commit: String,
+    geometry_metrics: AggregateGeometryMetrics,
     scenarios: Vec<ScenarioSummary>,
 }
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -168,6 +170,14 @@ struct ScenarioSummary {
     geometry_volume_estimate_mm3: u128,
     absolute_geometry_delta_mm3: u128,
     geometry_tolerance_mm3: u128,
+    absolute_geometry_percentage_error_ppm: u64,
+    geometry_target_met: bool,
+    geometry_source_id: String,
+    geometry_source_license: String,
+    geometry_source_method: String,
+    geometry_source_measured_at: String,
+    geometry_source_calibration_status: CalibrationStatus,
+    geometry_source_uncertainty_ppm: u32,
     observed_board_count: usize,
     observed_board_volume_mm3: u128,
     known_byproduct_volume_mm3: u128,
@@ -179,12 +189,34 @@ struct ScenarioSummary {
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
+struct AggregateGeometryMetrics {
+    evaluated_log_count: usize,
+    mean_absolute_percentage_error_ppm: u64,
+    median_absolute_percentage_error_ppm: u64,
+    max_absolute_percentage_error_ppm: u64,
+    volume_weighted_absolute_percentage_error_ppm: u64,
+    within_declared_target_count: usize,
+    within_declared_target_fraction_ppm: u64,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
 struct DefectSummary {
     defect_id: String,
     kind: DefectKind,
     axial_start_mm: u64,
     axial_end_mm: u64,
     evidence_state: EvidenceState,
+}
+
+fn percent_error_ppm(delta: u128, reference: u128) -> Check<u64> {
+    if reference == 0 {
+        return Err("reference volume must be positive".to_owned());
+    }
+    let scaled = delta.checked_mul(1_000_000)
+        .ok_or_else(|| "percentage error overflow".to_owned())?;
+    let rounded = scaled.checked_add(reference / 2)
+        .ok_or_else(|| "percentage error rounding overflow".to_owned())? / reference;
+    u64::try_from(rounded).map_err(|_| "percentage error does not fit u64".to_owned())
 }
 
 fn nonempty(s: &str, field: &str, context: &str) -> Check<()> {
@@ -278,6 +310,15 @@ fn validate_scenario(s: &Scenario) -> Check<()> {
         return Err(format!("{ctx}: current calibration requires an instrument_id"));
     }
     if l.source.uncertainty_ppm > 1_000_000 { return Err(format!("{ctx}: source uncertainty exceeds 100%")); }
+    nonempty(&l.geometry_source.source_id, "geometry_source.source_id", ctx)?;
+    nonempty(&l.geometry_source.license, "geometry_source.license", ctx)?;
+    nonempty(&l.geometry_source.method, "geometry_source.method", ctx)?;
+    valid_date(&l.geometry_source.measured_at, "geometry_source.measured_at", ctx)?;
+    if let Some(id) = &l.geometry_source.instrument_id { nonempty(id, "geometry_source.instrument_id", ctx)?; }
+    if l.geometry_source.calibration_status == CalibrationStatus::Current && l.geometry_source.instrument_id.is_none() {
+        return Err(format!("{ctx}: current geometry calibration requires an instrument_id"));
+    }
+    if l.geometry_source.uncertainty_ppm > 1_000_000 { return Err(format!("{ctx}: geometry source uncertainty exceeds 100%")); }
     if l.stations.len() < 2 || l.stations.len() > 1000 { return Err(format!("{ctx}: station count must be 2..=1000")); }
     if l.stations[0].axial_position_mm != 0 || l.stations.last().map(|p| p.axial_position_mm) != Some(l.length_mm) {
         return Err(format!("{ctx}: stations must span from 0 to log length"));
@@ -303,10 +344,8 @@ fn validate_scenario(s: &Scenario) -> Check<()> {
     let geometry_volume = estimated_geometry_volume_mm3(l)?;
     let declared_gross = u128::from(l.gross_volume_mm3);
     let geometry_delta = geometry_volume.abs_diff(declared_gross);
-    let geometry_tolerance = declared_gross * u128::from(s.geometry_tolerance_ppm) / 1_000_000;
-    if geometry_delta > geometry_tolerance {
-        return Err(format!("{ctx}: geometry-derived volume differs from declared gross volume by {geometry_delta} mm3 (tolerance {geometry_tolerance} mm3)"));
-    }
+    let _geometry_tolerance = declared_gross * u128::from(s.geometry_tolerance_ppm) / 1_000_000;
+    // A prediction outside the target is scored as a miss, not discarded as malformed input.
     if l.defects.len() > 1000 { return Err(format!("{ctx}: defect count exceeds 1000")); }
     let mut defect_ids = BTreeSet::new();
     for d in &l.defects {
@@ -379,6 +418,8 @@ fn summary(s: &Scenario) -> Check<ScenarioSummary> {
     let geometry_volume = estimated_geometry_volume_mm3(&s.log)?;
     let geometry_delta = geometry_volume.abs_diff(gross);
     let geometry_tolerance = gross * u128::from(s.geometry_tolerance_ppm) / 1_000_000;
+    let absolute_geometry_percentage_error_ppm = percent_error_ppm(geometry_delta, gross)?;
+    let geometry_target_met = geometry_delta <= geometry_tolerance;
     let status = match s.observation.status {
         ObservationStatus::Complete => "within_tolerance",
         ObservationStatus::Partial => "partial_only",
@@ -402,12 +443,64 @@ fn summary(s: &Scenario) -> Check<ScenarioSummary> {
         }).collect(),
         geometry_volume_estimate_mm3: geometry_volume,
         absolute_geometry_delta_mm3: geometry_delta, geometry_tolerance_mm3: geometry_tolerance,
+        absolute_geometry_percentage_error_ppm, geometry_target_met,
+        geometry_source_id: s.log.geometry_source.source_id.clone(),
+        geometry_source_license: s.log.geometry_source.license.clone(),
+        geometry_source_method: s.log.geometry_source.method.clone(),
+        geometry_source_measured_at: s.log.geometry_source.measured_at.clone(),
+        geometry_source_calibration_status: s.log.geometry_source.calibration_status,
+        geometry_source_uncertainty_ppm: s.log.geometry_source.uncertainty_ppm,
         observed_board_count: s.observation.boards.len(),
         observed_board_volume_mm3: boards, known_byproduct_volume_mm3: byproducts, known_output_volume_mm3: combined,
         absolute_accounting_delta_mm3: delta, accounting_status: status,
         grade_rule_id: s.machine.grade_rule_id.clone(), grade_rule_version: s.machine.grade_rule_version.clone(),
     })
 }
+fn aggregate_geometry_metrics(summaries: &[ScenarioSummary]) -> Check<AggregateGeometryMetrics> {
+    if summaries.is_empty() {
+        return Err("cannot aggregate an empty geometry benchmark".to_owned());
+    }
+    let mut errors = summaries.iter()
+        .map(|s| s.absolute_geometry_percentage_error_ppm)
+        .collect::<Vec<_>>();
+    errors.sort_unstable();
+    let error_sum = errors.iter().try_fold(0_u128, |sum, value| {
+        sum.checked_add(u128::from(*value))
+            .ok_or_else(|| "aggregate percentage error overflow".to_owned())
+    })?;
+    let mean = error_sum / errors.len() as u128;
+    let median = if errors.len() % 2 == 1 {
+        u128::from(errors[errors.len() / 2])
+    } else {
+        (u128::from(errors[errors.len() / 2 - 1])
+            + u128::from(errors[errors.len() / 2])) / 2
+    };
+    let total_delta = summaries.iter().try_fold(0_u128, |sum, s| {
+        sum.checked_add(s.absolute_geometry_delta_mm3)
+            .ok_or_else(|| "aggregate volume error overflow".to_owned())
+    })?;
+    let total_reference = summaries.iter().try_fold(0_u128, |sum, s| {
+        sum.checked_add(u128::from(s.gross_log_volume_mm3))
+            .ok_or_else(|| "aggregate reference volume overflow".to_owned())
+    })?;
+    let weighted = percent_error_ppm(total_delta, total_reference)?;
+    let within = summaries.iter().filter(|s| s.geometry_target_met).count();
+    let fraction = (within as u128 * 1_000_000 + summaries.len() as u128 / 2)
+        / summaries.len() as u128;
+    Ok(AggregateGeometryMetrics {
+        evaluated_log_count: summaries.len(),
+        mean_absolute_percentage_error_ppm: u64::try_from(mean)
+            .map_err(|_| "mean percentage error does not fit u64".to_owned())?,
+        median_absolute_percentage_error_ppm: u64::try_from(median)
+            .map_err(|_| "median percentage error does not fit u64".to_owned())?,
+        max_absolute_percentage_error_ppm: *errors.last().expect("non-empty checked above"),
+        volume_weighted_absolute_percentage_error_ppm: weighted,
+        within_declared_target_count: within,
+        within_declared_target_fraction_ppm: u64::try_from(fraction)
+            .map_err(|_| "target coverage fraction does not fit u64".to_owned())?,
+    })
+}
+
 fn execute() -> Check<()> {
     let mut args = env::args().skip(1);
     let path = args.next().ok_or_else(|| "usage: sawlog-benchmark CORPUS.json --source-commit <40-hex-sha>".to_owned())?;
@@ -420,10 +513,12 @@ fn execute() -> Check<()> {
     validate(&corpus)?;
     let digest = format!("{:x}", Sha256::digest(&bytes));
     let summaries = corpus.scenarios.iter().map(summary).collect::<Check<Vec<_>>>()?;
+    let geometry_metrics = aggregate_geometry_metrics(&summaries)?;
     let receipt = Receipt {
-        result: "pass", validator_version: VERSION, suite_id: corpus.suite_id.clone(),
+        result: "validated", validator_version: VERSION, suite_id: corpus.suite_id.clone(),
         suite_version: corpus.suite_version.clone(), claim_ceiling: corpus.claim_ceiling.clone(),
-        scenario_count: summaries.len(), corpus_sha256: digest, source_commit: commit, scenarios: summaries,
+        scenario_count: summaries.len(), corpus_sha256: digest, source_commit: commit,
+        geometry_metrics, scenarios: summaries,
     };
     println!("{}", serde_json::to_string_pretty(&receipt).map_err(|e| e.to_string())?);
     Ok(())
@@ -445,9 +540,10 @@ mod tests {
     fn frozen_corpus_validates_with_both_accounting_states() {
         let c = corpus();
         validate(&c).unwrap();
-        assert_eq!(c.scenarios.len(), 2);
+        assert_eq!(c.scenarios.len(), 3);
         assert_eq!(c.scenarios[0].log.stations.len(), 4);
         assert_eq!(c.scenarios[1].log.defects.len(), 2);
+        assert!(!summary(&c.scenarios[2]).unwrap().geometry_target_met);
         assert_eq!(c.scenarios[0].observation.boards.len(), 2);
         assert_eq!(c.scenarios[1].observation.boards.len(), 3);
         assert_eq!(summary(&c.scenarios[0]).unwrap().accounting_status, "within_tolerance");
@@ -471,6 +567,27 @@ mod tests {
         c.scenarios[0].log.source.calibration_status = CalibrationStatus::Current;
         c.scenarios[0].log.source.instrument_id = None;
         assert!(validate(&c).unwrap_err().contains("current calibration requires an instrument_id"));
+    }
+    #[test]
+    fn geometry_error_is_scored_not_discarded_as_invalid_data() {
+        let mut c = corpus();
+        c.scenarios[1].log.gross_volume_mm3 = 304_000_000;
+        validate(&c).expect("valid but inaccurate estimates remain scoreable");
+        let scored = summary(&c.scenarios[1]).unwrap();
+        assert!(!scored.geometry_target_met);
+        assert!(scored.absolute_geometry_percentage_error_ppm > 50_000);
+    }
+    #[test]
+    fn aggregate_reports_median_mean_weighted_error_and_target_coverage() {
+        let c = corpus();
+        validate(&c).unwrap();
+        let summaries = c.scenarios.iter().map(summary).collect::<Check<Vec<_>>>().unwrap();
+        let metrics = aggregate_geometry_metrics(&summaries).unwrap();
+        assert_eq!(metrics.evaluated_log_count, 3);
+        assert_eq!(metrics.within_declared_target_count, 2);
+        assert_eq!(metrics.within_declared_target_fraction_ppm, 666_667);
+        assert!(metrics.max_absolute_percentage_error_ppm > metrics.median_absolute_percentage_error_ppm);
+        assert!(metrics.volume_weighted_absolute_percentage_error_ppm > 0);
     }
     #[test]
     fn complete_ledger_cannot_hide_volume_gap() {
