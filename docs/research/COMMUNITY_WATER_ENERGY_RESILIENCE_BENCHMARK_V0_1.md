@@ -55,17 +55,31 @@ All variables must carry units. Validate dimensional consistency and impossible 
 
 Maintain distinct, inspectable ledgers.
 
-Electricity balance, for each interval:
+Use bus-side quantities in energy units per interval.
 
-`generation + battery\_discharge = served\_load + battery\_charge + exports + curtailment + losses`
+`G_available = G_used + curtailment`
 
-Battery state update:
+`G_used + D_bus = served_load + C_bus + exports + grid_losses`
 
-`SOC_next = SOC + charge_efficiency * charge - discharge / discharge_efficiency`
+`SOC_next = SOC + eta_charge * C_bus - D_bus / eta_discharge`
 
-Potable-water balance:
+Here, `C_bus` is energy drawn from the electrical bus to charge storage, while `D_bus` is energy delivered by storage to the bus. Keep the bus balance and storage-state update as distinct checks. The combined inventory verifier must account for storage conversion losses exactly once:
 
-`water_next = water + inflow + treated\_production - delivered - leakage - overflow`
+`SOC_t + G_available = SOC_next + served_load + exports + curtailment + grid_losses + charge_loss + discharge_loss`
+
+`charge_loss = (1 - eta_charge) * C_bus`
+
+`discharge_loss = (1 / eta_discharge - 1) * D_bus`
+
+Curtailment is the unused portion of available generation. `served_load` includes pumping and treatment electricity as well as household and critical-facility loads.
+
+Water uses separate raw-water and treated-water stocks:
+
+`raw_next = raw + raw_inflow - raw_treated - raw_leakage - raw_overflow`
+
+`treated_next = treated + treatment_yield * raw_treated - delivered - treated_leakage - treated_overflow`
+
+`raw_treated` is raw-water volume entering treatment; `treatment_yield` is dimensionless and must remain within declared bounds. If the first implementation deliberately collapses the raw-water loop, it must instead define `inflow` as already-treated water and must not add treatment output on top of it.
 
 The exact sign conventions, storage boundaries, treatment boundary, and efficiency units must be declared in code and fixtures. A pump/treatment action is feasible only if both its water throughput and electricity requirements are feasible. Keep unserved demand as an explicit outcome.
 
