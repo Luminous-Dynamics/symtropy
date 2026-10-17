@@ -74,7 +74,7 @@ pub enum CostBasis {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(tag = "cost_status", rename_all = "snake_case")]
+#[serde(tag = "cost_status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum CostEvidence {
     KnownRange {
         basis: CostBasis,
@@ -989,6 +989,14 @@ mod tests {
         }
         let errors = eval_value(&value).expect_err("too many interventions must fail closed");
         assert!(contains_error(&errors, "exceeds exhaustive-search limit"));
+    }
+
+    #[test]
+    fn unknown_cost_variant_fields_fail_closed() {
+        let mut value = fixture();
+        value["interventions"][0]["cost"]["unexpected_cost_field"] = json!("must not be ignored");
+        let errors = eval_value(&value).expect_err("unknown nested fields must fail closed");
+        assert!(contains_error(&errors, "unknown field"));
     }
 
     #[test]
