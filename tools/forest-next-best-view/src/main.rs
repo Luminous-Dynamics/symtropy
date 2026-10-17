@@ -149,7 +149,7 @@ impl Planner {
         Ok(Self { candidates, dist, config })
     }
     fn transition(&self, from: usize, h: Heading, to: &Candidate) -> Option<u16> {
-        Some(self.dist[from][to.cell]?.saturating_add(if h == to.heading { 0 } else { self.config.turn_cost_steps() }))
+        Some(self.dist[from][to.cell]?.saturating_add(if h == to.heading { 0 } else { self.config.turn_cost_steps }))
     }
     fn total(&self, out: u16, selected: &[usize]) -> Option<(u16, u16)> {
         let last = selected.last().map(|i| self.candidates[*i].cell).unwrap_or(self.config.start_cell);
