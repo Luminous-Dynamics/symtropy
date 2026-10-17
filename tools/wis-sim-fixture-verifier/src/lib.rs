@@ -1130,6 +1130,106 @@ mod tests {
         verify_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA).expect("frozen fixture is structurally valid")
     }
 
+    fn synthetic_run_report(scenario_id: &str, variant_id: &str) -> String {
+        let manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+        let mut scenario: Option<Value> = None;
+        let mut input_line: Option<String> = None;
+        for line in FIXTURE.lines() {
+            let value: Value = serde_json::from_str(line).unwrap();
+            if value["scenario_id"] == scenario_id && value["variant_id"] == variant_id {
+                scenario = Some(value);
+                input_line = Some(line.to_owned());
+                break;
+            }
+        }
+        let scenario = scenario.expect("synthetic test scenario exists");
+        let input_line = input_line.expect("synthetic input line exists");
+        let input_sha = sha256_hex(input_line.as_bytes());
+        let mut report = json!({
+            "report_version": "wis-sim-run-report/0.1",
+            "run_status": "completed",
+            "simulation_executed": true,
+            "claim_ceiling": "synthetic verifier test report only; not a simulation result",
+            "identity": {
+                "corpus_id": manifest["corpus_id"],
+                "corpus_version": manifest["corpus_version"],
+                "fixture_sha256": manifest["fixture_sha256"],
+                "scenario_id": scenario["scenario_id"],
+                "scenario_version": scenario["scenario_version"],
+                "variant_id": scenario["variant_id"],
+                "policy_id": "no_intervention_v0",
+                "policy_version": scenario["policy_version"],
+                "deterministic_seed": scenario["deterministic_seed"],
+                "execution_profile": scenario["execution_profile"],
+                "engine_revision": "synthetic-test-engine-revision",
+                "toolchain_profile": "synthetic-unit-test-toolchain",
+                "target_triple": "x86_64-unknown-linux-gnu",
+                "environment_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "input_sha256": input_sha
+            },
+            "metrics": {},
+            "claims_retained": [],
+            "claims": {},
+            "decision": {},
+            "objections": {},
+            "events": {},
+            "invariant_results": [],
+            "warnings": []
+        });
+
+        let assertions = scenario["assertion_specifications"].as_array().unwrap();
+        for spec in assertions {
+            let kind = spec["assertion_kind"].as_str().unwrap();
+            let report_pointer = spec["report_pointer"].as_str().unwrap();
+            if kind == "field_absent" {
+                continue;
+            }
+            let value = match kind {
+                "numeric_upper_bound" | "value_equals" => {
+                    resolve_json_pointer(&scenario, spec["scenario_pointer"].as_str().unwrap())
+                        .expect("source pointer exists in synthetic scenario").clone()
+                }
+                "collection_contains_all_ids" => {
+                    resolve_json_pointer(&scenario, spec["scenario_pointer"].as_str().unwrap())
+                        .expect("source collection exists in synthetic scenario").clone()
+                }
+                "field_present" => json!("synthetic-unit-test-observation"),
+                "metric_zero" => json!(0),
+                "boolean_true" => json!(true),
+                _ => panic!("unsupported assertion type in test helper: {}", kind),
+            };
+            set_json_pointer(&mut report, report_pointer, value);
+        }
+
+        let results: Vec<Value> = assertions.iter().map(|spec| json!({
+            "assertion_id": spec["assertion_id"],
+            "status": "pass",
+            "evidence_pointer": spec["report_pointer"],
+            "explanation": "synthetic unit-test report; no simulation was executed"
+        })).collect();
+        report["invariant_results"] = json!(results);
+        serde_json::to_string(&report).unwrap()
+    }
+
+    fn set_json_pointer(root: &mut Value, pointer: &str, value: Value) {
+        assert!(pointer.starts_with('/'));
+        let segments: Vec<String> = pointer[1..].split('/')
+            .map(|segment| segment.replace("~1", "/").replace("~0", "~"))
+            .collect();
+        assert!(!segments.is_empty());
+        let mut current = root;
+        for segment in &segments[..segments.len() - 1] {
+            if !current.get(segment).map(Value::is_object).unwrap_or(false) {
+                current[segment] = json!({});
+            }
+            current = current.get_mut(segment).unwrap();
+        }
+        current.as_object_mut().unwrap().insert(
+            segments[segments.len() - 1].clone(),
+            value,
+        );
+    }
+
     fn rewritten_fixture<F>(mutate: F) -> (Vec<u8>, String)
     where
         F: FnOnce(&mut Vec<Value>),
@@ -1377,6 +1477,78 @@ mod tests {
                 a["assertion_kind"] == "field_absent" && a["report_pointer"] == "/metrics/consciousness_score"
             }));
         }
+    }
+
+
+    #[test]
+    fn synthetic_run_report_assertions_are_rechecked_independently_for_all_scenarios() {
+        for line in FIXTURE.lines() {
+            let scenario: Value = serde_json::from_str(line).unwrap();
+            let scenario_id = scenario["scenario_id"].as_str().unwrap();
+            let variant_id = scenario["variant_id"].as_str().unwrap();
+            let report = synthetic_run_report(scenario_id, variant_id);
+            let receipt = verify_run_report_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA, &report).unwrap();
+            assert_eq!(receipt["status"], "RUN_REPORT_ASSERTIONS_PASS", "{} / {}", scenario_id, variant_id);
+            assert_eq!(receipt["assertion_count"], scenario["assertion_specifications"].as_array().unwrap().len());
+        }
+    }
+
+    #[test]
+    fn run_report_identity_must_match_exact_scenario_seed() {
+        let mut report: Value = serde_json::from_str(&synthetic_run_report("WSS-001", "base")).unwrap();
+        report["identity"]["deterministic_seed"] = json!(42);
+        let text = serde_json::to_string(&report).unwrap();
+        assert!(verify_run_report_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA, &text)
+            .unwrap_err().contains("deterministic_seed differs"));
+    }
+
+    #[test]
+    fn report_that_violates_resource_bound_cannot_qualify() {
+        let mut report: Value = serde_json::from_str(&synthetic_run_report("WSS-001", "base")).unwrap();
+        report["metrics"]["allocation"]["total_units"] = json!(999);
+        for item in report["invariant_results"].as_array_mut().unwrap() {
+            if item["assertion_id"] == "WSS-001-A1" {
+                item["status"] = json!("fail");
+            }
+        }
+        let text = serde_json::to_string(&report).unwrap();
+        let receipt = verify_run_report_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA, &text).unwrap();
+        assert_eq!(receipt["status"], "RUN_REPORT_ASSERTIONS_FAIL");
+        assert_eq!(receipt["hard_assertions_failed"], 1);
+    }
+
+    #[test]
+    fn runner_cannot_claim_pass_when_resource_bound_is_violated() {
+        let mut report: Value = serde_json::from_str(&synthetic_run_report("WSS-001", "base")).unwrap();
+        report["metrics"]["allocation"]["total_units"] = json!(999);
+        let text = serde_json::to_string(&report).unwrap();
+        assert!(verify_run_report_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA, &text)
+            .unwrap_err().contains("disagrees with independent evaluation"));
+    }
+
+    #[test]
+    fn global_wisdom_score_in_report_fails_independent_contract() {
+        let mut report: Value = serde_json::from_str(&synthetic_run_report("WSS-001", "base")).unwrap();
+        report["metrics"]["global_wisdom_score"] = json!(0.91);
+        for item in report["invariant_results"].as_array_mut().unwrap() {
+            if item["assertion_id"] == "WSS-001-A90" {
+                item["status"] = json!("fail");
+            }
+        }
+        let text = serde_json::to_string(&report).unwrap();
+        let receipt = verify_run_report_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA, &text).unwrap();
+        assert_eq!(receipt["status"], "RUN_REPORT_ASSERTIONS_FAIL");
+    }
+
+    #[test]
+    fn unexecuted_run_is_not_a_qualification_pass() {
+        let mut report: Value = serde_json::from_str(&synthetic_run_report("WSS-001", "base")).unwrap();
+        report["run_status"] = json!("not_run");
+        report["simulation_executed"] = json!(false);
+        let text = serde_json::to_string(&report).unwrap();
+        let receipt = verify_run_report_bytes(FIXTURE.as_bytes(), MANIFEST, SCHEMA, &text).unwrap();
+        assert_eq!(receipt["status"], "RUN_NOT_QUALIFIED");
+        assert_eq!(receipt["assertions_evaluated"], false);
     }
 
     #[test]
