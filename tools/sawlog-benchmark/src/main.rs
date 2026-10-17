@@ -466,6 +466,13 @@ mod tests {
         assert!(validate(&c).unwrap_err().contains("geometry-derived volume differs"));
     }
     #[test]
+    fn current_calibration_requires_an_instrument_identity() {
+        let mut c = corpus();
+        c.scenarios[0].log.source.calibration_status = CalibrationStatus::Current;
+        c.scenarios[0].log.source.instrument_id = None;
+        assert!(validate(&c).unwrap_err().contains("current calibration requires an instrument_id"));
+    }
+    #[test]
     fn complete_ledger_cannot_hide_volume_gap() {
         let mut c = corpus();
         c.scenarios[0].observation.byproducts.slabs_and_trim_volume_mm3 += 10_000_000;
