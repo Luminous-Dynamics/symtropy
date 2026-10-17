@@ -95,7 +95,6 @@ pub enum FixtureValidationError {
     NonFiniteIntermediate,
 }
 
-
 /// Local, covariance-whitened observability summary for this 2x2 H0 control.
 ///
 /// Numerical rank depends on the declared tolerances and observation covariance.
@@ -205,11 +204,7 @@ impl PublicObservationFixture {
         let l00 = covariance[0][0].sqrt();
         let l10 = covariance[1][0] / l00;
         let pivot = covariance[1][1] - l10 * l10;
-        if !l00.is_finite()
-            || l00 <= 0.0
-            || !l10.is_finite()
-            || !pivot.is_finite()
-            || pivot <= 0.0
+        if !l00.is_finite() || l00 <= 0.0 || !l10.is_finite() || !pivot.is_finite() || pivot <= 0.0
         {
             return Err(FixtureValidationError::NonFiniteIntermediate);
         }
@@ -235,8 +230,7 @@ impl PublicObservationFixture {
         let gamma = whitened[0][1] * whitened[0][1] + whitened[1][1] * whitened[1][1];
         let discriminant = (alpha - gamma).hypot(2.0 * beta);
         let lambda_max = 0.5 * (alpha + gamma + discriminant);
-        let determinant =
-            whitened[0][0] * whitened[1][1] - whitened[0][1] * whitened[1][0];
+        let determinant = whitened[0][0] * whitened[1][1] - whitened[0][1] * whitened[1][0];
         let lambda_min = if lambda_max > 0.0 {
             (determinant * determinant / lambda_max).max(0.0)
         } else {
@@ -272,7 +266,11 @@ impl PublicObservationFixture {
             let candidate_b = [lambda_min - gamma, beta];
             let norm_a = candidate_a[0].hypot(candidate_a[1]);
             let norm_b = candidate_b[0].hypot(candidate_b[1]);
-            let candidate = if norm_a >= norm_b { candidate_a } else { candidate_b };
+            let candidate = if norm_a >= norm_b {
+                candidate_a
+            } else {
+                candidate_b
+            };
             let norm = candidate[0].hypot(candidate[1]);
             let null_vector = if norm > 0.0 && norm.is_finite() {
                 [candidate[0] / norm, candidate[1] / norm]
@@ -303,14 +301,19 @@ impl PublicObservationFixture {
     pub fn expected_information_gain_nats(&self) -> Result<f64, FixtureValidationError> {
         self.validate()?;
         let covariance = self.observation_covariance;
-        let determinant = covariance[0][0] * covariance[1][1]
-            - covariance[0][1] * covariance[1][0];
+        let determinant = covariance[0][0] * covariance[1][1] - covariance[0][1] * covariance[1][0];
         if !determinant.is_finite() || determinant <= 0.0 {
             return Err(FixtureValidationError::NonFiniteIntermediate);
         }
         let inverse_covariance = [
-            [covariance[1][1] / determinant, -covariance[0][1] / determinant],
-            [-covariance[1][0] / determinant, covariance[0][0] / determinant],
+            [
+                covariance[1][1] / determinant,
+                -covariance[0][1] / determinant,
+            ],
+            [
+                -covariance[1][0] / determinant,
+                covariance[0][0] / determinant,
+            ],
         ];
         let h = self.observation_operator;
         let weighted_h = [
@@ -383,10 +386,8 @@ impl PublicObservationFixture {
             return Err(FixtureValidationError::NonFiniteState);
         }
         Ok([
-            self.observation_operator[0][0] * state[0]
-                + self.observation_operator[0][1] * state[1],
-            self.observation_operator[1][0] * state[0]
-                + self.observation_operator[1][1] * state[1],
+            self.observation_operator[0][0] * state[0] + self.observation_operator[0][1] * state[1],
+            self.observation_operator[1][0] * state[0] + self.observation_operator[1][1] * state[1],
         ])
     }
 }
@@ -470,8 +471,7 @@ pub mod scoring;
 mod tests {
     use super::*;
 
-    const PUBLIC_MANIFEST: &str =
-        include_str!("../fixtures/h0-public-manifest.json");
+    const PUBLIC_MANIFEST: &str = include_str!("../fixtures/h0-public-manifest.json");
 
     fn close(actual: f64, expected: f64) {
         assert!(
@@ -486,9 +486,11 @@ mod tests {
             serde_json::from_str(PUBLIC_MANIFEST).expect("public manifest is valid JSON");
         assert_eq!(manifest["benchmark_id"], "geo-sim-h0-known-truth-001");
         assert_eq!(manifest["status"], "benchmark_specification_not_executed");
-        assert!(!manifest["claim_boundary"]["hidden_truth_is_in_public_manifest"]
-            .as_bool()
-            .unwrap());
+        assert!(
+            !manifest["claim_boundary"]["hidden_truth_is_in_public_manifest"]
+                .as_bool()
+                .unwrap()
+        );
         let records = manifest["fixtures"].as_array().expect("fixtures array");
         assert_eq!(records.len(), FixtureId::ALL.len());
 
@@ -537,7 +539,9 @@ mod tests {
             );
             close(
                 fixture.expected_information_gain_per_cost().unwrap(),
-                record["expected_information_gain_per_cost"].as_f64().unwrap(),
+                record["expected_information_gain_per_cost"]
+                    .as_f64()
+                    .unwrap(),
             );
             let expected = &record["expected_observability"];
             let report = fixture.analyze_observability(1e-12, 1e-12).unwrap();
@@ -553,7 +557,10 @@ mod tests {
             for (actual, value) in report.singular_values.iter().zip(expected_singular_values) {
                 close(*actual, value.as_f64().unwrap());
             }
-            match (report.condition_number, expected["condition_number"].as_f64()) {
+            match (
+                report.condition_number,
+                expected["condition_number"].as_f64(),
+            ) {
                 (Some(actual), Some(expected)) => close(actual, expected),
                 (None, None) => {}
                 (actual, expected) => {
@@ -579,9 +586,18 @@ mod tests {
             let second = public_fixture(fixture_id);
             assert_eq!(first, second);
             assert_eq!(first.validate(), Ok(()));
-            assert_eq!(first.provenance.truth_visibility, TruthVisibility::WithheldUntilScoring);
-            assert_eq!(first.provenance.evidence_class, EvidenceClass::SyntheticKnownTruth);
-            assert_eq!(first.provenance.randomness, "not_used_exact_analytic_fixture");
+            assert_eq!(
+                first.provenance.truth_visibility,
+                TruthVisibility::WithheldUntilScoring
+            );
+            assert_eq!(
+                first.provenance.evidence_class,
+                EvidenceClass::SyntheticKnownTruth
+            );
+            assert_eq!(
+                first.provenance.randomness,
+                "not_used_exact_analytic_fixture"
+            );
         }
     }
 
@@ -634,7 +650,10 @@ mod tests {
     fn validation_rejects_asymmetric_or_non_positive_covariance() {
         let mut fixture = public_fixture(FixtureId::CorrelatedDuplicate);
         fixture.observation_covariance[1][0] = 0.1;
-        assert_eq!(fixture.validate(), Err(FixtureValidationError::AsymmetricCovariance));
+        assert_eq!(
+            fixture.validate(),
+            Err(FixtureValidationError::AsymmetricCovariance)
+        );
 
         fixture.observation_covariance = [[1.0, 1.0], [1.0, 1.0]];
         assert_eq!(
@@ -652,7 +671,10 @@ mod tests {
         );
         let mut invalid = fixture;
         invalid.observation_operator[0][0] = f64::INFINITY;
-        assert_eq!(invalid.validate(), Err(FixtureValidationError::NonFiniteOperator));
+        assert_eq!(
+            invalid.validate(),
+            Err(FixtureValidationError::NonFiniteOperator)
+        );
     }
     #[test]
     fn complementary_sensors_are_full_rank_with_unit_condition_number() {
@@ -693,7 +715,9 @@ mod tests {
         let correlated_gain = fixture.expected_information_gain_nats().unwrap();
         let mut falsely_independent = fixture.clone();
         falsely_independent.observation_covariance = [[0.25, 0.0], [0.0, 0.25]];
-        let naive_gain = falsely_independent.expected_information_gain_nats().unwrap();
+        let naive_gain = falsely_independent
+            .expected_information_gain_nats()
+            .unwrap();
         close(correlated_gain, 0.8067249769620305);
         close(naive_gain, 1.0986122886681098);
         assert!(correlated_gain < naive_gain);
@@ -722,7 +746,10 @@ mod tests {
     fn non_positive_or_non_finite_observation_cost_fails_closed() {
         let mut fixture = public_fixture(FixtureId.ComplementarySensors);
         fixture.observation_costs[0] = 0.0;
-        assert_eq!(fixture.validate(), Err(FixtureValidationError::InvalidObservationCost));
+        assert_eq!(
+            fixture.validate(),
+            Err(FixtureValidationError::InvalidObservationCost)
+        );
         fixture.observation_costs = [1.0, f64::INFINITY];
         assert_eq!(
             fixture.expected_information_gain_per_cost(),
@@ -742,7 +769,10 @@ mod tests {
     #[test]
     fn simultaneous_observation_channels_may_share_a_model_time() {
         for fixture_id in FixtureId::ALL {
-            assert_eq!(public_fixture(fixture_id).model_relative_seconds, [0.0, 0.0]);
+            assert_eq!(
+                public_fixture(fixture_id).model_relative_seconds,
+                [0.0, 0.0]
+            );
             assert_eq!(public_fixture(fixture_id).validate(), Ok(()));
         }
     }
@@ -751,7 +781,10 @@ mod tests {
     fn time_axis_rejects_out_of_order_but_allows_equal_timestamps() {
         let mut fixture = public_fixture(FixtureId::WeakHighMode);
         fixture.model_relative_seconds = [2.0, 1.0];
-        assert_eq!(fixture.validate(), Err(FixtureValidationError::InvalidTimeAxis));
+        assert_eq!(
+            fixture.validate(),
+            Err(FixtureValidationError::InvalidTimeAxis)
+        );
         fixture.model_relative_seconds = [1.0, 1.0];
         assert_eq!(fixture.validate(), Ok(()));
     }
