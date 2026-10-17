@@ -113,7 +113,7 @@
   "scenarios": [
     {
       "id": "stable-supply",
-      "probability_bp": 6500,
+      "probability_bp": 5000,
       "substitution_cap_bp": 9000,
       "rebound_multiplier_bp": 2000,
       "virgin_ghg_multiplier_bp": 10000,
@@ -121,7 +121,7 @@
     },
     {
       "id": "weak-displacement",
-      "probability_bp": 2500,
+      "probability_bp": 4000,
       "substitution_cap_bp": 2500,
       "rebound_multiplier_bp": 7000,
       "virgin_ghg_multiplier_bp": 10000,
