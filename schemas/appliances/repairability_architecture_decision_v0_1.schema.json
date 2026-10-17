@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:repairability-architecture-decision-engine:0.1.0",
+  "title": "Repairability Architecture Decision Engine",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "status",
+    "claim_ceiling",
+    "target_market",
+    "decision_policy",
+    "criteria",
+    "candidates",
+    "next_experiment_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "decision_id": {
+      "const": "REPAIRABILITY-DECISION-001"
+    },
+    "status": {
+      "const": "decision_profile_under_evaluation"
+    },
+    "claim_ceiling": {
+      "const": "no_architecture_ranked_without_eligible_physical_evidence"
+    },
+    "target_market": {
+      "type": "string",
+      "minLength": 2
+    },
+    "decision_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hard_gate_ids",
+        "unknown_policy",
+        "missing_numeric_policy",
+        "scoring_policy",
+        "dominance_policy",
+        "evidence_classes_eligible_for_ranking"
+      ],
+      "properties": {
+        "hard_gate_ids": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        },
+        "unknown_policy": {
+          "const": "unknown_is_not_pass"
+        },
+        "missing_numeric_policy": {
+          "const": "unknown_not_zero"
+        },
+        "scoring_policy": {
+          "const": "non_compensatory_hard_gates_then_robust_pareto"
+        },
+        "dominance_policy": {
+          "const": "interval_bounds_must_separate_on_every_criterion_and_strictly_improve_at_least_one"
+        },
+        "evidence_classes_eligible_for_ranking": {
+          "const": [
+            "physical_measurement",
+            "independent_replication"
+          ]
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "direction",
+          "unit",
+          "dimension",
+          "method_definition",
+          "gate_conditioned",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "direction": {
+            "enum": [
+              "minimize",
+              "maximize"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dimension": {
+            "enum": [
+              "lifecycle_cost",
+              "serviceability",
+              "function",
+              "resource_use",
+              "reliability",
+              "supply_resilience",
+              "waste"
+            ]
+          },
+          "method_definition": {
+            "type": "string",
+            "minLength": 10
+          },
+          "gate_conditioned": {
+            "type": "boolean"
+          },
+          "status": {
+            "const": "method_definition_not_yet_frozen"
+          }
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role",
+          "hypothesis",
+          "hard_gates",
+          "observations"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^W[0-9]-[A-Z0-9-]+$"
+          },
+          "role": {
+            "enum": [
+              "control",
+              "candidate",
+              "orthogonal_trade"
+            ]
+          },
+          "hypothesis": {
+            "type": "string",
+            "minLength": 10
+          },
+          "hard_gates": {
+            "type": "array",
+            "minItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "gate_id",
+                "status",
+                "evidence_id",
+                "notes"
+              ],
+              "properties": {
+                "gate_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]+$"
+                },
+                "status": {
+                  "enum": [
+                    "unknown",
+                    "pass",
+                    "fail"
+                  ]
+                },
+                "evidence_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "notes": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "criterion_id",
+                "lower",
+                "upper",
+                "unit",
+                "evidence_class",
+                "evidence_id",
+                "method_id",
+                "method_frozen",
+                "uncertainty_note"
+              ],
+              "properties": {
+                "criterion_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]+$"
+                },
+                "lower": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "upper": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_class": {
+                  "enum": [
+                    "unknown",
+                    "desk_estimate",
+                    "simulation",
+                    "expert_judgement",
+                    "physical_measurement",
+                    "independent_replication"
+                  ]
+                },
+                "evidence_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "method_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "method_frozen": {
+                  "type": "boolean"
+                },
+                "uncertainty_note": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "next_experiment_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objective",
+        "rules",
+        "existing_information_value_owner"
+      ],
+      "properties": {
+        "objective": {
+          "const": "maximize_decision_relevant_information_per_unit_cost_and_risk"
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
+        },
+        "existing_information_value_owner": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    }
+  }
+}
