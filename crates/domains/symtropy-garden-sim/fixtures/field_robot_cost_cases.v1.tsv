@@ -16,6 +16,7 @@ zero_completed_area_blocks_hectare_cost	BLOCKED	A supplied zero-area denominator
 zero_useful_life_blocks_capital_annualization	BLOCKED	Capital annualization requires positive useful life
 salvage_value_above_acquisition_cost_blocks	BLOCKED	Salvage above acquisition is invalid
 supervision_is_subset_of_labor_not_double_counted	BLOCKED	Supervision cannot exceed the total operator-labor time
+aggregate_operator_labor_can_exceed_one_machine_calendar_year	CALCULATED_PROVISIONAL	Total labor minutes can exceed one machine's calendar budget when multiple people contribute
 zero_route_missions_have_zero_route_and_mobilization_cost	CALCULATED_PROVISIONAL	No missions means zero external route and mobilization cost
 route_distance_increases_logistics_cost	CALCULATED_PROVISIONAL	Doubling route distance increases the declared distance-based logistics cost
 no_robot_baseline_is_modelled_without_fake_capital_cost	CALCULATED_PROVISIONAL	Manual/no-new-robot option remains a valid cost baseline
