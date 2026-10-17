@@ -575,7 +575,7 @@ fn build_plan(
         let stage = intervention.depends_on.iter()
             .filter_map(|dep| {
                 input.interventions.iter().position(|other| other.id.as_str() == dep.as_str())
-                    .and_then(|dep_index| stage_of.get(&dep_index).map(|value| value + 1))
+                    .and_then(|dep_index| stage_of.get(&dep_index).map(|value| *value + 1))
             })
             .max()
             .unwrap_or(0);
@@ -618,8 +618,8 @@ fn build_plan(
         let unresolved_conflict = conflicting_intervention_ids.iter().any(|conflicting_id| {
             !selected.iter().any(|index| {
                 input.interventions[*index].resolves_preference_conflicts.iter().any(|resolution| {
-                    resolution.preference_id == preference.id
-                        && resolution.conflicting_intervention_id == *conflicting_id
+                    resolution.preference_id.as_str() == preference.id.as_str()
+                        && resolution.conflicting_intervention_id.as_str() == *conflicting_id
                 })
             })
         });
