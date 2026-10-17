@@ -49,6 +49,7 @@ jobs:
             .schema_version == "luminous.civ_infra.corridor_report.v0.1" and
             .input_sha256 == $expected_sha and
             .claim_ceiling == "synthetic_case_only_not_real_world_qualified" and
+            ([.candidates[].findings[] | select(.code | startswith("drainage_capacity:"))] | length) == 12 and
             ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "infeasible" and
               .metrics.derived_max_grade_percent == 8 and
               .metrics.derived_cut_volume_m3 == 3520 and
