@@ -406,8 +406,8 @@ mod tests {
                     artifact.content_sha256 = sha256_hex(artifact.synthetic_payload.as_bytes());
                     artifact.depends_on = (0..index)
                         .filter(|parent| {
-                            parent + 1 == index
-                                || (graph_index * 31 + index * 7 + parent * 3) % 13 < 3
+                            *parent + 1 == index
+                                || (graph_index * 31 + index * 7 + *parent * 3) % 13 < 3
                         })
                         .map(|parent| {
                             format!("G{graph_index:02}-NODE-{parent:02}")
