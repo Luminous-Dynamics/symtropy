@@ -27,7 +27,7 @@ The benchmark extends vehicle repairability research—where spare-parts availab
 
 The fixture's 12 essential trips and 8 discretionary trips per week are normalized synthetic workload values for deterministic smoke tests, not a South African household travel estimate. Architecture readiness and stress parameters are equally synthetic and must not be represented as actual product capabilities or forecasts.
 
-**Verifier scope limitation:** v0.1 validates schema, matrix completeness, frozen parameters, evidence labels, fail-closed policy declarations, and the presence of five negative-control definitions. It does not run a fleet/vehicle simulator or evaluate a candidate decision engine against those controls. A `must_reject` declaration is test intent, not a measured rejection result. A later version must include an executable candidate-evaluator interface and assert its actual outputs before reporting false-accept rates.
+**Verifier scope limitation:** v0.1 validates schema, matrix completeness, frozen parameters and fail-closed policy declarations, and executes a small reference policy guard against five explicit adversarial-control inputs. This checks that the seeded anti-patterns trigger the stated contract rules. It does not run a fleet/vehicle simulator or prove that a production candidate engine actually applies those guards; no vehicle outcome or real-world false-accept rate is measured.
 
 ## 3. Metrics and calculation contract
 
