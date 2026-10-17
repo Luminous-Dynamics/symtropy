@@ -670,6 +670,15 @@ mod tests {
     }
 
     #[test]
+    fn rejects_undeclared_state_in_action_partition() {
+        let mut value = fixture_value();
+        value["actions"][0]["outcomes"][0]["state_ids"][0] = json!("missing-state");
+        let errors = validate_fixture(&parse_value(value));
+        assert!(errors.iter().any(|error| error.contains("references undeclared state")));
+        assert!(errors.iter().any(|error| error.contains("outcomes omit state")));
+    }
+
+    #[test]
     fn rejects_overlapping_action_outcomes() {
         let mut value = fixture_value();
         value["actions"][0]["outcomes"][1]["state_ids"]
