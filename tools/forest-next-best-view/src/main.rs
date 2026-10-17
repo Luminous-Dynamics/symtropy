@@ -15,6 +15,7 @@ struct Corpus { suite_id: String, suite_version: String, evidence_class: String,
 struct Spec {
     scenario_id: String, scene: Scene, energy_budget_steps: u16, return_reserve_steps: u16, max_viewpoints: u8,
     expected_greedy_coverage_cells: usize, expected_oracle_coverage_cells: usize, expected_greedy_ratio_basis_points: u16,
+    expected_lookahead_coverage_cells: usize, expected_lookahead_ratio_basis_points: u16,
 }
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -33,7 +34,7 @@ struct GridMap { width: usize, height: usize, cells: Vec<Occupancy> }
 struct PlannerConfig {
     start_cell: usize, energy_budget_steps: u16, return_reserve_steps: u16, max_viewpoints: u8,
     sensor_range_cells: i32, horizontal_fov_degrees: u16, turn_cost_steps: u16,
-    greedy_algorithm: String, oracle_algorithm: String,
+    greedy_algorithm: String, oracle_algorithm: String, lookahead_algorithm: String,
 }
 #[derive(Debug, Clone, Serialize)]
 struct Viewpoint { x: usize, y: usize, heading: Heading, marginal_gain_cells: usize, incremental_cost_steps: u16 }
@@ -44,14 +45,16 @@ struct PlanResult {
 }
 #[derive(Debug, Serialize)]
 struct ScenarioResult {
-    scenario_id: String, greedy: PlanResult, exhaustive_oracle: PlanResult, greedy_to_oracle_basis_points: u16,
+    scenario_id: String, greedy: PlanResult, two_step_lookahead: PlanResult, exhaustive_oracle: PlanResult,
+    greedy_to_oracle_basis_points: u16, lookahead_to_oracle_basis_points: u16,
     map_sha256: String, config_sha256: String,
 }
 #[derive(Debug, Serialize)]
 struct Receipt {
     result: &'static str, planner_version: &'static str, suite_id: String, suite_version: String,
     evidence_class: String, claim_ceiling: String, source_commit: String, corpus_sha256: String,
-    scenario_count: usize, greedy_budget_feasible_count: usize, oracle_budget_feasible_count: usize,
+    scenario_count: usize, greedy_budget_feasible_count: usize, lookahead_budget_feasible_count: usize,
+    oracle_budget_feasible_count: usize, lookahead_oracle_coverage_match_count: usize,
     exact_oracle_coverage_match_count: usize, scenarios: Vec<ScenarioResult>,
 }
 #[derive(Debug, Clone)]
@@ -142,6 +145,7 @@ impl Planner {
             sensor_range_cells: RANGE, horizontal_fov_degrees: 180, turn_cost_steps: 1,
             greedy_algorithm: "marginal_gain / max(incremental_cost, 1), stable candidate-order tie-break".into(),
             oracle_algorithm: "exhaustive unique-viewpoint sequences; maximize unique visible cells, then minimize budgeted steps".into(),
+            lookahead_algorithm: "receding horizon; select first action from best feasible sequence of up to two added viewpoints".into(),
         };
         let dist = (0..N).map(|i| dijkstra(map, i)).collect();
         let candidates = (0..N).filter(|i| clear(map, *i)).flat_map(|cell| HEADINGS.into_iter().map(move |heading|
@@ -189,12 +193,31 @@ impl Planner {
     fn exhaustive(&self) -> State {
         let initial = State { covered: vec![false; N], outbound: 0, selected: Vec::new() };
         let mut best = initial.clone();
-        self.search(self.config.start_cell, start_heading(), &initial, &mut best);
+        self.search(self.config.start_cell, start_heading(), &initial, &mut best, usize::from(self.config.max_viewpoints));
         best
     }
-    fn search(&self, at: usize, h: Heading, s: &State, best: &mut State) {
+    fn lookahead(&self) -> State {
+        let mut state = State { covered: vec![false; N], outbound: 0, selected: Vec::new() };
+        let (mut at, mut heading) = (self.config.start_cell, start_heading());
+        while state.selected.len() < usize::from(self.config.max_viewpoints) {
+            let limit = (state.selected.len() + 2).min(usize::from(self.config.max_viewpoints));
+            let mut horizon_best = state.clone();
+            self.search(at, heading, &state, &mut horizon_best, limit);
+            if horizon_best.selected.len() == state.selected.len() { break; }
+            let next_index = horizon_best.selected[state.selected.len()];
+            let candidate = &self.candidates[next_index];
+            let Some(cost) = self.transition(at, heading, candidate) else { break; };
+            add(&mut state.covered, &candidate.visible);
+            state.outbound = state.outbound.saturating_add(cost);
+            at = candidate.cell;
+            heading = candidate.heading;
+            state.selected.push(next_index);
+        }
+        state
+    }
+    fn search(&self, at: usize, h: Heading, s: &State, best: &mut State, limit: usize) {
         if self.better(s, best) { *best = s.clone(); }
-        if s.selected.len() >= usize::from(self.config.max_viewpoints) { return; }
+        if s.selected.len() >= limit { return; }
         for (ci, c) in self.candidates.iter().enumerate() {
             if s.selected.contains(&ci) { continue; }
             let Some(cost) = self.transition(at, h, c) else { continue; };
@@ -203,7 +226,7 @@ impl Planner {
             if !self.feasible(out, &picks) { continue; }
             if gain(&s.covered, &c.visible) == 0 { continue; }
             let mut covered = s.covered.clone(); add(&mut covered, &c.visible);
-            self.search(c.cell, c.heading, &State { covered, outbound: out, selected: picks }, best);
+            self.search(c.cell, c.heading, &State { covered, outbound: out, selected: picks }, best, limit);
         }
     }
     fn better(&self, a: &State, b: &State) -> bool {
@@ -242,18 +265,24 @@ fn validate(c: &Corpus) -> Check<Vec<ScenarioResult>> {
     for s in &c.scenarios {
         if s.scenario_id.trim().is_empty() || !ids.insert(s.scenario_id.as_str()) { return Err(format!("empty/duplicate id {}", s.scenario_id)); }
         let map = map_for(s.scene); let p = Planner::new(&map, s)?;
-        let g = p.result(&p.greedy()); let o = p.result(&p.exhaustive());
-        if !g.budget_feasible || !o.budget_feasible { return Err(format!("{}: budget infeasible plan", s.scenario_id)); }
-        if o.covered_cells < g.covered_cells { return Err(format!("{}: oracle below greedy", s.scenario_id)); }
+        let g = p.result(&p.greedy());
+        let l = p.result(&p.lookahead());
+        let o = p.result(&p.exhaustive());
+        if !g.budget_feasible || !l.budget_feasible || !o.budget_feasible { return Err(format!("{}: budget-infeasible plan", s.scenario_id)); }
+        if o.covered_cells < g.covered_cells || o.covered_cells < l.covered_cells { return Err(format!("{}: oracle below a baseline", s.scenario_id)); }
         let ratio = if o.covered_cells == 0 { 10000 } else { ((g.covered_cells as u64 * 10000) / o.covered_cells as u64) as u16 };
-        if g.covered_cells != s.expected_greedy_coverage_cells || o.covered_cells != s.expected_oracle_coverage_cells || ratio != s.expected_greedy_ratio_basis_points {
-            return Err(format!("{} expected {}/{}/{}, got {}/{}/{}", s.scenario_id,
-                s.expected_greedy_coverage_cells, s.expected_oracle_coverage_cells, s.expected_greedy_ratio_basis_points,
-                g.covered_cells, o.covered_cells, ratio));
+        let lookahead_ratio = if o.covered_cells == 0 { 10000 } else { ((l.covered_cells as u64 * 10000) / o.covered_cells as u64) as u16 };
+        if g.covered_cells != s.expected_greedy_coverage_cells || o.covered_cells != s.expected_oracle_coverage_cells
+            || ratio != s.expected_greedy_ratio_basis_points || l.covered_cells != s.expected_lookahead_coverage_cells
+            || lookahead_ratio != s.expected_lookahead_ratio_basis_points {
+            return Err(format!("{} expected greedy/oracle/ratio/lookahead/lookahead-ratio {}/{}/{}/{}/{}, got {}/{}/{}/{}/{}",
+                s.scenario_id, s.expected_greedy_coverage_cells, s.expected_oracle_coverage_cells,
+                s.expected_greedy_ratio_basis_points, s.expected_lookahead_coverage_cells, s.expected_lookahead_ratio_basis_points,
+                g.covered_cells, o.covered_cells, ratio, l.covered_cells, lookahead_ratio));
         }
         out.push(ScenarioResult {
-            scenario_id: s.scenario_id.clone(), greedy: g, exhaustive_oracle: o,
-            greedy_to_oracle_basis_points: ratio,
+            scenario_id: s.scenario_id.clone(), greedy: g, two_step_lookahead: l, exhaustive_oracle: o,
+            greedy_to_oracle_basis_points: ratio, lookahead_to_oracle_basis_points: lookahead_ratio,
             map_sha256: hash(&encode(&map)?), config_sha256: hash(&encode(&p.config)?),
         });
     }
@@ -263,8 +292,11 @@ fn receipt(c: &Corpus, corpus_sha256: String, source_commit: String, scenarios: 
     Receipt {
         result: "validated", planner_version: "0.1.0", suite_id: c.suite_id.clone(), suite_version: c.suite_version.clone(),
         evidence_class: c.evidence_class.clone(), claim_ceiling: c.claim_ceiling.clone(), source_commit, corpus_sha256,
-        scenario_count: scenarios.len(), greedy_budget_feasible_count: scenarios.iter().filter(|s| s.greedy.budget_feasible).count(),
+        scenario_count: scenarios.len(),
+        greedy_budget_feasible_count: scenarios.iter().filter(|s| s.greedy.budget_feasible).count(),
+        lookahead_budget_feasible_count: scenarios.iter().filter(|s| s.two_step_lookahead.budget_feasible).count(),
         oracle_budget_feasible_count: scenarios.iter().filter(|s| s.exhaustive_oracle.budget_feasible).count(),
+        lookahead_oracle_coverage_match_count: scenarios.iter().filter(|s| s.two_step_lookahead.covered_cells == s.exhaustive_oracle.covered_cells).count(),
         exact_oracle_coverage_match_count: scenarios.len(), scenarios,
     }
 }
@@ -314,6 +346,14 @@ mod tests {
         assert_eq!((single.greedy.covered_cells, single.exhaustive_oracle.covered_cells, single.greedy_to_oracle_basis_points), (11, 16, 6875));
     }
     #[test]
+    fn two_step_lookahead_matches_oracle_coverage_on_the_frozen_suite() {
+        let r = validate(&corpus()).expect("all frozen scenes match");
+        assert_eq!(r.iter().filter(|x| x.two_step_lookahead.covered_cells == x.exhaustive_oracle.covered_cells).count(), 6);
+        assert!(r.iter().all(|x| x.lookahead_to_oracle_basis_points == 10_000));
+        let single = r.iter().find(|x| x.scenario_id == "SINGLE_SCAN_BUDGET").unwrap();
+        assert_eq!((single.two_step_lookahead.covered_cells, single.exhaustive_oracle.covered_cells), (16, 16));
+    }
+    #[test]
     fn obstacles_occlude_space_behind_them() {
         let map = map_for(Scene::OccludedClearing);
         assert!(!visibility(&map, idx(1, 2), Heading::East).contains(&idx(3, 2)));
@@ -331,7 +371,7 @@ mod tests {
         let c = corpus();
         for spec in &c.scenarios {
             let map = map_for(spec.scene); let p = Planner::new(&map, spec).unwrap();
-            for result in [p.result(&p.greedy()), p.result(&p.exhaustive())] {
+            for result in [p.result(&p.greedy()), p.result(&p.lookahead()), p.result(&p.exhaustive())] {
                 assert_eq!(result.total_budgeted_steps, result.outbound_cost_steps + result.return_distance_steps + result.reserved_steps);
                 assert!(result.total_budgeted_steps <= spec.energy_budget_steps);
             }

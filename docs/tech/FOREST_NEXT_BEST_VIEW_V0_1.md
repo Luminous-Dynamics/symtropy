@@ -26,18 +26,18 @@ These works motivate our benchmark design, not claims that this small contract d
 
 ## Frozen synthetic results
 
-| Scene | Greedy visible cells | Exhaustive oracle | Greedy/oracle |
+| Scene | Greedy | Two-step lookahead | Exhaustive oracle |
 |---|---:|---:|---:|
-| Open grid, 3 views, budget 10 | 19/25 | 23/25 | 82.60% |
-| Occluded clearing, 3 views, budget 12 | 19/25 | 19/25 | 100% |
-| Disconnected corridor, 3 views, budget 10 | 13/25 | 13/25 | 100% |
-| Unknown barrier, 3 views, budget 10 | 17/25 | 17/25 | 100% |
-| Tight return reserve, 3-view maximum, budget 4 | 11/25 | 11/25 | 100% |
-| Open grid, 1 view, budget 7 | 11/25 | 16/25 | 68.75% |
+| Open grid, 3 views, budget 10 | 19/25 (82.60%) | 23/25 (100%) | 23/25 |
+| Occluded clearing, 3 views, budget 12 | 19/25 (100%) | 19/25 (100%) | 19/25 |
+| Disconnected corridor, 3 views, budget 10 | 13/25 (100%) | 13/25 (100%) | 13/25 |
+| Unknown barrier, 3 views, budget 10 | 17/25 (100%) | 17/25 (100%) | 17/25 |
+| Tight return reserve, 3-view maximum, budget 4 | 11/25 (100%) | 11/25 (100%) | 11/25 |
+| Open grid, 1 view, budget 7 | 11/25 (68.75%) | 16/25 (100%) | 16/25 |
 
 The values are frozen synthetic expected outcomes from a separate reference implementation and are then checked exactly by the Rust contract. Rust CI has not been claimed as passing until checked for the exact head.
 
-**The greedy baseline misses its aspirational 90% target in two scenes.** That is intentional evidence, not a pass hidden by averaged scores. It shows why the oracle matters. The next improvement should target lookahead and better candidate utility, then re-run exactly the same frozen suite before adding held-out maps. Six toy scenes are not enough to generalize any approximation claim.
+**The greedy baseline misses its aspirational 90% target in two scenes.** That is visible regret, not a pass hidden by averages. The new two-step receding-horizon baseline matches the exhaustive oracle's coverage count on all six frozen cases, including the one-view case. This is a useful result for these constructed maps, not a general approximation guarantee: the oracle shares the same idealized visibility model, the corpus is tiny, and there is no tree geometry or calibrated perception. The next step is held-out generated scenes and harder occlusion patterns before drawing conclusions about larger maps.
 
 ## Proposed benchmark gates
 
@@ -56,7 +56,7 @@ Targets above are engineering goals, not forestry standards or demonstrated capa
 
 ## Next work
 
-1. Improve the greedy baseline with a one- or two-step lookahead; retain the exhaustive solver as the regression oracle for small scenes.
+1. Retain the greedy baseline, two-step receding-horizon planner, and exhaustive solver as three separate baselines; compare quality, runtime and energy on held-out scenes.
 2. Expand the corpus using held-out generated maps with an independent seed split, plus symmetric scenes and adversarial obstacle arrangements.
 3. Model target-centric observation quality: how much of a tree trunk, diameter cross-section, log end or defect is actually visible, not only how many cells are exposed.
 4. Add a conservative pose-uncertainty envelope and calibrated modality-specific false-positive/false-negative rates from real measurements.

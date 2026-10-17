@@ -49,10 +49,13 @@ jobs:
             .result == "validated"
             and .scenario_count == 6
             and .greedy_budget_feasible_count == 6
+            and .lookahead_budget_feasible_count == 6
             and .oracle_budget_feasible_count == 6
+            and .lookahead_oracle_coverage_match_count == 6
             and .exact_oracle_coverage_match_count == 6
             and ([.scenarios[].greedy_to_oracle_basis_points] == [8260, 10000, 10000, 10000, 10000, 6875])
-            and all(.scenarios[]; .greedy.budget_feasible and .exhaustive_oracle.budget_feasible)
+            and ([.scenarios[].lookahead_to_oracle_basis_points] == [10000, 10000, 10000, 10000, 10000, 10000])
+            and all(.scenarios[]; .greedy.budget_feasible and .two_step_lookahead.budget_feasible and .exhaustive_oracle.budget_feasible)
             and all(.scenarios[]; (.map_sha256 | test("^[0-9a-f]{64}$")) and (.config_sha256 | test("^[0-9a-f]{64}$")))
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
