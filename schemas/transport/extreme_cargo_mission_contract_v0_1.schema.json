@@ -319,7 +319,7 @@
         "controlled_temp_min_c",
         "controlled_temp_max_c",
         "max_payload_shock_g",
-        "max_payload_tilt_deg",
+        "maximum_safe_route_tilt_deg",
         "max_payload_vibration_rms_m_s2",
         "has_securement",
         "has_containment",
@@ -402,11 +402,6 @@
           "type": "number",
           "exclusiveMinimum": 0
         },
-        "max_payload_tilt_deg": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "maximum": 90
-        },
         "max_payload_vibration_rms_m_s2": {
           "type": "number",
           "exclusiveMinimum": 0
@@ -443,6 +438,11 @@
         },
         "has_emergency_stop": {
           "type": "boolean"
+        },
+        "maximum_safe_route_tilt_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 90
         }
       }
     },
@@ -546,7 +546,7 @@
           "required": [
             "min_ambient_temp_c",
             "max_ambient_temp_c",
-            "max_payload_tilt_deg"
+            "required_route_tilt_deg"
           ],
           "properties": {
             "min_ambient_temp_c": {
@@ -555,7 +555,7 @@
             "max_ambient_temp_c": {
               "type": "number"
             },
-            "max_payload_tilt_deg": {
+            "required_route_tilt_deg": {
               "type": "number",
               "minimum": 0,
               "maximum": 90
