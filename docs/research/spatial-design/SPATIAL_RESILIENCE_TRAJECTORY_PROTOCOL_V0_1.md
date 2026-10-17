@@ -126,3 +126,17 @@ These sources motivate the benchmark but do not validate any Symthaea/Symtropy i
 ## 9. Claim ceiling
 
 Passing Gate A proves only that the checker handles the declared synthetic contracts. It does not establish actual building energy use, thermal comfort, health outcomes, water reliability, structural adequacy, accessibility, safety, code compliance, construction feasibility or measured occupant benefit. Those claims require the relevant qualified model, evidence, independent validation and professional authority.
+
+
+## Research update — time-dependent resilience and passive survivability (2026-10)
+
+Two recent sources reinforce the benchmark's choice to model trajectories, not an isolated comfort/efficiency scalar:
+
+- Gortych, Kuczyński & Bocheńska-Skałecka (2026), *Thermal Resilience of Residential Buildings Under Climatic Extremes and Power Outages: An Integrated Review of Metrics, Passive Mechanisms, Energy Systems, and Design Frameworks*, `Energies` 19(13), 3006, published 24 June 2026: https://doi.org/10.3390/en19133006. The review describes resilience evaluation as time-dependent and notes that extreme-event definitions, metrics, passive mechanisms and energy-system effects are often handled separately.
+- Pulkkinen & Ramesh (2026), *Passive resilience solutions and their impact on a cold climate building during a power outage*, `Energy and Buildings`, published 1 September 2026: https://doi.org/10.1016/j.enbuild.2026.117628. Its study of cold-climate residential outage conditions emphasizes the role of passive renovation and says recovery depends on initial/developing indoor and outdoor conditions and heating-system size.
+
+### Benchmark implication
+
+The first real-model adapter should produce a **time series with declared boundary conditions**, rather than a single pass/fail or annual average. Qualification should measure (1) time to a declared service/condition threshold, (2) duration and depth of excursions, (3) resource/reserve exhaustion, (4) response after service restoration and (5) sensitivity to initial conditions. Report these separately for each qualified scenario. This is a research direction, not a claim that the present synthetic oracle calculates temperatures or models human thermal physiology.
+
+The initial Rust oracle intentionally proves only finite-state event semantics around continuous service and stable recovery. It is a small contract check to prevent one class of reporting error; it is not an approximation of a heat-transfer solver.
