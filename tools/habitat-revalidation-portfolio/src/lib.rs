@@ -688,6 +688,75 @@ mod tests {
     }
 
     #[test]
+    fn third_shared_target_matches_oracle_across_all_64_gate_subsets() {
+        let mut base = fixture();
+        base.target_artifact_ids
+            .push("D-SERVICE-READINESS".to_owned());
+        base.artifacts.push(ArtifactState {
+            id: "D-SERVICE-READINESS".to_owned(),
+            status: "invalidated".to_owned(),
+            depends_on: vec!["D-ASBUILT-RECEIPT".to_owned()],
+        });
+        base.declared_gate_ids
+            .push("SERVICE_READINESS_REVIEW".to_owned());
+        base.available_gate_ids
+            .push("SERVICE_READINESS_REVIEW".to_owned());
+        base.tasks.push(RepairTask {
+            id: "T-SERVICE-READINESS".to_owned(),
+            version: 1,
+            produces_artifact_id: "D-SERVICE-READINESS".to_owned(),
+            required_artifact_ids: vec!["D-ASBUILT-RECEIPT".to_owned()],
+            required_gate_ids: vec!["SERVICE_READINESS_REVIEW".to_owned()],
+            cost_units: 2,
+            duration_units: 3,
+            description: "Restore a third synthetic target that shares as-built evidence."
+                .to_owned(),
+        });
+
+        let combinations = 1usize << base.declared_gate_ids.len();
+        for mask in 0..combinations {
+            let mut candidate = base.clone();
+            candidate.available_gate_ids = base
+                .declared_gate_ids
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| mask & (1usize << *index) != 0)
+                .map(|(_, gate)| gate.clone())
+                .collect();
+            let digest = sha256_hex(&serde_json::to_vec(&candidate).unwrap());
+            let actual = evaluate_fixture(&candidate, digest).unwrap();
+            let expected = oracle(&candidate);
+            assert_eq!(
+                actual.pareto_plans,
+                expected,
+                "third-target gate subset {mask:#08b}"
+            );
+            assert!(actual.frontier_complete);
+            assert_eq!(
+                actual.planning_status,
+                if expected.is_empty() {
+                    "NO_VALID_PLAN_PROVEN"
+                } else {
+                    "OPTIMAL_EXACT"
+                }
+            );
+            if mask == combinations - 1 {
+                assert_eq!(
+                    actual.pareto_plans.iter().map(|plan| plan.cost_units).collect::<Vec<_>>(),
+                    vec![16, 19]
+                );
+                assert_eq!(
+                    actual.pareto_plans
+                        .iter()
+                        .map(|plan| plan.duration_units)
+                        .collect::<Vec<_>>(),
+                    vec![12, 9]
+                );
+            }
+        }
+    }
+
+    #[test]
     fn work_budget_exhaustion_is_never_reported_as_optimal_or_no_plan() {
         let mut fixture = fixture();
         fixture.max_expanded_states = 1;
