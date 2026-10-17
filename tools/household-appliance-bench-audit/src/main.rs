@@ -522,6 +522,7 @@ fn run() -> Result<(), String> {
             "status": "PASS_SYNTHETIC_PORTFOLIO_CONTRACT_ONLY",
             "family_count": portfolio_summary.family_count,
             "washer_variant_count": portfolio_summary.washer_variant_count,
+            "washer_protocol_metric_count": portfolio_summary.washer_protocol_metric_count,
             "proposed_target_count": portfolio_summary.proposed_target_count,
             "schema_sha256": portfolio_summary.schema_sha256,
             "portfolio_sha256": portfolio_summary.portfolio_sha256,
