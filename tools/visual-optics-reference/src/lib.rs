@@ -194,10 +194,14 @@ mod tests {
             z: point.z * 7.0,
         };
 
-        assert_eq!(
-            project_point(INTRINSICS, point),
-            project_point(INTRINSICS, scaled)
-        );
+        let actual = project_point(INTRINSICS, point)
+            .expect("original point should project");
+        let scaled_actual = project_point(INTRINSICS, scaled)
+            .expect("scaled point should project");
+
+        // Floating-point evaluation can differ by a few ULPs after scaling.
+        assert_close(actual.u, scaled_actual.u, 1e-12);
+        assert_close(actual.v, scaled_actual.v, 1e-12);
     }
 
     #[test]
