@@ -3,7 +3,7 @@
   "corpus_id": "WIS-SIM-001",
   "corpus_version": "0.1",
   "fixture_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl",
-  "fixture_sha256": "76cb8d008653caa77f0a50fe64bd7770ce3c63b367f5545afed38a16bddb5f0f",
+  "fixture_sha256": "4eea722417dc14e361fe4786a09f1857980ea92268fda1d5caaaafc35fae3d59",
   "hash_algorithm": "SHA-256",
   "record_format": "JSON Lines; UTF-8; newline-terminated",
   "record_count": 28,
@@ -55,8 +55,9 @@
     "unknown_to_verified_promotions_allowed": 0,
     "consciousness_or_wisdom_scalar_emission_allowed": 0
   },
-  "status": "synthetic contract authored; no simulator run is claimed",
+  "status": "synthetic contract authored; fetched-back structural checks only; no simulation run",
   "claim_ceiling": "Defines inputs and invariants for future deterministic simulation runs; does not validate model assumptions, human behaviour, consciousness, wisdom, spiritual interventions or real-world outcomes.",
   "no_human_data": true,
-  "no_real_world_forecast": true
+  "no_real_world_forecast": true,
+  "schema_validation_status": "STRICT_SCHEMA_PINNED; NOT_VALIDATED_WITH_JSON_SCHEMA_ENGINE"
 }
