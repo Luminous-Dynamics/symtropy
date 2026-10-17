@@ -81,40 +81,53 @@ pub enum ArrivalFunctionError {
 impl fmt::Display for ArrivalFunctionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidIdentityOrTimeProfile =>
-                formatter.write_str("arrival function identity, source ID, or time profile is incomplete"),
-            Self::InvalidEvidenceValidityInterval =>
-                formatter.write_str("arrival-function evidence validity interval is empty or reversed"),
-            Self::MissingPublicationTime =>
-                formatter.write_str("arrival-function source has no explicit publication/knowledge time"),
-            Self::NotKnownAtCutoff =>
-                formatter.write_str("arrival-function source was not public and recorded by the replay cutoff"),
-            Self::UnqualifiedEvidence { reason } =>
-                write!(formatter, "arrival-function source is unqualified: {reason}"),
-            Self::MissingQualifiedSourceDigest =>
-                formatter.write_str("qualified arrival function lacks its source SHA-256"),
-            Self::InvalidSourceDigest =>
-                formatter.write_str("qualified arrival-function source digest is not 64 hexadecimal characters"),
-            Self::MissingQualifiedSourceLocator =>
-                formatter.write_str("qualified arrival function lacks an exact source locator"),
-            Self::TooFewBreakpoints =>
-                formatter.write_str("arrival-time function needs at least two breakpoints"),
-            Self::BreakpointOutsideEvidenceValidity =>
-                formatter.write_str("arrival-function departure domain exceeds its evidence validity interval"),
-            Self::NonIncreasingDepartureTimes =>
-                formatter.write_str("arrival-function departure breakpoints must be strictly increasing"),
-            Self::ArrivalBeforeDeparture =>
-                formatter.write_str("arrival time cannot precede departure time"),
-            Self::NonFifoArrivalTimes =>
-                formatter.write_str("arrival times decrease as departure times increase; FIFO is not satisfied"),
-            Self::DepartureOutsideEvidenceValidity =>
-                formatter.write_str("departure time falls outside the evidence validity interval"),
-            Self::DepartureOutsideFunctionDomain =>
-                formatter.write_str("departure time falls outside the declared arrival-function domain"),
-            Self::TimeProfileMismatch =>
-                formatter.write_str("query and arrival-function time profiles do not match"),
-            Self::ArithmeticOverflow =>
-                formatter.write_str("arrival-time interpolation overflowed"),
+            Self::InvalidIdentityOrTimeProfile => formatter
+                .write_str("arrival function identity, source ID, or time profile is incomplete"),
+            Self::InvalidEvidenceValidityInterval => formatter
+                .write_str("arrival-function evidence validity interval is empty or reversed"),
+            Self::MissingPublicationTime => formatter
+                .write_str("arrival-function source has no explicit publication/knowledge time"),
+            Self::NotKnownAtCutoff => formatter.write_str(
+                "arrival-function source was not public and recorded by the replay cutoff",
+            ),
+            Self::UnqualifiedEvidence { reason } => write!(
+                formatter,
+                "arrival-function source is unqualified: {reason}"
+            ),
+            Self::MissingQualifiedSourceDigest => {
+                formatter.write_str("qualified arrival function lacks its source SHA-256")
+            }
+            Self::InvalidSourceDigest => formatter.write_str(
+                "qualified arrival-function source digest is not 64 hexadecimal characters",
+            ),
+            Self::MissingQualifiedSourceLocator => {
+                formatter.write_str("qualified arrival function lacks an exact source locator")
+            }
+            Self::TooFewBreakpoints => {
+                formatter.write_str("arrival-time function needs at least two breakpoints")
+            }
+            Self::BreakpointOutsideEvidenceValidity => formatter.write_str(
+                "arrival-function departure domain exceeds its evidence validity interval",
+            ),
+            Self::NonIncreasingDepartureTimes => formatter
+                .write_str("arrival-function departure breakpoints must be strictly increasing"),
+            Self::ArrivalBeforeDeparture => {
+                formatter.write_str("arrival time cannot precede departure time")
+            }
+            Self::NonFifoArrivalTimes => formatter.write_str(
+                "arrival times decrease as departure times increase; FIFO is not satisfied",
+            ),
+            Self::DepartureOutsideEvidenceValidity => {
+                formatter.write_str("departure time falls outside the evidence validity interval")
+            }
+            Self::DepartureOutsideFunctionDomain => formatter
+                .write_str("departure time falls outside the declared arrival-function domain"),
+            Self::TimeProfileMismatch => {
+                formatter.write_str("query and arrival-function time profiles do not match")
+            }
+            Self::ArithmeticOverflow => {
+                formatter.write_str("arrival-time interpolation overflowed")
+            }
         }
     }
 }
@@ -198,7 +211,10 @@ impl FifoArrivalTimeFunctionV1 {
             }
         }
 
-        Ok(Self { evidence, breakpoints })
+        Ok(Self {
+            evidence,
+            breakpoints,
+        })
     }
 
     pub fn evidence(&self) -> &ArrivalFunctionEvidenceV1 {
@@ -234,7 +250,9 @@ impl FifoArrivalTimeFunctionV1 {
         }
 
         if let ArrivalFunctionEvidenceStatusV1::Unqualified { reason } = &self.evidence.status {
-            return Err(ArrivalFunctionError::UnqualifiedEvidence { reason: reason.clone() });
+            return Err(ArrivalFunctionError::UnqualifiedEvidence {
+                reason: reason.clone(),
+            });
         }
 
         if departure_epoch_seconds < self.evidence.valid_from_epoch_seconds
@@ -274,8 +292,9 @@ impl FifoArrivalTimeFunctionV1 {
     ) -> Result<u64, ArrivalFunctionError> {
         let insertion_index = match self
             .breakpoints
-            .binary_search_by_key(&departure_epoch_seconds, |point| point.departure_epoch_seconds)
-        {
+            .binary_search_by_key(&departure_epoch_seconds, |point| {
+                point.departure_epoch_seconds
+            }) {
             Ok(index) => return Ok(self.breakpoints[index].arrival_epoch_seconds),
             Err(index) => index,
         };
@@ -384,7 +403,10 @@ impl fmt::Display for FifoPathEvaluationError {
                 formatter.write_str("FIFO path delay or total elapsed time overflowed")
             }
             Self::ArrivalFunction { edge_id, source } => {
-                write!(formatter, "arrival function for edge {edge_id} failed: {source}")
+                write!(
+                    formatter,
+                    "arrival function for edge {edge_id} failed: {source}"
+                )
             }
         }
     }
@@ -537,7 +559,12 @@ mod tests {
     fn later_departures_never_arrive_earlier_for_a_valid_fifo_function() {
         let function = function(&[(100, 140), (200, 240), (300, 390)]).unwrap();
         let arrivals = (100..=300)
-            .map(|departure| function.arrival_at(departure, 55, "UTC_UNIX_SECONDS_V1").unwrap().arrival_epoch_seconds)
+            .map(|departure| {
+                function
+                    .arrival_at(departure, 55, "UTC_UNIX_SECONDS_V1")
+                    .unwrap()
+                    .arrival_epoch_seconds
+            })
             .collect::<Vec<_>>();
         assert!(arrivals.windows(2).all(|pair| pair[0] <= pair[1]));
     }
@@ -582,7 +609,13 @@ mod tests {
             function.arrival_at(150, 54, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::NotKnownAtCutoff)
         );
-        assert_eq!(function.arrival_at(150, 55, "UTC_UNIX_SECONDS_V1").unwrap().arrival_epoch_seconds, 202);
+        assert_eq!(
+            function
+                .arrival_at(150, 55, "UTC_UNIX_SECONDS_V1")
+                .unwrap()
+                .arrival_epoch_seconds,
+            202
+        );
     }
 
     #[test]
@@ -592,10 +625,17 @@ mod tests {
         let function = FifoArrivalTimeFunctionV1::new(
             evidence,
             vec![
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
+                ArrivalTimeBreakpointV1 {
+                    departure_epoch_seconds: 100,
+                    arrival_epoch_seconds: 150,
+                },
+                ArrivalTimeBreakpointV1 {
+                    departure_epoch_seconds: 200,
+                    arrival_epoch_seconds: 260,
+                },
             ],
-        ).unwrap();
+        )
+        .unwrap();
         // Even if metadata claims an earlier publication and ingestion time,
         // a future source observation is impossible at this replay cutoff.
         assert_eq!(
@@ -611,10 +651,17 @@ mod tests {
         let missing_publication = FifoArrivalTimeFunctionV1::new(
             evidence,
             vec![
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
+                ArrivalTimeBreakpointV1 {
+                    departure_epoch_seconds: 100,
+                    arrival_epoch_seconds: 150,
+                },
+                ArrivalTimeBreakpointV1 {
+                    departure_epoch_seconds: 200,
+                    arrival_epoch_seconds: 260,
+                },
             ],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(
             missing_publication.arrival_at(150, 100, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::MissingPublicationTime)
@@ -628,10 +675,17 @@ mod tests {
         let unqualified = FifoArrivalTimeFunctionV1::new(
             evidence,
             vec![
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
+                ArrivalTimeBreakpointV1 {
+                    departure_epoch_seconds: 100,
+                    arrival_epoch_seconds: 150,
+                },
+                ArrivalTimeBreakpointV1 {
+                    departure_epoch_seconds: 200,
+                    arrival_epoch_seconds: 260,
+                },
             ],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(
             unqualified.arrival_at(150, 100, "UTC_UNIX_SECONDS_V1"),
             Err(ArrivalFunctionError::UnqualifiedEvidence {
@@ -666,30 +720,57 @@ mod tests {
         let mut evidence = qualified_evidence();
         evidence.source_record_sha256 = None;
         assert_eq!(
-            FifoArrivalTimeFunctionV1::new(evidence, vec![
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
-            ]),
+            FifoArrivalTimeFunctionV1::new(
+                evidence,
+                vec![
+                    ArrivalTimeBreakpointV1 {
+                        departure_epoch_seconds: 100,
+                        arrival_epoch_seconds: 150
+                    },
+                    ArrivalTimeBreakpointV1 {
+                        departure_epoch_seconds: 200,
+                        arrival_epoch_seconds: 260
+                    },
+                ]
+            ),
             Err(ArrivalFunctionError::MissingQualifiedSourceDigest)
         );
 
         let mut evidence = qualified_evidence();
         evidence.source_record_sha256 = Some("not-a-sha".into());
         assert_eq!(
-            FifoArrivalTimeFunctionV1::new(evidence, vec![
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
-            ]),
+            FifoArrivalTimeFunctionV1::new(
+                evidence,
+                vec![
+                    ArrivalTimeBreakpointV1 {
+                        departure_epoch_seconds: 100,
+                        arrival_epoch_seconds: 150
+                    },
+                    ArrivalTimeBreakpointV1 {
+                        departure_epoch_seconds: 200,
+                        arrival_epoch_seconds: 260
+                    },
+                ]
+            ),
             Err(ArrivalFunctionError::InvalidSourceDigest)
         );
 
         let mut evidence = qualified_evidence();
         evidence.source_locator = None;
         assert_eq!(
-            FifoArrivalTimeFunctionV1::new(evidence, vec![
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 100, arrival_epoch_seconds: 150 },
-                ArrivalTimeBreakpointV1 { departure_epoch_seconds: 200, arrival_epoch_seconds: 260 },
-            ]),
+            FifoArrivalTimeFunctionV1::new(
+                evidence,
+                vec![
+                    ArrivalTimeBreakpointV1 {
+                        departure_epoch_seconds: 100,
+                        arrival_epoch_seconds: 150
+                    },
+                    ArrivalTimeBreakpointV1 {
+                        departure_epoch_seconds: 200,
+                        arrival_epoch_seconds: 260
+                    },
+                ]
+            ),
             Err(ArrivalFunctionError::MissingQualifiedSourceLocator)
         );
     }
@@ -729,20 +810,23 @@ mod tests {
         let function = function(&points).unwrap();
 
         for departure in 100..=150 {
-            let interval = points.windows(2).find(|pair| {
-                departure >= pair[0].0 && departure <= pair[1].0
-            }).expect("departure is bracketed by a breakpoint interval");
+            let interval = points
+                .windows(2)
+                .find(|pair| departure >= pair[0].0 && departure <= pair[1].0)
+                .expect("departure is bracketed by a breakpoint interval");
             let (left_departure, left_arrival) = interval[0];
             let (right_departure, right_arrival) = interval[1];
-            let numerator = u128::from(departure - left_departure)
-                * u128::from(right_arrival - left_arrival);
+            let numerator =
+                u128::from(departure - left_departure) * u128::from(right_arrival - left_arrival);
             let denominator = u128::from(right_departure - left_departure);
             let ceiling_delta = numerator.div_ceil(denominator);
             let reference = left_arrival + u64::try_from(ceiling_delta).unwrap();
 
             assert_eq!(
-                function.arrival_at(departure, 55, "UTC_UNIX_SECONDS_V1")
-                    .unwrap().arrival_epoch_seconds,
+                function
+                    .arrival_at(departure, 55, "UTC_UNIX_SECONDS_V1")
+                    .unwrap()
+                    .arrival_epoch_seconds,
                 reference,
                 "departure {departure} disagreed with independent rational reference"
             );
@@ -837,6 +921,9 @@ mod tests {
         let forward = function(&[(100, 150), (200, 270), (300, 330)]).unwrap();
         let reversed = function(&[(100, 150), (200, 270), (300, 330)]).unwrap();
         assert_eq!(forward, reversed);
-        assert_eq!(forward.arrival_at(175, 55, "UTC_UNIX_SECONDS_V1"), reversed.arrival_at(175, 55, "UTC_UNIX_SECONDS_V1"));
+        assert_eq!(
+            forward.arrival_at(175, 55, "UTC_UNIX_SECONDS_V1"),
+            reversed.arrival_at(175, 55, "UTC_UNIX_SECONDS_V1")
+        );
     }
 }
