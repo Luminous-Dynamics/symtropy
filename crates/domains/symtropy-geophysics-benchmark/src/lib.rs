@@ -67,6 +67,8 @@ pub struct PublicObservationFixture {
     pub observation_operator: [[f64; 2]; 2],
     /// Full measurement-error covariance. Off-diagonal terms are intentional.
     pub observation_covariance: [[f64; 2]; 2],
+    /// Covariance of the declared Gaussian state prior in dimensionless proxy coordinates.
+    pub prior_covariance: [[f64; 2]; 2],
     /// Noise-free analytic observations, y = Hx, for the paired hidden state(s).
     pub observed_values: [f64; 2],
     /// Relative simulation seconds, not UTC timestamps or time in the real Earth.
@@ -109,6 +111,23 @@ pub struct ObservabilitySummary {
     pub relative_tolerance: f64,
 }
 
+fn validate_covariance(matrix: [[f64; 2]; 2]) -> Result<(), FixtureValidationError> {
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(FixtureValidationError::NonFiniteCovariance);
+    }
+    if (matrix[0][1] - matrix[1][0]).abs() > SYMMETRY_TOLERANCE {
+        return Err(FixtureValidationError::AsymmetricCovariance);
+    }
+    let determinant = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+    if !determinant.is_finite() {
+        return Err(FixtureValidationError::NonFiniteIntermediate);
+    }
+    if matrix[0][0] <= 0.0 || matrix[1][1] <= 0.0 || determinant <= 0.0 {
+        return Err(FixtureValidationError::CovarianceNotPositiveDefinite);
+    }
+    Ok(())
+}
+
 impl PublicObservationFixture {
     /// Fail-closed validation for small, two-parameter analytic controls.
     pub fn validate(&self) -> Result<(), FixtureValidationError> {
@@ -138,14 +157,9 @@ impl PublicObservationFixture {
             return Err(FixtureValidationError::NonFiniteCovariance);
         }
         let covariance = self.observation_covariance;
-        if (covariance[0][1] - covariance[1][0]).abs() > SYMMETRY_TOLERANCE {
-            return Err(FixtureValidationError::AsymmetricCovariance);
-        }
-        let determinant =
-            covariance[0][0] * covariance[1][1] - covariance[0][1] * covariance[1][0];
-        if covariance[0][0] <= 0.0 || covariance[1][1] <= 0.0 || determinant <= 0.0 {
-            return Err(FixtureValidationError::CovarianceNotPositiveDefinite);
-        }
+        validate_covariance(covariance)?;
+        let prior_covariance = self.prior_covariance;
+        validate_covariance(prior_covariance)?;
         if self
             .model_relative_seconds
             .iter()
@@ -271,6 +285,72 @@ impl PublicObservationFixture {
         })
     }
 
+    /// Exact Gaussian expected information gain in nats for the declared covariance prior.
+    ///
+    /// EIG = 0.5 * ln(det(I + Sa Hᵀ R⁻¹ H)), using the full correlated
+    /// observation covariance R and declared state-prior covariance Sa.
+    /// This is a 2x2 analytic reference utility, not a general design optimizer.
+    pub fn expected_information_gain_nats(&self) -> Result<f64, FixtureValidationError> {
+        self.validate()?;
+        let covariance = self.observation_covariance;
+        let determinant = covariance[0][0] * covariance[1][1]
+            - covariance[0][1] * covariance[1][0];
+        if !determinant.is_finite() || determinant <= 0.0 {
+            return Err(FixtureValidationError::NonFiniteIntermediate);
+        }
+        let inverse_covariance = [
+            [covariance[1][1] / determinant, -covariance[0][1] / determinant],
+            [-covariance[1][0] / determinant, covariance[0][0] / determinant],
+        ];
+        let h = self.observation_operator;
+        let weighted_h = [
+            [
+                inverse_covariance[0][0] * h[0][0] + inverse_covariance[0][1] * h[1][0],
+                inverse_covariance[0][0] * h[0][1] + inverse_covariance[0][1] * h[1][1],
+            ],
+            [
+                inverse_covariance[1][0] * h[0][0] + inverse_covariance[1][1] * h[1][0],
+                inverse_covariance[1][0] * h[0][1] + inverse_covariance[1][1] * h[1][1],
+            ],
+        ];
+        let data_information = [
+            [
+                h[0][0] * weighted_h[0][0] + h[1][0] * weighted_h[1][0],
+                h[0][0] * weighted_h[0][1] + h[1][0] * weighted_h[1][1],
+            ],
+            [
+                h[0][1] * weighted_h[0][0] + h[1][1] * weighted_h[1][0],
+                h[0][1] * weighted_h[0][1] + h[1][1] * weighted_h[1][1],
+            ],
+        ];
+        let prior = self.prior_covariance;
+        let prior_data = [
+            [
+                prior[0][0] * data_information[0][0] + prior[0][1] * data_information[1][0],
+                prior[0][0] * data_information[0][1] + prior[0][1] * data_information[1][1],
+            ],
+            [
+                prior[1][0] * data_information[0][0] + prior[1][1] * data_information[1][0],
+                prior[1][0] * data_information[0][1] + prior[1][1] * data_information[1][1],
+            ],
+        ];
+        let precision = [
+            [1.0 + prior_data[0][0], prior_data[0][1]],
+            [prior_data[1][0], 1.0 + prior_data[1][1]],
+        ];
+        let precision_determinant =
+            precision[0][0] * precision[1][1] - precision[0][1] * precision[1][0];
+        if !precision_determinant.is_finite() || precision_determinant <= 0.0 {
+            return Err(FixtureValidationError::NonFiniteIntermediate);
+        }
+        let gain = 0.5 * precision_determinant.ln();
+        if gain.is_finite() && gain >= 0.0 {
+            Ok(gain)
+        } else {
+            Err(FixtureValidationError::NonFiniteIntermediate)
+        }
+    }
+
     /// Forward-project a candidate state through H. This method never reveals fixture truth.
     pub fn predict(&self, state: [f64; 2]) -> Result<[f64; 2], FixtureValidationError> {
         if state.iter().any(|value| !value.is_finite()) {
@@ -308,6 +388,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             observation_ids: ["sensor_low_degree", "sensor_flow_mode"],
             observation_operator: [[1.0, 0.0], [0.0, 1.0]],
             observation_covariance: [[0.25, 0.0], [0.0, 0.25]],
+            prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
             observed_values: [2.0, -1.0],
             model_relative_seconds: [0.0, 1.0],
             observation_units: "synthetic_dimensionless",
@@ -319,6 +400,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             observation_ids: ["sensor_low_degree", "sensor_high_degree"],
             observation_operator: [[1.0, 0.0], [0.0, 0.1]],
             observation_covariance: [[0.25, 0.0], [0.0, 1.0]],
+            prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
             observed_values: [2.0, -0.3],
             model_relative_seconds: [0.0, 1.0],
             observation_units: "synthetic_dimensionless",
@@ -330,6 +412,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             observation_ids: ["sensor_a", "sensor_b"],
             observation_operator: [[1.0, 0.0], [1.0, 0.0]],
             observation_covariance: [[1.0, 0.0], [0.0, 1.0]],
+            prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
             observed_values: [2.0, 2.0],
             model_relative_seconds: [0.0, 1.0],
             observation_units: "synthetic_dimensionless",
@@ -341,6 +424,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             observation_ids: ["sensor_a", "sensor_a_repeat"],
             observation_operator: [[1.0, 0.0], [1.0, 0.0]],
             observation_covariance: [[0.25, 0.2475], [0.2475, 0.25]],
+            prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
             observed_values: [2.0, 2.0],
             model_relative_seconds: [0.0, 1.0],
             observation_units: "synthetic_dimensionless",
@@ -399,6 +483,10 @@ mod tests {
                 serde_json::to_value(fixture.observation_covariance).unwrap()
             );
             assert_eq!(
+                record["prior_covariance"],
+                serde_json::to_value(fixture.prior_covariance).unwrap()
+            );
+            assert_eq!(
                 record["observed_values"],
                 serde_json::to_value(fixture.observed_values).unwrap()
             );
@@ -407,6 +495,10 @@ mod tests {
                 serde_json::to_value(fixture.model_relative_seconds).unwrap()
             );
 
+            close(
+                fixture.expected_information_gain_nats().unwrap(),
+                record["expected_information_gain_nats"].as_f64().unwrap(),
+            );
             let expected = &record["expected_observability"];
             let report = fixture.analyze_observability(1e-12, 1e-12).unwrap();
             assert_eq!(
@@ -553,6 +645,27 @@ mod tests {
             assert_eq!(report.null_space_basis.len(), 1);
             assert!(report.null_space_basis[0][1].abs() > 0.999_999);
         }
+    }
+
+    #[test]
+    fn correlated_duplicate_does_not_receive_independent_sensor_information_credit() {
+        let fixture = public_fixture(FixtureId::CorrelatedDuplicate);
+        let correlated_gain = fixture.expected_information_gain_nats().unwrap();
+        let mut falsely_independent = fixture.clone();
+        falsely_independent.observation_covariance = [[0.25, 0.0], [0.0, 0.25]];
+        let naive_gain = falsely_independent.expected_information_gain_nats().unwrap();
+        close(correlated_gain, 0.8067249769620305);
+        close(naive_gain, 1.0986122886681098);
+        assert!(correlated_gain < naive_gain);
+    }
+
+    #[test]
+    fn tightening_weak_mode_prior_reduces_expected_information_gain() {
+        let mut fixture = public_fixture(FixtureId::WeakHighMode);
+        let baseline = fixture.expected_information_gain_nats().unwrap();
+        fixture.prior_covariance[1][1] = 0.01;
+        let tight_prior = fixture.expected_information_gain_nats().unwrap();
+        assert!(tight_prior < baseline / 50.0);
     }
 
     #[test]
