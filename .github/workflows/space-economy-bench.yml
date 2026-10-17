@@ -59,6 +59,9 @@ jobs:
       - name: Run temporal service-resilience reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example temporal_resilience_reference
 
+      - name: Run resource-to-production-chain reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example resource_chain_reference
+
       - name: Run orbital sustainability externality reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
       - name: Execute corpus validator and emit receipt
@@ -208,6 +211,33 @@ jobs:
             and .scenarios[4].service_months == 1
           ' space-economy-temporal-resilience-receipt.json
 
+      - name: Execute resource-to-production-chain reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example resource_chain_reference -- \
+            --source-commit "$source_commit" > space-economy-resource-chain-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .result == "pass"
+            and .source_commit == $source_commit
+            and (.reference_source_sha256 | test("^[0-9a-f]{64}$"))
+            and (.pathways | length == 4)
+            and ([.pathways[].mass_balance_pass] | all)
+            and .pathways[0].conditional_product_mass_kg == 900
+            and .pathways[0].firm_product_mass_in_synthetic_fixture_kg == 900
+            and .pathways[1].conditional_product_mass_kg == 200
+            and .pathways[1].firm_product_mass_in_synthetic_fixture_kg == 0
+            and (.pathways[1].blockers | index("ENERGY_BUDGET_EXCEEDED") != null)
+            and .pathways[2].conditional_product_mass_kg == 54
+            and .pathways[2].firm_product_mass_in_synthetic_fixture_kg == 0
+            and .pathways[3].product_streams[0].mass_kg == 48
+            and .pathways[3].product_streams[1].mass_kg == 6
+            and .pathways[3].firm_product_mass_in_synthetic_fixture_kg == 0
+            and .pathways[2].allocation_group == .pathways[3].allocation_group
+            and (.pathways[1].uncredited_coproducts | length == 4)
+          ' space-economy-resource-chain-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -222,7 +252,8 @@ jobs:
             space-economy-supplier-concentration-receipt.json \
             space-economy-orbital-externality-receipt.json \
             space-economy-industrial-closure-receipt.json \
-            space-economy-temporal-resilience-receipt.json; do
+            space-economy-temporal-resilience-receipt.json \
+            space-economy-resource-chain-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -246,6 +277,7 @@ jobs:
             space-economy-orbital-externality-receipt.json
             space-economy-industrial-closure-receipt.json
             space-economy-temporal-resilience-receipt.json
+            space-economy-resource-chain-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
