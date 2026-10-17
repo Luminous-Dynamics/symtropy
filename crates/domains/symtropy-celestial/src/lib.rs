@@ -29,12 +29,7 @@ pub struct CelestialBody {
 }
 
 impl CelestialBody {
-    pub const fn new(
-        id: u64,
-        mass_kg: f64,
-        position_m: [f64; 3],
-        velocity_m_s: [f64; 3],
-    ) -> Self {
+    pub const fn new(id: u64, mass_kg: f64, position_m: [f64; 3], velocity_m_s: [f64; 3]) -> Self {
         Self {
             id,
             mass_kg,
@@ -104,10 +99,7 @@ pub struct NBodySystem {
 }
 
 impl NBodySystem {
-    pub fn new(
-        bodies: Vec<CelestialBody>,
-        softening_m: f64,
-    ) -> Result<Self, CelestialError> {
+    pub fn new(bodies: Vec<CelestialBody>, softening_m: f64) -> Result<Self, CelestialError> {
         validate_bodies(&bodies)?;
         if !softening_m.is_finite() || softening_m < 0.0 {
             return Err(CelestialError::InvalidSoftening);
@@ -209,10 +201,7 @@ impl NBodySystem {
         let mut energy = 0.0;
         for i in 0..self.bodies.len() {
             for j in (i + 1)..self.bodies.len() {
-                let displacement = sub(
-                    self.bodies[j].position_m,
-                    self.bodies[i].position_m,
-                );
+                let displacement = sub(self.bodies[j].position_m, self.bodies[i].position_m);
                 let radius_squared =
                     dot(displacement, displacement) + self.softening_m * self.softening_m;
                 if !radius_squared.is_finite() {
@@ -258,8 +247,7 @@ impl NBodySystem {
         }
         let mut weighted_position = [0.0; 3];
         for body in &self.bodies {
-            weighted_position =
-                add(weighted_position, scale(body.position_m, body.mass_kg));
+            weighted_position = add(weighted_position, scale(body.position_m, body.mass_kg));
         }
         finite_vector(scale(weighted_position, 1.0 / total_mass))
     }
@@ -282,9 +270,7 @@ fn validate_bodies(bodies: &[CelestialBody]) -> Result<(), CelestialError> {
     }
     let mut ids = HashSet::with_capacity(bodies.len());
     for body in bodies {
-        if !body.mass_kg.is_finite()
-            || body.mass_kg <= 0.0
-        {
+        if !body.mass_kg.is_finite() || body.mass_kg <= 0.0 {
             return Err(CelestialError::NonPositiveMass);
         }
         if !is_finite_vector(body.position_m) || !is_finite_vector(body.velocity_m_s) {
@@ -386,9 +372,7 @@ mod tests {
     const BODY_MASS_KG: f64 = 1.0e20;
 
     fn circular_binary() -> (NBodySystem, f64, f64) {
-        let speed = (GRAVITATIONAL_CONSTANT_M3_KG_S2 * BODY_MASS_KG
-            / (2.0 * SEPARATION_M))
-            .sqrt();
+        let speed = (GRAVITATIONAL_CONSTANT_M3_KG_S2 * BODY_MASS_KG / (2.0 * SEPARATION_M)).sqrt();
         let bodies = vec![
             CelestialBody::new(
                 1,
@@ -405,9 +389,8 @@ mod tests {
         ];
         let period = 2.0
             * std::f64::consts::PI
-            * (SEPARATION_M.powi(3)
-                / (GRAVITATIONAL_CONSTANT_M3_KG_S2 * 2.0 * BODY_MASS_KG))
-            .sqrt();
+            * (SEPARATION_M.powi(3) / (GRAVITATIONAL_CONSTANT_M3_KG_S2 * 2.0 * BODY_MASS_KG))
+                .sqrt();
         (NBodySystem::new(bodies, 0.0).unwrap(), period, speed)
     }
 
@@ -467,10 +450,9 @@ mod tests {
             system.step(period / 1_000.0).unwrap();
         }
         let final_state = system.invariant_snapshot().unwrap();
-        let initial_momentum_scale = BODY_MASS_KG * 2.0
-            * (GRAVITATIONAL_CONSTANT_M3_KG_S2 * BODY_MASS_KG
-                / (2.0 * SEPARATION_M))
-                .sqrt();
+        let initial_momentum_scale = BODY_MASS_KG
+            * 2.0
+            * (GRAVITATIONAL_CONSTANT_M3_KG_S2 * BODY_MASS_KG / (2.0 * SEPARATION_M)).sqrt();
 
         let momentum_error = norm(sub(
             final_state.linear_momentum_kg_m_s,
@@ -480,10 +462,7 @@ mod tests {
             final_state.angular_momentum_kg_m2_s,
             initial.angular_momentum_kg_m2_s,
         ));
-        let center_error = norm(sub(
-            final_state.center_of_mass_m,
-            initial.center_of_mass_m,
-        ));
+        let center_error = norm(sub(final_state.center_of_mass_m, initial.center_of_mass_m));
         assert!(momentum_error < initial_momentum_scale * 1e-12);
         assert!(angular_error / norm(initial.angular_momentum_kg_m2_s) < 1e-12);
         assert!(center_error / SEPARATION_M < 1e-12);
@@ -501,10 +480,7 @@ mod tests {
         )
         .unwrap();
         let before = system.clone();
-        assert_eq!(
-            system.step(0.1),
-            Err(CelestialError::SingularConfiguration)
-        );
+        assert_eq!(system.step(0.1), Err(CelestialError::SingularConfiguration));
         assert_eq!(system, before);
     }
 
