@@ -182,6 +182,8 @@ The deliberately small toy world has four synthetic states (canyon flood constra
 
 The ranking metric is **worst-case minimax-regret reduction per declared cost unit**. No priors, likelihoods, expected value-of-information, or physical-hazard probabilities are supplied or inferred. The authored reference ordering is combined survey, flood survey, then rock survey; these results exercise arithmetic and decision semantics in this toy fixture only, and say nothing about real survey economics or site safety.
 
+V0.1 assumes deterministic, perfectly discriminating outcomes inside its tiny enumerated state space. It does not model missed detections, measurement noise, inconclusive surveys, failed instruments, correlated evidence, or a survey result outside the declared model. Those must become explicit states/outcomes in a later corpus before decision rankings are applied to actual investigation plans. They must not be papered over with guessed likelihoods.
+
 The Rust package includes a separate brute-force reference path, exact input-byte digest pinning, exact expected-metric assertions, and adversarial tests for unknown hazards, duplicate IDs, incomplete/overlapping outcome partitions, changed bytes, unknown fields, and states with no feasible alternative. Its output claim ceiling is synthetic decision-impact evaluation. The independent oracle does not validate whether the larger prose-based WP/TNH scenario expectations are geotechnically or semantically correct.
 
 ## 11. Claim ceiling
