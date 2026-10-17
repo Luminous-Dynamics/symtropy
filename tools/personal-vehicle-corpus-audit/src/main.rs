@@ -59,6 +59,13 @@ const REQUIRED_SOURCE_IDS: [&str; 10] = [
 type AuditResult<T> = Result<T, Vec<String>>;
 
 #[derive(Debug, PartialEq, Eq)]
+struct ScenarioSummary {
+    case_count: usize,
+    negative_control_count: usize,
+    sha256: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
 struct AuditSummary {
     case_count: usize,
     negative_control_count: usize,
@@ -79,6 +86,7 @@ fn case_by_id<'a>(cases: &'a [Value], id: &str) -> Option<&'a Value> {
     cases.iter().find(|case| string_at(case, "id") == Some(id))
 }
 
+#[cfg(test)]
 fn case_by_id_mut<'a>(cases: &'a mut [Value], id: &str) -> Option<&'a mut Value> {
     cases.iter_mut().find(|case| string_at(case, "id") == Some(id))
 }
@@ -221,7 +229,7 @@ fn validate_special_case(case: &Value, errors: &mut Vec<String>) {
     }
 }
 
-fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<AuditSummary> {
+fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<ScenarioSummary> {
     let mut errors = Vec::new();
     check_exact_keys(
         document,
@@ -380,7 +388,7 @@ fn validate_corpus(document: &Value, raw_bytes: &[u8]) -> AuditResult<AuditSumma
 
     if errors.is_empty() {
         let sha256 = format!("{:x}", Sha256::digest(raw_bytes));
-        Ok(AuditSummary {
+        Ok(ScenarioSummary {
             case_count: cases.len(),
             negative_control_count: negative_count,
             sha256,
@@ -616,7 +624,7 @@ mod tests {
             .expect("repository corpus should parse as JSON")
     }
 
-    fn validate_fixture(document: &Value) -> Result<AuditSummary, Vec<String>> {
+    fn validate_fixture(document: &Value) -> Result<ScenarioSummary, Vec<String>> {
         let bytes = serde_json::to_vec(document).expect("fixture serialization should succeed");
         validate_corpus(document, &bytes)
     }
