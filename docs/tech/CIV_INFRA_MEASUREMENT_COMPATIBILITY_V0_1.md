@@ -19,17 +19,19 @@ This prototype demonstrates that principle with a small whitelist of determinist
 - Supported units are meter, millimeter, and dimensionless. Meter/millimeter values are normalized into nanometer ticks for exact cross-unit comparison; dimensionless values retain micro-unit ticks.
 - Intervals and outcome bins are closed: \([a,b]\). Boundary equality is possible in both adjacent bins.
 - The model declares an exact version, model reference, optional SHA-256, input unit and applicability domain.
+- The model must also declare an additive output-discrepancy interval, unit, and evidence-basis statement. The predicted interval is widened as [lower + discrepancy.lower, upper + discrepancy.upper] with checked arithmetic; overflow rejects the case. A zero discrepancy is still an assumption, not evidence of a perfect model.
 - Supported transforms are identity and a non-negative dimensionless square. The square transform rounds endpoints outward (lower downward, upper upward) so numeric quantization does not silently shrink the possible-output interval.
 - A state interval not wholly within the model domain is flagged and treated as compatible with every outcome; it is not clipped to look more informative.
 - Outcome bins may overlap. Predicted output not covered by any bin is reported as a support gap.
+- The discrepancy interval itself is part of the exact input digest and is copied into the output receipt, so reviewers can distinguish state uncertainty from declared model error.
 - An observation that matches no outcome bin is out-of-model-support. Even if an observation falls in a bin, if no declared state envelope supports it, the prior state set is also preserved and the model/support mismatch is flagged.
 - If a supported observation is compatible with more than one state, all such states remain. No probabilities or expected value of information are manufactured.
 
 ## 3. Evidence semantics
 
-Model and upstream-report references are preserved in the report. Supplied artifact SHA-256 strings are checked for syntax, not retrieved from an artifact store or verified against bytes. The public byte API hashes the exact raw JSON bytes itself, parses those same bytes, and binds that digest to the report; callers cannot supply a replacement input digest. Inputs above 4 MiB are rejected before parsing.
+Model and upstream-report references, including the model-discrepancy basis, are preserved in the report. Supplied artifact SHA-256 strings are checked for syntax, not retrieved from an artifact store or verified against bytes. The public byte API hashes the exact raw JSON bytes itself, parses those same bytes, and binds that digest to the report; callers cannot supply a replacement input digest. Inputs above 4 MiB are rejected before parsing.
 
-Consequently, v0.1 does **not** establish model authenticity, sensor calibration, observation-model correctness, model validation or engineering truth. \`model_artifact_ref\` is traceability metadata, not proof. A later artifact adapter must retrieve the exact referenced bytes, verify the hash and scope, and record verified/unverified status before the output can claim source-backed model provenance.
+Consequently, v0.1 does **not** establish model authenticity, sensor calibration, the empirical adequacy of a declared discrepancy envelope, observation-model correctness, model validation or engineering truth. \`model_artifact_ref\` is traceability metadata, not proof. A later artifact adapter must retrieve the exact referenced bytes, verify the hash and scope, and record verified/unverified status before the output can claim source-backed model provenance.
 
 ## 4. Generated software benchmark
 
