@@ -1,0 +1,1453 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "extreme-environment-platform-readiness-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_real_world_data_included": false,
+    "notes": "Every candidate gate status and metric interval is invented for contract testing. Region labels define scenario archetypes only, not current conditions or permission to deploy."
+  },
+  "claim_ceiling": "synthetic_readiness_audit_is_not_a_physical_validation_or_deployment_authorization",
+  "gate_definitions": [
+    {
+      "gate_id": "amz_waterway_access",
+      "meaning": "Local waterway, landing and access permission is confirmed.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "amz_water_containment",
+      "meaning": "Energy system and cargo avoid unmanaged fuel/oil/chemical discharge.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "amz_habitat_disturbance",
+      "meaning": "Ground/waterway and wildlife disturbance is within approved site limits.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "amz_community_consent",
+      "meaning": "Affected community and responsible operator have approved the mission.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "amz_recovery_plan",
+      "meaning": "A feasible recovery/tow/manual retrieval plan is present.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "congo_peatland_approval",
+      "meaning": "Site-specific peatland/soil bearing and route approval is documented.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "congo_biosecurity",
+      "meaning": "Cleaning and biological transfer controls are defined and feasible.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "congo_local_repair_path",
+      "meaning": "Parts, tools, and a locally supportable repair route exist.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "congo_community_consent",
+      "meaning": "Community participation and consent for the use case are recorded.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "congo_recovery_plan",
+      "meaning": "Recovery does not depend on unvalidated heavy equipment access.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "ant_eia_authorization",
+      "meaning": "Applicable environmental assessment and authorization are documented.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "ant_spill_waste_control",
+      "meaning": "Fuel, batteries, waste and spill response are controlled for the mission.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "ant_cold_evidence",
+      "meaning": "The complete system has evidence for its declared cold-soak operating envelope.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "ant_site_wildlife_buffer",
+      "meaning": "Site and wildlife separation rules are satisfied.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "ant_recovery_plan",
+      "meaning": "A realistic recovery/resupply contingency is documented.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "sah_heat_dust_evidence",
+      "meaning": "Thermal and dust ingress limits have appropriate qualification evidence.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "sah_water_energy_plan",
+      "meaning": "Water and energy supply assumptions match the mission logistics.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "sah_terrain_fit",
+      "meaning": "Sand, rock, slope and wadi limits fit declared conditions.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "sah_recovery_plan",
+      "meaning": "Recovery support, consumables and disabled-vehicle retrieval are planned.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "sah_operating_authorization",
+      "meaning": "Required local operating and airspace permissions are established.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "afg_civilian_scope",
+      "meaning": "The task is a documented civilian humanitarian or scientific mission.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "afg_authorized_route",
+      "meaning": "Route safety is established by an authorized process; suspected hazards remain no-go.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "afg_humanitarian_coordination",
+      "meaning": "Mission is coordinated with responsible humanitarian/local partners.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "afg_privacy_protection",
+      "meaning": "Collection is minimized and protects civilian identity and location privacy.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "afg_human_recovery_control",
+      "meaning": "A trained human supervisor can stop and recover the platform safely.",
+      "hard_gate": true
+    }
+  ],
+  "metric_definitions": [
+    {
+      "metric_id": "payload_capacity_kg",
+      "unit": "kg",
+      "direction": "maximize",
+      "meaning": "Synthetic payload capacity interval for declared mission."
+    },
+    {
+      "metric_id": "mission_endurance_hours",
+      "unit": "hours",
+      "direction": "maximize",
+      "meaning": "Synthetic demonstrated-duration interval for the declared mission profile."
+    },
+    {
+      "metric_id": "energy_per_mission_wh",
+      "unit": "Wh",
+      "direction": "minimize",
+      "meaning": "Synthetic energy draw interval per declared mission."
+    },
+    {
+      "metric_id": "thermal_operating_margin_c",
+      "unit": "degC",
+      "direction": "maximize",
+      "meaning": "Synthetic thermal margin within a specified operating envelope; not ambient temperature capability."
+    },
+    {
+      "metric_id": "ecological_disturbance_index",
+      "unit": "index_0_1",
+      "direction": "minimize",
+      "meaning": "Synthetic normalized disturbance index used only to test data contracts; not an ecological measurement."
+    }
+  ],
+  "environments": [
+    {
+      "environment_id": "amazon_basin",
+      "label": "Amazon Basin",
+      "design_constraints": [
+        "dense canopy and limited line-of-sight",
+        "seasonally flooded terrain and river-dependent access",
+        "high humidity and water-ingress risk",
+        "cold-chain and community logistics may be mission-critical"
+      ],
+      "ecological_no_go": [
+        "no unapproved forest-road creation",
+        "no unmanaged fuel/oil discharge",
+        "no approach to wildlife or sensitive habitat outside an approved plan"
+      ],
+      "regional_caveat": "The basin is not a single terrain or regulatory condition; river, floodplain, forest edge and settlement scenarios must be scoped separately."
+    },
+    {
+      "environment_id": "congo_basin",
+      "label": "Congo Basin",
+      "design_constraints": [
+        "saturated soil and forest/peatland sensitivity",
+        "high humidity and biological contamination risk",
+        "limited heavy-equipment recovery access",
+        "local repairability and community impact"
+      ],
+      "ecological_no_go": [
+        "no peatland crossing without site-specific approval",
+        "no invasive-species transfer between sites",
+        "no uncontained lubricants, fuel or batteries"
+      ],
+      "regional_caveat": "Do not infer safe routes, soil bearing capacity or community consent from a basin-wide label."
+    },
+    {
+      "environment_id": "antarctica",
+      "label": "Antarctica",
+      "design_constraints": [
+        "cold-soak and battery/actuator derating",
+        "wind, whiteout and changing snow/ice conditions",
+        "remote recovery and long resupply lead times",
+        "environmental assessment, waste and spill prevention"
+      ],
+      "ecological_no_go": [
+        "no deployment without applicable authorization and environmental assessment",
+        "no unplanned waste/fuel release",
+        "no unapproved approach to wildlife or protected areas"
+      ],
+      "regional_caveat": "This synthetic benchmark is not a permit. Applicable Antarctic Treaty System and national procedures control real operations."
+    },
+    {
+      "environment_id": "sahara",
+      "label": "Sahara",
+      "design_constraints": [
+        "high solar load and hot-soak limits",
+        "fine dust ingress and abrasive surfaces",
+        "soft sand, rock and wadi/flood risk",
+        "water, cooling and recovery logistics"
+      ],
+      "ecological_no_go": [
+        "no assumption of water availability",
+        "no unrecovered disabled platform in remote terrain",
+        "no dust/fuel/chemical release beyond approved handling"
+      ],
+      "regional_caveat": "The Sahara includes many climates and surfaces; a route/time/season-specific mission envelope is required."
+    },
+    {
+      "environment_id": "afghanistan",
+      "label": "Afghanistan",
+      "design_constraints": [
+        "mountainous routes, seasonal snow and poor road access",
+        "remote medical/humanitarian resupply",
+        "uncertain communications and recovery access",
+        "explosive ordnance contamination must be treated as a no-go unless an authorized process establishes safe access"
+      ],
+      "ecological_no_go": [
+        "no entry to suspected explosive-hazard areas",
+        "no autonomous mine/ERW manipulation",
+        "no armed payloads, targeting or tactical deployment"
+      ],
+      "regional_caveat": "Countrywide assumptions are inappropriate. Work only within a specific civilian mission, authorized route and local humanitarian coordination process."
+    }
+  ],
+  "platform_archetypes": [
+    {
+      "platform_id": "electric_shallow_draft_boat",
+      "platform_class": "rivercraft",
+      "description": "Electric shallow-draft craft with sealed medical/cold-chain module",
+      "declared_limits": [
+        "not for dry steep trails",
+        "waterway access and landing site must be confirmed"
+      ]
+    },
+    {
+      "platform_id": "low_pressure_trail_rover",
+      "platform_class": "ground_rover",
+      "description": "Low-ground-pressure slow rover with removable cargo module",
+      "declared_limits": [
+        "not a substitute for community river transport",
+        "soil disturbance and trail permission must be evidenced"
+      ]
+    },
+    {
+      "platform_id": "small_cargo_uav",
+      "platform_class": "aerial_robot",
+      "description": "Small uncrewed aircraft for permitted observation or lightweight cargo",
+      "declared_limits": [
+        "weather, airspace, payload and community consent gates apply",
+        "not for autonomous contact with people or hazardous objects"
+      ]
+    },
+    {
+      "platform_id": "shallow_draft_ecoboat",
+      "platform_class": "rivercraft",
+      "description": "Repairable shallow-draft electric community logistics craft",
+      "declared_limits": [
+        "must use locally authorized waterways and docks"
+      ]
+    },
+    {
+      "platform_id": "low_disturbance_rover",
+      "platform_class": "ground_rover",
+      "description": "Lightweight low-speed survey rover with replaceable wheels and sensors",
+      "declared_limits": [
+        "must remain on approved paths",
+        "site biosecurity and soil-pressure limits apply"
+      ]
+    },
+    {
+      "platform_id": "heavy_tracked_carrier",
+      "platform_class": "tracked_carrier",
+      "description": "Heavy tracked cargo carrier archetype",
+      "declared_limits": [
+        "high ground disturbance risk",
+        "requires verified bearing capacity and recovery support"
+      ]
+    },
+    {
+      "platform_id": "polar_tracked_research_carrier",
+      "platform_class": "tracked_carrier",
+      "description": "Cold-rated tracked science and resupply carrier archetype",
+      "declared_limits": [
+        "cold performance and recovery require instrumented validation",
+        "environmental assessment and spill controls are mandatory"
+      ]
+    },
+    {
+      "platform_id": "polar_sled_train",
+      "platform_class": "sled_train",
+      "description": "Towable low-complexity resupply sled train",
+      "declared_limits": [
+        "requires authorized tow vehicle and snow/ice condition assessment",
+        "cannot self-recover independently"
+      ]
+    },
+    {
+      "platform_id": "solar_sensor_rover",
+      "platform_class": "ground_rover",
+      "description": "Low-speed solar-assisted sensor rover with sealed replaceable modules",
+      "declared_limits": [
+        "solar contribution is not guaranteed",
+        "dust, thermal soak and water/wadi risks require qualification"
+      ]
+    },
+    {
+      "platform_id": "dust_sealed_cargo_rover",
+      "platform_class": "ground_rover",
+      "description": "Dust-sealed cargo rover with field-replaceable filters and wheels",
+      "declared_limits": [
+        "heat derating and payload endurance require validation",
+        "must carry or have access to recovery support"
+      ]
+    },
+    {
+      "platform_id": "humanitarian_medical_rover",
+      "platform_class": "ground_rover",
+      "description": "Non-armed low-speed medical and communications cargo rover",
+      "declared_limits": [
+        "route must be verified by an authorized humanitarian process",
+        "stop and await human direction on hazard uncertainty"
+      ]
+    },
+    {
+      "platform_id": "humanitarian_supply_carrier",
+      "platform_class": "ground_carrier",
+      "description": "Modular humanitarian supply carrier with manual recovery interface",
+      "declared_limits": [
+        "authorized cleared corridor only",
+        "no autonomous hazardous-object approach or manipulation"
+      ]
+    },
+    {
+      "platform_id": "medical_cargo_uav",
+      "platform_class": "aerial_robot",
+      "description": "Lightweight medical-supply aircraft archetype for authorized civilian missions",
+      "declared_limits": [
+        "airspace/permissions and weather must be confirmed",
+        "no surveillance/targeting role; cargo and route are mission-limited"
+      ]
+    }
+  ],
+  "mission_scenarios": [
+    {
+      "scenario_id": "AMZ-MED-COLDCHAIN-01",
+      "environment_id": "amazon_basin",
+      "mission_class": "medical_and_cold_chain_resupply",
+      "required_gate_ids": [
+        "amz_waterway_access",
+        "amz_water_containment",
+        "amz_habitat_disturbance",
+        "amz_community_consent",
+        "amz_recovery_plan"
+      ],
+      "required_metric_ids": [
+        "payload_capacity_kg",
+        "mission_endurance_hours",
+        "energy_per_mission_wh",
+        "thermal_operating_margin_c",
+        "ecological_disturbance_index"
+      ],
+      "no_go_actions": [
+        "unapproved forest-road creation",
+        "uncontained discharge",
+        "wildlife approach outside authorized plan"
+      ]
+    },
+    {
+      "scenario_id": "CONGO-COMMUNITY-SURVEY-01",
+      "environment_id": "congo_basin",
+      "mission_class": "community_logistics_and_ecosystem_survey",
+      "required_gate_ids": [
+        "congo_peatland_approval",
+        "congo_biosecurity",
+        "congo_local_repair_path",
+        "congo_community_consent",
+        "congo_recovery_plan"
+      ],
+      "required_metric_ids": [
+        "payload_capacity_kg",
+        "mission_endurance_hours",
+        "energy_per_mission_wh",
+        "thermal_operating_margin_c",
+        "ecological_disturbance_index"
+      ],
+      "no_go_actions": [
+        "unapproved peatland crossing",
+        "uncontained oil/fuel/battery release",
+        "cross-site biological contamination"
+      ]
+    },
+    {
+      "scenario_id": "ANTARCTIC-SCIENCE-RESUPPLY-01",
+      "environment_id": "antarctica",
+      "mission_class": "permitted_science_and_resupply_support",
+      "required_gate_ids": [
+        "ant_eia_authorization",
+        "ant_spill_waste_control",
+        "ant_cold_evidence",
+        "ant_site_wildlife_buffer",
+        "ant_recovery_plan"
+      ],
+      "required_metric_ids": [
+        "payload_capacity_kg",
+        "mission_endurance_hours",
+        "energy_per_mission_wh",
+        "thermal_operating_margin_c",
+        "ecological_disturbance_index"
+      ],
+      "no_go_actions": [
+        "deployment without applicable assessment and authorization",
+        "unplanned waste or fuel release",
+        "unapproved protected-site or wildlife approach"
+      ]
+    },
+    {
+      "scenario_id": "SAHARA-REMOTE-SENSING-01",
+      "environment_id": "sahara",
+      "mission_class": "remote_sensing_and_maintenance_delivery",
+      "required_gate_ids": [
+        "sah_heat_dust_evidence",
+        "sah_water_energy_plan",
+        "sah_terrain_fit",
+        "sah_recovery_plan",
+        "sah_operating_authorization"
+      ],
+      "required_metric_ids": [
+        "payload_capacity_kg",
+        "mission_endurance_hours",
+        "energy_per_mission_wh",
+        "thermal_operating_margin_c",
+        "ecological_disturbance_index"
+      ],
+      "no_go_actions": [
+        "launch beyond validated thermal envelope",
+        "remote deployment without retrieval plan",
+        "assuming water or grid access"
+      ]
+    },
+    {
+      "scenario_id": "AFG-HUMANITARIAN-ACCESS-01",
+      "environment_id": "afghanistan",
+      "mission_class": "civilian_medical_delivery_and_infrastructure_assessment",
+      "required_gate_ids": [
+        "afg_civilian_scope",
+        "afg_authorized_route",
+        "afg_humanitarian_coordination",
+        "afg_privacy_protection",
+        "afg_human_recovery_control"
+      ],
+      "required_metric_ids": [
+        "payload_capacity_kg",
+        "mission_endurance_hours",
+        "energy_per_mission_wh",
+        "thermal_operating_margin_c",
+        "ecological_disturbance_index"
+      ],
+      "no_go_actions": [
+        "entry into suspected explosive-hazard areas without authorized clearance",
+        "autonomous mine or ERW manipulation",
+        "armed payloads, targeting or tactical deployment"
+      ]
+    }
+  ],
+  "assessments": [
+    {
+      "assessment_id": "amz-boat-approved",
+      "scenario_id": "AMZ-MED-COLDCHAIN-01",
+      "platform_id": "electric_shallow_draft_boat",
+      "gate_results": [
+        {
+          "gate_id": "amz_waterway_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_water_containment",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_habitat_disturbance",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_community_consent",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 80,
+          "upper": 110
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 4,
+          "upper": 7
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1200,
+          "upper": 1800
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 15
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.05,
+          "upper": 0.15
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-tracked-impact",
+      "scenario_id": "AMZ-MED-COLDCHAIN-01",
+      "platform_id": "low_pressure_trail_rover",
+      "gate_results": [
+        {
+          "gate_id": "amz_waterway_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_water_containment",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_habitat_disturbance",
+          "status": "fail"
+        },
+        {
+          "gate_id": "amz_community_consent",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 45,
+          "upper": 70
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 8
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 900,
+          "upper": 1400
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 12
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.4,
+          "upper": 0.7
+        }
+      ]
+    },
+    {
+      "assessment_id": "amz-uav-unknown",
+      "scenario_id": "AMZ-MED-COLDCHAIN-01",
+      "platform_id": "small_cargo_uav",
+      "gate_results": [
+        {
+          "gate_id": "amz_waterway_access",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "amz_water_containment",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_habitat_disturbance",
+          "status": "pass"
+        },
+        {
+          "gate_id": "amz_community_consent",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "amz_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 5
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.5,
+          "upper": 1.2
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 500,
+          "upper": 900
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 8
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.02,
+          "upper": 0.1
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-boat-approved",
+      "scenario_id": "CONGO-COMMUNITY-SURVEY-01",
+      "platform_id": "shallow_draft_ecoboat",
+      "gate_results": [
+        {
+          "gate_id": "congo_peatland_approval",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_biosecurity",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_local_repair_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_community_consent",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 70,
+          "upper": 100
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 8
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1100,
+          "upper": 1700
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 14
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.04,
+          "upper": 0.12
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-rover-approved",
+      "scenario_id": "CONGO-COMMUNITY-SURVEY-01",
+      "platform_id": "low_disturbance_rover",
+      "gate_results": [
+        {
+          "gate_id": "congo_peatland_approval",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_biosecurity",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_local_repair_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_community_consent",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 15,
+          "upper": 28
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 6
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 500,
+          "upper": 900
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 4,
+          "upper": 10
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.05,
+          "upper": 0.18
+        }
+      ]
+    },
+    {
+      "assessment_id": "congo-heavy-blocked",
+      "scenario_id": "CONGO-COMMUNITY-SURVEY-01",
+      "platform_id": "heavy_tracked_carrier",
+      "gate_results": [
+        {
+          "gate_id": "congo_peatland_approval",
+          "status": "fail"
+        },
+        {
+          "gate_id": "congo_biosecurity",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_local_repair_path",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "congo_community_consent",
+          "status": "pass"
+        },
+        {
+          "gate_id": "congo_recovery_plan",
+          "status": "unknown"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 250,
+          "upper": 500
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 4,
+          "upper": 9
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 3000,
+          "upper": 5500
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 7
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.65,
+          "upper": 0.95
+        }
+      ]
+    },
+    {
+      "assessment_id": "ant-polar-approved",
+      "scenario_id": "ANTARCTIC-SCIENCE-RESUPPLY-01",
+      "platform_id": "polar_tracked_research_carrier",
+      "gate_results": [
+        {
+          "gate_id": "ant_eia_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_spill_waste_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_cold_evidence",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_site_wildlife_buffer",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 400,
+          "upper": 700
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 10
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 5000,
+          "upper": 9000
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 10,
+          "upper": 25
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.25,
+          "upper": 0.5
+        }
+      ]
+    },
+    {
+      "assessment_id": "ant-sled-evidence",
+      "scenario_id": "ANTARCTIC-SCIENCE-RESUPPLY-01",
+      "platform_id": "polar_sled_train",
+      "gate_results": [
+        {
+          "gate_id": "ant_eia_authorization",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "ant_spill_waste_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_cold_evidence",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_site_wildlife_buffer",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 600,
+          "upper": 1100
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 4,
+          "upper": 8
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 800,
+          "upper": 1500
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 12
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.15,
+          "upper": 0.35
+        }
+      ]
+    },
+    {
+      "assessment_id": "ant-uav-blocked",
+      "scenario_id": "ANTARCTIC-SCIENCE-RESUPPLY-01",
+      "platform_id": "small_cargo_uav",
+      "gate_results": [
+        {
+          "gate_id": "ant_eia_authorization",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_spill_waste_control",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_cold_evidence",
+          "status": "pass"
+        },
+        {
+          "gate_id": "ant_site_wildlife_buffer",
+          "status": "fail"
+        },
+        {
+          "gate_id": "ant_recovery_plan",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 8
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.4,
+          "upper": 1.4
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 600,
+          "upper": 1100
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 9
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.05,
+          "upper": 0.2
+        }
+      ]
+    },
+    {
+      "assessment_id": "sah-sensor-approved",
+      "scenario_id": "SAHARA-REMOTE-SENSING-01",
+      "platform_id": "solar_sensor_rover",
+      "gate_results": [
+        {
+          "gate_id": "sah_heat_dust_evidence",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_water_energy_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_terrain_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_operating_authorization",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 12
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 8,
+          "upper": 20
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 300,
+          "upper": 800
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 15
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.04,
+          "upper": 0.12
+        }
+      ]
+    },
+    {
+      "assessment_id": "sah-cargo-unknown",
+      "scenario_id": "SAHARA-REMOTE-SENSING-01",
+      "platform_id": "dust_sealed_cargo_rover",
+      "gate_results": [
+        {
+          "gate_id": "sah_heat_dust_evidence",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "sah_water_energy_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_terrain_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_operating_authorization",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 80,
+          "upper": 140
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 7
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1500,
+          "upper": 2600
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": -2,
+          "upper": 10
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.12,
+          "upper": 0.3
+        }
+      ]
+    },
+    {
+      "assessment_id": "sah-uav-blocked",
+      "scenario_id": "SAHARA-REMOTE-SENSING-01",
+      "platform_id": "small_cargo_uav",
+      "gate_results": [
+        {
+          "gate_id": "sah_heat_dust_evidence",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_water_energy_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_terrain_fit",
+          "status": "fail"
+        },
+        {
+          "gate_id": "sah_recovery_plan",
+          "status": "pass"
+        },
+        {
+          "gate_id": "sah_operating_authorization",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 4
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.3,
+          "upper": 1.1
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 450,
+          "upper": 900
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": 1,
+          "upper": 7
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.03,
+          "upper": 0.1
+        }
+      ]
+    },
+    {
+      "assessment_id": "afg-cleared-corridor",
+      "scenario_id": "AFG-HUMANITARIAN-ACCESS-01",
+      "platform_id": "humanitarian_medical_rover",
+      "gate_results": [
+        {
+          "gate_id": "afg_civilian_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_authorized_route",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_humanitarian_coordination",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_privacy_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_human_recovery_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 25,
+          "upper": 55
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 7
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 700,
+          "upper": 1300
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": -10,
+          "upper": 10
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.08,
+          "upper": 0.2
+        }
+      ]
+    },
+    {
+      "assessment_id": "afg-route-unverified",
+      "scenario_id": "AFG-HUMANITARIAN-ACCESS-01",
+      "platform_id": "humanitarian_supply_carrier",
+      "gate_results": [
+        {
+          "gate_id": "afg_civilian_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_authorized_route",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "afg_humanitarian_coordination",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_privacy_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_human_recovery_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 100,
+          "upper": 220
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 6
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 1200,
+          "upper": 2500
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": -15,
+          "upper": 6
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.15,
+          "upper": 0.35
+        }
+      ]
+    },
+    {
+      "assessment_id": "afg-uav-unknown",
+      "scenario_id": "AFG-HUMANITARIAN-ACCESS-01",
+      "platform_id": "medical_cargo_uav",
+      "gate_results": [
+        {
+          "gate_id": "afg_civilian_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_authorized_route",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "afg_humanitarian_coordination",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "afg_privacy_protection",
+          "status": "pass"
+        },
+        {
+          "gate_id": "afg_human_recovery_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "payload_capacity_kg",
+          "unit": "kg",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 5
+        },
+        {
+          "metric_id": "mission_endurance_hours",
+          "unit": "hours",
+          "status": "synthetic_interval",
+          "lower": 0.4,
+          "upper": 1.3
+        },
+        {
+          "metric_id": "energy_per_mission_wh",
+          "unit": "Wh",
+          "status": "synthetic_interval",
+          "lower": 500,
+          "upper": 1000
+        },
+        {
+          "metric_id": "thermal_operating_margin_c",
+          "unit": "degC",
+          "status": "synthetic_interval",
+          "lower": -10,
+          "upper": 8
+        },
+        {
+          "metric_id": "ecological_disturbance_index",
+          "unit": "index_0_1",
+          "status": "synthetic_interval",
+          "lower": 0.03,
+          "upper": 0.1
+        }
+      ]
+    }
+  ]
+}
