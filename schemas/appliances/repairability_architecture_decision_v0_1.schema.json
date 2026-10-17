@@ -13,7 +13,9 @@
     "decision_policy",
     "criteria",
     "candidates",
-    "next_experiment_policy"
+    "next_experiment_policy",
+    "profile_policy",
+    "stakeholder_profiles"
   ],
   "properties": {
     "schema_version": {
@@ -291,6 +293,142 @@
         "existing_information_value_owner": {
           "type": "string",
           "minLength": 10
+        }
+      }
+    },
+    "profile_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_policy_id",
+        "hard_gate_override",
+        "selection_before_evidence",
+        "threshold_policy",
+        "weighting_policy"
+      ],
+      "properties": {
+        "profile_policy_id": {
+          "const": "STAKEHOLDER-REPAIRABILITY-PROFILES-001"
+        },
+        "hard_gate_override": {
+          "const": false
+        },
+        "selection_before_evidence": {
+          "const": false
+        },
+        "threshold_policy": {
+          "const": "unfrozen_threshold_remains_unknown"
+        },
+        "weighting_policy": {
+          "const": "no_hidden_global_weights"
+        }
+      }
+    },
+    "stakeholder_profiles": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "context",
+          "primary_question",
+          "criteria",
+          "required_task_boundary",
+          "status",
+          "requirements"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "P1-HOUSEHOLD-OWNER",
+              "P2-INDEPENDENT-TECHNICIAN",
+              "P3-PARTS-AND-SERVICE-NETWORK",
+              "P4-LIFECYCLE-MATERIAL-STEWARD",
+              "P5-REMOTE-INSTITUTIONAL-OPERATOR"
+            ]
+          },
+          "context": {
+            "type": "string",
+            "minLength": 20
+          },
+          "primary_question": {
+            "type": "string",
+            "minLength": 20
+          },
+          "criteria": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$"
+            }
+          },
+          "required_task_boundary": {
+            "type": "string",
+            "minLength": 20
+          },
+          "status": {
+            "const": "requirements_not_frozen"
+          },
+          "requirements": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "criterion_id",
+                "direction",
+                "unit",
+                "threshold",
+                "rationale",
+                "evidence_needed",
+                "status"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]+$"
+                },
+                "criterion_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]+$"
+                },
+                "direction": {
+                  "enum": [
+                    "minimize",
+                    "maximize"
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "threshold": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 10
+                },
+                "evidence_needed": {
+                  "type": "string",
+                  "minLength": 10
+                },
+                "status": {
+                  "const": "threshold_not_frozen"
+                }
+              }
+            }
+          }
         }
       }
     }
