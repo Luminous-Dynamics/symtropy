@@ -638,6 +638,7 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "maximum_charge_power_w", 10_000.0);
     number(&mut json, "maximum_discharge_power_w", 10_000.0);
     number(&mut json, "standing_loss_conductance_w_per_k", 10.0);
+    number(&mut json, "standing_loss_ambient_temperature_k", 300.0);
     number(&mut json, "charge_duration_s", 100.0);
     number(&mut json, "standing_loss_duration_s", 10.0);
     number(&mut json, "load_supply_temperature_k", 450.0);
@@ -712,6 +713,7 @@ mod tests {
         assert!(first.contains("\"stored_exergy_before_discharge_j\""));
         assert!(first.contains("\"final_store_exergy_j\""));
         assert!(first.contains("\"exergy_reference_temperature_k\":300.000000000"));
+        assert!(first.contains("\\\"standing_loss_ambient_temperature_k\\\":300.000000000"));
         assert!(first.contains("\"useful_captured_heat_j\":700000.000000000"));
         assert!(first.contains("\"unmet_useful_heat_j\":0.000000000"));
     }
