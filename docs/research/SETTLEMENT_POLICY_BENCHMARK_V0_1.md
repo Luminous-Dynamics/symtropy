@@ -138,3 +138,16 @@ The current policy benchmark is therefore a specification and next-step programm
 A first typed policy-information-frame builder now exists in `crates/domains/symtropy-settlement-core/src/observation.rs`, with an explicit freshness window, source/target generation, sample tick, available tick, stale/missing/conflicting/unvalidated/revoked dispositions, canonical digest and a metamorphic no-lookahead test. See [SETTLEMENT-OBS-001 #1753](https://github.com/Luminous-Dynamics/symtropy/issues/1753) and [Observation Boundary v0.1](https://github.com/Luminous-Dynamics/symtropy/blob/research/settlement-timeline-v0-1/docs/research/SETTLEMENT_OBSERVATION_BOUNDARY_V0_1.md).
 
 This is only the projection/conformance layer. The policy runner still must keep latent scenario state private, generate observations from a deterministic schedule, make decisions only from these frames, and separately receipt intervention costs/latency. No paired policy outcome or information-value result is implemented yet.
+
+
+## Baseline decision interface implementation update
+
+A first policy-decision interface now exists in `crates/domains/symtropy-settlement-core/src/policy.rs`:
+- `NoIntervention` emits a no-action receipt.
+- `ReactiveRepair` emits at most one request per decision tick, triggered only by a **Current** failed-component observation from a source explicitly authorized by a versioned repair rule.
+- Requests declare parts, crew units, priority, dispatch latency, duration and expected completion tick.
+- The decision binds the exact observation-frame digest, trigger observation ID/digest, policy ID/version and a deterministic action ID.
+- The independent decision verifier rechecks the frame, trigger observation, rule identity, source authorization, costs, latency arithmetic and action identity.
+- Eight policy tests cover basic baselines, current vs stale/missing/conflicting/unvalidated evidence, source restrictions, competing failures and priorities, malformed rules, overflow and tampering.
+
+This deliberately does not execute repairs, reserve/spend resources, model a real repair crew, or compare policy outcomes. The emitted request is not actuation authority. The paired timeline runner, intervention acceptance/execution receipts, resource/crew contention, held-out policy campaign and external physical solver comparison remain unimplemented.
