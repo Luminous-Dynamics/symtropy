@@ -335,71 +335,6 @@ pub fn verify_policy_decision_with_frame(
     Ok(())
 }
 
-pub fn verify_policy_decision_against_frame(
-    decision: &PolicyDecision,
-    frame: &PolicyInformationFrame,
-) -> Result<(), SettlementError> {
-    verify_policy_decision(decision)?;
-    verify_policy_information_frame(frame)?;
-    if decision.payload.decision_tick != frame.payload.decision_tick
-        || decision.payload.input_frame_sha256 != frame.payload_sha256
-    {
-        return Err(SettlementError(
-            "policy decision does not bind to the supplied information frame".into(),
-        ));
-    }
-
-    if let DecisionDisposition::RepairRequested { request } = &decision.payload.disposition {
-        let trigger = frame
-            .payload
-            .observations
-            .iter()
-            .find(|observation| observation.observation_id == request.trigger_observation_id)
-            .ok_or_else(|| SettlementError("repair trigger is absent from input frame".into()))?;
-        let encoded_trigger = serde_json::to_vec(trigger)
-            .map_err(|error| SettlementError(format!("serialize trigger observation: {error}")))?;
-        if sha256_hex(&encoded_trigger) != request.trigger_observation_sha256 {
-            return Err(SettlementError(
-                "repair trigger observation digest does not match input frame".into(),
-            ));
-        }
-        if trigger.target_component != request.target_component
-            || trigger.target_generation != request.target_generation
-            || !matches!(
-                &trigger.disposition,
-                ObservationDisposition::Current {
-                    value: ObservedValue::ComponentCondition {
-                        condition: KnownComponentCondition::Failed
-                    }
-                }
-            )
-        {
-            return Err(SettlementError(
-                "repair request is not supported by a current failed-component observation".into(),
-            ));
-        }
-        let action_material = format!(
-            "{}\\0{}\\0{}\\0{}\\0{}\\0{}",
-            decision.payload.policy_id,
-            decision.payload.policy_version,
-            decision.payload.decision_tick,
-            request.target_component.as_str(),
-            request.target_generation,
-            request.trigger_observation_id
-        );
-        let expected_action_id = format!(
-            "action:{}",
-            &sha256_hex(action_material.as_bytes())[..32]
-        );
-        if request.action_id != expected_action_id {
-            return Err(SettlementError(
-                "repair action ID does not match decision inputs".into(),
-            ));
-        }
-    }
-    Ok(())
-}
-
 pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), SettlementError> {
     let payload = &decision.payload;
     if payload.schema_version != POLICY_SCHEMA_VERSION {
@@ -707,12 +642,11 @@ mod tests {
             1,
         );
         let frame = frame(observation, 1);
-        let decision = evaluate_baseline_policy(
-            &policy(BaselineStrategy::ReactiveRepair),
-            &frame,
-        )
-        .unwrap();
-        assert!(verify_policy_decision_against_frame(&decision, &frame).is_ok());
+        let definition = policy(BaselineStrategy::ReactiveRepair);
+        let decision = evaluate_baseline_policy(&definition, &frame).unwrap();
+        assert!(
+            verify_policy_decision_with_policy_and_frame(&decision, &frame, &definition).is_ok()
+        );
 
         let changed_frame = frame(
             failed_observation(
@@ -726,7 +660,10 @@ mod tests {
             ),
             1,
         );
-        assert!(verify_policy_decision_against_frame(&decision, &changed_frame).is_err());
+        assert!(
+            verify_policy_decision_with_policy_and_frame(&decision, &changed_frame, &definition)
+                .is_err()
+        );
     }
 
     #[test]
