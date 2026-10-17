@@ -602,7 +602,7 @@ fn run() -> Result<(), String> {
             "schema_path": decision_schema_path.display().to_string(),
             "decision_profile_path": decision_profile_path.display().to_string(),
             "assessment": assessment,
-            "physical_measurement_rankings_established": false,
+            "eligible_comparative_evidence_available": decision_summary.eligible_candidate_count > 0,
             "product_winner_declared": false,
             "product_safety_assessed": false
         });
