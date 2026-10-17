@@ -1,0 +1,34 @@
+name: Multi-cycle lifecycle horizon benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/lifecycle-horizon-benchmark/**"
+      - "docs/research/CIRC_BUILD_MULTI_CYCLE_V0_1.md"
+      - ".github/workflows/lifecycle-horizon-benchmark.yml"
+  push:
+    paths:
+      - "tools/lifecycle-horizon-benchmark/**"
+      - "docs/research/CIRC_BUILD_MULTI_CYCLE_V0_1.md"
+      - ".github/workflows/lifecycle-horizon-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-synthetic-horizon:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml -- --check
+      - name: Run transition-oracle and hostile-input tests
+        run: cargo test --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml
+      - name: Emit exact-source horizon receipt
+        run: cargo run --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml
