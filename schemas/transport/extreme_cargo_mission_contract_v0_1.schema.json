@@ -231,7 +231,7 @@
           ]
         },
         "mass_kg": {
-          "$ref": "#/$defs/range"
+          "$ref": "#/$defs/positive_mass_range"
         },
         "dimensions_mm": {
           "$ref": "#/$defs/dimensions"
@@ -818,6 +818,24 @@
               "minimum": 0
             }
           }
+        }
+      }
+    },
+    "positive_mass_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     }
