@@ -429,7 +429,11 @@ pub fn validate_outcome_fixtures_bytes(
         }
 
         if let Some(result) = compare_one(comparison, &mut summary, index) {
-            let case_failures = summary.failures.iter().filter(|failure| failure.path.starts_with(&path)).count();
+            let case_failures = summary
+                .failures
+                .iter()
+                .filter(|failure| failure.path.starts_with(&path))
+                .count();
             if case_failures == 0 {
                 summary.comparisons_passed += 1;
             }
@@ -479,7 +483,11 @@ mod tests {
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
         let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-001").unwrap();
-        let fragile = result.candidate_dispositions.iter().find(|item| item.candidate_id == "nominally-efficient").unwrap();
+        let fragile = result
+            .candidate_dispositions
+            .iter()
+            .find(|item| item.candidate_id == "nominally-efficient")
+            .unwrap();
         assert_eq!(fragile.disposition, "excluded_service_floor");
     }
 
@@ -490,7 +498,11 @@ mod tests {
             EMBEDDED_OUTCOME_SCHEMA.as_bytes(),
         );
         let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-001").unwrap();
-        let dominated = result.candidate_dispositions.iter().find(|item| item.candidate_id == "dominated-costly").unwrap();
+        let dominated = result
+            .candidate_dispositions
+            .iter()
+            .find(|item| item.candidate_id == "dominated-costly")
+            .unwrap();
         assert_eq!(dominated.disposition, "dominated");
     }
 
@@ -502,7 +514,12 @@ mod tests {
         );
         let result = summary.results.iter().find(|item| item.comparison_id == "SPR-P-003").unwrap();
         assert_eq!(result.status, "reject_comparison");
-        assert!(result.candidate_dispositions.iter().all(|item| item.disposition == "rejected_pair_integrity"));
+        assert!(
+            result
+                .candidate_dispositions
+                .iter()
+                .all(|item| item.disposition == "rejected_pair_integrity")
+        );
     }
 
     #[test]
