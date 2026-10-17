@@ -41,7 +41,7 @@ jobs:
           toolchain: 1.96.0
       - name: Run simulator unit and mutation tests
         run: cargo test --manifest-path tools/mobility-continuity-simulator/Cargo.toml --all-targets
-      - name: Run all 15 deterministic synthetic scenarios
+      - name: Run all 24 deterministic synthetic scenarios
         shell: bash
         run: |
           cargo run --manifest-path tools/mobility-continuity-simulator/Cargo.toml -- \
@@ -51,9 +51,9 @@ jobs:
             --model-config fixtures/personal_vehicle/mobility_continuity_model_config_v0_1.json \
             > "$RUNNER_TEMP/mobility-continuity-report.json"
           jq -e '
-            .scenario_count == 15
+            .scenario_count == 24
             and .evidence_class == "synthetic_simulated_output"
-            and (.results | length == 15)
+            and (.results | length == 24)
             and all(.results[];
               .evidence_class == "synthetic_simulated_output"
               and .cost_per_fulfilled_essential_trip_r == null
