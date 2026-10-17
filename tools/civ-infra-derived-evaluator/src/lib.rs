@@ -766,6 +766,29 @@ pub fn evaluate_json(bytes: &[u8]) -> Result<DerivedReport, Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct GeneratedCaseEvidence {
+        fixture_id: String,
+        input_sha256: String,
+        candidate_state_evaluations: usize,
+        oracle_dispositions: BTreeMap<String, Disposition>,
+        evaluated_dispositions: BTreeMap<String, Disposition>,
+        oracle_frontier: Vec<String>,
+        evaluated_frontier: Vec<String>,
+    }
+
+    #[derive(Serialize)]
+    struct GeneratedCorpusEvidence {
+        schema_version: String,
+        base_fixture_sha256: String,
+        generator: String,
+        initial_seed: String,
+        generated_fixture_count: usize,
+        total_candidate_state_evaluations: usize,
+        cases: Vec<GeneratedCaseEvidence>,
+    }
 
     fn fixture_bytes() -> &'static [u8] {
         include_bytes!("../fixtures/derived-v0.1.json")
@@ -1140,6 +1163,107 @@ mod tests {
         );
         assert_ne!(original.input_sha256, report.input_sha256);
         assert_eq!(original.ruleset_sha256, report.ruleset_sha256);
+    }
+
+    #[test]
+    fn generated_primitive_designs_match_reference_and_emit_replay_evidence() {
+        let mut seed = 0xD3_21_1A_2026_u64;
+        let mut evaluations = 0usize;
+        let mut case_records = Vec::new();
+        for case_index in 0..625 {
+            let mut input = fixture();
+            input.fixture_id = format!("generated-derived-world-{case_index}");
+            for candidate in &mut input.candidates {
+                candidate.grade_percent.value +=
+                    (next_value(&mut seed) % 300) as f64 / 100.0;
+                candidate.drainage_capacity_lps.value +=
+                    (next_value(&mut seed) % 150) as f64 / 10.0;
+                candidate.vertical_clearance_m.value +=
+                    (next_value(&mut seed) % 100) as f64 / 1_000.0;
+                candidate.base_drainage_demand_lps.value +=
+                    (next_value(&mut seed) % 200) as f64 / 10.0;
+            }
+
+            let bytes = serde_json::to_vec(&input).expect("generated fixture serializes");
+            let report = evaluate_json(&bytes).expect("generated fixture evaluates");
+            let mut expected_dispositions = BTreeMap::new();
+            let mut actual_dispositions = BTreeMap::new();
+
+            for candidate in &input.candidates {
+                let expected_disposition = reference_disposition(&input, candidate);
+                let actual = result(&report, &candidate.id);
+                assert_eq!(
+                    expected_disposition,
+                    actual.disposition,
+                    "disposition mismatch in generated fixture {case_index}"
+                );
+                expected_dispositions.insert(candidate.id.clone(), expected_disposition);
+                actual_dispositions.insert(candidate.id.clone(), actual.disposition);
+
+                for state in &input.states {
+                    let (expected_feasible, expected_objectives, expected_constraints) =
+                        reference_state(&input, candidate, state);
+                    let actual_state = actual
+                        .state_results
+                        .iter()
+                        .find(|item| item.state_id == state.id)
+                        .expect("derived result exists");
+                    assert_eq!(actual_state.feasible, expected_feasible);
+                    for (id, expected) in expected_constraints {
+                        let finding = actual_state
+                            .findings
+                            .iter()
+                            .find(|finding| finding.rule_id == id)
+                            .expect("finding exists");
+                        assert_eq!(
+                            finding.status == FindingStatus::Pass,
+                            expected,
+                            "constraint mismatch in generated fixture {case_index}"
+                        );
+                    }
+                    for (id, expected) in expected_objectives {
+                        assert_eq!(
+                            actual_state.objectives[&id].quantity.value,
+                            expected,
+                            "objective mismatch in generated fixture {case_index}"
+                        );
+                    }
+                    evaluations += 1;
+                }
+            }
+
+            let expected_frontier = reference_frontier(&input);
+            assert_eq!(
+                expected_frontier,
+                report.robust_pareto_frontier_candidate_ids,
+                "Pareto mismatch in generated fixture {case_index}"
+            );
+            case_records.push(GeneratedCaseEvidence {
+                fixture_id: input.fixture_id.clone(),
+                input_sha256: sha256_hex(&bytes),
+                candidate_state_evaluations: input.candidates.len() * input.states.len(),
+                oracle_dispositions: expected_dispositions,
+                evaluated_dispositions: actual_dispositions,
+                oracle_frontier: expected_frontier,
+                evaluated_frontier: report.robust_pareto_frontier_candidate_ids,
+            });
+        }
+        assert_eq!(evaluations, 12_500);
+
+        if let Ok(path) = std::env::var("CIV_INFRA_DERIVED_CORPUS_OUT") {
+            let evidence = GeneratedCorpusEvidence {
+                schema_version: "luminous.civ_infra.derived_corpus.v0.1".to_string(),
+                base_fixture_sha256: sha256_hex(fixture_bytes()),
+                generator: "lcg64-6364136223846793005-1442695040888963407".to_string(),
+                initial_seed: "0xD3211A2026".to_string(),
+                generated_fixture_count: case_records.len(),
+                total_candidate_state_evaluations: evaluations,
+                cases: case_records,
+            };
+            let json =
+                serde_json::to_vec_pretty(&evidence).expect("corpus evidence serializes");
+            std::fs::write(path, json).expect("generated corpus artifact writes");
+        }
     }
 
     #[test]
