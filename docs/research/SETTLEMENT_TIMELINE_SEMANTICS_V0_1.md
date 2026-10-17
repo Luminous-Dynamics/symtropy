@@ -85,3 +85,18 @@ The event model is deterministic; it does not imply that real systems are determ
 ### Same-tick event boundary
 
 Events at one tick are applied in their unique sequence order and the settlement is evaluated once after the tick's entire event batch. If a component is marked Failed and then Available again at the same tick, the snapshot sees the final state only; the transient failure duration is not represented by this version. A scenario that needs the failure to affect service must place it on a separate tick or wait for a finer-grained event clock. Resource inflows within the same tick are accumulated and capacity-checked in sequence before demand allocation.
+
+
+## Independent report verification
+
+The branch now includes `src/verifier.rs`, an independent checker for the emitted timeline receipt. It verifies:
+- report and per-tick snapshot digest consistency and claim ceilings;
+- contiguous tick identities, stable scenario/component/demand/service-floor identities and unique applied events;
+- exact source-allocation totals and consistency between per-demand source entries and per-supply consumed totals;
+- synthetic resource-kind/unit agreement, stock conservation, reserve limits and cross-tick stock continuity;
+- component state/output consistency and service-floor dispositions against underlying component/output/demand evidence;
+- independently re-derived first restoration, stable-recovery window and later recurrence summaries.
+
+Regression tests include an unchanged report, mutated stock with the outer digest recomputed, and a modified recovery claim with the digest recomputed. The point is to prove that a valid hash alone is insufficient: a self-consistent integrity hash can still describe a semantically false report, so independent semantic verification is needed.
+
+The checker verifies report structure and internal arithmetic, not source truth, model calibration, event authenticity, legal authority or physical validity. The temporal PR currently has 10 authored unit tests; exact-head CI has not established a pass.
