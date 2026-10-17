@@ -44,7 +44,7 @@
     {
       "id": "legacy-comms-unknown",
       "coordinate_frame_id": "LOCAL_SYNTHETIC_ENU",
-      "evidence": "unknown",
+      "evidence": "bounded_unknown",
       "occupancy": {
         "station_start_m": 300,
         "station_end_m": 450,
