@@ -138,9 +138,12 @@ pub fn evaluate_fixture(
         .collect();
     let baseline = choose_robust_candidate(fixture, &all_state_ids)
         .expect("validation guarantees a robust-feasible baseline");
-    let baseline_regret = worst_regret_for_selected_candidate(fixture, baseline, &all_state_ids)
-        .expect("validated finite-state candidate costs cannot overflow regret");
-    let mut ranked_actions = fixture.actions.iter()
+    let baseline_regret =
+        worst_regret_for_selected_candidate(fixture, baseline, &all_state_ids)
+            .expect("validated finite-state candidate costs cannot overflow regret");
+    let mut ranked_actions = fixture
+        .actions
+        .iter()
         .map(|action| evaluate_action(fixture, action, baseline, baseline_regret))
         .collect::<Result<Vec<_>, _>>()?;
     ranked_actions.sort_by(compare_action_scores);
@@ -203,7 +206,9 @@ fn validate_fixture(fixture: &DecisionFixture) -> Vec<String> {
             errors.push(format!("{} must declare at least one hazard variable", state.id));
         }
     }
-    let hazard_names: BTreeSet<String> = fixture.state_space.first()
+    let hazard_names: BTreeSet<String> = fixture
+        .state_space
+        .first()
         .map(|state| state.hazards.keys().cloned().collect())
         .unwrap_or_default();
     for state in &fixture.state_space {
@@ -326,7 +331,10 @@ fn validate_fixture(fixture: &DecisionFixture) -> Vec<String> {
 }
 
 fn state_by_id<'a>(fixture: &'a DecisionFixture, id: &str) -> Option<&'a SiteState> {
-    fixture.state_space.iter().find(|state| state.id == id)
+    fixture
+        .state_space
+        .iter()
+        .find(|state| state.id == id)
 }
 
 fn candidate_is_feasible(candidate: &SiteCandidate, state: &SiteState) -> bool {
@@ -339,16 +347,22 @@ fn choose_robust_candidate<'a>(
     fixture: &'a DecisionFixture,
     possible_state_ids: &[String],
 ) -> Option<&'a SiteCandidate> {
-    fixture.candidates.iter()
-        .filter(|candidate| possible_state_ids.iter().all(|state_id| {
-            state_by_id(fixture, state_id)
-                .is_some_and(|state| candidate_is_feasible(candidate, state))
-        }))
+    fixture
+        .candidates
+        .iter()
+        .filter(|candidate| {
+            possible_state_ids.iter().all(|state_id| {
+                state_by_id(fixture, state_id)
+                    .is_some_and(|state| candidate_is_feasible(candidate, state))
+            })
+        })
         .min_by(|a, b| a.cost_units.cmp(&b.cost_units).then_with(|| a.id.cmp(&b.id)))
 }
 
 fn best_candidate_cost_for_state(fixture: &DecisionFixture, state: &SiteState) -> Option<u64> {
-    fixture.candidates.iter()
+    fixture
+        .candidates
+        .iter()
         .filter(|candidate| candidate_is_feasible(candidate, state))
         .map(|candidate| candidate.cost_units)
         .min()
@@ -474,7 +488,10 @@ mod tests {
         for candidate in &fixture.candidates {
             let mut passes_every_state = true;
             for state_id in possible_states {
-                let state = fixture.state_space.iter().find(|entry| entry.id == *state_id)?;
+                let state = fixture
+            .state_space
+            .iter()
+            .find(|entry| entry.id == *state_id)?;
                 for hazard in &candidate.blocked_if_any_hazard_present {
                     if state.hazards.get(hazard).copied().unwrap_or(true) {
                         passes_every_state = false;
@@ -494,7 +511,10 @@ mod tests {
     }
 
     fn oracle_state_best_cost(fixture: &DecisionFixture, state_id: &str) -> Option<u64> {
-        let state = fixture.state_space.iter().find(|entry| entry.id == state_id)?;
+        let state = fixture
+            .state_space
+            .iter()
+            .find(|entry| entry.id == state_id)?;
         let mut feasible_costs = Vec::new();
         for candidate in &fixture.candidates {
             let mut candidate_ok = true;
@@ -549,7 +569,10 @@ mod tests {
             .iter()
             .map(|action| action.action_id.as_str())
             .collect();
-        assert_eq!(ranked, vec!["A-COMBINED-SURVEY", "A-FLOOD-SURVEY", "A-GEOTECH-SURVEY"]);
+        assert_eq!(
+            ranked,
+            vec!["A-COMBINED-SURVEY", "A-FLOOD-SURVEY", "A-GEOTECH-SURVEY"]
+        );
 
         let combined = &report.ranked_actions[0];
         assert_eq!(combined.worst_case_regret_after_units, 0);
@@ -582,10 +605,15 @@ mod tests {
             .map(|state| state.id.clone())
             .collect();
         let baseline = oracle_robust_candidate(&fixture, &baseline_ids).unwrap();
-        let base_regret = fixture.state_space.iter().map(|state| {
-            let best = oracle_state_best_cost(&fixture, &state.id).unwrap();
-            baseline.cost_units - best
-        }).max().unwrap();
+        let base_regret = fixture
+            .state_space
+            .iter()
+            .map(|state| {
+                let best = oracle_state_best_cost(&fixture, &state.id).unwrap();
+                baseline.cost_units - best
+            })
+            .max()
+            .unwrap();
         assert_eq!(base_regret, report.baseline_worst_case_regret_units);
 
         for production in &report.ranked_actions {
@@ -596,8 +624,15 @@ mod tests {
                 .unwrap();
             let (oracle_regret, oracle_choices) = oracle_action_regret(&fixture, action).unwrap();
             assert_eq!(production.worst_case_regret_after_units, oracle_regret);
-            let production_choices: Vec<(String, String)> = production.outcome_decisions.iter()
-                .map(|outcome| (outcome.outcome_id.clone(), outcome.selected_candidate_id.clone()))
+            let production_choices: Vec<(String, String)> = production
+                .outcome_decisions
+                .iter()
+                .map(|outcome| {
+                    (
+                        outcome.outcome_id.clone(),
+                        outcome.selected_candidate_id.clone(),
+                    )
+                })
                 .collect();
             assert_eq!(production_choices, oracle_choices);
         }
@@ -626,7 +661,10 @@ mod tests {
     #[test]
     fn rejects_missing_state_from_an_action_partition() {
         let mut value = fixture_value();
-        value["actions"][0]["outcomes"][0]["state_ids"].as_array_mut().unwrap().pop();
+        value["actions"][0]["outcomes"][0]["state_ids"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         let errors = validate_fixture(&parse_value(value));
         assert!(errors.iter().any(|error| error.contains("outcomes omit state")));
     }
@@ -639,7 +677,9 @@ mod tests {
             .unwrap()
             .push(json!("clear"));
         let errors = validate_fixture(&parse_value(value));
-        assert!(errors.iter().any(|error| error.contains("assign state \"clear\" 2 times")));
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("assign state \"clear\" 2 times")));
     }
 
     #[test]
