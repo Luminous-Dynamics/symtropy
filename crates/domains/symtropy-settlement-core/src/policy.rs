@@ -133,7 +133,10 @@ pub fn evaluate_baseline_policy(
             reason_code: "policy_no_intervention".into(),
         },
         BaselineStrategy::ReactiveRepair => {
-            let mut candidates = Vec::<(&RepairRule, &super::observation::ObservationRecord)>::new();
+            let mut candidates = Vec::<(
+                &RepairRule,
+                &super::observation::ObservationRecord,
+            )>::new();
             for observation in &frame.payload.observations {
                 let ObservationDisposition::Current {
                     value: ObservedValue::ComponentCondition {
@@ -231,8 +234,58 @@ pub fn evaluate_baseline_policy(
         payload,
         payload_sha256: sha256_hex(&encoded),
     };
-    verify_policy_decision(&decision)?;
+    verify_policy_decision_with_frame(&decision, frame)?;
     Ok(decision)
+}
+
+pub fn verify_policy_decision_with_frame(
+    decision: &PolicyDecision,
+    frame: &PolicyInformationFrame,
+) -> Result<(), SettlementError> {
+    verify_policy_information_frame(frame)?;
+    verify_policy_decision(decision)?;
+    if decision.payload.decision_tick != frame.payload.decision_tick
+        || decision.payload.input_frame_sha256 != frame.payload_sha256
+    {
+        return Err(SettlementError(
+            "policy decision is not bound to the supplied information frame".into(),
+        ));
+    }
+    if let DecisionDisposition::RepairRequested { request } = &decision.payload.disposition {
+        let observation = frame
+            .payload
+            .observations
+            .iter()
+            .find(|observation| observation.observation_id == request.trigger_observation_id)
+            .ok_or_else(|| {
+                SettlementError("repair trigger observation is absent from input frame".into())
+            })?;
+        let encoded = serde_json::to_vec(observation).map_err(|error| {
+            SettlementError(format!("serialize trigger observation: {error}"))
+        })?;
+        if sha256_hex(&encoded) != request.trigger_observation_sha256 {
+            return Err(SettlementError(
+                "repair trigger observation digest mismatch".into(),
+            ));
+        }
+        let is_current_failure = matches!(
+            &observation.disposition,
+            ObservationDisposition::Current {
+                value: ObservedValue::ComponentCondition {
+                    condition: KnownComponentCondition::Failed
+                }
+            }
+        );
+        if !is_current_failure
+            || observation.target_component != request.target_component
+            || observation.target_generation != request.target_generation
+        {
+            return Err(SettlementError(
+                "repair request is not supported by its triggering observation".into(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), SettlementError> {
@@ -315,7 +368,23 @@ pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), Settlemen
                 || request.expected_completion_tick != expected_completion
             {
                 return Err(SettlementError(
-                    "repair request dispatch/completion ticks disagree with declared latency".into(),
+                    "repair request ticks disagree with declared latency".into(),
+                ));
+            }
+            let action_material = format!(
+                "{}\0{}\0{}\0{}\0{}\0{}",
+                payload.policy_id,
+                payload.policy_version,
+                payload.decision_tick,
+                request.target_component.as_str(),
+                request.target_generation,
+                request.trigger_observation_id
+            );
+            let action_digest = sha256_hex(action_material.as_bytes());
+            let expected_action_id = format!("action:{}", &action_digest[..32]);
+            if request.action_id != expected_action_id {
+                return Err(SettlementError(
+                    "repair action ID does not match its causal identity".into(),
                 ));
             }
             if payload.strategy != BaselineStrategy::ReactiveRepair {
@@ -339,7 +408,8 @@ fn validate_policy_definition(definition: &PolicyDefinition) -> Result<(), Settl
     if definition.policy_version == 0 {
         return Err(SettlementError("policy version zero is invalid".into()));
     }
-    if definition.strategy == BaselineStrategy::NoIntervention && !definition.repair_rules.is_empty()
+    if definition.strategy == BaselineStrategy::NoIntervention
+        && !definition.repair_rules.is_empty()
     {
         return Err(SettlementError(
             "no-intervention policy must not carry repair rules".into(),
