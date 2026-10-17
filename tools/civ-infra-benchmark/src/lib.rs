@@ -221,7 +221,9 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
     if fixture.coordinate_frame.horizontal_unit != "metre"
         || fixture.coordinate_frame.vertical_unit != "metre"
     {
-        errors.push("V0 requires explicit metre units for horizontal and vertical coordinates".to_string());
+        errors.push(
+            "V0 requires explicit metre units for horizontal and vertical coordinates".to_string(),
+        );
     }
     if !finite_nonnegative(fixture.requirements.max_grade_percent)
         || !finite_nonnegative(fixture.requirements.max_earthworks_m3)
@@ -754,15 +756,21 @@ pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(),
         .collect();
     expected_candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     if report.candidates != expected_candidates {
-        errors.push("candidate findings/dispositions disagree with reference recomputation".to_string());
+        errors.push(
+            "candidate findings/dispositions disagree with reference recomputation".to_string(),
+        );
     }
 
     let expected_schedule = reference_schedule_conflicts(&fixture);
     if report.schedule_conflicts != expected_schedule {
-        errors.push("resource schedule conflicts disagree with reference recomputation".to_string());
+        errors.push(
+            "resource schedule conflicts disagree with reference recomputation".to_string(),
+        );
     }
     if report.resource_schedule_feasible != expected_schedule.is_empty() {
-        errors.push("resource_schedule_feasible disagrees with reference recomputation".to_string());
+        errors.push(
+            "resource_schedule_feasible disagrees with reference recomputation".to_string(),
+        );
     }
 
     errors.sort();
