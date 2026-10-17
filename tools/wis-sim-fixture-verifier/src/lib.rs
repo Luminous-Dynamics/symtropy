@@ -225,7 +225,7 @@ pub fn verify_bytes(
             variant_map.family = Some(scenario_family.clone());
         }
         if let Some(previous_title) = &variant_map.title {
-            if previous_title != required_str(&record, "title", &where_)? {
+            if previous_title.as_str() != required_str(&record, "title", &where_)? {
                 return Err(format!("{} changes title across variants", scenario_id));
             }
         } else {
@@ -544,7 +544,11 @@ mod tests {
 
     #[test]
     fn fixture_requires_final_newline() {
-        assert!(verify_bytes(FIXTURE.trim_end().as_bytes(), MANIFEST, SCHEMA).unwrap_err().contains("final newline"));
+        let bytes = FIXTURE.trim_end().as_bytes();
+        let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+        manifest["fixture_sha256"] = json!(sha256_hex(bytes));
+        let text = serde_json::to_string(&manifest).unwrap();
+        assert!(verify_bytes(bytes, &text, SCHEMA).unwrap_err().contains("final newline"));
     }
 
     #[test]
