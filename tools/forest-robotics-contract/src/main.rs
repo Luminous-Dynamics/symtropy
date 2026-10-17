@@ -250,6 +250,7 @@ fn evaluate(s: &Scenario) -> ScenarioResult {
     let mut reasons = Vec::new();
     push_if(&mut reasons, s.mission.site_permission != SitePermission::Granted, "SITE_PERMISSION_NOT_GRANTED");
     push_if(&mut reasons, !s.mission.operator_approved || s.mission.operator_approval_ref.is_none(), "OPERATOR_APPROVAL_MISSING");
+    push_if(&mut reasons, s.mission.autonomy_mode == AutonomyMode::Autonomous, "AUTONOMY_MODE_REQUIRES_SEPARATE_REVIEW");
     push_if(&mut reasons, s.safety_profile.valid_until_epoch_seconds < s.evaluation_time_epoch_seconds, "SAFETY_PROFILE_EXPIRED");
     push_if(&mut reasons, s.telemetry.captured_at_epoch_seconds > s.evaluation_time_epoch_seconds, "TELEMETRY_FROM_FUTURE");
     push_if(&mut reasons,
@@ -392,6 +393,16 @@ mod tests {
         scenario.mission.operator_approval_ref = Some("approval-001".to_owned());
         assert_eq!(evaluate(scenario).decision, MissionDecision::RejectedOutOfScope);
         assert_eq!(evaluate(scenario).reason_codes, vec!["TASK_OUT_OF_SCOPE_V0_1"]);
+    }
+
+    #[test]
+    fn autonomous_mode_requires_separate_review_in_v0_1() {
+        let mut c = corpus();
+        let scenario = c.scenarios.iter_mut()
+            .find(|s| s.scenario_id == "AUTONOMOUS_MODE_REQUIRES_REVIEW").unwrap();
+        let result = evaluate(scenario);
+        assert_eq!(result.decision, MissionDecision::BlockedFailClosed);
+        assert!(result.reason_codes.contains(&"AUTONOMY_MODE_REQUIRES_SEPARATE_REVIEW".to_owned()));
     }
 
     #[test]
