@@ -1,4 +1,3 @@
 import SymtropyFormal.HousingReferences
 import SymtropyFormal.Dimensions
 import SymtropyFormal.TickTransactions
-import SymtropyFormal.WaterlineAllocation
