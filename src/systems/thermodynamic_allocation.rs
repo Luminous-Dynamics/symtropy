@@ -533,24 +533,19 @@ mod tests {
         by_cap.sort_unstable_by_key(|(id, cap)| (*cap, *id));
         let mut saturated = 0_i128;
         let mut active = by_cap.len() as i128;
-        let (waterline_num, waterline_den) = loop {
-            let (id, cap) = match by_cap.iter().find(|(id, _)| {
-                !caps.is_empty()
-                    && by_cap
-                        .iter()
-                        .take_while(|(prior_id, prior_cap)| {
-                            (*prior_cap, *prior_id) < (*cap_placeholder(), *id)
-                        })
-                        .count()
-                        == 0
-            }) {
-                Some(value) => value,
-                None => break (target - saturated, active),
-            };
-            let _ = (id, cap);
-            unreachable!("loop body replaced below");
-        };
-
+        let mut waterline = None;
+        for (_, cap) in &by_cap {
+            let remaining = target - saturated;
+            if remaining <= *cap * active {
+                waterline = Some((remaining, active));
+                break;
+            }
+            saturated += *cap;
+            active -= 1;
+        }
+        let (waterline_num, waterline_den) =
+            waterline.expect("target below total capacity has a waterline");
+ 
         caps.iter()
             .map(|(id, cap)| {
                 let allocation_num = (*cap * waterline_den).min(waterline_num);
