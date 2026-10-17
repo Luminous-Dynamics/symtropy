@@ -39,7 +39,7 @@ struct DominanceCertificate {
     theorem: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct GateDecision {
     gate: String,
     status: String,
@@ -805,6 +805,14 @@ mod tests {
             "local_sorted_reuse".to_string(),
             "uncertain_remote_extraction".to_string()
         ]);
+    }
+
+    #[test]
+    fn declared_plan_count_must_match_corpus() {
+        let mut corpus = embedded();
+        corpus["plan_count"] = json!(5);
+        let receipt = audit(corpus);
+        assert!(receipt.errors.iter().any(|error| error.contains("PLAN_COUNT_MISMATCH")));
     }
 
     #[test]
