@@ -1084,7 +1084,7 @@ fn main() -> ExitCode {
         let (source_registry_count, source_registry_sha256) =
             registry_result.expect("source registry result exists after successful validation");
         let evidence = evidence_result.expect("evidence envelope result exists after successful validation");
-        let (baseline_count, baseline_sha256) = baseline_result.expect("baseline shortlist result exists after successful validation");
+        let baseline_count = baseline_result.expect("baseline shortlist result exists after successful validation");
         let repair_graph_fixture_count = repair_graph_count.expect("repair graph fixture count exists after successful validation");
         let report = AuditSummary {
             case_count: summary.case_count,
