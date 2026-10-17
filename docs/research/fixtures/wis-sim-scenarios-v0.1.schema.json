@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wis-sim-scenarios-v0.1.schema.json",
+  "title": "WIS-SIM deterministic synthetic scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_id",
+    "scenario_version",
+    "scenario_family",
+    "title",
+    "variant_id",
+    "variant_kind",
+    "variant_axis",
+    "variant_description",
+    "deterministic_seed",
+    "execution_profile",
+    "policy_version",
+    "policies_under_comparison",
+    "baseline_policy",
+    "initial_conditions",
+    "exogenous_events",
+    "expected_invariants",
+    "observables",
+    "known_model_limits",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^WSS-[0-9]{3}$"
+    },
+    "scenario_version": {
+      "const": "0.1"
+    },
+    "scenario_family": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "variant_id": {
+      "type": "string"
+    },
+    "variant_kind": {
+      "enum": [
+        "baseline",
+        "adversarial"
+      ]
+    },
+    "variant_axis": {
+      "type": "string"
+    },
+    "variant_description": {
+      "type": "string"
+    },
+    "deterministic_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "execution_profile": {
+      "type": "string"
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "policies_under_comparison": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "baseline_policy": {
+      "type": "string"
+    },
+    "initial_conditions": {
+      "type": "object"
+    },
+    "exogenous_events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "expected_invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "observables": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "known_model_limits": {
+      "type": "string"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    }
+  }
+}
