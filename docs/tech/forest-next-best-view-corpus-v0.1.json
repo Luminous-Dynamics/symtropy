@@ -1,0 +1,14 @@
+{
+  "suite_id": "forest-next-best-view-tiny-grid-oracle",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Tiny synthetic-scene benchmark only; not field performance, sensor calibration, global approximation guarantee, or safety validation.",
+  "scenarios": [
+    {"scenario_id":"OPEN_GRID_BUDGETED","scene":"open_grid","energy_budget_steps":10,"return_reserve_steps":2,"max_viewpoints":3,"expected_greedy_coverage_cells":19,"expected_oracle_coverage_cells":23,"expected_greedy_ratio_basis_points":8260},
+    {"scenario_id":"OCCLUDED_CLEARING","scene":"occluded_clearing","energy_budget_steps":12,"return_reserve_steps":2,"max_viewpoints":3,"expected_greedy_coverage_cells":19,"expected_oracle_coverage_cells":19,"expected_greedy_ratio_basis_points":10000},
+    {"scenario_id":"DISCONNECTED_BLOCKED_CORRIDOR","scene":"blocked_corridor","energy_budget_steps":10,"return_reserve_steps":2,"max_viewpoints":3,"expected_greedy_coverage_cells":13,"expected_oracle_coverage_cells":13,"expected_greedy_ratio_basis_points":10000},
+    {"scenario_id":"UNKNOWN_BARRIER","scene":"unknown_barrier","energy_budget_steps":10,"return_reserve_steps":2,"max_viewpoints":3,"expected_greedy_coverage_cells":17,"expected_oracle_coverage_cells":17,"expected_greedy_ratio_basis_points":10000},
+    {"scenario_id":"TIGHT_RETURN_RESERVE","scene":"open_grid","energy_budget_steps":4,"return_reserve_steps":2,"max_viewpoints":3,"expected_greedy_coverage_cells":11,"expected_oracle_coverage_cells":11,"expected_greedy_ratio_basis_points":10000},
+    {"scenario_id":"SINGLE_SCAN_BUDGET","scene":"open_grid","energy_budget_steps":7,"return_reserve_steps":2,"max_viewpoints":1,"expected_greedy_coverage_cells":11,"expected_oracle_coverage_cells":16,"expected_greedy_ratio_basis_points":6875}
+  ]
+}
