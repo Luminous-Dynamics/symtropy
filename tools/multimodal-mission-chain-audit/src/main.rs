@@ -535,13 +535,14 @@ fn evaluate(root: &Value) -> Result<Value, Vec<String>> {
         let id = string(assessment, "assessment_id");
         let mission_id = string(assessment, "mission_id");
         let mission = missions[&mission_id];
-        let payload_ids: Vec<String> = mission["payload_ids"].as_array().unwrap().iter()
+        let mut payload_ids: Vec<String> = mission["payload_ids"].as_array().unwrap().iter()
             .map(|v| v.as_str().unwrap().to_string()).collect();
+        payload_ids.sort();
         let payload_list: Vec<&Value> = payload_ids.iter().map(|pid| payloads[pid]).collect();
         let total_mass: f64 = payload_list.iter().map(|p| num(p, "mass_kg_max")).sum();
         let needs_condition = payload_list.iter().any(|p| !p["temperature_range_c"].is_null());
         let needs_securement = payload_list.iter().any(|p| flag(p, "securement_required"));
-        let needs_accessibility = payload_list.iter().any(|p| flag(p, "accessible_transfer_required"));
+        let needs_accessibility = payload_list.iter().any(|p| flag(p, "accessible_transfer_required") || num(p, "occupants") > 0.0);
         let needs_patient = payload_list.iter().any(|p| flag(p, "patient_support_required") || flag(p, "caregiver_access_required"));
         let needs_privacy = payload_list.iter().any(|p| flag(p, "privacy_sensitive"));
         let has_people = payload_list.iter().any(|p| num(p, "occupants") > 0.0);
@@ -596,8 +597,10 @@ fn evaluate(root: &Value) -> Result<Value, Vec<String>> {
                     mismatch_reasons.insert(format!("{leg_id}:privacy_controls_unavailable:{pid}"));
                 }
                 if num(payload, "occupants") > 0.0
-                    && (!flag(platform, "has_occupant_restraints") || !flag(platform, "has_emergency_egress")) {
-                    mismatch_reasons.insert(format!("{leg_id}:occupant_restraints_or_egress_unavailable:{pid}"));
+                    && (!flag(platform, "has_occupant_restraints")
+                        || !flag(platform, "has_emergency_egress")
+                        || !flag(platform, "has_accessible_transfer")) {
+                    mismatch_reasons.insert(format!("{leg_id}:occupant_access_restraints_or_egress_unavailable:{pid}"));
                 }
                 if flag(payload, "accessible_transfer_required") && !flag(platform, "has_accessible_transfer") {
                     mismatch_reasons.insert(format!("{leg_id}:accessible_transfer_unavailable:{pid}"));
