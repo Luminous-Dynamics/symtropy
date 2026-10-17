@@ -771,6 +771,35 @@ mod tests {
     }
 
     #[test]
+    fn repair_request_must_match_the_rule_and_triggering_frame() {
+        let definition = policy(BaselineStrategy::ReactiveRepair);
+        let observation = failed_observation(
+            ObservationDisposition::Current {
+                value: ObservedValue::ComponentCondition {
+                    condition: KnownComponentCondition::Failed,
+                },
+            },
+            1,
+            1,
+        );
+        let frame = frame(observation, 1);
+        let mut decision =
+            evaluate_baseline_policy(&definition, &frame).unwrap();
+        let DecisionDisposition::RepairRequested { request } = &mut decision.payload.disposition
+        else {
+            panic!("expected repair request");
+        };
+        request.required_parts_units += 1;
+        let encoded = serde_json::to_vec(&decision.payload).unwrap();
+        decision.payload_sha256 = sha256_hex(&encoded);
+
+        assert!(verify_policy_decision(&decision).is_ok());
+        assert!(
+            verify_policy_decision_with_policy_and_frame(&decision, &frame, &definition).is_err()
+        );
+    }
+
+    #[test]
     fn policy_decision_tampering_is_detected_even_if_outer_digest_is_recomputed() {
         let observation = failed_observation(
             ObservationDisposition::Current {
