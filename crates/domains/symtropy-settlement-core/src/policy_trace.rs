@@ -174,6 +174,11 @@ pub fn verify_policy_trace(
             "policy trace claim ceiling is missing or widened".into(),
         ));
     }
+    if payload.horizon_ticks > 10_000 {
+        return Err(SettlementError(
+            "policy trace horizon exceeds bounded maximum 10000".into(),
+        ));
+    }
     let policy = definition.canonicalized();
     let policy_bytes = serde_json::to_vec(&policy)
         .map_err(|error| SettlementError(format!("serialize policy definition: {error}")))?;
@@ -486,6 +491,60 @@ mod tests {
         let encoded = serde_json::to_vec(&trace.payload).unwrap();
         trace.payload_sha256 = sha256_hex(&encoded);
         assert!(verify_policy_trace(&trace, &definition, &schedule).is_err());
+    }
+
+    #[test]
+    fn policy_trace_verifier_rejects_rehashed_decision_semantic_tampering() {
+        let failure = observation(
+            "grid-failed",
+            "grid",
+            "grid-sensor",
+            1,
+            1,
+            KnownComponentCondition::Failed,
+        );
+        let schedule = schedule(vec![failure]);
+        let definition = policy();
+        let mut trace = run_policy_trace(&definition, &schedule, 3).unwrap();
+        trace.payload.steps[2].decision.payload.disposition =
+            DecisionDisposition::NoAction {
+                reason_code: "policy_no_intervention".into(),
+            };
+        let encoded_decision =
+            serde_json::to_vec(&trace.payload.steps[2].decision.payload).unwrap();
+        trace.payload.steps[2].decision.payload_sha256 = sha256_hex(&encoded_decision);
+        let encoded_trace = serde_json::to_vec(&trace.payload).unwrap();
+        trace.payload_sha256 = sha256_hex(&encoded_trace);
+        assert!(verify_policy_trace(&trace, &definition, &schedule).is_err());
+    }
+
+    #[test]
+    fn observation_schedule_record_order_does_not_change_canonical_trace() {
+        let failed = observation(
+            "grid-failed",
+            "grid",
+            "grid-sensor",
+            1,
+            1,
+            KnownComponentCondition::Failed,
+        );
+        let available = observation(
+            "grid-available",
+            "grid",
+            "grid-sensor",
+            0,
+            0,
+            KnownComponentCondition::Available,
+        );
+        let first = run_policy_trace(
+            &policy(),
+            &schedule(vec![failed.clone(), available.clone()]),
+            3,
+        )
+        .unwrap();
+        let second =
+            run_policy_trace(&policy(), &schedule(vec![available, failed]), 3).unwrap();
+        assert_eq!(first, second);
     }
 
     #[test]
