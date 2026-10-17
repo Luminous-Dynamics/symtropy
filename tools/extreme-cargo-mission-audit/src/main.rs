@@ -344,7 +344,11 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
                 Some(class) if PAYLOAD_CLASSES.contains(&class) => {}
                 _ => push(&mut errors, &format!("{path}.payload_class"), "unknown payload class"),
             }
-            read_range(&item["mass_kg"], &format!("{path}.mass_kg"), &mut errors);
+            match read_range(&item["mass_kg"], &format!("{path}.mass_kg"), &mut errors) {
+                Some(range) if range.lo > 0.0 => {}
+                Some(_) => push(&mut errors, &format!("{path}.mass_kg"), "payload mass range must have a strictly positive minimum"),
+                None => {}
+            }
             read_dimensions(&item["dimensions_mm"], &format!("{path}.dimensions_mm"), &mut errors);
             read_fraction_vector(&item["center_of_mass_fraction"], &format!("{path}.center_of_mass_fraction"), &mut errors);
             read_nullable_range(&item["temperature_range_c"], &format!("{path}.temperature_range_c"), &mut errors);
@@ -1382,6 +1386,16 @@ mod tests {
         let mut root = fixture();
         root["assessments"][0]["metric_intervals"][0]["lower"] = json!(9.0);
         root["assessments"][0]["metric_intervals"][0]["upper"] = json!(1.0);
+        assert!(evaluate(&root).is_err());
+    }
+
+    #[test]
+    fn payload_mass_must_be_positive() {
+        let mut root = fixture();
+        root["payload_profiles"][0]["mass_kg"]["min"] = json!(0.0);
+        assert!(evaluate(&root).is_err());
+        let mut root = fixture();
+        root["payload_profiles"][0]["mass_kg"]["min"] = json!(-1.0);
         assert!(evaluate(&root).is_err());
     }
 
