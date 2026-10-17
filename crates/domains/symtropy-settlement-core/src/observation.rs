@@ -138,14 +138,18 @@ pub fn build_policy_information_frame(
         .into_iter()
         .filter(|record| record.available_tick <= decision_tick)
         .map(|mut record| {
-            if decision_tick.saturating_sub(record.sample_tick)
+            let expired_value = if decision_tick.saturating_sub(record.sample_tick)
                 > record.freshness_window_ticks
             {
-                if let ObservationDisposition::Current { value } = &record.disposition {
-                    record.disposition = ObservationDisposition::Stale {
-                        last_value: value.clone(),
-                    };
+                match &record.disposition {
+                    ObservationDisposition::Current { value } => Some(value.clone()),
+                    _ => None,
                 }
+            } else {
+                None
+            };
+            if let Some(last_value) = expired_value {
+                record.disposition = ObservationDisposition::Stale { last_value };
             }
             record
         })
