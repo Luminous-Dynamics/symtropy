@@ -946,6 +946,23 @@ mod tests {
     }
 
     #[test]
+    fn independent_verifier_reconciles_event_inflow_after_digests_are_recomputed() {
+        let mut report = evaluate_timeline(&fixture()).unwrap();
+        let event = report.payload.ticks[4].applied_events.first_mut().unwrap();
+        match &mut event.event {
+            SettlementEventKind::ResourceInflow { units, .. } => *units -= 1,
+            SettlementEventKind::ComponentStateChanged { .. } => {
+                panic!("fixture event at tick four should be an inflow")
+            }
+        }
+        let event_bytes = serde_json::to_vec(&event.event).unwrap();
+        event.event_sha256 = super::super::sha256_hex(&event_bytes);
+        let payload_bytes = serde_json::to_vec(&report.payload).unwrap();
+        report.payload_sha256 = super::super::sha256_hex(&payload_bytes);
+        assert!(crate::verifier::verify_timeline_report(&report).is_err());
+    }
+
+    #[test]
     fn duplicate_event_sequence_at_one_tick_is_rejected() {
         let mut input = fixture();
         input.events.push(SettlementEvent {
