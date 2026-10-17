@@ -325,8 +325,9 @@ fn validate_fixture(fixture: &RobustFixture) -> Vec<String> {
                         uncertainty.id
                     ));
                 }
-                for (index, value) in values.iter().enumerate() {
-                    if values.iter().skip(index + 1).any(|other| other == value) {
+                let mut seen_values = BTreeSet::new();
+                for value in values {
+                    if !seen_values.insert(canonical_float_key(*value)) {
                         errors.push(format!(
                             "uncertainty {}: duplicate finite support value {value}",
                             uncertainty.id
@@ -812,6 +813,19 @@ mod tests {
         assert!(errors.iter().any(|error| {
             error.contains("Cartesian support requires 4 unique joint states")
         }));
+    }
+
+    #[test]
+    fn cartesian_state_space_cap_fails_closed_without_exploding() {
+        let mut fixture = parse_fixture();
+        fixture.uncertainties[0].support = Support::FiniteValues {
+            values: (0..50_001).map(f64::from).collect(),
+        };
+        let bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors = evaluate_json(&bytes).expect_err(
+            "a Cartesian state space above the configured cap must not be sampled or certified",
+        );
+        assert!(errors.iter().any(|error| error.contains("exceeding R0 cap 100000")));
     }
 
     #[test]
