@@ -371,6 +371,497 @@ pub fn verify_bytes(
     }))
 }
 
+
+pub fn verify_run_report_files(
+    fixture_path: &str,
+    manifest_path: &str,
+    scenario_schema_path: &str,
+    report_path: &str,
+) -> Result<Value, String> {
+    let fixture = std::fs::read(fixture_path)
+        .map_err(|error| format!("cannot read fixture {}: {}", fixture_path, error))?;
+    let manifest = std::fs::read_to_string(manifest_path)
+        .map_err(|error| format!("cannot read manifest {}: {}", manifest_path, error))?;
+    let scenario_schema = std::fs::read_to_string(scenario_schema_path)
+        .map_err(|error| format!("cannot read scenario schema {}: {}", scenario_schema_path, error))?;
+    let report = std::fs::read_to_string(report_path)
+        .map_err(|error| format!("cannot read run report {}: {}", report_path, error))?;
+    verify_run_report_bytes(&fixture, &manifest, &scenario_schema, &report)
+}
+
+/// Independently checks one runner-produced report against the exact scenario's typed assertions.
+/// A valid structural receipt does not make a failed invariant into a pass and does not validate
+/// the simulator's model assumptions or any human outcome.
+pub fn verify_run_report_bytes(
+    fixture_bytes: &[u8],
+    manifest_text: &str,
+    scenario_schema_text: &str,
+    report_text: &str,
+) -> Result<Value, String> {
+    let _corpus_receipt = verify_bytes(fixture_bytes, manifest_text, scenario_schema_text)?;
+    let manifest: Value = serde_json::from_str(manifest_text)
+        .map_err(|error| format!("manifest is not valid JSON: {}", error))?;
+    let report: Value = serde_json::from_str(report_text)
+        .map_err(|error| format!("run report is not valid JSON: {}", error))?;
+    let report_schema: Value = serde_json::from_str(RUN_REPORT_SCHEMA)
+        .map_err(|error| format!("embedded run-report schema is malformed: {}", error))?;
+    validate_run_report_shape(&report, &report_schema)?;
+
+    let identity = report.get("identity")
+        .ok_or_else(|| "run report identity is missing".to_owned())?;
+    let fixture_hash = required_str(&manifest, "fixture_sha256", "manifest")?;
+    let scenario_schema_hash = required_str(&manifest, "schema_sha256", "manifest")?;
+    for (field, expected) in [
+        ("corpus_id", required_str(&manifest, "corpus_id", "manifest")?),
+        ("corpus_version", required_str(&manifest, "corpus_version", "manifest")?),
+        ("fixture_sha256", fixture_hash),
+        ("schema_sha256", scenario_schema_hash),
+    ] {
+        if required_str(identity, field, "run report identity")? != expected {
+            return Err(format!("run report identity.{} does not match the pinned manifest", field));
+        }
+    }
+
+    let scenario_id = required_str(identity, "scenario_id", "run report identity")?;
+    let variant_id = required_str(identity, "variant_id", "run report identity")?;
+    let scenario_version = required_str(identity, "scenario_version", "run report identity")?;
+    let mut matched_record: Option<Value> = None;
+    let mut matched_line: Option<Vec<u8>> = None;
+    for raw in fixture_bytes.split(|byte| *byte == b'\n') {
+        if raw.is_empty() { continue; }
+        let candidate: Value = serde_json::from_slice(raw)
+            .map_err(|error| format!("fixture unexpectedly became invalid JSON: {}", error))?;
+        if candidate.get("scenario_id").and_then(Value::as_str) == Some(scenario_id)
+            && candidate.get("variant_id").and_then(Value::as_str) == Some(variant_id) {
+            matched_record = Some(candidate);
+            matched_line = Some(raw.to_vec());
+            break;
+        }
+    }
+    let scenario = matched_record.ok_or_else(|| {
+        format!("run report scenario/variant {}/{} is not in the pinned corpus", scenario_id, variant_id)
+    })?;
+    let raw_line = matched_line.expect("scenario record and raw line are set together");
+    if required_str(&scenario, "scenario_version", "scenario")? != scenario_version {
+        return Err("run report scenario_version differs from pinned scenario".to_owned());
+    }
+
+    let policy_id = required_str(identity, "policy_id", "run report identity")?;
+    let allowed_policies = string_set(
+        scenario.get("policies_under_comparison"),
+        "scenario.policies_under_comparison",
+    )?;
+    if !allowed_policies.contains(policy_id) {
+        return Err(format!("run report policy_id {} is not declared for {}", policy_id, scenario_id));
+    }
+    for (field, scenario_field) in [
+        ("policy_version", "policy_version"),
+        ("execution_profile", "execution_profile"),
+    ] {
+        if required_str(identity, field, "run report identity")?
+            != required_str(&scenario, scenario_field, "scenario")? {
+            return Err(format!("run report identity.{} differs from the pinned scenario", field));
+        }
+    }
+    if identity.get("deterministic_seed").and_then(Value::as_u64)
+        != scenario.get("deterministic_seed").and_then(Value::as_u64) {
+        return Err("run report deterministic_seed differs from pinned scenario".to_owned());
+    }
+    let input_hash = required_str(identity, "input_sha256", "run report identity")?;
+    let actual_input_hash = sha256_hex(&raw_line);
+    if input_hash != actual_input_hash {
+        return Err(format!(
+            "run report input_sha256 mismatch: declared={}, actual={}",
+            input_hash, actual_input_hash
+        ));
+    }
+    for field in ["engine_revision", "toolchain_profile", "target_triple"] {
+        let _ = required_str(identity, field, "run report identity")?;
+    }
+    for field in ["environment_fingerprint", "input_sha256"] {
+        let value = required_str(identity, field, "run report identity")?;
+        if !valid_sha256(value) {
+            return Err(format!("run report identity.{} must be a lowercase SHA-256 digest", field));
+        }
+    }
+    let claim_ceiling = required_str(&report, "claim_ceiling", "run report")?;
+    if !claim_ceiling.to_ascii_lowercase().contains("synthetic") {
+        return Err("run report claim_ceiling must explicitly remain synthetic".to_owned());
+    }
+
+    let run_status = required_str(&report, "run_status", "run report")?;
+    let simulation_executed = report.get("simulation_executed").and_then(Value::as_bool).unwrap_or(false);
+    if run_status != "completed" || !simulation_executed {
+        return Ok(json!({
+            "receipt_version": "wis-sim-run-report-verification/0.1",
+            "status": "RUN_NOT_QUALIFIED",
+            "claim_ceiling": "synthetic run receipt only; the simulation did not complete qualification",
+            "report_sha256": sha256_hex(report_text.as_bytes()),
+            "fixture_sha256": fixture_hash,
+            "scenario_schema_sha256": scenario_schema_hash,
+            "scenario_id": scenario_id,
+            "variant_id": variant_id,
+            "policy_id": policy_id,
+            "run_status": run_status,
+            "simulation_executed": simulation_executed,
+            "assertions_evaluated": false,
+            "reason": "run_status must be completed and simulation_executed must be true before invariant qualification"
+        }));
+    }
+
+    let specs = scenario.get("assertion_specifications").and_then(Value::as_array)
+        .ok_or_else(|| format!("{}.assertion_specifications is missing", scenario_id))?;
+    let declared_results = report.get("invariant_results").and_then(Value::as_array)
+        .ok_or_else(|| "run report invariant_results must be an array".to_owned())?;
+    let mut declared_by_id = BTreeMap::new();
+    for item in declared_results {
+        let id = required_str(item, "assertion_id", "run report invariant result")?;
+        if declared_by_id.insert(id.to_owned(), item).is_some() {
+            return Err(format!("run report duplicates invariant result {}", id));
+        }
+    }
+    let expected_ids: BTreeSet<String> = specs.iter()
+        .map(|item| required_str(item, "assertion_id", "assertion specification").map(str::to_owned))
+        .collect::<Result<_, _>>()?;
+    let declared_ids: BTreeSet<String> = declared_by_id.keys().cloned().collect();
+    if expected_ids != declared_ids {
+        return Err(format!(
+            "run report invariant-result IDs do not exactly match scenario assertions: expected={:?}, actual={:?}",
+            expected_ids, declared_ids
+        ));
+    }
+
+    let mut evaluated = Vec::new();
+    let mut hard_failed = 0usize;
+    let mut hard_unknown = 0usize;
+    let mut diagnostic_failed = 0usize;
+    for spec in specs {
+        let result = evaluate_assertion(spec, &scenario, &report)?;
+        let id = required_str(spec, "assertion_id", "assertion specification")?;
+        let declared = declared_by_id.get(id)
+            .ok_or_else(|| format!("run report omitted invariant result {}", id))?;
+        let declared_status = required_str(declared, "status", "run report invariant result")?;
+        let declared_pointer = required_str(declared, "evidence_pointer", "run report invariant result")?;
+        let expected_pointer = required_str(spec, "report_pointer", "assertion specification")?;
+        if declared_status != result["status"].as_str().unwrap_or("unknown") {
+            return Err(format!(
+                "runner invariant status for {} disagrees with independent evaluation: runner={}, evaluator={}",
+                id, declared_status, result["status"].as_str().unwrap_or("unknown")
+            ));
+        }
+        if declared_pointer != expected_pointer {
+            return Err(format!("runner evidence pointer for {} differs from the assertion contract", id));
+        }
+        match (required_str(spec, "severity", "assertion specification")?, result["status"].as_str().unwrap_or("unknown")) {
+            ("hard", "fail") => hard_failed += 1,
+            ("hard", "unknown") => hard_unknown += 1,
+            ("diagnostic", "fail") => diagnostic_failed += 1,
+            _ => {}
+        }
+        evaluated.push(result);
+    }
+
+    let status = if hard_failed > 0 {
+        "RUN_REPORT_ASSERTIONS_FAIL"
+    } else if hard_unknown > 0 {
+        "RUN_REPORT_ASSERTIONS_UNKNOWN"
+    } else {
+        "RUN_REPORT_ASSERTIONS_PASS"
+    };
+    Ok(json!({
+        "receipt_version": "wis-sim-run-report-verification/0.1",
+        "status": status,
+        "claim_ceiling": "synthetic policy run only; does not validate model assumptions or human outcomes",
+        "report_sha256": sha256_hex(report_text.as_bytes()),
+        "fixture_sha256": fixture_hash,
+        "scenario_schema_sha256": scenario_schema_hash,
+        "run_report_schema_sha256": sha256_hex(RUN_REPORT_SCHEMA.as_bytes()),
+        "scenario_id": scenario_id,
+        "variant_id": variant_id,
+        "policy_id": policy_id,
+        "run_status": run_status,
+        "simulation_executed": true,
+        "assertion_count": evaluated.len(),
+        "hard_assertions_failed": hard_failed,
+        "hard_assertions_unknown": hard_unknown,
+        "diagnostic_assertions_failed": diagnostic_failed,
+        "assertion_results": evaluated
+    }))
+}
+
+fn validate_run_report_schema_contract(schema: &Value) -> Result<(), String> {
+    if required_str(schema, "$id", "run-report schema")? != "wis-sim-run-report-v0.1.schema.json" {
+        return Err("unexpected run-report schema $id".to_owned());
+    }
+    if required_str(schema, "type", "run-report schema")? != "object"
+        || schema.get("additionalProperties").and_then(Value::as_bool) != Some(false) {
+        return Err("run-report schema must be a closed top-level object".to_owned());
+    }
+    let top_properties = schema.get("properties").and_then(Value::as_object)
+        .ok_or_else(|| "run-report schema.properties must be an object".to_owned())?;
+    let top_required = string_set(schema.get("required"), "run-report schema.required")?;
+    let top_names: BTreeSet<String> = top_properties.keys().cloned().collect();
+    if top_names != top_required {
+        return Err("run-report schema must require every declared top-level field".to_owned());
+    }
+    let identity = top_properties.get("identity")
+        .ok_or_else(|| "run-report schema identity property missing".to_owned())?;
+    let identity_properties = identity.get("properties").and_then(Value::as_object)
+        .ok_or_else(|| "run-report schema identity.properties missing".to_owned())?;
+    let identity_required = string_set(identity.get("required"), "run-report schema identity.required")?;
+    let identity_names: BTreeSet<String> = identity_properties.keys().cloned().collect();
+    if identity_names != identity_required {
+        return Err("run-report identity schema must require every declared identity field".to_owned());
+    }
+    if identity.get("additionalProperties").and_then(Value::as_bool) != Some(false) {
+        return Err("run-report identity must be a closed object".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_run_report_shape(report: &Value, schema: &Value) -> Result<(), String> {
+    let object = report.as_object().ok_or_else(|| "run report must be an object".to_owned())?;
+    let properties = schema.get("properties").and_then(Value::as_object)
+        .ok_or_else(|| "run-report schema properties missing".to_owned())?;
+    let required = string_set(schema.get("required"), "run-report schema.required")?;
+    for key in object.keys() {
+        if !properties.contains_key(key) {
+            return Err(format!("run report has undeclared top-level field {}", key));
+        }
+    }
+    for key in &required {
+        if !object.contains_key(key) {
+            return Err(format!("run report missing required top-level field {}", key));
+        }
+    }
+    if report.get("report_version") != Some(&json!("wis-sim-run-report/0.1")) {
+        return Err("run report has unsupported report_version".to_owned());
+    }
+    let status = required_str(report, "run_status", "run report")?;
+    if !["completed", "failed", "unsupported", "not_run"].contains(&status) {
+        return Err(format!("run report has unsupported run_status {}", status));
+    }
+    for (key, kind) in [
+        ("simulation_executed", "boolean"),
+        ("metrics", "object"),
+        ("claims_retained", "array"),
+        ("claims", "object"),
+        ("decision", "object"),
+        ("objections", "object"),
+        ("events", "object"),
+        ("invariant_results", "array"),
+        ("warnings", "array"),
+        ("identity", "object"),
+    ] {
+        let value = report.get(key).ok_or_else(|| format!("run report missing {}", key))?;
+        let valid = match kind {
+            "boolean" => value.is_boolean(),
+            "object" => value.is_object(),
+            "array" => value.is_array(),
+            _ => false,
+        };
+        if !valid {
+            return Err(format!("run report.{} must be a {}", key, kind));
+        }
+    }
+    for warning in report["warnings"].as_array().unwrap() {
+        if !warning.is_string() {
+            return Err("run report warnings entries must be strings".to_owned());
+        }
+    }
+    for claim in report["claims_retained"].as_array().unwrap() {
+        let _ = required_str(claim, "id", "run report claims_retained item")?;
+    }
+
+    let identity = report.get("identity").unwrap();
+    let identity_schema = properties.get("identity").unwrap();
+    let identity_properties = identity_schema.get("properties").and_then(Value::as_object).unwrap();
+    let identity_required = string_set(identity_schema.get("required"), "run-report identity.required")?;
+    let identity_object = identity.as_object().unwrap();
+    for key in identity_object.keys() {
+        if !identity_properties.contains_key(key) {
+            return Err(format!("run report identity has undeclared field {}", key));
+        }
+    }
+    for key in &identity_required {
+        if !identity_object.contains_key(key) {
+            return Err(format!("run report identity missing field {}", key));
+        }
+    }
+    for key in [
+        "corpus_id", "corpus_version", "fixture_sha256", "scenario_id", "scenario_version",
+        "variant_id", "policy_id", "policy_version", "execution_profile",
+        "engine_revision", "toolchain_profile", "target_triple", "environment_fingerprint", "input_sha256",
+    ] {
+        let _ = required_str(identity, key, "run report identity")?;
+    }
+    if identity.get("deterministic_seed").and_then(Value::as_u64).is_none() {
+        return Err("run report identity.deterministic_seed must be non-negative integer".to_owned());
+    }
+    let mut invariant_ids = BTreeSet::new();
+    for item in report["invariant_results"].as_array().unwrap() {
+        let fields = item.as_object().ok_or_else(|| "run report invariant result must be an object".to_owned())?;
+        for key in fields.keys() {
+            if !["assertion_id", "status", "observed", "expected", "evidence_pointer", "explanation"].contains(&key.as_str()) {
+                return Err(format!("run report invariant result has undeclared field {}", key));
+            }
+        }
+        for key in ["assertion_id", "status", "evidence_pointer", "explanation"] {
+            if !fields.contains_key(key) {
+                return Err(format!("run report invariant result missing {}", key));
+            }
+        }
+        let id = required_str(item, "assertion_id", "run report invariant result")?;
+        if !invariant_ids.insert(id.to_owned()) {
+            return Err(format!("run report duplicates invariant result {}", id));
+        }
+        let result_status = required_str(item, "status", "run report invariant result")?;
+        if !["pass", "fail", "unknown", "not_applicable"].contains(&result_status) {
+            return Err(format!("run report invariant result {} has invalid status", id));
+        }
+        let pointer = required_str(item, "evidence_pointer", "run report invariant result")?;
+        if !valid_json_pointer(pointer) {
+            return Err(format!("run report invariant result {} has invalid evidence_pointer", id));
+        }
+        let _ = required_str(item, "explanation", "run report invariant result")?;
+    }
+    Ok(())
+}
+
+fn evaluate_assertion(spec: &Value, scenario: &Value, report: &Value) -> Result<Value, String> {
+    let id = required_str(spec, "assertion_id", "assertion specification")?;
+    let kind = required_str(spec, "assertion_kind", "assertion specification")?;
+    let report_pointer = required_str(spec, "report_pointer", "assertion specification")?;
+    let actual = resolve_json_pointer(report, report_pointer);
+    let mut expected_receipt = Value::Null;
+    let mut observed_receipt = actual.cloned().unwrap_or(Value::Null);
+    let status = match kind {
+        "numeric_upper_bound" => {
+            let scenario_pointer = required_str(spec, "scenario_pointer", "assertion specification")?;
+            let bound = resolve_json_pointer(scenario, scenario_pointer)
+                .and_then(Value::as_f64)
+                .ok_or_else(|| format!("{} scenario bound is missing or non-numeric", id))?;
+            expected_receipt = json!({"less_than_or_equal": bound});
+            match actual.and_then(Value::as_f64) {
+                Some(value) if value <= bound => "pass",
+                _ => "fail",
+            }
+        }
+        "collection_contains_all_ids" => {
+            let scenario_pointer = required_str(spec, "scenario_pointer", "assertion specification")?;
+            let identity_field = required_str(spec, "identity_field", "assertion specification")?;
+            let expected = resolve_json_pointer(scenario, scenario_pointer)
+                .ok_or_else(|| format!("{} scenario collection is missing", id))?;
+            let expected_items = expected.as_array().ok_or_else(|| format!("{} scenario collection must be an array", id))?;
+            let observed_items = actual.and_then(Value::as_array);
+            let mut expected_ids = BTreeSet::new();
+            for item in expected_items {
+                let item_id = required_str(item, identity_field, &format!("{}.scenario", id))?;
+                if !expected_ids.insert(item_id.to_owned()) {
+                    return Err(format!("{} scenario identity collection contains duplicate {}", id, item_id));
+                }
+            }
+            let mut observed_ids = BTreeSet::new();
+            let mut observed_valid = observed_items.is_some();
+            if let Some(items) = observed_items {
+                for item in items {
+                    let item_id = item.get(identity_field).and_then(Value::as_str);
+                    match item_id {
+                        Some(value) => {
+                            if !observed_ids.insert(value.to_owned()) {
+                                observed_valid = false;
+                            }
+                        }
+                        None => observed_valid = false,
+                    }
+                }
+            }
+            expected_receipt = json!({"required_ids": expected_ids});
+            observed_receipt = json!({"observed_ids": observed_ids, "collection_valid": observed_valid});
+            if observed_valid && expected_ids.is_subset(&observed_ids) { "pass" } else { "fail" }
+        }
+        "field_present" => {
+            match actual {
+                Some(Value::Null) | None => "fail",
+                Some(Value::String(value)) if value.trim().is_empty() => "fail",
+                Some(_) => "pass",
+            }
+        }
+        "metric_zero" => {
+            expected_receipt = json!(0);
+            if actual.and_then(Value::as_f64) == Some(0.0) { "pass" } else { "fail" }
+        }
+        "value_equals" => {
+            let pointer = required_str(spec, "scenario_pointer", "assertion specification")?;
+            let expected = resolve_json_pointer(scenario, pointer)
+                .ok_or_else(|| format!("{} scenario value is missing", id))?;
+            expected_receipt = expected.clone();
+            if actual == Some(expected) { "pass" } else { "fail" }
+        }
+        "boolean_true" => {
+            expected_receipt = json!(true);
+            if actual.and_then(Value::as_bool) == Some(true) { "pass" } else { "fail" }
+        }
+        "field_absent" => {
+            expected_receipt = json!({"present": false});
+            observed_receipt = json!({"present": actual.is_some()});
+            if actual.is_none() { "pass" } else { "fail" }
+        }
+        _ => return Err(format!("{} has unsupported assertion kind {}", id, kind)),
+    };
+    Ok(json!({
+        "assertion_id": id,
+        "assertion_kind": kind,
+        "severity": required_str(spec, "severity", "assertion specification")?,
+        "status": status,
+        "evidence_pointer": report_pointer,
+        "expected": expected_receipt,
+        "observed": observed_receipt,
+        "explanation": required_str(spec, "rationale", "assertion specification")?
+    }))
+}
+
+fn resolve_json_pointer<'a>(root: &'a Value, pointer: &str) -> Option<&'a Value> {
+    if pointer.is_empty() {
+        return Some(root);
+    }
+    if !pointer.starts_with('/') {
+        return None;
+    }
+    let mut current = root;
+    for segment in pointer[1..].split('/') {
+        let mut decoded = String::with_capacity(segment.len());
+        let mut chars = segment.chars();
+        while let Some(ch) = chars.next() {
+            if ch == '~' {
+                match chars.next()? {
+                    '0' => decoded.push('~'),
+                    '1' => decoded.push('/'),
+                    _ => return None,
+                }
+            } else {
+                decoded.push(ch);
+            }
+        }
+        current = match current {
+            Value::Object(map) => map.get(&decoded)?,
+            Value::Array(items) => {
+                if decoded.is_empty() || (decoded.len() > 1 && decoded.starts_with('0')) {
+                    return None;
+                }
+                let index = decoded.parse::<usize>().ok()?;
+                items.get(index)?
+            }
+            _ => return None,
+        };
+    }
+    Some(current)
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
 #[derive(Default)]
 struct ScenarioVariants {
     family: Option<String>,
