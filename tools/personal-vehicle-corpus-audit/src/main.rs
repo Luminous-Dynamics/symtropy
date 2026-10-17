@@ -45,7 +45,7 @@ const REQUIRED_NEGATIVE_IDS: [&str; 9] = [
     "PV20_NONCONVERGED_SOLVER",
     "PV21_OUT_OF_DOMAIN",
 ];
-const REQUIRED_SOURCE_IDS: [&str; 13] = [
+const REQUIRED_SOURCE_IDS: [&str; 15] = [
     "SRC_EPA_DYNAMOMETER_SCHEDULES",
     "SRC_NHTSA_ADS_SCENARIO_FRAMEWORK",
     "SRC_SAE_J1555_201910",
@@ -56,6 +56,8 @@ const REQUIRED_SOURCE_IDS: [&str; 13] = [
     "SRC_SA_ROADWORTHINESS",
     "SRC_UN_R155",
     "SRC_UN_R156",
+    "SRC_SA_DTIC_SKD_POLICY_2026_10",
+    "SRC_SA_SARS_APDP2",
     "SRC_TOYOTA_SA_MODEL_RANGE",
     "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES",
     "SRC_SUZUKI_SWIFT_OFFICIAL_SPECS",
@@ -1244,7 +1246,7 @@ mod tests {
     fn source_registry_has_complete_reviewed_census() {
         let registry = source_registry();
         let (count, digest) = validate_source_registry_fixture(&registry).expect("source registry contract");
-        assert_eq!(count, 13);
+        assert_eq!(count, 15);
         assert_eq!(digest.len(), 64);
     }
 
