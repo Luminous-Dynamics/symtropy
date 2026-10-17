@@ -22,6 +22,18 @@ Recent timber-robotics work suggests several converging directions:
 - A 2026 wood-frame study highlights vision-driven adaptive manipulation, but its grasp and geometry results remain tied to its tested setup and should not be transferred as expected performance without comparable hardware, stock and protocols: https://www.sciencedirect.com/science/article/pii/S0926580526000993
 - A review of timber-robotization case studies identifies technology readiness, systematic evaluation, safety, productivity evidence, cost and workforce training as important scaling challenges: https://research.tudelft.nl/en/publications/review-of-advances-in-the-robotization-of-timber-construction/
 
+
+## Aerial forestry evidence and limitations
+
+- A 2025 forest-plantation comparison used UAV laser scanning (ULS) and structure-from-motion photogrammetry across 12 sites. It reported whole-dataset DBH RMSE near 2.05–2.13 cm (about 11%) for both approaches, but substantial site-to-site variation; ULS tree-height error averaged 5.4% across sites versus 11.59% for SfM. Logging debris, weed cover, site conditions and stand maturity affected estimates. These are study-specific baselines, not a guaranteed capability for this Scout: https://doi.org/10.1016/j.srs.2025.100245
+- A 2025 review of under-canopy UAV forest inventory identifies lightweight LiDAR/photogrammetry, GNSS-denied localization and collision avoidance as key opportunities and engineering challenges. This justifies a separate, higher-risk research mode rather than defaulting to under-canopy autonomy: https://doi.org/10.5194/isprs-archives-XLVIII-2-W11-2025-183-2025
+- A 2025 lightweight under-canopy camera drone study reported DBH RMSE of 3.33–3.97 cm over its sample and lower errors for trees under 30 cm DBH. This is evidence that closer views can enable measurements that cannot simply be assumed from canopy-scale imagery; it is not the proposed non-invasive stand-off baseline: https://doi.org/10.1080/01431161.2025.2579803
+- A systematic review of 39 wildlife-disturbance studies reports interactions among altitude, speed, approach path, hover duration, noise and taxa, with incomplete knowledge of long-term effects. The Scout must treat observed disturbance as an operational stop condition, not assume an altitude alone guarantees harmlessness: https://doi.org/10.3390/drones10040298
+- A meta-analysis of 149 avian studies likewise finds that drone-to-bird distance, speed, breeding status and bird size affect flushing response, and recommends species-aware procedures: https://doi.org/10.1002/fee.2809
+- In South Africa, the SACAA's current UAS guidance identifies Part 101 requirements and emphasizes property permission, privacy and other applicable law; commercial/other operations can require approvals, registration and an operating certificate. The concrete operation must be checked against current SACAA rules before any real flight: https://www.caa.co.za/industry-information/uas/
+
+These sources point to the right paradigm: **ecological disturbance and data uncertainty are part of the mission objective, not merely post-flight reporting.** The planner should trade survey coverage against energy, uncertainty reduction, disturbance risk, flight permissions and recovery options, while treating legal/site/ecological constraints as hard gates.
+
 For forestry, the strategic gap starts with a non-contact aerial Scout rather than a ground rover. Canopy-scale mapping and targeted revisit must remain distinct from precise trunk/DBH measurement; neither should silently substitute for the other. The strategic gap is not merely a new robot arm. It is a coherent and testable portfolio connecting variable materials, sensing, fixtures, tools, task planning, human decisions, as-built evidence, maintenance and reversible reuse.
 
 ## Paradigm shifts
@@ -93,7 +105,18 @@ A plan is ineligible when site/property permission, aviation authorization, weat
 
 The >50 m altitude band and every numeric threshold in the synthetic corpus are experimental scenario values only. They do not define a legal minimum or guarantee absence of disturbance.
 
-The first physical pilot should not attempt all seven. Choose a low-consequence, measurable use case after simulation contracts and a qualified risk assessment; a bench-top measurement-and-fixture cell or material-identification rover is a stronger early candidate than a heavy autonomous lifting platform.
+## Recommended development order
+
+1. **Now — P0 aerial mission specification and offline qualification.** Freeze the aerial non-contact policy, mission-state machine, wildlife/privacy/airspace negative controls, and receipt format before selecting hardware.
+2. **First forestry prototype — canopy-scale aerial survey.** Prefer an efficient wing-borne fixed-wing platform where an approved launch/recovery area exists; consider lift-and-cruise VTOL where runway constraints justify added complexity. Use a compact multirotor only for a separately approved, brief targeted revisit. This is a design choice to benchmark, not a fixed hardware decision.
+3. **First shop prototype — P2 metrology and fixture cell.** Begin with measurement, part identification, fixture registration and non-powered dry runs. They yield measurable value without beginning with autonomous cutting or lifting.
+4. **Next — P6 reclaimed-material assessment and P1 supervised stock presentation.** These can reduce waste and workshop friction; keep structural reuse and load-bearing operations behind independent evidence gates.
+5. **Then — P3 assisted assembly and P4 logistics/inspection.** Use task-level studies with real operators and measured setup, rework and repair costs.
+6. **Last — P5 heavy timber positioning coordination.** Defer until perception, positioning, temporary support, lift planning and site-specific safety interfaces have independent qualification.
+
+Do not equate this sequence with commercial priority in every market. Re-rank it using a transparent scorecard for operator pain, frequency, savings potential, acquisition/maintenance cost, technical readiness, safety burden and local repairability. Heavy lifting is deliberately later because its failure consequences and verification burden are materially higher than metrology or observation.
+
+The first physical pilots should be separate, bounded experiments: (a) an aerial, above-canopy Scout survey under an approved flight and ecological protocol; and (b) a bench-top metrology/fixture cell in a controlled shop. Neither pilot should be used to imply the other is qualified.
 
 ## Shared task envelope
 
