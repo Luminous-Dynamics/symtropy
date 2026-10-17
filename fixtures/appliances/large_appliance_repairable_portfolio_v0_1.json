@@ -433,6 +433,12 @@
       "url": "https://github.com/Luminous-Dynamics/mycelix/issues/5156",
       "kind": "internal_issue",
       "scope_note": "Reuse existing Manufacturing and RepairProductiveLoop identities and evidence owners; do not create a second repair ledger."
+    },
+    {
+      "title": "Open Repair Alliance repair-attempt dataset (October 2026 release)",
+      "url": "https://openrepair.org/announcements/over-half-a-million-records-of-open-data-on-repair/",
+      "kind": "open_dataset",
+      "scope_note": "Use for repair-barrier vocabulary and collection practices only. Community repair events and ORDS product scope are not a representative random sample of large-appliance field failures; do not estimate washer fault prevalence or calibrated priors without validating selection, product coverage and missingness."
     }
   ],
   "washer_architecture_variants": [
