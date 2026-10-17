@@ -2,7 +2,7 @@
 
 **Status:** decision protocol and software design proposal. It does not select a winning washer architecture or certify a physical product.  
 **Scope:** Symtropy large-appliance repair programme; first application is W0–W4 washer architecture alternatives.  
-**Related work:** [Portfolio issue #1825](https://github.com/Luminous-Dynamics/symtropy/issues/1825), [washer issue #1828](https://github.com/Luminous-Dynamics/symtropy/issues/1828), [portfolio PR #1827](https://github.com/Luminous-Dynamics/symtropy/pull/1827).
+**Related work:** [Portfolio issue #1825](https://github.com/Luminous-Dynamics/symtropy/issues/1825), [washer issue #1828](https://github.com/Luminous-Dynamics/symtropy/issues/1828), [portfolio PR #1827](https://github.com/Luminous-Dynamics/symtropy/pull/1827), [stakeholder profile issue #1872](https://github.com/Luminous-Dynamics/symtropy/issues/1872), and [stakeholder-constrained frontier method](STAKEHOLDER_CONSTRAINED_REPAIRABILITY_FRONTIERS_V0_1.md).
 
 ## 1. The paradigm shift: from “repairable-looking” designs to evidence-gated architectural decisions
 
