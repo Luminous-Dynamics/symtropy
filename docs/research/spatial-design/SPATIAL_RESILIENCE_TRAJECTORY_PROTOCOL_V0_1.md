@@ -163,3 +163,14 @@ Two recent sources reinforce the benchmark's choice to model trajectories, not a
 The first real-model adapter should produce a **time series with declared boundary conditions**, rather than a single pass/fail or annual average. Qualification should measure (1) time to a declared service/condition threshold, (2) duration and depth of excursions, (3) resource/reserve exhaustion, (4) response after service restoration and (5) sensitivity to initial conditions. Report these separately for each qualified scenario. This is a research direction, not a claim that the present synthetic oracle calculates temperatures or models human thermal physiology.
 
 The initial Rust oracle intentionally proves only finite-state event semantics around continuous service and stable recovery. It is a small contract check to prevent one class of reporting error; it is not an approximation of a heat-transfer solver.
+
+
+## Qualification direction — established VVUQ tests before new optimisation claims
+
+Prefer a mature, externally tested building simulation engine over a fresh home-grown heat-transfer model. For whole-building simulation tools where applicable, the first adapter plan should reference relevant cases from **ANSI/ASHRAE Standard 140**, which ASHRAE describes as a method for testing the technical capabilities and applicability of building thermal/HVAC simulation software, including weather-file interpretation tests in its 2023 edition: https://www.ashrae.org/technical-resources/bookstore/ashrae-building-energy-simulation-and-performance-modeling-resources
+
+Passing Standard 140 cases is not equivalent to validating a specific building, site weather file, control sequence or outage scenario. Keep those separate: (a) software capability tests, (b) independent analytical/reference-case comparison, (c) input/model calibration and validation against measured behaviour where available, and (d) decision-specific uncertainty and extrapolation limits.
+
+NIST AMS 100-85 (published 5 October 2026) recommends risk-proportionate credibility assessment based on model influence and decision consequence, and distinguishes variance propagation from distributional propagation: https://doi.org/10.6028/NIST.AMS.100-85. The design pipeline should therefore require stronger evidence when a prediction can change a consequential admission decision, and must disclose when a result lies outside the demonstrated model domain.
+
+This is why the v0.1 qualifier keeps synthetic known-answer mechanics, specialist solver outputs, professional review and real occupant studies as separate evidence layers.
