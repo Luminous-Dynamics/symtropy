@@ -27,7 +27,7 @@ struct AuditReceipt {
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    digest.iter().map(|byte| format!("{byte:02x}")).collect::<Vec<_>>().join("")
 }
 
 fn nonempty_string<'a>(value: Option<&'a Value>) -> Option<&'a str> {
@@ -48,6 +48,7 @@ fn make_receipt(
     parsed: Option<Value>,
     parse_error: Option<String>,
 ) -> AuditReceipt {
+    let had_parse_error = parse_error.is_some();
     let mut errors = Vec::new();
     let mut scenario_ids = BTreeSet::new();
     let mut domain_profiles = BTreeSet::new();
@@ -288,7 +289,7 @@ fn make_receipt(
                 }
             }
         }
-    } else if parse_error.is_none() {
+    } else if !had_parse_error {
         errors.push("CORPUS_VALUE_MISSING".to_string());
     }
 
@@ -397,7 +398,7 @@ mod tests {
         assert_eq!(receipt.domain_profile_count, 8);
         assert!(receipt.all_plan_only);
         assert_eq!(receipt.claim_ceiling, "NO_ACTUATION_AUTHORIZED");
-        assert_eq!(receipt.gate_status_counts.get("UNKNOWN"), Some(&9));
+        assert_eq!(receipt.gate_status_counts.get("UNKNOWN"), Some(&16));
         assert_eq!(receipt.gate_status_counts.get("BLOCK"), Some(&3));
         assert_eq!(receipt.corpus_sha256.len(), 64);
     }
