@@ -9,6 +9,7 @@ pub const EVALUATOR_VERSION: &str = "0.1.0";
 pub const MAX_STATES: usize = 100_000;
 pub const MAX_ACTIONS: usize = 10_000;
 pub const MAX_OUTCOMES: usize = 100_000;
+pub const MAX_STATE_ACTION_EVALUATIONS: usize = 10_000_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -214,6 +215,16 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
     if input.actions.len() > MAX_ACTIONS {
         return Err(format!("action count exceeds limit {MAX_ACTIONS}"));
     }
+    let state_action_evaluations = input
+        .actions
+        .len()
+        .checked_mul(state_count)
+        .ok_or_else(|| "state-action evaluation count overflow".to_owned())?;
+    if state_action_evaluations > MAX_STATE_ACTION_EVALUATIONS {
+        return Err(format!(
+            "state-action evaluation count {state_action_evaluations} exceeds limit {MAX_STATE_ACTION_EVALUATIONS}"
+        ));
+    }
 
     let mut action_ids = BTreeSet::new();
     let mut raw_assessments = Vec::with_capacity(input.actions.len());
@@ -237,16 +248,15 @@ pub fn plan(input: &PlannerInput, input_sha256: &str) -> Result<PlanReport, Stri
             return Err(format!("total outcome count exceeds limit {MAX_OUTCOMES}"));
         }
 
-        let outcome_ids: BTreeSet<String> = unique_name_set(
-            &action
-                .outcomes
-                .iter()
-                .map(|outcome| outcome.outcome_id.clone())
-                .collect::<Vec<_>>(),
-            "outcome_id",
-        )?;
-        if outcome_ids.len() != action.outcomes.len() {
-            return Err(format!("action {:?} has duplicate outcome_id", action.action_id));
+        let mut outcome_ids = BTreeSet::new();
+        for outcome in &action.outcomes {
+            validate_name(&outcome.outcome_id, "outcome_id")?;
+            if !outcome_ids.insert(outcome.outcome_id.clone()) {
+                return Err(format!(
+                    "action {:?} has duplicate outcome_id {:?}",
+                    action.action_id, outcome.outcome_id
+                ));
+            }
         }
 
         let mut seen_state_ids = BTreeSet::new();
