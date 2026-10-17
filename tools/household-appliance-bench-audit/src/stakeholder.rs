@@ -47,6 +47,195 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
         .map_err(|error| format!("cannot compile decision schema: {error}"))
 }
 
+fn observation_by_id<'a>(candidate: &'a Value, criterion_id: &str) -> Option<&'a Value> {
+    candidate
+        .get("observations")?
+        .as_array()?
+        .iter()
+        .find(|observation| text_at(observation, "criterion_id") == Some(criterion_id))
+}
+
+fn candidate_evidence_status(decision: &Value, candidate: &Value) -> &'static str {
+    let Some(gates) = candidate.get("hard_gates").and_then(Value::as_array) else {
+        return "blocked_unknown_gate";
+    };
+    let mut seen_pass = BTreeSet::new();
+    for gate in gates {
+        let Some(id) = text_at(gate, "gate_id") else {
+            return "blocked_unknown_gate";
+        };
+        if text_at(gate, "status") == Some("fail") {
+            return "rejected_hard_gate";
+        }
+        if text_at(gate, "status") != Some("pass")
+            || text_at(gate, "evidence_id").is_none_or(str::is_empty)
+            || text_at(gate, "evidence_id").unwrap_or("").starts_with("SYNTHETIC-")
+        {
+            return "blocked_unknown_gate";
+        }
+        if !seen_pass.insert(id.to_owned()) {
+            return "blocked_unknown_gate";
+        }
+    }
+    let Some(criteria) = decision.get("criteria").and_then(Value::as_array) else {
+        return "insufficient_eligible_evidence";
+    };
+    if criteria.is_empty() {
+        return "insufficient_eligible_evidence";
+    }
+    for criterion in criteria {
+        let Some(id) = text_at(criterion, "id") else {
+            return "insufficient_eligible_evidence";
+        };
+        if text_at(criterion, "status") != Some("method_frozen") {
+            return "insufficient_eligible_evidence";
+        }
+        let Some(observation) = observation_by_id(candidate, id) else {
+            return "insufficient_eligible_evidence";
+        };
+        if !matches!(
+            text_at(observation, "evidence_class"),
+            Some("physical_measurement" | "independent_replication")
+        ) || observation.get("method_frozen").and_then(Value::as_bool) != Some(true)
+            || text_at(observation, "unit") != text_at(criterion, "unit")
+            || text_at(observation, "evidence_id").is_none_or(str::is_empty)
+            || text_at(observation, "method_id").is_none_or(str::is_empty)
+            || text_at(observation, "evidence_id").unwrap_or("").starts_with("SYNTHETIC-")
+        {
+            return "insufficient_eligible_evidence";
+        }
+        let (Some(lower), Some(upper)) = (
+            observation.get("lower").and_then(Value::as_f64),
+            observation.get("upper").and_then(Value::as_f64),
+        ) else {
+            return "insufficient_eligible_evidence";
+        };
+        if !lower.is_finite() || !upper.is_finite() || lower < 0.0 || lower > upper {
+            return "insufficient_eligible_evidence";
+        }
+        if matches!(
+            id,
+            "first_visit_verified_repair_rate" | "target_window_part_fulfilment_rate"
+        ) && upper > 1.0
+        {
+            return "insufficient_eligible_evidence";
+        }
+    }
+    "eligible_for_profile_comparison"
+}
+
+fn candidate_meets_profile_requirements(
+    decision: &Value,
+    profile: &Value,
+    candidate: &Value,
+) -> &'static str {
+    if text_at(profile, "status") != Some("requirements_frozen") {
+        return "requirements_not_frozen";
+    }
+    let Some(requirements) = profile.get("requirements").and_then(Value::as_array) else {
+        return "requirements_not_frozen";
+    };
+    for requirement in requirements {
+        if text_at(requirement, "status") != Some("frozen_before_candidate_measurements")
+            || requirement
+                .get("frozen_before_candidate_measurements")
+                .and_then(Value::as_bool)
+                != Some(true)
+        {
+            return "requirements_not_frozen";
+        }
+        let Some(threshold) = requirement.get("threshold").and_then(Value::as_f64) else {
+            return "requirements_not_frozen";
+        };
+        let Some(criterion_id) = text_at(requirement, "criterion_id") else {
+            return "requirements_not_frozen";
+        };
+        let Some(criterion) = decision
+            .get("criteria")
+            .and_then(Value::as_array)
+            .and_then(|criteria| criteria.iter().find(|criterion| {
+                text_at(criterion, "id") == Some(criterion_id)
+            }))
+        else {
+            return "requirements_not_frozen";
+        };
+        let Some(observation) = observation_by_id(candidate, criterion_id) else {
+            return "insufficient_eligible_evidence";
+        };
+        let (Some(lower), Some(upper)) = (
+            observation.get("lower").and_then(Value::as_f64),
+            observation.get("upper").and_then(Value::as_f64),
+        ) else {
+            return "insufficient_eligible_evidence";
+        };
+        match text_at(requirement, "direction") {
+            Some("minimize") if upper <= threshold => {}
+            Some("minimize") if lower > threshold => return "fails_profile_constraint",
+            Some("maximize") if lower >= threshold => {}
+            Some("maximize") if upper < threshold => return "fails_profile_constraint",
+            Some("minimize" | "maximize") => return "profile_constraint_unresolved",
+            _ => return "requirements_not_frozen",
+        }
+    }
+    "meets_profile_constraints"
+}
+
+fn robustly_dominates_for_profile(
+    decision: &Value,
+    profile: &Value,
+    a: &Value,
+    b: &Value,
+) -> bool {
+    let Some(ids) = profile.get("criteria").and_then(Value::as_array) else {
+        return false;
+    };
+    let mut strict_improvement = false;
+    for id_value in ids {
+        let Some(id) = id_value.as_str() else {
+            return false;
+        };
+        let Some(criterion) = decision
+            .get("criteria")
+            .and_then(Value::as_array)
+            .and_then(|criteria| criteria.iter().find(|criterion| {
+                text_at(criterion, "id") == Some(id)
+            }))
+        else {
+            return false;
+        };
+        let (Some(a_obs), Some(b_obs)) = (
+            observation_by_id(a, id),
+            observation_by_id(b, id),
+        ) else {
+            return false;
+        };
+        let (Some(a_lower), Some(a_upper), Some(b_lower), Some(b_upper)) = (
+            a_obs.get("lower").and_then(Value::as_f64),
+            a_obs.get("upper").and_then(Value::as_f64),
+            b_obs.get("lower").and_then(Value::as_f64),
+            b_obs.get("upper").and_then(Value::as_f64),
+        ) else {
+            return false;
+        };
+        match text_at(criterion, "direction") {
+            Some("minimize") => {
+                if a_upper > b_lower {
+                    return false;
+                }
+                strict_improvement |= a_upper < b_lower;
+            }
+            Some("maximize") => {
+                if a_lower < b_upper {
+                    return false;
+                }
+                strict_improvement |= a_lower > b_upper;
+            }
+            _ => return false,
+        }
+    }
+    strict_improvement
+}
+
 fn audit_values(
     schema: &Value,
     decision: &Value,
@@ -216,6 +405,51 @@ fn audit_values(
             }
         }
 
+        let candidates = decision
+            .get("candidates")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let mut candidate_assessments = Vec::new();
+        let mut qualifying_candidates = Vec::new();
+        for candidate in &candidates {
+            let universal = candidate_evidence_status(decision, candidate);
+            let candidate_status = if universal != "eligible_for_profile_comparison" {
+                universal
+            } else {
+                candidate_meets_profile_requirements(decision, profile, candidate)
+            };
+            if candidate_status == "meets_profile_constraints" {
+                qualifying_candidates.push(candidate.clone());
+            }
+            candidate_assessments.push(json!({
+                "candidate_id": text_at(candidate, "id").unwrap_or("unknown"),
+                "status": candidate_status,
+                "robust_pareto_frontier": false,
+                "robustly_dominated_by": []
+            }));
+        }
+        let mut frontier_count = 0usize;
+        for candidate in &qualifying_candidates {
+            let dominators: Vec<String> = qualifying_candidates
+                .iter()
+                .filter(|other| {
+                    text_at(other, "id") != text_at(candidate, "id")
+                        && robustly_dominates_for_profile(decision, profile, other, candidate)
+                })
+                .filter_map(|other| text_at(other, "id").map(str::to_owned))
+                .collect();
+            let is_frontier = dominators.is_empty();
+            if is_frontier {
+                frontier_count += 1;
+            }
+            if let Some(outcome) = candidate_assessments.iter_mut().find(|outcome| {
+                text_at(outcome, "candidate_id") == text_at(candidate, "id")
+            }) {
+                outcome["robust_pareto_frontier"] = json!(is_frontier);
+                outcome["robustly_dominated_by"] = json!(dominators);
+            }
+        }
         profile_results.push(json!({
             "profile_id": profile_id,
             "status": status.unwrap_or("unknown"),
@@ -226,8 +460,11 @@ fn audit_values(
                     && requirement.get("threshold").and_then(Value::as_f64).is_some()
                     && requirement.get("frozen_before_candidate_measurements").and_then(Value::as_bool) == Some(true)
             }).count(),
+            "candidate_assessments": candidate_assessments,
+            "candidate_meeting_constraints_count": qualifying_candidates.len(),
+            "profile_pareto_frontier_count": frontier_count,
             "profile_frontier_status": if status == Some("requirements_frozen") {
-                "blocked_until_universal_gates_and_candidate_evidence_pass"
+                "evaluated_only_when_universal_gates_and_candidate_evidence_are_eligible"
             } else {
                 "requirements_not_frozen"
             },
