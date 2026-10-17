@@ -1,0 +1,729 @@
+//! Isolated solar-capture and sensible-thermal-storage research kernel.
+//! This is a bounded fixture model, not a validated plant model.
+//! Units: energy J, power W, time s, absolute temperature K, mass kg,
+//! and specific heat J/(kg K). Store energy is measured relative to Tmin.
+
+use std::{error::Error, fmt};
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ModelError {
+    NonFinite(&'static str),
+    MustBePositive(&'static str),
+    MustBeNonNegative(&'static str),
+    FractionOutsideUnitInterval,
+    HeatCapacityCurveTooShort,
+    HeatCapacityTemperaturesNotIncreasing,
+    TemperatureOutsideHeatCapacityCurve,
+    InvalidTemperatureRange,
+    InitialTemperatureOutOfRange,
+    ReceiverLossExceedsAbsorbedEnergy,
+    InvalidDischargeEfficiency,
+    EnergyAboveStoreCapacity,
+    ReportMismatch(&'static str),
+}
+
+impl fmt::Display for ModelError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NonFinite(n) => write!(f, "{n} must be finite"),
+            Self::MustBePositive(n) => write!(f, "{n} must be positive"),
+            Self::MustBeNonNegative(n) => write!(f, "{n} must be non-negative"),
+            Self::FractionOutsideUnitInterval => write!(f, "fraction must be in [0, 1]"),
+            Self::HeatCapacityCurveTooShort => write!(f, "cp(T) requires at least two points"),
+            Self::HeatCapacityTemperaturesNotIncreasing => write!(f, "cp(T) temperatures must strictly increase"),
+            Self::TemperatureOutsideHeatCapacityCurve => write!(f, "temperature is outside declared cp(T) bounds"),
+            Self::InvalidTemperatureRange => write!(f, "minimum temperature must be below maximum"),
+            Self::InitialTemperatureOutOfRange => write!(f, "store temperature is outside configured bounds"),
+            Self::ReceiverLossExceedsAbsorbedEnergy => write!(f, "receiver loss exceeds absorbed solar energy"),
+            Self::InvalidDischargeEfficiency => write!(f, "exchanger effectiveness must be in (0, 1]"),
+            Self::EnergyAboveStoreCapacity => write!(f, "requested stored energy exceeds configured capacity"),
+            Self::ReportMismatch(n) => write!(f, "independent report verification failed: {n}"),
+        }
+    }
+}
+impl Error for ModelError {}
+
+fn finite(x: f64, name: &'static str) -> Result<f64, ModelError> {
+    if x.is_finite() { Ok(x) } else { Err(ModelError::NonFinite(name)) }
+}
+fn nonnegative(x: f64, name: &'static str) -> Result<f64, ModelError> {
+    finite(x, name)?;
+    if x < 0.0 { Err(ModelError::MustBeNonNegative(name)) } else { Ok(x) }
+}
+fn positive(x: f64, name: &'static str) -> Result<f64, ModelError> {
+    finite(x, name)?;
+    if x <= 0.0 { Err(ModelError::MustBePositive(name)) } else { Ok(x) }
+}
+fn close(a: f64, b: f64) -> bool {
+    (a - b).abs() <= 1.0e-8 * a.abs().max(b.abs()).max(1.0)
+}
+fn check(name: &'static str, actual: f64, expected: f64) -> Result<(), ModelError> {
+    if close(actual, expected) { Ok(()) } else { Err(ModelError::ReportMismatch(name)) }
+}
+
+macro_rules! nonnegative_unit {
+    ($name:ident, $field:literal) => {
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub struct $name(f64);
+        impl $name {
+            pub fn new(value: f64) -> Result<Self, ModelError> {
+                nonnegative(value, $field).map(Self)
+            }
+            pub fn value(self) -> f64 { self.0 }
+        }
+    };
+}
+macro_rules! positive_unit {
+    ($name:ident, $field:literal) => {
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        pub struct $name(f64);
+        impl $name {
+            pub fn new(value: f64) -> Result<Self, ModelError> {
+                positive(value, $field).map(Self)
+            }
+            pub fn value(self) -> f64 { self.0 }
+        }
+    };
+}
+nonnegative_unit!(EnergyJ, "energy_j");
+positive_unit!(Kelvin, "temperature_k");
+nonnegative_unit!(TemperatureDifferenceK, "temperature_difference_k");
+positive_unit!(MassKg, "mass_kg");
+positive_unit!(SpecificHeatJPerKgK, "specific_heat_j_per_kg_k");
+positive_unit!(PowerW, "power_w");
+positive_unit!(Seconds, "duration_s");
+nonnegative_unit!(ThermalConductanceWPerK, "thermal_conductance_w_per_k");
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fraction(f64);
+impl Fraction {
+    pub fn new(value: f64) -> Result<Self, ModelError> {
+        finite(value, "fraction")?;
+        if !(0.0..=1.0).contains(&value) {
+            return Err(ModelError::FractionOutsideUnitInterval);
+        }
+        Ok(Self(value))
+    }
+    pub fn value(self) -> f64 { self.0 }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HeatCapacityPoint {
+    temperature: Kelvin,
+    specific_heat: SpecificHeatJPerKgK,
+}
+impl HeatCapacityPoint {
+    pub fn new(temperature: Kelvin, specific_heat: SpecificHeatJPerKgK) -> Self {
+        Self { temperature, specific_heat }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct HeatCapacityCurve {
+    points: Vec<HeatCapacityPoint>,
+}
+impl HeatCapacityCurve {
+    pub fn new(points: Vec<HeatCapacityPoint>) -> Result<Self, ModelError> {
+        if points.len() < 2 { return Err(ModelError::HeatCapacityCurveTooShort); }
+        if points.windows(2).any(|w| w[0].temperature.value() >= w[1].temperature.value()) {
+            return Err(ModelError::HeatCapacityTemperaturesNotIncreasing);
+        }
+        Ok(Self { points })
+    }
+
+    pub fn temperature_bounds(&self) -> (Kelvin, Kelvin) {
+        (self.points[0].temperature, self.points[self.points.len() - 1].temperature)
+    }
+
+    /// Integrates piecewise-linear cp(T) with exact trapezoids. Result is signed J/kg.
+    pub fn specific_enthalpy(&self, from: Kelvin, to: Kelvin) -> Result<f64, ModelError> {
+        let (minimum, maximum) = self.temperature_bounds();
+        for t in [from, to] {
+            if t.value() < minimum.value() || t.value() > maximum.value() {
+                return Err(ModelError::TemperatureOutsideHeatCapacityCurve);
+            }
+        }
+        if from.value() == to.value() { return Ok(0.0); }
+        if from.value() > to.value() {
+            return Ok(-self.integrate_forward(to.value(), from.value()));
+        }
+        Ok(self.integrate_forward(from.value(), to.value()))
+    }
+
+    fn integrate_forward(&self, low: f64, high: f64) -> f64 {
+        let mut sum = 0.0;
+        for pair in self.points.windows(2) {
+            let t0 = pair[0].temperature.value();
+            let t1 = pair[1].temperature.value();
+            let a = low.max(t0);
+            let b = high.min(t1);
+            if b <= a { continue; }
+            let cp0 = pair[0].specific_heat.value();
+            let cp1 = pair[1].specific_heat.value();
+            let slope = (cp1 - cp0) / (t1 - t0);
+            let cp_a = cp0 + slope * (a - t0);
+            let cp_b = cp0 + slope * (b - t0);
+            sum += 0.5 * (cp_a + cp_b) * (b - a);
+        }
+        sum
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CollectorInput {
+    /// Incident interval energy after choosing the appropriate irradiance basis.
+    /// This is not raw GHI/DNI data; radiometry and aperture geometry are out of scope.
+    pub incident_solar: EnergyJ,
+    pub optical_efficiency: Fraction,
+    /// Interval-integrated receiver thermal loss at the stated boundary.
+    pub receiver_loss: EnergyJ,
+}
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CollectorReport {
+    pub incident_solar: EnergyJ,
+    pub optical_loss: EnergyJ,
+    pub absorbed_solar: EnergyJ,
+    pub receiver_loss: EnergyJ,
+    pub useful_captured_heat: EnergyJ,
+}
+
+pub fn capture_solar(input: CollectorInput) -> Result<CollectorReport, ModelError> {
+    let absorbed = input.incident_solar.value() * input.optical_efficiency.value();
+    if input.receiver_loss.value() > absorbed {
+        return Err(ModelError::ReceiverLossExceedsAbsorbedEnergy);
+    }
+    Ok(CollectorReport {
+        incident_solar: input.incident_solar,
+        optical_loss: EnergyJ::new((input.incident_solar.value() - absorbed).max(0.0))?,
+        absorbed_solar: EnergyJ::new(absorbed)?,
+        receiver_loss: input.receiver_loss,
+        useful_captured_heat: EnergyJ::new((absorbed - input.receiver_loss.value()).max(0.0))?,
+    })
+}
+
+/// Recomputes the collector report from the input, rather than trusting reported totals.
+pub fn verify_collector_report(input: CollectorInput, claimed: CollectorReport) -> Result<(), ModelError> {
+    let absorbed = input.incident_solar.value() * input.optical_efficiency.value();
+    if input.receiver_loss.value() > absorbed {
+        return Err(ModelError::ReceiverLossExceedsAbsorbedEnergy);
+    }
+    let optical_loss = input.incident_solar.value() - absorbed;
+    let useful = absorbed - input.receiver_loss.value();
+    check("collector.incident", claimed.incident_solar.value(), input.incident_solar.value())?;
+    check("collector.absorbed", claimed.absorbed_solar.value(), absorbed)?;
+    check("collector.optical_loss", claimed.optical_loss.value(), optical_loss)?;
+    check("collector.receiver_loss", claimed.receiver_loss.value(), input.receiver_loss.value())?;
+    check("collector.useful_heat", claimed.useful_captured_heat.value(), useful)?;
+    check("collector.balance",
+        claimed.optical_loss.value() + claimed.receiver_loss.value() + claimed.useful_captured_heat.value(),
+        input.incident_solar.value())
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StoreConfigSpec {
+    pub mass: MassKg,
+    pub heat_capacity: HeatCapacityCurve,
+    pub min_temperature: Kelvin,
+    pub max_temperature: Kelvin,
+    pub initial_temperature: Kelvin,
+    pub max_charge_power: PowerW,
+    pub max_discharge_power: PowerW,
+    pub standing_loss_conductance: ThermalConductanceWPerK,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct StoreConfig {
+    mass: MassKg,
+    heat_capacity: HeatCapacityCurve,
+    min_temperature: Kelvin,
+    max_temperature: Kelvin,
+    initial_temperature: Kelvin,
+    max_charge_power: PowerW,
+    max_discharge_power: PowerW,
+    standing_loss_conductance: ThermalConductanceWPerK,
+}
+impl StoreConfig {
+    pub fn new(s: StoreConfigSpec) -> Result<Self, ModelError> {
+        if s.min_temperature.value() >= s.max_temperature.value() {
+            return Err(ModelError::InvalidTemperatureRange);
+        }
+        let (curve_min, curve_max) = s.heat_capacity.temperature_bounds();
+        if s.min_temperature.value() < curve_min.value() || s.max_temperature.value() > curve_max.value() {
+            return Err(ModelError::TemperatureOutsideHeatCapacityCurve);
+        }
+        if s.initial_temperature.value() < s.min_temperature.value()
+            || s.initial_temperature.value() > s.max_temperature.value() {
+            return Err(ModelError::InitialTemperatureOutOfRange);
+        }
+        Ok(Self {
+            mass: s.mass, heat_capacity: s.heat_capacity, min_temperature: s.min_temperature,
+            max_temperature: s.max_temperature, initial_temperature: s.initial_temperature,
+            max_charge_power: s.max_charge_power, max_discharge_power: s.max_discharge_power,
+            standing_loss_conductance: s.standing_loss_conductance,
+        })
+    }
+    pub fn initial_state(&self) -> StoreState { StoreState { temperature: self.initial_temperature } }
+    pub fn stored_energy(&self, state: StoreState) -> Result<EnergyJ, ModelError> {
+        stored_energy_at(self, state.temperature)
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StoreState {
+    pub temperature: Kelvin,
+}
+fn stored_energy_at(c: &StoreConfig, t: Kelvin) -> Result<EnergyJ, ModelError> {
+    if t.value() < c.min_temperature.value() || t.value() > c.max_temperature.value() {
+        return Err(ModelError::InitialTemperatureOutOfRange);
+    }
+    let h = c.heat_capacity.specific_enthalpy(c.min_temperature, t)?;
+    EnergyJ::new(c.mass.value() * h.max(0.0))
+}
+fn temperature_at_energy(c: &StoreConfig, target: EnergyJ) -> Result<Kelvin, ModelError> {
+    let cap = stored_energy_at(c, c.max_temperature)?.value();
+    if target.value() > cap + 1.0e-8 * cap.max(1.0) {
+        return Err(ModelError::EnergyAboveStoreCapacity);
+    }
+    let target = target.value().min(cap).max(0.0);
+    let (mut low, mut high) = (c.min_temperature.value(), c.max_temperature.value());
+    for _ in 0..80 {
+        let mid = 0.5 * (low + high);
+        if stored_energy_at(c, Kelvin::new(mid)?)?.value() < target { low = mid; } else { high = mid; }
+    }
+    Kelvin::new(0.5 * (low + high))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ChargeReport {
+    pub temperature_before: Kelvin,
+    pub temperature_after: Kelvin,
+    pub requested_input: EnergyJ,
+    pub accepted_input: EnergyJ,
+    pub rejected_input: EnergyJ,
+}
+pub fn charge_store(c: &StoreConfig, s: StoreState, input: EnergyJ, dt: Seconds)
+    -> Result<(StoreState, ChargeReport), ModelError> {
+    let before = stored_energy_at(c, s.temperature)?.value();
+    let capacity = stored_energy_at(c, c.max_temperature)?.value();
+    let room = (capacity - before).max(0.0);
+    let accepted = input.value().min(c.max_charge_power.value() * dt.value()).min(room);
+    let after_t = temperature_at_energy(c, EnergyJ::new(before + accepted)?)?;
+    let report = ChargeReport {
+        temperature_before: s.temperature, temperature_after: after_t, requested_input: input,
+        accepted_input: EnergyJ::new(accepted)?,
+        rejected_input: EnergyJ::new((input.value() - accepted).max(0.0))?,
+    };
+    Ok((StoreState { temperature: after_t }, report))
+}
+pub fn verify_charge_report(c: &StoreConfig, s: StoreState, input: EnergyJ, dt: Seconds,
+    r: ChargeReport) -> Result<(), ModelError> {
+    let before = stored_energy_at(c, s.temperature)?.value();
+    let cap = stored_energy_at(c, c.max_temperature)?.value();
+    let room = (cap - before).max(0.0);
+    let expected_in = input.value().min(room).min(c.max_charge_power.value() * dt.value());
+    let expected_out = (input.value() - expected_in).max(0.0);
+    let expected_t = temperature_at_energy(c, EnergyJ::new(before + expected_in)?)?;
+    check("charge.temp_before", r.temperature_before.value(), s.temperature.value())?;
+    check("charge.temp_after", r.temperature_after.value(), expected_t.value())?;
+    check("charge.input", r.requested_input.value(), input.value())?;
+    check("charge.accepted", r.accepted_input.value(), expected_in)?;
+    check("charge.rejected", r.rejected_input.value(), expected_out)?;
+    check("charge.store_balance", before + r.accepted_input.value(),
+        stored_energy_at(c, r.temperature_after)?.value())?;
+    check("charge.input_split", r.accepted_input.value() + r.rejected_input.value(), input.value())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StandingLossReport {
+    pub temperature_before: Kelvin,
+    pub temperature_after: Kelvin,
+    pub ambient_temperature: Kelvin,
+    pub heat_lost: EnergyJ,
+}
+pub fn apply_standing_loss(c: &StoreConfig, s: StoreState, ambient: Kelvin, dt: Seconds)
+    -> Result<(StoreState, StandingLossReport), ModelError> {
+    let before = stored_energy_at(c, s.temperature)?.value();
+    // Explicit Euler from interval-start temperature. No ambient heat gain or stratification.
+    let d_t = (s.temperature.value() - ambient.value()).max(0.0);
+    let loss = (c.standing_loss_conductance.value() * d_t * dt.value()).min(before);
+    let after_t = temperature_at_energy(c, EnergyJ::new((before - loss).max(0.0))?)?;
+    Ok((StoreState { temperature: after_t }, StandingLossReport {
+        temperature_before: s.temperature, temperature_after: after_t,
+        ambient_temperature: ambient, heat_lost: EnergyJ::new(loss)?,
+    }))
+}
+pub fn verify_standing_loss_report(c: &StoreConfig, s: StoreState, ambient: Kelvin, dt: Seconds,
+    r: StandingLossReport) -> Result<(), ModelError> {
+    let before = stored_energy_at(c, s.temperature)?.value();
+    let d_t = (s.temperature.value() - ambient.value()).max(0.0);
+    let expected_loss = (c.standing_loss_conductance.value() * d_t * dt.value()).min(before);
+    let after_t = temperature_at_energy(c, EnergyJ::new((before - expected_loss).max(0.0))?)?;
+    check("loss.temp_before", r.temperature_before.value(), s.temperature.value())?;
+    check("loss.temp_after", r.temperature_after.value(), after_t.value())?;
+    check("loss.ambient", r.ambient_temperature.value(), ambient.value())?;
+    check("loss.heat", r.heat_lost.value(), expected_loss)?;
+    check("loss.balance", before, stored_energy_at(c, r.temperature_after)?.value() + r.heat_lost.value())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DischargeReport {
+    pub temperature_before: Kelvin,
+    pub temperature_after: Kelvin,
+    pub requested_useful_heat: EnergyJ,
+    pub source_heat_withdrawn: EnergyJ,
+    pub useful_heat_delivered: EnergyJ,
+    pub heat_exchanger_loss: EnergyJ,
+    pub unmet_useful_heat: EnergyJ,
+    pub minimum_source_temperature: Kelvin,
+    pub blocked_by_temperature: bool,
+}
+pub fn discharge_to_load(c: &StoreConfig, s: StoreState, request: EnergyJ, load_supply: Kelvin,
+    approach: TemperatureDifferenceK, effectiveness: Fraction, dt: Seconds)
+    -> Result<(StoreState, DischargeReport), ModelError> {
+    if effectiveness.value() <= 0.0 { return Err(ModelError::InvalidDischargeEfficiency); }
+    let cutoff = load_supply.value() + approach.value();
+    let floor = Kelvin::new(cutoff.max(c.min_temperature.value()))?;
+    let before = stored_energy_at(c, s.temperature)?.value();
+    let blocked = request.value() > 0.0 && s.temperature.value() <= cutoff;
+    if blocked || request.value() == 0.0 {
+        return Ok((s, DischargeReport {
+            temperature_before: s.temperature, temperature_after: s.temperature,
+            requested_useful_heat: request, source_heat_withdrawn: EnergyJ::new(0.0)?,
+            useful_heat_delivered: EnergyJ::new(0.0)?, heat_exchanger_loss: EnergyJ::new(0.0)?,
+            unmet_useful_heat: request, minimum_source_temperature: floor, blocked_by_temperature: blocked,
+        }));
+    }
+    let floor_energy = stored_energy_at(c, floor)?.value();
+    let available = (before - floor_energy).max(0.0);
+    let power_limit = c.max_discharge_power.value() * dt.value();
+    let source_needed = request.value() / effectiveness.value();
+    let withdrawn = source_needed.min(available).min(power_limit);
+    let delivered = (withdrawn * effectiveness.value()).min(request.value());
+    let loss = (withdrawn - delivered).max(0.0);
+    let after_t = temperature_at_energy(c, EnergyJ::new((before - withdrawn).max(0.0))?)?;
+    Ok((StoreState { temperature: after_t }, DischargeReport {
+        temperature_before: s.temperature, temperature_after: after_t, requested_useful_heat: request,
+        source_heat_withdrawn: EnergyJ::new(withdrawn)?, useful_heat_delivered: EnergyJ::new(delivered)?,
+        heat_exchanger_loss: EnergyJ::new(loss)?,
+        unmet_useful_heat: EnergyJ::new((request.value() - delivered).max(0.0))?,
+        minimum_source_temperature: floor, blocked_by_temperature: false,
+    }))
+}
+pub fn verify_discharge_report(c: &StoreConfig, s: StoreState, request: EnergyJ, load_supply: Kelvin,
+    approach: TemperatureDifferenceK, effectiveness: Fraction, dt: Seconds, r: DischargeReport)
+    -> Result<(), ModelError> {
+    if effectiveness.value() <= 0.0 { return Err(ModelError::InvalidDischargeEfficiency); }
+    let cutoff = load_supply.value() + approach.value();
+    let floor = Kelvin::new(cutoff.max(c.min_temperature.value()))?;
+    let before = stored_energy_at(c, s.temperature)?.value();
+    let blocked = request.value() > 0.0 && s.temperature.value() <= cutoff;
+    let (withdrawn, delivered, loss, unmet, after_t) = if blocked || request.value() == 0.0 {
+        (0.0, 0.0, 0.0, request.value(), s.temperature)
+    } else {
+        let floor_energy = stored_energy_at(c, floor)?.value();
+        let available = (before - floor_energy).max(0.0);
+        let power_limit = c.max_discharge_power.value() * dt.value();
+        let source_needed = request.value() / effectiveness.value();
+        let w = source_needed.min(available).min(power_limit);
+        let d = (w * effectiveness.value()).min(request.value());
+        let l = (w - d).max(0.0);
+        let u = (request.value() - d).max(0.0);
+        let t = temperature_at_energy(c, EnergyJ::new((before - w).max(0.0))?)?;
+        (w, d, l, u, t)
+    };
+    check("discharge.temp_before", r.temperature_before.value(), s.temperature.value())?;
+    check("discharge.temp_after", r.temperature_after.value(), after_t.value())?;
+    check("discharge.request", r.requested_useful_heat.value(), request.value())?;
+    check("discharge.withdrawn", r.source_heat_withdrawn.value(), withdrawn)?;
+    check("discharge.delivered", r.useful_heat_delivered.value(), delivered)?;
+    check("discharge.loss", r.heat_exchanger_loss.value(), loss)?;
+    check("discharge.unmet", r.unmet_useful_heat.value(), unmet)?;
+    check("discharge.cutoff", r.minimum_source_temperature.value(), floor.value())?;
+    if r.blocked_by_temperature != blocked { return Err(ModelError::ReportMismatch("discharge.temperature_block")); }
+    check("discharge.store_balance", before,
+        stored_energy_at(c, r.temperature_after)?.value() + r.source_heat_withdrawn.value())?;
+    check("discharge.exchange_balance", r.source_heat_withdrawn.value(),
+        r.useful_heat_delivered.value() + r.heat_exchanger_loss.value())?;
+    check("discharge.service_balance", request.value(),
+        r.useful_heat_delivered.value() + r.unmet_useful_heat.value())
+}
+
+/// Runs a fixed, synthetic end-to-end fixture and emits deterministic JSON.
+///
+/// The receipt records source inputs and intermediate boundaries, then marks
+/// verification true only after each recomputation path accepts the reports.
+/// It is a mechanics smoke artifact, not an engineering performance claim.
+pub fn canonical_demo_receipt() -> Result<String, ModelError> {
+    let collector_input = CollectorInput {
+        incident_solar: EnergyJ::new(1_000_000.0)?,
+        optical_efficiency: Fraction::new(0.8)?,
+        receiver_loss: EnergyJ::new(100_000.0)?,
+    };
+    let collector = capture_solar(collector_input)?;
+    verify_collector_report(collector_input, collector)?;
+
+    let curve = HeatCapacityCurve::new(vec![
+        HeatCapacityPoint::new(
+            Kelvin::new(300.0)?,
+            SpecificHeatJPerKgK::new(1_000.0)?,
+        ),
+        HeatCapacityPoint::new(
+            Kelvin::new(500.0)?,
+            SpecificHeatJPerKgK::new(2_000.0)?,
+        ),
+    ])?;
+    let config = StoreConfig::new(StoreConfigSpec {
+        mass: MassKg::new(1.0)?,
+        heat_capacity: curve,
+        min_temperature: Kelvin::new(300.0)?,
+        max_temperature: Kelvin::new(500.0)?,
+        initial_temperature: Kelvin::new(300.0)?,
+        max_charge_power: PowerW::new(10_000.0)?,
+        max_discharge_power: PowerW::new(10_000.0)?,
+        standing_loss_conductance: ThermalConductanceWPerK::new(10.0)?,
+    })?;
+
+    let initial = config.initial_state();
+    let (charged, charge) = charge_store(
+        &config,
+        initial,
+        collector.useful_captured_heat,
+        Seconds::new(100.0)?,
+    )?;
+    verify_charge_report(
+        &config,
+        initial,
+        collector.useful_captured_heat,
+        Seconds::new(100.0)?,
+        charge,
+    )?;
+
+    let (after_loss, loss) = apply_standing_loss(
+        &config,
+        charged,
+        Kelvin::new(300.0)?,
+        Seconds::new(10.0)?,
+    )?;
+    verify_standing_loss_report(
+        &config,
+        charged,
+        Kelvin::new(300.0)?,
+        Seconds::new(10.0)?,
+        loss,
+    )?;
+
+    let demand = EnergyJ::new(10_000.0)?;
+    let supply_temp = Kelvin::new(450.0)?;
+    let approach = TemperatureDifferenceK::new(10.0)?;
+    let effectiveness = Fraction::new(0.9)?;
+    let duration = Seconds::new(100.0)?;
+    let (final_state, discharge) = discharge_to_load(
+        &config,
+        after_loss,
+        demand,
+        supply_temp,
+        approach,
+        effectiveness,
+        duration,
+    )?;
+    verify_discharge_report(
+        &config,
+        after_loss,
+        demand,
+        supply_temp,
+        approach,
+        effectiveness,
+        duration,
+        discharge,
+    )?;
+
+    let mut json = String::from(
+        "{\"schema\":\"solar-thermal-kernel-receipt-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\""
+    );
+    fn number(out: &mut String, key: &str, value: f64) {
+        out.push_str(&format!(",\"{}\":{:.9}", key, value));
+    }
+    number(&mut json, "incident_solar_j", collector.incident_solar.value());
+    number(&mut json, "optical_loss_j", collector.optical_loss.value());
+    number(&mut json, "absorbed_solar_j", collector.absorbed_solar.value());
+    number(&mut json, "receiver_loss_j", collector.receiver_loss.value());
+    number(&mut json, "useful_captured_heat_j", collector.useful_captured_heat.value());
+    number(&mut json, "store_energy_accepted_j", charge.accepted_input.value());
+    number(&mut json, "store_energy_rejected_j", charge.rejected_input.value());
+    number(&mut json, "store_temperature_after_charge_k", charge.temperature_after.value());
+    number(&mut json, "standing_loss_j", loss.heat_lost.value());
+    number(&mut json, "store_temperature_after_loss_k", loss.temperature_after.value());
+    number(&mut json, "requested_useful_heat_j", discharge.requested_useful_heat.value());
+    number(&mut json, "source_heat_withdrawn_j", discharge.source_heat_withdrawn.value());
+    number(&mut json, "useful_heat_delivered_j", discharge.useful_heat_delivered.value());
+    number(&mut json, "heat_exchanger_loss_j", discharge.heat_exchanger_loss.value());
+    number(&mut json, "unmet_useful_heat_j", discharge.unmet_useful_heat.value());
+    number(&mut json, "final_store_temperature_k", final_state.temperature.value());
+    json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
+    Ok(json)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn e(x: f64) -> EnergyJ { EnergyJ::new(x).unwrap() }
+    fn k(x: f64) -> Kelvin { Kelvin::new(x).unwrap() }
+    fn dt(x: f64) -> Seconds { Seconds::new(x).unwrap() }
+    fn curve() -> HeatCapacityCurve {
+        HeatCapacityCurve::new(vec![
+            HeatCapacityPoint::new(k(300.0), SpecificHeatJPerKgK::new(1_000.0).unwrap()),
+            HeatCapacityPoint::new(k(500.0), SpecificHeatJPerKgK::new(2_000.0).unwrap()),
+        ]).unwrap()
+    }
+    fn cfg(start: f64) -> StoreConfig {
+        StoreConfig::new(StoreConfigSpec {
+            mass: MassKg::new(1.0).unwrap(), heat_capacity: curve(),
+            min_temperature: k(300.0), max_temperature: k(500.0), initial_temperature: k(start),
+            max_charge_power: PowerW::new(10_000.0).unwrap(),
+            max_discharge_power: PowerW::new(10_000.0).unwrap(),
+            standing_loss_conductance: ThermalConductanceWPerK::new(10.0).unwrap(),
+        }).unwrap()
+    }
+    fn spec(c: &StoreConfig, start: f64) -> StoreConfigSpec {
+        StoreConfigSpec {
+            mass: c.mass, heat_capacity: c.heat_capacity.clone(),
+            min_temperature: c.min_temperature, max_temperature: c.max_temperature,
+            initial_temperature: k(start), max_charge_power: c.max_charge_power,
+            max_discharge_power: c.max_discharge_power,
+            standing_loss_conductance: c.standing_loss_conductance,
+        }
+    }
+
+    #[test]
+    fn receipt_is_deterministic_and_explicitly_synthetic() {
+        let first = canonical_demo_receipt().unwrap();
+        let second = canonical_demo_receipt().unwrap();
+        assert_eq!(first, second);
+        assert!(first.starts_with("{\\"schema\\":\\"solar-thermal-kernel-receipt-v0.1\\""));
+        assert!(first.contains("\\"all_verifiers_passed\\":true"));
+        assert!(first.contains("\\"hardware_validated\\":false"));
+        assert!(first.contains("\\"claim_level\\":\\"synthetic-mechanics-only\\""));
+    }
+
+    #[test]
+    fn collector_energy_balance_fixture() {
+        let i = CollectorInput { incident_solar: e(1_000.0), optical_efficiency: Fraction::new(0.8).unwrap(), receiver_loss: e(100.0) };
+        let r = capture_solar(i).unwrap();
+        assert!(close(r.optical_loss.value(), 200.0));
+        assert!(close(r.absorbed_solar.value(), 800.0));
+        assert!(close(r.useful_captured_heat.value(), 700.0));
+        verify_collector_report(i, r).unwrap();
+    }
+    #[test]
+    fn rejects_receiver_loss_larger_than_absorbed_input() {
+        let i = CollectorInput { incident_solar: e(1_000.0), optical_efficiency: Fraction::new(0.5).unwrap(), receiver_loss: e(501.0) };
+        assert_eq!(capture_solar(i), Err(ModelError::ReceiverLossExceedsAbsorbedEnergy));
+    }
+    #[test]
+    fn integrates_variable_heat_capacity() {
+        let c = curve();
+        assert!(close(c.specific_enthalpy(k(300.0), k(400.0)).unwrap(), 125_000.0));
+        assert!(close(c.specific_enthalpy(k(400.0), k(300.0)).unwrap(), -125_000.0));
+    }
+    #[test]
+    fn refuses_heat_capacity_extrapolation() {
+        assert_eq!(curve().specific_enthalpy(k(250.0), k(400.0)), Err(ModelError::TemperatureOutsideHeatCapacityCurve));
+    }
+    #[test]
+    fn charge_raises_store_to_hand_computable_temperature() {
+        let c = cfg(300.0); let s = c.initial_state();
+        let (after, r) = charge_store(&c, s, e(125_000.0), dt(100.0)).unwrap();
+        assert!(close(after.temperature.value(), 400.0));
+        assert!(close(r.accepted_input.value(), 125_000.0));
+        assert!(close(r.rejected_input.value(), 0.0));
+        verify_charge_report(&c, s, e(125_000.0), dt(100.0), r).unwrap();
+    }
+    #[test]
+    fn charge_obeys_power_limit() {
+        let c = StoreConfig::new(StoreConfigSpec { max_charge_power: PowerW::new(1_000.0).unwrap(), ..spec(&cfg(300.0), 300.0) }).unwrap();
+        let s = c.initial_state();
+        let (_, r) = charge_store(&c, s, e(20_000.0), dt(10.0)).unwrap();
+        assert!(close(r.accepted_input.value(), 10_000.0));
+        assert!(close(r.rejected_input.value(), 10_000.0));
+        verify_charge_report(&c, s, e(20_000.0), dt(10.0), r).unwrap();
+    }
+    #[test]
+    fn standing_loss_conserves_stored_energy() {
+        let c = cfg(400.0); let s = c.initial_state();
+        let (after, r) = apply_standing_loss(&c, s, k(300.0), dt(20.0)).unwrap();
+        assert!(close(r.heat_lost.value(), 20_000.0));
+        assert!(after.temperature.value() < s.temperature.value());
+        verify_standing_loss_report(&c, s, k(300.0), dt(20.0), r).unwrap();
+    }
+    #[test]
+    fn discharge_satisfies_temperature_cutoff_and_closes_exchange_balance() {
+        let c = cfg(400.0); let s = c.initial_state(); let eff = Fraction::new(0.9).unwrap();
+        let approach = TemperatureDifferenceK::new(10.0).unwrap();
+        let (after, r) = discharge_to_load(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0)).unwrap();
+        assert!(close(r.useful_heat_delivered.value(), 50_000.0));
+        assert!(r.temperature_after.value() >= 360.0);
+        assert!(after.temperature.value() < s.temperature.value());
+        verify_discharge_report(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0), r).unwrap();
+    }
+    #[test]
+    fn blocks_load_when_source_is_too_cold() {
+        let c = cfg(365.0); let s = c.initial_state(); let approach = TemperatureDifferenceK::new(10.0).unwrap();
+        let (after, r) = discharge_to_load(&c, s, e(10_000.0), k(355.0), approach, Fraction::new(0.95).unwrap(), dt(10.0)).unwrap();
+        assert!(r.blocked_by_temperature);
+        assert!(close(r.useful_heat_delivered.value(), 0.0));
+        assert!(close(r.unmet_useful_heat.value(), 10_000.0));
+        assert_eq!(after, s);
+        verify_discharge_report(&c, s, e(10_000.0), k(355.0), approach, Fraction::new(0.95).unwrap(), dt(10.0), r).unwrap();
+    }
+    #[test]
+    fn verifier_rejects_tampered_collector_report() {
+        let i = CollectorInput { incident_solar: e(1_000.0), optical_efficiency: Fraction::new(0.8).unwrap(), receiver_loss: e(100.0) };
+        let r = capture_solar(i).unwrap();
+        let bad = CollectorReport { useful_captured_heat: e(800.0), ..r };
+        assert_eq!(verify_collector_report(i, bad), Err(ModelError::ReportMismatch("collector.useful_heat")));
+    }
+    #[test]
+    fn verifier_rejects_tampered_charge_report() {
+        let c = cfg(300.0); let s = c.initial_state();
+        let (_, r) = charge_store(&c, s, e(125_000.0), dt(100.0)).unwrap();
+        let bad = ChargeReport { accepted_input: e(120_000.0), ..r };
+        assert!(matches!(verify_charge_report(&c, s, e(125_000.0), dt(100.0), bad), Err(ModelError::ReportMismatch(_))));
+    }
+    #[test]
+    fn verifier_rejects_tampered_discharge_report() {
+        let c = cfg(400.0); let s = c.initial_state(); let approach = TemperatureDifferenceK::new(10.0).unwrap(); let eff = Fraction::new(0.9).unwrap();
+        let (_, r) = discharge_to_load(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0)).unwrap();
+        let bad = DischargeReport { useful_heat_delivered: e(49_000.0), ..r };
+        assert!(matches!(verify_discharge_report(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0), bad), Err(ModelError::ReportMismatch(_))));
+    }
+    #[test]
+    fn rejects_zero_kelvin_and_efficiency_above_one() {
+        assert_eq!(Kelvin::new(0.0), Err(ModelError::MustBePositive("temperature_k")));
+        assert_eq!(Fraction::new(1.001), Err(ModelError::FractionOutsideUnitInterval));
+    }
+    #[test]
+    fn rejects_non_monotone_cp_curve() {
+        let r = HeatCapacityCurve::new(vec![
+            HeatCapacityPoint::new(k(400.0), SpecificHeatJPerKgK::new(1_000.0).unwrap()),
+            HeatCapacityPoint::new(k(399.0), SpecificHeatJPerKgK::new(1_100.0).unwrap()),
+        ]);
+        assert_eq!(r, Err(ModelError::HeatCapacityTemperaturesNotIncreasing));
+    }
+    #[test]
+    fn deterministic_fixtures_replay_identically() {
+        let i = CollectorInput { incident_solar: e(1_000.0), optical_efficiency: Fraction::new(0.8).unwrap(), receiver_loss: e(100.0) };
+        assert_eq!(capture_solar(i), capture_solar(i));
+        let c = cfg(300.0);
+        assert_eq!(charge_store(&c, c.initial_state(), e(125_000.0), dt(100.0)), charge_store(&c, c.initial_state(), e(125_000.0), dt(100.0)));
+    }
+    #[test]
+    fn discharge_obeys_power_limit_and_keeps_unmet_demand_visible() {
+        let c = StoreConfig::new(StoreConfigSpec { max_discharge_power: PowerW::new(1_000.0).unwrap(), ..spec(&cfg(400.0), 400.0) }).unwrap();
+        let s = c.initial_state(); let approach = TemperatureDifferenceK::new(5.0).unwrap(); let eff = Fraction::new(1.0).unwrap();
+        let (after, r) = discharge_to_load(&c, s, e(50_000.0), k(310.0), approach, eff, dt(10.0)).unwrap();
+        assert!(close(r.source_heat_withdrawn.value(), 10_000.0));
+        assert!(close(r.useful_heat_delivered.value(), 10_000.0));
+        assert!(close(r.unmet_useful_heat.value(), 40_000.0));
+        assert!(after.temperature.value() >= 315.0);
+        verify_discharge_report(&c, s, e(50_000.0), k(310.0), approach, eff, dt(10.0), r).unwrap();
+    }
+}
