@@ -45,7 +45,14 @@ This PR only authors and pins scenario input contracts. It does not add a second
 
 ## Frozen integrity values
 
-- JSONL fixture SHA-256: `4eea722417dc14e361fe4786a09f1857980ea92268fda1d5caaaafc35fae3d59`
+- JSONL fixture SHA-256: `a2c68183edf45b8c56ab11a882b37bbbcd4321c76ff533a417bc9d0b073c50e5`
 - Strict schema file SHA-256: `ab9765e6a10c9215a23aa2f3d4e0dc326f4e88dddeaf4cb9e47c37cca5c7ce46`
 - Fetched-back structural audit: 28 records, 7 scenario families, 4 variants per family, 7 baseline / 21 adversarial, 28 unique case+variant IDs, 28 unique deterministic seeds, no missing top-level required fields, no undeclared top-level fields, and no missing invariant/observable lists.
 - Hashes were recomputed over the fetched-back bytes and match the manifest. No full JSON Schema engine or Symtropy simulation has been run; this is not a simulation pass.
+
+
+## Structural verifier
+
+A standalone Rust checker now lives at [tools/wis-sim-fixture-verifier](../../tools/wis-sim-fixture-verifier/README.md). It is intentionally not a second simulator. It verifies the fixture/schema digests and selected structural contract: 28 records, seven families, four declared variants per family, deterministic seed uniqueness, policy-set consistency, invariant and observable lists, and model-limit/claim-ceiling fields. It emits `STRUCTURAL_FIXTURE_MATCH_NOT_SIMULATION` and explicitly does not claim full JSON Schema conformance or policy-outcome validity.
+
+The crate has 18 authored tests. They and the targeted GitHub Actions workflow have **not yet produced an executed passing receipt**. Fixture SHA-256 is `a2c68183edf45b8c56ab11a882b37bbbcd4321c76ff533a417bc9d0b073c50e5`; schema SHA-256 remains `ab9765e6a10c9215a23aa2f3d4e0dc326f4e88dddeaf4cb9e47c37cca5c7ce46`.
