@@ -681,6 +681,27 @@ fn validate_timeline_separation(
             errors.push(format!("evaluator hidden-event set is incorrect at tick {}", evaluator.tick));
         }
 
+        let expected_new_observations = sorted_unique(
+            events
+                .iter()
+                .filter(|event| event.observable_tick == policy.tick)
+                .map(|event| event.case_id.clone())
+                .collect(),
+        );
+        if policy.newly_observed_event_ids != expected_new_observations {
+            errors.push(format!("new observation release set is incorrect at tick {}", policy.tick));
+        }
+        let expected_injections = sorted_unique(
+            events
+                .iter()
+                .filter(|event| event.injection_tick == evaluator.tick)
+                .map(|event| event.case_id.clone())
+                .collect(),
+        );
+        if evaluator.injected_event_ids != expected_injections {
+            errors.push(format!("world injection set is incorrect at tick {}", evaluator.tick));
+        }
+
         for newly_observed in &policy.newly_observed_event_ids {
             if !policy.visible_event_ids.contains(newly_observed) {
                 errors.push(format!("newly observed event {} is not in visible set at tick {}", newly_observed, policy.tick));
@@ -754,7 +775,13 @@ mod tests {
         let tick_two = report.evaluator_timeline.iter().find(|tick| tick.tick == 2).unwrap();
         assert_eq!(
             tick_two.injected_event_ids,
-            vec!["R-001", "R-003", "R-008", "R-009", "R-010"]
+            vec![
+                "R-001".to_string(),
+                "R-003".to_string(),
+                "R-008".to_string(),
+                "R-009".to_string(),
+                "R-010".to_string(),
+            ]
         );
     }
 
