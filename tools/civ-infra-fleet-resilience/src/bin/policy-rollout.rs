@@ -299,10 +299,14 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         || fixture.disturbance.available_again_tick > fixture.horizon_ticks
         || fixture.disturbance.available_again_tick <= fixture.disturbance.injection_tick
     {
-        errors.push("disturbance ticks must fit the declared horizon and recovery interval".to_string());
+        errors.push(
+            "disturbance ticks must fit the declared horizon and recovery interval".to_string(),
+        );
     }
     if !fixture.disturbance.interrupted_work_is_lost {
-        errors.push("this microcase requires interrupted work to be explicitly discarded".to_string());
+        errors.push(
+            "this microcase requires interrupted work to be explicitly discarded".to_string(),
+        );
     }
     if fixture.required_invariants.is_empty() {
         errors.push("required_invariants must not be empty".to_string());
@@ -597,8 +601,8 @@ fn run_policy(fixture: &Fixture, policy: Policy) -> PolicyResult {
     } else {
         None
     };
-    let knowledge_leak_detected =
-        replan_tick.is_some_and(|decision_tick| decision_tick < fixture.disturbance.observable_tick);
+    let knowledge_leak_detected = replan_tick
+        .is_some_and(|decision_tick| decision_tick < fixture.disturbance.observable_tick);
     let final_resource_assignments = runtime
         .iter()
         .map(|task| ResourceAssignment {
@@ -675,7 +679,8 @@ mod tests {
 
     #[test]
     fn frozen_policy_outcomes_match() {
-        let report = verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
+        let report =
+            verify_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should verify");
         assert_eq!(report.policy_runs_performed, 3);
         assert!(report.all_expected_outcomes_matched);
         assert_eq!(report.policy_results[0].makespan_ticks, None);
