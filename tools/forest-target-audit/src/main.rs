@@ -863,9 +863,13 @@ fn summarize(evaluations: &[Evaluation], split: &str, seed_count: usize) -> Spli
     let mut lookahead = Acc::default();
     let mut coverage_oracle = Acc::default();
     let mut target_oracle = Acc::default();
+    let mut target_aware_greedy = Acc::default();
+    let mut target_aware_lookahead = Acc::default();
     let mut greedy_regret = RegretAcc::default();
     let mut lookahead_regret = RegretAcc::default();
     let mut coverage_regret = RegretAcc::default();
+    let mut target_aware_greedy_regret = RegretAcc::default();
+    let mut target_aware_lookahead_regret = RegretAcc::default();
     let mut count = 0usize;
     for e in evaluations.iter().filter(|e| e.split == split) {
         count += 1;
@@ -873,16 +877,24 @@ fn summarize(evaluations: &[Evaluation], split: &str, seed_count: usize) -> Spli
         lookahead.add(&e.lookahead);
         coverage_oracle.add(&e.coverage_oracle);
         target_oracle.add(&e.target_oracle.score);
+        target_aware_greedy.add(&e.target_aware_greedy.score);
+        target_aware_lookahead.add(&e.target_aware_lookahead.score);
         greedy_regret.add(&e.target_oracle.score, &e.greedy);
         lookahead_regret.add(&e.target_oracle.score, &e.lookahead);
         coverage_regret.add(&e.target_oracle.score, &e.coverage_oracle);
+        target_aware_greedy_regret.add(&e.target_oracle.score, &e.target_aware_greedy.score);
+        target_aware_lookahead_regret.add(&e.target_oracle.score, &e.target_aware_lookahead.score);
     }
     SplitSummary {
         seed_count, evaluation_count: count,
         greedy: greedy.finish(), lookahead: lookahead.finish(),
         coverage_oracle: coverage_oracle.finish(), target_objective_oracle: target_oracle.finish(),
+        target_aware_greedy: target_aware_greedy.finish(),
+        target_aware_lookahead: target_aware_lookahead.finish(),
         greedy_vs_target_oracle: greedy_regret.finish(), lookahead_vs_target_oracle: lookahead_regret.finish(),
         coverage_oracle_vs_target_oracle: coverage_regret.finish(),
+        target_aware_greedy_vs_target_oracle: target_aware_greedy_regret.finish(),
+        target_aware_lookahead_vs_target_oracle: target_aware_lookahead_regret.finish(),
     }
 }
 fn build_receipt(
@@ -928,7 +940,15 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
             let lookahead = score_plan(&map, &scenario.two_step_lookahead, &targets)?;
             let coverage_oracle = score_plan(&map, &scenario.exhaustive_oracle, &targets)?;
             let target_oracle = TargetOracleSolver::new(&map, &targets, config.clone())?.solve()?;
-            for (name, compared) in [("greedy", &greedy), ("lookahead", &lookahead), ("coverage oracle", &coverage_oracle)] {
+            let target_aware_greedy = TargetOracleSolver::new(&map, &targets, config.clone())?.target_aware_greedy()?;
+            let target_aware_lookahead = TargetOracleSolver::new(&map, &targets, config.clone())?.target_aware_receding_horizon()?;
+            for (name, compared) in [
+                ("cell greedy", &greedy),
+                ("cell lookahead", &lookahead),
+                ("cell coverage oracle", &coverage_oracle),
+                ("target-aware greedy", &target_aware_greedy.score),
+                ("target-aware lookahead", &target_aware_lookahead.score),
+            ] {
                 if target_oracle.score.complete_target_count < compared.complete_target_count
                     || (target_oracle.score.complete_target_count == compared.complete_target_count
                         && target_oracle.score.visible_feature_count < compared.visible_feature_count) {
@@ -938,12 +958,15 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
             let greedy_vs_target_oracle = target_regret(&target_oracle.score, &greedy);
             let lookahead_vs_target_oracle = target_regret(&target_oracle.score, &lookahead);
             let coverage_oracle_vs_target_oracle = target_regret(&target_oracle.score, &coverage_oracle);
+            let target_aware_greedy_vs_target_oracle = target_regret(&target_oracle.score, &target_aware_greedy.score);
+            let target_aware_lookahead_vs_target_oracle = target_regret(&target_oracle.score, &target_aware_lookahead.score);
             evaluations.push(Evaluation {
                 planner_scenario_id: binding.planner_scenario_id.clone(), scene: binding.scene,
                 seed, split: split.to_owned(), generated_target_count: targets.len(),
                 map_sha256: scenario.map_sha256.clone(), config_sha256: scenario.config_sha256.clone(),
-                greedy, lookahead, coverage_oracle, target_oracle,
+                greedy, lookahead, coverage_oracle, target_oracle, target_aware_greedy, target_aware_lookahead,
                 greedy_vs_target_oracle, lookahead_vs_target_oracle, coverage_oracle_vs_target_oracle,
+                target_aware_greedy_vs_target_oracle, target_aware_lookahead_vs_target_oracle,
             });
         }
     }
