@@ -72,7 +72,7 @@ Every run binds the following fields or explicit equivalent references:
 
 The normalized report should be deterministic and ordered canonically. A producer-supplied digest is not independently verified simply because it parses; the verifier must recompute hashes from the actual bytes it can access and independently recompute required arithmetic/invariants.
 
-Unknown values must remain unknown. An absent subsurface utility record is not proof that the space is clear. Missing geotechnical data is not zero geotechnical risk. A missing cost is not zero cost.
+Unknown values must remain unknown. Distinguish an **unknown with a conservative bounded search envelope** from an **unbounded unknown with no defensible location envelope**: the former blocks clearance when a candidate intersects its uncertainty envelope; the latter blocks positive clearance claims for every candidate until a bounded extent is established. An absent subsurface utility record is not proof that the space is clear. Missing geotechnical data is not zero geotechnical risk. A missing cost is not zero cost.
 
 ## 5. Independent-verifier rules
 
@@ -100,7 +100,7 @@ Freeze positive controls and hostile cases before tuning an optimizer. Minimum c
 5. A known grade, curvature, clearance or right-of-way violation must not be returned as feasible.
 6. A seeded utility intersection must be detected; uncertainty-overlapping geometry must be marked unresolved.
 7. A drainage capacity exceedance must not be accepted as adequate merely because the road alignment is short.
-8. A missing soil/subsurface utility record must not be interpreted as no hazard or no conflict.
+8. A bounded-unknown utility intersecting the candidate must remain unresolved; an unbounded-unknown utility must block positive clearance claims for every candidate. Missing soil/subsurface utility records are not proof of no hazard or no conflict.
 9. Two individually feasible work packages with overlapping demand on one limited resource must be rejected as a jointly infeasible schedule.
 10. Missing material stock, stale capacity, invalid precedence, and conflicting work windows must fail closed.
 11. Editing a requirement or geometry after evaluation must stale dependent evidence.
