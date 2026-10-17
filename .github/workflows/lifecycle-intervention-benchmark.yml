@@ -1,0 +1,34 @@
+name: Lifecycle intervention Pareto benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/lifecycle-intervention-benchmark/**"
+      - "docs/research/CIRC_BUILD_LIFECYCLE_INTERVENTION_V0_1.md"
+      - ".github/workflows/lifecycle-intervention-benchmark.yml"
+  push:
+    paths:
+      - "tools/lifecycle-intervention-benchmark/**"
+      - "docs/research/CIRC_BUILD_LIFECYCLE_INTERVENTION_V0_1.md"
+      - ".github/workflows/lifecycle-intervention-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-synthetic-contract:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lifecycle-intervention-benchmark/Cargo.toml -- --check
+      - name: Run unit and negative-control tests
+        run: cargo test --manifest-path tools/lifecycle-intervention-benchmark/Cargo.toml
+      - name: Emit exact-source benchmark receipt
+        run: cargo run --manifest-path tools/lifecycle-intervention-benchmark/Cargo.toml

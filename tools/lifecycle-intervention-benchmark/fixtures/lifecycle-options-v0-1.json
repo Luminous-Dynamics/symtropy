@@ -1,0 +1,598 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "synthetic_only",
+  "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+  "scope_id": "sensor-asset-01",
+  "evidence": [
+    {
+      "id": "ev-repair",
+      "payload": "synthetic lifecycle evidence payload ev-repair revision 1",
+      "sha256": "f9cf96b0d605b229195821ac547a4c548664c5ba739e657184f0b26dbb48c135",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-reman",
+      "payload": "synthetic lifecycle evidence payload ev-reman revision 1",
+      "sha256": "d7ac9b1f91c7de640d489a9bed918b9f11a279dc11c5f00dd05cb8844206a46b",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-dominated",
+      "payload": "synthetic lifecycle evidence payload ev-dominated revision 1",
+      "sha256": "6d41d7adf5998b006d21fe53a1301e266ed4e1e7d5ad4134b6e669a446b238a6",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-reuse-unknown",
+      "payload": "synthetic lifecycle evidence payload ev-reuse-unknown revision 1",
+      "sha256": "ac3b6691c4b526eda6b2d0318aadbeeebc3bb44d093f935f2f96ee1d4000de61",
+      "status": "unknown",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "unknown"
+    },
+    {
+      "id": "ev-replacement",
+      "payload": "synthetic lifecycle evidence payload ev-replacement revision 1",
+      "sha256": "a2dedb1d92090c3940fae907301f23f88163f9d1e1b20e31865b2df142b015be",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-recycle-revoked",
+      "payload": "synthetic lifecycle evidence payload ev-recycle-revoked revision 1",
+      "sha256": "75484797a9493835d03a5ab94be6e9d22d6f3abcf99f949c414ffc32d40d6f8d",
+      "status": "revoked",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-recycle-contaminated",
+      "payload": "synthetic lifecycle evidence payload ev-recycle-contaminated revision 1",
+      "sha256": "a58b60fc0255ac2ccbf9ab049afed63f3d6f1ff56963331b6bd4f41c5c22a723",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-energy",
+      "payload": "synthetic lifecycle evidence payload ev-energy revision 1",
+      "sha256": "0db37dfc9b86c61de14e6c5ef8187e07d67509c9e6e0489050b92d1838a1e171",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-replacement-clean",
+      "payload": "synthetic lifecycle evidence payload ev-replacement-clean revision 1",
+      "sha256": "d38164b01b787c2cf157028189d4e6d210720dc27c658ade4dc37989a1fe9fe2",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-replacement-metric-gap",
+      "payload": "synthetic lifecycle evidence payload ev-replacement-metric-gap revision 1",
+      "sha256": "3f857c26183b1dd1afedc52f951afbb181976232439ebc4cc9461b6899b985b5",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-repair-mass",
+      "payload": "synthetic lifecycle evidence payload ev-repair-mass revision 1",
+      "sha256": "538f06c10d4e8b2f27fe1108dc00d16992630d477eaa19b8520087295c248ebd",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-wrong-unit",
+      "payload": "synthetic lifecycle evidence payload ev-wrong-unit revision 1",
+      "sha256": "d62604c47374d7708a7800ef791b8af0db7b06275be9a47cbb28b7e8821bd3be",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-reuse-partial",
+      "payload": "synthetic lifecycle evidence payload ev-reuse-partial revision 1",
+      "sha256": "07b074184ec9720f2570ce6a1765dbfe7677aff7023d2a2555e550c066ceee66",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "partial"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "baseline-pareto",
+      "options": [
+        {
+          "id": "repair-low-cost",
+          "intervention": "repair",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-repair",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 4500,
+            "virgin_material_g": 400,
+            "energy_wh": 700,
+            "ghg_co2e_g": 1200,
+            "water_ml": 300,
+            "residual_waste_g": 100,
+            "original_asset_service_hours_retained": 8000
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 850,
+            "reused_component_g": 50,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 0,
+            "residual_g": 100
+          }
+        },
+        {
+          "id": "remanufacture-low-virgin",
+          "intervention": "remanufacture",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-reman",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 8500,
+            "virgin_material_g": 100,
+            "energy_wh": 1100,
+            "ghg_co2e_g": 1800,
+            "water_ml": 800,
+            "residual_waste_g": 20,
+            "original_asset_service_hours_retained": 9500
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 900,
+            "reused_component_g": 60,
+            "recycled_material_g": 20,
+            "energy_recovery_g": 0,
+            "residual_g": 20
+          }
+        },
+        {
+          "id": "dominated-option",
+          "intervention": "reuse",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-dominated",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 10000,
+            "virgin_material_g": 600,
+            "energy_wh": 1300,
+            "ghg_co2e_g": 2200,
+            "water_ml": 900,
+            "residual_waste_g": 130,
+            "original_asset_service_hours_retained": 7000
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 700,
+            "reused_component_g": 0,
+            "recycled_material_g": 150,
+            "energy_recovery_g": 20,
+            "residual_g": 130
+          }
+        }
+      ],
+      "expected_dispositions": [
+        {
+          "option_id": "repair-low-cost",
+          "disposition": "eligible"
+        },
+        {
+          "option_id": "remanufacture-low-virgin",
+          "disposition": "eligible"
+        },
+        {
+          "option_id": "dominated-option",
+          "disposition": "eligible"
+        }
+      ],
+      "expected_frontier": [
+        "repair-low-cost",
+        "remanufacture-low-virgin"
+      ]
+    },
+    {
+      "id": "reuse-evidence-gate",
+      "options": [
+        {
+          "id": "repair-confirmed",
+          "intervention": "repair",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-repair",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 4500,
+            "virgin_material_g": 400,
+            "energy_wh": 700,
+            "ghg_co2e_g": 1200,
+            "water_ml": 300,
+            "residual_waste_g": 100,
+            "original_asset_service_hours_retained": 8000
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 850,
+            "reused_component_g": 50,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 0,
+            "residual_g": 100
+          }
+        },
+        {
+          "id": "reuse-unknown-inspection",
+          "intervention": "reuse",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-reuse-unknown",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "unknown",
+          "metrics": {
+            "cost_cents": 2000,
+            "virgin_material_g": 10,
+            "energy_wh": 100,
+            "ghg_co2e_g": 250,
+            "water_ml": 50,
+            "residual_waste_g": 0,
+            "original_asset_service_hours_retained": 9900
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 1000,
+            "reused_component_g": 0,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 0,
+            "residual_g": 0
+          }
+        },
+        {
+          "id": "reuse-partial-coverage",
+          "intervention": "reuse",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-reuse-partial",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 2000,
+            "virgin_material_g": 10,
+            "energy_wh": 100,
+            "ghg_co2e_g": 250,
+            "water_ml": 50,
+            "residual_waste_g": 0,
+            "original_asset_service_hours_retained": 9900
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 1000,
+            "reused_component_g": 0,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 0,
+            "residual_g": 0
+          }
+        }
+      ],
+      "expected_dispositions": [
+        {
+          "option_id": "repair-confirmed",
+          "disposition": "eligible"
+        },
+        {
+          "option_id": "reuse-unknown-inspection",
+          "disposition": "blocked_unknown"
+        },
+        {
+          "option_id": "reuse-partial-coverage",
+          "disposition": "blocked_incomplete_coverage"
+        }
+      ],
+      "expected_frontier": [
+        "repair-confirmed"
+      ]
+    },
+    {
+      "id": "contamination-control",
+      "options": [
+        {
+          "id": "recycle-revoked-certificate",
+          "intervention": "replace_with_recycling",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-recycle-revoked",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 5000,
+            "virgin_material_g": 900,
+            "energy_wh": 1800,
+            "ghg_co2e_g": 3000,
+            "water_ml": 700,
+            "residual_waste_g": 200,
+            "original_asset_service_hours_retained": 0
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 0,
+            "reused_component_g": 0,
+            "recycled_material_g": 800,
+            "energy_recovery_g": 0,
+            "residual_g": 200
+          }
+        },
+        {
+          "id": "recycle-contamination-fail",
+          "intervention": "replace_with_recycling",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-recycle-contaminated",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "fail",
+          "metrics": {
+            "cost_cents": 4500,
+            "virgin_material_g": 900,
+            "energy_wh": 1500,
+            "ghg_co2e_g": 2700,
+            "water_ml": 600,
+            "residual_waste_g": 100,
+            "original_asset_service_hours_retained": 0
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 0,
+            "reused_component_g": 0,
+            "recycled_material_g": 900,
+            "energy_recovery_g": 0,
+            "residual_g": 100
+          }
+        },
+        {
+          "id": "replacement-energy-recovery",
+          "intervention": "replace_with_energy_recovery",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-energy",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 12500,
+            "virgin_material_g": 1000,
+            "energy_wh": 4200,
+            "ghg_co2e_g": 7900,
+            "water_ml": 2000,
+            "residual_waste_g": 300,
+            "original_asset_service_hours_retained": 0
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 0,
+            "reused_component_g": 0,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 700,
+            "residual_g": 300
+          }
+        }
+      ],
+      "expected_dispositions": [
+        {
+          "option_id": "recycle-revoked-certificate",
+          "disposition": "rejected_evidence"
+        },
+        {
+          "option_id": "recycle-contamination-fail",
+          "disposition": "rejected_hard_gate"
+        },
+        {
+          "option_id": "replacement-energy-recovery",
+          "disposition": "eligible"
+        }
+      ],
+      "expected_frontier": [
+        "replacement-energy-recovery"
+      ]
+    },
+    {
+      "id": "mass-balance-and-missing-metrics",
+      "options": [
+        {
+          "id": "repair-double-counted-mass",
+          "intervention": "repair",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-repair-mass",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 3000,
+            "virgin_material_g": 100,
+            "energy_wh": 400,
+            "ghg_co2e_g": 800,
+            "water_ml": 250,
+            "residual_waste_g": 100,
+            "original_asset_service_hours_retained": 9000
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 850,
+            "reused_component_g": 100,
+            "recycled_material_g": 100,
+            "energy_recovery_g": 0,
+            "residual_g": 100
+          }
+        },
+        {
+          "id": "replacement-clean-recycling",
+          "intervention": "replace_with_recycling",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-replacement-clean",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 12000,
+            "virgin_material_g": 1000,
+            "energy_wh": 5000,
+            "ghg_co2e_g": 8000,
+            "water_ml": 3000,
+            "residual_waste_g": 200,
+            "original_asset_service_hours_retained": 0
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 0,
+            "reused_component_g": 0,
+            "recycled_material_g": 800,
+            "energy_recovery_g": 0,
+            "residual_g": 200
+          }
+        },
+        {
+          "id": "replacement-missing-energy-data",
+          "intervention": "replace_with_recycling",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-replacement-metric-gap",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 12000,
+            "virgin_material_g": 1000,
+            "energy_wh": null,
+            "ghg_co2e_g": 8000,
+            "water_ml": 3000,
+            "residual_waste_g": 200,
+            "original_asset_service_hours_retained": 0
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 0,
+            "reused_component_g": 0,
+            "recycled_material_g": 800,
+            "energy_recovery_g": 0,
+            "residual_g": 200
+          }
+        }
+      ],
+      "expected_dispositions": [
+        {
+          "option_id": "repair-double-counted-mass",
+          "disposition": "rejected_mass_balance"
+        },
+        {
+          "option_id": "replacement-clean-recycling",
+          "disposition": "eligible"
+        },
+        {
+          "option_id": "replacement-missing-energy-data",
+          "disposition": "blocked_unknown"
+        }
+      ],
+      "expected_frontier": [
+        "replacement-clean-recycling"
+      ]
+    },
+    {
+      "id": "functional-unit-mismatch",
+      "options": [
+        {
+          "id": "repair-shorter-service",
+          "intervention": "repair",
+          "functional_unit": "one sensor module delivering 1,000 qualified operating hours",
+          "evidence_id": "ev-wrong-unit",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 1500,
+            "virgin_material_g": 50,
+            "energy_wh": 200,
+            "ghg_co2e_g": 400,
+            "water_ml": 100,
+            "residual_waste_g": 20,
+            "original_asset_service_hours_retained": 9000
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 900,
+            "reused_component_g": 0,
+            "recycled_material_g": 80,
+            "energy_recovery_g": 0,
+            "residual_g": 20
+          }
+        },
+        {
+          "id": "replacement-correct-service",
+          "intervention": "replace_with_mixed_disposal",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-replacement",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 12000,
+            "virgin_material_g": 1000,
+            "energy_wh": 5000,
+            "ghg_co2e_g": 8000,
+            "water_ml": 3000,
+            "residual_waste_g": 1000,
+            "original_asset_service_hours_retained": 0
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 0,
+            "reused_component_g": 0,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 0,
+            "residual_g": 1000
+          }
+        }
+      ],
+      "expected_dispositions": [
+        {
+          "option_id": "repair-shorter-service",
+          "disposition": "incompatible_functional_unit"
+        },
+        {
+          "option_id": "replacement-correct-service",
+          "disposition": "eligible"
+        }
+      ],
+      "expected_frontier": [
+        "replacement-correct-service"
+      ]
+    }
+  ]
+}
