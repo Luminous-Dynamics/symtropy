@@ -219,7 +219,7 @@ pub fn verify_timeline_report(
                     floor.floor_id, tick.tick
                 )));
             }
-            if matches!(component.effective_state, crate::ComponentState::Failed)
+            if matches!(&component.effective_state, crate::ComponentState::Failed)
                 && floor.status != FloorStatus::Breached
             {
                 return Err(SettlementError(format!(
@@ -227,7 +227,7 @@ pub fn verify_timeline_report(
                     floor.floor_id, tick.tick
                 )));
             }
-            if matches!(component.effective_state, crate::ComponentState::Unknown { .. })
+            if matches!(&component.effective_state, crate::ComponentState::Unknown { .. })
                 && floor.status == FloorStatus::Met
             {
                 return Err(SettlementError(format!(
@@ -248,7 +248,7 @@ pub fn verify_timeline_report(
                             floor.floor_id, demand_id
                         )))?;
                     if matches!(
-                        allocation.outcome,
+                        &allocation.outcome,
                         crate::DemandOutcome::Shortfall
                             | crate::DemandOutcome::ConsumerUnavailable
                             | crate::DemandOutcome::Indeterminate
