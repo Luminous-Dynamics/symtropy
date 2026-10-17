@@ -144,6 +144,7 @@ pub enum CheckStatus {
 pub enum CandidateDisposition {
     FeasibleForSyntheticCase,
     Infeasible,
+    EvidenceInconsistent,
     UnknownReviewRequired,
 }
 
@@ -673,8 +674,21 @@ fn utility_check(
 }
 
 fn disposition_from_findings(findings: &[Finding]) -> CandidateDisposition {
-    if findings.iter().any(|finding| finding.status == CheckStatus::Violation) {
+    let physical_violation = findings.iter().any(|finding| {
+        finding.status == CheckStatus::Violation
+            && (finding.code == "grade_limit"
+                || finding.code == "earthworks_budget"
+                || finding.code.starts_with("drainage_capacity:")
+                || finding.code.starts_with("utility_clearance:"))
+    });
+    if physical_violation {
         CandidateDisposition::Infeasible
+    } else if findings.iter().any(|finding| {
+        finding.status == CheckStatus::Violation
+            && (finding.code == "declared_grade_matches_profile"
+                || finding.code == "declared_earthworks_matches_sections")
+    }) {
+        CandidateDisposition::EvidenceInconsistent
     } else if findings.iter().any(|finding| finding.status == CheckStatus::Unknown) {
         CandidateDisposition::UnknownReviewRequired
     } else {
@@ -1040,8 +1054,22 @@ fn reference_candidate_result(
     }
     findings.sort_by(|left, right| left.code.cmp(&right.code));
 
-    let disposition = if findings.iter().any(|finding| finding.status == CheckStatus::Violation) {
+    let physical_violation = findings.iter().any(|finding| {
+        finding.status == CheckStatus::Violation
+            && (finding.code == "grade_limit"
+                || finding.code == "earthworks_budget"
+                || finding.code.starts_with("drainage_capacity:")
+                || finding.code.starts_with("utility_clearance:"))
+    });
+    let evidence_inconsistent = findings.iter().any(|finding| {
+        finding.status == CheckStatus::Violation
+            && (finding.code == "declared_grade_matches_profile"
+                || finding.code == "declared_earthworks_matches_sections")
+    });
+    let disposition = if physical_violation {
         CandidateDisposition::Infeasible
+    } else if evidence_inconsistent {
+        CandidateDisposition::EvidenceInconsistent
     } else if findings.iter().any(|finding| finding.status == CheckStatus::Unknown) {
         CandidateDisposition::UnknownReviewRequired
     } else {
@@ -1488,7 +1516,10 @@ mod tests {
             .iter()
             .find(|candidate| candidate.candidate_id == "C-reference")
             .expect("reference candidate result exists");
-        assert_eq!(result.disposition, CandidateDisposition::Infeasible);
+        assert_eq!(
+            result.disposition,
+            CandidateDisposition::EvidenceInconsistent
+        );
         assert!(result.findings.iter().any(|finding| {
             finding.code == "declared_earthworks_matches_sections"
                 && finding.status == CheckStatus::Violation
