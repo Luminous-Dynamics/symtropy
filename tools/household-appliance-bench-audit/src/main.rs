@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 mod portfolio;
+mod sourcing;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
 const EXPECTED_CASE_IDS: [&str; 30] = [
@@ -483,6 +484,11 @@ fn run() -> Result<(), String> {
     if portfolio_schema_path.is_some() != portfolio_path.is_some() {
         return Err("--portfolio-schema and --portfolio must be supplied together".to_owned());
     }
+    let sourcing_schema_path = read_arg_path("--sourcing-schema");
+    let sourcing_snapshot_path = read_arg_path("--sourcing-snapshot");
+    if sourcing_schema_path.is_some() != sourcing_snapshot_path.is_some() {
+        return Err("--sourcing-schema and --sourcing-snapshot must be supplied together".to_owned());
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -530,6 +536,37 @@ fn run() -> Result<(), String> {
             "portfolio_path": portfolio_path.display().to_string(),
             "physical_performance_established": false,
             "product_safety_assessed": false
+        });
+    }
+
+    if let (Some(sourcing_schema_path), Some(sourcing_snapshot_path)) =
+        (sourcing_schema_path, sourcing_snapshot_path)
+    {
+        let sourcing_schema_raw = fs::read_to_string(&sourcing_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", sourcing_schema_path.display()))?;
+        let sourcing_snapshot_raw = fs::read_to_string(&sourcing_snapshot_path)
+            .map_err(|error| format!("cannot read {}: {error}", sourcing_snapshot_path.display()))?;
+        let sourcing_summary = sourcing::audit_sourcing_texts(
+            &sourcing_schema_raw,
+            &sourcing_snapshot_raw,
+        )
+        .map_err(|errors| errors.join("\\n"))?;
+
+        report["washer_parts_resilience_sourcing"] = json!({
+            "status": "PASS_DESK_SNAPSHOT_CONTRACT_ONLY",
+            "candidate_lead_count": sourcing_summary.candidate_count,
+            "price_observation_count": sourcing_summary.price_observation_count,
+            "parts_catalogue_probe_count": sourcing_summary.part_probe_count,
+            "model_fit_confirmed_probe_count": sourcing_summary.model_fit_confirmed_probe_count,
+            "selected_control_count": sourcing_summary.selected_control_count,
+            "purchased_candidate_count": sourcing_summary.purchased_candidate_count,
+            "schema_sha256": sourcing_summary.schema_sha256,
+            "snapshot_sha256": sourcing_summary.snapshot_sha256,
+            "schema_path": sourcing_schema_path.display().to_string(),
+            "snapshot_path": sourcing_snapshot_path.display().to_string(),
+            "physical_performance_established": false,
+            "product_safety_assessed": false,
+            "purchase_authorized": false
         });
     }
 
