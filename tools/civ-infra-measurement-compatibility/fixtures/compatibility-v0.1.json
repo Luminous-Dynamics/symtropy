@@ -1,0 +1,95 @@
+{
+  "schema_version": "civ-infra-measurement-compatibility/v0.1",
+  "world_id": "synthetic-corridor-probe-v0.1",
+  "measurement_model": {
+    "model_id": "synthetic-corridor-length-probe",
+    "model_version": "1",
+    "model_artifact_ref": "synthetic-models/corridor-length-probe-v1",
+    "input_unit": "meter",
+    "input_domain": {
+      "lower_ticks": 0,
+      "upper_ticks": 2000000
+    },
+    "transform": "identity",
+    "model_discrepancy": {
+      "unit": "meter",
+      "interval": {
+        "lower_ticks": 0,
+        "upper_ticks": 0
+      },
+      "basis": "synthetic zero-discrepancy assumption; not calibrated"
+    }
+  },
+  "states": [
+    {
+      "state_id": "state-short",
+      "input_unit": "millimeter",
+      "input_interval": {
+        "lower_ticks": 200000000,
+        "upper_ticks": 600000000
+      },
+      "decision_signature_id": "decision-A",
+      "upstream_case_ref": "synthetic-corridor-case#short"
+    },
+    {
+      "state_id": "state-boundary-sensitive",
+      "input_unit": "meter",
+      "input_interval": {
+        "lower_ticks": 500000,
+        "upper_ticks": 900000
+      },
+      "decision_signature_id": "decision-B",
+      "upstream_case_ref": "synthetic-corridor-case#boundary"
+    },
+    {
+      "state_id": "state-medium",
+      "input_unit": "meter",
+      "input_interval": {
+        "lower_ticks": 800000,
+        "upper_ticks": 1200000
+      },
+      "decision_signature_id": "decision-C",
+      "upstream_case_ref": "synthetic-corridor-case#medium"
+    },
+    {
+      "state_id": "state-long",
+      "input_unit": "meter",
+      "input_interval": {
+        "lower_ticks": 1400000,
+        "upper_ticks": 1700000
+      },
+      "decision_signature_id": "decision-D",
+      "upstream_case_ref": "synthetic-corridor-case#long"
+    }
+  ],
+  "outcomes": [
+    {
+      "outcome_id": "low",
+      "unit": "meter",
+      "interval": {
+        "lower_ticks": 0,
+        "upper_ticks": 700000
+      }
+    },
+    {
+      "outcome_id": "middle",
+      "unit": "meter",
+      "interval": {
+        "lower_ticks": 650000,
+        "upper_ticks": 1300000
+      }
+    },
+    {
+      "outcome_id": "high",
+      "unit": "meter",
+      "interval": {
+        "lower_ticks": 1300000,
+        "upper_ticks": 2000000
+      }
+    }
+  ],
+  "observed_value": {
+    "unit": "millimeter",
+    "value_ticks": 850000000
+  }
+}
