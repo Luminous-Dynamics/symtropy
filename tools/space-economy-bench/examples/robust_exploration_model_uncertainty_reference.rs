@@ -480,9 +480,20 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     );
     receipt["source_commit"] = json!(source_commit);
     receipt["reference_source_sha256"] = json!(digest);
-    receipt["model_set_sha256"] = json!(format!("{:x}", Sha256::digest(
-        serde_json::to_vec(&receipt["uncertainty_set"]).map_err(|error| error.to_string())?
-    )));
+    let model_specifications = json!({
+        "schema_version": "0.1.0",
+        "nominal_model_id": "nominal_high_accuracy",
+        "models": MODEL_SET.iter().map(|model| json!({
+            "model_id": model.model_id,
+            "sensitivity_bps": model.sensitivity_bps,
+            "specificity_bps": model.specificity_bps,
+            "performance_evidence_verified": model.performance_evidence_verified
+        })).collect::<Vec<_>>()
+    });
+    let model_set_bytes = serde_json::to_vec(&model_specifications)
+        .map_err(|error| error.to_string())?;
+    receipt["model_specifications"] = model_specifications;
+    receipt["model_set_sha256"] = json!(format!("{:x}", Sha256::digest(model_set_bytes)));
     Ok(receipt)
 }
 
