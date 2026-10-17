@@ -316,8 +316,9 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
             return Err(format!("scenario {} expected dispositions must name each option exactly once", scenario.id));
         }
         let expected_frontier: BTreeSet<&str> = scenario.expected_frontier.iter().map(String::as_str).collect();
+        let known_option_ids: BTreeSet<&str> = option_ids.iter().copied().collect();
         if expected_frontier.len() != scenario.expected_frontier.len()
-            || !expected_frontier.is_subset(&option_ids.iter().copied().collect())
+            || !expected_frontier.is_subset(&known_option_ids)
         {
             return Err(format!("scenario {} expected frontier contains duplicate or unknown option IDs", scenario.id));
         }
