@@ -118,3 +118,17 @@ The 2025 systematic review of urban digital twins found a gap between technical 
 The 2026 DAPP-MD framework makes uncertainty multi-dimensional and explicitly includes interacting risks, which reinforces the need to isolate observation uncertainty from hazard, demand, model-form and governance uncertainty: https://doi.org/10.1016/j.envsci.2026.104382
 
 These sources motivate the evaluation contract; they do not validate the prototype or supply its synthetic parameters.
+
+
+## Initial code slice now present
+
+The settlement-core branch now includes `src/observation.rs` with:
+- typed observation values and explicit Current, Stale, Missing, Conflicting, Unvalidated and Revoked dispositions;
+- source/target identities and generations, sample tick, availability tick and a declared freshness window;
+- canonical schedule ordering, duplicate-ID and impossible-timestamp rejection;
+- a `PolicyInformationFrame` builder that includes only records available by the requested decision tick;
+- current-to-stale conversion when a once-current reading ages beyond its freshness window;
+- a frame digest and independent checks against future observation leakage and tampering;
+- eight authored Rust tests including a no-lookahead metamorphic test: two schedules with the same available prefix but different future values produce the same current decision frame.
+
+This is an **observation projection/conformance contract**, not yet a full latent-state simulator or sensor generator. The policy frame deliberately contains no latent-state or future-event-list field, but end-to-end policy decisions and interventions are still future work. All eight tests are authored and unverified until exact-head CI completes.
