@@ -157,9 +157,9 @@ Verify the adopted editions and jurisdictional requirements at project start; th
 ## 9. Execution plan
 
 1. Review this contract against the existing owners named above; resolve fields to existing types before freezing any schema.
-2. Add a frozen synthetic scenario manifest and independent golden evaluator for WP-001 through WP-018. Start with evidence-state correctness, hard gates, change invalidation, and tiny exhaustive comparison before high-fidelity simulation.
+2. Use the frozen WP-001–WP-018 manifest and the standalone `tools/habitat-manifest-verifier` for strict structure and exact-byte integrity only. The independent semantic evaluator/golden oracle remains future work; it must verify expected dispositions and hard-gate behavior without sharing the candidate evaluator's decision code. Start with evidence-state correctness, change invalidation, and tiny exhaustive comparison before high-fidelity simulation.
 3. Implement the first Sol-Atlas read-only adapter for site, coverage, freshness and hard-constraint receipts only after PRs #129/#136/#140 provide a reviewed interface.
-4. Compose the Symthaea design alternative and uncertainty/reporting interfaces; do not give the model direct building-control or approval authority.
+4. Compose Symtropy's existing decision-impact/robustness work (#1769, #1789) to prioritize surveys and model runs by their ability to change feasibility or the Pareto set. Do not invent probabilities or expected value-of-information without calibrated observation models. Then compose Symthaea's design-alternative and uncertainty/reporting interfaces; do not give the model direct building-control or approval authority.
 5. Add one specialist simulation at a time (initial candidate: whole-building energy/comfort, then water balance), each with an authoritative reference set and explicit validity envelope.
 6. Link Mycelix-approved material/procurement/inspection artifacts to exact design revisions and revalidation requirements through the existing construction provenance proposal.
 7. Add IFC/IDS exchange checks and building automation semantics only after the exported model and runtime data can be independently validated.
