@@ -93,7 +93,13 @@ Report scenario-by-scenario and per strategy:
 
 Do not hide trade-offs in one weighted scalar. A strategy that wins under one central forecast may lose under a different plausible regime. Scenario regret on a hand-picked corpus does not prove robustness against unknown futures.
 
-## 7. Independent oracle and frozen hostile cases
+## 7. Frozen machine-readable corpus
+
+The initial starter corpus is [MARITIME_STAGED_CAPITAL_V0_1.json](https://github.com/Luminous-Dynamics/symtropy/blob/research/maritime-capital-stage-v0-1/benchmarks/fixtures/MARITIME_STAGED_CAPITAL_V0_1.json). It contains 10 synthetic cases for pre-commissioning capacity, budget overruns, physical-resource aliasing, power/energy confusion, future-information leakage, policy effective dates, scenario-driven portfolio ranking reversal, truncated search, unknown cost, and input-order determinism.
+
+This JSON is a versioned starter corpus, not an executable qualification result. The implementation gate requires an independent fixture loader, per-case assertion and a tiny exhaustive oracle. Expected dispositions must be recomputed/independently hand-checked before being treated as accepted oracle answers.
+
+## 8. Independent oracle and frozen hostile cases
 
 Use a tiny exhaustive enumerator that does not call production investment feasibility, capacity accounting or objective aggregation. Freeze hand-checkable portfolios with up to three candidate investment increments, three periods, three demands and three scenario branches.
 
@@ -114,7 +120,7 @@ Include at least:
 
 Distinguish INFEASIBLE, INDETERMINATE, INCOMPLETE, and fully enumerated output. Preserve negative controls and exact input manifests.
 
-## 8. Proposed gates (not measured)
+## 9. Proposed gates (not measured)
 
 - 100% agreement with the independent oracle on every frozen complete tiny portfolio for feasible strategies, resource ledger, objective vector and tie-breaking.
 - Zero budget overruns, hard-constraint violations, pre-commissioning capacity use and capacity double-counting among admitted plans.
@@ -126,11 +132,11 @@ Distinguish INFEASIBLE, INDETERMINATE, INCOMPLETE, and fully enumerated output. 
 - Do not set numeric ROI, cost-savings, emissions-savings or throughput targets before source units/boundaries are qualified.
 - After synthetic conformance, consider a rights-cleared historical case with original dated data and an explicit decision cutoff. Published study savings are not our measurements.
 
-## 9. Authority and claim ceiling
+## 10. Authority and claim ceiling
 
 Effects-disabled planning only. This benchmark does not buy equipment, contact suppliers, authorize a capital commitment, reserve a grid connection, authorize construction, dispatch a vessel, or qualify real port engineering. Each result is a scenario-bounded proposal. Passing the synthetic oracle establishes finite-model correctness, not ROI, real-world cost savings, emissions reduction, permitting, safety, physical grid feasibility, or regulatory compliance.
 
-## Research references
+## 11. Research references
 
 - Wang et al., *An integrated robust framework for berth, yard, and shore power planning considering vessel arrival uncertainty*, Ocean Engineering, 15 June 2026: https://doi.org/10.1016/j.oceaneng.2026.125850
 - Li & Hu, *Collaborative optimization of berth scheduling and multi-energy dispatch for green ports*, Omega, September 2026: https://doi.org/10.1016/j.omega.2026.103549
