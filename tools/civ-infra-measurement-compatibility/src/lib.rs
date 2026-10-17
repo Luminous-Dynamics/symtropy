@@ -150,9 +150,14 @@ pub struct OutcomeCompatibility {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DecisionAmbiguity {
     pub decision_signature_classes_before_observation: usize,
-    pub worst_case_remaining_states: usize,
-    pub worst_case_decision_signature_classes: usize,
-    pub worst_case_decision_discordant_pairs_remaining: u64,
+    pub worst_case_remaining_states_within_declared_outcome_bins: usize,
+    pub worst_case_decision_signature_classes_within_declared_outcome_bins: usize,
+    pub worst_case_decision_discordant_pairs_within_declared_outcome_bins: u64,
+    pub outcome_worst_case_is_conditional_on_declared_support: bool,
+    pub support_failure_preserves_prior: bool,
+    pub support_failure_preserved_state_count: usize,
+    pub support_failure_preserved_decision_signature_classes: usize,
+    pub support_failure_preserved_decision_discordant_pairs: u64,
     pub outcomes_with_no_compatible_states: usize,
     pub states_outside_model_domain: usize,
     pub states_with_uncovered_output_regions: usize,
@@ -461,9 +466,14 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
         outcome_results,
         decision_ambiguity: DecisionAmbiguity {
             decision_signature_classes_before_observation: distinct_signatures.len(),
-            worst_case_remaining_states,
-            worst_case_decision_signature_classes,
-            worst_case_decision_discordant_pairs_remaining,
+            worst_case_remaining_states_within_declared_outcome_bins: worst_case_remaining_states,
+            worst_case_decision_signature_classes_within_declared_outcome_bins: worst_case_decision_signature_classes,
+            worst_case_decision_discordant_pairs_within_declared_outcome_bins: worst_case_decision_discordant_pairs_remaining,
+            outcome_worst_case_is_conditional_on_declared_support: true,
+            support_failure_preserves_prior: true,
+            support_failure_preserved_state_count: normalized_states.len(),
+            support_failure_preserved_decision_signature_classes: distinct_signatures.len(),
+            support_failure_preserved_decision_discordant_pairs: discordant_pairs(&signature_counts(&normalized_states, None)),
             outcomes_with_no_compatible_states,
             states_outside_model_domain,
             states_with_uncovered_output_regions,
@@ -919,6 +929,30 @@ mod tests {
         ];
         let report = evaluate(&input, &digest(&input)).expect("edge evaluates");
         assert_eq!(report.state_results[0].possible_outcome_ids.len(), 2);
+    }
+
+    #[test]
+    fn reports_support_failure_bound_separately_from_bin_conditioned_metrics() {
+        let mut input = base_input();
+        input.states = vec![
+            state("sig-a-1", Unit::Meter, 100_000, 200_000, "sig-a"),
+            state("sig-b", Unit::Meter, 800_000, 900_000, "sig-b"),
+            state("sig-a-2", Unit::Meter, 300_000, 400_000, "sig-a"),
+        ];
+        input.outcomes = vec![
+            bin("low", Unit::Meter, 0, 450_000),
+            bin("high", Unit::Meter, 750_000, 1_000_000),
+        ];
+        let report = evaluate_bytes(
+            serde_json::to_vec(&input).expect("input serializes").as_slice()
+        ).expect("input evaluates");
+        let ambiguity = report.decision_ambiguity;
+        assert!(ambiguity.outcome_worst_case_is_conditional_on_declared_support);
+        assert!(ambiguity.support_failure_preserves_prior);
+        assert_eq!(ambiguity.support_failure_preserved_state_count, 3);
+        assert_eq!(ambiguity.support_failure_preserved_decision_signature_classes, 2);
+        assert_eq!(ambiguity.support_failure_preserved_decision_discordant_pairs, 2);
+        assert!(ambiguity.worst_case_remaining_states_within_declared_outcome_bins < 3);
     }
 
     #[test]
