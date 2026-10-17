@@ -535,7 +535,7 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
         if let Some(envelope) = &utility.occupancy {
             if utility.evidence == EvidenceState::UnboundedUnknown {
                 errors.push(format!(
-                    "utility {} cannot claim unbounded unknown extent and also constrain it to an envelope",
+                    "utility {} has both unbounded-unknown state and a bounding envelope",
                     utility.id
                 ));
             }
