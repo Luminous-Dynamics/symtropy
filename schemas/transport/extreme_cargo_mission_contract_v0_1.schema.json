@@ -513,7 +513,8 @@
         "required_gate_ids",
         "route_envelope",
         "requires_human_transport",
-        "operating_notes"
+        "operating_notes",
+        "allowed_modes"
       ],
       "properties": {
         "mission_id": {
@@ -572,6 +573,21 @@
         "operating_notes": {
           "type": "string",
           "minLength": 1
+        },
+        "allowed_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "watercraft",
+              "wheeled_rover",
+              "tracked_carrier",
+              "sled",
+              "ground_carrier",
+              "aerial"
+            ]
+          }
         }
       }
     },
