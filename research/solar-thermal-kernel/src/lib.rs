@@ -625,12 +625,14 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "store_temperature_after_charge_k", charge.temperature_after.value());
     number(&mut json, "standing_loss_j", loss.heat_lost.value());
     number(&mut json, "store_temperature_after_loss_k", loss.temperature_after.value());
+    number(&mut json, "stored_exergy_before_discharge_j", config.stored_exergy(after_loss, Kelvin::new(300.0)?)?.value());
     number(&mut json, "requested_useful_heat_j", discharge.requested_useful_heat.value());
     number(&mut json, "source_heat_withdrawn_j", discharge.source_heat_withdrawn.value());
     number(&mut json, "useful_heat_delivered_j", discharge.useful_heat_delivered.value());
     number(&mut json, "heat_exchanger_loss_j", discharge.heat_exchanger_loss.value());
     number(&mut json, "unmet_useful_heat_j", discharge.unmet_useful_heat.value());
     number(&mut json, "final_store_temperature_k", final_state.temperature.value());
+    number(&mut json, "final_store_exergy_j", config.stored_exergy(final_state, Kelvin::new(300.0)?)?.value());
     json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
     Ok(json)
 }
