@@ -140,40 +140,77 @@ pub fn verify_cascade_transfer_report(
     request: CascadeTransferRequest,
     claimed: CascadeTransferReport,
 ) -> Result<(), ModelError> {
-    let expected = expected_transfer(
-        high_config,
-        high_state,
-        low_config,
-        low_state,
-        request,
-    )?;
-    let fields = [
-        ("cascade.high_before", claimed.high_temperature_before.value(), expected.high_temperature_before.value()),
-        ("cascade.high_after", claimed.high_temperature_after.value(), expected.high_temperature_after.value()),
-        ("cascade.low_before", claimed.low_temperature_before.value(), expected.low_temperature_before.value()),
-        ("cascade.low_after", claimed.low_temperature_after.value(), expected.low_temperature_after.value()),
-        ("cascade.requested", claimed.requested_low_store_heat.value(), expected.requested_low_store_heat.value()),
-        ("cascade.withdrawn", claimed.source_heat_withdrawn.value(), expected.source_heat_withdrawn.value()),
-        ("cascade.accepted", claimed.low_store_heat_accepted.value(), expected.low_store_heat_accepted.value()),
-        ("cascade.loss", claimed.heat_exchanger_loss.value(), expected.heat_exchanger_loss.value()),
-        ("cascade.unmet", claimed.unmet_low_store_heat.value(), expected.unmet_low_store_heat.value()),
-        ("cascade.source_cutoff", claimed.minimum_source_temperature.value(), expected.minimum_source_temperature.value()),
-    ];
-    for (label, actual, target) in fields {
-        check(label, actual, target)?;
+    if request.heat_exchanger_effectiveness.value() <= 0.0 {
+        return Err(ModelError::InvalidDischargeEfficiency);
     }
-    if claimed.blocked_by_temperature != expected.blocked_by_temperature {
+
+    // Deliberately re-derive the claimed transition here instead of calling
+    // expected_transfer, so this checker is a separate calculation path.
+    let high_start_energy = stored_energy_at(high_config, high_state.temperature)?.value();
+    let low_start_energy = stored_energy_at(low_config, low_state.temperature)?.value();
+    let low_capacity = stored_energy_at(low_config, low_config.max_temperature)?.value();
+    let cutoff_value = (low_config.max_temperature.value()
+        + request.minimum_approach.value())
+        .max(high_config.min_temperature.value());
+    let cutoff = Kelvin::new(cutoff_value)?;
+    let grade_blocked = request.requested_low_store_heat.value() > 0.0
+        && (cutoff_value > high_config.max_temperature.value()
+            || high_state.temperature.value() <= cutoff_value);
+
+    let (expected_withdrawn, expected_accepted, expected_loss, expected_unmet,
+        expected_high_temperature, expected_low_temperature) =
+        if grade_blocked || request.requested_low_store_heat.value() == 0.0 {
+            (0.0, 0.0, 0.0, request.requested_low_store_heat.value(),
+                high_state.temperature, low_state.temperature)
+        } else {
+            let energy_at_cutoff = stored_energy_at(high_config, cutoff)?.value();
+            let thermal_headroom = (high_start_energy - energy_at_cutoff).max(0.0);
+            let source_power_budget = high_config.max_discharge_power.value()
+                * request.duration.value();
+            let low_store_room = (low_capacity - low_start_energy).max(0.0);
+            let accepted = request.requested_low_store_heat.value()
+                .min(low_store_room)
+                .min(thermal_headroom.min(source_power_budget)
+                    * request.heat_exchanger_effectiveness.value());
+            let withdrawn = accepted / request.heat_exchanger_effectiveness.value();
+            let loss = withdrawn - accepted;
+            let high_energy_after = EnergyJ::new((high_start_energy - withdrawn).max(0.0))?;
+            let low_energy_after = EnergyJ::new((low_start_energy + accepted).min(low_capacity))?;
+            (
+                withdrawn,
+                accepted,
+                loss.max(0.0),
+                (request.requested_low_store_heat.value() - accepted).max(0.0),
+                temperature_at_energy(high_config, high_energy_after)?,
+                temperature_at_energy(low_config, low_energy_after)?,
+            )
+        };
+
+    let fields = [
+        ("cascade.high_before", claimed.high_temperature_before.value(), high_state.temperature.value()),
+        ("cascade.high_after", claimed.high_temperature_after.value(), expected_high_temperature.value()),
+        ("cascade.low_before", claimed.low_temperature_before.value(), low_state.temperature.value()),
+        ("cascade.low_after", claimed.low_temperature_after.value(), expected_low_temperature.value()),
+        ("cascade.requested", claimed.requested_low_store_heat.value(), request.requested_low_store_heat.value()),
+        ("cascade.withdrawn", claimed.source_heat_withdrawn.value(), expected_withdrawn),
+        ("cascade.accepted", claimed.low_store_heat_accepted.value(), expected_accepted),
+        ("cascade.loss", claimed.heat_exchanger_loss.value(), expected_loss),
+        ("cascade.unmet", claimed.unmet_low_store_heat.value(), expected_unmet),
+        ("cascade.source_cutoff", claimed.minimum_source_temperature.value(), cutoff.value()),
+    ];
+    for (label, actual, expected) in fields {
+        check(label, actual, expected)?;
+    }
+    if claimed.blocked_by_temperature != grade_blocked {
         return Err(ModelError::ReportMismatch("cascade.blocked_by_temperature"));
     }
 
-    let high_before = stored_energy_at(high_config, high_state.temperature)?.value();
-    let low_before = stored_energy_at(low_config, low_state.temperature)?.value();
-    let high_after = stored_energy_at(high_config, claimed.high_temperature_after)?.value();
-    let low_after = stored_energy_at(low_config, claimed.low_temperature_after)?.value();
+    let high_final_energy = stored_energy_at(high_config, claimed.high_temperature_after)?.value();
+    let low_final_energy = stored_energy_at(low_config, claimed.low_temperature_after)?.value();
     check(
         "cascade.total_store_energy_closure",
-        high_before + low_before,
-        high_after + low_after + claimed.heat_exchanger_loss.value(),
+        high_start_energy + low_start_energy,
+        high_final_energy + low_final_energy + claimed.heat_exchanger_loss.value(),
     )?;
     check(
         "cascade.requested_heat_split",
