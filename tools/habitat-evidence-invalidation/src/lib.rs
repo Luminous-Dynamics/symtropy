@@ -64,12 +64,6 @@ pub struct EventImpact {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ArtifactStatus {
-    pub artifact_id: String,
-    pub status_after_events: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BenchmarkReport {
     pub schema_version: String,
     pub fixture_id: String,
@@ -81,7 +75,6 @@ pub struct BenchmarkReport {
     pub unique_event_count: usize,
     pub duplicate_events_ignored: usize,
     pub event_impacts: Vec<EventImpact>,
-    pub final_artifact_statuses: Vec<ArtifactStatus>,
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -147,16 +140,17 @@ fn evaluate_fixture(
         }
     }
 
+    // Each change event is an independent counterfactual impact test. Do not
+    // merge their results into one pretend chronology of mutually exclusive events.
     let mut event_impacts = Vec::new();
-    let mut changed_roots = BTreeSet::new();
-    let mut invalidated_union = BTreeSet::new();
     for event in canonical_events.values() {
         let root = event.trigger_artifact_id.as_str();
         let affected = invalidation_closure(fixture, root);
-        let descendants = affected.iter()
-            .filter(|id| id.as_str() != root).cloned().collect::<Vec<_>>();
-        changed_roots.insert(root.to_owned());
-        invalidated_union.extend(affected.iter().cloned());
+        let descendants = affected
+            .iter()
+            .filter(|id| id.as_str() != root)
+            .cloned()
+            .collect::<Vec<_>>();
         event_impacts.push(EventImpact {
             event_id: event.id.clone(),
             trigger_artifact_id: root.to_owned(),
@@ -165,21 +159,6 @@ fn evaluate_fixture(
             affected_artifact_count: affected.len(),
         });
     }
-
-    let mut final_artifact_statuses = fixture.artifacts.iter().map(|artifact| {
-        let status = if changed_roots.contains(&artifact.id) {
-            "superseded"
-        } else if invalidated_union.contains(&artifact.id) {
-            "invalidated"
-        } else {
-            artifact.status.as_str()
-        };
-        ArtifactStatus {
-            artifact_id: artifact.id.clone(),
-            status_after_events: status.to_owned(),
-        }
-    }).collect::<Vec<_>>();
-    final_artifact_statuses.sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
 
     Ok(BenchmarkReport {
         schema_version: REPORT_SCHEMA.to_owned(),
@@ -192,7 +171,6 @@ fn evaluate_fixture(
         unique_event_count: canonical_events.len(),
         duplicate_events_ignored: fixture.events.len() - canonical_events.len(),
         event_impacts,
-        final_artifact_statuses,
     })
 }
 
@@ -253,13 +231,19 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         if artifact.kind.trim().is_empty() || artifact.claim_id.trim().is_empty()
             || artifact.scope_id.trim().is_empty() || artifact.validity_rule_id.trim().is_empty()
         {
-            errors.push(format!("{} must declare kind, claim, scope and validity rule", artifact.id));
+            errors.push(format!(
+                "{} must declare kind, claim, scope and validity rule",
+                artifact.id
+            ));
         }
         if artifact.version == 0 {
             errors.push(format!("{} version must be positive", artifact.id));
         }
         if !allowed.contains(artifact.status.as_str()) {
-            errors.push(format!("{} has unsupported evidence status {:?}", artifact.id, artifact.status));
+            errors.push(format!(
+                "{} has unsupported evidence status {:?}",
+                artifact.id, artifact.status
+            ));
         }
         if !valid_sha256(&artifact.content_sha256)
             || sha256_hex(artifact.synthetic_payload.as_bytes()) != artifact.content_sha256
@@ -267,7 +251,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push(format!("{} synthetic payload digest mismatch", artifact.id));
         }
         if artifact.status == "valid_for_claim" && !artifact.coverage_complete {
-            errors.push(format!("{} cannot be valid_for_claim with incomplete coverage", artifact.id));
+            errors.push(format!(
+                "{} cannot be valid_for_claim with incomplete coverage",
+                artifact.id
+            ));
         }
         let mut dependencies = BTreeSet::new();
         for dependency in &artifact.depends_on {
@@ -282,7 +269,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     for artifact in &fixture.artifacts {
         for dependency in &artifact.depends_on {
             if !artifacts.contains_key(dependency.as_str()) {
-                errors.push(format!("{} references unknown dependency {:?}", artifact.id, dependency));
+                errors.push(format!(
+                    "{} references unknown dependency {:?}",
+                    artifact.id, dependency
+                ));
             }
         }
     }
@@ -390,7 +380,10 @@ mod tests {
         assert_eq!(report.duplicate_events_ignored, 0);
         assert_eq!(impact(&report, "EV-01-TERRAIN-REVISION").affected_artifact_count, 10);
         assert_eq!(impact(&report, "EV-02-SURVEY-STALE").affected_artifact_count, 9);
-        assert_eq!(impact(&report, "EV-03-MATERIAL-SUBSTITUTION").affected_artifact_count, 3);
+        assert_eq!(
+            impact(&report, "EV-03-MATERIAL-SUBSTITUTION").affected_artifact_count,
+            3
+        );
         assert_eq!(impact(&report, "EV-04-FURNISHING-SUBSTITUTION").affected_artifact_count, 2);
     }
 
@@ -447,8 +440,7 @@ mod tests {
             vec!["D-ASBUILT-RECEIPT".to_owned(), "D-COMMISSIONING-RECEIPT".to_owned()]
         );
         for id in ["E-GEO-SOURCE", "E-FLOOD-SURVEY", "D-SITE-DECISION", "D-STRUCTURAL-CALC"] {
-            assert_eq!(report.final_artifact_statuses.iter()
-                .find(|item| item.artifact_id == id).unwrap().status_after_events, "valid_for_claim");
+            assert!(!supplier.invalidated_descendant_ids.iter().any(|item| item == id));
         }
     }
 
@@ -459,9 +451,9 @@ mod tests {
             impact(&report, "EV-04-FURNISHING-SUBSTITUTION").invalidated_descendant_ids,
             vec!["D-FURNISHING-INSTALL".to_owned()]
         );
+        let furnishing = impact(&report, "EV-04-FURNISHING-SUBSTITUTION");
         for id in ["E-GEO-SOURCE", "D-SITE-DECISION", "D-STRUCTURAL-CALC"] {
-            assert_eq!(report.final_artifact_statuses.iter()
-                .find(|item| item.artifact_id == id).unwrap().status_after_events, "valid_for_claim");
+            assert!(!furnishing.invalidated_descendant_ids.iter().any(|item| item == id));
         }
     }
 
@@ -474,7 +466,6 @@ mod tests {
         assert_eq!(repeated.duplicate_events_ignored, 1);
         assert_eq!(repeated.unique_event_count, baseline.unique_event_count);
         assert_eq!(repeated.event_impacts, baseline.event_impacts);
-        assert_eq!(repeated.final_artifact_statuses, baseline.final_artifact_statuses);
     }
 
     #[test]
