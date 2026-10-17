@@ -1116,6 +1116,36 @@ mod tests {
     }
 
     #[test]
+    fn dimensional_leakage_source_rolls_back_when_ledger_rejects_inflow() {
+        use crate::dimensional_leakage::{DimensionalLeakage, LeakagePoint};
+
+        let mut field = ConsciousnessField::<3>::new();
+        let h = BodyHandle(0);
+        field.register(h, 100.0, 10.0);
+        field.entities.get_mut(&h).unwrap().energy.consume(20.0);
+        let available_before = field.entities.get(&h).unwrap().energy.available;
+        let regenerated_before = field.entities.get(&h).unwrap().energy.regenerated_this_tick;
+
+        // Force the accounting path to reject the proposed inflow. The energy
+        // reservoir update must roll back with it rather than partially commit.
+        field.ledger.energy_out = f64::NAN;
+        let mut leakage = DimensionalLeakage::new();
+        leakage.add_point(LeakagePoint::source(
+            nalgebra::SVector::from([0.0, 0.0, 0.0]),
+            1.0,
+            5.0,
+            50.0,
+        ));
+        leakage.enabled = true;
+        field.apply_dimensional_leakage(&leakage, &[(h, nalgebra::SVector::from([1.0, 0.0, 0.0]))]);
+
+        let entity = field.entities.get(&h).unwrap();
+        assert_eq!(entity.energy.available, available_before);
+        assert_eq!(entity.energy.regenerated_this_tick, regenerated_before);
+        assert!(field.ledger.try_tick_balance().is_err(), "invalid ledger remains visibly invalid");
+    }
+
+    #[test]
     fn dimensional_leakage_disabled_no_effect() {
         use crate::dimensional_leakage::{DimensionalLeakage, LeakagePoint};
 
