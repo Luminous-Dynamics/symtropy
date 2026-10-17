@@ -72,6 +72,9 @@ jobs:
             .observed_update.status == "supported_by_model" and
             (.observed_update.compatible_state_ids | length) == 2 and
             .decision_ambiguity.states_outside_model_domain == 0 and
+            .model_discrepancy.interval.lower_ticks == 0 and
+            .model_discrepancy.interval.upper_ticks == 0 and
+            (.model_discrepancy.basis | contains("not calibrated")) and
             any(.state_results[]; (.possible_outcome_ids | length) > 1)
           ' "$RUNNER_TEMP/civ-infra-compatibility-report.json"
 
