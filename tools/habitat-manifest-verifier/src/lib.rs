@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 pub const REPORT_SCHEMA: &str = "luminous.habitat_manifest_verifier.report.v0.1";
 pub const CLAIM_CEILING: &str = "structural_conformance_only_not_semantic_or_physical_validation";
 const WHOLE_PROPERTY_SHA256: &str =
-    "10b2a1ccbf15a79940bdca05a279945c59832ffcb8791b02788b623b9026e4ef";
+    "a5d63bb59af770a50982501e63a99c7873a543e063e9cc546705029838641380";
 const TERRAIN_NATIVE_SHA256: &str =
     "2e5eb734bd14264812c27c6d23cd10ad9b49e8327f3cde8df300124cb77f578e";
 
@@ -47,14 +47,14 @@ impl ManifestKind {
 
     fn expected_count(self) -> usize {
         match self {
-            Self::WholeProperty => 18,
+            Self::WholeProperty => 19,
             Self::TerrainNative => 14,
         }
     }
 
     fn expected_negative_controls(self) -> usize {
         match self {
-            Self::WholeProperty => 16,
+            Self::WholeProperty => 17,
             Self::TerrainNative => 12,
         }
     }
@@ -381,8 +381,8 @@ mod tests {
             ManifestKind::WholeProperty => (
                 "whole-property-habitat-scenarios-v0.1",
                 "WP-",
-                18,
-                16,
+                19,
+                17,
             ),
             ManifestKind::TerrainNative => (
                 "terrain-native-habitat-scenarios-v0.1",
@@ -441,8 +441,8 @@ mod tests {
         );
         let report = verify_manifest_bytes(ManifestKind::WholeProperty, bytes).unwrap();
         assert_eq!(report.input_sha256, WHOLE_PROPERTY_SHA256);
-        assert_eq!(report.scenario_count, 18);
-        assert_eq!(report.negative_control_count, 16);
+        assert_eq!(report.scenario_count, 19);
+        assert_eq!(report.negative_control_count, 17);
         assert_eq!(report.verification_status, "STRUCTURAL_PASS_NOT_SEMANTIC_PASS");
     }
 
