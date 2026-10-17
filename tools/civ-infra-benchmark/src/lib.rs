@@ -1352,8 +1352,16 @@ mod tests {
             finding.code == "earthworks_budget" && finding.status == CheckStatus::Violation
         }));
         assert!(shortest.findings.iter().any(|finding| {
-            finding.code.starts_with("drainage_capacity:")
+            finding.code == "drainage_capacity:design-storm-synthetic-01"
                 && finding.status == CheckStatus::Violation
+        }));
+        assert!(shortest.findings.iter().any(|finding| {
+            finding.code == "drainage_capacity:severe-storm-synthetic-01"
+                && finding.status == CheckStatus::Violation
+        }));
+        assert!(shortest.findings.iter().any(|finding| {
+            finding.code == "drainage_capacity:low-flow-synthetic-01"
+                && finding.status == CheckStatus::Pass
         }));
 
         let low_earthworks = report
@@ -1389,6 +1397,11 @@ mod tests {
         assert!(reference
             .findings
             .iter()
+            .all(|finding| finding.status == CheckStatus::Pass));
+        assert!(detour
+            .findings
+            .iter()
+            .filter(|finding| finding.code.starts_with("drainage_capacity:"))
             .all(|finding| finding.status == CheckStatus::Pass));
         assert!(!report.resource_schedule_feasible);
         assert_eq!(report.schedule_conflicts.len(), 1);
@@ -1761,6 +1774,22 @@ mod tests {
         report.pareto_frontier_candidate_ids = vec!["A-shortest".to_string()];
         let errors = verify_report(&bytes, &report).expect_err("Pareto tampering must fail");
         assert!(errors.iter().any(|error| error.contains("Pareto frontier")));
+    }
+
+    #[test]
+    fn duplicate_drainage_scenario_ids_fail_closed() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.drainage_scenarios[1].scenario_id =
+            candidate.drainage_scenarios[0].scenario_id.clone();
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors = evaluate_json(&modified).expect_err("duplicate scenario IDs must fail");
+        assert!(errors.iter().any(|error| error.contains("duplicate drainage scenario id")));
     }
 
 }
