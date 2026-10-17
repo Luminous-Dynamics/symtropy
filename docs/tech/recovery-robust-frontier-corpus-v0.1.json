@@ -283,5 +283,6 @@
       "dominator": "local_sorted_reuse",
       "dominated": "remote_haul_and_process"
     }
-  ]
+  ],
+  "plan_count": 6
 }
