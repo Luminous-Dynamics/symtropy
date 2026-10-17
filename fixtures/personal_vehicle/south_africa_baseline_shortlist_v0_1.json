@@ -170,7 +170,8 @@
     "Use the same declared annual distance, passenger/payload distribution, trip mix, terrain, climate, energy-price date and ownership horizon across candidates.",
     "Measure routine maintenance tasks and parts lead times; do not infer serviceability from purchase price or warranty duration.",
     "Add used-vehicle comparators only after condition, odometer, service history, inspection, ownership costs and parts-risk are documented.",
-    "A low advertised starting price is not equivalent to lowest 10-year cost or adequate family utility."
+    "A low advertised starting price is not equivalent to lowest 10-year cost or adequate family utility.",
+    "For a South African manufacturing scenario, screen meaningful local value-add and SKD/APDP2 policy exposure using official policy sources; treat this as a risk scenario, not legal eligibility advice."
   ],
   "claim_ceiling": [
     "Prices are online advertised-from snapshots retrieved 2026-10-17, not verified dealer quotations.",
