@@ -1,0 +1,116 @@
+# Household Mobility Continuity Benchmark — v0.1
+
+**Status:** Research protocol and synthetic verifier fixture. No observed results, vehicle design validation, or approval is claimed.  
+**Date:** 2026-10-17  
+**Primary question:** When a household's primary vehicle is unavailable or expensive to operate, how much essential mobility can it still complete safely, legally, accessibly, and on time?
+
+## 1. Paradigm shift: from optimizing a vehicle to preserving mobility
+
+A vehicle is a means, not the outcome. Purchase price, fuel economy, repair time, and nominal reliability can all look attractive while the household loses work, care, school, food-access, or medical trips when one part fails or cash flow contracts.
+
+This benchmark therefore evaluates **household mobility continuity** across three test archetypes:
+
+1. A single-vehicle baseline.
+2. A repairability-oriented single vehicle.
+3. A primary vehicle plus complementary mobility options.
+
+It crosses them with five stressors: nominal operation, repair delay, critical-part unavailability, fuel-price shock, and household cash-flow contraction. The 15 cases are deliberately synthetic and form a full 3 × 5 matrix. The data has no simulated outputs: an empty result is not evidence of success.
+
+The benchmark extends vehicle repairability research—where spare-parts availability is a recognized repairability dimension—into the household consequence of repair delays and alternative-mode resilience. It is a research contract, not a recognized automotive standard. Reference: [Proposing an integrated indicator to measure product repairability](https://www.sciencedirect.com/science/article/pii/S0959652623005929).
+
+## 2. Artifacts
+
+- Scenario contract: `schemas/transport/mobility_continuity_scenario_v0_1.schema.json`
+- Frozen synthetic matrix: `fixtures/personal_vehicle/mobility_continuity_scenarios_v0_1.json`
+- Independent Rust audit: `tools/mobility-continuity-audit/`
+- Path-scoped CI: `.github/workflows/mobility-continuity-audit.yml`
+
+The fixture's 12 essential trips and 8 discretionary trips per week are normalized synthetic workload values for deterministic smoke tests, not a South African household travel estimate. Architecture readiness and stress parameters are equally synthetic and must not be represented as actual product capabilities or forecasts.
+
+## 3. Metrics and calculation contract
+
+Every report must carry the input/configuration digest, model and source revision, evidence class, units, sampling method, uncertainty, missingness, limitations, and maximum justified claim. Use the shared [engineering evidence envelope](./../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json) when publishing results across projects.
+
+- **Essential-trip fulfilment ratio** = eligible essential trip opportunities completed ÷ all demanded essential trip opportunities. The denominator is frozen before results are observed; rescheduling or removing a missed trip does not erase it.
+- **Unmet essential trips** = count of essential opportunities not completed within their declared time window.
+- **Out-of-service time** = time from a documented failure/hold that prevents dispatch until an authorized post-repair check permits safe return to service. Also report diagnosis, parts wait, bay wait, hands-on work, validation, rework, and external transport time separately.
+- **Time to safe recovery P50/P90** = median and 90th percentile of complete recovery durations, by preregistered task/failure family and architecture. Do not compute a tail percentile from unreported or selectively omitted failures.
+- **Cost per fulfilled essential trip** = attributable whole-life household mobility cost ÷ eligible essential trips fulfilled in the same evaluation horizon. Report cash costs, financing, energy, maintenance, parts, downtime, fallback travel and disposal separately before presenting any total. Unknown is not zero.
+- **Fallback accessibility/capacity** = essential demand that could be carried by a fallback only when that option is available, legal, accessible to the relevant traveler, within the trip window, and has sufficient capacity.
+- **Uncertainty-interval coverage** = coverage of preregistered intervals against held-out observations, reported only when measured outcomes and suitable sample counts exist.
+
+Report the vector of metrics and its Pareto frontier. Do **not** collapse safety, legality, accessibility, service continuity and cost into a single opaque weighted sum. A cheap or efficient candidate cannot compensate for a prohibited dispatch, inaccessible essential trip, unsupported claim or unqualified safety-critical part.
+
+## 4. Proposed acceptance targets (not achieved results)
+
+| Dimension | Proposed target | Interpretation |
+|---|---:|---|
+| Dispatch during an active safety hold | **0 violations** | Fail-closed invariant; no trade-off allowed |
+| False acceptance of semantic negative controls | **0** | Reject safety bypass, unknown-to-zero cost, synthetic-as-observed relabel, fake fallback service, and advertised-price-as-TCO |
+| Essential-trip fulfilment under nominal test conditions | **≥95%** | Target for a tested architecture and defined household profile, not a population claim |
+| Essential-trip fulfilment under declared stress | **≥90%** | Target must be assessed separately for each stressor and relevant access profile |
+| P90 safe-recovery improvement | **≥25% vs paired baseline** | Compare like-for-like tasks; disclose absolute hours, uncertainty, sample size and technician effects |
+| Unknown lifecycle cost fields silently imputed to zero | **0** | Preserve unknown / bounded / quoted / measured states explicitly |
+| Repeated report digest with identical exact inputs and tool revision | **100% identical** | Determinism/reproducibility gate; does not validate physical truth |
+
+Targets are intentionally ambitious engineering hypotheses, not current measurements. If an archetype cannot meet the stress target, publish that failure rather than changing the denominator, lowering a gate after seeing results, or tuning only on the evaluation set.
+
+## 5. Safety and truth invariants
+
+1. An active safety hold or unqualified configuration means `deny_dispatch`; no fallback score may override it.
+2. Simulation, synthetic data, desk research, workshop measurement, independent inspection, and regulatory approval are distinct evidence classes.
+3. A route or fallback is not served capacity until legality, accessibility, availability, timing and capacity have evidence.
+4. Unknown cost, unavailable parts, missing approval, missing evidence or missing outcome must never be silently converted to zero or success.
+5. Manufacturer fuel-consumption values and advertised-from prices are source claims, not measured household consumption or total ownership cost.
+6. Preserve all failures and rework. The study must publish negative controls and the exact tested revision.
+7. No software benchmark authorizes a road test, design change, safety-critical substitute, import, modification or manufacturing route.
+
+The [NRCS vehicle-import guidance](https://www.nrcs.org.za/automotive/importing-vehicles/) says a Letter of Authority and conformity evidence apply to vehicle imports and to unregistered manufacturers/builders or modification of unapproved designs. Confirm exact applicability with the competent authority for the specific vehicle and activity. The [South African Government roadworthy overview](https://www.gov.za/services/services-residents/driving/roadworthiness/roadworthy-certificate) explains roadworthiness testing in stated ownership/use cases; a roadworthy certificate is not a substitute for every required product or modification approval.
+
+Fuel-cost inputs must be dated, regional and grade-specific. The [Department of Mineral and Petroleum Resources' 5 October 2026 notice](https://www.gov.za/news/media-statements/minister-gwede-mantashe-announces-adjustment-fuel-prices-effective-7-0) records that petrol 95 increased by R3.33/L effective 7 October 2026. That is a dated fuel-price shock reference, not a universal future forecast and not a replacement for the applicable inland retail price record.
+
+## 6. Evaluation protocol
+
+### Phase A — model contract and negative controls
+
+- Run schema and semantic audits on a frozen exact-head corpus.
+- Verify the complete architecture × stressor Cartesian product and all negative controls.
+- Freeze the metric formula, trip denominator, time windows, task categories, exclusions, and stopping rules before examining candidate outcomes.
+- Do not treat this phase as model or vehicle validation.
+
+### Phase B — demand and baseline capture
+
+- Collect a privacy-minimized, consented household trip diary over a declared observation window; record requested time windows, essentiality, passenger/accessibility needs, distance, available modes, and whether an alternative was actually usable.
+- Record an exact vehicle grade/model year, service history, odometer, configuration, insurance/registration/approval status, baseline parts basket, dated service quotes, and source rights.
+- Use multiple households and report the sampling frame. One household is a case study, not a representative sample of South Africa.
+
+### Phase C — controlled repair and outage replay
+
+- Preregister high-impact, repeatable repair tasks and fault injection only on suitable controlled equipment or workshop setups; never induce unsafe faults on a public-road vehicle.
+- Preserve diagnosis, parts wait, bay wait, technician work, verification, rework, and external mobility logs as separate clocks.
+- Use paired baseline/candidate tasks, randomize order where practical, document technician qualifications and learning effects, and log all failed or censored runs.
+- A pilot of 30 paired repetitions per task family is for procedure calibration only. Confirmatory sample size must be preregistered from variance/power analysis; do not assume that 30 observations yields a stable P90.
+- Report medians, P90, uncertainty intervals, sample size, per-technician effects, missing observations and censored downtime. Keep simulation and workshop results separate.
+
+### Phase D — held-out robustness and Pareto comparison
+
+- Test stressor combinations not used for parameter tuning; include supply delay, price shock, cash-flow contraction, accessibility constraints, and common-cause outages.
+- Compare cost, essential-trip service, recovery tail, accessibility, uncertainty and repair/rework outcomes as a vector.
+- Require no safety or evidence-boundary regression; if a candidate is dominated, preserve the result. Avoid a single aggregate score unless each hard constraint has first been satisfied and the score's weights and sensitivity are published.
+
+### Phase E — bounded field observation
+
+- Only observe legally operable, appropriately approved configurations with informed consent and a safe stop protocol. Do not treat this document as authorization to prototype or modify a road vehicle.
+- Report real-world outcomes only with evidence envelopes and source-consistent claims. Never transfer a synthetic percentage directly to public claims, funding claims or purchasing advice.
+
+## 7. What success would look like
+
+The paradigm shift is demonstrated only if the approach can produce a reproducible comparison in which:
+- a household's essential mobility outcomes are measured directly rather than inferred solely from engine efficiency or sticker price;
+- scarce-part and repair delays are visible in P90 recovery and unserved-trip outcomes;
+- legal, safe and accessible complementary modes count only when genuinely usable;
+- unknowns and failures remain visible;
+- the Pareto frontier reveals a defensible trade-off between purchase/operating costs and resilience; and
+- an independent reviewer can reproduce the report from its frozen corpus, source records and exact tool revision.
+
+**Current evidence ceiling:** a schema and synthetic scenario design can demonstrate contract structure and verifier behavior. It cannot establish that any vehicle is safe, reliable, cheaper over ten years, more repairable, locally manufacturable, or appropriate for a particular family.
