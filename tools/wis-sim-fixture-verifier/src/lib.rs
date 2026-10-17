@@ -659,7 +659,11 @@ mod tests {
 
     #[test]
     fn scenario_family_and_title_are_bound_to_manifest() {
-        let (bytes, manifest) = rewritten_fixture(|rows| rows[0]["scenario_family"] = json!("invented_family"));
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            for row in rows.iter_mut().filter(|row| row["scenario_id"] == "WSS-001") {
+                row["scenario_family"] = json!("invented_family");
+            }
+        });
         assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("family differs from manifest"));
     }
 
