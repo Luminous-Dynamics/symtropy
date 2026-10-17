@@ -466,8 +466,8 @@ mod tests {
             .find(|x| x["candidate_id"] == "06-uncertified-low-price-import").unwrap();
         for metric in candidate["metrics"].as_array_mut().unwrap() {
             if metric["status"] == "synthetic_value" {
-                let unit = metric["unit"].as_str().unwrap();
-                metric["value"] = Value::from(if unit == "fraction" { 1.0 } else { 0.0 });
+                let is_fraction = metric["unit"].as_str().unwrap() == "fraction";
+                metric["value"] = Value::from(if is_fraction { 1.0 } else { 0.0 });
             }
         }
         let report = evaluate(&root).unwrap();
@@ -607,7 +607,8 @@ mod tests {
         assert!(evaluate(&root).is_err());
 
         let mut root = fixture();
-        root["candidates"][1]["candidate_id"] = root["candidates"][0]["candidate_id"].clone();
+        let first_id = root["candidates"][0]["candidate_id"].clone();
+        root["candidates"][1]["candidate_id"] = first_id;
         assert!(evaluate(&root).is_err());
     }
 }
