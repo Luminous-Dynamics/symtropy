@@ -100,7 +100,7 @@ The 4/5, 2/5 and time thresholds are product hypotheses for study planning, not 
 
 ## 7. Test protocol
 
-1. **Contract tests first.** Validate four synthetic profiles and seven adversarial mutations. Attempt forbidden control tuning, moving-UI expansion, cloud sync without consent, telemetry without consent, guest-data retention and excessive ambience values.
+1. **Contract tests first.** Validate four synthetic profiles and eight adversarial mutations. Attempt forbidden control tuning, moving-UI expansion, cloud sync without consent, telemetry without consent, guest-data retention, excessive ambience values and irreversible profile settings.
 2. **Parked usability study.** Compare a stable default profile with profile customization for representative tasks. Record setup time, help requests, successful completion, errors, preference restoration, profile handover and reset.
 3. **Accessible design evaluation.** Recruit people with diverse visual, hearing, reach, dexterity and cognitive preferences with appropriate consent. Report each participant group separately; do not require a person to disclose a diagnosis to use a preference or feature.
 4. **Moving-task simulator study.** Only after parked usability and safety review; compare baseline vs personalized moving interface with matched tasks. Measure glance behavior, task errors, performance and workload. Do not begin with experimental variants on public roads.
@@ -126,6 +126,6 @@ A small formative pilot is for finding usability defects, not claiming populatio
 - Profile contract and negative-control bundle: schemas/transport/vehicle_personalization_profile_set_v0_1.schema.json and fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json.
 - Standalone Rust schema/semantic auditor: tools/vehicle-personalization-audit/.
 - Focused workflow: .github/workflows/vehicle-personalization-audit.yml.
-- Design and human-factors research tracker: VEHICLE-USER-FIT-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1792).
+- Design and human-factors research tracker: VEHICLE-USER-FIT-001 (https://github.com/Luminous-Dynamics/symtropy/issues/1801).
 
 The contract is an input to future product engineering, not a running in-car personalization system. The auditor can prove that the listed synthetic profile contract and its seeded invalid cases obey the rules encoded here. It cannot demonstrate enjoyment, comfort, accessibility, distraction reduction, privacy security in deployed hardware, legal compliance or vehicle safety. Those require implementation review, real tests and suitable evidence.
