@@ -170,7 +170,7 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
     errors
 }
 
-fn validate_fixture_corpus() -> Result<(), Vec<String>> {
+pub(crate) fn validate_fixture_corpus() -> Result<usize, Vec<String>> {
     let schema: Value = serde_json::from_str(include_str!("../../../schemas/transport/repair_task_graph_v0_1.schema.json"))
         .map_err(|error| vec![format!("repair graph schema JSON parse error: {error}")])?;
     let document: Value = serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json"))
@@ -232,7 +232,7 @@ fn validate_fixture_corpus() -> Result<(), Vec<String>> {
     }) {
         errors.push("repair graph fixture claim ceiling has been weakened".to_owned());
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() { Ok(fixtures.len()) } else { Err(errors) }
 }
 
 #[cfg(test)]
