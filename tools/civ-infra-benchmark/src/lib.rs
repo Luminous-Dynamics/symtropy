@@ -459,7 +459,7 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                             || point.elevation_m > maximum + 1.0e-9)
                     {
                         errors.push(format!(
-                            "candidate {} road envelope does not contain profile point at station {}",
+                            "candidate {} road envelope excludes profile station {}",
                             candidate.id, point.station_m
                         ));
                     }
@@ -1283,7 +1283,11 @@ mod tests {
             .find(|candidate| candidate.id == "C-reference")
             .expect("reference candidate exists");
         candidate.profile_points[1].elevation_m = 60.0;
-        // Leave the claimed 3.5% grade untouched; the verifier must derive it.
+        // Keep the coarse envelopes consistent with the edited profile while
+        // leaving the claimed 3.5% grade untouched.
+        candidate.road_envelopes[0].elevation_max_m = Some(60.0);
+        candidate.road_envelopes[1].elevation_min_m = Some(37.8);
+        candidate.road_envelopes[1].elevation_max_m = Some(60.0);
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&modified).expect("finite profile remains structurally valid");
         let result = report
@@ -1300,6 +1304,47 @@ mod tests {
                 && finding.status == CheckStatus::Violation
         }));
         verify_report(&modified, &report).expect("reference recomputation must derive grade too");
+    }
+
+    #[test]
+    fn derived_cut_fill_volume_rejects_forged_declared_quantity() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.declared_earthworks_m3 = 0.0;
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let report = evaluate_json(&modified).expect("fixture inputs remain structurally valid");
+        let result = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate result exists");
+        assert_eq!(result.disposition, CandidateDisposition::Infeasible);
+        assert!(result.findings.iter().any(|finding| {
+            finding.code == "declared_earthworks_matches_sections"
+                && finding.status == CheckStatus::Violation
+        }));
+        verify_report(&modified, &report)
+            .expect("reference recomputation must derive cut/fill volume too");
+    }
+
+    #[test]
+    fn road_envelope_must_cover_all_profile_stations_and_heights() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.road_envelopes[0].elevation_max_m = Some(10.0);
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors = evaluate_json(&modified).expect_err("inconsistent envelope must fail");
+        assert!(errors.iter().any(|error| error.contains("road envelope excludes profile")));
     }
 
 }
