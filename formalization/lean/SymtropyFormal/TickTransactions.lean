@@ -120,7 +120,8 @@ def finalizeTick (s : TickLedger) (id resultDigest : Nat) :
             else
               none
         | .finalized, some previousResult =>
-            if previousResult = resultDigest then some s else none
+            if previousResult = resultDigest ∧
+              s.lastFinalized = some (tick.id, previousResult) then some s else none
         | _, _ => none
       else
         none
@@ -164,9 +165,10 @@ theorem finalize_same_result_is_idempotent
     (hActive : s.active = some tick)
     (hId : tick.id = id)
     (hPhase : tick.phase = .finalized)
-    (hResult : tick.resultStateDigest = some resultDigest) :
+    (hResult : tick.resultStateDigest = some resultDigest)
+    (hLast : s.lastFinalized = some (tick.id, resultDigest)) :
     finalizeTick s id resultDigest = some s := by
-  simp [finalizeTick, hActive, hId, hPhase, hResult]
+  simp [finalizeTick, hActive, hId, hPhase, hResult, hLast]
 
 theorem finalize_conflicting_result_is_rejected
     (s : TickLedger) (tick : TickRecord) (id previousResult newResult : Nat)
