@@ -68,6 +68,9 @@ jobs:
       - name: Run adaptive sequential exploration reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example sequential_resource_exploration_reference
 
+      - name: Run correlation-aware assay evidence reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example correlated_assay_evidence_reference
+
       - name: Run orbital sustainability externality reference tests
         run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
       - name: Execute corpus validator and emit receipt
@@ -315,6 +318,43 @@ jobs:
             and .high_cost_negative_control.net_expected_value.numerator == 54000000000000
           ' space-economy-sequential-resource-exploration-receipt.json
 
+      - name: Execute correlation-aware resource assay reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example correlated_assay_evidence_reference -- \
+            --source-commit "$source_commit" > space-economy-correlated-assay-evidence-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .result == "pass"
+            and .source_commit == $source_commit
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.reference_source_sha256 | test("^[0-9a-f]{64}$"))
+            and .probability_denominator == 100000000
+            and .baseline.expected_value_without_measurement.numerator == 5000000000
+            and .baseline.evpi.numerator == 5000000000
+            and .latent_shared_calibration_mode.probability_bps == 5000
+            and .latent_spatial_representativeness_state.unrepresentative_probability_bps == 2000
+            and .model_comparisons.single_assay_a.model.gross_expected_value.numerator == 6100000000
+            and .model_comparisons.single_assay_a.portfolio.net_expected_value.numerator == 5700000000
+            and .model_comparisons.shared_calibration_joint_model_a_b.model.gross_expected_value.numerator == 6670000000
+            and .model_comparisons.shared_calibration_joint_model_a_b.model.outcomes[0].posterior_rich_probability_bps_floor == 8108
+            and .model_comparisons.shared_calibration_joint_model_a_b.portfolio.net_expected_value.numerator == 5670000000
+            and .model_comparisons.naive_independence_negative_control.model.gross_expected_value.numerator == 7062000000
+            and .model_comparisons.naive_independence_negative_control.model.outcomes[0].posterior_rich_probability_bps_floor == 8901
+            and .model_comparisons.naive_independence_negative_control.accepted_for_policy_selection == false
+            and .model_comparisons.naive_independence_negative_control.credited_incremental_value_units == 0
+            and .model_comparisons.complementary_assay_a_c.model.gross_expected_value.numerator == 7566000000
+            and .model_comparisons.complementary_assay_a_c.portfolio.net_expected_value.numerator == 6666000000
+            and .portfolio_exhaustive_selection.selected_portfolio == "complementary_assay_a_c"
+            and .portfolio_exhaustive_selection.selected_net_expected_value.numerator == 6666000000
+            and .portfolio_exhaustive_selection.zero_regret_vs_finite_enumeration == true
+            and (.negative_controls.provenance_controls | length == 5)
+            and all(.negative_controls.provenance_controls[]; .credited_incremental_value_units == 0 and .evidence_credit_rejected == true)
+            and .negative_controls.three_assay_budget_overrun.budget_pass == false
+            and .negative_controls.three_assay_budget_overrun.selection_credit == null
+          ' space-economy-correlated-assay-evidence-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -332,7 +372,8 @@ jobs:
             space-economy-temporal-resilience-receipt.json \
             space-economy-resource-chain-receipt.json \
             space-economy-resource-assay-selection-receipt.json \
-            space-economy-sequential-resource-exploration-receipt.json; do
+            space-economy-sequential-resource-exploration-receipt.json \
+            space-economy-correlated-assay-evidence-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -359,6 +400,7 @@ jobs:
             space-economy-resource-chain-receipt.json
             space-economy-resource-assay-selection-receipt.json
             space-economy-sequential-resource-exploration-receipt.json
+            space-economy-correlated-assay-evidence-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
