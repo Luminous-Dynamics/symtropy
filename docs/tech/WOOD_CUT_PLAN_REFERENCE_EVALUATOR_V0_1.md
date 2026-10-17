@@ -51,7 +51,7 @@ Each feasible plan reports:
 - unprocessed stock length;
 - product counts and per-stock patterns.
 
-The Pareto objectives are: maximize sale value, maximize product length fulfilled, maximize reusable offcut length, and minimize combined kerf plus unusable residual. Demand cap and structural-use gates apply before optimization. Unprocessed stock is disclosed but is not assigned an invented positive or negative value.
+The Pareto objectives are: maximize sale value, maximize product length fulfilled, maximize reusable offcut length, and minimize combined kerf plus unusable residual. Demand cap and structural-use gates apply before optimization. Unprocessed stock is disclosed but is not assigned an invented positive or negative value. The receipt also includes a transparent greedy comparator that repeatedly takes the eligible, in-demand product with the highest declared synthetic value-per-length that fits. This comparator is intentionally simple; it is a reproducible baseline, not an industry-optimal policy.
 
 This frontier preserves economically meaningful choices. It does not invent prices for residuals, imply that all offcuts have a real market, or hide preferences inside arbitrary weights.
 
