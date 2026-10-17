@@ -676,6 +676,18 @@ mod tests {
             result(&report, "baseline-virgin").eligibility_reason.as_deref(),
             Some("evidence_coverage_not_complete")
         );
+
+        let mut scope_manifest = fixture_manifest();
+        scope_manifest.evidence.iter_mut()
+            .find(|evidence| evidence.id == "ev-baseline")
+            .expect("baseline evidence exists")
+            .scope_id = "factory:other-line".to_owned();
+        let scope_bytes = serde_json::to_vec(&scope_manifest).expect("scope mutation serializes");
+        let scope_report = evaluate(&scope_bytes, "scope-mutated").expect("other candidates remain eligible");
+        assert_eq!(
+            result(&scope_report, "baseline-virgin").eligibility_reason.as_deref(),
+            Some("evidence_scope_mismatch")
+        );
     }
 
     #[test]
