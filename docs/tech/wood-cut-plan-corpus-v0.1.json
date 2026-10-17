@@ -1,0 +1,131 @@
+{
+  "suite_id": "wood-cut-plan-reference",
+  "suite_version": "0.1.0",
+  "manifest_kind": "synthetic-cut-plan-fixtures",
+  "claim_ceiling": "Fixtures test bounded one-dimensional cuts of already-squared stock. They do not represent 3D log geometry, measured mill yields, market prices, grade certification or real operating performance.",
+  "units": {
+    "stock_length": "millimetre",
+    "kerf": "millimetre",
+    "value": "synthetic_microcredit"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "VALUE_LENGTH_OFFCUT_TRADEOFF",
+      "evidence_class": "synthetic",
+      "stock_lengths_mm": [
+        6000
+      ],
+      "kerf_mm": 4,
+      "minimum_reusable_offcut_mm": 300,
+      "minimum_pieces_required": 1,
+      "products": [
+        {
+          "product_id": "premium_short",
+          "length_mm": 1800,
+          "demand_units": 3,
+          "unit_value_microcredits": 500,
+          "application": "structural",
+          "grade_evidence_state": "qualified",
+          "inspection_pass": true
+        },
+        {
+          "product_id": "standard_long",
+          "length_mm": 2400,
+          "demand_units": 2,
+          "unit_value_microcredits": 610,
+          "application": "non_structural",
+          "grade_evidence_state": "unknown",
+          "inspection_pass": false
+        },
+        {
+          "product_id": "unverified_premium",
+          "length_mm": 1200,
+          "demand_units": 4,
+          "unit_value_microcredits": 900,
+          "application": "structural",
+          "grade_evidence_state": "missing",
+          "inspection_pass": false
+        }
+      ]
+    },
+    {
+      "scenario_id": "MULTI_STOCK_DEMAND_CAP",
+      "evidence_class": "synthetic",
+      "stock_lengths_mm": [
+        6000,
+        4200
+      ],
+      "kerf_mm": 4,
+      "minimum_reusable_offcut_mm": 300,
+      "minimum_pieces_required": 2,
+      "products": [
+        {
+          "product_id": "qualified_beam",
+          "length_mm": 3000,
+          "demand_units": 2,
+          "unit_value_microcredits": 700,
+          "application": "structural",
+          "grade_evidence_state": "qualified",
+          "inspection_pass": true
+        },
+        {
+          "product_id": "shelf",
+          "length_mm": 1800,
+          "demand_units": 3,
+          "unit_value_microcredits": 400,
+          "application": "non_structural",
+          "grade_evidence_state": "unknown",
+          "inspection_pass": false
+        },
+        {
+          "product_id": "small_part",
+          "length_mm": 900,
+          "demand_units": 6,
+          "unit_value_microcredits": 130,
+          "application": "non_structural",
+          "grade_evidence_state": "unknown",
+          "inspection_pass": false
+        }
+      ]
+    },
+    {
+      "scenario_id": "KERF_EDGE_AND_UNUSABLE_RESIDUAL",
+      "evidence_class": "synthetic",
+      "stock_lengths_mm": [
+        1000
+      ],
+      "kerf_mm": 8,
+      "minimum_reusable_offcut_mm": 200,
+      "minimum_pieces_required": 1,
+      "products": [
+        {
+          "product_id": "exact_fit",
+          "length_mm": 1000,
+          "demand_units": 1,
+          "unit_value_microcredits": 50,
+          "application": "non_structural",
+          "grade_evidence_state": "unknown",
+          "inspection_pass": false
+        },
+        {
+          "product_id": "half_stock",
+          "length_mm": 480,
+          "demand_units": 2,
+          "unit_value_microcredits": 20,
+          "application": "non_structural",
+          "grade_evidence_state": "unknown",
+          "inspection_pass": false
+        },
+        {
+          "product_id": "oversize",
+          "length_mm": 1100,
+          "demand_units": 2,
+          "unit_value_microcredits": 5000,
+          "application": "structural",
+          "grade_evidence_state": "qualified",
+          "inspection_pass": true
+        }
+      ]
+    }
+  ]
+}

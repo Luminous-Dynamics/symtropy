@@ -1,0 +1,79 @@
+name: Wood Cut-Plan Reference Evaluator
+
+on:
+  push:
+    branches: ["feat/wood-cut-plan-reference-v0-1"]
+    paths:
+      - "docs/tech/WOOD_CUT_PLAN_REFERENCE_EVALUATOR_V0_1.md"
+      - "docs/tech/wood-cut-plan-corpus-v0.1.json"
+      - "tools/wood-cut-plan/**"
+      - ".github/workflows/wood-cut-plan.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/WOOD_CUT_PLAN_REFERENCE_EVALUATOR_V0_1.md"
+      - "docs/tech/wood-cut-plan-corpus-v0.1.json"
+      - "tools/wood-cut-plan/**"
+      - ".github/workflows/wood-cut-plan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wood-cut-plan-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/wood-cut-plan/Cargo.toml -- --check
+
+      - name: Run unit and adversarial tests
+        run: cargo test --manifest-path tools/wood-cut-plan/Cargo.toml
+
+      - name: Run frozen corpus and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wood-cut-plan/Cargo.toml -- \
+            docs/tech/wood-cut-plan-corpus-v0.1.json \
+            --source-commit "$source_commit" > wood-cut-plan-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 3
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].pareto_plan_count] == [6, 21, 2])
+            and ([.scenarios[].greedy_baseline.plan.sale_value_microcredits] == [1500, 2060, 50])
+            and (.scenarios | all(
+              .status == "pass"
+              and .pareto_plan_count > 0
+              and .greedy_baseline.meets_minimum_pieces == true
+              and .baseline_is_covered_by_pareto_frontier == true
+            ))
+          ' wood-cut-plan-reference-receipt.json
+
+      - name: Upload deterministic reference receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: wood-cut-plan-reference-receipt
+          path: wood-cut-plan-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90
