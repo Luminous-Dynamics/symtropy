@@ -671,6 +671,49 @@ mod tests {
     }
 
     #[test]
+    fn alternative_material_producers_match_exhaustive_oracle() {
+        let mut fixture = fixture();
+        let base = fixture
+            .tasks
+            .iter()
+            .find(|task| task.id == "T-MATERIAL-REVIEW-LOW-COST")
+            .unwrap()
+            .clone();
+
+        let mut cheaper_slower = base.clone();
+        cheaper_slower.id = "T-MATERIAL-REVIEW-CHEAPER-SLOWER".to_owned();
+        cheaper_slower.description =
+            "Generated synthetic cheaper but slower review alternative.".to_owned();
+        cheaper_slower.cost_units = 4;
+        cheaper_slower.duration_units = 7;
+
+        let mut faster = base;
+        faster.id = "T-MATERIAL-REVIEW-EXPEDITED".to_owned();
+        faster.description = "Generated synthetic expedited review alternative.".to_owned();
+        faster.required_gate_ids.push("INDEPENDENT_QA".to_owned());
+        faster.cost_units = 9;
+        faster.duration_units = 1;
+
+        fixture.tasks.push(cheaper_slower);
+        fixture.tasks.push(faster);
+        let digest = sha256_hex(&serde_json::to_vec(&fixture).unwrap());
+        let actual = evaluate_fixture(&fixture, digest).unwrap();
+        assert_eq!(actual.pareto_plans, exhaustive_oracle(&fixture));
+        assert_eq!(actual.pareto_plan_count, 4);
+        assert_eq!(
+            actual.pareto_plans.iter().map(|plan| plan.cost_units).collect::<Vec<_>>(),
+            vec![11, 12, 15, 16]
+        );
+        assert_eq!(
+            actual.pareto_plans
+                .iter()
+                .map(|plan| plan.duration_units)
+                .collect::<Vec<_>>(),
+            vec![10, 8, 5, 4]
+        );
+    }
+
+    #[test]
     fn exact_fixture_bytes_are_required() {
         let mut changed = FIXTURE_BYTES.to_vec();
         changed.push(b' ');
