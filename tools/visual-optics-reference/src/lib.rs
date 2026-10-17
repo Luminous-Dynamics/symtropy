@@ -66,7 +66,7 @@ pub struct FieldOfView {
     pub vertical_radians: f64,
 }
 
-/// Errors from bounded sRGB transfer-function and relative-luminance calculations.
+/// Errors from bounded display transfer-function and relative-luminance calculations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TransferError {
     /// An input channel was NaN or infinite.
@@ -78,8 +78,10 @@ pub enum TransferError {
 impl fmt::Display for TransferError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonFiniteInput => f.write_str("sRGB channel must be finite"),
-            Self::OutOfRange => f.write_str("sRGB channel must be in the normalized range [0, 1]"),
+            Self::NonFiniteInput => f.write_str("transfer-function input must be finite"),
+            Self::OutOfRange => {
+                f.write_str("input is outside the declared transfer-function domain")
+            }
         }
     }
 }
