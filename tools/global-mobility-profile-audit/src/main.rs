@@ -145,7 +145,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
         errors.push(format!("{path}.expected_disposition: expected {expected} for negative_control={negative}"));
     }
 
-    let infra = profile.get("infrastructure").unwrap_or(&Value::Null);
+    let infra = &profile["infrastructure"];
     const INFRA_KEYS: &[&str] = &["charging_access", "fuel_access", "grid_reliability", "service_network", "parts_logistics", "digital_connectivity", "observed_values_included"];
     check_keys(infra, &format!("{path}.infrastructure"), INFRA_KEYS, INFRA_KEYS, errors);
     for key in ["charging_access", "fuel_access", "grid_reliability", "service_network", "parts_logistics", "digital_connectivity"] {
@@ -153,7 +153,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
     }
     bool_at(infra, "observed_values_included", false, &format!("{path}.infrastructure"), errors);
 
-    let affordability = profile.get("affordability").unwrap_or(&Value::Null);
+    let affordability = &profile["affordability"];
     const AFF_KEYS: &[&str] = &["local_currency_code", "price_status", "income_distribution_status", "ownership_cost_status", "target_segment_cost_threshold_frozen", "unknowns_remain_unknown", "required_cost_components"];
     check_keys(affordability, &format!("{path}.affordability"), AFF_KEYS, AFF_KEYS, errors);
     null_at(affordability, "local_currency_code", &format!("{path}.affordability"), errors);
@@ -164,7 +164,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
     bool_at(affordability, "unknowns_remain_unknown", true, &format!("{path}.affordability"), errors);
     require_array_has_min(affordability, "required_cost_components", 5, &format!("{path}.affordability"), errors);
 
-    let regulatory = profile.get("regulatory").unwrap_or(&Value::Null);
+    let regulatory = &profile["regulatory"];
     const REG_KEYS: &[&str] = &["jurisdiction_id", "status", "requirements_to_check", "standards_are_not_approval"];
     check_keys(regulatory, &format!("{path}.regulatory"), REG_KEYS, REG_KEYS, errors);
     null_at(regulatory, "jurisdiction_id", &format!("{path}.regulatory"), errors);
@@ -172,7 +172,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
     require_array_has_min(regulatory, "requirements_to_check", 5, &format!("{path}.regulatory"), errors);
     bool_at(regulatory, "standards_are_not_approval", true, &format!("{path}.regulatory"), errors);
 
-    let serviceability = profile.get("serviceability").unwrap_or(&Value::Null);
+    let serviceability = &profile["serviceability"];
     const SERVICE_KEYS: &[&str] = &["critical_parts_basket_status", "qualified_repair_coverage_status", "repair_manual_status", "offline_repair_docs_required", "critical_procedure_coverage_percent", "observed_data_included"];
     check_keys(serviceability, &format!("{path}.serviceability"), SERVICE_KEYS, SERVICE_KEYS, errors);
     for key in ["critical_parts_basket_status", "qualified_repair_coverage_status", "repair_manual_status"] {
@@ -182,7 +182,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
     null_at(serviceability, "critical_procedure_coverage_percent", &format!("{path}.serviceability"), errors);
     bool_at(serviceability, "observed_data_included", false, &format!("{path}.serviceability"), errors);
 
-    let digital = profile.get("digital_access").unwrap_or(&Value::Null);
+    let digital = &profile["digital_access"];
     const DIGITAL_KEYS: &[&str] = &["basic_operation_without_cloud_required", "offline_safe_degraded_behavior_required", "owner_data_control_required", "cloud_required_for_basic_function", "privacy_by_default_required"];
     check_keys(digital, &format!("{path}.digital_access"), DIGITAL_KEYS, DIGITAL_KEYS, errors);
     for key in ["basic_operation_without_cloud_required", "offline_safe_degraded_behavior_required", "owner_data_control_required", "privacy_by_default_required"] {
@@ -190,7 +190,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
     }
     bool_at(digital, "cloud_required_for_basic_function", false, &format!("{path}.digital_access"), errors);
 
-    let language = profile.get("language_access").unwrap_or(&Value::Null);
+    let language = &profile["language_access"];
     const LANG_KEYS: &[&str] = &["manual_language_status", "local_units_support_required", "offline_manuals_required", "language_list"];
     check_keys(language, &format!("{path}.language_access"), LANG_KEYS, LANG_KEYS, errors);
     status_at(language, "manual_language_status", &format!("{path}.language_access"), errors);
@@ -201,7 +201,7 @@ fn audit_profile(profile: &Value, index: usize, errors: &mut Vec<String>) -> (bo
         errors.push(format!("{path}.language_access.language_list: synthetic panel must not assert market language coverage"));
     }
 
-    let lifecycle = profile.get("lifecycle").unwrap_or(&Value::Null);
+    let lifecycle = &profile["lifecycle"];
     const LIFE_KEYS: &[&str] = &["end_of_life_status", "material_traceability_status", "repair_reuse_route_required", "observed_impact_data_included"];
     check_keys(lifecycle, &format!("{path}.lifecycle"), LIFE_KEYS, LIFE_KEYS, errors);
     status_at(lifecycle, "end_of_life_status", &format!("{path}.lifecycle"), errors);
@@ -227,7 +227,7 @@ fn audit_corpus(corpus: &Value) -> Result<AuditSummary, Vec<String>> {
     {
         errors.push("corpus.claim_ceiling: invalid or missing claim ceiling".to_string());
     }
-    let provenance = corpus.get("provenance").unwrap_or(&Value::Null);
+    let provenance = &corpus["provenance"];
     const PROV_KEYS: &[&str] = &["created_on", "kind", "external_market_observations_included", "notes"];
     check_keys(provenance, "corpus.provenance", PROV_KEYS, PROV_KEYS, &mut errors);
     if string_at(provenance, "kind", "corpus.provenance", &mut errors) != Some("synthetic_regional_archetype_panel") {
