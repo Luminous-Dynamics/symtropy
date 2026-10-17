@@ -1,0 +1,50 @@
+# Thermodynamic allocator numeric stress — v0.1
+
+**Status:** Test protocol and adversarial cases authored; Rust execution and timing are not yet verified.
+
+## Scope
+
+The allocator in `src/systems/thermodynamic_allocation.rs` uses IEEE-754 `f64`, while its policy description is naturally expressed over non-negative exact reals. These models are not interchangeable. This test extension widens the input distribution beyond ordinary decimal ranges so that safety properties are exercised across subnormal, normal, large, and near-maximum finite values.
+
+The new deterministic unit test covers:
+
+- explicit boundary values: zero, smallest positive subnormal, smallest positive normal, machine epsilon, (10^{-300}), (10^{-16}), (1), (10^{16}), (10^{300}), and `f64::MAX);
+- 4,096 seeded cases with recipient counts from 0 through 64 and non-negative finite values sampled across the binary64 exponent range;
+- stable-ID output ordering and exact output equality after reversing input order;
+- finite, non-negative allocations bounded by each recipient's `min(headroom, per_recipient_limit)`;
+- finite non-negative unallocated supply, total allocation not exceeding source supply, and conservation accumulation in canonical result order.
+
+The property loop is deterministic and repeatable; it is a stress corpus, not a statistical proof or a performance benchmark.
+
+## Numeric assurance boundary
+
+Subnormal supplies may not be divisible into equal, non-zero representable `f64` allocations. The safe response can be to leave a small residual unallocated rather than overspend. Therefore record **under-utilization** separately from conservation failure. The current test asserts hard safety and permutation invariance, not optimal utilization or exact-real max-min fairness.
+
+The following remain open:
+
+- refinement of the Rust `f64` implementation to the exact-rational Lean specification;
+- a documented scale-aware numerical error bound;
+- a shared corpus consumed by both Lean and Rust;
+- a completeness argument for the waterline-finding procedure;
+- live ECS integration and overlapping-well policy.
+
+## Benchmark campaign
+
+Run performance tests separately from ordinary unit tests to avoid fragile CI timing gates. Bind every report to the exact source SHA, compiler/toolchain, build profile, CPU, workload generator seed, and recipient distribution.
+
+| Dimension | Target |
+|---|---|
+| Recipient counts | 0, 1, 2, 10, 1,000, 10,000, 100,000 |
+| Dynamic range | subnormal through maximum finite; uniform and adversarial exponent distributions |
+| Safety violations | 0 accepted cap violations; 0 source overspends; 0 non-finite outputs |
+| Input-order invariance | 100% exact per-ID output equality for permutations |
+| Independent exact fixtures | 100% agreement on shared rational cases where exact conversion is defined |
+| Mutation adequacy | at least 95% targeted mutation score, with surviving mutations listed |
+| Performance | p50/p95/p99 latency, throughput, and peak/allocated memory where reliably measurable |
+| Utilization diagnostic | report unallocated supply even when eligible demand exists; never fold it into the safety-violation count |
+
+The reference oracle should be implemented independently of the production allocator. Mutations must include budget overspend, recipient-cap bypass, duplicate-ID acceptance, input-order dependence, loss of tiny accepted allocations, non-finite acceptance, and accounting-field drift. A passing test suite must not be presented as proof of source refinement.
+
+## Evidence status
+
+This branch adds test code and this protocol only. The container used to author it does not provide `rustc` or `cargo`; consequently no Rust compilation or test execution is claimed. A queued GitHub check is pending evidence, not a pass.
