@@ -22,7 +22,8 @@ The report hashes the exact fixture bytes and states the claim ceiling. The five
 - Missing per-candidate state results or missing objective/constraint evidence produce unknown, not pass.
 - Unknown JSON fields (including unsupported probability values) are rejected.
 - Candidate and state results are sorted for semantic determinism; the input digest still changes when the exact source bytes change.
-- The test-only exhaustive oracle recomputes state conjunctions independently from production classification helpers.
+- The test-only exhaustive oracle recomputes state conjunctions independently from production classification helpers, and a separate pairwise oracle checks robust Pareto membership.
+- A deterministic generated differential test evaluates 625 finite fixture variants (12,500 candidate-state evaluations) and checks classifications and Pareto membership against the test oracles. These generated cases are evaluated in-process; they are not yet exported as a persistent machine-readable artifact corpus.
 
 ## Claim ceiling
 
