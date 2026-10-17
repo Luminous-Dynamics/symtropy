@@ -341,6 +341,19 @@
       },
       "expected_rejection": "excessive_ambient_intensity",
       "must_reject": true
+    },
+    {
+      "id": "NC-PERS-08",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_reversibility",
+      "property": "reversibility",
+      "mutation_value": {
+        "neutral_reset_available": false,
+        "settings_export_format": "versioned_open_json",
+        "personalization_modules_replaceable": false
+      },
+      "expected_rejection": "irreversible_profile_customization",
+      "must_reject": true
     }
   ],
   "claim_ceiling": "synthetic profile-contract and policy-guard tests only; no production vehicle, human-factors, accessibility or safety claim"
