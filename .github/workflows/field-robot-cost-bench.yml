@@ -1,0 +1,32 @@
+name: Field Robot Cost Model
+
+on:
+  push:
+    paths:
+      - "crates/domains/symtropy-garden-sim/**"
+      - ".github/workflows/field-robot-cost-bench.yml"
+  pull_request:
+    paths:
+      - "crates/domains/symtropy-garden-sim/**"
+      - ".github/workflows/field-robot-cost-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  field-robot-cost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          components: rustfmt, clippy
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all -- --check
+      - name: Independently verify frozen cost-case manifest
+        run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-robot-cost-manifest
+      - name: Run garden-simulation and field-robot cost tests
+        run: cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
+      - name: Run Clippy without warnings
+        run: cargo clippy --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets -- -D warnings
