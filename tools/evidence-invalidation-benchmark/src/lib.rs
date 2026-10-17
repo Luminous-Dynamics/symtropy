@@ -922,7 +922,7 @@ mod tests {
     fn unrelated_furnishing_change_does_not_invalidate_site_evidence() {
         let report = evaluate(FIXTURE.as_bytes(), "test-revision").unwrap();
         let result = scenario(&report, "furnishing-change");
-        assert_eq!(result.superseded_artifacts, vec!["furnishing-01"]);
+        assert_eq!(result.superseded_artifacts, vec!["furnishing-01".to_owned()]);
         assert!(result.stale_artifacts.is_empty());
         let concept = result
             .artifacts
