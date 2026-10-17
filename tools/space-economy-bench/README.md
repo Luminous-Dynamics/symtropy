@@ -160,7 +160,7 @@ For the broader resource-priority and chain roadmap, see [`docs/tech/SPACE_RESOU
 
 ## Resource survey selection by decision value
 
-The separate `tools/space-economy-bench/examples/resource_assay_selection_reference.rs` chooses a resource measurement based on exact expected value of sample information (EVSI), after survey cost, rather than data volume or nominal assay accuracy. It compares the best decision without a survey with the best action conditioned on each assay result, uses exact integer joint likelihood weights, and checks the perfect-information bound.
+The separate `tools/space-economy-bench/examples/resource_assay_selection_reference.rs` chooses a resource measurement based on exact expected value of sample information (EVSI), after survey cost, rather than data volume or nominal assay accuracy. It compares the best decision without a survey with the best action conditioned on each assay result, uses exact integer joint-likelihood weights, emits the posterior rich-site probability after positive/negative results, and checks the perfect-information bound.
 
 Run:
 
@@ -180,3 +180,6 @@ Synthetic decision setup: the prior probability of a rich site is 50%; building 
 The resulting values are synthetic decision utility, not money, site-specific prior probabilities, survey performance, lunar geology or a real investment recommendation. The purpose is to prove the decision contract: pay only for measurements that are credibly likely to change a decision enough to justify their cost. See [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813).
 
 The next-measurement decision loop is covered by `tools/space-economy-bench/examples/resource_assay_selection_reference.rs`: it scores candidate assays by exact EVSI minus cost, rejects unverified assay-performance claims, and compares EVSI against EVPI. See [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813) and the exploration section in the [resource-production-chain map](../../docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md).
+
+
+The direct assay produces synthetic posterior probabilities of 90% after a positive result and 10% after a negative result. The lower-resolution assay produces 60%/40%; because both outcomes still favor the same build decision under this payoff model, its EVSI remains zero. The receipt exposes these posteriors alongside the chosen conditional action so reviewers can audit why a result does or does not change the route.
