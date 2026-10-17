@@ -271,11 +271,7 @@ pub fn nits_to_pq_signal(nits: f64) -> Result<f64, TransferError> {
 /// Rec. 709/sRGB primary weighting coefficients. Output is normalized relative
 /// luminance Y, not absolute luminance in cd/m² and not a measurement of a
 /// physical display.
-pub fn relative_luminance_from_srgb(
-    red: f64,
-    green: f64,
-    blue: f64,
-) -> Result<f64, TransferError> {
+pub fn relative_luminance_from_srgb(red: f64, green: f64, blue: f64) -> Result<f64, TransferError> {
     let red = srgb_channel_to_linear(red)?;
     let green = srgb_channel_to_linear(green)?;
     let blue = srgb_channel_to_linear(blue)?;
@@ -533,11 +529,12 @@ mod tests {
     #[test]
     fn principal_pixel_back_projects_to_optical_axis() {
         assert_eq!(
-            ray_through_pixel(
-                INTRINSICS,
-                PixelPoint { u: 640.0, v: 360.0 }
-            ),
-            Ok(CameraRay { x: 0.0, y: 0.0, z: 1.0 })
+            ray_through_pixel(INTRINSICS, PixelPoint { u: 640.0, v: 360.0 }),
+            Ok(CameraRay {
+                x: 0.0,
+                y: 0.0,
+                z: 1.0
+            })
         );
     }
 
@@ -561,8 +558,16 @@ mod tests {
         let actual = field_of_view(INTRINSICS, 1280, 720)
             .expect("valid intrinsics and non-zero dimensions should produce FOV");
 
-        assert_close(actual.horizontal_radians, 2.0 * (640.0_f64 / 1_000.0).atan(), 1e-12);
-        assert_close(actual.vertical_radians, 2.0 * (360.0_f64 / 1_000.0).atan(), 1e-12);
+        assert_close(
+            actual.horizontal_radians,
+            2.0 * (640.0_f64 / 1_000.0).atan(),
+            1e-12,
+        );
+        assert_close(
+            actual.vertical_radians,
+            2.0 * (360.0_f64 / 1_000.0).atan(),
+            1e-12,
+        );
     }
 
     #[test]
@@ -572,8 +577,8 @@ mod tests {
             cy: 340.0,
             ..INTRINSICS
         };
-        let actual = field_of_view(shifted, 1280, 720)
-            .expect("valid shifted intrinsics should produce FOV");
+        let actual =
+            field_of_view(shifted, 1280, 720).expect("valid shifted intrinsics should produce FOV");
 
         let expected_horizontal = (680.0_f64 / 1_000.0).atan() - (-600.0_f64 / 1_000.0).atan();
         let expected_vertical = (380.0_f64 / 1_000.0).atan() - (-340.0_f64 / 1_000.0).atan();
@@ -596,11 +601,23 @@ mod tests {
     #[test]
     fn rejects_non_finite_pixel_for_back_projection() {
         assert_eq!(
-            ray_through_pixel(INTRINSICS, PixelPoint { u: f64::NAN, v: 0.0 }),
+            ray_through_pixel(
+                INTRINSICS,
+                PixelPoint {
+                    u: f64::NAN,
+                    v: 0.0
+                }
+            ),
             Err(ProjectionError::NonFiniteInput)
         );
         assert_eq!(
-            ray_through_pixel(INTRINSICS, PixelPoint { u: 0.0, v: f64::INFINITY }),
+            ray_through_pixel(
+                INTRINSICS,
+                PixelPoint {
+                    u: 0.0,
+                    v: f64::INFINITY
+                }
+            ),
             Err(ProjectionError::NonFiniteInput)
         );
     }
@@ -792,7 +809,10 @@ mod tests {
         for index in 1..=1000 {
             let scene = f64::from(index) / 1000.0;
             let actual = hlg_scene_to_signal(scene).expect("grid value is in range");
-            assert!(actual >= previous, "HLG OETF decreased at scene value {scene}");
+            assert!(
+                actual >= previous,
+                "HLG OETF decreased at scene value {scene}"
+            );
             previous = actual;
         }
         assert_eq!(previous, 1.0);
@@ -801,8 +821,14 @@ mod tests {
     #[test]
     fn hlg_transfer_rejects_non_finite_and_out_of_range_inputs() {
         for input in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            assert_eq!(hlg_scene_to_signal(input), Err(TransferError::NonFiniteInput));
-            assert_eq!(hlg_signal_to_scene(input), Err(TransferError::NonFiniteInput));
+            assert_eq!(
+                hlg_scene_to_signal(input),
+                Err(TransferError::NonFiniteInput)
+            );
+            assert_eq!(
+                hlg_signal_to_scene(input),
+                Err(TransferError::NonFiniteInput)
+            );
         }
 
         for input in [-0.001, 1.001] {
@@ -814,7 +840,11 @@ mod tests {
     #[test]
     fn pq_eotf_matches_st2084_reference_points() {
         assert_eq!(pq_signal_to_nits(0.0), Ok(0.0));
-        assert_close(pq_signal_to_nits(0.5).expect("valid PQ signal"), 92.245_708_994_065_27, 1e-9);
+        assert_close(
+            pq_signal_to_nits(0.5).expect("valid PQ signal"),
+            92.245_708_994_065_27,
+            1e-9,
+        );
         assert_close(
             pq_signal_to_nits(0.508_078_421_517_399).expect("valid PQ signal"),
             100.0,
@@ -825,7 +855,11 @@ mod tests {
             1_000.0,
             1e-8,
         );
-        assert_close(pq_signal_to_nits(1.0).expect("valid PQ signal"), 10_000.0, 1e-8);
+        assert_close(
+            pq_signal_to_nits(1.0).expect("valid PQ signal"),
+            10_000.0,
+            1e-8,
+        );
     }
 
     #[test]
@@ -861,7 +895,9 @@ mod tests {
 
     #[test]
     fn pq_transfer_round_trips_luminance_range() {
-        for nits in [0.0, 0.001, 0.01, 0.1, 1.0, 100.0, 203.0, 1_000.0, 4_000.0, 10_000.0] {
+        for nits in [
+            0.0, 0.001, 0.01, 0.1, 1.0, 100.0, 203.0, 1_000.0, 4_000.0, 10_000.0,
+        ] {
             let signal = nits_to_pq_signal(nits).expect("test luminance is in PQ range");
             let decoded = pq_signal_to_nits(signal).expect("encoded signal is in PQ range");
             assert_close(decoded, nits, 1e-7);
@@ -871,8 +907,14 @@ mod tests {
     #[test]
     fn pq_transfer_rejects_non_finite_and_out_of_range_inputs() {
         for signal in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            assert_eq!(pq_signal_to_nits(signal), Err(TransferError::NonFiniteInput));
-            assert_eq!(nits_to_pq_signal(signal), Err(TransferError::NonFiniteInput));
+            assert_eq!(
+                pq_signal_to_nits(signal),
+                Err(TransferError::NonFiniteInput)
+            );
+            assert_eq!(
+                nits_to_pq_signal(signal),
+                Err(TransferError::NonFiniteInput)
+            );
         }
         for signal in [-0.001, 1.001] {
             assert_eq!(pq_signal_to_nits(signal), Err(TransferError::OutOfRange));
