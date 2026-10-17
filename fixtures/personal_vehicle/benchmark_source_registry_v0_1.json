@@ -129,7 +129,7 @@
       "accessed_on": "2026-10-17",
       "role": "functional_safety_reference",
       "evidence_class": "safety_standard",
-      "status": "official scope verified; check current revision and applicability before project planning",
+      "status": "Published ISO 26262-3:2018 scope checked on 2026-10-17; ISO page also lists a draft revision under development. Confirm current edition and applicability at each qualification gate.",
       "scope_note": "Concept-phase work includes item definition, hazard analysis and risk assessment, and functional safety concept.",
       "usable_for": [
         "early hazard-analysis and safety-lifecycle planning for safety-related E/E systems"
@@ -139,7 +139,9 @@
         "nominal functionality or crashworthiness evidence by itself"
       ],
       "rights_and_provenance": [
-        "ISO page indicated revision work was underway when reviewed; verify current edition at the decision gate."
+        "ISO normative text is commercial content; do not copy the standard into the repository.",
+        "The official ISO page currently lists ISO/DIS 26262-3 as a draft revision under development alongside the 2018 published edition; verify the effective edition at the actual qualification decision.",
+        "This source entry is scoped to concept-phase hazard/risk and functional-safety planning; it does not imply conformity, vehicle approval, or nominal performance evidence."
       ]
     },
     {
