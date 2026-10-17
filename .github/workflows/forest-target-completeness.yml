@@ -58,6 +58,7 @@ jobs:
           source_commit="$(git rev-parse HEAD)"
           cargo run --quiet --manifest-path tools/forest-target-audit/Cargo.toml -- \
             forest-next-best-view-receipt.json \
+            --planner-corpus docs/tech/forest-next-best-view-corpus-v0.1.json \
             --target-corpus docs/tech/forest-target-completeness-corpus-v0.1.json \
             --source-commit "$source_commit" > forest-target-completeness-receipt.json
           jq -e '
@@ -73,9 +74,18 @@ jobs:
             and .held_out.evaluation_count == 36
             and (.target_corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.planner_receipt_sha256 | test("^[0-9a-f]{64}$"))
-            and all(.evaluations[]; .greedy.budget_feasible and .lookahead.budget_feasible and .coverage_oracle.budget_feasible)
-            and all(.evaluations[]; .greedy.feature_visibility_basis_points <= 10000 and .lookahead.feature_visibility_basis_points <= 10000 and .coverage_oracle.feature_visibility_basis_points <= 10000)
-            and all(.evaluations[]; all(.greedy.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.lookahead.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.coverage_oracle.targets[]; .complete == (.visible_feature_count == .required_feature_count)))
+            and (.target_objective | contains("maximize complete targets"))
+            and all(.evaluations[]; .generated_target_count == 3 and .target_oracle.candidate_count <= 100 and .target_oracle.expanded_state_count > 0 and .target_oracle.expanded_state_count <= 980201)
+            and all(.evaluations[]; .greedy.budget_feasible and .lookahead.budget_feasible and .coverage_oracle.budget_feasible and .target_oracle.plan.budget_feasible)
+            and all(.evaluations[]; .greedy.feature_visibility_basis_points <= 10000 and .lookahead.feature_visibility_basis_points <= 10000 and .coverage_oracle.feature_visibility_basis_points <= 10000 and .target_oracle.score.feature_visibility_basis_points <= 10000)
+            and all(.evaluations[]; .target_oracle.plan.total_budgeted_steps == (.target_oracle.plan.outbound_cost_steps + .target_oracle.plan.return_distance_steps + .target_oracle.plan.reserved_steps))
+            and all(.evaluations[]; .target_oracle.score.complete_target_count >= .greedy.complete_target_count and (.target_oracle.score.complete_target_count > .greedy.complete_target_count or .target_oracle.score.visible_feature_count >= .greedy.visible_feature_count))
+            and all(.evaluations[]; .target_oracle.score.complete_target_count >= .lookahead.complete_target_count and (.target_oracle.score.complete_target_count > .lookahead.complete_target_count or .target_oracle.score.visible_feature_count >= .lookahead.visible_feature_count))
+            and all(.evaluations[]; .target_oracle.score.complete_target_count >= .coverage_oracle.complete_target_count and (.target_oracle.score.complete_target_count > .coverage_oracle.complete_target_count or .target_oracle.score.visible_feature_count >= .coverage_oracle.visible_feature_count))
+            and all(.evaluations[]; .greedy_vs_target_oracle.complete_target_regret == (.target_oracle.score.complete_target_count - .greedy.complete_target_count) and .lookahead_vs_target_oracle.complete_target_regret == (.target_oracle.score.complete_target_count - .lookahead.complete_target_count) and .coverage_oracle_vs_target_oracle.complete_target_regret == (.target_oracle.score.complete_target_count - .coverage_oracle.complete_target_count))
+            and all(.evaluations[]; all(.greedy.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.lookahead.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.coverage_oracle.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.target_oracle.score.targets[]; .complete == (.visible_feature_count == .required_feature_count)))
+            and ((.held_out.lookahead_vs_target_oracle.complete_target_ratio_basis_points == null) or (.held_out.lookahead_vs_target_oracle.complete_target_ratio_basis_points <= 10000))
+            and ((.held_out.coverage_oracle_vs_target_oracle.complete_target_ratio_basis_points == null) or (.held_out.coverage_oracle_vs_target_oracle.complete_target_ratio_basis_points <= 10000))
             and (.source_commit == .planner_source_commit)
           ' forest-target-completeness-receipt.json
       - name: Upload exact-input benchmark receipts

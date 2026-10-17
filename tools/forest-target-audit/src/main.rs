@@ -35,7 +35,7 @@ enum Scene { OpenGrid, OccludedClearing, BlockedCorridor, UnknownBarrier }
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum Occupancy { Clear, Obstacle, Unknown }
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 enum Heading { North, East, South, West }
 
@@ -54,7 +54,7 @@ struct PlannerScenario {
     map_sha256: String,
     config_sha256: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct PlannerPlan {
     budget_feasible: bool,
     outbound_cost_steps: u16,
@@ -99,6 +99,24 @@ struct MethodScore {
     targets: Vec<TargetScore>,
 }
 #[derive(Debug, Clone, Serialize)]
+struct TargetOracleResult {
+    objective: String,
+    candidate_count: usize,
+    expanded_state_count: usize,
+    plan: PlannerPlan,
+    score: MethodScore,
+}
+#[derive(Debug, Clone, Serialize)]
+struct TargetRegret {
+    oracle_complete_target_count: usize,
+    compared_complete_target_count: usize,
+    complete_target_regret: usize,
+    complete_target_ratio_basis_points: Option<u16>,
+    oracle_visible_feature_count: usize,
+    compared_visible_feature_count: usize,
+    visible_feature_delta_to_oracle: i64,
+}
+#[derive(Debug, Clone, Serialize)]
 struct Evaluation {
     planner_scenario_id: String,
     scene: Scene,
@@ -110,6 +128,10 @@ struct Evaluation {
     greedy: MethodScore,
     lookahead: MethodScore,
     coverage_oracle: MethodScore,
+    target_oracle: TargetOracleResult,
+    greedy_vs_target_oracle: TargetRegret,
+    lookahead_vs_target_oracle: TargetRegret,
+    coverage_oracle_vs_target_oracle: TargetRegret,
 }
 #[derive(Debug, Clone, Serialize)]
 struct AggregateMethod {
@@ -123,12 +145,30 @@ struct AggregateMethod {
     worst_case_feature_visibility_basis_points: u16,
 }
 #[derive(Debug, Clone, Serialize)]
+struct AggregateRegret {
+    evaluation_count: usize,
+    oracle_complete_target_count: usize,
+    compared_complete_target_count: usize,
+    total_complete_target_regret: usize,
+    worst_case_complete_target_regret: usize,
+    complete_target_ratio_basis_points: Option<u16>,
+    worst_case_complete_target_ratio_basis_points: Option<u16>,
+    oracle_visible_feature_count: usize,
+    compared_visible_feature_count: usize,
+    visible_feature_delta_to_oracle_total: i64,
+    worst_case_visible_feature_delta_to_oracle: i64,
+}
+#[derive(Debug, Clone, Serialize)]
 struct SplitSummary {
     seed_count: usize,
     evaluation_count: usize,
     greedy: AggregateMethod,
     lookahead: AggregateMethod,
     coverage_oracle: AggregateMethod,
+    target_objective_oracle: AggregateMethod,
+    greedy_vs_target_oracle: AggregateRegret,
+    lookahead_vs_target_oracle: AggregateRegret,
+    coverage_oracle_vs_target_oracle: AggregateRegret,
 }
 #[derive(Debug, Serialize)]
 struct Receipt {
@@ -138,6 +178,7 @@ struct Receipt {
     evidence_class: String,
     claim_ceiling: String,
     generator_version: String,
+    target_objective: String,
     source_commit: String,
     planner_source_commit: String,
     planner_corpus_sha256: String,
@@ -238,12 +279,14 @@ fn verify_plan_contract(map: &GridMap, plan: &PlannerPlan, config: &PlannerConfi
         return Err(format!("{label}: viewpoint count exceeds configured limit"));
     }
     let mut outbound = 0u16;
+    let mut visited_views = BTreeSet::new();
     let (mut at, mut heading) = (config.start_cell, Heading::North);
     if !clear(map, at) { return Err(format!("{label}: start is not traversable")); }
     for view in &plan.viewpoints {
         if view.x >= W || view.y >= W { return Err(format!("{label}: viewpoint outside map")); }
         let cell = idx(view.x, view.y);
         if !clear(map, cell) { return Err(format!("{label}: viewpoint on obstacle/unknown cell")); }
+        if !visited_views.insert((view.x, view.y, view.heading)) { return Err(format!("{label}: repeated viewpoint candidate")); }
         let travel = distances(map, at)[cell].ok_or_else(|| format!("{label}: viewpoint unreachable"))?;
         let turn = if heading == view.heading { 0 } else { config.turn_cost_steps };
         outbound = outbound.saturating_add(travel).saturating_add(turn);
@@ -402,6 +445,186 @@ fn config_for(binding: &ScenarioBinding) -> PlannerConfig {
         lookahead_algorithm: "receding horizon; select first action from best feasible sequence of up to two added viewpoints".into(),
     }
 }
+#[derive(Debug, Clone)]
+struct OracleCandidate {
+    cell: usize,
+    view: Viewpoint,
+    feature_mask: u64,
+}
+#[derive(Debug, Clone)]
+struct OracleSearchState {
+    selected: Vec<usize>,
+    feature_mask: u64,
+    outbound: u16,
+    at: usize,
+    heading: Heading,
+}
+struct TargetOracleSolver<'a> {
+    map: &'a GridMap,
+    targets: &'a [Target],
+    config: PlannerConfig,
+    candidates: Vec<OracleCandidate>,
+    distances: Vec<Vec<Option<u16>>>,
+    target_masks: Vec<u64>,
+    best: Option<OracleSearchState>,
+    expanded_state_count: usize,
+}
+impl<'a> TargetOracleSolver<'a> {
+    fn new(map: &'a GridMap, targets: &'a [Target], config: PlannerConfig) -> Check<Self> {
+        if config.max_viewpoints > 3 {
+            return Err("exact target oracle is bounded to at most three viewpoints".into());
+        }
+        if !clear(map, config.start_cell) {
+            return Err("target oracle start cell is not traversable".into());
+        }
+        if config.energy_budget_steps <= config.return_reserve_steps {
+            return Err("target oracle budget must exceed return reserve".into());
+        }
+        let mut target_ids = BTreeSet::new();
+        for target in targets {
+            if target.target_id.trim().is_empty() || !target_ids.insert(target.target_id.as_str()) {
+                return Err("target oracle rejects empty or duplicate target IDs".into());
+            }
+        }
+        let feature_cells: Vec<usize> = targets.iter()
+            .flat_map(|t| t.required_feature_cells.iter().copied()).collect();
+        if feature_cells.is_empty() || feature_cells.len() > 64 {
+            return Err("target oracle requires 1..=64 required feature samples".into());
+        }
+        if feature_cells.iter().any(|cell| *cell >= N || !clear(map, *cell)) {
+            return Err("target oracle feature must lie on a clear grid cell".into());
+        }
+        let mut target_masks = Vec::with_capacity(targets.len());
+        let mut offset = 0usize;
+        for target in targets {
+            if target.required_feature_cells.is_empty() {
+                return Err(format!("{} has no required features", target.target_id));
+            }
+            let mut mask = 0u64;
+            for _ in &target.required_feature_cells {
+                mask |= 1u64 << offset;
+                offset += 1;
+            }
+            target_masks.push(mask);
+        }
+        let distance_matrix: Vec<Vec<Option<u16>>> = (0..N).map(|i| distances(map, i)).collect();
+        let mut candidates = Vec::new();
+        for cell in 0..N {
+            if !clear(map, cell) || distance_matrix[config.start_cell][cell].is_none() { continue; }
+            let p = xy(cell);
+            for heading in [Heading::North, Heading::East, Heading::South, Heading::West] {
+                let view = Viewpoint { x: p.x, y: p.y, heading };
+                let feature_mask = feature_cells.iter().enumerate().fold(0u64, |mask, (bit, target_cell)| {
+                    if can_see(map, view, *target_cell) { mask | (1u64 << bit) } else { mask }
+                });
+                if feature_mask != 0 {
+                    candidates.push(OracleCandidate { cell, view, feature_mask });
+                }
+            }
+        }
+        Ok(Self { map, targets, config, candidates, distances: distance_matrix, target_masks, best: None, expanded_state_count: 0 })
+    }
+    fn objective(&self, mask: u64) -> (usize, usize) {
+        let complete = self.target_masks.iter().filter(|target_mask| (mask & **target_mask) == **target_mask).count();
+        (complete, mask.count_ones() as usize)
+    }
+    fn total(&self, outbound: u16, selected: &[usize]) -> Option<(u16, u16)> {
+        let last = selected.last().map(|i| self.candidates[*i].cell).unwrap_or(self.config.start_cell);
+        let back = self.distances[last][self.config.start_cell]?;
+        Some((back, outbound.saturating_add(back).saturating_add(self.config.return_reserve_steps)))
+    }
+    fn better(&self, candidate: &OracleSearchState, current: &OracleSearchState) -> bool {
+        let (cc, cf) = self.objective(candidate.feature_mask);
+        let (bc, bf) = self.objective(current.feature_mask);
+        if cc != bc { return cc > bc; }
+        if cf != bf { return cf > bf; }
+        let ct = self.total(candidate.outbound, &candidate.selected).map(|v| v.1).unwrap_or(u16::MAX);
+        let bt = self.total(current.outbound, &current.selected).map(|v| v.1).unwrap_or(u16::MAX);
+        if ct != bt { return ct < bt; }
+        if candidate.selected.len() != current.selected.len() { return candidate.selected.len() < current.selected.len(); }
+        candidate.selected < current.selected
+    }
+    fn search(&mut self, state: OracleSearchState) {
+        self.expanded_state_count = self.expanded_state_count.saturating_add(1);
+        if self.best.as_ref().map_or(true, |best| self.better(&state, best)) {
+            self.best = Some(state.clone());
+        }
+        if state.selected.len() >= usize::from(self.config.max_viewpoints) { return; }
+        for candidate_index in 0..self.candidates.len() {
+            if state.selected.contains(&candidate_index) { continue; }
+            let (cell, view, candidate_mask) = {
+                let candidate = &self.candidates[candidate_index];
+                (candidate.cell, candidate.view, candidate.feature_mask)
+            };
+            if candidate_mask & !state.feature_mask == 0 { continue; }
+            let Some(travel) = self.distances[state.at][cell] else { continue; };
+            let turn = if state.heading == view.heading { 0 } else { self.config.turn_cost_steps };
+            let outbound = state.outbound.saturating_add(travel).saturating_add(turn);
+            let Some(back) = self.distances[cell][self.config.start_cell] else { continue; };
+            let total = outbound.saturating_add(back).saturating_add(self.config.return_reserve_steps);
+            if total > self.config.energy_budget_steps { continue; }
+            let mut selected = state.selected.clone();
+            selected.push(candidate_index);
+            self.search(OracleSearchState {
+                selected,
+                feature_mask: state.feature_mask | candidate_mask,
+                outbound,
+                at: cell,
+                heading: view.heading,
+            });
+        }
+    }
+    fn solve(mut self) -> Check<TargetOracleResult> {
+        let initial = OracleSearchState {
+            selected: Vec::new(), feature_mask: 0, outbound: 0,
+            at: self.config.start_cell, heading: Heading::North,
+        };
+        self.search(initial);
+        let candidate_count = self.candidates.len();
+        let expanded_state_count = self.expanded_state_count;
+        let best = self.best.take().ok_or_else(|| "target oracle found no feasible state".to_owned())?;
+        let (back, total) = self.total(best.outbound, &best.selected)
+            .ok_or_else(|| "target oracle best state has no return path".to_owned())?;
+        let viewpoints: Vec<Viewpoint> = best.selected.iter()
+            .map(|i| self.candidates[*i].view).collect();
+        let plan = PlannerPlan {
+            budget_feasible: total <= self.config.energy_budget_steps,
+            outbound_cost_steps: best.outbound,
+            return_distance_steps: back,
+            reserved_steps: self.config.return_reserve_steps,
+            total_budgeted_steps: total,
+            viewpoints,
+        };
+        verify_plan_contract(self.map, &plan, &self.config, "target-objective oracle")?;
+        let score = score_plan(self.map, &plan, self.targets)?;
+        let (complete, visible) = self.objective(best.feature_mask);
+        if score.complete_target_count != complete || score.visible_feature_count != visible {
+            return Err("target oracle bit-mask objective disagrees with independently scored plan".into());
+        }
+        Ok(TargetOracleResult {
+            candidate_count, expanded_state_count,
+            objective: "maximize complete targets; then maximize visible required feature samples; then minimize budgeted steps; then minimize viewpoint count; final ties use stable candidate order".into(),
+            plan,
+            score,
+        })
+    }
+}
+fn target_regret(oracle: &MethodScore, compared: &MethodScore) -> TargetRegret {
+    TargetRegret {
+        oracle_complete_target_count: oracle.complete_target_count,
+        compared_complete_target_count: compared.complete_target_count,
+        complete_target_regret: oracle.complete_target_count.saturating_sub(compared.complete_target_count),
+        complete_target_ratio_basis_points: if oracle.complete_target_count == 0 {
+            None
+        } else {
+            Some(basis_points(compared.complete_target_count, oracle.complete_target_count))
+        },
+        oracle_visible_feature_count: oracle.visible_feature_count,
+        compared_visible_feature_count: compared.visible_feature_count,
+        visible_feature_delta_to_oracle: oracle.visible_feature_count as i64 - compared.visible_feature_count as i64,
+    }
+}
+
 fn validate_corpus(c: &Corpus) -> Check<()> {
     if c.suite_id.trim().is_empty() || c.suite_version.trim().is_empty()
         || c.generator_version.trim().is_empty() || c.claim_ceiling.trim().is_empty() {
@@ -426,7 +649,7 @@ fn validate_corpus(c: &Corpus) -> Check<()> {
         if binding.planner_scenario_id.trim().is_empty() || !ids.insert(binding.planner_scenario_id.as_str()) {
             return Err("empty or duplicate planner_scenario_id".into());
         }
-        if binding.energy_budget_steps <= binding.return_reserve_steps || binding.max_viewpoints == 0 || binding.max_viewpoints > 4 {
+        if binding.energy_budget_steps <= binding.return_reserve_steps || binding.max_viewpoints == 0 || binding.max_viewpoints > 3 {
             return Err(format!("{}: invalid energy, reserve, or viewpoint limit", binding.planner_scenario_id));
         }
     }
@@ -486,15 +709,85 @@ impl Acc {
         }
     }
 }
+#[derive(Default)]
+struct RegretAcc {
+    evaluation_count: usize,
+    oracle_complete_target_count: usize,
+    compared_complete_target_count: usize,
+    total_complete_target_regret: usize,
+    worst_case_complete_target_regret: usize,
+    worst_case_complete_target_ratio_basis_points: Option<u16>,
+    oracle_visible_feature_count: usize,
+    compared_visible_feature_count: usize,
+    visible_feature_delta_to_oracle_total: i64,
+    worst_case_visible_feature_delta_to_oracle: i64,
+}
+impl RegretAcc {
+    fn add(&mut self, oracle: &MethodScore, compared: &MethodScore) {
+        self.evaluation_count += 1;
+        self.oracle_complete_target_count += oracle.complete_target_count;
+        self.compared_complete_target_count += compared.complete_target_count;
+        let regret = oracle.complete_target_count.saturating_sub(compared.complete_target_count);
+        self.total_complete_target_regret += regret;
+        self.worst_case_complete_target_regret = self.worst_case_complete_target_regret.max(regret);
+        if let Some(ratio) = target_regret(oracle, compared).complete_target_ratio_basis_points {
+            self.worst_case_complete_target_ratio_basis_points = Some(
+                self.worst_case_complete_target_ratio_basis_points.map_or(ratio, |prior| prior.min(ratio))
+            );
+        }
+        self.oracle_visible_feature_count += oracle.visible_feature_count;
+        self.compared_visible_feature_count += compared.visible_feature_count;
+        let delta = oracle.visible_feature_count as i64 - compared.visible_feature_count as i64;
+        self.visible_feature_delta_to_oracle_total += delta;
+        if self.evaluation_count == 1 { self.worst_case_visible_feature_delta_to_oracle = delta; }
+        else { self.worst_case_visible_feature_delta_to_oracle = self.worst_case_visible_feature_delta_to_oracle.max(delta); }
+    }
+    fn finish(self) -> AggregateRegret {
+        AggregateRegret {
+            evaluation_count: self.evaluation_count,
+            oracle_complete_target_count: self.oracle_complete_target_count,
+            compared_complete_target_count: self.compared_complete_target_count,
+            total_complete_target_regret: self.total_complete_target_regret,
+            worst_case_complete_target_regret: self.worst_case_complete_target_regret,
+            complete_target_ratio_basis_points: if self.oracle_complete_target_count == 0 {
+                None
+            } else {
+                Some(basis_points(self.compared_complete_target_count, self.oracle_complete_target_count))
+            },
+            worst_case_complete_target_ratio_basis_points: self.worst_case_complete_target_ratio_basis_points,
+            oracle_visible_feature_count: self.oracle_visible_feature_count,
+            compared_visible_feature_count: self.compared_visible_feature_count,
+            visible_feature_delta_to_oracle_total: self.visible_feature_delta_to_oracle_total,
+            worst_case_visible_feature_delta_to_oracle: self.worst_case_visible_feature_delta_to_oracle,
+        }
+    }
+}
 fn summarize(evaluations: &[Evaluation], split: &str, seed_count: usize) -> SplitSummary {
     let mut greedy = Acc::default();
     let mut lookahead = Acc::default();
-    let mut oracle = Acc::default();
+    let mut coverage_oracle = Acc::default();
+    let mut target_oracle = Acc::default();
+    let mut greedy_regret = RegretAcc::default();
+    let mut lookahead_regret = RegretAcc::default();
+    let mut coverage_regret = RegretAcc::default();
     let mut count = 0usize;
     for e in evaluations.iter().filter(|e| e.split == split) {
-        count += 1; greedy.add(&e.greedy); lookahead.add(&e.lookahead); oracle.add(&e.coverage_oracle);
+        count += 1;
+        greedy.add(&e.greedy);
+        lookahead.add(&e.lookahead);
+        coverage_oracle.add(&e.coverage_oracle);
+        target_oracle.add(&e.target_oracle.score);
+        greedy_regret.add(&e.target_oracle.score, &e.greedy);
+        lookahead_regret.add(&e.target_oracle.score, &e.lookahead);
+        coverage_regret.add(&e.target_oracle.score, &e.coverage_oracle);
     }
-    SplitSummary { seed_count, evaluation_count: count, greedy: greedy.finish(), lookahead: lookahead.finish(), coverage_oracle: oracle.finish() }
+    SplitSummary {
+        seed_count, evaluation_count: count,
+        greedy: greedy.finish(), lookahead: lookahead.finish(),
+        coverage_oracle: coverage_oracle.finish(), target_objective_oracle: target_oracle.finish(),
+        greedy_vs_target_oracle: greedy_regret.finish(), lookahead_vs_target_oracle: lookahead_regret.finish(),
+        coverage_oracle_vs_target_oracle: coverage_regret.finish(),
+    }
 }
 fn build_receipt(
     c: &Corpus, target_bytes: &[u8], planner_bytes: &[u8], source_commit: String,
@@ -505,7 +798,9 @@ fn build_receipt(
     Receipt {
         result: "validated", suite_id: c.suite_id.clone(), suite_version: c.suite_version.clone(),
         evidence_class: c.evidence_class.clone(), claim_ceiling: c.claim_ceiling.clone(),
-        generator_version: c.generator_version.clone(), source_commit,
+        generator_version: c.generator_version.clone(),
+        target_objective: "maximize complete targets; then maximize visible required feature samples; then minimize budgeted steps; then minimize viewpoint count; final ties use stable candidate order".into(),
+        source_commit,
         planner_source_commit: planner.source_commit.clone(), planner_corpus_sha256: planner.corpus_sha256.clone(),
         planner_receipt_sha256: hash(planner_bytes), target_corpus_sha256: hash(target_bytes),
         scenario_count: c.scenario_bindings.len(), training_seed_count: c.training_seeds.len(),
@@ -533,22 +828,44 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
             .chain(c.held_out_seeds.iter().map(|s| ("held_out", *s))).collect();
         for (split, seed) in seeds {
             let targets = generate_targets(&map, seed, &binding.planner_scenario_id, c.target_count_per_case)?;
+            let greedy = score_plan(&map, &scenario.greedy, &targets)?;
+            let lookahead = score_plan(&map, &scenario.two_step_lookahead, &targets)?;
+            let coverage_oracle = score_plan(&map, &scenario.exhaustive_oracle, &targets)?;
+            let target_oracle = TargetOracleSolver::new(&map, &targets, config.clone())?.solve()?;
+            for (name, compared) in [("greedy", &greedy), ("lookahead", &lookahead), ("coverage oracle", &coverage_oracle)] {
+                if target_oracle.score.complete_target_count < compared.complete_target_count
+                    || (target_oracle.score.complete_target_count == compared.complete_target_count
+                        && target_oracle.score.visible_feature_count < compared.visible_feature_count) {
+                    return Err(format!("{name}: feasible plan beats the claimed exact target-objective oracle for {} seed {seed}", binding.planner_scenario_id));
+                }
+            }
+            let greedy_vs_target_oracle = target_regret(&target_oracle.score, &greedy);
+            let lookahead_vs_target_oracle = target_regret(&target_oracle.score, &lookahead);
+            let coverage_oracle_vs_target_oracle = target_regret(&target_oracle.score, &coverage_oracle);
             evaluations.push(Evaluation {
                 planner_scenario_id: binding.planner_scenario_id.clone(), scene: binding.scene,
                 seed, split: split.to_owned(), generated_target_count: targets.len(),
                 map_sha256: scenario.map_sha256.clone(), config_sha256: scenario.config_sha256.clone(),
-                greedy: score_plan(&map, &scenario.greedy, &targets)?,
-                lookahead: score_plan(&map, &scenario.two_step_lookahead, &targets)?,
-                coverage_oracle: score_plan(&map, &scenario.exhaustive_oracle, &targets)?,
+                greedy, lookahead, coverage_oracle, target_oracle,
+                greedy_vs_target_oracle, lookahead_vs_target_oracle, coverage_oracle_vs_target_oracle,
             });
         }
     }
     Ok(evaluations)
 }
 fn valid_sha(value: &str) -> bool { value.len() == 40 && value.bytes().all(|b| b.is_ascii_hexdigit()) }
+fn validate_planner_corpus(receipt: &PlannerReceipt, bytes: &[u8]) -> Check<()> {
+    let actual = hash(bytes);
+    if receipt.corpus_sha256 != actual {
+        return Err(format!("planner corpus digest mismatch: receipt {}, actual {actual}", receipt.corpus_sha256));
+    }
+    Ok(())
+}
 fn run() -> Check<()> {
     let mut args = env::args().skip(1);
-    let planner_path = args.next().ok_or_else(|| "usage: forest-target-audit PLANNER_RECEIPT.json --target-corpus CORPUS.json --source-commit <40-hex-sha>".to_owned())?;
+    let planner_path = args.next().ok_or_else(|| "usage: forest-target-audit PLANNER_RECEIPT.json --planner-corpus PLANNER_CORPUS.json --target-corpus TARGET_CORPUS.json --source-commit <40-hex-sha>".to_owned())?;
+    if args.next().as_deref() != Some("--planner-corpus") { return Err("expected --planner-corpus".into()); }
+    let planner_corpus_path = args.next().ok_or_else(|| "missing planner corpus path".to_owned())?;
     if args.next().as_deref() != Some("--target-corpus") { return Err("expected --target-corpus".into()); }
     let target_path = args.next().ok_or_else(|| "missing target corpus path".to_owned())?;
     if args.next().as_deref() != Some("--source-commit") { return Err("expected --source-commit".into()); }
@@ -556,8 +873,10 @@ fn run() -> Check<()> {
     if !valid_sha(&source) { return Err("source commit must be 40 hex chars".into()); }
     if args.next().is_some() { return Err("unexpected trailing arguments".into()); }
     let planner_bytes = fs::read(&planner_path).map_err(|e| format!("cannot read {planner_path}: {e}"))?;
+    let planner_corpus_bytes = fs::read(&planner_corpus_path).map_err(|e| format!("cannot read {planner_corpus_path}: {e}"))?;
     let target_bytes = fs::read(&target_path).map_err(|e| format!("cannot read {target_path}: {e}"))?;
     let planner: PlannerReceipt = serde_json::from_slice(&planner_bytes).map_err(|e| format!("invalid planner receipt JSON: {e}"))?;
+    validate_planner_corpus(&planner, &planner_corpus_bytes)?;
     let corpus: Corpus = serde_json::from_slice(&target_bytes).map_err(|e| format!("invalid target corpus JSON: {e}"))?;
     validate_corpus(&corpus)?;
     let evaluations = validate_and_score(&corpus, &planner, &source)?;
@@ -576,7 +895,22 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
     const FIXTURE: &str = include_str!("../../../docs/tech/forest-target-completeness-corpus-v0.1.json");
+    const PLANNER_CORPUS: &str = include_str!("../../../docs/tech/forest-next-best-view-corpus-v0.1.json");
     fn corpus() -> Corpus { serde_json::from_str(FIXTURE).expect("fixture parses") }
+
+    #[test]
+    fn planner_corpus_digest_must_match_exact_input_bytes() {
+        let bytes = PLANNER_CORPUS.as_bytes();
+        let receipt = PlannerReceipt {
+            source_commit: "0".repeat(40),
+            corpus_sha256: hash(bytes),
+            scenarios: Vec::new(),
+        };
+        assert!(validate_planner_corpus(&receipt, bytes).is_ok());
+        let mut modified = bytes.to_vec();
+        modified.push(b' ');
+        assert!(validate_planner_corpus(&receipt, &modified).is_err());
+    }
 
     #[test]
     fn train_and_held_out_seeds_are_disjoint_and_unique() {
@@ -643,6 +977,134 @@ mod tests {
         assert!(!score.targets[0].complete);
         assert_eq!(score.targets[0].completeness_basis_points, 5_000);
     }
+
+    #[test]
+    fn exact_target_oracle_dominates_a_feasible_baseline_under_its_lexicographic_objective() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let config = config_for(binding);
+        let baseline = PlannerPlan {
+            budget_feasible: true,
+            outbound_cost_steps: 0,
+            return_distance_steps: 0,
+            reserved_steps: config.return_reserve_steps,
+            total_budgeted_steps: config.return_reserve_steps,
+            viewpoints: vec![Viewpoint { x: 0, y: 0, heading: Heading::North }],
+        };
+        verify_plan_contract(&map, &baseline, &config, "test baseline").unwrap();
+        let baseline_score = score_plan(&map, &baseline, &targets).unwrap();
+        let oracle = TargetOracleSolver::new(&map, &targets, config.clone()).unwrap().solve().unwrap();
+        assert!(oracle.plan.budget_feasible);
+        assert!(oracle.score.complete_target_count >= baseline_score.complete_target_count);
+        if oracle.score.complete_target_count == baseline_score.complete_target_count {
+            assert!(oracle.score.visible_feature_count >= baseline_score.visible_feature_count);
+        }
+        assert_eq!(oracle.score.complete_target_count,
+            oracle.score.targets.iter().filter(|t| t.complete).count());
+        let mut unsupported = config;
+        unsupported.max_viewpoints = 4;
+        assert!(TargetOracleSolver::new(&map, &targets, unsupported).is_err());
+    }
+
+    #[test]
+    fn exact_target_oracle_rejects_duplicate_target_identity() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let mut targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        targets[1].target_id = targets[0].target_id.clone();
+        assert!(TargetOracleSolver::new(&map, &targets, config_for(binding)).is_err());
+    }
+
+    #[test]
+    fn exact_target_oracle_completes_both_required_edges_when_one_feasible_pose_sees_them() {
+        let map = map_for(Scene::OpenGrid);
+        let target = Target {
+            target_id: "known-two-edge-target".into(),
+            kind: TargetKind::TrunkDiameterEdges,
+            center_cell: idx(2, 2),
+            required_feature_cells: vec![idx(1, 2), idx(3, 2)],
+        };
+        let config = PlannerConfig {
+            start_cell: 0,
+            energy_budget_steps: 7,
+            return_reserve_steps: 2,
+            max_viewpoints: 1,
+            sensor_range_cells: RANGE,
+            horizontal_fov_degrees: 180,
+            turn_cost_steps: 1,
+            greedy_algorithm: "test".into(),
+            oracle_algorithm: "test".into(),
+            lookahead_algorithm: "test".into(),
+        };
+        let targets = vec![target];
+        let result = TargetOracleSolver::new(&map, &targets, config).unwrap().solve().unwrap();
+        assert_eq!(result.score.complete_target_count, 1);
+        assert_eq!(result.score.visible_feature_count, 2);
+        assert_eq!(result.plan.viewpoints.len(), 1);
+        assert!(result.plan.total_budgeted_steps <= 7);
+        assert!(result.candidate_count > 0);
+        assert!(result.expanded_state_count > 0);
+    }
+
+    #[test]
+    fn independent_route_verifier_rejects_tampered_cost_receipts() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let config = config_for(binding);
+        let targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let result = TargetOracleSolver::new(&map, &targets, config.clone()).unwrap().solve().unwrap();
+        let mut tampered = result.plan;
+        tampered.total_budgeted_steps = tampered.total_budgeted_steps.saturating_add(1);
+        assert!(verify_plan_contract(&map, &tampered, &config, "tamper control").is_err());
+    }
+
+
+    #[test]
+    fn target_oracle_is_deterministic_and_reports_expansion_bound() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let a = TargetOracleSolver::new(&map, &targets, config_for(binding)).unwrap().solve().unwrap();
+        let b = TargetOracleSolver::new(&map, &targets, config_for(binding)).unwrap().solve().unwrap();
+        assert_eq!(serde_json::to_vec(&a).unwrap(), serde_json::to_vec(&b).unwrap());
+        assert!(a.expanded_state_count <= 980_201);
+        assert!(a.candidate_count <= 100);
+    }
+
+    #[test]
+    fn unreachable_target_has_no_invented_completeness_ratio() {
+        let map = map_for(Scene::BlockedCorridor);
+        let target = Target {
+            target_id: "unreachable-negative-control".into(),
+            kind: TargetKind::TrunkDiameterEdges,
+            center_cell: idx(3, 2),
+            required_feature_cells: vec![idx(3, 1), idx(3, 3)],
+        };
+        let targets = vec![target];
+        let config = PlannerConfig {
+            start_cell: 0,
+            energy_budget_steps: 10,
+            return_reserve_steps: 2,
+            max_viewpoints: 3,
+            sensor_range_cells: RANGE,
+            horizontal_fov_degrees: 180,
+            turn_cost_steps: 1,
+            greedy_algorithm: "test".into(),
+            oracle_algorithm: "test".into(),
+            lookahead_algorithm: "test".into(),
+        };
+        let oracle = TargetOracleSolver::new(&map, &targets, config).unwrap().solve().unwrap();
+        assert_eq!(oracle.score.complete_target_count, 0);
+        assert_eq!(oracle.score.visible_feature_count, 0);
+        let baseline = score_plan(&map, &oracle.plan, &targets).unwrap();
+        assert_eq!(target_regret(&oracle.score, &baseline).complete_target_ratio_basis_points, None);
+    }
+
     #[test]
     fn serialized_scores_are_bounded_and_deterministic() {
         let map = map_for(Scene::OpenGrid);

@@ -24,7 +24,7 @@ The audit independently recomputes line-of-sight, field of view and range agains
 - Two-step receding-horizon lookahead.
 - Exhaustive oracle for the **cell-coverage objective**.
 
-The third method is not a target-completeness oracle. Its target score is only a comparator. A later iteration must add a separate exact target-objective oracle before reporting regret against that objective.
+The cell-coverage oracle is not a target-completeness oracle; its target score remains a comparator. The target-objective oracle described below enumerates a separate feasibility-bounded objective before reporting regret against it.
 
 The seeded target generator creates localized two-sample trunk-edge tasks and four-sample log-end-contour tasks. A feature receives credit only if at least one selected viewpoint observes its cell within range and the 180° FOV, with conservative obstacle/unknown-cell occlusion. Standing in the same cell as a required feature does not count as observing it. A target is complete only when every required feature sample is visible across the selected viewpoints.
 
@@ -43,6 +43,40 @@ The audit is a separate Rust crate and reimplements visibility instead of import
 
 Both the planner receipt and target corpus are byte-hashed in the final receipt. The hosted workflow tests both Rust crates, asserts the expected evaluation/seed counts and score bounds, and uploads the two exact-input receipts. A queued workflow is not a pass.
 
+## Target-objective oracle extension
+
+The target audit now contains a second, independently specified exhaustive objective. It enumerates every feasible sequence in its bounded candidate space (at most three viewpoints and no more than 64 required feature samples) and scores the union of visible required features.
+
+Its lexicographic objective is versioned in the emitted receipt:
+
+1. maximize the number of complete targets;
+2. maximize the number of required feature samples observed;
+3. minimize movement + heading-change + shortest return + reserve cost;
+4. minimize the number of viewpoints;
+5. break remaining ties by deterministic candidate order.
+
+Only viewpoints that reveal at least one required feature are enumerated. A viewpoint that adds no new required feature cannot improve either primary objective and is not needed to optimize the final cost/fewer-viewpoints tie-break under this simplified metric model. All candidates are constrained to the traversable component reachable from the start. The result is still exact only for this declared discrete candidate set and simple step/turn costs.
+
+The receipt now includes the target-oracle viewpoint sequence and its independently checked cost fields, candidate count and expanded-state count, per-target truth/visibility, per-case complete-target regret for greedy, lookahead, and the cell-coverage oracle, aggregate ratios where the denominator is nonzero, and worst-case per-case regret for each split. The ratio is serialized as null when the target oracle completes zero targets. The cell-coverage oracle stays separate and can score fewer useful forestry targets despite seeing more total cells.
+
+This makes target-completeness regret measurable rather than inferred from raw cell coverage. It does not establish a production-grade target-aware planner: the current operational baselines remain unchanged, and the exact oracle is a tiny-instance reference only.
+## Frozen v0.1 target-seed result
+
+Hosted exact-head run `39031554713` passed at source SHA `f28d8ad7424ee2a196d1dac0e5ea25ce99cb6d29`, including 9 cell-planner tests, 15 target-audit tests, all 60 evaluations, receipt assertions and upload of exact-input receipts.
+
+Held-out aggregate: 36 scenario-seed cases × 3 synthetic targets = 108 targets.
+
+| Method | Complete targets | Required features observed |
+|---|---:|---:|
+| Target-objective exhaustive oracle | 60/108 (55.56%) | 198/288 (68.75%) |
+| Two-step cell-coverage lookahead | 41/108 (37.96%) | 169/288 (58.68%) |
+| Exhaustive cell-coverage oracle | 39/108 (36.11%) | 167/288 (57.99%) |
+| Greedy cell-coverage planner | 36/108 (33.33%) | 160/288 (55.56%) |
+
+The exact target-objective oracle found 19 more complete targets than two-step cell-coverage lookahead on these fixed-template / held-out-target-layout cases. This is evidence that the objective matters within this discrete toy model, **not** evidence of a 17.6-percentage-point field improvement. There are still held-out cases where all current methods observe zero target features. Worst-case per-case completeness regret is two targets for each baseline in this corpus. The largest enumerated search was 14,165 states with up to 99 candidate viewpoints.
+
+Interpretation: keep hard budget/return checks, but promote the target-specific objective into a practical planning heuristic. The next research gates are new map topologies independent from target seeds, explicit target-unreachable classification, a larger corpus, realistic 3D geometry and independent field calibration. The tiny exact oracle is a reference; production methods should be evaluated on regret, worst case and compute cost, not judged by this oracle’s score alone.
+
 ## Research basis
 
 - [OA-NBV: Occlusion-Aware Next-Best-View Planning for Human-Centered Active Perception](https://arxiv.org/abs/2603.11072) studies target-centric visibility and completeness with feasible viewpoints. Its reported success and observation improvements are for its own human-centered experiments, not forestry.
@@ -57,7 +91,8 @@ These are targets to work toward, not achieved results or forestry standards.
 | Stage | Gate | Evidence needed |
 |---|---|---|
 | Contract v0.1 | 100% plan feasibility; zero train/test seed overlap; zero impossible target-completeness credit; exact deterministic replay | Focused Rust tests and exact-head workflow receipt |
-| Target-aware planning | Add a *target-objective* exhaustive oracle for tiny scenes; aim for ≥90% of its held-out aggregate score and publish worst-case regret per scene | Same feature definition, sensor budget, return reserve and seed split for every planner |
+| Target-objective oracle | 100% feasible oracle plans; no feasible greedy/lookahead plan may beat the oracle's lexicographic score; publish held-out and worst-case regret | Exhaustive tiny-scene target-feature search, independent route-cost verification and receipt assertions |
+| Target-aware planning | Build a practical target-aware receding-horizon selector; aim for ≥90% of the exact tiny-scene target-oracle complete-target score on held-out layouts and publish worst-case regret | Same feature definition, sensor budget, return reserve and seed split for every planner |
 | Generalization | At least 1,000 procedurally generated scenes, distinct tuning/acceptance seeds, multiple occluder arrangements, narrow passages, unknown space and distractor objects | Held-out target and map-generation manifests, hashes, per-scenario results and mutation/negative controls |
 | Field calibration | Report DBH bias, MAE, RMSE, p50/p90/p95 error, detection precision/recall and incomplete-target rate, stratified by diameter, species, occlusion, sensor and terrain | Independent annotated plots/point clouds, calibration records, uncertainty intervals and a preregistered protocol |
 | Aspirational field target | For a defined platform and calibrated operating envelope, explore median absolute DBH error ≤2 cm for trees under 30 cm DBH and p90 absolute error ≤4 cm; separately report larger-tree strata | Repeated paired field plots and confidence intervals; do not substitute synthetic scores or one paper’s result |
@@ -65,7 +100,7 @@ These are targets to work toward, not achieved results or forestry standards.
 ## Next research and implementation slice
 
 1. Replace the four-template occupancy model with a versioned procedural map-topology generator; keep that map seed split independent from target-layout seeds.
-2. Add a target-specific exhaustive oracle and a task-aware selection objective, preserving greedy/lookahead baselines unchanged.
+2. Use the new target-objective exhaustive oracle as the reference; implement a target-aware receding-horizon candidate policy that minimizes held-out regret while preserving existing greedy/lookahead baselines unchanged.
 3. Add observation uncertainty, pose error and sensor-specific false positives/negatives only when those parameters can be declared and, later, calibrated.
 4. Add 3D/cylindrical trunk and log-end geometry and compare predicted diameter/contour evidence to independent ground truth.
 5. Only after those gates, consider target-specific active sensing in Symthaea; keep mission feasibility and machine safety hard constraints, never weighted away by information gain.
