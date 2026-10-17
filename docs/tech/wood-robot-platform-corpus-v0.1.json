@@ -171,7 +171,8 @@
         "require_verified_recovery_plan": true,
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true
       },
       "expected_decision": "insufficient_evidence",
       "expected_reason_codes": [
@@ -398,7 +399,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -411,7 +414,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "eligible_for_simulated_plan",
       "expected_reason_codes": [
@@ -446,7 +451,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -459,7 +466,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -492,7 +501,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -505,7 +516,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked_safe_degraded_state",
       "expected_reason_codes": [
@@ -539,7 +552,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -552,7 +567,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -585,7 +602,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -598,7 +617,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -631,7 +652,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -644,7 +667,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -677,7 +702,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -690,7 +717,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -724,7 +753,9 @@
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
         "human_approval": "approved",
-        "link_state": "lost"
+        "link_state": "lost",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -738,7 +769,9 @@
         "prohibit_payload_release": true,
         "require_return_reserve": true,
         "prohibit_default_under_canopy_flight": true,
-        "require_healthy_link_or_verified_degraded_recovery": true
+        "require_healthy_link_or_verified_degraded_recovery": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked_safe_degraded_state",
       "expected_reason_codes": [
@@ -772,7 +805,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -785,7 +820,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -818,7 +855,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -831,7 +870,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
@@ -864,7 +905,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -877,7 +920,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked_safe_degraded_state",
       "expected_reason_codes": [
@@ -911,7 +956,9 @@
         "localization_state": "valid",
         "remaining_energy_wh": 300,
         "required_return_reserve_wh": 60,
-        "human_approval": "approved"
+        "human_approval": "approved",
+        "required_surface_visible": true,
+        "pose_uncertainty_mm": 3
       },
       "hard_constraints": {
         "require_site_permission": true,
@@ -924,7 +971,9 @@
         "require_no_physical_contact": true,
         "prohibit_payload_release": true,
         "require_return_reserve": true,
-        "prohibit_default_under_canopy_flight": true
+        "prohibit_default_under_canopy_flight": true,
+        "require_required_surface_observed": true,
+        "maximum_pose_uncertainty_mm": 10
       },
       "expected_decision": "blocked",
       "expected_reason_codes": [
