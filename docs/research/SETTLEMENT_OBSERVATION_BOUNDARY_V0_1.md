@@ -132,3 +132,12 @@ The settlement-core branch now includes `src/observation.rs` with:
 - eight authored Rust tests including a no-lookahead metamorphic test: two schedules with the same available prefix but different future values produce the same current decision frame.
 
 This is an **observation projection/conformance contract**, not yet a full latent-state simulator or sensor generator. The policy frame deliberately contains no latent-state or future-event-list field, but end-to-end policy decisions and interventions are still future work. All eight tests are authored and unverified until exact-head CI completes.
+
+
+## Observation-bounded baseline decision API
+
+The branch now also includes `src/policy.rs` with transparent `NoIntervention` and `ReactiveRepair` baselines. The policy evaluator receives only a verified `PolicyInformationFrame` and a versioned policy definition—never the observation schedule, latent state, future events or timeline outcome receipt.
+
+A repair request is emitted only when the frame contains a current failed-component observation from a source explicitly allowed by the matching rule. The request declares target generation, triggering observation ID/digest, decision/dispatch/completion ticks, parts and crew requirements, priority and deterministic action ID. The decision is hashed and checked against the exact frame and policy rule.
+
+This proves the **shape and information boundary of a request**, not successful maintenance. No repair is executed; no parts or crew are actually reserved; no active-action journal yet suppresses duplicate requests across ticks; and no safety/municipal authority grants execution permission. Those remain required before policy requests can be compared as realized interventions.
