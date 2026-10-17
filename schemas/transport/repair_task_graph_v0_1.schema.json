@@ -1,0 +1,502 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:mobility:repair-task-graph:0.1",
+  "title": "Repairability Task Graph v0.1",
+  "description": "Versioned service-task structure. Schema conformance does not establish a mechanically correct or safe repair procedure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "graph_id",
+    "graph_kind",
+    "vehicle_ref",
+    "configuration_digest",
+    "procedure",
+    "evidence_class",
+    "task_nodes",
+    "edges",
+    "post_repair_verification_task_id",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "repair-task-graph/0.1"
+    },
+    "graph_id": {
+      "type": "string",
+      "pattern": "^rtg_[A-Za-z0-9_-]{12,96}$"
+    },
+    "graph_kind": {
+      "enum": [
+        "scheduled_maintenance",
+        "diagnostic",
+        "component_replacement",
+        "collision_repair",
+        "inspection"
+      ]
+    },
+    "vehicle_ref": {
+      "type": "string",
+      "pattern": "^subj_[A-Za-z0-9_-]{16,96}$"
+    },
+    "configuration_digest": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "procedure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "procedure_ref",
+        "revision",
+        "source_ref",
+        "rights_status"
+      ],
+      "properties": {
+        "procedure_ref": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 256
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 512
+        },
+        "rights_status": {
+          "enum": [
+            "reviewed",
+            "attribution_required",
+            "no_redistribution",
+            "pending_review",
+            "unknown"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "evidence_class": {
+      "enum": [
+        "procedure_hypothesis",
+        "simulation",
+        "observed_workshop_trial",
+        "independent_review"
+      ]
+    },
+    "task_nodes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "step_kind",
+          "description",
+          "component_ref",
+          "component_revision",
+          "requires_isolation",
+          "required_tools",
+          "safety_preconditions",
+          "duration"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^task_[A-Za-z0-9_-]{8,64}$"
+          },
+          "step_kind": {
+            "enum": [
+              "safe_isolation",
+              "diagnosis",
+              "access",
+              "removal",
+              "inspection",
+              "repair_replace",
+              "reassembly",
+              "post_repair_verification"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "component_ref": {
+            "type": "string",
+            "pattern": "^part_[A-Za-z0-9_-]{8,64}$"
+          },
+          "component_revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "requires_isolation": {
+            "type": "boolean"
+          },
+          "required_tools": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tool_ref",
+                "tool_class",
+                "availability"
+              ],
+              "properties": {
+                "tool_ref": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 128
+                },
+                "tool_class": {
+                  "enum": [
+                    "common_hand_tool",
+                    "common_power_tool",
+                    "specialist_tool",
+                    "calibration_tool",
+                    "diagnostic_interface",
+                    "protective_equipment"
+                  ]
+                },
+                "availability": {
+                  "enum": [
+                    "widely_available",
+                    "independent_shop",
+                    "specialist_shop",
+                    "dealer_only",
+                    "unknown"
+                  ]
+                }
+              }
+            }
+          },
+          "safety_preconditions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "precondition_id",
+                "description",
+                "criticality",
+                "must_hold_before_task"
+              ],
+              "properties": {
+                "precondition_id": {
+                  "type": "string",
+                  "pattern": "^safe_[A-Za-z0-9_-]{6,64}$"
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                "criticality": {
+                  "enum": [
+                    "hard_stop",
+                    "caution",
+                    "informational"
+                  ]
+                },
+                "must_hold_before_task": {
+                  "type": "boolean"
+                },
+                "evidence_ref": {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 512
+                }
+              }
+            }
+          },
+          "duration": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "unit",
+                  "basis",
+                  "measurement"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "unit": {
+                    "enum": [
+                      "s",
+                      "min",
+                      "h"
+                    ]
+                  },
+                  "basis": {
+                    "const": "observed"
+                  },
+                  "measurement": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "sample_count",
+                      "technician_count",
+                      "protocol_ref",
+                      "observation_source_ref",
+                      "summary_statistic",
+                      "observed_at"
+                    ],
+                    "properties": {
+                      "sample_count": {
+                        "type": "integer",
+                        "minimum": 3
+                      },
+                      "technician_count": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "protocol_ref": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 256
+                      },
+                      "observation_source_ref": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 512
+                      },
+                      "summary_statistic": {
+                        "enum": [
+                          "median",
+                          "p90",
+                          "mean"
+                        ]
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "context": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "unit",
+                  "basis",
+                  "estimate_note"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "unit": {
+                    "enum": [
+                      "s",
+                      "min",
+                      "h"
+                    ]
+                  },
+                  "basis": {
+                    "const": "estimated"
+                  },
+                  "estimate_note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 2048,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_node",
+          "to_node",
+          "relation"
+        ],
+        "properties": {
+          "from_node": {
+            "type": "string",
+            "pattern": "^task_[A-Za-z0-9_-]{8,64}$"
+          },
+          "to_node": {
+            "type": "string",
+            "pattern": "^task_[A-Za-z0-9_-]{8,64}$"
+          },
+          "relation": {
+            "enum": [
+              "must_precede",
+              "provides_component_access",
+              "requires_result"
+            ]
+          }
+        }
+      }
+    },
+    "post_repair_verification_task_id": {
+      "type": "string",
+      "pattern": "^task_[A-Za-z0-9_-]{8,64}$"
+    },
+    "lifecycle_cost_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parts_cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "amount",
+            "currency",
+            "as_of"
+          ],
+          "properties": {
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "labor_rate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "amount_per_hour",
+            "currency",
+            "as_of"
+          ],
+          "properties": {
+            "amount_per_hour": {
+              "type": "number",
+              "minimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "parts_lead_time_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "downtime_cost_basis": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "observed_workshop_trial"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "task_nodes": {
+            "items": {
+              "properties": {
+                "duration": {
+                  "properties": {
+                    "basis": {
+                      "const": "observed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "procedure_hypothesis"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "task_nodes": {
+            "items": {
+              "properties": {
+                "duration": {
+                  "properties": {
+                    "basis": {
+                      "const": "estimated"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
