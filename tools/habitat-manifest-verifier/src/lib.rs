@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 pub const REPORT_SCHEMA: &str = "luminous.habitat_manifest_verifier.report.v0.1";
 pub const CLAIM_CEILING: &str = "structural_conformance_only_not_semantic_or_physical_validation";
 const WHOLE_PROPERTY_SHA256: &str =
-    "a5d63bb59af770a50982501e63a99c7873a543e063e9cc546705029838641380";
+    "68dd4c244b29e840319fb898706fa1a4aca411a7a99655ebe3bb8c646801eb94";
 const TERRAIN_NATIVE_SHA256: &str =
     "2e5eb734bd14264812c27c6d23cd10ad9b49e8327f3cde8df300124cb77f578e";
 
