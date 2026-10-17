@@ -4,7 +4,8 @@
 use serde_json::Value;
 use symtropy_visual_optics_reference::{
     CameraPoint3, PinholeIntrinsics, PixelPoint, field_of_view, linear_channel_to_srgb,
-    project_point, ray_through_pixel, relative_luminance_from_srgb, srgb_channel_to_linear,
+    nits_to_pq_signal, pq_signal_to_nits, project_point, ray_through_pixel,
+    relative_luminance_from_srgb, srgb_channel_to_linear,
 };
 
 const PINHOLE_AXIS_FIXTURE: &str =
@@ -15,6 +16,8 @@ const PINHOLE_RAY_FIXTURE: &str =
     include_str!("../../../docs/visual-technology/fixtures/pinhole-ray-roundtrip-001.json");
 const SRGB_FIXTURE: &str =
     include_str!("../../../docs/visual-technology/fixtures/srgb-transfer-and-luminance-001.json");
+const PQ_FIXTURE: &str =
+    include_str!("../../../docs/visual-technology/fixtures/pq-st2084-eotf-oetf-001.json");
 
 fn parse_fixture(text: &str) -> Value {
     serde_json::from_str(text).expect("checked-in visual fixture must be valid JSON")
@@ -151,6 +154,75 @@ fn centered_field_of_view_fixture_matches_independent_equation_and_reference() {
         tolerance,
         "implementation vertical FOV",
     );
+}
+
+#[test]
+fn pq_fixture_matches_independent_st2084_equations_and_reference() {
+    let fixture = parse_fixture(PQ_FIXTURE);
+    assert_fixture_is_not_self_qualifying(&fixture, "VIS-PQ-ST2084-REFERENCES-001");
+    assert_eq!(
+        value_at(&fixture, &["profile", "name"]).as_str(),
+        Some("SMPTE ST 2084 / ITU-R BT.2100 PQ EOTF")
+    );
+    let m1 = number_at(&fixture, &["profile", "constants", "m1"]);
+    let m2 = number_at(&fixture, &["profile", "constants", "m2"]);
+    let c1 = number_at(&fixture, &["profile", "constants", "c1"]);
+    let c2 = number_at(&fixture, &["profile", "constants", "c2"]);
+    let c3 = number_at(&fixture, &["profile", "constants", "c3"]);
+    let max_nits = number_at(&fixture, &["profile", "luminance_domain_nits", "1"]);
+    let signal_tolerance = number_at(&fixture, &["tolerance", "signal"]);
+    let nits_tolerance = number_at(&fixture, &["tolerance", "luminance_nits"]);
+
+    for case in value_at(&fixture, &["signal_to_nits_cases"])
+        .as_array()
+        .expect("PQ decode cases must be an array")
+    {
+        let signal = number_at(case, &["signal"]);
+        let expected = number_at(case, &["expected_nits"]);
+        let powered = signal.powf(1.0 / m2);
+        let numerator = (powered - c1).max(0.0);
+        let denominator = c2 - c3 * powered;
+        let oracle = 10_000.0 * (numerator / denominator).powf(1.0 / m1);
+        assert_close(oracle, expected, nits_tolerance, "independent PQ EOTF equation");
+        assert_close(
+            pq_signal_to_nits(signal).expect("fixture signal is within PQ range"),
+            expected,
+            nits_tolerance,
+            "PQ EOTF implementation",
+        );
+    }
+
+    for case in value_at(&fixture, &["nits_to_signal_cases"])
+        .as_array()
+        .expect("PQ encode cases must be an array")
+    {
+        let nits = number_at(case, &["nits"]);
+        let expected = number_at(case, &["expected_signal"]);
+        // Canonical black selects exact zero from the EOTF's clipped black interval.
+        let oracle = if nits == 0.0 {
+            0.0
+        } else {
+            let normalized = (nits / max_nits).powf(m1);
+            ((c1 + c2 * normalized) / (1.0 + c3 * normalized)).powf(m2)
+        };
+        assert_close(oracle, expected, signal_tolerance, "independent PQ OETF equation");
+        assert_close(
+            nits_to_pq_signal(nits).expect("fixture luminance is within PQ range"),
+            expected,
+            signal_tolerance,
+            "PQ OETF implementation",
+        );
+    }
+
+    for item in value_at(&fixture, &["roundtrip_nits"])
+        .as_array()
+        .expect("PQ round-trip values must be an array")
+    {
+        let nits = item.as_f64().expect("PQ round-trip value must be numeric");
+        let signal = nits_to_pq_signal(nits).expect("round-trip luminance is in range");
+        let reconstructed = pq_signal_to_nits(signal).expect("encoded signal is in range");
+        assert_close(reconstructed, nits, nits_tolerance, "PQ encode/decode round trip");
+    }
 }
 
 #[test]
