@@ -497,7 +497,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
 
     let test_a_gross = test_gross_value_numerator(&CALIBRATION_A)?;
     let test_b_gross = test_gross_value_numerator(&CALIBRATION_B)?;
-    let adaptive_gross = adaptive_gross_value_numerator(true, false)?;
+    let adaptive_gross = adaptive_gross_value_numerator(&CALIBRATION_B, &CALIBRATION_A, true, false)?;
     let scores = policy_scores()?;
 
     let expected = [
@@ -505,6 +505,11 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         ("calibration_a_only", 50_833_333_333_i128),
         ("calibration_b_only", 50_250_000_000_i128),
         ("adaptive_a_then_b_after_positive", 51_433_333_333_i128),
+        ("adaptive_a_then_b_after_negative", 50_700_000_000_i128),
+        ("adaptive_a_then_b_after_either_outcome", 51_300_000_000_i128),
+        ("adaptive_b_then_a_after_positive", 51_900_000_000_i128),
+        ("adaptive_b_then_a_after_negative", 49_650_000_000_i128),
+        ("adaptive_b_then_a_after_either_outcome", 51_300_000_000_i128),
         ("uninformative_test_negative_control", 49_900_000_000_i128),
     ];
     for (id, expected_rounded_numerator) in expected {
@@ -546,12 +551,15 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     if find_score("adaptive_a_then_b_after_positive")? != 1_543_000_000_000_i128
         || find_score("adaptive_a_then_b_after_negative")? != 1_521_000_000_000_i128
         || find_score("adaptive_a_then_b_after_either_outcome")? != 1_539_000_000_000_i128
+        || find_score("adaptive_b_then_a_after_positive")? != 1_557_000_000_000_i128
+        || find_score("adaptive_b_then_a_after_negative")? != 1_489_500_000_000_i128
+        || find_score("adaptive_b_then_a_after_either_outcome")? != 1_539_000_000_000_i128
     {
         return Err("exhaustive adaptive calibration-tree policy oracle mismatch".to_owned());
     }
     let selected_candidate = scores.iter().max_by_key(|(_, numerator, _)| *numerator)
         .ok_or_else(|| "no calibration policy candidate".to_owned())?;
-    if selected_candidate.0 != "adaptive_a_then_b_after_positive" {
+    if selected_candidate.0 != "adaptive_b_then_a_after_positive" {
         return Err("exhaustive finite policy enumeration selected an unexpected tree".to_owned());
     }
     if redundant_gross != NO_ASSAY_VALUE_CENTI * GLOBAL_MASS {
@@ -568,7 +576,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         "policy_id": id,
         "net_expected_value": rational_json(*numerator, *denominator),
         "net_expected_value_rounded_to_milliunits": (*numerator * 1000 / *denominator),
-        "selected_by_synthetic_model_average": id == "adaptive_a_then_b_after_positive",
+        "selected_by_synthetic_model_average": id == "adaptive_b_then_a_after_positive",
     })).collect::<Vec<_>>();
 
     let source_digest = format!(
@@ -627,10 +635,14 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         "exhaustive_policy_enumeration": {
             "candidate_count": scores.len(),
             "adaptive_branch_choices_enumerated": [
-                "never_run_b_after_a",
-                "run_b_only_after_a_positive",
-                "run_b_only_after_a_negative",
-                "run_b_after_either_a_outcome"
+                "A_then_B_never",
+                "A_then_B_only_after_A_positive",
+                "A_then_B_only_after_A_negative",
+                "A_then_B_after_either_A_outcome",
+                "B_then_A_never",
+                "B_then_A_only_after_B_positive",
+                "B_then_A_only_after_B_negative",
+                "B_then_A_after_either_B_outcome"
             ],
             "selection_objective": "maximum expected net utility under the explicitly declared equal model weights",
             "regret_vs_enumerated_candidate_policies": rational_json(0, CENTI)
@@ -751,11 +763,14 @@ mod tests {
         assert_eq!(value("adaptive_a_then_b_after_positive"), 1_543_000_000_000);
         assert_eq!(value("adaptive_a_then_b_after_negative"), 1_521_000_000_000);
         assert_eq!(value("adaptive_a_then_b_after_either_outcome"), 1_539_000_000_000);
+        assert_eq!(value("adaptive_b_then_a_after_positive"), 1_557_000_000_000);
+        assert_eq!(value("adaptive_b_then_a_after_negative"), 1_489_500_000_000);
+        assert_eq!(value("adaptive_b_then_a_after_either_outcome"), 1_539_000_000_000);
         assert_eq!(value("calibration_a_only"), 1_525_000_000_000);
         assert_eq!(value("calibration_b_only"), 1_507_500_000_000);
         assert_eq!(value("no_calibration"), 1_500_000_000_000);
         let selected = scores.iter().max_by_key(|(_, numerator, _)| *numerator).unwrap();
-        assert_eq!(selected.0, "adaptive_a_then_b_after_positive");
+        assert_eq!(selected.0, "adaptive_b_then_a_after_positive");
     }
 
     #[test]
