@@ -379,9 +379,9 @@ mod tests {
     fn frozen_corpus_matches_expected_decisions_and_reason_codes() {
         let c = corpus();
         let results = validate_corpus(&c).expect("frozen cases match contract");
-        assert_eq!(results.len(), 10);
+        assert_eq!(results.len(), 11);
         assert_eq!(results.iter().filter(|r| r.decision == MissionDecision::EligibleForSimulationOnly).count(), 1);
-        assert_eq!(results.iter().filter(|r| r.decision == MissionDecision::BlockedFailClosed).count(), 8);
+        assert_eq!(results.iter().filter(|r| r.decision == MissionDecision::BlockedFailClosed).count(), 9);
         assert_eq!(results.iter().filter(|r| r.decision == MissionDecision::RejectedOutOfScope).count(), 1);
     }
 
