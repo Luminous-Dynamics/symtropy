@@ -6,8 +6,10 @@
 //!
 //! All numeric inputs are SI magnitudes (N, m, Pa, m², m⁴, N/m). This API uses
 //! field names and private-payload newtypes provide compile-time distinctions
-//! among supported SI quantity categories. Constructors validate positive finite
-//! magnitudes; they do not perform unit conversion or model signed loads.
+//! among supported SI quantity categories. Constructors require positive, finite,
+//! normal f64 magnitudes; subnormal magnitudes are rejected because their reduced
+//! precision is unsuitable for this reference kernel. This is not a roundoff-error
+//! bound. The constructors do not perform unit conversion or model signed loads.
 //!
 //! This module is an analytical reference implementation, not an FEM solver,
 //! structural design check, building-code engine, or construction approval.
@@ -33,10 +35,13 @@ use std::fmt;
 pub enum StructuralReferenceErrorKind {
     NonFiniteInput,
     NonPositiveInput,
+    SubnormalInput,
     NonFiniteIntermediate,
     NonPositiveIntermediate,
+    SubnormalIntermediate,
     NonFiniteOutput,
     NonPositiveOutput,
+    SubnormalOutput,
 }
 
 /// A fail-closed calculation error with the field or intermediate that failed.
@@ -107,6 +112,12 @@ fn positive_input(field: &'static str, value: f64) -> Result<f64> {
             StructuralReferenceErrorKind::NonPositiveInput,
         ));
     }
+    if value < f64::MIN_POSITIVE {
+        return Err(StructuralReferenceError::new(
+            field,
+            StructuralReferenceErrorKind::SubnormalInput,
+        ));
+    }
     Ok(value)
 }
 
@@ -123,6 +134,12 @@ fn positive_intermediate(field: &'static str, value: f64) -> Result<f64> {
             StructuralReferenceErrorKind::NonPositiveIntermediate,
         ));
     }
+    if value < f64::MIN_POSITIVE {
+        return Err(StructuralReferenceError::new(
+            field,
+            StructuralReferenceErrorKind::SubnormalIntermediate,
+        ));
+    }
     Ok(value)
 }
 
@@ -137,6 +154,12 @@ fn positive_output(field: &'static str, value: f64) -> Result<f64> {
         return Err(StructuralReferenceError::new(
             field,
             StructuralReferenceErrorKind::NonPositiveOutput,
+        ));
+    }
+    if value < f64::MIN_POSITIVE {
+        return Err(StructuralReferenceError::new(
+            field,
+            StructuralReferenceErrorKind::SubnormalOutput,
         ));
     }
     Ok(value)
@@ -552,6 +575,113 @@ mod tests {
             m(0.1)
         )
         .is_err());
+    }
+
+    #[test]
+    fn subnormal_si_magnitudes_are_rejected_but_minimum_normal_is_admissible() {
+        let smallest_subnormal = f64::from_bits(1);
+        let errors = [
+            Meters::try_from_si(smallest_subnormal).map(|_| ()),
+            SquareMeters::try_from_si(smallest_subnormal).map(|_| ()),
+            FourthMomentOfArea::try_from_si(smallest_subnormal).map(|_| ()),
+            Newtons::try_from_si(smallest_subnormal).map(|_| ()),
+            Pascals::try_from_si(smallest_subnormal).map(|_| ()),
+            NewtonsPerMeter::try_from_si(smallest_subnormal).map(|_| ()),
+            NewtonMeters::try_from_si(smallest_subnormal).map(|_| ()),
+        ];
+        for result in errors {
+            assert_eq!(
+                result.unwrap_err().kind,
+                StructuralReferenceErrorKind::SubnormalInput
+            );
+        }
+
+        assert_eq!(
+            Meters::try_from_si(f64::MIN_POSITIVE)
+                .expect("minimum normal f64 is within the magnitude domain")
+                .get(),
+            f64::MIN_POSITIVE
+        );
+    }
+
+    #[test]
+    fn subnormal_intermediates_and_outputs_are_distinguished_from_zero() {
+        let error = rectangular_section_properties(m(1.0e-160), m(1.0e-160))
+            .expect_err("positive subnormal area must be rejected");
+        assert_eq!(error.field, "section_area_m2");
+        assert_eq!(error.kind, StructuralReferenceErrorKind::SubnormalIntermediate);
+
+        let error = positive_output("probe_output", f64::from_bits(1))
+            .expect_err("subnormal output must be rejected");
+        assert_eq!(error.field, "probe_output");
+        assert_eq!(error.kind, StructuralReferenceErrorKind::SubnormalOutput);
+    }
+
+    #[test]
+    fn beam_load_families_reject_span_power_overflow_and_underflow() {
+        let width = m(0.1);
+        let depth = m(0.2);
+        let modulus = pa(200.0e9);
+        let normal_load = n(1.0);
+        let max_span = m(f64::MAX);
+        let min_normal_span = m(f64::MIN_POSITIVE);
+
+        let cantilever_overflow =
+            cantilever_tip_load(normal_load, max_span, modulus, width, depth)
+                .expect_err("overflowing cantilever span power must fail closed");
+        assert_eq!(cantilever_overflow.field, "span_cubed_m3");
+        assert_eq!(
+            cantilever_overflow.kind,
+            StructuralReferenceErrorKind::NonFiniteIntermediate
+        );
+
+        let midpoint_underflow = simply_supported_beam(
+            min_normal_span,
+            modulus,
+            width,
+            depth,
+            SimplySupportedLoadCase::MidpointPointLoad {
+                force_n: normal_load,
+            },
+        )
+        .expect_err("underflowing midpoint-load span power must fail closed");
+        assert_eq!(midpoint_underflow.field, "span_cubed_m3");
+        assert_eq!(
+            midpoint_underflow.kind,
+            StructuralReferenceErrorKind::NonPositiveIntermediate
+        );
+
+        let uniform_overflow = simply_supported_beam(
+            max_span,
+            modulus,
+            width,
+            depth,
+            SimplySupportedLoadCase::UniformDistributedLoad {
+                load_n_per_m: n_per_m(1.0),
+            },
+        )
+        .expect_err("overflowing uniform-load span power must fail closed");
+        assert_eq!(uniform_overflow.field, "span_fourth_m4");
+        assert_eq!(
+            uniform_overflow.kind,
+            StructuralReferenceErrorKind::NonFiniteIntermediate
+        );
+
+        let uniform_underflow = simply_supported_beam(
+            min_normal_span,
+            modulus,
+            width,
+            depth,
+            SimplySupportedLoadCase::UniformDistributedLoad {
+                load_n_per_m: n_per_m(1.0),
+            },
+        )
+        .expect_err("underflowing uniform-load span power must fail closed");
+        assert_eq!(uniform_underflow.field, "span_fourth_m4");
+        assert_eq!(
+            uniform_underflow.kind,
+            StructuralReferenceErrorKind::NonPositiveIntermediate
+        );
     }
 
     #[test]
