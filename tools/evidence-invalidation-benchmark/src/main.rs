@@ -1,9 +1,9 @@
 use std::{env, fs, process};
 
 fn main() {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "tools/evidence-invalidation-benchmark/fixtures/evidence-validity-v0-1.json".to_owned());
+    let path = env::args().nth(1).unwrap_or_else(|| {
+        "tools/evidence-invalidation-benchmark/fixtures/evidence-validity-v0-1.json".to_owned()
+    });
 
     let input = match fs::read(&path) {
         Ok(bytes) => bytes,
@@ -12,8 +12,7 @@ fn main() {
             process::exit(2);
         }
     };
-    let source_revision =
-        env::var("SOURCE_REVISION").unwrap_or_else(|_| "unprovided".to_owned());
+    let source_revision = env::var("SOURCE_REVISION").unwrap_or_else(|_| "unprovided".to_owned());
 
     match evidence_invalidation_benchmark::evaluate(&input, &source_revision) {
         Ok(report) => {

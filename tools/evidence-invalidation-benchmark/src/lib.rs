@@ -187,8 +187,8 @@ pub struct ArtifactResult {
 /// Evaluate a raw manifest. The digest is over the exact input bytes, not a
 /// re-serialized JSON object. The caller should pass the exact source commit.
 pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
-    let manifest: Manifest =
-        serde_json::from_slice(input).map_err(|error| format!("manifest JSON rejected: {error}"))?;
+    let manifest: Manifest = serde_json::from_slice(input)
+        .map_err(|error| format!("manifest JSON rejected: {error}"))?;
     validate_manifest(&manifest)?;
 
     let digest_valid: BTreeMap<String, bool> = manifest
@@ -214,8 +214,7 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
             invalidation_production(&manifest, &events, &digest_valid);
         let (oracle_superseded, oracle_stale) =
             invalidation_oracle(&manifest, &events, &digest_valid);
-        let oracle_agreement =
-            fast_superseded == oracle_superseded && fast_stale == oracle_stale;
+        let oracle_agreement = fast_superseded == oracle_superseded && fast_stale == oracle_stale;
 
         let artifacts_by_id: BTreeMap<&str, &EvidenceArtifact> = manifest
             .artifacts
@@ -227,10 +226,7 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
             .artifacts
             .iter()
             .map(|artifact| {
-                let valid_digest = digest_valid
-                    .get(&artifact.id)
-                    .copied()
-                    .unwrap_or(false);
+                let valid_digest = digest_valid.get(&artifact.id).copied().unwrap_or(false);
                 ArtifactResult {
                     id: artifact.id.clone(),
                     kind: artifact.kind.clone(),
@@ -255,16 +251,8 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
             .iter()
             .map(|claim_use| {
                 let artifact = artifacts_by_id[claim_use.artifact_id.as_str()];
-                let valid_digest = digest_valid
-                    .get(&artifact.id)
-                    .copied()
-                    .unwrap_or(false);
-                let status = final_status(
-                    artifact,
-                    valid_digest,
-                    &fast_superseded,
-                    &fast_stale,
-                );
+                let valid_digest = digest_valid.get(&artifact.id).copied().unwrap_or(false);
+                let status = final_status(artifact, valid_digest, &fast_superseded, &fast_stale);
                 let (disposition, reason) =
                     evaluate_claim_use(artifact, claim_use, &status, valid_digest);
                 ClaimResult {
@@ -284,12 +272,8 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
             ))
         });
 
-        let fixture_expectations_match = expectations_match(
-            scenario,
-            &fast_superseded,
-            &fast_stale,
-            &claims,
-        );
+        let fixture_expectations_match =
+            expectations_match(scenario, &fast_superseded, &fast_stale, &claims);
         let status = if oracle_agreement && fixture_expectations_match {
             "PASS"
         } else {
@@ -361,7 +345,9 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
             || artifact.claim_scope.claim_id.trim().is_empty()
             || artifact.claim_scope.scope_id.trim().is_empty()
         {
-            return Err("artifact IDs, revisions, claim IDs, and scope IDs must be non-empty".into());
+            return Err(
+                "artifact IDs, revisions, claim IDs, and scope IDs must be non-empty".into(),
+            );
         }
         if artifact.validity == EvidenceStatus::InvalidDigest {
             return Err(format!(
@@ -375,7 +361,10 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
                 artifact.id
             ));
         }
-        if artifacts_by_id.insert(artifact.id.as_str(), artifact).is_some() {
+        if artifacts_by_id
+            .insert(artifact.id.as_str(), artifact)
+            .is_some()
+        {
             return Err(format!("duplicate artifact ID {}", artifact.id));
         }
 
@@ -390,7 +379,11 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
                     artifact.id, dependency.artifact_id
                 ));
             }
-            if dependency.invalidates_on.iter().collect::<BTreeSet<_>>().len()
+            if dependency
+                .invalidates_on
+                .iter()
+                .collect::<BTreeSet<_>>()
+                .len()
                 != dependency.invalidates_on.len()
             {
                 return Err(format!(
@@ -442,7 +435,10 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
         let events = deduplicate_events(&scenario.events)?;
         for event in events {
             if event.id.trim().is_empty() {
-                return Err(format!("scenario {} contains an empty event ID", scenario.id));
+                return Err(format!(
+                    "scenario {} contains an empty event ID",
+                    scenario.id
+                ));
             }
             if !artifacts_by_id.contains_key(event.changed_artifact_id.as_str()) {
                 return Err(format!(
@@ -499,11 +495,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
             ));
         }
 
-        validate_expected_artifact_ids(
-            &scenario.id,
-            &scenario.expected_stale,
-            &artifacts_by_id,
-        )?;
+        validate_expected_artifact_ids(&scenario.id, &scenario.expected_stale, &artifacts_by_id)?;
         validate_expected_artifact_ids(
             &scenario.id,
             &scenario.expected_superseded,
@@ -677,10 +669,9 @@ fn invalidation_production(
         .filter(|id| {
             !superseded.contains(id)
                 && digest_valid.get(id).copied().unwrap_or(false)
-                && manifest
-                    .artifacts
-                    .iter()
-                    .any(|artifact| artifact.id == *id && artifact.validity == EvidenceStatus::Valid)
+                && manifest.artifacts.iter().any(|artifact| {
+                    artifact.id == *id && artifact.validity == EvidenceStatus::Valid
+                })
         })
         .collect();
     (superseded, stale)
@@ -711,7 +702,10 @@ fn invalidation_oracle(
         for artifact in &manifest.artifacts {
             for dependency in &artifact.depends_on {
                 if dependency.artifact_id == event.changed_artifact_id
-                    && dependency.invalidates_on.iter().any(|trigger| trigger == &event.trigger)
+                    && dependency
+                        .invalidates_on
+                        .iter()
+                        .any(|trigger| trigger == &event.trigger)
                 {
                     invalidated.insert(artifact.id.clone());
                 }
@@ -742,10 +736,9 @@ fn invalidation_oracle(
         .filter(|id| {
             !superseded.contains(id)
                 && digest_valid.get(id).copied().unwrap_or(false)
-                && manifest
-                    .artifacts
-                    .iter()
-                    .any(|artifact| artifact.id == *id && artifact.validity == EvidenceStatus::Valid)
+                && manifest.artifacts.iter().any(|artifact| {
+                    artifact.id == *id && artifact.validity == EvidenceStatus::Valid
+                })
         })
         .collect();
     (superseded, stale)
@@ -922,7 +915,10 @@ mod tests {
     fn unrelated_furnishing_change_does_not_invalidate_site_evidence() {
         let report = evaluate(FIXTURE.as_bytes(), "test-revision").unwrap();
         let result = scenario(&report, "furnishing-change");
-        assert_eq!(result.superseded_artifacts, vec!["furnishing-01".to_owned()]);
+        assert_eq!(
+            result.superseded_artifacts,
+            vec!["furnishing-01".to_owned()]
+        );
         assert!(result.stale_artifacts.is_empty());
         let concept = result
             .artifacts
@@ -1004,9 +1000,11 @@ mod tests {
             .depends_on[0]
             .artifact_id = "missing-artifact".to_owned();
         let bytes = serde_json::to_vec(&manifest).unwrap();
-        assert!(evaluate(&bytes, "test-revision")
-            .unwrap_err()
-            .contains("missing dependency"));
+        assert!(
+            evaluate(&bytes, "test-revision")
+                .unwrap_err()
+                .contains("missing dependency")
+        );
     }
 
     #[test]
@@ -1023,9 +1021,11 @@ mod tests {
                 invalidates_on: vec![Trigger::TerrainChanged],
             });
         let bytes = serde_json::to_vec(&manifest).unwrap();
-        assert!(evaluate(&bytes, "test-revision")
-            .unwrap_err()
-            .contains("cycle"));
+        assert!(
+            evaluate(&bytes, "test-revision")
+                .unwrap_err()
+                .contains("cycle")
+        );
     }
 
     #[test]
@@ -1043,9 +1043,11 @@ mod tests {
             changed_artifact_id: "furnishing-01".to_owned(),
         });
         let bytes = serde_json::to_vec(&manifest).unwrap();
-        assert!(evaluate(&bytes, "test-revision")
-            .unwrap_err()
-            .contains("conflicting duplicate event ID"));
+        assert!(
+            evaluate(&bytes, "test-revision")
+                .unwrap_err()
+                .contains("conflicting duplicate event ID")
+        );
     }
 
     #[test]
