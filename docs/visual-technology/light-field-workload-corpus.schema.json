@@ -101,7 +101,8 @@
           "metrics",
           "failure_modes",
           "claim_limit",
-          "status"
+          "status",
+          "reference_ids"
         ],
         "properties": {
           "id": {
@@ -115,8 +116,7 @@
           "lane": {
             "enum": [
               "software_synthetic",
-              "physical_measurement",
-              "data_provenance"
+              "physical_measurement"
             ]
           },
           "minimum_evidence_class": {
@@ -159,6 +159,19 @@
           },
           "status": {
             "const": "UNQUALIFIED"
+          },
+          "reference_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "ssslid-2026",
+                "lf-resolution-method",
+                "camera-in-loop-2026",
+                "symtropy-ref"
+              ]
+            }
           }
         },
         "allOf": [
@@ -196,25 +209,6 @@
               "properties": {
                 "minimum_evidence_class": {
                   "const": "BENCH_MEASURED"
-                }
-              }
-            }
-          },
-          {
-            "if": {
-              "properties": {
-                "lane": {
-                  "const": "data_provenance"
-                }
-              },
-              "required": [
-                "lane"
-              ]
-            },
-            "then": {
-              "properties": {
-                "minimum_evidence_class": {
-                  "const": "ANALYTIC_REFERENCE"
                 }
               }
             }
