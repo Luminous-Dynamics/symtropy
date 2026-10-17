@@ -550,7 +550,7 @@ fn run() -> Result<(), String> {
             &sourcing_schema_raw,
             &sourcing_snapshot_raw,
         )
-        .map_err(|errors| errors.join("\\n"))?;
+        .map_err(|errors| errors.join("\n"))?;
 
         report["washer_parts_resilience_sourcing"] = json!({
             "status": "PASS_DESK_SNAPSHOT_CONTRACT_ONLY",
