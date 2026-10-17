@@ -878,7 +878,9 @@ fn platform_mismatches(
         if let Some(allowed) = &payload.temperature {
             match &platform.controlled_temperature {
                 Some(control) if control.lo >= allowed.lo && control.hi <= allowed.hi => {}
-                _ => findings.insert(format!("temperature_control_incompatible:{payload_id}")),
+                _ => {
+                    findings.insert(format!("temperature_control_incompatible:{payload_id}"));
+                }
             };
         }
         if payload.containment && !platform.containment {
