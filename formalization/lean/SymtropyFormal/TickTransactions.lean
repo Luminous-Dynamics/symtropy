@@ -201,4 +201,92 @@ theorem finalize_rejects_unlinked_tick
   simp [finalizeTick, hActive, hPhase, hNoResult, activeTickCanAdvance,
     hLast, hWrongLink]
 
+/-! ## Positive control: two consecutive valid ticks -/
+
+def begunTickOne : TickLedger :=
+  { initialTickLedger with
+    active := some {
+      id := 1
+      phase := .begun
+      inputDigest := 11
+      priorStateDigest := 0
+      resultStateDigest := none
+    }
+  }
+
+def physicsAppliedTickOne : TickLedger :=
+  { begunTickOne with
+    active := some {
+      id := 1
+      phase := .physicsApplied
+      inputDigest := 11
+      priorStateDigest := 0
+      resultStateDigest := none
+    }
+  }
+
+def finalizedTickOne : TickLedger :=
+  { physicsAppliedTickOne with
+    active := some {
+      id := 1
+      phase := .finalized
+      inputDigest := 11
+      priorStateDigest := 0
+      resultStateDigest := some 7
+    }
+    lastFinalized := some (1, 7)
+  }
+
+def begunTickTwo : TickLedger :=
+  { finalizedTickOne with
+    active := some {
+      id := 2
+      phase := .begun
+      inputDigest := 22
+      priorStateDigest := 7
+      resultStateDigest := none
+    }
+  }
+
+def physicsAppliedTickTwo : TickLedger :=
+  { begunTickTwo with
+    active := some {
+      id := 2
+      phase := .physicsApplied
+      inputDigest := 22
+      priorStateDigest := 7
+      resultStateDigest := none
+    }
+  }
+
+def finalizedTickTwo : TickLedger :=
+  { physicsAppliedTickTwo with
+    active := some {
+      id := 2
+      phase := .finalized
+      inputDigest := 22
+      priorStateDigest := 7
+      resultStateDigest := some 8
+    }
+    lastFinalized := some (2, 8)
+  }
+
+theorem valid_first_tick_begin :
+    beginTick initialTickLedger 1 11 0 = some begunTickOne := by decide
+
+theorem valid_first_tick_physics :
+    applyPhysics begunTickOne 1 = some physicsAppliedTickOne := by decide
+
+theorem valid_first_tick_finalize :
+    finalizeTick physicsAppliedTickOne 1 7 = some finalizedTickOne := by decide
+
+theorem valid_second_tick_begin_links_previous_result :
+    beginTick finalizedTickOne 2 22 7 = some begunTickTwo := by decide
+
+theorem valid_second_tick_physics :
+    applyPhysics begunTickTwo 2 = some physicsAppliedTickTwo := by decide
+
+theorem valid_second_tick_finalize :
+    finalizeTick physicsAppliedTickTwo 2 8 = some finalizedTickTwo := by decide
+
 end SymtropyFormal
