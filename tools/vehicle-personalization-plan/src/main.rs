@@ -272,7 +272,7 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
             requested_seat_ref,
             context,
             seat_supported,
-            "seat-memory capability is absent; the reference is preserved, not applied",
+            "seat-memory capability is not declared as supported; the reference is preserved, not applied",
         ),
         decide(
             profile_id,
@@ -374,7 +374,6 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
         },
         "claim_ceiling": "synthetic capability matching and preview planning only; no actuation, real-vehicle capability claim, user study or safety validation"
     });
-    decisions.shrink_to_fit();
     Ok(report)
 }
 
