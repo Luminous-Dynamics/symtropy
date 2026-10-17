@@ -164,3 +164,40 @@ These are references for benchmark design, not proof that the proposed benchmark
 ## Non-goals
 
 No live dispatch or motor authority; no structural or hydraulic solver replacement; no claim of building-code compliance; no inference that a synthetic event models every physical failure; no claim of real-world productivity from a simulation; no conversion of consciousness scores, HDC similarity, or planner confidence into authority; no redistribution of third-party datasets without rights review.
+
+## 11. First executed-policy microcase contract (software-level)
+
+The separate fixture `policy-rollout-microcase-v0.1.json` and Rust binary `policy-rollout` add one bounded, discrete-tick recovery scenario. Robot A fails at tick 1 while preparing a panel; the planner is not allowed to use the fault as an observation until tick 2; the fixture declares Robot A available again at tick 4. The interrupted attempt loses its partial progress. Four tasks include parallel prefabrication, dependent installation, and final inspection.
+
+The three frozen comparison lanes are deliberately simple:
+
+- **B0 protective-stop baseline:** equipment protection stops the campaign on the interrupted attempt. It does not silently resume work or claim accepted output.
+- **B1 local repair-and-retry:** waits for the original resource to become available, restarts the interrupted task, and finishes the declared inspection chain.
+- **B2 observation-gated replan:** at tick 2, uses the explicitly declared resource alternative to restart the interrupted task on Robot B after its parallel prefabrication use has finished.
+
+The executable's expected outputs are B0 = stopped with no accepted synthetic output; B1 = completion at tick 8; B2 = completion at tick 6 with one reassignment and a replan tick of 2. These are exact expected results for one invented schedule, not measured improvement or a prediction about real construction. The output binds the exact input bytes by SHA-256 and checks each result against the frozen expected outcome. Its report says one scenario and three policy runs; it does not change the earlier manifest-only report, which continues to say that no policy runs were performed in that tool.
+
+The model still uses abstract tick durations, declared resource alternatives and a scripted repair time. It does not model robot dynamics, safety-rated controllers, continuous geometry, sensor noise, collision envelopes, human response, structural engineering, real inspection records or field work. A completed token is only synthetic acceptance inside this scenario.
+
+## 12. Benchmark targets and gates
+
+### Non-negotiable correctness gates
+
+- **100%** of seeded hidden-information controls must prevent policy use before the corresponding observation time.
+- **100%** of seeded stale-capability, missing-inspection, unknown-utility and resource-overcommitment controls must fail closed.
+- **0** unknown-to-clear promotions without new admissible evidence; **0** accepted-complete results without every required task and final acceptance evidence.
+- **100%** of frozen tiny schedule instances must agree with an independent exhaustive implementation, including negative/infeasible cases.
+- **100%** of predeclared cases must appear in the report; failed, unsupported, timed-out and missing runs stay explicit and cannot be recoded as zero cost or pass.
+- Replaying identical fixture/configuration/toolchain inputs must give an identical normalized result. Record input digests, exact commit, toolchain, seed, and case denominator.
+
+### Improvement targets (proposed hypotheses, not current results)
+
+After the first baseline is executed and frozen, test whether B2 can reduce median time to accepted synthetic work by **at least 10% versus B1** across a predeclared held-out set of *recoverable* disturbances, while meeting every correctness gate and not worsening the worst-case required safety/evidence disposition. This is not a target to trade against safety; a single hard-gate failure invalidates the comparison.
+
+Build a minimum **1,000 deterministic synthetic rollouts** across the disturbance families, stratified by fault type, observability delay, resource redundancy, task-DAG shape and repairability. Report each stratum, not just the pooled average. Report median/P90/P99 recovery only where sample sizes support those quantiles, along with horizon completion, rejected/accepted inspection, lost-work, operator intervention, resource utilization and replay determinism. Include fault-free and unrepairable negative controls.
+
+For every policy, measure end-to-end time and energy per *accepted functional unit*, not just active robot time. Track failed attempts, rework, material loss/reuse, inspection time, charging, maintenance, fault diagnosis and human attention. On finite toy cases, report exact optimality gaps; on bigger cases, report lower bounds and the full gap distribution rather than claiming optimality.
+
+### Research track boundary
+
+NIST's robot-agility work emphasizes repeatable metrics, retasking/reconfiguration, unexpected failures and combined virtual/physical testbeds ([NIST](https://www.nist.gov/programs-projects/agility-performance-robotic-systems)). The Hilti–Trimble–Oxford 2026 construction-site SLAM dataset has 30 active-site sequences with visual-inertial observations, floor-plan priors and reference trajectories ([official dataset page](https://hilti-trimble-challenge.com/dataset-2026)). Its published terms are **CC BY-NC-SA 3.0**, which prohibit commercial use and require share-alike distribution of adaptations. Do not bundle that dataset in this repository or use it as a commercial training/evaluation corpus without a separate rights review or permission. Localization should remain a separate track: high localization scores do not qualify a construction task or work acceptance.
