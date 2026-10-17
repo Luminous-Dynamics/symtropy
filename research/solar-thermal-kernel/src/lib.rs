@@ -679,6 +679,8 @@ mod tests {
         assert!(first.contains("\\"all_verifiers_passed\\":true"));
         assert!(first.contains("\\"hardware_validated\\":false"));
         assert!(first.contains("\\"claim_level\\":\\"synthetic-mechanics-only\\""));
+        assert!(first.contains("\\"stored_exergy_before_discharge_j\\""));
+        assert!(first.contains("\\"final_store_exergy_j\\""));
     }
 
     #[test]
