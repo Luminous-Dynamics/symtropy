@@ -325,6 +325,69 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_small_overlap_graphs_are_feasible_and_order_invariant() {
+        let ids = [1_u64, 2, 3];
+        let caps = [2_u32, 2, 1];
+        let mut checked = 0_u32;
+
+        for left_mask in 0_u32..8 {
+            for right_mask in 0_u32..8 {
+                for left_supply in 0_u32..=2 {
+                    for right_supply in 0_u32..=2 {
+                        let eligible_for = |mask: u32| {
+                            ids.iter()
+                                .enumerate()
+                                .filter_map(|(index, id)| {
+                                    (mask & (1_u32 << index) != 0).then_some(*id)
+                                })
+                                .collect::<Vec<_>>()
+                        };
+                        let p = Problem {
+                            wells: vec![
+                                Well {
+                                    id: 10,
+                                    supply: left_supply,
+                                    eligible: eligible_for(left_mask),
+                                },
+                                Well {
+                                    id: 20,
+                                    supply: right_supply,
+                                    eligible: eligible_for(right_mask),
+                                },
+                            ],
+                            agents: ids
+                                .iter()
+                                .zip(caps)
+                                .map(|(id, cap)| Agent { id: *id, cap })
+                                .collect(),
+                        };
+
+                        let (expected, _, _) = oracle(&p);
+                        assert!(
+                            feasible(&p, &expected.matrix, &expected.totals),
+                            "infeasible oracle output for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
+                        );
+
+                        let mut permuted = p.clone();
+                        permuted.wells.reverse();
+                        permuted.agents.reverse();
+                        for well in &mut permuted.wells {
+                            well.eligible.reverse();
+                        }
+                        let (actual, _, _) = oracle(&permuted);
+                        assert_eq!(
+                            expected, actual,
+                            "permutation mismatch for masks {left_mask}/{right_mask}, supplies {left_supply}/{right_supply}"
+                        );
+                        checked += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(checked, 576);
+    }
+
+    #[test]
     fn zero_supply_and_zero_caps_remain_feasible() {
         let p = Problem {
             wells: vec![Well { id: 9, supply: 0, eligible: vec![1, 2] }],
