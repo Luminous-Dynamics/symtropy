@@ -117,6 +117,17 @@ A hash or signature establishes integrity/lineage, not truth of a price, promise
 5. Compare powertrain, vehicle size, ownership and shared-mobility options by profile; publish the Pareto frontier and infeasible candidates instead of a single winner.
 6. Only after the profile's compliance, energy, service, affordability and lifecycle gates are evidenced should the relevant market availability stage advance.
 
+### Local contract audit
+
+A standalone Rust semantic auditor and adversarial unit-test suite lives at `tools/global-mobility-profile-audit/`. From the repository root:
+
+```sh
+cargo test --manifest-path tools/global-mobility-profile-audit/Cargo.toml
+cargo run --manifest-path tools/global-mobility-profile-audit/Cargo.toml -- fixtures/global_mobility/global_mobility_profiles_v0_1.json
+```
+
+The auditor only accepts the synthetic archetype panel and rejects promoted market stages, populated real-market fields in the synthetic records, unknown fields, invalid negative-control dispositions, and unsupported “evidence-backed” status. It is a semantic contract check, not a full JSON Schema Draft 2020-12 implementation or a market-data validator. CI runs these checks when scoped files change; a queued/skipped/empty workflow is not a pass.
+
 ## 8. Cross-project ownership
 
 - **Symtropy:** synthetic scenarios, simulation orchestration, reproducible execution and cross-platform comparisons.
