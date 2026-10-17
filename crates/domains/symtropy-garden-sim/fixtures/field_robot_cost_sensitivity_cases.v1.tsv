@@ -1,0 +1,11 @@
+# FIELD-ROBOT-COST-SENSITIVITY-BENCH-V1
+case_id	expected_disposition	rationale
+hand_calculated_route_sweep_produces_exact_observed_ranges	COMPLETE_PROVISIONAL	Three route scenarios produce exact annual/service/area ranges and visibly straddle the declared cost threshold
+stale_case_yields_partial_not_a_complete_bound	PARTIAL	A stale scenario remains blocked and prevents the set from being called a complete bound
+all_blocked_scenarios_return_no_numeric_range	BLOCKED	A set with no calculated scenarios emits no numeric ranges
+input_order_permutation_produces_identical_report	COMPLETE_PROVISIONAL	Scenarios are returned in canonical ID order independent of input order
+duplicate_scenario_ids_block_the_whole_request	BLOCKED	Scenario identity must be unique across one sensitivity request
+scope_period_currency_and_unit_mismatches_block_the_whole_request	BLOCKED	Incomparable scenarios cannot be mixed into one envelope
+area_denominator_mode_mismatch_blocks_hectare_range	BLOCKED	Cost per hectare needs a comparable area-denominator mode across scenarios
+zero_scenarios_blocks_the_request	BLOCKED	An empty scenario set cannot produce a cost envelope
+sensitivity_report_round_trips_exact_integer_ranges	ROUNDTRIP_VALID	Cost ranges preserve exact minor-unit integer values in JSON
