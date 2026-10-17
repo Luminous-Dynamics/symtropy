@@ -141,6 +141,7 @@ cross-scale metamorphic tests: when geometry and loads are scaled to keep the
 group fixed, normalized results should agree under the stated linear model.
 This is a mathematical property of the reference equations, not yet a test of
 the Rust implementation or a claim that real materials remain scale-similar.
+-/
 
 theorem rectangularSectionShapeFactor_dimensions :
     PhysicalDimension.div
