@@ -15,12 +15,15 @@ const ARCHITECTURES: [&str; 3] = [
     "single_vehicle_repairability_oriented",
     "household_mobility_bundle",
 ];
-const STRESSORS: [&str; 5] = [
+const STRESSORS: [&str; 8] = [
     "nominal",
     "repair_delay",
     "critical_part_unavailability",
     "fuel_price_shock",
     "cashflow_contraction",
+    "repair_delay_plus_fuel_price_shock",
+    "critical_part_plus_cashflow_contraction",
+    "combined_supply_fuel_cashflow_shock",
 ];
 const NEGATIVE_CONTROLS: [(&str, &str); 5] = [
     ("NC-01", "safety_hold_bypassed"),
@@ -145,7 +148,7 @@ fn validate_semantics(corpus: &Value, errors: &mut Errors) -> AuditSummary {
     let expected_stressors: BTreeSet<String> =
         STRESSORS.iter().map(|value| (*value).to_owned()).collect();
     if stressor_ids != expected_stressors {
-        errors.push("stress_profiles must contain exactly the five frozen stressors".to_owned());
+        errors.push("stress_profiles must contain exactly the eight frozen stressors including combined-shock cases".to_owned());
     }
 
     let expected_architecture_values: [(&str, f64, f64); 3] = [
@@ -180,12 +183,15 @@ fn validate_semantics(corpus: &Value, errors: &mut Errors) -> AuditSummary {
         }
     }
 
-    let expected_stress_values: [(&str, f64, f64, f64, f64); 5] = [
+    let expected_stress_values: [(&str, f64, f64, f64, f64); 8] = [
         ("nominal", 0.0, 1.0, 1.0, 1.0),
         ("repair_delay", 21.0, 1.0, 1.0, 1.0),
         ("critical_part_unavailability", 35.0, 0.0, 1.0, 1.0),
         ("fuel_price_shock", 0.0, 1.0, 1.5, 1.0),
         ("cashflow_contraction", 0.0, 1.0, 1.0, 0.7),
+        ("repair_delay_plus_fuel_price_shock", 21.0, 1.0, 1.5, 1.0),
+        ("critical_part_plus_cashflow_contraction", 35.0, 0.0, 1.0, 0.7),
+        ("combined_supply_fuel_cashflow_shock", 35.0, 0.0, 1.5, 0.7),
     ];
     let mut stress_values = BTreeMap::new();
     if let Some(items) = corpus.get("stress_profiles").and_then(Value::as_array) {
@@ -471,9 +477,9 @@ mod tests {
     fn accepts_frozen_synthetic_matrix() {
         let (schema, corpus) = frozen_values();
         let result = audit(&schema, &corpus).expect("frozen contract should pass");
-        assert_eq!(result.scenario_count, 15);
+        assert_eq!(result.scenario_count, 24);
         assert_eq!(result.architecture_count, 3);
-        assert_eq!(result.stressor_count, 5);
+        assert_eq!(result.stressor_count, 8);
         assert_eq!(result.negative_control_count, 5);
     }
 
