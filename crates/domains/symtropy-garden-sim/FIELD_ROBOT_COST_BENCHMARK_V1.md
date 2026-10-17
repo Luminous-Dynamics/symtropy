@@ -38,7 +38,7 @@ Required evidence domains: site geometry, completed service output, capital cost
 
 ## Benchmark inventory
 
-The frozen synthetic case inventory is `fixtures/field_robot_cost_cases.v1.tsv` (25 test-case IDs). The Rust tests include a hand-calculated baseline, route-distance sensitivity, no-robot baseline, exact ceiling arithmetic, currency/schema/time/output blockers, evidence-quality controls, overflow controls, and JSON exact-integer round-trip. The manifest is included in a structural test; it is a test inventory, not field data.
+The frozen synthetic case inventory is `fixtures/field_robot_cost_cases.v1.tsv` (25 test-case IDs). The Rust tests include a hand-calculated baseline, route-distance sensitivity, no-robot baseline, exact ceiling arithmetic, currency/schema/time/output blockers, evidence-quality controls, overflow controls, multi-operator labor, and JSON exact-integer round-trip. A separate `verify-field-robot-cost-manifest` binary does not import or call the cost evaluator; it checks row structure, unique IDs, allowed dispositions, required rationales, and the existence of a corresponding Rust test function for each manifest entry. The verifier emits `STRUCTURE_VALID_ONLY`, not a test/economic result. The TSV is a synthetic test inventory, not field data.
 
 ## Target metrics
 
