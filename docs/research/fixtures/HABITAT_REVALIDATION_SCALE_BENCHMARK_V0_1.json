@@ -206,7 +206,8 @@
       ],
       "independent_exhaustive_oracle_required": true,
       "required_expected_class": "both_budget_cases_truthful",
-      "purpose": "Ensure a found candidate cannot cause a truncated search to be misreported as exact."
+      "purpose": "Ensure a found candidate cannot cause a truncated search to be misreported as exact.",
+      "max_expanded_states": 100000
     }
   ]
 }
