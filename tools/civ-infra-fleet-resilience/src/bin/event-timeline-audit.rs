@@ -231,9 +231,22 @@ struct EvaluatorTick {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+struct PolicyObservation {
+    case_id: String,
+    disturbance_kind: String,
+    event_name: String,
+    observed_at_tick: u32,
+    affected_resources: Vec<String>,
+    affected_tasks: Vec<String>,
+    invalidates: Vec<String>,
+    recovery_evidence: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct PolicyTick {
     tick: u32,
     newly_observed_event_ids: Vec<String>,
+    newly_observed_events: Vec<PolicyObservation>,
     visible_event_ids: Vec<String>,
 }
 
@@ -276,7 +289,7 @@ impl EvaluatorEventQueue {
 
 #[derive(Clone, Debug, Default)]
 struct PolicyObservationQueue {
-    releases_by_tick: BTreeMap<u32, Vec<String>>,
+    releases_by_tick: BTreeMap<u32, Vec<PolicyObservation>>,
 }
 
 impl PolicyObservationQueue {
@@ -287,13 +300,22 @@ impl PolicyObservationQueue {
                 .releases_by_tick
                 .entry(event.observable_tick)
                 .or_default()
-                .push(event.case_id.clone());
+                .push(PolicyObservation {
+                    case_id: event.case_id.clone(),
+                    disturbance_kind: event.kind.as_str().to_string(),
+                    event_name: event.event_name.clone(),
+                    observed_at_tick: event.observable_tick,
+                    affected_resources: event.affected_resources.clone(),
+                    affected_tasks: event.affected_tasks.clone(),
+                    invalidates: event.invalidates.clone(),
+                    recovery_evidence: event.recovery_evidence.clone(),
+                });
         }
-        normalize_queue_buckets(&mut queue.releases_by_tick);
+        normalize_observation_buckets(&mut queue.releases_by_tick);
         queue
     }
 
-    fn observations_at(&self, tick: u32) -> Vec<String> {
+    fn observations_at(&self, tick: u32) -> Vec<PolicyObservation> {
         self.releases_by_tick.get(&tick).cloned().unwrap_or_default()
     }
 
@@ -302,10 +324,10 @@ impl PolicyObservationQueue {
     }
 }
 
-fn normalize_queue_buckets(queue: &mut BTreeMap<u32, Vec<String>>) {
-    for event_ids in queue.values_mut() {
-        event_ids.sort();
-        event_ids.dedup();
+fn normalize_observation_buckets(queue: &mut BTreeMap<u32, Vec<PolicyObservation>>) {
+    for observations in queue.values_mut() {
+        observations.sort_by(|left, right| left.case_id.cmp(&right.case_id));
+        observations.dedup_by(|left, right| left.case_id == right.case_id);
     }
 }
 
@@ -390,7 +412,11 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
         let injected_event_ids = evaluator_queue.events_at(tick);
         injected_so_far.extend(injected_event_ids.iter().cloned());
 
-        let newly_observed_event_ids = policy_observation_queue.observations_at(tick);
+        let newly_observed_events = policy_observation_queue.observations_at(tick);
+        let newly_observed_event_ids = newly_observed_events
+            .iter()
+            .map(|observation| observation.case_id.clone())
+            .collect::<Vec<_>>();
         visible_so_far.extend(newly_observed_event_ids.iter().cloned());
 
         let events_injected_but_not_yet_observable = injected_so_far
@@ -407,6 +433,7 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
         policy_timeline.push(PolicyTick {
             tick,
             newly_observed_event_ids,
+            newly_observed_events,
             visible_event_ids,
         });
     }
@@ -723,14 +750,15 @@ fn validate_timeline_separation(
             errors.push(format!("evaluator hidden-event set is incorrect at tick {}", evaluator.tick));
         }
 
-        let expected_new_observations = sorted_unique(
-            events
-                .iter()
-                .filter(|event| event.observable_tick == policy.tick)
-                .map(|event| event.case_id.clone())
-                .collect(),
-        );
-        if policy.newly_observed_event_ids != expected_new_observations {
+        let expected_observation_queue = PolicyObservationQueue::from_events(events);
+        let expected_observations = expected_observation_queue.observations_at(policy.tick);
+        let expected_new_observations = expected_observations
+            .iter()
+            .map(|observation| observation.case_id.clone())
+            .collect::<Vec<_>>();
+        if policy.newly_observed_events != expected_observations
+            || policy.newly_observed_event_ids != expected_new_observations
+        {
             errors.push(format!("new observation release set is incorrect at tick {}", policy.tick));
         }
         let expected_injections = sorted_unique(
