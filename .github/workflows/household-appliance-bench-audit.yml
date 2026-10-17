@@ -12,6 +12,7 @@ on:
       - "docs/tech/REPAIRABILITY_ARCHITECTURE_DECISION_ENGINE_V0_1.md"
       - "docs/tech/STAKEHOLDER_CONSTRAINED_REPAIRABILITY_FRONTIERS_V0_1.md"
       - "docs/tech/WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md"
+      - "docs/tech/CROSS_APPLIANCE_ARCHITECTURE_MORPHOLOGY_AND_HYBRIDS_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -31,6 +32,7 @@ on:
       - "docs/tech/REPAIRABILITY_ARCHITECTURE_DECISION_ENGINE_V0_1.md"
       - "docs/tech/STAKEHOLDER_CONSTRAINED_REPAIRABILITY_FRONTIERS_V0_1.md"
       - "docs/tech/WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md"
+      - "docs/tech/CROSS_APPLIANCE_ARCHITECTURE_MORPHOLOGY_AND_HYBRIDS_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -72,3 +74,5 @@ jobs:
           --decision-profile fixtures/appliances/repairability_architecture_decision_v0_1.json
           --faults-schema schemas/appliances/washer_fault_to_repair_curriculum_v0_1.schema.json
           --faults-curriculum fixtures/appliances/washer_fault_to_repair_curriculum_v0_1.json
+          --morphology-schema schemas/appliances/cross_appliance_architecture_morphology_v0_1.schema.json
+          --morphology-portfolio fixtures/appliances/cross_appliance_architecture_morphology_v0_1.json
