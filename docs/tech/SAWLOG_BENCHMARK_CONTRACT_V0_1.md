@@ -42,7 +42,7 @@ Research:
 - Complete-ledger reconciliation within declared tolerance; partial outputs cannot exceed the input-volume envelope beyond tolerance; unknown observations cannot carry quantitative outputs.
 - Deterministic receipt binding the exact corpus bytes and source commit.
 
-This is **not** a geometry reconstruction engine or optimizer. v0.1 accepts only synthetic examples so real mill/operator data are not accidentally published. Passing means only that a fixture conforms to the contract and declared accounting gates.
+This is **not** a geometry reconstruction engine or optimizer. v0.1 accepts only synthetic examples so real mill/operator data are not accidentally published. An overall `validated` receipt means the corpus and physical-accounting invariants passed; it does **not** mean every prediction met its accuracy target. Read `geometry_target_met` and the aggregate geometry metrics separately. The synthetic suite intentionally contains an out-of-target estimate, demonstrating why prediction error must be reported rather than filtered away. Passing schema validation means only that the fixture conforms to the contract and declared accounting gates.
 
 ## Proposed benchmark ladder
 
