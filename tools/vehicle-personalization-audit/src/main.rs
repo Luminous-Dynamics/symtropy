@@ -17,7 +17,7 @@ const PROFILE_IDS: [&str; 4] = [
     "vpf_shared001",
     "vpf_guest0001",
 ];
-const CONTROL_IDS: [&str; 7] = [
+const CONTROL_IDS: [&str; 8] = [
     "NC-PERS-01",
     "NC-PERS-02",
     "NC-PERS-03",
@@ -25,6 +25,7 @@ const CONTROL_IDS: [&str; 7] = [
     "NC-PERS-05",
     "NC-PERS-06",
     "NC-PERS-07",
+    "NC-PERS-08",
 ];
 
 type Errors = Vec<String>;
@@ -179,6 +180,15 @@ fn expected_violation_present(control: &Value, profile: &Value, profile_schema: 
                 .as_f64()
                 .is_some_and(|intensity| intensity > 0.25)
         }
+        Some("irreversible_profile_customization") => {
+            bool_at(&profile["reversibility"], "neutral_reset_available") != Some(true)
+                || text_at(&profile["reversibility"], "settings_export_format")
+                    != Some("versioned_open_json")
+                || bool_at(
+                    &profile["reversibility"],
+                    "personalization_modules_replaceable",
+                ) != Some(true)
+        }
         _ => false,
     }
 }
@@ -206,6 +216,9 @@ fn mutate_profile(base: &Value, control: &Value) -> Result<Value, String> {
         }
         "replace_cabin_preferences" if property == "cabin_preferences" => {
             profile["cabin_preferences"] = mutation.clone();
+        }
+        "replace_reversibility" if property == "reversibility" => {
+            profile["reversibility"] = mutation.clone();
         }
         other => return Err(format!("unsupported mutation operation/property: {other}/{property}")),
     }
@@ -448,8 +461,8 @@ mod tests {
         let (schema, fixture, _) = frozen_values();
         let result = audit(&schema, &fixture).expect("frozen personalization contract");
         assert_eq!(result.profile_count, 4);
-        assert_eq!(result.control_count, 7);
-        assert_eq!(result.rejected_control_count, 7);
+        assert_eq!(result.control_count, 8);
+        assert_eq!(result.rejected_control_count, 8);
         assert_eq!(result.false_accept_count, 0);
     }
 
@@ -562,6 +575,21 @@ mod tests {
         assert!(!validator.is_valid(&mutated));
     }
 
+
+    #[test]
+    fn rejects_nonreversible_profile_changes() {
+        let (schema, fixture, _) = frozen_values();
+        let base = fixture["profiles"][0].clone();
+        let control = fixture["negative_controls"].as_array().expect("controls")
+            .iter()
+            .find(|item| text_at(item, "id") == Some("NC-PERS-08"))
+            .expect("reversibility control");
+        let mutated = mutate_profile(&base, control).expect("mutation applies");
+        let profile_schema = &schema["$defs"]["profile"];
+        let validator = draft202012::options().build(profile_schema).expect("profile schema");
+        assert!(!validator.is_valid(&mutated));
+        assert!(!profile_semantic_errors(&mutated).is_empty());
+    }
     #[test]
     fn exact_input_replay_keeps_fixture_digest_stable() {
         let bytes = include_bytes!(
