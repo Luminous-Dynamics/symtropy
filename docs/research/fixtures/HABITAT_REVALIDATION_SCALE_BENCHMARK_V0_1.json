@@ -27,8 +27,7 @@
     "measured_trials": 30,
     "required_percentiles": [
       50,
-      95,
-      99
+      95
     ],
     "required_environment": [
       "repository_commit_sha",
@@ -51,7 +50,12 @@
       "end_to_end"
     ],
     "raw_trials_required": true,
-    "timing_fields_excluded_from_deterministic_report_digest": true
+    "timing_fields_excluded_from_deterministic_report_digest": true,
+    "conditional_percentile_reporting": {
+      "percentile": 99,
+      "minimum_sample_count": 1000,
+      "when_below_minimum": "mark_p99_unavailable_report_observed_max_and_sample_count"
+    }
   },
   "correctness_gates": {
     "micro_oracle_frontier_agreement_fraction_min": 1,
