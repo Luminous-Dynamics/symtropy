@@ -191,3 +191,10 @@ The Rust package includes a separate brute-force reference path, exact input-byt
 A successful synthetic benchmark would show that the implementation handles its declared fixtures and invariants. It would **not** show that Symthaea can independently architect a real house, that Symtropy's simulator predicts a physical property accurately, that Sol-Atlas has found a legally buildable/safe parcel, that Mycelix provenance makes a certificate true, or that any design is permit-ready.
 
 The long-term product goal is a professional-grade **evidence-to-as-built-to-operations workflow**: generate useful alternatives, find the decisive unknowns early, reduce redesign and coordination waste, make trade-offs inspectable, preserve resident control, and qualify each real-world claim with the evidence and authority it actually requires.
+
+
+## 12. Observation-mode robustness follow-on (v0.2)
+
+The companion [Habitat Observation Robustness Benchmark v0.2](HABITAT_OBSERVATION_ROBUSTNESS_V0_2.md) and frozen fixture `docs/research/fixtures/HABITAT_OBSERVATION_ROBUSTNESS_V0_2.json` extend the perfect-observation assumption described in Section 10. It enumerates `valid`, `false_negative`, `false_positive`, `stale`, `inconclusive`, and `contradictory` observation modes over the four synthetic underlying conditions. The standalone `tools/habitat-observation-robustness` crate checks exact fixture bytes, observation semantics, complete/disjoint outcome partitions, and candidate feasibility across every condition compatible with each observation.
+
+This fixture is adversarial by construction: no result narrows the four-condition uncertainty set while all six modes remain admissible, so the only robust candidate in the toy model is the declared fallback. That is an assurance test, not a real-site recommendation. The tool report's claim ceiling is `synthetic_observation_robustness_not_site_safety`; it provides no calibrated survey-performance estimate, geological model, or physical-safety claim. See issue [HABITAT-DI-002 #1836](https://github.com/Luminous-Dynamics/symtropy/issues/1836) for the follow-on scope.
