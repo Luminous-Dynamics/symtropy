@@ -370,6 +370,17 @@ fn audit_values(
                     .and_then(Value::as_bool)
                     == Some(false)
                 && threshold.is_null();
+            if frozen
+                && matches!(
+                    criterion_id,
+                    "first_visit_verified_repair_rate" | "target_window_part_fulfilment_rate"
+                )
+                && threshold.as_f64().is_some_and(|value| value > 1.0)
+            {
+                errors.push(format!(
+                    "{profile_id}.{req_id}: proportion thresholds must not exceed 1.0"
+                ));
+            }
             if frozen {
                 frozen_requirements += 1;
             } else if !unfrozen {
