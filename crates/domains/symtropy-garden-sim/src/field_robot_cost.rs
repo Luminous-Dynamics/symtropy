@@ -928,6 +928,59 @@ mod tests {
     }
 
     #[test]
+    fn frozen_manifest_matches_independent_case_inventory() {
+        const EXPECTED: &[(&str, &str)] = &[
+            ("baseline_cost_components_match_hand_calculated_oracle", "CALCULATED_PROVISIONAL"),
+            ("complete_source_references_change_evidence_disposition_not_math", "CALCULATED_SOURCE_REFERENCED"),
+            ("estimated_route_data_makes_result_provisional", "CALCULATED_PROVISIONAL"),
+            ("missing_cost_evidence_blocks_calculation", "BLOCKED"),
+            ("stale_evidence_blocks_even_when_numeric_values_look_favorable", "BLOCKED"),
+            ("conflicting_repair_evidence_blocks_ranking_inputs", "BLOCKED"),
+            ("duplicate_evidence_domains_block", "BLOCKED"),
+            ("missing_evidence_domain_blocks", "BLOCKED"),
+            ("malformed_source_digest_blocks", "BLOCKED"),
+            ("invalid_currency_code_blocks", "BLOCKED"),
+            ("unsupported_schema_blocks", "BLOCKED"),
+            ("zero_output_blocks_per_unit_cost", "BLOCKED"),
+            ("zero_completed_area_blocks_hectare_cost", "BLOCKED"),
+            ("zero_useful_life_blocks_capital_annualization", "BLOCKED"),
+            ("salvage_value_above_acquisition_cost_blocks", "BLOCKED"),
+            ("supervision_is_subset_of_labor_not_double_counted", "BLOCKED"),
+            ("zero_route_missions_have_zero_route_and_mobilization_cost", "CALCULATED_PROVISIONAL"),
+            ("route_distance_increases_logistics_cost", "CALCULATED_PROVISIONAL"),
+            ("no_robot_baseline_is_modelled_without_fake_capital_cost", "CALCULATED_PROVISIONAL"),
+            ("exact_ceiling_arithmetic_never_rounds_cost_down", "CALCULATED_PROVISIONAL"),
+            ("route_distance_overflow_blocks_without_wrapping", "BLOCKED"),
+            ("annual_time_over_budget_blocks", "BLOCKED"),
+            ("total_cost_overflow_blocks_without_partial_breakdown", "BLOCKED"),
+            ("exact_integer_cost_values_round_trip_as_decimal_strings", "ROUNDTRIP_VALID"),
+        ];
+
+        let manifest = include_str!("../fixtures/field_robot_cost_cases.v1.tsv");
+        let rows: Vec<_> = manifest
+            .lines()
+            .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
+            .collect();
+
+        assert_eq!(
+            rows.first().copied(),
+            Some("case_id\texpected_result\trationale"),
+            "manifest header drift"
+        );
+        assert_eq!(rows.len().saturating_sub(1), EXPECTED.len(), "manifest row count drift");
+
+        let mut ids = BTreeSet::new();
+        for (index, (row, expected)) in rows[1..].iter().zip(EXPECTED.iter()).enumerate() {
+            let columns: Vec<_> = row.split('\t').collect();
+            assert_eq!(columns.len(), 3, "malformed manifest row {}", index + 2);
+            assert_eq!(columns[0], expected.0, "case ID/order drift at row {}", index + 2);
+            assert_eq!(columns[1], expected.1, "case disposition drift at row {}", index + 2);
+            assert!(!columns[2].trim().is_empty(), "missing rationale at row {}", index + 2);
+            assert!(ids.insert(columns[0]), "duplicate frozen case ID: {}", columns[0]);
+        }
+    }
+
+    #[test]
     fn exact_integer_cost_values_round_trip_as_decimal_strings() {
         let input = baseline_input();
         let encoded = serde_json::to_string(&input).unwrap();
