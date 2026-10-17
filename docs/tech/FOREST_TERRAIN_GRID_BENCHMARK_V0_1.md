@@ -31,7 +31,9 @@ These are engineering targets, not achieved metrics or standards:
 
 ## Research lessons incorporated
 
-The 2023 SPOT forest-inventory trial found tree identification and position errors varied across sensing and path conditions, supporting stratified reporting instead of one aggregate score: https://www.mdpi.com/1999-4907/14/11/2170. GNSS navigation should not be treated as ground truth; Nav2's GPS tutorial describes generic GPS errors that can be meters and can jump: https://docs.nav2.org/rolling/tutorials/general_tutorials/navigation2_with_gps/navigation2_with_gps/. Safety scope needs qualified review against the applicable edition and machine-specific hazards of ISO 11850 and other relevant standards; this prototype does not claim compliance: https://www.iso.org/standard/51182.html.
+The 2023 SPOT forest-inventory trial found tree identification and position errors varied across sensing and path conditions, supporting stratified reporting instead of one aggregate score: https://www.mdpi.com/1999-4907/14/11/2170. A separate 2025 under-canopy drone study reported DBH RMSE of 3.33–3.97 cm across all trees, improving to 1.16–2.56 cm for trees below 30 cm DBH; this supports sensor- and diameter-stratified targets rather than applying a legged-robot result as a universal threshold: https://www.tandfonline.com/doi/full/10.1080/01431161.2025.2579803. GNSS navigation should not be treated as ground truth; Nav2's GPS tutorial describes generic GPS errors that can be meters and can jump: https://docs.nav2.org/rolling/tutorials/general_tutorials/navigation2_with_gps/navigation2_with_gps/.
+
+For current safety-standard status: ISO lists ISO 11850:2011 (with amendments) as published/current, last reviewed and confirmed in 2023, while ISO/CD 11850 Edition 4 is under development and is intended to replace it. Do not treat the committee draft as an adopted final standard; the published standard also warns that machine-specific hazards require additional treatment. This prototype does not claim compliance: https://www.iso.org/standard/51182.html and https://www.iso.org/standard/87180.html.
 
 ## Deliberate limitations
 

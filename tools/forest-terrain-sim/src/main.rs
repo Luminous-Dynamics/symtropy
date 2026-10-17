@@ -364,6 +364,25 @@ mod tests {
         assert_eq!(r.fault_response_latency_steps, Some(0));
     }
     #[test]
+    fn fault_occurs_at_configured_simulator_step() {
+        let c = corpus();
+        let base = &c.scenarios[1];
+        let mut later = ScenarioSpec {
+            scenario_id: "LATER_FAULT_TEST".to_owned(),
+            map_variant: base.map_variant,
+            battery_milliunits: base.battery_milliunits,
+            fault: base.fault,
+            expected_state: SimState::Degraded,
+            expected_reason_codes: vec!["POSE_SOURCE_DEGRADED".to_owned()],
+        };
+        later.fault.as_mut().expect("test case has a fault").trigger_step = 5;
+        let result = validate_scenario(&c, &later).expect("later fault remains deterministic");
+        assert_eq!(result.state, SimState::Degraded);
+        assert_eq!(result.traversed_unique_cells, 5);
+        assert_eq!(result.energy_used_milliunits, 8);
+        assert_eq!(result.traversed_survey_targets, 0);
+    }
+    #[test]
     fn every_injected_fault_transitions_before_its_simulated_deadline() {
         let c = corpus(); let results = validate_corpus(&c).expect("fault deadlines met");
         for (spec, result) in c.scenarios.iter().zip(results.iter()) {
