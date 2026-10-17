@@ -5,6 +5,8 @@
 **Parent:** [SPATIAL-DESIGN-001 #1766](https://github.com/Luminous-Dynamics/symtropy/issues/1766)  
 **Manifest:** `SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.json`  
 **Schema:** `SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json`
+**Timeline oracle corpus:** `SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json` (8 deterministic event sequences).
+**Timeline schema:** `SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.schema.json`.
 
 ## 1. Research question
 
@@ -76,6 +78,8 @@ The JSON manifest contains 15 contract cases. These are evaluator fixtures, not 
 Each fixture specifies invariant IDs, a negative-control mutation and the expected disposition. Expected dispositions assert **how the evaluator must handle a case**, not physical performance values.
 
 ## 6. Independent oracle and negative controls
+
+The standalone Rust qualifier executes the separate eight-case timeline corpus against a hand-checkable finite-state recovery oracle. Cases freeze recurrence, boundary-time loss, duplicate delivery, conflicting event identity, ambiguous same-tick ordering, out-of-horizon events, zero-length windows and tick-overflow handling. The case corpus and its schema are separate from the spatial-design contract manifest so timeline truth tables can be reviewed directly. The oracle's claim remains limited to synthetic event semantics.
 
 The future Rust-first verifier should:
 
