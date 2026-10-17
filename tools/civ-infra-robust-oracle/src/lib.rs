@@ -752,6 +752,137 @@ mod tests {
         expected
     }
 
+    // Separate test-only frontier oracle. It uses direct pairwise comparisons
+    // rather than calling the production candidate_dominates helper.
+    fn exhaustive_frontier_oracle(
+        fixture: &RobustFixture,
+        dispositions: &BTreeMap<String, CandidateDisposition>,
+    ) -> Vec<String> {
+        let eligible = fixture
+            .candidates
+            .iter()
+            .filter(|candidate| {
+                dispositions.get(&candidate.id)
+                    == Some(&CandidateDisposition::RobustFeasibleForDeclaredSet)
+            })
+            .collect::<Vec<_>>();
+        let mut frontier = Vec::new();
+
+        for candidate in &eligible {
+            let mut dominated = false;
+            for other in &eligible {
+                if candidate.id == other.id {
+                    continue;
+                }
+                let mut no_worse_everywhere = true;
+                let mut strictly_better_somewhere = false;
+
+                for state in &fixture.states {
+                    let left = other
+                        .state_results
+                        .iter()
+                        .find(|result| result.state_id == state.id);
+                    let right = candidate
+                        .state_results
+                        .iter()
+                        .find(|result| result.state_id == state.id);
+                    let (Some(left), Some(right)) = (left, right) else {
+                        no_worse_everywhere = false;
+                        break;
+                    };
+
+                    for objective in &fixture.objectives {
+                        let (Some(a), Some(b)) = (
+                            left.objectives.get(&objective.id),
+                            right.objectives.get(&objective.id),
+                        ) else {
+                            no_worse_everywhere = false;
+                            break;
+                        };
+                        let no_worse = match objective.direction {
+                            ObjectiveDirection::Minimize => a <= b,
+                            ObjectiveDirection::Maximize => a >= b,
+                        };
+                        if !no_worse {
+                            no_worse_everywhere = false;
+                            break;
+                        }
+                        strictly_better_somewhere |= match objective.direction {
+                            ObjectiveDirection::Minimize => a < b,
+                            ObjectiveDirection::Maximize => a > b,
+                        };
+                    }
+                    if !no_worse_everywhere {
+                        break;
+                    }
+                }
+
+                if no_worse_everywhere && strictly_better_somewhere {
+                    dominated = true;
+                    break;
+                }
+            }
+            if !dominated {
+                frontier.push(candidate.id.clone());
+            }
+        }
+        frontier.sort();
+        frontier
+    }
+
+    fn next_deterministic_value(seed: &mut u64) -> u64 {
+        *seed = seed
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        *seed
+    }
+
+    #[test]
+    fn generated_finite_worlds_match_independent_oracle_for_over_ten_thousand_states() {
+        let mut seed = 0xC1_71_1F_A5_2026_u64;
+        let mut state_evaluations = 0usize;
+        const GENERATED_FIXTURES: usize = 625;
+
+        for case_index in 0..GENERATED_FIXTURES {
+            let mut fixture = parse_fixture();
+            fixture.fixture_id = format!("generated-world-{case_index}");
+
+            for candidate in &mut fixture.candidates {
+                for result in &mut candidate.state_results {
+                    for passed in result.constraints.values_mut() {
+                        *passed = next_deterministic_value(&mut seed) & 1 == 1;
+                    }
+                    for value in result.objectives.values_mut() {
+                        let perturbation =
+                            (next_deterministic_value(&mut seed) % 1_000) as f64 / 100.0;
+                        *value += perturbation;
+                    }
+                }
+            }
+
+            state_evaluations += fixture.candidates.len() * fixture.states.len();
+            let expected = exhaustive_oracle(&fixture);
+            let expected_frontier = exhaustive_frontier_oracle(&fixture, &expected);
+            let bytes = serde_json::to_vec(&fixture).expect("generated fixture serializes");
+            let report = evaluate_json(&bytes).expect("generated finite fixture evaluates");
+
+            for candidate in &report.candidates {
+                assert_eq!(
+                    expected[&candidate.candidate_id],
+                    candidate.disposition,
+                    "disposition mismatch for generated fixture {case_index}"
+                );
+            }
+            assert_eq!(
+                expected_frontier,
+                report.robust_pareto_frontier_candidate_ids,
+                "Pareto mismatch for generated fixture {case_index}"
+            );
+        }
+
+        assert_eq!(state_evaluations, 12_500);
+    }
+
     #[test]
     fn frozen_fixture_matches_authored_outcomes_and_exhaustive_oracle() {
         let report = evaluate_json(fixture_bytes()).expect("fixture evaluates");
