@@ -534,6 +534,70 @@ mod tests {
         serde_json::from_str(DECISION).expect("decision profile must parse")
     }
 
+    fn synthetic_frozen_decision() -> Value {
+        let mut decision = canonical_decision();
+        for criterion in decision["criteria"].as_array_mut().expect("criteria") {
+            criterion["status"] = json!("method_frozen");
+        }
+        for profile in decision["stakeholder_profiles"]
+            .as_array_mut()
+            .expect("profiles")
+        {
+            profile["status"] = json!("requirements_frozen");
+            for requirement in profile["requirements"]
+                .as_array_mut()
+                .expect("requirements")
+            {
+                requirement["status"] = json!("frozen_before_candidate_measurements");
+                requirement["frozen_before_candidate_measurements"] = json!(true);
+                requirement["threshold"] = if text_at(requirement, "direction") == Some("minimize") {
+                    json!(100000.0)
+                } else {
+                    json!(0.0)
+                };
+            }
+        }
+        for (candidate_index, candidate) in decision["candidates"]
+            .as_array_mut()
+            .expect("candidates")
+            .iter_mut()
+            .enumerate()
+        {
+            for gate in candidate["hard_gates"].as_array_mut().expect("gates") {
+                gate["status"] = json!("pass");
+                gate["evidence_id"] = json!(format!("LAB-RECEIPT-W{candidate_index}"));
+            }
+            let mut observations = Vec::new();
+            for (criterion_index, criterion) in decision["criteria"]
+                .as_array()
+                .expect("criteria")
+                .iter()
+                .enumerate()
+            {
+                let id = text_at(criterion, "id").unwrap_or("unknown");
+                let direction = text_at(criterion, "direction").unwrap_or("minimize");
+                let value = if direction == "minimize" {
+                    (candidate_index * 10 + criterion_index + 2) as f64
+                } else {
+                    0.95 - candidate_index as f64 * 0.1
+                };
+                observations.push(json!({
+                    "criterion_id": id,
+                    "lower": value,
+                    "upper": value,
+                    "unit": text_at(criterion, "unit").unwrap_or("unknown"),
+                    "evidence_class": "physical_measurement",
+                    "evidence_id": format!("LAB-RECEIPT-W{candidate_index}-{id}"),
+                    "method_id": format!("FROZEN-METHOD-{id}"),
+                    "method_frozen": true,
+                    "uncertainty_note": "Synthetic logic test fixture; not physical appliance evidence."
+                }));
+            }
+            candidate["observations"] = json!(observations);
+        }
+        decision
+    }
+
     fn audit_mutation(decision: &Value) -> Result<(StakeholderAuditSummary, Value), Errors> {
         let schema: Value = serde_json::from_str(SCHEMA).expect("schema must parse");
         audit_values(&schema, decision)
@@ -552,6 +616,56 @@ mod tests {
             assert_eq!(profile["status"], "requirements_not_frozen");
             assert_eq!(profile["profile_specific_selection_claim_permitted"], json!(false));
         }
+    }
+
+    #[test]
+    fn frozen_profiles_apply_constraints_then_compute_separate_frontiers() {
+        let decision = synthetic_frozen_decision();
+        let raw = serde_json::to_string(&decision).unwrap();
+        let schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        let (summary, report) = audit_values(&schema, &decision)
+            .expect("synthetic stakeholder logic fixture must validate");
+        assert_eq!(summary.profile_ready_count, 5);
+        assert_eq!(summary.frozen_requirement_count, 18);
+        assert_eq!(report["profile_specific_selection_claim_permitted"], json!(false));
+        for profile in report["profiles"].as_array().expect("profiles") {
+            assert_eq!(profile["status"], "requirements_frozen");
+            assert_eq!(profile["candidate_meeting_constraints_count"], json!(5));
+            assert_eq!(profile["profile_pareto_frontier_count"], json!(1));
+            assert_eq!(profile["profile_specific_selection_claim_permitted"], json!(false));
+        }
+        assert!(!raw.is_empty());
+    }
+
+    #[test]
+    fn overlapping_uncertainty_at_profile_threshold_is_unresolved() {
+        let mut decision = synthetic_frozen_decision();
+        decision["stakeholder_profiles"][0]["requirements"][0]["threshold"] = json!(3.0);
+        decision["candidates"][0]["observations"][0]["lower"] = json!(2.0);
+        decision["candidates"][0]["observations"][0]["upper"] = json!(4.0);
+        let raw = serde_json::to_string(&decision).unwrap();
+        let schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        let (_, report) = audit_values(&schema, &decision)
+            .expect("overlapping profile interval must remain valid evidence");
+        assert_eq!(
+            report["profiles"][0]["candidate_assessments"][0]["status"],
+            json!("profile_constraint_unresolved")
+        );
+        assert!(!raw.is_empty());
+    }
+
+    #[test]
+    fn unmet_profile_threshold_is_reported_without_global_score() {
+        let mut decision = synthetic_frozen_decision();
+        decision["stakeholder_profiles"][0]["requirements"][0]["threshold"] = json!(0.0);
+        let schema: Value = serde_json::from_str(SCHEMA).unwrap();
+        let (_, report) = audit_values(&schema, &decision)
+            .expect("profile threshold is a valid constraint");
+        assert_eq!(
+            report["profiles"][0]["candidate_assessments"][0]["status"],
+            json!("fails_profile_constraint")
+        );
+        assert_eq!(report["policy"], json!("stakeholder_constraints_without_hidden_global_weights"));
     }
 
     #[test]
