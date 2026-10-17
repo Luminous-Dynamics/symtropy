@@ -5,25 +5,26 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "scenario_id",
-    "scenario_version",
-    "scenario_family",
-    "title",
-    "variant_id",
-    "variant_kind",
-    "variant_axis",
-    "variant_description",
+    "assertion_specifications",
+    "baseline_policy",
+    "claim_ceiling",
     "deterministic_seed",
     "execution_profile",
-    "policy_version",
-    "policies_under_comparison",
-    "baseline_policy",
-    "initial_conditions",
     "exogenous_events",
     "expected_invariants",
-    "observables",
+    "initial_conditions",
     "known_model_limits",
-    "claim_ceiling"
+    "observables",
+    "policies_under_comparison",
+    "policy_version",
+    "scenario_family",
+    "scenario_id",
+    "scenario_version",
+    "title",
+    "variant_axis",
+    "variant_description",
+    "variant_id",
+    "variant_kind"
   ],
   "properties": {
     "scenario_id": {
@@ -118,6 +119,68 @@
     },
     "claim_ceiling": {
       "type": "string"
+    },
+    "assertion_specifications": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assertion_id",
+          "assertion_kind",
+          "scope",
+          "severity",
+          "report_pointer",
+          "rationale"
+        ],
+        "properties": {
+          "assertion_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assertion_kind": {
+            "enum": [
+              "numeric_upper_bound",
+              "collection_contains_all_ids",
+              "field_present",
+              "metric_zero",
+              "value_equals",
+              "boolean_true"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "each_policy",
+              "policy_matrix",
+              "per_scenario",
+              "paired_replay"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "hard",
+              "diagnostic"
+            ]
+          },
+          "report_pointer": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "scenario_pointer": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "identity_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }
