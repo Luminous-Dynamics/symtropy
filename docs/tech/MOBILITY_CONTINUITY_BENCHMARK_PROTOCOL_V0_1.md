@@ -27,6 +27,8 @@ The benchmark extends vehicle repairability research—where spare-parts availab
 
 The fixture's 12 essential trips and 8 discretionary trips per week are normalized synthetic workload values for deterministic smoke tests, not a South African household travel estimate. Architecture readiness and stress parameters are equally synthetic and must not be represented as actual product capabilities or forecasts.
 
+**Verifier scope limitation:** v0.1 validates schema, matrix completeness, frozen parameters, evidence labels, fail-closed policy declarations, and the presence of five negative-control definitions. It does not run a fleet/vehicle simulator or evaluate a candidate decision engine against those controls. A `must_reject` declaration is test intent, not a measured rejection result. A later version must include an executable candidate-evaluator interface and assert its actual outputs before reporting false-accept rates.
+
 ## 3. Metrics and calculation contract
 
 Every report must carry the input/configuration digest, model and source revision, evidence class, units, sampling method, uncertainty, missingness, limitations, and maximum justified claim. Use the shared [engineering evidence envelope](./../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json) when publishing results across projects.
@@ -35,7 +37,7 @@ Every report must carry the input/configuration digest, model and source revisio
 - **Unmet essential trips** = count of essential opportunities not completed within their declared time window.
 - **Out-of-service time** = time from a documented failure/hold that prevents dispatch until an authorized post-repair check permits safe return to service. Also report diagnosis, parts wait, bay wait, hands-on work, validation, rework, and external transport time separately.
 - **Time to safe recovery P50/P90** = median and 90th percentile of complete recovery durations, by preregistered task/failure family and architecture. Do not compute a tail percentile from unreported or selectively omitted failures.
-- **Cost per fulfilled essential trip** = attributable whole-life household mobility cost ÷ eligible essential trips fulfilled in the same evaluation horizon. Report cash costs, financing, energy, maintenance, parts, downtime, fallback travel and disposal separately before presenting any total. Unknown is not zero.
+- **Cost per fulfilled essential trip** = attributable whole-life household mobility cost ÷ eligible essential trips fulfilled in the same evaluation horizon. Report cash costs, financing, energy, maintenance, parts, downtime, fallback travel and disposal separately before presenting any total. Unknown is not zero. If no essential trips are fulfilled, the ratio is undefined and the case remains a service failure; do not drop the case.
 - **Fallback accessibility/capacity** = essential demand that could be carried by a fallback only when that option is available, legal, accessible to the relevant traveler, within the trip window, and has sufficient capacity.
 - **Uncertainty-interval coverage** = coverage of preregistered intervals against held-out observations, reported only when measured outcomes and suitable sample counts exist.
 
@@ -53,7 +55,7 @@ Report the vector of metrics and its Pareto frontier. Do **not** collapse safety
 | Unknown lifecycle cost fields silently imputed to zero | **0** | Preserve unknown / bounded / quoted / measured states explicitly |
 | Repeated report digest with identical exact inputs and tool revision | **100% identical** | Determinism/reproducibility gate; does not validate physical truth |
 
-Targets are intentionally ambitious engineering hypotheses, not current measurements. If an archetype cannot meet the stress target, publish that failure rather than changing the denominator, lowering a gate after seeing results, or tuning only on the evaluation set.
+Targets are intentionally ambitious engineering hypotheses, not current measurements. The nominal/stress fulfilment targets apply to the candidate system and stated household/access profile; comparators are allowed to fail so the benchmark can reveal their failure modes. If a candidate cannot meet the stress target, publish that failure rather than changing the denominator, lowering a gate after seeing results, or tuning only on the evaluation set. The v0.1 contract auditor does not measure whether these targets are achieved.
 
 ## 5. Safety and truth invariants
 
