@@ -250,6 +250,65 @@ struct QueuedEvent {
     recovery_evidence: Vec<String>,
 }
 
+#[derive(Clone, Debug, Default)]
+struct EvaluatorEventQueue {
+    injections_by_tick: BTreeMap<u32, Vec<String>>,
+}
+
+impl EvaluatorEventQueue {
+    fn from_events(events: &[QueuedEvent]) -> Self {
+        let mut queue = Self::default();
+        for event in events {
+            queue
+                .injections_by_tick
+                .entry(event.injection_tick)
+                .or_default()
+                .push(event.case_id.clone());
+        }
+        normalize_queue_buckets(&mut queue.injections_by_tick);
+        queue
+    }
+
+    fn events_at(&self, tick: u32) -> Vec<String> {
+        self.injections_by_tick.get(&tick).cloned().unwrap_or_default()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct PolicyObservationQueue {
+    releases_by_tick: BTreeMap<u32, Vec<String>>,
+}
+
+impl PolicyObservationQueue {
+    fn from_events(events: &[QueuedEvent]) -> Self {
+        let mut queue = Self::default();
+        for event in events {
+            queue
+                .releases_by_tick
+                .entry(event.observable_tick)
+                .or_default()
+                .push(event.case_id.clone());
+        }
+        normalize_queue_buckets(&mut queue.releases_by_tick);
+        queue
+    }
+
+    fn observations_at(&self, tick: u32) -> Vec<String> {
+        self.releases_by_tick.get(&tick).cloned().unwrap_or_default()
+    }
+
+    fn final_tick(&self) -> u32 {
+        self.releases_by_tick.keys().next_back().copied().unwrap_or(0)
+    }
+}
+
+fn normalize_queue_buckets(queue: &mut BTreeMap<u32, Vec<String>>) {
+    for event_ids in queue.values_mut() {
+        event_ids.sort();
+        event_ids.dedup();
+    }
+}
+
 fn main() {
     let mut args = env::args_os().skip(1);
     let input_bytes = match args.next() {
@@ -315,47 +374,26 @@ fn audit_fixture_bytes(input_bytes: &[u8]) -> Result<EventTimelineReport, Vec<St
         })
         .collect();
 
-    events.sort_by(|left, right| {
-        (left.injection_tick, &left.case_id).cmp(&(right.injection_tick, &right.case_id))
-    });
-
-    let max_tick = events
-        .iter()
-        .map(|event| event.observable_tick)
-        .max()
-        .unwrap_or(0);
+    let evaluator_queue = EvaluatorEventQueue::from_events(&events);
+    let policy_observation_queue = PolicyObservationQueue::from_events(&events);
+    let max_tick = policy_observation_queue.final_tick();
     let mut evaluator_timeline = Vec::with_capacity(max_tick as usize + 1);
     let mut policy_timeline = Vec::with_capacity(max_tick as usize + 1);
+    let mut injected_so_far = BTreeSet::<String>::new();
+    let mut visible_so_far = BTreeSet::<String>::new();
 
     for tick in 0..=max_tick {
-        let injected_event_ids = sorted_unique(
-            events
-                .iter()
-                .filter(|event| event.injection_tick == tick)
-                .map(|event| event.case_id.clone())
-                .collect(),
-        );
-        let events_injected_but_not_yet_observable = sorted_unique(
-            events
-                .iter()
-                .filter(|event| event.injection_tick <= tick && event.observable_tick > tick)
-                .map(|event| event.case_id.clone())
-                .collect(),
-        );
-        let newly_observed_event_ids = sorted_unique(
-            events
-                .iter()
-                .filter(|event| event.observable_tick == tick)
-                .map(|event| event.case_id.clone())
-                .collect(),
-        );
-        let visible_event_ids = sorted_unique(
-            events
-                .iter()
-                .filter(|event| event.observable_tick <= tick)
-                .map(|event| event.case_id.clone())
-                .collect(),
-        );
+        let injected_event_ids = evaluator_queue.events_at(tick);
+        injected_so_far.extend(injected_event_ids.iter().cloned());
+
+        let newly_observed_event_ids = policy_observation_queue.observations_at(tick);
+        visible_so_far.extend(newly_observed_event_ids.iter().cloned());
+
+        let events_injected_but_not_yet_observable = injected_so_far
+            .difference(&visible_so_far)
+            .cloned()
+            .collect::<Vec<_>>();
+        let visible_event_ids = visible_so_far.iter().cloned().collect::<Vec<_>>();
 
         evaluator_timeline.push(EvaluatorTick {
             tick,
