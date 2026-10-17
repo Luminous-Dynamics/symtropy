@@ -9,6 +9,8 @@
 **Timeline schema:** `SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.schema.json`.
 **Paired outcome corpus:** `SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.json` (5 known-answer comparisons).
 **Paired outcome schema:** `SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.schema.json`.
+**Decision-impact corpus:** `SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.json` (8 finite-state worlds).
+**Decision-impact schema:** `SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.schema.json`.
 
 ## 1. Research question
 
@@ -164,6 +166,33 @@ The first real-model adapter should produce a **time series with declared bounda
 
 The initial Rust oracle intentionally proves only finite-state event semantics around continuous service and stable recovery. It is a small contract check to prevent one class of reporting error; it is not an approximation of a heat-transfer solver.
 
+
+## Decision-impact measurement selection — information must change a decision
+
+The paired-outcome evaluator is followed by a measurement-planning layer based on [SPATIAL-VOI-001 #1892](https://github.com/Luminous-Dynamics/symtropy/issues/1892) and [CIV-INFRA-DECISION-001 #1789](https://github.com/Luminous-Dynamics/symtropy/issues/1789). The principle is **not** “maximize available data.” It is “identify the lowest-cost admissible observation that resolves decision-relevant uncertainty, and stop when additional measurement cannot change the defensible decision.”
+
+Three research findings motivate this distinction:
+
+- Langtry & Choudhary (2025), *Quantifying the benefit of load uncertainty reduction for the design of district energy systems under grid constraints using the value of information*, *Applied Energy* 400, 126549, https://doi.org/10.1016/j.apenergy.2025.126549. In their district-energy case study, monitoring-informed design reduced overall costs by less than 1.5% on average, below the measurement cost; reduction of mean-load uncertainty captured most of the available decision-support benefit.
+- Quesada-Allerhand et al. (2025), *A combined approach to Measurement-System-Design and system identification in building energy retrofits*, *Energy and Buildings* 338, 115711, https://doi.org/10.1016/j.enbuild.2025.115711. Their case study reports that measurement selection can reduce parameter uncertainty with a subset of available measurements, supporting decision-aware sensor placement rather than “measure everything.”
+- NIST AMS 100-85 (5 October 2026), *On Methods of Uncertainty Quantification in Computational Modeling and Simulation*, https://doi.org/10.6028/NIST.AMS.100-85, motivates scaling credibility and uncertainty work according to model influence and decision consequence.
+
+These results are case-specific, not universal cost thresholds. They motivate an explicit benchmark for when a measurement changes a decision.
+
+### v0.1 finite-state rules
+
+The machine-readable decision-impact corpus freezes eight hostile cases. For each world, it defines current possible states, unresolved critical unknowns, candidates with explicit state-conditional feasibility and objective vectors, and proposed measurement actions with source revision, evidence state, cost, duration, unknowns resolved and outcome partition.
+
+- Every action outcome must be non-empty, mutually exclusive, and collectively cover the current possible state set exactly. An unknown state, overlapping/missing membership, stale evidence revision or mis-scoped claimed unknown is rejected.
+- Candidate admission is recomputed for each outcome. A candidate is robust-feasible only if it passes every declared hard constraint across every state remaining possible **and** no critical unknown remains unresolved.
+- Pareto objectives use worst-case state envelopes: service hours are minimized across the surviving states; energy, repair time and cost are maximized. The evaluator does not average away a failing state.
+- The action result reports whether the hard-feasible set changes, whether the Pareto set changes, the worst-case residual-state count, newly robust-feasible candidates, unresolved unknowns and cost/time. It does not emit probabilities or expected value of information.
+- A transparent optional lexicographic order first prioritizes actions that resolve declared critical unknowns, then actions that change hard feasibility, then those that change the Pareto set, then lower worst-case residual-state count, cost, duration and stable action ID. The vector remains visible so the ordering policy can be reviewed or changed.
+- A measurement that divides the finite state set but leaves all robust/Pareto decisions unchanged is explicitly *not decision-relevant*. A survey that clears one unknown cannot promote a candidate while a separate critical blocker remains unresolved.
+
+The first targets are exact agreement with an independent exhaustive oracle on the finite cases; 100% rejection of invalid partitions and stale/mis-scoped actions; zero robust-feasible promotions while critical unknowns remain; deterministic results under input ordering changes; and no probabilistic VoI without a separately versioned prior/likelihood/calibration scope.
+
+All v0.1 quantities and states are synthetic. This does not prove a real survey is accurate, that a measurement is economically worthwhile, or that a candidate building is feasible. Real measurement planning requires qualified observation models, evidence provenance, justified cost/time estimates, and—if expected VoI is claimed—validated probabilities and applicability scope.
 
 ## Qualification direction — established VVUQ tests before new optimisation claims
 
