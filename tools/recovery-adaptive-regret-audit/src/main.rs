@@ -8,6 +8,8 @@ use std::process::ExitCode;
 
 const EMBEDDED_CORPUS: &str =
     include_str!("../../../docs/tech/recovery-adaptive-regret-corpus-v0.1.json");
+const PV_CORPUS: &str =
+    include_str!("../../../docs/tech/recovery-adaptive-regret-pv-corpus-v0.1.json");
 
 #[derive(Debug, Clone)]
 struct ActionOption {
@@ -799,7 +801,11 @@ mod tests {
     use serde_json::json;
 
     fn embedded() -> Value {
-        serde_json::from_str(EMBEDDED_CORPUS).expect("adaptive corpus must parse")
+        serde_json::from_str(EMBEDDED_CORPUS).expect("forest adaptive corpus must parse")
+    }
+
+    fn embedded_pv() -> Value {
+        serde_json::from_str(PV_CORPUS).expect("PV adaptive corpus must parse")
     }
 
     fn audit(value: Value) -> AuditReceipt {
@@ -874,6 +880,33 @@ mod tests {
         assert!(receipt.all_plan_only);
         assert_eq!(receipt.claim_ceiling, "NO_ACTUATION_AUTHORIZED");
         assert_eq!(receipt.corpus_sha256.len(), 64);
+    }
+
+    #[test]
+    fn second_profile_pv_corpus_transfers_without_reusing_forest_thresholds() {
+        let receipt = make_receipt(PV_CORPUS.as_bytes(), Some("c".repeat(40)), Some(embedded_pv()), None);
+        assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
+        assert_eq!(receipt.profile_id, "photovoltaic_second_life_synthetic_v0.1");
+        assert_eq!(receipt.scenario_count, 3);
+        assert_eq!(receipt.policy_count, 3);
+        assert_eq!(receipt.operation_action_count, 3);
+        assert_eq!(receipt.feasible_policy_count, 2);
+        assert_eq!(receipt.frontier, vec!["inspect_then_route".to_string(), "recycle_only".to_string()]);
+        let inspection = receipt.policy_results.iter().find(|p| p.policy_id == "inspect_then_route").unwrap();
+        assert_eq!(inspection.total_unweighted_scenario_cost_cents, Some(550));
+        assert_eq!(inspection.worst_case_regret_cents, Some(60));
+    }
+
+    #[test]
+    fn pv_profile_also_matches_independent_scenario_oracle() {
+        let corpus = embedded_pv();
+        let (independent, frontier) = independent_oracle(&corpus);
+        let receipt = audit(corpus);
+        let actual: Vec<(String, bool, Option<i64>, Option<i64>)> = receipt.policy_results.iter().map(|r|
+            (r.policy_id.clone(), r.feasible_across_scenario_set, r.total_unweighted_scenario_cost_cents, r.worst_case_regret_cents)
+        ).collect();
+        assert_eq!(actual, independent);
+        assert_eq!(receipt.frontier, frontier);
     }
 
     #[test]
