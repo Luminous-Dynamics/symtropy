@@ -550,7 +550,7 @@ mod tests {
     fn cost_and_virgin_material_tradeoff_remains_pareto_non_dominated() {
         let result = evaluate_fixture().scenarios.into_iter()
             .find(|scenario| scenario.scenario_id == "baseline-pareto").unwrap();
-        assert_eq!(result.pareto_frontier, vec!["repair-low-cost", "remanufacture-low-virgin"]);
+        assert_eq!(result.pareto_frontier, vec!["remanufacture-low-virgin", "repair-low-cost"]);
         assert!(!result.pareto_frontier.contains(&"dominated-option".to_owned()));
     }
 
@@ -561,6 +561,10 @@ mod tests {
         let reuse = result.option_results.iter().find(|option| option.option_id == "reuse-unknown-inspection").unwrap();
         assert_eq!(reuse.disposition, Disposition::BlockedUnknown);
         assert!(!result.eligible_option_ids.contains(&reuse.option_id));
+        let partial = result.option_results.iter()
+            .find(|option| option.option_id == "reuse-partial-coverage").unwrap();
+        assert_eq!(partial.disposition, Disposition::BlockedIncompleteCoverage);
+        assert!(!result.eligible_option_ids.contains(&partial.option_id));
     }
 
     #[test]
@@ -581,6 +585,11 @@ mod tests {
         assert_eq!(double_counted.disposition, Disposition::RejectedMassBalance);
         let energy = result.option_results.iter().find(|option| option.option_id == "replacement-energy-recovery").unwrap();
         assert!(energy.flow_balance_valid);
+        let energy_flows = &manifest().scenarios.iter()
+            .find(|scenario| scenario.id == "contamination-control").unwrap()
+            .options.iter().find(|option| option.id == "replacement-energy-recovery").unwrap().flows;
+        assert_eq!(energy_flows.energy_recovery_g, 700);
+        assert_eq!(energy_flows.recycled_material_g, 0);
     }
 
     #[test]

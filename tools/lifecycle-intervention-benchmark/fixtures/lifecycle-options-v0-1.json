@@ -111,6 +111,15 @@
       "claim_id": "lifecycle_intervention_eligibility",
       "scope_id": "sensor-asset-01",
       "coverage": "complete"
+    },
+    {
+      "id": "ev-reuse-partial",
+      "payload": "synthetic lifecycle evidence payload ev-reuse-partial revision 1",
+      "sha256": "07b074184ec9720f2570ce6a1765dbfe7677aff7023d2a2555e550c066ceee66",
+      "status": "valid",
+      "claim_id": "lifecycle_intervention_eligibility",
+      "scope_id": "sensor-asset-01",
+      "coverage": "partial"
     }
   ],
   "scenarios": [
@@ -269,6 +278,32 @@
             "energy_recovery_g": 0,
             "residual_g": 0
           }
+        },
+        {
+          "id": "reuse-partial-coverage",
+          "intervention": "reuse",
+          "functional_unit": "one environmental sensor module delivering 10,000 qualified operating hours",
+          "evidence_id": "ev-reuse-partial",
+          "safety": "pass",
+          "function": "pass",
+          "inspection": "pass",
+          "metrics": {
+            "cost_cents": 2000,
+            "virgin_material_g": 10,
+            "energy_wh": 100,
+            "ghg_co2e_g": 250,
+            "water_ml": 50,
+            "residual_waste_g": 0,
+            "value_retained_bp": 9900
+          },
+          "flows": {
+            "input_g": 1000,
+            "kept_in_service_g": 1000,
+            "reused_component_g": 0,
+            "recycled_material_g": 0,
+            "energy_recovery_g": 0,
+            "residual_g": 0
+          }
         }
       ],
       "expected_dispositions": [
@@ -279,6 +314,10 @@
         {
           "option_id": "reuse-unknown-inspection",
           "disposition": "blocked_unknown"
+        },
+        {
+          "option_id": "reuse-partial-coverage",
+          "disposition": "blocked_incomplete_coverage"
         }
       ],
       "expected_frontier": [
