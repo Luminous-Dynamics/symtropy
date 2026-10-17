@@ -1,0 +1,270 @@
+{
+  "schema_version": "0.1.0",
+  "decision_id": "REPAIRABILITY-DECISION-001",
+  "status": "decision_profile_under_evaluation",
+  "claim_ceiling": "no_architecture_ranked_without_eligible_physical_evidence",
+  "target_market": "South Africa (initial sourcing context; confirm installation/lab jurisdiction before selecting a control)",
+  "decision_policy": {
+    "hard_gate_ids": [
+      "product_safety",
+      "core_wash_function",
+      "durability_and_post_repair",
+      "market_conformity_route"
+    ],
+    "unknown_policy": "unknown_is_not_pass",
+    "missing_numeric_policy": "unknown_not_zero",
+    "scoring_policy": "non_compensatory_hard_gates_then_robust_pareto",
+    "dominance_policy": "interval_bounds_must_separate_on_every_criterion_and_strictly_improve_at_least_one",
+    "evidence_classes_eligible_for_ranking": [
+      "physical_measurement",
+      "independent_replication"
+    ]
+  },
+  "criteria": [
+    {
+      "id": "lifecycle_cost_per_useful_service",
+      "direction": "minimize",
+      "unit": "local_currency_per_declared_lifetime_service",
+      "dimension": "lifecycle_cost",
+      "method_definition": "Discounted purchase, installation, energy, water, consumables, maintenance, successful and failed repairs, downtime assumptions, rework and end-of-life on a declared useful-service profile.",
+      "gate_conditioned": true,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "restore_time_p90",
+      "direction": "minimize",
+      "unit": "elapsed_hours_per_verified_repair",
+      "dimension": "serviceability",
+      "method_definition": "P90 elapsed time from triage to verified restoration including parts waits, travel, failed attempts and rework; also preserve hands-on time separately.",
+      "gate_conditioned": false,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "first_visit_verified_repair_rate",
+      "direction": "maximize",
+      "unit": "verified_restorations_per_first_visit",
+      "dimension": "serviceability",
+      "method_definition": "Rate of declared repair tasks restored and post-checked on the first visit, with task mix and sample size disclosed.",
+      "gate_conditioned": false,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "energy_per_successful_load",
+      "direction": "minimize",
+      "unit": "kWh_per_load_meeting_frozen_function_floors",
+      "dimension": "resource_use",
+      "method_definition": "Calibrated electrical energy per load that passes the frozen cleaning, rinsing and spin-drying floors; not evaluated when core function gate fails.",
+      "gate_conditioned": true,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "water_per_successful_load",
+      "direction": "minimize",
+      "unit": "litres_per_load_meeting_frozen_function_floors",
+      "dimension": "resource_use",
+      "method_definition": "Measured water per load that passes the frozen cleaning, rinsing and spin-drying floors, with load and supply conditions declared.",
+      "gate_conditioned": true,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "discarded_material_per_verified_repair",
+      "direction": "minimize",
+      "unit": "kg_per_verified_repair",
+      "dimension": "waste",
+      "method_definition": "Mass of parts and assemblies actually discarded for a defined repair, with refurbishment/reuse and unknown masses tracked separately.",
+      "gate_conditioned": false,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "added_interface_failure_rate",
+      "direction": "minimize",
+      "unit": "failures_per_declared_cycles_or_service_events",
+      "dimension": "reliability",
+      "method_definition": "Observed failures or rework attributable to added connectors, seals, access panels or interfaces under a declared exposure denominator and follow-up window.",
+      "gate_conditioned": true,
+      "status": "method_definition_not_yet_frozen"
+    },
+    {
+      "id": "target_window_part_fulfilment_rate",
+      "direction": "maximize",
+      "unit": "verified_deliveries_within_target_window_per_accepted_order",
+      "dimension": "supply_resilience",
+      "method_definition": "Share of accepted exact-fit parts orders physically delivered within a target window in the named market; cancellations, substitutions and incomplete orders remain separate.",
+      "gate_conditioned": false,
+      "status": "method_definition_not_yet_frozen"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "W0-RETAIL-CONTROL",
+      "role": "control",
+      "hypothesis": "Matched retail control establishes baseline function, service effort, parts supply and lifecycle assumptions.",
+      "hard_gates": [
+        {
+          "gate_id": "product_safety",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "No critical hazard finding can be offset by price, repair time or resource savings."
+        },
+        {
+          "gate_id": "core_wash_function",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Frozen cleaning, rinsing and spin-drying floors must all pass."
+        },
+        {
+          "gate_id": "durability_and_post_repair",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Declared endurance and post-repair verification criteria must pass."
+        },
+        {
+          "gate_id": "market_conformity_route",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+        }
+      ],
+      "observations": []
+    },
+    {
+      "id": "W1-ACCESSIBLE-CONVENTIONAL",
+      "role": "candidate",
+      "hypothesis": "Reversible access and labelled interfaces may reduce routine service effort without changing tub architecture.",
+      "hard_gates": [
+        {
+          "gate_id": "product_safety",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "No critical hazard finding can be offset by price, repair time or resource savings."
+        },
+        {
+          "gate_id": "core_wash_function",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Frozen cleaning, rinsing and spin-drying floors must all pass."
+        },
+        {
+          "gate_id": "durability_and_post_repair",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Declared endurance and post-repair verification criteria must pass."
+        },
+        {
+          "gate_id": "market_conformity_route",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+        }
+      ],
+      "observations": []
+    },
+    {
+      "id": "W2-SERVICE-SPINE",
+      "role": "candidate",
+      "hypothesis": "A defined service path may reduce total restoration burden if its connectors, seals and stock overhead do not outweigh gains.",
+      "hard_gates": [
+        {
+          "gate_id": "product_safety",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "No critical hazard finding can be offset by price, repair time or resource savings."
+        },
+        {
+          "gate_id": "core_wash_function",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Frozen cleaning, rinsing and spin-drying floors must all pass."
+        },
+        {
+          "gate_id": "durability_and_post_repair",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Declared endurance and post-repair verification criteria must pass."
+        },
+        {
+          "gate_id": "market_conformity_route",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+        }
+      ],
+      "observations": []
+    },
+    {
+      "id": "W3-BEARING-TUB-TRADE",
+      "role": "orthogonal_trade",
+      "hypothesis": "A serviceable tub/bearing boundary may reduce assembly waste and repair cost if sealing, fatigue and precision remain acceptable.",
+      "hard_gates": [
+        {
+          "gate_id": "product_safety",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "No critical hazard finding can be offset by price, repair time or resource savings."
+        },
+        {
+          "gate_id": "core_wash_function",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Frozen cleaning, rinsing and spin-drying floors must all pass."
+        },
+        {
+          "gate_id": "durability_and_post_repair",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Declared endurance and post-repair verification criteria must pass."
+        },
+        {
+          "gate_id": "market_conformity_route",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+        }
+      ],
+      "observations": []
+    },
+    {
+      "id": "W4-DRIVE-TOPOLOGY",
+      "role": "orthogonal_trade",
+      "hypothesis": "Drive topology choices may trade energy, noise, repair complexity, controller cost and reliability; none is assumed superior.",
+      "hard_gates": [
+        {
+          "gate_id": "product_safety",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "No critical hazard finding can be offset by price, repair time or resource savings."
+        },
+        {
+          "gate_id": "core_wash_function",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Frozen cleaning, rinsing and spin-drying floors must all pass."
+        },
+        {
+          "gate_id": "durability_and_post_repair",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Declared endurance and post-repair verification criteria must pass."
+        },
+        {
+          "gate_id": "market_conformity_route",
+          "status": "unknown",
+          "evidence_id": null,
+          "notes": "Applicable market-specific requirements and qualification route identified and satisfied as applicable."
+        }
+      ],
+      "observations": []
+    }
+  ],
+  "next_experiment_policy": {
+    "objective": "maximize_decision_relevant_information_per_unit_cost_and_risk",
+    "rules": [
+      "Before product comparison, freeze control selection, workloads, method and instrument capability.",
+      "Run a control-only pilot to estimate repeatability and measurement uncertainty before candidate measurements.",
+      "Do not compare candidates when any hard safety, core function, durability or conformity gate is unknown.",
+      "Select the next experiment using decision relevance, cost, risk, expected uncertainty reduction and model sensitivity.",
+      "If robust Pareto bounds overlap, record an unresolved trade-off and measure the criterion most likely to change the architecture decision."
+    ],
+    "existing_information_value_owner": "Use the existing Symthaea finite-hypothesis EIG/EVSI kernel and appliance adapter; do not create a parallel information-value scorer."
+  }
+}
