@@ -5,7 +5,7 @@ This is a dependency-free, isolated Rust package containing small analytical ref
 
 ## Scope
 
-The initial function implements ideal rectified pinhole projection only. It does not model lens distortion, surface projection, photometry, HDR response, wave optics, spatial light modulators, display electronics or physical calibration.
+The current reference implements ideal rectified pinhole projection, pixel-to-ray back-projection, and geometric horizontal/vertical field-of-view calculations from pinhole intrinsics. It does not model lens distortion, surface projection, photometry, HDR response, wave optics, spatial light modulators, display electronics, eye fit, vignetting or physical calibration.
 
 ## Run locally
 
@@ -28,7 +28,7 @@ This crate defines its own small Cargo workspace so it does not enlarge or chang
 - non-finite coordinates and invalid intrinsics are rejected;
 - finite inputs whose arithmetic overflows to a non-finite output are rejected.
 
-These are source-level test cases added in the current research PR. They have **not** been executed in the authoring environment, and a green result is not claimed.
+These are source-level test cases added in the current research PR. The path-filtered workflow first failed at rustfmt because the source had not been formatted. That exact formatting diff was corrected and the ray/FOV tests were then added; the latest focused workflow was queued when last inspected, so the revised source has not yet been reported as passing.
 
 ## Evidence boundary
 
