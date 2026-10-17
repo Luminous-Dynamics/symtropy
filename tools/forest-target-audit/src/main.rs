@@ -1019,11 +1019,8 @@ mod tests {
         let binding = &c.scenario_bindings[0];
         let map = map_for(binding.scene);
         let config = config_for(binding);
-        let result = TargetOracleSolver::new(
-            &map,
-            &generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap(),
-            config.clone()
-        ).unwrap().solve().unwrap();
+        let targets = generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let result = TargetOracleSolver::new(&map, &targets, config.clone()).unwrap().solve().unwrap();
         let mut tampered = result.plan;
         tampered.total_budgeted_steps = tampered.total_budgeted_steps.saturating_add(1);
         assert!(verify_plan_contract(&map, &tampered, &config, "tamper control").is_err());
