@@ -31,10 +31,17 @@ struct Allocation {
     profile: Vec<u32>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Objective {
+    AbsoluteAmount,
+    CapacityNormalized,
+}
+
 struct Search {
     best: Option<Allocation>,
     nodes: u64,
     leaves: u64,
+    objective: Objective,
 }
 
 fn fixture() -> Problem {
@@ -101,6 +108,63 @@ fn profile(totals: &[u32]) -> Vec<u32> {
     p
 }
 
+fn gcd(mut a: u32, mut b: u32) -> u32 {
+    while b != 0 {
+        let remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+    a.max(1)
+}
+
+// Zero-cap recipients have no normalized service ratio and are excluded.
+fn capacity_profile(agents: &[Agent], totals: &[u32]) -> Vec<(u32, u32)> {
+    let mut ratios: Vec<(u32, u32)> = agents
+        .iter()
+        .zip(totals)
+        .filter(|(agent, _)| agent.cap > 0)
+        .map(|(agent, total)| {
+            let divisor = gcd(*total, agent.cap);
+            (*total / divisor, agent.cap / divisor)
+        })
+        .collect();
+    ratios.sort_by(|left, right| compare_ratio(*left, *right));
+    ratios
+}
+
+fn compare_ratio(left: (u32, u32), right: (u32, u32)) -> std::cmp::Ordering {
+    (u64::from(left.0) * u64::from(right.1))
+        .cmp(&(u64::from(right.0) * u64::from(left.1)))
+}
+
+fn compare_ratio_profiles(
+    left: &[(u32, u32)],
+    right: &[(u32, u32)],
+) -> std::cmp::Ordering {
+    for (left_ratio, right_ratio) in left.iter().zip(right) {
+        let ordering = compare_ratio(*left_ratio, *right_ratio);
+        if ordering != std::cmp::Ordering::Equal {
+            return ordering;
+        }
+    }
+    left.len().cmp(&right.len())
+}
+
+fn compare_allocations(
+    problem: &Problem,
+    left: &Allocation,
+    right: &Allocation,
+    objective: Objective,
+) -> std::cmp::Ordering {
+    match objective {
+        Objective::AbsoluteAmount => left.profile.cmp(&right.profile),
+        Objective::CapacityNormalized => compare_ratio_profiles(
+            &capacity_profile(&problem.agents, &left.totals),
+            &capacity_profile(&problem.agents, &right.totals),
+        ),
+    }
+}
+
 fn feasible(p: &Problem, matrix: &[Vec<u32>], totals: &[u32]) -> bool {
     let p = canonical(p.clone());
     if matrix.len() != p.wells.len() || totals.len() != p.agents.len() {
@@ -144,9 +208,11 @@ fn visit(
         };
         let replace = match &state.best {
             None => true,
-            Some(best) if candidate.profile > best.profile => true,
-            Some(best) if candidate.profile == best.profile => candidate.matrix < best.matrix,
-            Some(_) => false,
+            Some(best) => {
+                let ordering = compare_allocations(p, &candidate, best, state.objective);
+                ordering == std::cmp::Ordering::Greater
+                    || (ordering == std::cmp::Ordering::Equal && candidate.matrix < best.matrix)
+            }
         };
         if replace {
             state.best = Some(candidate);
@@ -178,7 +244,10 @@ fn visit(
     matrix[wi][ai] = 0;
 }
 
-fn oracle(problem: &Problem) -> (Allocation, u64, u64) {
+fn oracle_with_objective(
+    problem: &Problem,
+    objective: Objective,
+) -> (Allocation, u64, u64) {
     let p = canonical(problem.clone());
     validate(&p);
     let mut matrix = vec![vec![0; p.agents.len()]; p.wells.len()];
@@ -187,6 +256,7 @@ fn oracle(problem: &Problem) -> (Allocation, u64, u64) {
         best: None,
         nodes: 0,
         leaves: 0,
+        objective,
     };
     visit(
         &p,
@@ -202,6 +272,10 @@ fn oracle(problem: &Problem) -> (Allocation, u64, u64) {
         state.nodes,
         state.leaves,
     )
+}
+
+fn oracle(problem: &Problem) -> (Allocation, u64, u64) {
+    oracle_with_objective(problem, Objective::AbsoluteAmount)
 }
 
 fn from_matrix(matrix: Vec<Vec<u32>>) -> Allocation {
@@ -317,13 +391,28 @@ fn totals_by_id(p: &Problem, a: &Allocation) -> String {
 fn audit() {
     let p = fixture();
     let (best, nodes, leaves) = oracle(&p);
+    let (capacity_best, capacity_nodes, capacity_leaves) =
+        oracle_with_objective(&p, Objective::CapacityNormalized);
     let forward = sequential(&p, false);
     let reverse = sequential(&p, true);
     let independent = independent_sources(&p);
 
     assert_eq!(best.profile, vec![8, 8, 8]);
     assert_eq!(best.matrix, vec![vec![4, 8, 0], vec![4, 0, 8]]);
+    assert_eq!(capacity_best.totals, vec![7, 9, 8]);
+    assert_eq!(capacity_best.matrix, vec![vec![3, 9, 0], vec![4, 0, 8]]);
+    assert_eq!(
+        capacity_profile(&canonical(p.clone()).agents, &capacity_best.totals),
+        vec![(2, 3), (3, 4), (7, 9)]
+    );
+    assert_eq!(capacity_nodes, nodes);
+    assert_eq!(capacity_leaves, leaves);
     assert!(feasible(&p, &best.matrix, &best.totals));
+    assert!(feasible(&p, &capacity_best.matrix, &capacity_best.totals));
+    assert_eq!(
+        compare_allocations(&p, &capacity_best, &best, Objective::CapacityNormalized),
+        std::cmp::Ordering::Greater
+    );
     assert!(feasible(&p, &forward.matrix, &forward.totals));
     assert!(feasible(&p, &reverse.matrix, &reverse.totals));
     assert_eq!(forward.totals, vec![9, 6, 9]);
@@ -340,6 +429,15 @@ fn audit() {
     println!("oracle_matrix={:?}", best.matrix);
     println!("oracle_search_nodes={nodes}");
     println!("oracle_feasible_leaves={leaves}");
+    println!(
+        "capacity_normalized_oracle_profile={:?}",
+        capacity_profile(&canonical(p.clone()).agents, &capacity_best.totals)
+    );
+    println!(
+        "capacity_normalized_oracle_totals_by_agent_id={}",
+        totals_by_id(&p, &capacity_best)
+    );
+    println!("capacity_normalized_oracle_matrix={:?}", capacity_best.matrix);
     println!("sequential_forward_totals_by_id={}", totals_by_id(&p, &forward));
     println!("sequential_reverse_totals_by_id={}", totals_by_id(&p, &reverse));
     println!("sequential_order_sensitivity_l1={}", l1(&forward, &reverse));
@@ -381,6 +479,25 @@ mod tests {
         assert_eq!(best.matrix, vec![vec![4, 8, 0], vec![4, 0, 8]]);
         assert!(nodes > 0 && leaves > 0);
         assert!(feasible(&p, &best.matrix, &best.totals));
+    }
+
+    #[test]
+    fn capacity_normalized_objective_can_choose_a_different_valid_allocation() {
+        let p = fixture();
+        let (absolute, _, _) = oracle_with_objective(&p, Objective::AbsoluteAmount);
+        let (normalized, _, _) = oracle_with_objective(&p, Objective::CapacityNormalized);
+        assert_eq!(absolute.totals, vec![8, 8, 8]);
+        assert_eq!(normalized.totals, vec![7, 9, 8]);
+        assert_eq!(normalized.profile, vec![7, 8, 9]);
+        assert_eq!(
+            capacity_profile(&canonical(p.clone()).agents, &normalized.totals),
+            vec![(2, 3), (3, 4), (7, 9)]
+        );
+        assert_eq!(
+            compare_allocations(&p, &normalized, &absolute, Objective::CapacityNormalized),
+            std::cmp::Ordering::Greater
+        );
+        assert!(feasible(&p, &normalized.matrix, &normalized.totals));
     }
 
     #[test]
