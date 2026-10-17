@@ -34,9 +34,8 @@
     }
   ],
   "evidence_lanes": {
-    "software_synthetic": "Deterministic metadata/negative controls; no physical-performance claim.",
-    "physical_measurement": "Requires named device, calibration, angle/depth geometry, instruments, raw data and uncertainty.",
-    "data_provenance": "Artifact identity and reuse-rights checks only; not a scientific reproduction."
+    "software_synthetic": "Deterministic metadata/model negative controls; no physical-performance or upstream legal-rights claim.",
+    "physical_measurement": "Requires named device, calibration, angle/depth geometry, instruments, raw data and uncertainty."
   },
   "cases": [
     {
@@ -72,7 +71,11 @@
         "averaging over failed view zones"
       ],
       "claim_limit": "The 150-degree sweep is a proposed test range motivated by one 2026 paper, not a universal target or an assumed result.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-MTF-CENTER-002",
@@ -101,7 +104,11 @@
         "unreported focus or exposure"
       ],
       "claim_limit": "Only applies to the named device/configuration and center view.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-MTF-OFFAXIS-003",
@@ -133,7 +140,11 @@
         "changed exposure or focus between angle samples"
       ],
       "claim_limit": "If the device cannot support an angle, mark not applicable rather than fabricating a measurement.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-DEPTH-020MM-004",
@@ -163,7 +174,11 @@
         "depth target inferred only from software"
       ],
       "claim_limit": "Depth applies to the selected optical setup and viewing geometry.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-DEPTH-040MM-005",
@@ -193,7 +208,11 @@
         "unsupported depth silently omitted"
       ],
       "claim_limit": "This is a test plane, not a promised device capability.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-DEPTH-ERROR-006",
@@ -224,7 +243,11 @@
         "camera focus plane not recorded"
       ],
       "claim_limit": "No claim of natural accommodation cues from depth ordering alone.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-CROSSTALK-007",
@@ -252,7 +275,11 @@
         "black floor below instrument resolution reported as zero"
       ],
       "claim_limit": "Use a declared crosstalk definition and do not compare unlike instruments or patterns.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-CONTINUITY-008",
@@ -279,7 +306,11 @@
         "between-view artifacts ignored"
       ],
       "claim_limit": "Interpolation between sampled views is not evidence of continuous parallax.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-LUMINANCE-ANGLE-009",
@@ -311,7 +342,11 @@
         "exposure adjusted but not recorded"
       ],
       "claim_limit": "No brightness result can be inferred from the paper's reported relative luminance tradeoff.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-USEFUL-ANGLE-010",
@@ -339,7 +374,11 @@
         "wide angle counted despite unreadable/dim image"
       ],
       "claim_limit": "The correct floor depends on target environment and task; do not use one universal threshold.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-COLOR-ANGLE-011",
@@ -371,7 +410,11 @@
         "center-view color generalized across FOV"
       ],
       "claim_limit": "Color-space coverage alone does not demonstrate color fidelity across views.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-STATIC-REF-012",
@@ -395,7 +438,11 @@
         "post-processing differs between candidate and reference"
       ],
       "claim_limit": "Image similarity does not independently prove depth cues or temporal fidelity.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
     },
     {
       "id": "VIS-LF-DYNAMIC-013",
@@ -428,7 +475,11 @@
         "nominal refresh substituted for captured frame timing"
       ],
       "claim_limit": "60 Hz is a proposed test profile, not a minimum universal device specification.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
     },
     {
       "id": "VIS-LF-EXPOSURE-NEG-014",
@@ -453,7 +504,11 @@
         "frame integration time missing"
       ],
       "claim_limit": "The 200 ms value is a control motivated by a published figure, not a universal capture requirement.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
     },
     {
       "id": "VIS-LF-SYNC-DRIFT-015",
@@ -477,7 +532,11 @@
         "unsynchronized clocks"
       ],
       "claim_limit": "The 30-minute duration is a proposed baseline; longer life testing is a separate gate.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
     },
     {
       "id": "VIS-LF-POWER-THERMAL-016",
@@ -505,7 +564,10 @@
         "peak brightness compared to sustained result"
       ],
       "claim_limit": "No energy-saving claim without a calibrated meter and matched output conditions.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026"
+      ]
     },
     {
       "id": "VIS-LF-AMBIENT-017",
@@ -537,7 +599,10 @@
         "ambient illuminance reported without geometry"
       ],
       "claim_limit": "The proposed lux levels are illustrative test points, not standard tiers.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026"
+      ]
     },
     {
       "id": "VIS-LF-MECHANICS-018",
@@ -564,7 +629,10 @@
         "not-applicable used without architectural justification"
       ],
       "claim_limit": "This does not establish product lifetime or product safety.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026"
+      ]
     },
     {
       "id": "VIS-LF-CAL-REPEAT-019",
@@ -589,7 +657,11 @@
         "only best calibration selected"
       ],
       "claim_limit": "Three sessions/two operators is a proposed minimal fixture, not proof of broad reproducibility.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "camera-in-loop-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-STALE-CAL-NEG-020",
@@ -614,7 +686,11 @@
         "old profile silently reused"
       ],
       "claim_limit": "This tests metadata handling; it is not a physical calibration experiment.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "symtropy-ref",
+        "ssslid-2026"
+      ]
     },
     {
       "id": "VIS-LF-RAW-NEG-021",
@@ -639,7 +715,11 @@
         "producer-declared pass trusted"
       ],
       "claim_limit": "Correct evidence gating does not establish the measured optical result.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "symtropy-ref",
+        "ssslid-2026"
+      ]
     },
     {
       "id": "VIS-LF-DEVICE-NEG-022",
@@ -663,7 +743,11 @@
         "hardware revisions conflated"
       ],
       "claim_limit": "A matching model name is not evidence of identical optics or calibration.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "symtropy-ref",
+        "ssslid-2026"
+      ]
     },
     {
       "id": "VIS-LF-BASELINE-023",
@@ -690,13 +774,17 @@
         "published headline treated as reproduced result"
       ],
       "claim_limit": "No single universal baseline spans every display architecture.",
-      "status": "UNQUALIFIED"
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
     },
     {
       "id": "VIS-LF-SOURCE-RIGHTS-024",
       "title": "Published code/dataset identity and reuse-rights check",
-      "lane": "data_provenance",
-      "minimum_evidence_class": "ANALYTIC_REFERENCE",
+      "lane": "software_synthetic",
+      "minimum_evidence_class": "SYNTHETIC_MODEL",
       "stimulus": {
         "sources": [
           "SSS-LiD element-image generation code",
@@ -704,7 +792,7 @@
         ],
         "capture": "repository commit/version, archive digest, license and terms snapshots"
       },
-      "expected_behavior": "Record exact upstream artifact IDs, hashes and explicit code/data reuse permissions before reuse; unresolved rights blocks redistribution and the corpus must not assert reproduction.",
+      "expected_behavior": "A synthetic fixture requires exact source artifact identities and a rights-state field; unknown/uncleared rights block distribution. This test checks the gate logic, not that upstream rights have been verified.",
       "metrics": [
         "source identity completeness",
         "rights state",
@@ -714,8 +802,12 @@
         "citation mistaken for license",
         "source tree changes without pinned commit"
       ],
-      "claim_limit": "This is a provenance and rights gate, not a scientific reproduction.",
-      "status": "UNQUALIFIED"
+      "claim_limit": "This case tests provenance-gate behavior only. Actual upstream code/data identity, license terms and permissions remain unverified until a source audit is recorded.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "symtropy-ref"
+      ]
     }
   ]
 }
