@@ -202,8 +202,8 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
         0,
         &mut state,
     );
+    state.feasible_plans = deduplicate_task_sets(state.feasible_plans);
     state.feasible_plans.sort_by(compare_plans);
-    state.feasible_plans.dedup_by(|left, right| left.task_ids == right.task_ids);
     let frontier = pareto_frontier(&state.feasible_plans);
     let mut blockers = Vec::new();
 
@@ -260,6 +260,22 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
     })
 }
 
+fn deduplicate_task_sets(plans: Vec<Plan>) -> Vec<Plan> {
+    let mut unique: BTreeMap<Vec<String>, Plan> = BTreeMap::new();
+    for plan in plans {
+        let mut key = plan.task_ids.clone();
+        key.sort();
+        match unique.get_mut(&key) {
+            Some(existing) if plan.task_ids < existing.task_ids => *existing = plan,
+            Some(_) => {}
+            None => {
+                unique.insert(key, plan);
+            }
+        }
+    }
+    unique.into_values().collect()
+}
+
 fn sorted_targets(fixture: &Fixture) -> Vec<String> {
     let mut targets = fixture.target_artifact_ids.clone();
     targets.sort();
@@ -286,7 +302,6 @@ fn enumerate_portfolios(
     }
     let mut candidates: Vec<&RepairTask> = fixture.tasks.iter().collect();
     candidates.sort_by(|left, right| left.id.cmp(&right.id));
-    let mut enabled = false;
     for task in candidates {
         if used_tasks.contains(&task.id)
             || valid_artifacts.contains(&task.produces_artifact_id)
@@ -295,7 +310,6 @@ fn enumerate_portfolios(
         {
             continue;
         }
-        enabled = true;
         let Some(next_cost) = cost.checked_add(task.cost_units) else {
             state.incomplete = true;
             return;
@@ -323,7 +337,6 @@ fn enumerate_portfolios(
             break;
         }
     }
-    let _ = enabled;
 }
 
 fn compare_plans(left: &Plan, right: &Plan) -> std::cmp::Ordering {
@@ -569,8 +582,20 @@ mod tests {
         );
         for plan in &report.pareto_plans {
             assert_eq!(plan.task_count, 4);
-            assert_eq!(plan.task_ids.iter().filter(|id| id.starts_with("T-MATERIAL-REVIEW")).count(), 1);
-            assert_eq!(plan.task_ids.iter().filter(|id| id.as_str() == "T-ASBUILT-REINSPECTION").count(), 1);
+            assert_eq!(
+                plan.task_ids
+                    .iter()
+                    .filter(|id| id.starts_with("T-MATERIAL-REVIEW"))
+                    .count(),
+                1
+            );
+            assert_eq!(
+                plan.task_ids
+                    .iter()
+                    .filter(|id| id.as_str() == "T-ASBUILT-REINSPECTION")
+                    .count(),
+                1
+            );
             assert_eq!(plan.execution_status, "PROPOSED_NOT_EXECUTED");
             assert_eq!(plan.target_artifact_ids_to_restore.len(), 2);
         }
@@ -618,11 +643,20 @@ mod tests {
         let report = report();
         for plan in &report.pareto_plans {
             assert_eq!(plan.task_ids.len(), plan.task_ids.iter().collect::<BTreeSet<_>>().len());
-            assert_eq!(plan.cost_units, plan.task_steps.iter().map(|step| step.cost_units).sum::<u64>());
-            assert_eq!(plan.duration_units, plan.task_steps.iter().map(|step| step.duration_units).sum::<u64>());
             assert_eq!(
-                plan.task_ids.iter().filter(|id| id.as_str() == "D-ASBUILT-RECEIPT").count(),
-                0
+                plan.cost_units,
+                plan.task_steps.iter().map(|step| step.cost_units).sum::<u64>()
+            );
+            assert_eq!(
+                plan.duration_units,
+                plan.task_steps.iter().map(|step| step.duration_units).sum::<u64>()
+            );
+            assert_eq!(
+                plan.task_steps
+                    .iter()
+                    .filter(|step| step.task_id == "T-ASBUILT-REINSPECTION")
+                    .count(),
+                1
             );
             assert!(plan.task_steps.iter().any(|step| step.task_id == "T-ASBUILT-REINSPECTION"));
         }
