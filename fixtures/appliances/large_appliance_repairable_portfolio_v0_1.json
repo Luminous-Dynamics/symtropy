@@ -1,0 +1,438 @@
+{
+  "schema_version": "0.1.0",
+  "portfolio_id": "LARGE-APPLIANCE-REPAIRABLE-001",
+  "status": "proposed_architecture_and_benchmark_profile",
+  "claim_ceiling": "no_physical_performance_or_conformity_claim",
+  "selection_policy": {
+    "first_large_appliance": "washing_machine",
+    "reason": "Start with a washer because repeated useful cycles, energy/water use, wear items, and repair tasks can be measured without opening a sealed refrigerant circuit; mains, water, heat, weight, and rotating hazards still require qualified design review and controlled testing.",
+    "not_a_market_ranking": true
+  },
+  "common_architecture_hypotheses": [
+    {
+      "id": "ARCH-SERVICE-SPINE",
+      "proposal": "Expose reversible service access to high-incidence maintenance and repair parts, with stable part/revision identifiers, manuals, task scripts, and post-repair tests.",
+      "success_condition": "Matched-control studies show lower total restoration time/cost or waste after accounting for the added panels, fasteners, interfaces, inventory and failure modes.",
+      "failure_modes": [
+        "access panels weaken structure or leak barrier",
+        "extra connectors/seals add new faults",
+        "module replacement wastes larger assemblies than necessary"
+      ]
+    },
+    {
+      "id": "ARCH-HAZARD-ISLANDS",
+      "proposal": "Separate user maintenance, wet-system work, mains/high-current work, heavy/rotating mechanisms, hot/pressurized systems, and refrigerant circuits into clearly documented service boundaries.",
+      "success_condition": "Task trials and qualified hazard review confirm that each task has an explicit isolation procedure, permitted role, stop condition, and post-service verification.",
+      "failure_modes": [
+        "easy access is misinterpreted as DIY authorization",
+        "isolation or stored energy is missed",
+        "service boundaries hide critical inspection points"
+      ]
+    },
+    {
+      "id": "ARCH-REPAIR-UNIT-SELECTION",
+      "proposal": "Evaluate component replacement, repairable subassembly, and whole-module replacement against repair time, service cost, waste, stock, service life and interface overhead.",
+      "success_condition": "Chosen boundary lowers robust life-cycle cost or improves restoration while maintaining function, reliability and safety.",
+      "failure_modes": [
+        "oversized module replacement wastes parts",
+        "small-part repair requires costly diagnosis/labour",
+        "special module inventory delays restoration"
+      ]
+    },
+    {
+      "id": "ARCH-LOCAL-OBSERVABILITY",
+      "proposal": "Expose offline fault isolation, safe measurement points, sensor freshness/units, diagnostic limits and evidence receipts without cloud or vendor account dependency.",
+      "success_condition": "Technicians and permitted users can distinguish command, observation, hypothesis and verified function; missing/conflicting evidence triggers abstention.",
+      "failure_modes": [
+        "measurement points expose hazardous energy",
+        "sensor faults masquerade as product faults",
+        "diagnostic UI implies a safety verdict or overstates certainty"
+      ]
+    },
+    {
+      "id": "ARCH-QUALIFIED-COMPATIBILITY",
+      "proposal": "Define interfaces and substitute part qualification by exact host revision, electrical/fluid/mechanical/thermal ratings, installation instructions and post-installation test.",
+      "success_condition": "Approved alternate supply can be installed and validated without relying on guessed pinouts, nominal dimensions or family branding.",
+      "failure_modes": [
+        "interface standard overgeneralizes compatibility",
+        "alternate part affects EMC, thermal, leakage, vibration or safety performance",
+        "obsolete part has no traceable approved substitute"
+      ]
+    },
+    {
+      "id": "ARCH-OUTPUT-PER-RESOURCE",
+      "proposal": "Evaluate energy, water and consumables per unit of successfully delivered function under a declared and repeatable workload.",
+      "success_condition": "Resource improvements hold while functional performance remains inside preregistered non-inferiority margins and no critical failure metric regresses.",
+      "failure_modes": [
+        "efficiency claim hides lower cleaning/heating/cooling performance",
+        "one test cycle is not representative of lifetime use",
+        "instrument uncertainty masks or reverses claimed gain"
+      ]
+    }
+  ],
+  "benchmark_policy": {
+    "controls_minimum": 3,
+    "freeze_before_test": [
+      "exact make/model/revision and condition of each control and candidate unit",
+      "workload, ambient and installation conditions, cycle/draw profiles, inclusion/exclusion and stopping rules",
+      "instrument identity, calibration status, uncertainty, placement and raw-data format",
+      "repair task scripts, permitted role, tools, isolation steps and post-repair verification",
+      "cost model, location, price date, utility tariff, service labour, part/shipping cost and downtime horizon",
+      "analysis plan, missing-data treatment, per-fault reporting, confidence intervals and non-inferiority margin"
+    ],
+    "metrics": [
+      "functional output and critical outcome integrity",
+      "energy, water, consumables and standby/losses under matched useful output",
+      "median and P90 total restore time, including diagnosis, travel, part delay, rework and verification",
+      "repair success, failed attempts, residual defects and recurrence at a defined follow-up horizon",
+      "parts/labour/shipping cost, waste, repair-unit size and discarded mass",
+      "user-maintenance task success within explicitly permitted task boundary",
+      "sourcing: stock status, number of viable suppliers, price date, delivery time and qualified substitutes",
+      "safety and conformity evidence reported as separate gates, never averaged into a composite performance score"
+    ],
+    "proposed_targets": [
+      {
+        "id": "PORT-TARGET-RESTORE-TIME",
+        "target": "At least 25% lower median and P90 total restore time on a preregistered common-fault set versus frozen retail controls.",
+        "status": "proposal_not_result",
+        "guardrail": "No increase in critical safety failures, repeat faults or functional-output regression."
+      },
+      {
+        "id": "PORT-TARGET-USER-MAINTENANCE",
+        "target": "At least 90% successful completion of approved normal-user maintenance tasks in a representative usability test.",
+        "status": "proposal_not_result",
+        "guardrail": "Exclude mains internals, sealed refrigerant, pressure systems and any task not approved for user service."
+      },
+      {
+        "id": "PORT-TARGET-FIRST-VISIT",
+        "target": "At least 90% first-visit repair success on the scoped qualified-service task set.",
+        "status": "proposal_not_result",
+        "guardrail": "Report by fault class and include failed attempts, uncertain diagnosis and repeat service."
+      },
+      {
+        "id": "PORT-TARGET-LIFECYCLE-COST",
+        "target": "Demonstrate lower expected cost of delivered function after module, interface, inventory, service, energy/water and downtime costs.",
+        "status": "proposal_not_result",
+        "guardrail": "Show sensitivity intervals; no superiority claim if plausible assumptions reverse the conclusion."
+      },
+      {
+        "id": "PORT-TARGET-RESOURCE",
+        "target": "Explore a 5–10% resource-use improvement at matched useful output as a hypothesis.",
+        "status": "proposal_not_result",
+        "guardrail": "Function and safety non-inferiority margins must be preregistered; energy/water use alone cannot hide poorer output."
+      },
+      {
+        "id": "PORT-TARGET-PARTS-HORIZON",
+        "target": "Design for a 10-year parts-support commitment for the chosen open reference design.",
+        "status": "proposal_not_result",
+        "guardrail": "This is a design goal, not a statement that the same legal duty applies in every market or appliance category."
+      },
+      {
+        "id": "PORT-TARGET-CRITICAL-DIAGNOSIS",
+        "target": "Zero unsafe next-test/repair recommendations in the finite adversarial contract suite.",
+        "status": "proposal_not_result",
+        "guardrail": "Critical faults are separate hard gates with conservative abstention/referral; no average may hide a miss."
+      },
+      {
+        "id": "PORT-TARGET-INDEPENDENT-REPLICATION",
+        "target": "Replicate key functional/serviceability results on at least three candidate units and with at least one independent test team for stronger claims.",
+        "status": "proposal_not_result",
+        "guardrail": "Three units are only a pilot floor; expand sample size based on observed variance and the claim being made."
+      }
+    ],
+    "no_claims": [
+      "Do not claim a 10-year physical lifetime from a short accelerated test without validating the failure mechanism.",
+      "Do not treat simulation, a signed record, a planned part or a completed work order as physical proof of function restoration or safety.",
+      "Do not call an appliance DIY-repairable merely because parts are removable; task, hazard, tools, role and post-test requirements must be specified."
+    ]
+  },
+  "families": [
+    {
+      "id": "washing_machine",
+      "name": "Front-load washing machine / washer-dryer",
+      "priority": 1,
+      "why": "Recommended first large-appliance engineering target: repeated measurable cycles, consequential repair failures, clearly identifiable wear/service components and no sealed refrigerant circuit in a plain washer.",
+      "architecture_hypotheses": [
+        "Compare conventional machine with improved documentation against a front/side service spine for pump, valve, heater, door lock, sensors, controller and drive.",
+        "Compare a bolted/serviceable tub with separate bearing/seal replacement against a welded tub requiring larger assembly replacement; evaluate leak integrity, vibration, cost, waste and service time.",
+        "Compare belt/direct-drive options at matched cleaning, rinse, spin, noise, energy and service outcomes; do not assume either is universally better.",
+        "Evaluate whether optional external hot-water input is useful only for declared installations and verified energy, temperature-control, backflow and scald-safety constraints."
+      ],
+      "user_maintenance_tasks": [
+        "clean drain/coin filter using documented isolation and water-capture steps",
+        "clean detergent dispenser and accessible door seal",
+        "inspect external inlet/drain hoses for visible damage or leakage",
+        "run documented non-invasive user diagnostics"
+      ],
+      "qualified_service_tasks": [
+        "mains/heater/controller/drive repair and electrical protective checks",
+        "drum/tub/suspension/bearing repair and heavy assembly handling",
+        "powered spin, imbalance and leakage verification after repair",
+        "pressure/temperature-related internal service"
+      ],
+      "function_metrics": [
+        "cleaning and rinsing quality per declared laundry load",
+        "litres per successfully cleaned kg and kWh per load",
+        "spin-drying outcome and cycle duration",
+        "leakage, vibration and noise",
+        "task time, first-visit repair and recurrence",
+        "bearing/tub replacement cost and material discarded"
+      ],
+      "hazards": [
+        "mains electricity combined with water and heating elements",
+        "heavy rotating drum, imbalance, pinch/crush and tip hazards",
+        "hot water, leakage and flooding"
+      ],
+      "regulatory_references": [
+        "https://energy-efficient-products.ec.europa.eu/product-list/washing-machines_en",
+        "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31"
+      ],
+      "status": "proposed_no_physical_validation"
+    },
+    {
+      "id": "dishwasher",
+      "name": "Household dishwasher",
+      "priority": 2,
+      "why": "A strong second target because it combines measurable cleaning, drying, energy and water outcomes with replaceable wet-system parts and meaningful service downtime.",
+      "architecture_hypotheses": [
+        "Compare front-access filter/sump and replaceable circulation/drain pumps with whole-sump cartridge replacement; count interface and waste costs.",
+        "Provide service access to spray arms, door seals, valves, sensors, heater and controller without destructive panel removal.",
+        "Include a defined leak-capture/detection path and a reproducible post-repair leak and cleaning verification protocol."
+      ],
+      "user_maintenance_tasks": [
+        "clean filter and removable spray arms",
+        "maintain salt/rinse aid where present per manual",
+        "clean accessible door seal and check external hoses",
+        "use documented non-invasive fault indicators"
+      ],
+      "qualified_service_tasks": [
+        "internal pump/valve/heater/harness repair",
+        "mains/wet-area electrical isolation and checks",
+        "leak tray diagnosis and post-repair leak/cleaning tests"
+      ],
+      "function_metrics": [
+        "correctly cleaned place settings per kWh and litre",
+        "drying outcome and eco-programme duration",
+        "leak detection and post-repair leak integrity",
+        "repair task time, parts price, restoration cost and recurrence"
+      ],
+      "hazards": [
+        "mains electricity near water",
+        "leak/flood damage and hot wash water",
+        "heater and moving pump hazards"
+      ],
+      "regulatory_references": [
+        "https://energy-efficient-products.ec.europa.eu/product-list/dishwashers_en",
+        "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31"
+      ],
+      "status": "proposed_no_physical_validation"
+    },
+    {
+      "id": "refrigerator_freezer",
+      "name": "Refrigerator / freezer",
+      "priority": 3,
+      "why": "High lifetime electricity and food-preservation consequences make repairability valuable, but the sealed refrigerant system and temperature-safety outcomes require a distinct qualified-service track.",
+      "architecture_hypotheses": [
+        "Design independently replaceable gasket, hinge, fan, drain, defrost element, sensor, light and electronic control/inverter modules.",
+        "Provide safe access for airflow-path and condenser maintenance without exposing live parts.",
+        "Compare component-level electronic repair against a replaceable control module including diagnostic quality, cost, electronic waste and downtime.",
+        "Explore any sealed-circuit module replacement only after qualified refrigerant, leakage, thermal, transport, reliability and lifecycle review; do not assume quick couplers or DIY refrigerant service."
+      ],
+      "user_maintenance_tasks": [
+        "inspect and clean/replace door gasket per manual",
+        "clean specified external airflow/condenser area while isolated",
+        "clean approved defrost drain and removable interior components",
+        "monitor displayed temperature and documented user alerts"
+      ],
+      "qualified_service_tasks": [
+        "sealed refrigerant circuit, compressor or refrigerant charging/recovery work",
+        "mains/inverter/capacitor and protective electrical checks",
+        "temperature-control, defrost and post-repair pull-down/recovery verification"
+      ],
+      "function_metrics": [
+        "annualized kWh per usable litre under declared use/ambient profile",
+        "temperature stability, door-open recovery and compartment-safe range",
+        "gasket replacement time, defrost/drain reliability and noise",
+        "repair cost, food-outage/spoilage risk, parts lead time and recurrence"
+      ],
+      "hazards": [
+        "refrigerant identity, pressure and potentially flammable refrigerants depending on design",
+        "mains and inverter stored energy",
+        "food-temperature excursion and spoilage"
+      ],
+      "regulatory_references": [
+        "https://energy-efficient-products.ec.europa.eu/product-list/fridges-and-freezers_en",
+        "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31"
+      ],
+      "status": "proposed_no_physical_validation"
+    },
+    {
+      "id": "heat_pump_dryer",
+      "name": "Heat-pump tumble dryer",
+      "priority": 4,
+      "why": "Heat recovery can improve running economics, while airflow/lint/condensate access and repair-unit size materially affect maintenance and service costs.",
+      "architecture_hypotheses": [
+        "Make lint filters, airflow cleaning points, condensate system, drum drive, blower, door seal, sensors and controller separately serviceable where a trade study supports it.",
+        "Compare replaceable sealed heat-pump assembly versus qualified component repair; include refrigerant service cost, parts availability, leak checks and waste.",
+        "Design maintenance paths so cleaning does not require destructive opening or casual access to high-temperature and mains components."
+      ],
+      "user_maintenance_tasks": [
+        "clean user lint filter and accessible secondary filter",
+        "empty/clean condensate container and approved drain path",
+        "clean door seal and run approved user diagnostic"
+      ],
+      "qualified_service_tasks": [
+        "mains/heater/thermal interlock and internal blower repair",
+        "sealed heat-pump/refrigerant circuit service",
+        "post-repair airflow, moisture-removal and thermal-protection verification"
+      ],
+      "function_metrics": [
+        "kWh per kg water removed at fixed endpoint",
+        "residual moisture, cycle time and condensation performance",
+        "airflow restriction/overheating protection checks",
+        "filter task success/time, repair cost and recurrence"
+      ],
+      "hazards": [
+        "lint/fire and restricted airflow",
+        "hot surfaces and electrical hazards",
+        "sealed refrigerant circuit and pressure"
+      ],
+      "regulatory_references": [
+        "https://energy-efficient-products.ec.europa.eu/product-list/tumble-dryers_en",
+        "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31"
+      ],
+      "status": "proposed_no_physical_validation"
+    },
+    {
+      "id": "heat_pump_water_heater",
+      "name": "Heat-pump water heater",
+      "priority": 5,
+      "why": "Potential for meaningful water-heating energy savings and high downtime consequences, but combines a water tank, hot water, pressure-relief, corrosion and refrigerant-service constraints.",
+      "architecture_hypotheses": [
+        "Compare integrated system against a factory-sealed heat-pump top module with a separate tank; evaluate service time alongside standby loss, seal count, material, cost and compatibility.",
+        "Make fan/air filter, condensate, sensors and controls serviceable without opening refrigerant circuit.",
+        "Provide traceable access and instructions for manufacturer-specified tank maintenance, anode and replaceable components."
+      ],
+      "user_maintenance_tasks": [
+        "clean only manufacturer-approved air filter and condensate path",
+        "record leaks, displayed status and water-temperature symptoms",
+        "perform user-level inspection without opening pressure boundaries"
+      ],
+      "qualified_service_tasks": [
+        "mains, element, thermostat and control work",
+        "water-side plumbing, tank drain, pressure relief and hot-water service",
+        "sealed refrigerant circuit and heat-pump commissioning",
+        "verified recovery, temperature and leakage checks"
+      ],
+      "function_metrics": [
+        "delivered hot-water heat per kWh under declared draw/ambient profile",
+        "COP/recovery rate, first-hour delivery, standby loss and temperature stability",
+        "maintenance time, corrosion/scale findings, leakage and restoration cost"
+      ],
+      "hazards": [
+        "scalding hot water, stored pressure and pressure-relief hazards",
+        "mains electricity and heating elements",
+        "refrigerant circuit, condensate and lifting/installation"
+      ],
+      "regulatory_references": [
+        "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31",
+        "https://www.energy.gov/cmei/buildings/standards-and-test-procedures"
+      ],
+      "status": "proposed_no_physical_validation"
+    },
+    {
+      "id": "heat_pump_hvac",
+      "name": "Residential air-source heat-pump HVAC",
+      "priority": 6,
+      "why": "Large energy and comfort impact, but commissioning, building envelope/load, climate, high voltage and refrigerant handling make attribution and validation much harder than the first appliance pilot.",
+      "architecture_hypotheses": [
+        "Separate traceable service assemblies for filters/indoor blower, outdoor fan, sensors, controls/inverter and condensate system where the interfaces and failure data justify it.",
+        "Give qualified technicians a clean diagnostic/commissioning workflow and published compatible-part requirements; never make refrigerant quick connection a DIY assumption.",
+        "Compare service-board/module replacement with qualified board-level repair and whole-unit replacement under matched climate/load/installation conditions."
+      ],
+      "user_maintenance_tasks": [
+        "clean/replace permitted filters",
+        "keep approved airflow clearances and clean user-accessible surfaces",
+        "observe and record alarms, noise and comfort symptoms"
+      ],
+      "qualified_service_tasks": [
+        "mains/high-voltage/inverter and capacitor service",
+        "refrigerant leak, recovery, charging, brazing or sealed circuit work",
+        "outdoor unit lifting and electrical installation/commissioning",
+        "post-service capacity, leak and protection verification"
+      ],
+      "function_metrics": [
+        "seasonal heating/cooling electricity at matched delivered capacity",
+        "capacity and comfort stability across declared ambient range",
+        "defrost, noise, condensate/leak and refrigerant-service outcomes",
+        "diagnostic/service duration, travel, parts delay and recurrence"
+      ],
+      "hazards": [
+        "high voltage and stored-energy capacitors",
+        "pressurized refrigerant and possible flammability depending on refrigerant",
+        "working at height, lifting, outdoor exposure and installation-specific hazards"
+      ],
+      "regulatory_references": [
+        "https://www.energy.gov/cmei/buildings/standards-and-test-procedures",
+        "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31"
+      ],
+      "status": "proposed_no_physical_validation"
+    }
+  ],
+  "references": [
+    {
+      "title": "EU ecodesign requirements: household washing machines and washer-dryers",
+      "url": "https://energy-efficient-products.ec.europa.eu/product-list/washing-machines_en",
+      "kind": "official_guidance",
+      "scope_note": "Current Commission summary of washing-machine/washer-dryer scope, resource use, and parts/repair information; verify consolidated legal text for the target model and market."
+    },
+    {
+      "title": "EU ecodesign requirements: household dishwashers",
+      "url": "https://energy-efficient-products.ec.europa.eu/product-list/dishwashers_en",
+      "kind": "official_guidance",
+      "scope_note": "Current Commission summary of dishwasher energy/water performance and listed spare-part availability periods."
+    },
+    {
+      "title": "EU ecodesign requirements: refrigerators and freezers",
+      "url": "https://energy-efficient-products.ec.europa.eu/product-list/fridges-and-freezers_en",
+      "kind": "official_guidance",
+      "scope_note": "Current Commission summary of refrigerating-appliance scope, energy information, and reparability/recyclability provisions."
+    },
+    {
+      "title": "EU ecodesign requirements: tumble dryers",
+      "url": "https://energy-efficient-products.ec.europa.eu/product-list/tumble-dryers_en",
+      "kind": "official_guidance",
+      "scope_note": "Current Commission summary of tumble-dryer resource/performance rules and 2025 application changes."
+    },
+    {
+      "title": "Directive (EU) 2024/1799, consolidated text dated 31 July 2026",
+      "url": "https://eur-lex.europa.eu/eli/dir/2024/1799/2026-07-31",
+      "kind": "official_regulation",
+      "scope_note": "Repair obligation scope and Annex II must be interpreted with current product-specific Union acts and national transposition."
+    },
+    {
+      "title": "U.S. Department of Energy appliance standards and test procedures",
+      "url": "https://www.energy.gov/cmei/buildings/standards-and-test-procedures",
+      "kind": "official_guidance",
+      "scope_note": "U.S. product-specific requirements and test methods; current rulemaking and effective dates require model/market-specific verification."
+    },
+    {
+      "title": "Open Arsenal Specs Universal Appliance Standard concept",
+      "url": "https://github.com/openarsenalspecs/Civic-Tech/blob/main/Universal%20Appliance%20Standard.md",
+      "kind": "existing_standard_project",
+      "scope_note": "Existing broad modular appliance concept to compose with; this portfolio is not a competing universal standard."
+    },
+    {
+      "title": "Symtropy appliance engineering substrate",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/1805",
+      "kind": "internal_issue",
+      "scope_note": "Parent research owner for repairable household appliance architecture and its synthetic benchmark/evidence boundaries."
+    },
+    {
+      "title": "Mycelix appliance release, unit and repair evidence profile",
+      "url": "https://github.com/Luminous-Dynamics/mycelix/issues/5156",
+      "kind": "internal_issue",
+      "scope_note": "Reuse existing Manufacturing and RepairProductiveLoop identities and evidence owners; do not create a second repair ledger."
+    }
+  ]
+}
