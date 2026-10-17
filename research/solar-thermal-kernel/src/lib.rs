@@ -461,6 +461,11 @@ pub struct DischargeRequest {
 
 pub fn discharge_to_load(c: &StoreConfig, s: StoreState, request: DischargeRequest)
     -> Result<(StoreState, DischargeReport), ModelError> {
+    let requested_useful_heat = request.requested_useful_heat;
+    let load_supply = request.required_supply_temperature;
+    let approach = request.minimum_approach;
+    let effectiveness = request.heat_exchanger_effectiveness;
+    let dt = request.duration;
     if effectiveness.value() <= 0.0 { return Err(ModelError::InvalidDischargeEfficiency); }
     let cutoff = load_supply.value() + approach.value();
     let floor = Kelvin::new(cutoff.max(c.min_temperature.value()))?;
@@ -469,9 +474,9 @@ pub fn discharge_to_load(c: &StoreConfig, s: StoreState, request: DischargeReque
     if blocked || requested_useful_heat.value() == 0.0 {
         return Ok((s, DischargeReport {
             temperature_before: s.temperature, temperature_after: s.temperature,
-            requested_useful_heat: request, source_heat_withdrawn: EnergyJ::new(0.0)?,
+            requested_useful_heat, source_heat_withdrawn: EnergyJ::new(0.0)?,
             useful_heat_delivered: EnergyJ::new(0.0)?, heat_exchanger_loss: EnergyJ::new(0.0)?,
-            unmet_useful_heat: request, minimum_source_temperature: floor, blocked_by_temperature: blocked,
+            unmet_useful_heat: requested_useful_heat, minimum_source_temperature: floor, blocked_by_temperature: blocked,
         }));
     }
     let floor_energy = stored_energy_at(c, floor)?.value();
@@ -483,7 +488,7 @@ pub fn discharge_to_load(c: &StoreConfig, s: StoreState, request: DischargeReque
     let loss = (withdrawn - delivered).max(0.0);
     let after_t = temperature_at_energy(c, EnergyJ::new((before - withdrawn).max(0.0))?)?;
     Ok((StoreState { temperature: after_t }, DischargeReport {
-        temperature_before: s.temperature, temperature_after: after_t, requested_useful_heat: request,
+        temperature_before: s.temperature, temperature_after: after_t, requested_useful_heat,
         source_heat_withdrawn: EnergyJ::new(withdrawn)?, useful_heat_delivered: EnergyJ::new(delivered)?,
         heat_exchanger_loss: EnergyJ::new(loss)?,
         unmet_useful_heat: EnergyJ::new((requested_useful_heat.value() - delivered).max(0.0))?,
@@ -492,6 +497,11 @@ pub fn discharge_to_load(c: &StoreConfig, s: StoreState, request: DischargeReque
 }
 pub fn verify_discharge_report(c: &StoreConfig, s: StoreState, request: DischargeRequest, r: DischargeReport)
     -> Result<(), ModelError> {
+    let requested_useful_heat = request.requested_useful_heat;
+    let load_supply = request.required_supply_temperature;
+    let approach = request.minimum_approach;
+    let effectiveness = request.heat_exchanger_effectiveness;
+    let dt = request.duration;
     if effectiveness.value() <= 0.0 { return Err(ModelError::InvalidDischargeEfficiency); }
     let cutoff = load_supply.value() + approach.value();
     let floor = Kelvin::new(cutoff.max(c.min_temperature.value()))?;
