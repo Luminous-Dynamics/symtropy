@@ -266,5 +266,269 @@
       "If robust Pareto bounds overlap, record an unresolved trade-off and measure the criterion most likely to change the architecture decision."
     ],
     "existing_information_value_owner": "Use the existing Symthaea finite-hypothesis EIG/EVSI kernel and appliance adapter; do not create a parallel information-value scorer."
-  }
+  },
+  "profile_policy": {
+    "profile_policy_id": "STAKEHOLDER-REPAIRABILITY-PROFILES-001",
+    "hard_gate_override": false,
+    "selection_before_evidence": false,
+    "threshold_policy": "unfrozen_threshold_remains_unknown",
+    "weighting_policy": "no_hidden_global_weights"
+  },
+  "stakeholder_profiles": [
+    {
+      "id": "P1-HOUSEHOLD-OWNER",
+      "context": "Household owners and intended users with varied repair confidence, time, budgets and access to local service.",
+      "primary_question": "Can the owner use and maintain the appliance safely and affordably without specialist access or hidden service dependencies?",
+      "criteria": [
+        "lifecycle_cost_per_useful_service",
+        "restore_time_p90",
+        "energy_per_successful_load",
+        "water_per_successful_load"
+      ],
+      "required_task_boundary": "Only intended normal-user maintenance and safe referral/troubleshooting tasks; no opening internal mains, heater, drive, heavy rotating, stored-energy or refrigerant systems.",
+      "status": "requirements_not_frozen",
+      "requirements": [
+        {
+          "id": "owner_lifetime_cash_burden",
+          "criterion_id": "lifecycle_cost_per_useful_service",
+          "direction": "minimize",
+          "unit": "local_currency_per_declared_lifetime_service",
+          "threshold": null,
+          "rationale": "Owner cash affordability depends on local price, tariffs, service availability and declared lifetime; no universal cutoff is assumed.",
+          "evidence_needed": "Participant interviews and a transparent local-currency lifecycle model with sensitivity analysis.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "owner_outage_tolerance",
+          "criterion_id": "restore_time_p90",
+          "direction": "minimize",
+          "unit": "elapsed_hours_per_verified_repair",
+          "threshold": null,
+          "rationale": "Acceptable outage depends on household needs and replacement access; threshold must be elicited, not guessed.",
+          "evidence_needed": "Contextual user research and named outage scenarios.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "successful_useful_cycle_resource_burden",
+          "criterion_id": "energy_per_successful_load",
+          "direction": "minimize",
+          "unit": "kWh_per_load_meeting_frozen_function_floors",
+          "threshold": null,
+          "rationale": "Efficiency is useful only when cleaning, rinsing and spin-drying floors pass.",
+          "evidence_needed": "Frozen matched-load performance protocol with calibrated energy measurement.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "water_burden_per_successful_cycle",
+          "criterion_id": "water_per_successful_load",
+          "direction": "minimize",
+          "unit": "litres_per_load_meeting_frozen_function_floors",
+          "threshold": null,
+          "rationale": "Water constraints and tariffs vary by location; use a declared successful load as denominator.",
+          "evidence_needed": "Frozen load profile, metered water use and local context.",
+          "status": "threshold_not_frozen"
+        }
+      ]
+    },
+    {
+      "id": "P2-INDEPENDENT-TECHNICIAN",
+      "context": "Qualified independent appliance technicians working with documented tools, safe isolation and a range of customer budgets.",
+      "primary_question": "Can a qualified repairer discriminate likely faults and restore verified function without replacing unnecessary assemblies or repeating visits?",
+      "criteria": [
+        "restore_time_p90",
+        "first_visit_verified_repair_rate",
+        "added_interface_failure_rate",
+        "lifecycle_cost_per_useful_service"
+      ],
+      "required_task_boundary": "Qualified internal work remains subject to product-specific competence, isolation, stored-energy handling, guarding and post-repair checks; the profile cannot waive these requirements.",
+      "status": "requirements_not_frozen",
+      "requirements": [
+        {
+          "id": "technician_restore_time",
+          "criterion_id": "restore_time_p90",
+          "direction": "minimize",
+          "unit": "elapsed_hours_per_verified_repair",
+          "threshold": null,
+          "rationale": "Travel, sourcing delays, diagnosis, hands-on work and verification all influence service time.",
+          "evidence_needed": "Controlled scripts, timestamps, fault/task mix and exact tools/part IDs.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "first_visit_restoration_floor",
+          "criterion_id": "first_visit_verified_repair_rate",
+          "direction": "maximize",
+          "unit": "fraction_of_declared_tasks_restored_and_verified_on_first_visit",
+          "threshold": null,
+          "rationale": "A repair counts only when relevant function and required checks are verified on the first visit.",
+          "evidence_needed": "Documented task outcome, safe verification, participant qualification and denominator.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "added_interface_rework_limit",
+          "criterion_id": "added_interface_failure_rate",
+          "direction": "minimize",
+          "unit": "failures_per_declared_cycles_or_service_events",
+          "threshold": null,
+          "rationale": "Service connectors and seals may add error and repeat work; the acceptable limit needs data.",
+          "evidence_needed": "Repeated assembly/service trials and a declared event denominator.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "customer_all_in_repair_cost",
+          "criterion_id": "lifecycle_cost_per_useful_service",
+          "direction": "minimize",
+          "unit": "local_currency_per_declared_lifetime_service",
+          "threshold": null,
+          "rationale": "Repair economics must include parts, labour, transport, failed attempts and rework.",
+          "evidence_needed": "Dated part quotes/orders, labour assumptions and full repair receipts.",
+          "status": "threshold_not_frozen"
+        }
+      ]
+    },
+    {
+      "id": "P3-PARTS-AND-SERVICE-NETWORK",
+      "context": "Independent parts suppliers, repair shops, distributors and local maintenance networks with finite inventory and cash flow.",
+      "primary_question": "Can a lawful exact-fit part be identified and delivered within an economically sustainable service window?",
+      "criteria": [
+        "target_window_part_fulfilment_rate",
+        "lifecycle_cost_per_useful_service",
+        "restore_time_p90"
+      ],
+      "required_task_boundary": "Record lawful sourcing, model/revision compatibility, returns and supplier independence; a listing or verbal assurance is not a confirmed compatible supply path.",
+      "status": "requirements_not_frozen",
+      "requirements": [
+        {
+          "id": "accepted_order_delivery_floor",
+          "criterion_id": "target_window_part_fulfilment_rate",
+          "direction": "maximize",
+          "unit": "fraction_of_accepted_orders_delivered_within_declared_window",
+          "threshold": null,
+          "rationale": "Delivery targets depend on market geography, customs, local stock and repair class.",
+          "evidence_needed": "Dated accepted orders, exact-fit confirmation, dispatch and delivery receipt.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "stock_economics",
+          "criterion_id": "lifecycle_cost_per_useful_service",
+          "direction": "minimize",
+          "unit": "local_currency_per_declared_lifetime_service",
+          "threshold": null,
+          "rationale": "Dual sourcing and stock buffers can improve resilience but create working-capital and obsolescence burden.",
+          "evidence_needed": "Supplier quotes, source independence, stock age, turnover and sensitivity model.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "supply_contribution_to_outage",
+          "criterion_id": "restore_time_p90",
+          "direction": "minimize",
+          "unit": "elapsed_hours_per_verified_repair",
+          "threshold": null,
+          "rationale": "Elapsed outage includes parts sourcing; hands-on repair time alone hides supply failures.",
+          "evidence_needed": "Start/stop timestamps, cancellations, substitutions, shipping and return times.",
+          "status": "threshold_not_frozen"
+        }
+      ]
+    },
+    {
+      "id": "P4-LIFECYCLE-MATERIAL-STEWARD",
+      "context": "Lifecycle engineers, reuse/remanufacturing actors and stakeholders concerned with material demand, waste and useful product life.",
+      "primary_question": "Does the architecture reduce whole-life resource/material burden while retaining useful function and repair longevity?",
+      "criteria": [
+        "discarded_material_per_verified_repair",
+        "energy_per_successful_load",
+        "water_per_successful_load",
+        "lifecycle_cost_per_useful_service",
+        "added_interface_failure_rate"
+      ],
+      "required_task_boundary": "Only compare physically supported material, function and lifecycle evidence; no energy/water gain can offset safety or required function failure.",
+      "status": "requirements_not_frozen",
+      "requirements": [
+        {
+          "id": "discarded_mass_limit",
+          "criterion_id": "discarded_material_per_verified_repair",
+          "direction": "minimize",
+          "unit": "kg_per_verified_repair",
+          "threshold": null,
+          "rationale": "A smaller replaceable unit may reduce waste, but packaging, extra modules and failed repairs must also be considered.",
+          "evidence_needed": "Measured mass balance for actual repair scope, discarded assemblies, reuse and returns.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "useful_function_resource_floor",
+          "criterion_id": "energy_per_successful_load",
+          "direction": "minimize",
+          "unit": "kWh_per_load_meeting_frozen_function_floors",
+          "threshold": null,
+          "rationale": "Resource-use claims require the same validated useful output and uncertainty disclosure.",
+          "evidence_needed": "Matched cycle tests with preregistered cleaning/rinsing/spin floors and instrument calibration.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "water_resource_floor",
+          "criterion_id": "water_per_successful_load",
+          "direction": "minimize",
+          "unit": "litres_per_load_meeting_frozen_function_floors",
+          "threshold": null,
+          "rationale": "Water use must be compared on successful function under declared incoming water and load conditions.",
+          "evidence_needed": "Metered matched-cycle measurements and contextual assumptions.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "interface_lifecycle_trade",
+          "criterion_id": "added_interface_failure_rate",
+          "direction": "minimize",
+          "unit": "failures_per_declared_cycles_or_service_events",
+          "threshold": null,
+          "rationale": "Added modular interfaces can undermine lifecycle gains if they increase leakage, rework or failure.",
+          "evidence_needed": "Longitudinal/service-event evidence and sensitivity analysis.",
+          "status": "threshold_not_frozen"
+        }
+      ]
+    },
+    {
+      "id": "P5-REMOTE-INSTITUTIONAL-OPERATOR",
+      "context": "Operators of laundries, schools, clinics, shelters, farms and remote sites where downtime and service logistics may be consequential.",
+      "primary_question": "Can the appliance be safely and predictably restored when specialist service and spare parts are not immediately nearby?",
+      "criteria": [
+        "restore_time_p90",
+        "target_window_part_fulfilment_rate",
+        "first_visit_verified_repair_rate",
+        "lifecycle_cost_per_useful_service"
+      ],
+      "required_task_boundary": "The operator role does not imply technician competence; essential safe operation, local documentation and clear escalation remain required, and hazardous internals stay with qualified personnel.",
+      "status": "requirements_not_frozen",
+      "requirements": [
+        {
+          "id": "maximum_operational_outage",
+          "criterion_id": "restore_time_p90",
+          "direction": "minimize",
+          "unit": "elapsed_hours_per_verified_repair",
+          "threshold": null,
+          "rationale": "Outage consequences vary by mission and backup capacity; no universal timeout is assumed.",
+          "evidence_needed": "Scenario-specific owner/operator interview and elapsed-time logging from faults through verified return to service.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "critical_part_availability_floor",
+          "criterion_id": "target_window_part_fulfilment_rate",
+          "direction": "maximize",
+          "unit": "fraction_of_accepted_orders_delivered_within_declared_window",
+          "threshold": null,
+          "rationale": "Remote operation depends on the right compatible parts being delivered, not on catalogue visibility.",
+          "evidence_needed": "Exact-fit supply record, route/geography and dated delivery trials.",
+          "status": "threshold_not_frozen"
+        },
+        {
+          "id": "verified_first_visit_floor",
+          "criterion_id": "first_visit_verified_repair_rate",
+          "direction": "maximize",
+          "unit": "fraction_of_declared_tasks_restored_and_verified_on_first_visit",
+          "threshold": null,
+          "rationale": "Repeat trips are costly where travel is long or service teams are scarce.",
+          "evidence_needed": "Named remote service scenario, task and qualification profile, parts/tool readiness and post-repair proof.",
+          "status": "threshold_not_frozen"
+        }
+      ]
+    }
+  ]
 }
