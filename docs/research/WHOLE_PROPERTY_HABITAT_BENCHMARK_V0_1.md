@@ -217,3 +217,10 @@ The planner is a task proposal only. It does not restore any evidence until a co
 ## 15. Bounded exactness and planner scaling
 
 The current v0.1 revalidation planner is an intentionally tiny exhaustive demonstrator. The scalability follow-on is [HABITAT-REVALIDATION-005 #1869](https://github.com/Luminous-Dynamics/symtropy/issues/1869): retain exhaustive search as the correctness oracle for small cases while introducing a measured, budget-aware strategy for larger task libraries. Any search interruption must report `SEARCH_INCOMPLETE`, never silently claim no valid plan or optimality. Performance targets should follow disclosed p50/p95/p99 and memory measurements over frozen workloads; evidence status and hard review gates remain non-negotiable.
+
+
+## 16. Joint-target portfolio planning and bounded exactness
+
+The companion [Habitat Joint-Target Revalidation Portfolio benchmark v0.1](HABITAT_REVALIDATION_PORTFOLIO_V0_1.md) extends single-claim revalidation to a two-target portfolio: commissioning and maintenance handover share a material review and an as-built reinspection. It keeps one shared repair task per portfolio and compares the complete frontier over invented cost/duration units. The Rust package `tools/habitat-revalidation-portfolio` has an independent subset-based plan oracle, all 32 combinations of five abstract gates, and budget controls both before finding a plan and after finding one.
+
+The result vocabulary explicitly distinguishes `OPTIMAL_EXACT`, `NO_VALID_PLAN_PROVEN`, `TARGET_ALREADY_VALID`, and `SEARCH_INCOMPLETE`. If the declared state-expansion budget is exceeded, any plan found so far is provisional and the Pareto frontier is not labelled complete. This is a synthetic finite-state assurance prototype, not yet a scalable solver, construction schedule, professional approval, or physical-safety result. It complements [HABITAT-REVALIDATION-005 #1869](https://github.com/Luminous-Dynamics/symtropy/issues/1869), which tracks larger-scale algorithms and measured performance.
