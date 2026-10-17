@@ -1,0 +1,727 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "synthetic_only",
+  "functional_unit": "one modular sensor module delivering 30,000 qualified operating hours",
+  "scope_id": "site:sensor-01",
+  "asset_mass_g": 1000,
+  "horizon_cycles": 3,
+  "service_hours_per_cycle": 10000,
+  "minimum_condition_bp": 6000,
+  "degradation_per_cycle_bp": 2500,
+  "maximum_repairs": 1,
+  "initial_condition_bp": 10000,
+  "initial_lineage_share_bp": 10000,
+  "evidence": [
+    {
+      "id": "ev-continue",
+      "payload": "synthetic source payload ev-continue version 1",
+      "sha256": "71cc540c3c5b7c8ad5da538de69b952ea6a6431d3f68cc7b5dda596418f2b43c",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-repair",
+      "payload": "synthetic source payload ev-repair version 1",
+      "sha256": "1ad30fe33999cbb2496cd08af6fb0dee318531d6016982a0a4a9dfc443a04ef5",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-reman",
+      "payload": "synthetic source payload ev-reman version 1",
+      "sha256": "7f2af4c2fe2edd95688918203b8ee634cf5b1c80c8541579c1bbca6e51d345a8",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-replace",
+      "payload": "synthetic source payload ev-replace version 1",
+      "sha256": "65d3c79e0537c471c52f5512f17a41286ff708506c7808974c40afdb3db27212",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-energy",
+      "payload": "synthetic source payload ev-energy version 1",
+      "sha256": "ff41633c36d89ca487836fae143ab96c240be8cabbd0ba03f42c20a8b84e77c3",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-mixed",
+      "payload": "synthetic source payload ev-mixed version 1",
+      "sha256": "59ede48af82e21158e0ff26459a956b22b95e93b9f5757ddb8f663efdd65358e",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-unknown",
+      "payload": "synthetic source payload ev-unknown version 1",
+      "sha256": "9a3efefea7a0dfd7e3ea53abf68b7448a512af7779e5c84417226cd89acc65e7",
+      "status": "unknown",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-partial",
+      "payload": "synthetic source payload ev-partial version 1",
+      "sha256": "ab8675dd21dcc9a63ec797ccf96083a920fb1b2ad8548d74c638d535b7074d88",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "partial"
+    },
+    {
+      "id": "ev-revoked",
+      "payload": "synthetic source payload ev-revoked version 1",
+      "sha256": "03684e1ff7803c19a3fd4fcfae87e56642f23a7e66b265106c1c3908c1fb2272",
+      "status": "revoked",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-inspection-fail",
+      "payload": "synthetic source payload ev-inspection-fail version 1",
+      "sha256": "d480c930be3a174b40e281ea468688649b3cac751f2cf255964482a6955c5c7b",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-wrong-scope",
+      "payload": "synthetic source payload ev-wrong-scope version 1",
+      "sha256": "bd69172e1f9604596a71cbf62b4e1c00a7189b1027fca9bde16ce0d51cb82094",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "other-site:sensor-02",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-bad-fates",
+      "payload": "synthetic source payload ev-bad-fates version 1",
+      "sha256": "cde12c21174558b4ca9f4bf37716fa3e8fc11c33b4ef73f1c20648e254c85234",
+      "status": "valid",
+      "claim_id": "lifecycle_action_profile",
+      "scope_id": "site:sensor-01",
+      "coverage": "complete"
+    }
+  ],
+  "actions": [
+    {
+      "id": "continue",
+      "kind": "continue",
+      "evidence_id": "ev-continue",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 0,
+      "lineage_after_bp": null,
+      "retired_mass_g": 0,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 0,
+        "energy_recovery_g": 0,
+        "residual_g": 0
+      },
+      "metrics": {
+        "cost_cents": 0,
+        "virgin_material_g": 0,
+        "energy_wh": 100,
+        "ghg_co2e_g": 250,
+        "water_ml": 50,
+        "residual_waste_g": 0
+      }
+    },
+    {
+      "id": "repair",
+      "kind": "repair",
+      "evidence_id": "ev-repair",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 3000,
+      "lineage_after_bp": null,
+      "retired_mass_g": 50,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 30,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 1500,
+        "virgin_material_g": 400,
+        "energy_wh": 350,
+        "ghg_co2e_g": 750,
+        "water_ml": 150,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "remanufacture",
+      "kind": "remanufacture",
+      "evidence_id": "ev-reman",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 0,
+      "lineage_after_bp": 5000,
+      "retired_mass_g": 200,
+      "fates": {
+        "reused_component_g": 100,
+        "recycled_material_g": 80,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 4000,
+        "virgin_material_g": 100,
+        "energy_wh": 1600,
+        "ghg_co2e_g": 500,
+        "water_ml": 250,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "replace-recycle",
+      "kind": "replace_recycle",
+      "evidence_id": "ev-replace",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 0,
+      "lineage_after_bp": 0,
+      "retired_mass_g": 1000,
+      "fates": {
+        "reused_component_g": 200,
+        "recycled_material_g": 600,
+        "energy_recovery_g": 0,
+        "residual_g": 200
+      },
+      "metrics": {
+        "cost_cents": 10000,
+        "virgin_material_g": 1000,
+        "energy_wh": 3100,
+        "ghg_co2e_g": 2250,
+        "water_ml": 450,
+        "residual_waste_g": 200
+      }
+    },
+    {
+      "id": "replace-energy-recovery",
+      "kind": "replace_energy_recovery",
+      "evidence_id": "ev-energy",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 0,
+      "lineage_after_bp": 0,
+      "retired_mass_g": 1000,
+      "fates": {
+        "reused_component_g": 100,
+        "recycled_material_g": 100,
+        "energy_recovery_g": 600,
+        "residual_g": 200
+      },
+      "metrics": {
+        "cost_cents": 9000,
+        "virgin_material_g": 1000,
+        "energy_wh": 2800,
+        "ghg_co2e_g": 3500,
+        "water_ml": 450,
+        "residual_waste_g": 200
+      }
+    },
+    {
+      "id": "replace-mixed",
+      "kind": "replace_mixed",
+      "evidence_id": "ev-mixed",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 0,
+      "lineage_after_bp": 0,
+      "retired_mass_g": 1000,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 100,
+        "energy_recovery_g": 0,
+        "residual_g": 900
+      },
+      "metrics": {
+        "cost_cents": 8000,
+        "virgin_material_g": 1000,
+        "energy_wh": 2300,
+        "ghg_co2e_g": 4500,
+        "water_ml": 350,
+        "residual_waste_g": 900
+      }
+    },
+    {
+      "id": "repair-unknown",
+      "kind": "repair",
+      "evidence_id": "ev-unknown",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 3000,
+      "lineage_after_bp": null,
+      "retired_mass_g": 50,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 30,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 1500,
+        "virgin_material_g": 400,
+        "energy_wh": 350,
+        "ghg_co2e_g": 750,
+        "water_ml": 150,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "repair-partial",
+      "kind": "repair",
+      "evidence_id": "ev-partial",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 3000,
+      "lineage_after_bp": null,
+      "retired_mass_g": 50,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 30,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 1500,
+        "virgin_material_g": 400,
+        "energy_wh": 350,
+        "ghg_co2e_g": 750,
+        "water_ml": 150,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "repair-revoked",
+      "kind": "repair",
+      "evidence_id": "ev-revoked",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 3000,
+      "lineage_after_bp": null,
+      "retired_mass_g": 50,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 30,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 1500,
+        "virgin_material_g": 400,
+        "energy_wh": 350,
+        "ghg_co2e_g": 750,
+        "water_ml": 150,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "repair-inspection-fail",
+      "kind": "repair",
+      "evidence_id": "ev-inspection-fail",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "fail",
+      "recovery_bp": 3000,
+      "lineage_after_bp": null,
+      "retired_mass_g": 50,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 30,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 1500,
+        "virgin_material_g": 400,
+        "energy_wh": 350,
+        "ghg_co2e_g": 750,
+        "water_ml": 150,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "repair-wrong-scope",
+      "kind": "repair",
+      "evidence_id": "ev-wrong-scope",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 3000,
+      "lineage_after_bp": null,
+      "retired_mass_g": 50,
+      "fates": {
+        "reused_component_g": 0,
+        "recycled_material_g": 30,
+        "energy_recovery_g": 0,
+        "residual_g": 20
+      },
+      "metrics": {
+        "cost_cents": 1500,
+        "virgin_material_g": 400,
+        "energy_wh": 350,
+        "ghg_co2e_g": 750,
+        "water_ml": 150,
+        "residual_waste_g": 20
+      }
+    },
+    {
+      "id": "replace-bad-mass",
+      "kind": "replace_recycle",
+      "evidence_id": "ev-bad-fates",
+      "safety": "pass",
+      "function": "pass",
+      "inspection": "pass",
+      "recovery_bp": 0,
+      "lineage_after_bp": 0,
+      "retired_mass_g": 1000,
+      "fates": {
+        "reused_component_g": 500,
+        "recycled_material_g": 600,
+        "energy_recovery_g": 0,
+        "residual_g": 200
+      },
+      "metrics": {
+        "cost_cents": 10000,
+        "virgin_material_g": 1000,
+        "energy_wh": 3100,
+        "ghg_co2e_g": 2250,
+        "water_ml": 450,
+        "residual_waste_g": 200
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "baseline-horizon",
+      "plans": [
+        {
+          "id": "repair-cycle-2",
+          "steps": [
+            "continue",
+            "repair",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 30000,
+            "condition_after_cycle_bp": [
+              7500,
+              7500,
+              5000
+            ]
+          }
+        },
+        {
+          "id": "remanufacture-cycle-2",
+          "steps": [
+            "continue",
+            "remanufacture",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              7500,
+              5000
+            ]
+          }
+        },
+        {
+          "id": "replace-cycle-3",
+          "steps": [
+            "continue",
+            "continue",
+            "replace-recycle"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000,
+              7500
+            ]
+          }
+        },
+        {
+          "id": "no-maintenance",
+          "steps": [
+            "continue",
+            "continue",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "rejected_condition",
+            "delivered_service_hours": 20000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000
+            ]
+          }
+        }
+      ],
+      "expected_frontier": [
+        "remanufacture-cycle-2",
+        "repair-cycle-2"
+      ]
+    },
+    {
+      "id": "evidence-and-gates",
+      "plans": [
+        {
+          "id": "unknown-evidence",
+          "steps": [
+            "continue",
+            "repair-unknown",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "blocked_unknown",
+            "delivered_service_hours": 10000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500
+            ]
+          }
+        },
+        {
+          "id": "partial-evidence",
+          "steps": [
+            "continue",
+            "repair-partial",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "blocked_incomplete_coverage",
+            "delivered_service_hours": 10000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500
+            ]
+          }
+        },
+        {
+          "id": "revoked-evidence",
+          "steps": [
+            "continue",
+            "repair-revoked",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "rejected_evidence",
+            "delivered_service_hours": 10000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500
+            ]
+          }
+        },
+        {
+          "id": "failed-inspection",
+          "steps": [
+            "continue",
+            "repair-inspection-fail",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "rejected_hard_gate",
+            "delivered_service_hours": 10000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500
+            ]
+          }
+        },
+        {
+          "id": "scope-mismatch",
+          "steps": [
+            "continue",
+            "repair-wrong-scope",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "out_of_scope",
+            "delivered_service_hours": 10000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500
+            ]
+          }
+        }
+      ],
+      "expected_frontier": []
+    },
+    {
+      "id": "repair-limit-and-fates",
+      "plans": [
+        {
+          "id": "repair-too-many-times",
+          "steps": [
+            "repair",
+            "continue",
+            "repair"
+          ],
+          "expected": {
+            "disposition": "rejected_repair_limit",
+            "delivered_service_hours": 20000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000
+            ]
+          }
+        },
+        {
+          "id": "bad-mass-fates",
+          "steps": [
+            "continue",
+            "continue",
+            "replace-bad-mass"
+          ],
+          "expected": {
+            "disposition": "rejected_mass_balance",
+            "delivered_service_hours": 20000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000
+            ]
+          }
+        },
+        {
+          "id": "short-plan",
+          "steps": [
+            "continue",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "invalid_plan",
+            "delivered_service_hours": 0,
+            "lineage_weighted_service_hours": 0,
+            "condition_after_cycle_bp": []
+          }
+        },
+        {
+          "id": "unknown-action",
+          "steps": [
+            "continue",
+            "no-such-action",
+            "continue"
+          ],
+          "expected": {
+            "disposition": "invalid_plan",
+            "delivered_service_hours": 10000,
+            "lineage_weighted_service_hours": 10000,
+            "condition_after_cycle_bp": [
+              7500
+            ]
+          }
+        }
+      ],
+      "expected_frontier": []
+    },
+    {
+      "id": "replacement-fates",
+      "plans": [
+        {
+          "id": "replace-recycle",
+          "steps": [
+            "continue",
+            "continue",
+            "replace-recycle"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000,
+              7500
+            ]
+          }
+        },
+        {
+          "id": "replace-energy-recovery",
+          "steps": [
+            "continue",
+            "continue",
+            "replace-energy-recovery"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000,
+              7500
+            ]
+          }
+        },
+        {
+          "id": "replace-mixed",
+          "steps": [
+            "continue",
+            "continue",
+            "replace-mixed"
+          ],
+          "expected": {
+            "disposition": "eligible",
+            "delivered_service_hours": 30000,
+            "lineage_weighted_service_hours": 20000,
+            "condition_after_cycle_bp": [
+              7500,
+              5000,
+              7500
+            ]
+          }
+        }
+      ],
+      "expected_frontier": [
+        "replace-energy-recovery",
+        "replace-mixed",
+        "replace-recycle"
+      ]
+    }
+  ]
+}
