@@ -65,6 +65,7 @@ jobs:
             .counts.evaluation_rules == 7 and
             ([.schedule_oracle_results[] | select(.case_id == "O-001-parallel-branches" and .minimum_makespan_ticks == 5 and .status == "feasible_reference_schedule")] | length) == 1 and
             ([.schedule_oracle_results[] | select(.case_id == "O-002-resource-alternative" and .minimum_makespan_ticks == 4 and .status == "feasible_reference_schedule")] | length) == 1 and
+            ([.schedule_oracle_results[] | select(.case_id == "O-002-resource-alternative") | .optimal_schedule[] | select(.task_id == "prepare-panel" and .alternative_id == "robot-a")] | length) == 1 and
             ([.schedule_oracle_results[] | select(.case_id == "O-003-horizon-infeasible" and .minimum_makespan_ticks == null and .status == "no_feasible_schedule_within_horizon")] | length) == 1 and
             ([.disturbance_cases[].status] | unique) == ["declared_not_simulated"] and
             ([.disturbance_cases[].case_id] | sort) == [
