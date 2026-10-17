@@ -7,6 +7,7 @@ on:
       - "fixtures/personal_vehicle/**"
       - "schemas/transport/**"
       - "tools/personal-vehicle-corpus-audit/**"
+      - "tools/repair-task-graph-audit/**"
       - ".github/workflows/personal-vehicle-corpus-audit.yml"
   push:
     branches: ["main"]
@@ -14,6 +15,7 @@ on:
       - "fixtures/personal_vehicle/**"
       - "schemas/transport/**"
       - "tools/personal-vehicle-corpus-audit/**"
+      - "tools/repair-task-graph-audit/**"
       - ".github/workflows/personal-vehicle-corpus-audit.yml"
   workflow_dispatch:
 
@@ -40,3 +42,10 @@ jobs:
         run: cargo test --manifest-path tools/personal-vehicle-corpus-audit/Cargo.toml --all-targets
       - name: Audit checked-in corpus with report digest
         run: cargo run --manifest-path tools/personal-vehicle-corpus-audit/Cargo.toml -- --corpus fixtures/personal_vehicle/scenario_corpus_v0_1.json
+
+      - name: Check repairability graph verifier formatting
+        run: cargo fmt --manifest-path tools/repair-task-graph-audit/Cargo.toml -- --check
+      - name: Validate repairability graph schema and semantic mutation tests
+        run: cargo test --manifest-path tools/repair-task-graph-audit/Cargo.toml --all-targets
+      - name: Audit frozen repairability graph fixtures
+        run: cargo run --manifest-path tools/repair-task-graph-audit/Cargo.toml
