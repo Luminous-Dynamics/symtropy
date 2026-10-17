@@ -458,11 +458,12 @@ pub fn stable_recovery_tick(
     let mut available_since = initially_available.then_some(0_u32);
     for event in &ordered_events {
         if let Some(start_tick) = available_since {
-            let candidate_tick = start_tick.saturating_add(stability_window);
-            // If the window elapsed strictly before the next event, it is stable.
-            // A loss exactly at candidate_tick is processed first and resets it.
-            if candidate_tick < event.tick {
-                return Ok(Some(candidate_tick));
+            if let Some(candidate_tick) = start_tick.checked_add(stability_window) {
+                // If the window elapsed strictly before the next event, it is stable.
+                // A loss exactly at candidate_tick is processed first and resets it.
+                if candidate_tick < event.tick {
+                    return Ok(Some(candidate_tick));
+                }
             }
         }
 
@@ -479,9 +480,10 @@ pub fn stable_recovery_tick(
     }
 
     if let Some(start_tick) = available_since {
-        let candidate_tick = start_tick.saturating_add(stability_window);
-        if candidate_tick <= horizon {
-            return Ok(Some(candidate_tick));
+        if let Some(candidate_tick) = start_tick.checked_add(stability_window) {
+            if candidate_tick <= horizon {
+                return Ok(Some(candidate_tick));
+            }
         }
     }
 
@@ -622,6 +624,15 @@ mod tests {
         assert_eq!(
             stable_recovery_tick(&[], false, 0, 10),
             Err(OracleError::ZeroStabilityWindow)
+        );
+    }
+
+    #[test]
+    fn stability_window_overflow_is_not_reported_as_recovery() {
+        let timeline = [event("restore-near-max", u32::MAX, 1, ServiceEventKind::Restored)];
+        assert_eq!(
+            stable_recovery_tick(&timeline, false, 1, u32::MAX),
+            Ok(None)
         );
     }
 
