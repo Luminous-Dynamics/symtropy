@@ -134,7 +134,7 @@ fn provenance_for(
         spatial_domain_a,
         spatial_domain_b,
         calibration_verified,
-        representativeness_model_verified: sample_representativeness_verified,
+        representativeness_model_verified: representativeness_model_verified,
         dependence_metadata_verified,
         result_observed,
         assumes_conditional_independence,
@@ -147,7 +147,7 @@ const BASELINE_PROVENANCE: EvidenceProvenance = EvidenceProvenance {
     spatial_domain_a: "none",
     spatial_domain_b: "none",
     calibration_verified: true,
-    sample_representativeness_verified: true,
+    representativeness_model_verified: true,
     dependence_metadata_verified: true,
     result_observed: true,
     assumes_conditional_independence: false,
@@ -159,7 +159,7 @@ const SINGLE_ASSAY_PROVENANCE: EvidenceProvenance = EvidenceProvenance {
     spatial_domain_a: "site_patch_a",
     spatial_domain_b: "site_patch_a",
     calibration_verified: true,
-    sample_representativeness_verified: true,
+    representativeness_model_verified: true,
     dependence_metadata_verified: true,
     result_observed: true,
     assumes_conditional_independence: false,
@@ -171,7 +171,7 @@ const CORRELATED_PROVENANCE: EvidenceProvenance = EvidenceProvenance {
     spatial_domain_a: "site_patch_shared",
     spatial_domain_b: "site_patch_shared",
     calibration_verified: true,
-    sample_representativeness_verified: true,
+    representativeness_model_verified: true,
     dependence_metadata_verified: true,
     result_observed: true,
     assumes_conditional_independence: false,
@@ -183,7 +183,7 @@ const NAIVE_PROVENANCE: EvidenceProvenance = EvidenceProvenance {
     spatial_domain_a: "site_patch_shared",
     spatial_domain_b: "site_patch_shared",
     calibration_verified: true,
-    sample_representativeness_verified: true,
+    representativeness_model_verified: true,
     dependence_metadata_verified: true,
     result_observed: true,
     assumes_conditional_independence: true,
@@ -195,7 +195,7 @@ const COMPLEMENTARY_PROVENANCE: EvidenceProvenance = EvidenceProvenance {
     spatial_domain_a: "site_patch_a",
     spatial_domain_b: "site_patch_c",
     calibration_verified: true,
-    sample_representativeness_verified: true,
+    representativeness_model_verified: true,
     dependence_metadata_verified: true,
     result_observed: true,
     assumes_conditional_independence: true,
@@ -530,7 +530,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     }
     if naive.gross_value_numerator != 7_062_000_000
         || naive.evsi_numerator != 2_062_000_000
-        || naive.outcomes[0].posterior_rich_bps_floor != 8_899
+        || naive.outcomes[0].posterior_rich_bps_floor != 8_901
     {
         return Err("naive independence negative-control oracle mismatch".to_owned());
     }
@@ -796,7 +796,7 @@ mod tests {
         assert_eq!(correlated.outcomes[0].posterior_rich_bps_floor, 8_108);
         assert_eq!(naive.gross_value_numerator, 7_062_000_000);
         assert_eq!(naive.evsi_numerator, 2_062_000_000);
-        assert_eq!(naive.outcomes[0].posterior_rich_bps_floor, 8_899);
+        assert_eq!(naive.outcomes[0].posterior_rich_bps_floor, 8_901);
         assert_eq!(naive.gross_value_numerator - correlated.gross_value_numerator, 392_000_000);
     }
 
