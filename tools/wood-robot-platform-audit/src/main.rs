@@ -48,6 +48,7 @@ struct Scenario {
 struct Summary {
     scenario_count: usize,
     aerial_scenario_count: usize,
+    salvage_scenario_count: usize,
     decisions: BTreeMap<String, usize>,
 }
 
@@ -61,6 +62,7 @@ struct Receipt {
     corpus_sha256: String,
     scenario_count: usize,
     aerial_scenario_count: usize,
+    salvage_scenario_count: usize,
     all_plan_only: bool,
     decision_counts: BTreeMap<String, usize>,
     checks: Vec<String>,
@@ -494,6 +496,9 @@ fn validate(corpus: &Corpus) -> Check<Summary> {
     if !corpus.units.contains_key("altitude") {
         errors.push("units must define altitude".to_owned());
     }
+    if !corpus.units.contains_key("cost") {
+        errors.push("units must define explicit synthetic cost units for extraction-mode comparisons".to_owned());
+    }
     if corpus.scenarios.len() != corpus.expected_scenario_count {
         errors.push(format!(
             "expected_scenario_count={} but found {} scenarios",
@@ -578,6 +583,7 @@ fn validate(corpus: &Corpus) -> Check<Summary> {
         Ok(Summary {
             scenario_count: corpus.scenarios.len(),
             aerial_scenario_count: aerial_count,
+            salvage_scenario_count: salvage_count,
             decisions: decision_counts,
         })
     } else {
@@ -640,6 +646,10 @@ fn run() -> Result<(Receipt, bool), String> {
     let aerial_count = corpus.scenarios.iter()
         .filter(|s| s.platform_profile == "P0_AERIAL_FOREST_SCOUT")
         .count();
+    let salvage_count = corpus.scenarios.iter()
+        .filter(|s| s.platform_profile == "P6_REUSE_REMANUFACTURE_STATION"
+            && ["screen_deadwood_for_recovery", "compare_extraction_modes", "screen_declining_live_tree"].contains(&s.task_type.as_str()))
+        .count();
 
     let checked = validate(&corpus);
     let (passed, checks, errors) = match checked {
@@ -666,6 +676,7 @@ fn run() -> Result<(Receipt, bool), String> {
         corpus_sha256,
         scenario_count: actual_count,
         aerial_scenario_count: aerial_count,
+        salvage_scenario_count: salvage_count,
         all_plan_only,
         decision_counts,
         checks,
@@ -709,6 +720,7 @@ mod tests {
         let summary = validate(&corpus).expect("frozen corpus should pass contract checks");
         assert_eq!(summary.scenario_count, EXPECTED_SCENARIOS);
         assert_eq!(summary.aerial_scenario_count, EXPECTED_AERIAL_SCENARIOS);
+        assert_eq!(summary.salvage_scenario_count, EXPECTED_SALVAGE_SCENARIOS);
         assert_eq!(summary.scenario_count, EXPECTED_SCENARIOS);
     }
 
@@ -785,6 +797,16 @@ mod tests {
             .find(|s| s.scenario_id == "SYNTHETIC_WOODROBOT_027_AIRLIFT_DOMINATED_BY_CABLE")
             .expect("cost-dominated helicopter fixture exists");
         scenario.observations.insert("mode_selected".to_owned(), json!("helicopter_candidate_for_operator_review"));
+        assert!(validate(&corpus).is_err());
+    }
+
+    #[test]
+    fn suspected_pest_blocks_moving_recently_dead_timber() {
+        let mut corpus = frozen_corpus();
+        let scenario = corpus.scenarios.iter_mut()
+            .find(|s| s.scenario_id == "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY")
+            .expect("salvage positive fixture exists");
+        scenario.observations.insert("pest_quarantine_state".to_owned(), json!("suspected_pest_or_pathogen"));
         assert!(validate(&corpus).is_err());
     }
 
