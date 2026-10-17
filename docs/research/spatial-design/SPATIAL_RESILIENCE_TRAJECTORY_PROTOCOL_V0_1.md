@@ -7,6 +7,8 @@
 **Schema:** `SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json`
 **Timeline oracle corpus:** `SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json` (8 deterministic event sequences).
 **Timeline schema:** `SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.schema.json`.
+**Paired outcome corpus:** `SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.json` (5 known-answer comparisons).
+**Paired outcome schema:** `SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.schema.json`.
 
 ## 1. Research question
 
@@ -93,6 +95,23 @@ The future Rust-first verifier should:
 - emit a structured, deterministic report with stable failure codes and exact source digests.
 
 Mutations must be tested one at a time and in important combinations. The system under test must not author its own expected answers, oracle, held-out set, or validation tolerances.
+
+## 6a. Paired-outcome oracle: hard floors before Pareto ranking
+
+The standalone verifier also executes five known-answer paired comparisons from the separate paired-outcome corpus. Each candidate must bind to the same exogenous trace ID **and revision** as the comparison. The candidate must report exactly one outcome for every declared resident/task service floor. No per-household aggregation is used to hide a requirement-specific service failure.
+
+Admission order is fixed for v0.1:
+
+1. Reject the entire paired comparison when candidate trace identities/revisions do not match the declared shared trace.
+2. Block candidates whose evidence state is missing, stale, contradictory or out-of-domain.
+3. Exclude candidates with a declared hard-constraint failure.
+4. Exclude candidates that fail any individual resident/task service floor.
+5. Exclude candidates that exceed the declared uncertainty-width tolerance.
+6. Compute the Pareto frontier only among the remaining candidates: maximize each declared service's available hours and minimize synthetic energy units, repair ticks and cost units.
+
+Dominance requires being no worse in every declared dimension and strictly better in at least one. Two distinct candidates with exactly equal metric vectors remain tied alternatives; the verifier does not invent a tie-breaking scalar. These integer values are intentionally synthetic, so passing this oracle qualifies evaluator semantics only.
+
+The corpus includes negative controls for an energy-efficient option that fails an individual resident service floor, a candidate with attractive expected values but uncertainty beyond tolerance, a trace/revision mismatch, stale evidence, a non-passing hard constraint, a dominated candidate, and an exact Pareto tie.
 
 ## 7. Evaluation gates
 
