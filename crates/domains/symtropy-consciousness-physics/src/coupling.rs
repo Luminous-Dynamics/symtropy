@@ -1091,7 +1091,7 @@ mod tests {
         {
             let entity = field.entities.get_mut(&h).unwrap();
             // Leave only 0.1 units of headroom so the source request is capped.
-            entity.energy.consume(99.9);
+            entity.energy.consume(0.1);
         }
         let available_before = field.entities.get(&h).unwrap().energy.available;
 
