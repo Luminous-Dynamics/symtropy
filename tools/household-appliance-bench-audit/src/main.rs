@@ -9,6 +9,7 @@ use std::process::ExitCode;
 
 mod portfolio;
 mod sourcing;
+mod decision;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
 const EXPECTED_CASE_IDS: [&str; 30] = [
@@ -489,6 +490,11 @@ fn run() -> Result<(), String> {
     if sourcing_schema_path.is_some() != sourcing_snapshot_path.is_some() {
         return Err("--sourcing-schema and --sourcing-snapshot must be supplied together".to_owned());
     }
+    let decision_schema_path = read_arg_path("--decision-schema");
+    let decision_profile_path = read_arg_path("--decision-profile");
+    if decision_schema_path.is_some() != decision_profile_path.is_some() {
+        return Err("--decision-schema and --decision-profile must be supplied together".to_owned());
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -567,6 +573,38 @@ fn run() -> Result<(), String> {
             "physical_performance_established": false,
             "product_safety_assessed": false,
             "purchase_authorized": false
+        });
+    }
+
+    if let (Some(decision_schema_path), Some(decision_profile_path)) =
+        (decision_schema_path, decision_profile_path)
+    {
+        let decision_schema_raw = fs::read_to_string(&decision_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", decision_schema_path.display()))?;
+        let decision_profile_raw = fs::read_to_string(&decision_profile_path)
+            .map_err(|error| format!("cannot read {}: {error}", decision_profile_path.display()))?;
+        let (decision_summary, assessment) = decision::audit_decision_texts(
+            &decision_schema_raw,
+            &decision_profile_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["repairability_architecture_decision"] = json!({
+            "status": "PASS_DECISION_PROFILE_CONTRACT_ONLY",
+            "candidate_count": decision_summary.candidate_count,
+            "hard_gate_count": decision_summary.hard_gate_count,
+            "criterion_count": decision_summary.criterion_count,
+            "measurement_observation_count": decision_summary.observation_count,
+            "eligible_candidate_count": decision_summary.eligible_candidate_count,
+            "robust_pareto_frontier_count": decision_summary.pareto_frontier_count,
+            "schema_sha256": decision_summary.schema_sha256,
+            "decision_sha256": decision_summary.decision_sha256,
+            "schema_path": decision_schema_path.display().to_string(),
+            "decision_profile_path": decision_profile_path.display().to_string(),
+            "assessment": assessment,
+            "physical_measurement_rankings_established": false,
+            "product_winner_declared": false,
+            "product_safety_assessed": false
         });
     }
 
