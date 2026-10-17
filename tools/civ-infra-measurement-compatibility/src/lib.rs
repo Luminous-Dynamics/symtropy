@@ -239,7 +239,7 @@ pub fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compat
     if input.outcomes.len() > MAX_OUTCOMES {
         return Err(format!("outcome count exceeds limit {MAX_OUTCOMES}"));
     }
-    let potential_edges = validate_work_bound(input.states.len(), input.outcomes.len())?;
+    validate_work_bound(input.states.len(), input.outcomes.len())?;
 
     let domain = canonical_interval(model.input_unit, model.input_domain)?;
     let mut bin_ids = BTreeSet::new();
@@ -505,6 +505,19 @@ fn build_observed_update(
         }
     }
     compatible_states.sort();
+
+    if compatible_states.is_empty() {
+        return Ok(ObservedUpdate {
+            status: ObservedStatus::OutOfModelSupport,
+            observed_value: Some(observation),
+            matching_outcome_ids: matching_bins.iter().map(|bin| bin.outcome_id.clone()).collect(),
+            prior_state_count,
+            compatible_state_ids: all_states,
+            decision_signature_class_count: distinct_signature_count(states, None),
+            decision_discordant_pairs_remaining: discordant_pairs(&signature_counts(states, None)),
+            update_note: "observed value matches an outcome bin but no declared state output envelope supports it; preserve the entire prior state set and investigate model/support mismatch".to_owned(),
+        });
+    }
 
     Ok(ObservedUpdate {
         status: ObservedStatus::SupportedByModel,
@@ -841,6 +854,16 @@ mod tests {
         let report = evaluate(&input, &digest(&input)).expect("supported observation");
         assert_eq!(report.observed_update.status, ObservedStatus::SupportedByModel);
         assert_eq!(report.observed_update.compatible_state_ids, vec!["left", "right"]);
+    }
+
+    #[test]
+    fn observation_inside_a_bin_but_outside_all_state_predictions_preserves_prior() {
+        let mut input = base_input();
+        input.observed_value = Some(Quantity { unit: Unit::Meter, value_ticks: 1_900_000 });
+        let report = evaluate(&input, &digest(&input)).expect("unsupported state prediction is represented");
+        assert_eq!(report.observed_update.status, ObservedStatus::OutOfModelSupport);
+        assert_eq!(report.observed_update.compatible_state_ids.len(), input.states.len());
+        assert!(report.observed_update.update_note.contains("no declared state output envelope supports it"));
     }
 
     #[test]
