@@ -475,7 +475,7 @@ mod tests {
         let frame = build_policy_information_frame(&schedule(vec![conflicting, missing]), 3)
             .unwrap();
         assert!(matches!(
-            frame.payload.observations[0].disposition,
+            &frame.payload.observations[0].disposition,
             ObservationDisposition::Missing { .. }
         ));
         assert!(matches!(
