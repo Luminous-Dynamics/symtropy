@@ -53,11 +53,13 @@ jobs:
             .verification_status == "SYNTHETIC_PORTFOLIO_PLAN_ONLY" and
             .claim_ceiling == "synthetic_multi_target_revalidation_not_real_world_authority" and
             .planning_status == "OPTIMAL_EXACT" and .frontier_complete == true and
+            .max_expanded_states == 10000 and .expanded_states <= .max_expanded_states and
             .artifact_count == 7 and .task_count == 5 and
             .known_feasible_plan_count == 2 and .pareto_plan_count == 2 and
             ([.pareto_plans[].cost_units] == [14,17]) and
             ([.pareto_plans[].duration_units] == [9,6]) and
             ([.pareto_plans[].task_count] == [4,4]) and
             ([.pareto_plans[].execution_status] == ["PROPOSED_NOT_EXECUTED","PROPOSED_NOT_EXECUTED"]) and
+            ([.pareto_plans[].target_artifact_ids_to_restore | length] == [2,2]) and
             (.blocking_reasons | length) == 0
           ' "$report"
