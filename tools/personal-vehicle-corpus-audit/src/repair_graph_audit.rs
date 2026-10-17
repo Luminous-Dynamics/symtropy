@@ -53,7 +53,8 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
         indegree.insert(id.clone(), 0);
     }
     for (index, edge) in edges.iter().enumerate() {
-        let (Some(from), Some(to)) = (string_at(edge, "from_node"), string_at(edge, "to_node")) else {
+        let (Some(from), Some(to)) = (string_at(edge, "from_node"), string_at(edge, "to_node"))
+        else {
             errors.push(format!("edge {index} has missing endpoint"));
             continue;
         };
@@ -75,7 +76,10 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
         if from == to {
             errors.push(format!("self-cycle at {from}"));
         }
-        if adjacency.get_mut(from).is_some_and(|targets| targets.insert(to.to_owned())) {
+        if adjacency
+            .get_mut(from)
+            .is_some_and(|targets| targets.insert(to.to_owned()))
+        {
             if let Some(degree) = indegree.get_mut(to) {
                 *degree += 1;
             }
@@ -84,7 +88,9 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
 
     let mut ready = VecDeque::<String>::new();
     for (id, degree) in &indegree {
-        if *degree == 0 { ready.push_back(id.clone()); }
+        if *degree == 0 {
+            ready.push_back(id.clone());
+        }
     }
     let mut visited = 0;
     while let Some(id) = ready.pop_front() {
@@ -93,7 +99,9 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
             for target in targets {
                 if let Some(degree) = indegree.get_mut(target) {
                     *degree = degree.saturating_sub(1);
-                    if *degree == 0 { ready.push_back(target.clone()); }
+                    if *degree == 0 {
+                        ready.push_back(target.clone());
+                    }
                 }
             }
         }
@@ -116,21 +124,32 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
                 let mut seen = BTreeSet::new();
                 let mut reaches_postcheck = false;
                 while let Some(current) = queue.pop_front() {
-                    if !seen.insert(current.clone()) { continue; }
-                    if current == id { reaches_postcheck = true; break; }
+                    if !seen.insert(current.clone()) {
+                        continue;
+                    }
+                    if current == id {
+                        reaches_postcheck = true;
+                        break;
+                    }
                     if let Some(targets) = adjacency.get(&current) {
-                        for target in targets { queue.push_back(target.clone()); }
+                        for target in targets {
+                            queue.push_back(target.clone());
+                        }
                     }
                 }
                 if !reaches_postcheck {
-                    errors.push(format!("task {start} has no path to post-repair verification {id}"));
+                    errors.push(format!(
+                        "task {start} has no path to post-repair verification {id}"
+                    ));
                 }
             }
         }
-        None => errors.push("post_repair_verification_task_id must reference a declared node".to_owned()),
+        None => errors
+            .push("post_repair_verification_task_id must reference a declared node".to_owned()),
     }
 
-    let isolation_ids: Vec<String> = by_id.iter()
+    let isolation_ids: Vec<String> = by_id
+        .iter()
         .filter(|(_, node)| string_at(node, "step_kind") == Some("safe_isolation"))
         .map(|(id, _)| id.clone())
         .collect();
@@ -139,48 +158,76 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
     }
     for id in &isolation_ids {
         if let Some(node) = by_id.get(id) {
-            let has_hard_stop = node.get("safety_preconditions").and_then(Value::as_array).is_some_and(|conditions| {
-                conditions.iter().any(|condition| {
-                    string_at(condition, "criticality") == Some("hard_stop")
-                        && condition.get("must_hold_before_task").and_then(Value::as_bool) == Some(true)
-                })
-            });
-            if !has_hard_stop { errors.push(format!("safe-isolation step {id} lacks a mandatory hard-stop precondition")); }
+            let has_hard_stop = node
+                .get("safety_preconditions")
+                .and_then(Value::as_array)
+                .is_some_and(|conditions| {
+                    conditions.iter().any(|condition| {
+                        string_at(condition, "criticality") == Some("hard_stop")
+                            && condition
+                                .get("must_hold_before_task")
+                                .and_then(Value::as_bool)
+                                == Some(true)
+                    })
+                });
+            if !has_hard_stop {
+                errors.push(format!(
+                    "safe-isolation step {id} lacks a mandatory hard-stop precondition"
+                ));
+            }
         }
     }
     let mut downstream_of_isolation = BTreeSet::<String>::new();
     let mut queue: VecDeque<String> = isolation_ids.iter().cloned().collect();
     while let Some(id) = queue.pop_front() {
-        if !downstream_of_isolation.insert(id.clone()) { continue; }
+        if !downstream_of_isolation.insert(id.clone()) {
+            continue;
+        }
         if let Some(targets) = adjacency.get(&id) {
-            for target in targets { queue.push_back(target.clone()); }
+            for target in targets {
+                queue.push_back(target.clone());
+            }
         }
     }
     for (id, node) in &by_id {
         let step_kind = string_at(node, "step_kind").unwrap_or("");
-        let explicitly_requires = node.get("requires_isolation").and_then(Value::as_bool) == Some(true);
-        let implicitly_requires = ["access", "removal", "repair_replace", "reassembly"].contains(&step_kind);
+        let explicitly_requires =
+            node.get("requires_isolation").and_then(Value::as_bool) == Some(true);
+        let implicitly_requires =
+            ["access", "removal", "repair_replace", "reassembly"].contains(&step_kind);
         let safety_preconditions = node.get("safety_preconditions").and_then(Value::as_array);
         if safety_preconditions.is_some_and(|conditions| {
             conditions.iter().any(|condition| {
                 string_at(condition, "criticality") == Some("hard_stop")
-                    && condition.get("must_hold_before_task").and_then(Value::as_bool) != Some(true)
+                    && condition
+                        .get("must_hold_before_task")
+                        .and_then(Value::as_bool)
+                        != Some(true)
             })
         }) {
-            errors.push(format!("{id} declares a hard-stop precondition that is not required before the task"));
+            errors.push(format!(
+                "{id} declares a hard-stop precondition that is not required before the task"
+            ));
         }
         if explicitly_requires || implicitly_requires {
             if !downstream_of_isolation.contains(id) {
-                errors.push(format!("{id} requires isolation but is not downstream of a safe-isolation step"));
+                errors.push(format!(
+                    "{id} requires isolation but is not downstream of a safe-isolation step"
+                ));
             }
             let has_hard_stop = safety_preconditions.is_some_and(|conditions| {
                 conditions.iter().any(|condition| {
                     string_at(condition, "criticality") == Some("hard_stop")
-                        && condition.get("must_hold_before_task").and_then(Value::as_bool) == Some(true)
+                        && condition
+                            .get("must_hold_before_task")
+                            .and_then(Value::as_bool)
+                            == Some(true)
                 })
             });
             if !has_hard_stop {
-                errors.push(format!("{id} requires isolation but lacks a mandatory hard-stop precondition"));
+                errors.push(format!(
+                    "{id} requires isolation but lacks a mandatory hard-stop precondition"
+                ));
             }
         }
     }
@@ -188,24 +235,41 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
 }
 
 pub(crate) fn validate_fixture_corpus() -> Result<usize, Vec<String>> {
-    let schema: Value = serde_json::from_str(include_str!("../../../schemas/transport/repair_task_graph_v0_1.schema.json"))
-        .map_err(|error| vec![format!("repair graph schema JSON parse error: {error}")])?;
-    let document: Value = serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json"))
-        .map_err(|error| vec![format!("repair graph fixtures JSON parse error: {error}")])?;
+    let schema: Value = serde_json::from_str(include_str!(
+        "../../../schemas/transport/repair_task_graph_v0_1.schema.json"
+    ))
+    .map_err(|error| vec![format!("repair graph schema JSON parse error: {error}")])?;
+    let document: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json"
+    ))
+    .map_err(|error| vec![format!("repair graph fixtures JSON parse error: {error}")])?;
     if !draft202012::meta::is_valid(&schema) {
-        return Err(vec!["repair graph schema failed JSON Schema Draft 2020-12 meta-validation".to_owned()]);
+        return Err(vec![
+            "repair graph schema failed JSON Schema Draft 2020-12 meta-validation".to_owned(),
+        ]);
     }
-    let validator = draft202012::options().should_validate_formats(true).build(&schema)
+    let validator = draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
         .map_err(|error| vec![format!("repair graph schema compilation failed: {error}")])?;
     if string_at(&document, "corpus_version") != Some("repair-task-graph-fixtures/0.1")
-        || string_at(&document, "status") != Some("synthetic-contract-fixtures-not-repair-instructions")
+        || string_at(&document, "status")
+            != Some("synthetic-contract-fixtures-not-repair-instructions")
     {
-        return Err(vec!["repair graph fixture corpus identity/status mismatch".to_owned()]);
+        return Err(vec![
+            "repair graph fixture corpus identity/status mismatch".to_owned(),
+        ]);
     }
-    let fixtures = document.get("fixtures").and_then(Value::as_array)
+    let fixtures = document
+        .get("fixtures")
+        .and_then(Value::as_array)
         .ok_or_else(|| vec!["repair graph fixtures must be an array".to_owned()])?;
     if fixtures.len() != REQUIRED_IDS.len() {
-        return Err(vec![format!("expected {} repair fixtures, found {}", REQUIRED_IDS.len(), fixtures.len())]);
+        return Err(vec![format!(
+            "expected {} repair fixtures, found {}",
+            REQUIRED_IDS.len(),
+            fixtures.len()
+        )]);
     }
     let mut errors = Vec::new();
     let mut seen = BTreeSet::new();
@@ -215,41 +279,72 @@ pub(crate) fn validate_fixture_corpus() -> Result<usize, Vec<String>> {
             errors.push(format!("{at}: missing ID"));
             continue;
         };
-        if !seen.insert(id.to_owned()) { errors.push(format!("{at}: duplicate ID {id}")); }
-        if !REQUIRED_IDS.contains(&id) { errors.push(format!("{at}: unregistered ID {id}")); }
+        if !seen.insert(id.to_owned()) {
+            errors.push(format!("{at}: duplicate ID {id}"));
+        }
+        if !REQUIRED_IDS.contains(&id) {
+            errors.push(format!("{at}: unregistered ID {id}"));
+        }
         let expectation = string_at(fixture, "expectation").unwrap_or("");
         let Some(graph) = fixture.get("input") else {
             errors.push(format!("{at}: missing graph input"));
             continue;
         };
-        let schema_errors: Vec<String> = validator.iter_errors(graph).map(|e| e.to_string()).collect();
+        let schema_errors: Vec<String> = validator
+            .iter_errors(graph)
+            .map(|e| e.to_string())
+            .collect();
         let semantic_errors = graph_semantic_errors(graph);
         match expectation {
             "accept" => {
-                if !schema_errors.is_empty() { errors.push(format!("{id}: valid graph failed schema")); }
-                if !semantic_errors.is_empty() { errors.push(format!("{id}: valid graph failed semantic checks: {}", semantic_errors.join("; "))); }
+                if !schema_errors.is_empty() {
+                    errors.push(format!("{id}: valid graph failed schema"));
+                }
+                if !semantic_errors.is_empty() {
+                    errors.push(format!(
+                        "{id}: valid graph failed semantic checks: {}",
+                        semantic_errors.join("; ")
+                    ));
+                }
             }
             "reject_schema" => {
-                if schema_errors.is_empty() { errors.push(format!("{id}: invalid graph passed schema")); }
+                if schema_errors.is_empty() {
+                    errors.push(format!("{id}: invalid graph passed schema"));
+                }
             }
             "reject_semantics" => {
-                if !schema_errors.is_empty() { errors.push(format!("{id}: semantic negative control also fails schema")); }
-                else if semantic_errors.is_empty() { errors.push(format!("{id}: semantic negative control passed")); }
+                if !schema_errors.is_empty() {
+                    errors.push(format!("{id}: semantic negative control also fails schema"));
+                } else if semantic_errors.is_empty() {
+                    errors.push(format!("{id}: semantic negative control passed"));
+                }
             }
             _ => errors.push(format!("{id}: unknown expectation {expectation}")),
         }
     }
     for id in REQUIRED_IDS {
-        if !seen.contains(id) { errors.push(format!("missing repair graph fixture {id}")); }
+        if !seen.contains(id) {
+            errors.push(format!("missing repair graph fixture {id}"));
+        }
     }
     let claim_ceiling = document.get("claim_ceiling").and_then(Value::as_array);
     if !claim_ceiling.is_some_and(|items| {
-        items.iter().filter_map(Value::as_str).any(|s| s.contains("workshop measurements"))
-            && items.iter().filter_map(Value::as_str).any(|s| s.contains("approved or safe procedure for a real vehicle"))
+        items
+            .iter()
+            .filter_map(Value::as_str)
+            .any(|s| s.contains("workshop measurements"))
+            && items
+                .iter()
+                .filter_map(Value::as_str)
+                .any(|s| s.contains("approved or safe procedure for a real vehicle"))
     }) {
         errors.push("repair graph fixture claim ceiling has been weakened".to_owned());
     }
-    if errors.is_empty() { Ok(fixtures.len()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(fixtures.len())
+    } else {
+        Err(errors)
+    }
 }
 
 #[cfg(test)]
@@ -257,8 +352,10 @@ mod tests {
     use super::*;
 
     fn fixtures() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json"))
-            .expect("repair graph fixtures JSON")
+        serde_json::from_str(include_str!(
+            "../../../fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json"
+        ))
+        .expect("repair graph fixtures JSON")
     }
 
     #[test]
@@ -269,11 +366,21 @@ mod tests {
     #[test]
     fn cycle_negative_control_cannot_be_relabelled_as_valid() {
         let mut document = fixtures();
-        let item = document["fixtures"].as_array_mut().expect("fixture array")
-            .iter_mut().find(|item| item["id"] == "RTG03_CYCLIC_GRAPH").expect("cycle fixture");
+        let item = document["fixtures"]
+            .as_array_mut()
+            .expect("fixture array")
+            .iter_mut()
+            .find(|item| item["id"] == "RTG03_CYCLIC_GRAPH")
+            .expect("cycle fixture");
         item["expectation"] = Value::String("accept".to_owned());
-        let schema: Value = serde_json::from_str(include_str!("../../../schemas/transport/repair_task_graph_v0_1.schema.json")).expect("schema");
-        let validator = draft202012::options().should_validate_formats(true).build(&schema).expect("schema validator");
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../schemas/transport/repair_task_graph_v0_1.schema.json"
+        ))
+        .expect("schema");
+        let validator = draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("schema validator");
         let graph = &item["input"];
         assert!(validator.is_valid(graph));
         assert!(!graph_semantic_errors(graph).is_empty());
@@ -282,21 +389,41 @@ mod tests {
     #[test]
     fn missing_safety_isolation_is_a_semantic_failure() {
         let document = fixtures();
-        let graph = document["fixtures"].as_array().expect("fixtures").iter()
-            .find(|item| item["id"] == "RTG07_MISSING_SAFETY_ISOLATION").expect("safety fixture");
-        let schema: Value = serde_json::from_str(include_str!("../../../schemas/transport/repair_task_graph_v0_1.schema.json")).expect("schema");
-        let validator = draft202012::options().should_validate_formats(true).build(&schema).expect("schema validator");
+        let graph = document["fixtures"]
+            .as_array()
+            .expect("fixtures")
+            .iter()
+            .find(|item| item["id"] == "RTG07_MISSING_SAFETY_ISOLATION")
+            .expect("safety fixture");
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../schemas/transport/repair_task_graph_v0_1.schema.json"
+        ))
+        .expect("schema");
+        let validator = draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("schema validator");
         assert!(validator.is_valid(&graph["input"]));
         assert!(!graph_semantic_errors(&graph["input"]).is_empty());
     }
 
     #[test]
     fn one_timing_observation_cannot_be_called_measured() {
-        let document=fixtures();
-        let graph=document["fixtures"].as_array().expect("fixtures").iter()
-            .find(|item| item["id"]=="RTG10_SINGLE_SAMPLE_PROMOTED_TO_OBSERVED").expect("sample fixture");
-        let schema: Value=serde_json::from_str(include_str!("../../../schemas/transport/repair_task_graph_v0_1.schema.json")).expect("schema");
-        let validator=draft202012::options().should_validate_formats(true).build(&schema).expect("schema validator");
+        let document = fixtures();
+        let graph = document["fixtures"]
+            .as_array()
+            .expect("fixtures")
+            .iter()
+            .find(|item| item["id"] == "RTG10_SINGLE_SAMPLE_PROMOTED_TO_OBSERVED")
+            .expect("sample fixture");
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../schemas/transport/repair_task_graph_v0_1.schema.json"
+        ))
+        .expect("schema");
+        let validator = draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("schema validator");
         assert!(!validator.is_valid(&graph["input"]));
     }
 }
