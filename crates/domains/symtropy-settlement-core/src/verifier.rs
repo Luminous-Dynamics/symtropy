@@ -400,6 +400,15 @@ pub fn verify_timeline_report(
             transition_by_supply.insert(transition.supply_id.clone(), transition);
         }
 
+        if declared_inflows
+            .keys()
+            .any(|supply_id| !transition_supply_ids.contains(supply_id))
+        {
+            return Err(SettlementError(format!(
+                "event inflow references a supply missing from tick {} receipt",
+                tick.tick
+            )));
+        }
         if index == 0 {
             if stable_supply_contracts.len() != tick.resource_transitions.len() {
                 return Err(SettlementError("invalid initial supply transition set".into()));
