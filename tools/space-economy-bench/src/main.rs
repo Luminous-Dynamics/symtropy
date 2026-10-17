@@ -235,10 +235,13 @@ fn market(v: &Value) -> Check<Value> {
     exact_keys(offer, &["offer_id", "created_tick", "expires_at_tick", "acceptance_tick"], &format!("{at}.offer"))?;
     let created = req_u64(offer, "created_tick", at)?;
     let expiry = req_u64(offer, "expires_at_tick", at)?;
-    let accept = req_u64(offer, "acceptance_tick", at)?;
-    if expiry < created || accept <= expiry { return Err(format!("{at}: offer must expire before the tested acceptance")); }
+    let expired_acceptance = req_u64(offer, "acceptance_tick", at)?;
+    if expiry < created || expired_acceptance <= expiry {
+        return Err(format!("{at}: expired-offer negative control must accept after expiry"));
+    }
     let asset = field(v, "physical_asset", at)?;
     exact_keys(asset, &["asset_id", "quantity", "unit"], &format!("{at}.physical_asset"))?;
+    let asset_id = req_text(asset, "asset_id", at)?;
     if req_u64(asset, "quantity", at)? != 1 || req_text(asset, "unit", at)? != "asset" {
         return Err(format!("{at}: double-sale fixture must have exactly one physical asset"));
     }
@@ -246,24 +249,90 @@ fn market(v: &Value) -> Check<Value> {
     if sales.len() < 2 { return Err(format!("{at}: need competing sale attempts")); }
     let mut ids = BTreeSet::new();
     let mut keys = BTreeSet::new();
+    let mut ordered_sales: Vec<(u64, String, String, String)> = Vec::new();
     for sale in sales {
         exact_keys(sale, &["transaction_id", "buyer_id", "idempotency_key", "acceptance_tick"], &format!("{at}.sale_attempt"))?;
-        if !ids.insert(req_text(sale, "transaction_id", at)?) || !keys.insert(req_text(sale, "idempotency_key", at)?) {
+        let tx = req_text(sale, "transaction_id", at)?;
+        let buyer = req_text(sale, "buyer_id", at)?;
+        let key = req_text(sale, "idempotency_key", at)?;
+        let tick = req_u64(sale, "acceptance_tick", at)?;
+        if !ids.insert(tx.clone()) || !keys.insert(key.clone()) {
             return Err(format!("{at}: sale attempts must use distinct transaction and idempotency identifiers"));
         }
+        if tick < created {
+            return Err(format!("{at}: a sale attempt cannot precede offer creation"));
+        }
+        ordered_sales.push((tick, tx, buyer, key));
     }
+    ordered_sales.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+
     let replay = field(v, "replay", at)?;
     exact_keys(replay, &["transaction_id", "idempotency_key", "replay_count"], &format!("{at}.replay"))?;
     let replay_count = req_u64(replay, "replay_count", at)?;
     let replay_tx = req_text(replay, "transaction_id", at)?;
     let replay_key = req_text(replay, "idempotency_key", at)?;
-    if replay_count < 2 || !sales.iter().any(|s| req_text(s, "transaction_id", at).ok().as_deref() == Some(replay_tx.as_str()) && req_text(s, "idempotency_key", at).ok().as_deref() == Some(replay_key.as_str())) {
+    if replay_count < 2 || !ordered_sales.iter().any(|(_, tx, _, key)| tx == &replay_tx && key == &replay_key) {
         return Err(format!("{at}: replay must match a known sale and repeat at least once"));
     }
-    Ok(json!({"scenario_id": at, "status": "pass", "reason_codes": [], "metrics": {
-        "offer_expiry_tick": expiry, "tested_acceptance_tick": accept,
-        "physical_asset_quantity": 1, "competing_sale_attempts": sales.len(), "replay_count": replay_count
-    }}))
+
+    let mut sold_to: Option<String> = None;
+    let mut committed_tx: Option<String> = None;
+    let mut outcomes = Vec::new();
+    for (tick, tx, buyer, key) in &ordered_sales {
+        let status = if *tick > expiry {
+            "rejected_expired_offer"
+        } else if sold_to.is_some() {
+            "rejected_asset_already_sold"
+        } else {
+            sold_to = Some(buyer.clone());
+            committed_tx = Some(tx.clone());
+            "committed"
+        };
+        outcomes.push(json!({
+            "transaction_id": tx,
+            "buyer_id": buyer,
+            "idempotency_key": key,
+            "acceptance_tick": tick,
+            "status": status,
+            "reason_code": match status {
+                "committed" => "CUSTODY_TRANSITION_COMMITTED",
+                "rejected_expired_offer" => "OFFER_EXPIRED",
+                _ => "ASSET_ALREADY_SOLD"
+            }
+        }));
+    }
+    if committed_tx.as_deref() != Some(replay_tx.as_str()) {
+        return Err(format!("{at}: replay target must be the first committed transaction in this fixture"));
+    }
+    let settlement_count_before_replay = outcomes.iter().filter(|r| r["status"] == "committed").count();
+    if settlement_count_before_replay != 1 {
+        return Err(format!("{at}: single-unit fixture must commit exactly one custody transfer"));
+    }
+    let replay_outcome = json!({
+        "transaction_id": replay_tx,
+        "idempotency_key": replay_key,
+        "replay_count": replay_count,
+        "status": "idempotent_replay",
+        "additional_custody_transitions": 0,
+        "additional_settlements": 0
+    });
+    Ok(json!({
+        "scenario_id": at,
+        "status": "pass",
+        "reason_codes": [],
+        "metrics": {
+            "offer_expiry_tick": expiry,
+            "tested_expired_acceptance_tick": expired_acceptance,
+            "expired_offer_outcome": "rejected",
+            "asset_id": asset_id,
+            "initial_physical_asset_quantity": 1,
+            "committed_sale_count": settlement_count_before_replay,
+            "custody_transition_count": 1,
+            "settlement_count": 1,
+            "replay_outcome": replay_outcome,
+            "sale_outcomes": outcomes
+        }
+    }))
 }
 
 fn mass_balance(v: &Value) -> Check<Value> {
@@ -419,6 +488,12 @@ fn validate_annotations(v: &Value, at: &str) -> Check<()> {
 }
 
 fn validate(root: &Value, source_commit: &str, corpus_digest: &str) -> Check<Value> {
+    if !is_commit_sha(source_commit) {
+        return Err("source commit must be a 40-character lowercase Git SHA-1".to_owned());
+    }
+    if !is_sha256(corpus_digest) {
+        return Err("corpus digest must be a 64-character lowercase SHA-256".to_owned());
+    }
     exact_keys(root, &["suite_id", "suite_version", "manifest_kind", "created_date", "units", "claim_ceiling", "scenarios"], "root")?;
     if req_text(root, "suite_id", "root")? != "space-economy-reference"
         || req_text(root, "suite_version", "root")? != "0.1.0"
@@ -471,6 +546,10 @@ fn validate(root: &Value, source_commit: &str, corpus_digest: &str) -> Check<Val
     }))
 }
 
+fn is_sha256(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
 fn is_commit_sha(s: &str) -> bool {
     s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
@@ -518,6 +597,9 @@ mod tests {
         assert_eq!(receipt["scenario_count"], 6);
         assert_eq!(receipt["scenarios"][0]["metrics"]["earth_import_lifecycle_cost_scu"], 160);
         assert_eq!(receipt["scenarios"][0]["metrics"]["local_isru_lifecycle_cost_scu"], 375);
+        assert_eq!(receipt["scenarios"][2]["metrics"]["committed_sale_count"], 1);
+        assert_eq!(receipt["scenarios"][2]["metrics"]["settlement_count"], 1);
+        assert_eq!(receipt["scenarios"][2]["metrics"]["replay_outcome"]["additional_settlements"], 0);
         assert_eq!(receipt["scenarios"][3]["metrics"]["malformed_imbalance_kg"], 1);
     }
 
@@ -525,7 +607,7 @@ mod tests {
     fn rejects_unknown_root_keys() {
         let mut root = corpus();
         root.as_object_mut().unwrap().insert("surprise".into(), json!(true));
-        assert!(validate(&root, &"a".repeat(40), "digest").is_err());
+        assert!(validate(&root, &"a".repeat(40), &"b".repeat(64)).is_err());
     }
 
     #[test]
@@ -534,6 +616,17 @@ mod tests {
         let scenarios = root["scenarios"].as_array_mut().unwrap();
         scenarios[1]["id"] = scenarios[0]["id"].clone();
         assert!(validate(&root, &"a".repeat(40), "digest").is_err());
+    }
+
+    #[test]
+    fn market_replay_and_competing_sale_commit_exactly_once() {
+        let root = corpus();
+        let report = market(&root["scenarios"][2]).expect("canonical market fixture should validate");
+        assert_eq!(report["metrics"]["committed_sale_count"], 1);
+        assert_eq!(report["metrics"]["settlement_count"], 1);
+        assert_eq!(report["metrics"]["replay_outcome"]["status"], "idempotent_replay");
+        assert_eq!(report["metrics"]["sale_outcomes"][1]["status"], "rejected_asset_already_sold");
+        assert_eq!(report["metrics"]["expired_offer_outcome"], "rejected");
     }
 
     #[test]
