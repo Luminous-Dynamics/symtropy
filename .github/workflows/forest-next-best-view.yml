@@ -1,0 +1,66 @@
+name: Forest Next-Best-View Tiny-Grid Oracle
+
+on:
+  push:
+    branches: ["feat/forest-next-best-view-oracle-v0-1"]
+    paths:
+      - "tools/forest-next-best-view/**"
+      - "docs/tech/forest-next-best-view-corpus-v0.1.json"
+      - ".github/workflows/forest-next-best-view.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/forest-next-best-view/**"
+      - "docs/tech/forest-next-best-view-corpus-v0.1.json"
+      - ".github/workflows/forest-next-best-view.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forest-next-best-view-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tiny-grid-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Test greedy and exhaustive oracle
+        run: cargo test --manifest-path tools/forest-next-best-view/Cargo.toml
+      - name: Validate exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/forest-next-best-view/Cargo.toml -- \
+            docs/tech/forest-next-best-view-corpus-v0.1.json --source-commit "$source_commit" > forest-next-best-view-receipt.json
+          jq -e '
+            .result == "validated"
+            and .scenario_count == 6
+            and .greedy_budget_feasible_count == 6
+            and .oracle_budget_feasible_count == 6
+            and .exact_oracle_coverage_match_count == 6
+            and ([.scenarios[].greedy_to_oracle_basis_points] == [8260, 10000, 10000, 10000, 10000, 6875])
+            and all(.scenarios[]; .greedy.budget_feasible and .exhaustive_oracle.budget_feasible)
+            and all(.scenarios[]; (.map_sha256 | test("^[0-9a-f]{64}$")) and (.config_sha256 | test("^[0-9a-f]{64}$")))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+          ' forest-next-best-view-receipt.json
+      - name: Upload next-best-view receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: forest-next-best-view-receipt
+          path: forest-next-best-view-receipt.json
+          if-no-files-found: error
+          retention-days: 90
