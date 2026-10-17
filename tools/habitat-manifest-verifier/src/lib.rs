@@ -473,8 +473,8 @@ mod tests {
             &synthetic_manifest(ManifestKind::WholeProperty),
         )
         .unwrap();
-        assert_eq!(report.scenario_count, 18);
-        assert_eq!(report.negative_control_count, 16);
+        assert_eq!(report.scenario_count, 19);
+        assert_eq!(report.negative_control_count, 17);
         assert_eq!(report.verification_status, "STRUCTURAL_PASS_NOT_SEMANTIC_PASS");
     }
 
