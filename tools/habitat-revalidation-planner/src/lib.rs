@@ -114,9 +114,14 @@ fn make_plan(
     cost_units: u64,
     duration_units: u64,
 ) -> Plan {
-    let task_map: BTreeMap<&str, &RepairTask> = fixture.tasks.iter()
-        .map(|task| (task.id.as_str(), task)).collect();
-    let task_steps = task_ids.iter().filter_map(|id| task_map.get(id.as_str()))
+    let task_map: BTreeMap<&str, &RepairTask> = fixture
+        .tasks
+        .iter()
+        .map(|task| (task.id.as_str(), task))
+        .collect();
+    let task_steps = task_ids
+        .iter()
+        .filter_map(|id| task_map.get(id.as_str()))
         .map(|task| PlanStep {
             task_id: task.id.clone(),
             task_version: task.version,
@@ -133,7 +138,8 @@ fn make_plan(
             },
             cost_units: task.cost_units,
             duration_units: task.duration_units,
-        }).collect();
+        })
+        .collect();
     Plan {
         task_ids: task_ids.to_vec(),
         task_steps,
@@ -147,9 +153,13 @@ fn make_plan(
 
 fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, Vec<String>> {
     let errors = validate_fixture(fixture);
-    if !errors.is_empty() { return Err(errors); }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
 
-    let initially_valid: BTreeSet<String> = fixture.artifacts.iter()
+    let initially_valid: BTreeSet<String> = fixture
+        .artifacts
+        .iter()
         .filter(|artifact| artifact.status == "valid_for_claim")
         .map(|artifact| artifact.id.clone())
         .collect();
@@ -213,7 +223,9 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
         target_artifact_id: fixture.target_artifact_id.clone(),
         planning_status: if frontier.is_empty() {
             "BLOCKED_NO_VALID_PLAN".to_owned()
-        } else { "PLAN_AVAILABLE".to_owned() },
+        } else {
+            "PLAN_AVAILABLE".to_owned()
+        },
         artifact_count: fixture.artifacts.len(),
         task_count: fixture.tasks.len(),
         enumerated_feasible_plan_count: feasible_plans.len(),
@@ -244,14 +256,24 @@ fn enumerate_plans(
         {
             continue;
         }
-        let Some(next_cost) = cost.checked_add(task.cost_units) else { continue };
-        let Some(next_duration) = duration.checked_add(task.duration_units) else { continue };
+        let Some(next_cost) = cost.checked_add(task.cost_units) else {
+            continue;
+        };
+        let Some(next_duration) = duration.checked_add(task.duration_units) else {
+            continue;
+        };
         used_tasks.insert(task.id.clone());
         current_task_ids.push(task.id.clone());
         let mut next_valid = valid_artifacts.clone();
         next_valid.insert(task.produces_artifact_id.clone());
         if task.produces_artifact_id == target {
-            results.push(make_plan(fixture, target, current_task_ids, next_cost, next_duration));
+            results.push(make_plan(
+                fixture,
+                target,
+                current_task_ids,
+                next_cost,
+                next_duration,
+            ));
         } else {
             enumerate_plans(
                 fixture, target, &next_valid, used_tasks, current_task_ids,
@@ -264,20 +286,25 @@ fn enumerate_plans(
 }
 
 fn compare_plans(left: &Plan, right: &Plan) -> std::cmp::Ordering {
-    left.cost_units.cmp(&right.cost_units)
+    left.cost_units
+        .cmp(&right.cost_units)
         .then_with(|| left.duration_units.cmp(&right.duration_units))
         .then_with(|| left.task_ids.cmp(&right.task_ids))
 }
 
 fn pareto_frontier(plans: &[Plan]) -> Vec<Plan> {
-    let mut frontier: Vec<Plan> = plans.iter().filter(|candidate| {
+    let mut frontier: Vec<Plan> = plans
+        .iter()
+        .filter(|candidate| {
         !plans.iter().any(|other| {
             other.cost_units <= candidate.cost_units
                 && other.duration_units <= candidate.duration_units
                 && (other.cost_units < candidate.cost_units
                     || other.duration_units < candidate.duration_units)
         })
-    }).cloned().collect();
+        })
+        .cloned()
+        .collect();
     frontier.sort_by(compare_plans);
     frontier.dedup_by(|left, right| left.task_ids == right.task_ids);
     frontier
@@ -294,7 +321,9 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     if fixture.status != "proposed_synthetic_revalidation_planner_benchmark" {
         errors.push(format!("unsupported status {:?}", fixture.status));
     }
-    if !fixture.synthetic_only { errors.push("synthetic_only must remain true".to_owned()); }
+    if !fixture.synthetic_only {
+        errors.push("synthetic_only must remain true".to_owned());
+    }
     if fixture.claim_ceiling != CLAIM_CEILING {
         errors.push(format!("claim ceiling must be {CLAIM_CEILING:?}"));
     }
@@ -308,7 +337,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push(format!("duplicate artifact ID {:?}", artifact.id));
         }
         if !ALLOWED_ARTIFACT_STATUSES.contains(&artifact.status.as_str()) {
-            errors.push(format!("{} has unsupported status {:?}", artifact.id, artifact.status));
+            errors.push(format!(
+                "{} has unsupported status {:?}",
+                artifact.id, artifact.status
+            ));
         }
         let mut deps = BTreeSet::new();
         for dep in &artifact.depends_on {
@@ -376,17 +408,25 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         if task.version == 0 || task.cost_units == 0 || task.duration_units == 0 {
             errors.push(format!("{} version, cost, and duration must be positive", task.id));
         }
-        let Some(producer_artifact) = artifacts.get(task.produces_artifact_id.as_str()) else {
+        let Some(producer_artifact) = artifacts
+            .get(task.produces_artifact_id.as_str())
+        else {
             errors.push(format!(
                 "{} produces unknown artifact {:?}",
                 task.id, task.produces_artifact_id
             ));
             continue;
         };
-        let required: BTreeSet<&str> =
-            task.required_artifact_ids.iter().map(String::as_str).collect();
-        let expected: BTreeSet<&str> =
-            producer_artifact.depends_on.iter().map(String::as_str).collect();
+        let required: BTreeSet<&str> = task
+            .required_artifact_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
+        let expected: BTreeSet<&str> = producer_artifact
+            .depends_on
+            .iter()
+            .map(String::as_str)
+            .collect();
         if required.len() != task.required_artifact_ids.len() || required != expected {
             errors.push(format!(
                 "{} prerequisites must exactly match {} direct evidence dependencies",
@@ -411,16 +451,25 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     // Kahn-style source removal rejects cycles in the evidence graph.
     let mut remaining: BTreeSet<&str> = artifacts.keys().copied().collect();
     while !remaining.is_empty() {
-        let ready: Vec<&str> = remaining.iter().copied().filter(|id| {
-            artifacts.get(id).is_some_and(|artifact| {
-                artifact.depends_on.iter().all(|dep| !remaining.contains(dep.as_str()))
+        let ready: Vec<&str> = remaining
+            .iter()
+            .copied()
+            .filter(|id| {
+                artifacts.get(id).is_some_and(|artifact| {
+                    artifact
+                        .depends_on
+                        .iter()
+                        .all(|dep| !remaining.contains(dep.as_str()))
+                })
             })
-        }).collect();
+            .collect();
         if ready.is_empty() {
             errors.push("artifact dependency graph contains a cycle".to_owned());
             break;
         }
-        for id in ready { remaining.remove(id); }
+        for id in ready {
+            remaining.remove(id);
+        }
     }
     errors
 }
@@ -458,9 +507,12 @@ mod tests {
         let mut remaining = fixture.tasks.clone();
         let mut all_orders = Vec::new();
         permutations(&mut remaining, &mut Vec::new(), &mut all_orders);
-        let initially_valid: BTreeSet<String> = fixture.artifacts.iter()
+        let initially_valid: BTreeSet<String> = fixture
+            .artifacts
+            .iter()
             .filter(|artifact| artifact.status == "valid_for_claim")
-            .map(|artifact| artifact.id.clone()).collect();
+            .map(|artifact| artifact.id.clone())
+            .collect();
         let mut feasible = Vec::new();
         for order in all_orders {
             let mut valid = initially_valid.clone();
@@ -468,7 +520,9 @@ mod tests {
             let mut cost = 0u64;
             let mut duration = 0u64;
             for task in order {
-                if valid.contains(&fixture.target_artifact_id) { break; }
+                if valid.contains(&fixture.target_artifact_id) {
+                    break;
+                }
                 if valid.contains(&task.produces_artifact_id)
                     || !task.required_artifact_ids.iter().all(|id| valid.contains(id))
                     || !task
@@ -504,7 +558,9 @@ mod tests {
                     && (other.cost_units < candidate.cost_units
                         || other.duration_units < candidate.duration_units)
             });
-            if !dominated { frontier.push(candidate.clone()); }
+            if !dominated {
+                frontier.push(candidate.clone());
+            }
         }
         frontier.sort_by(compare_plans);
         frontier.dedup_by(|left, right| left.task_ids == right.task_ids);
@@ -644,7 +700,9 @@ mod tests {
         fixture.tasks.reverse();
         fixture.artifacts.reverse();
         fixture.available_gate_ids.reverse();
-        for artifact in &mut fixture.artifacts { artifact.depends_on.reverse(); }
+        for artifact in &mut fixture.artifacts {
+            artifact.depends_on.reverse();
+        }
         for task in &mut fixture.tasks {
             task.required_artifact_ids.reverse();
             task.required_gate_ids.reverse();
