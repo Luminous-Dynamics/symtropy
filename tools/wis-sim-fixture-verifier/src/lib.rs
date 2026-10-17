@@ -507,7 +507,10 @@ mod tests {
 
     #[test]
     fn duplicate_scenario_variant_pair_fails_closed() {
-        let (bytes, manifest) = rewritten_fixture(|rows| rows[1]["variant_id"] = json!("base"));
+        let (bytes, manifest) = rewritten_fixture(|rows| {
+            rows[1]["variant_id"] = json!("base");
+            rows[1]["variant_kind"] = json!("baseline");
+        });
         assert!(verify_bytes(&bytes, &manifest, SCHEMA).unwrap_err().contains("duplicate scenario/variant pair"));
     }
 
