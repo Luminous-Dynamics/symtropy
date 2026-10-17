@@ -234,8 +234,55 @@ pub fn evaluate_baseline_policy(
         payload,
         payload_sha256: sha256_hex(&encoded),
     };
-    verify_policy_decision_with_frame(&decision, frame)?;
+    verify_policy_decision_with_policy_and_frame(&decision, frame, &canonical)?;
     Ok(decision)
+}
+
+pub fn verify_policy_decision_with_policy_and_frame(
+    decision: &PolicyDecision,
+    frame: &PolicyInformationFrame,
+    definition: &PolicyDefinition,
+) -> Result<(), SettlementError> {
+    verify_policy_decision_with_frame(decision, frame)?;
+    let canonical = definition.canonicalized();
+    validate_policy_definition(&canonical)?;
+    if decision.payload.policy_id != canonical.policy_id
+        || decision.payload.policy_version != canonical.policy_version
+        || decision.payload.strategy != canonical.strategy
+    {
+        return Err(SettlementError(
+            "policy decision identity does not match its policy definition".into(),
+        ));
+    }
+    if let DecisionDisposition::RepairRequested { request } = &decision.payload.disposition {
+        let rule = canonical
+            .repair_rules
+            .iter()
+            .find(|rule| {
+                rule.target_component == request.target_component
+                    && rule.target_generation == request.target_generation
+            })
+            .ok_or_else(|| SettlementError("repair request has no matching policy rule".into()))?;
+        let trigger = frame
+            .payload
+            .observations
+            .iter()
+            .find(|observation| observation.observation_id == request.trigger_observation_id)
+            .ok_or_else(|| SettlementError("repair trigger is missing".into()))?;
+        if !rule.allowed_source_ids.iter().any(|source| source == &trigger.source_id)
+            || request.required_parts_supply_id != rule.required_parts_supply_id
+            || request.required_parts_units != rule.required_parts_units
+            || request.required_crew_units != rule.required_crew_units
+            || request.dispatch_latency_ticks != rule.dispatch_latency_ticks
+            || request.repair_duration_ticks != rule.repair_duration_ticks
+            || request.priority != rule.priority
+        {
+            return Err(SettlementError(
+                "repair request does not match its authorized policy rule".into(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 pub fn verify_policy_decision_with_frame(
@@ -604,14 +651,15 @@ mod tests {
             },
         ];
         for disposition in cases {
-            let sample_tick = if matches!(&disposition, ObservationDisposition::Stale { .. }) {
-                0
-            } else {
-                1
-            };
+            let is_stale = matches!(&disposition, ObservationDisposition::Stale { .. });
+            let sample_tick = if is_stale { 0 } else { 1 };
+            let mut observation = failed_observation(disposition, sample_tick, 1);
+            if is_stale {
+                observation.freshness_window_ticks = 0;
+            }
             let decision = evaluate_baseline_policy(
                 &policy(BaselineStrategy::ReactiveRepair),
-                &frame(failed_observation(disposition, sample_tick, 1), 1),
+                &frame(observation, 1),
             )
             .unwrap();
             assert!(matches!(
