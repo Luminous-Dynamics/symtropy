@@ -262,3 +262,39 @@ The point is not that local electronics manufacturing is an established or near-
 - For any empirical version, publish the service horizon, stockpile policy, wear-out/replacement rates, energy and material budgets, process yields, evidence classes, and dependency provenance. Evaluate the same service target under stress-tested alternatives rather than comparing arbitrary local-content percentages.
 
 Research tracking: [BENCH-SPACE-006 — verified industrial capability closure and bootstrap bottlenecks](https://github.com/Luminous-Dynamics/symtropy/issues/1765).
+
+ 
+## Active reference extension — time-horizon service viability under resupply shocks
+
+The example `tools/space-economy-bench/examples/temporal_resilience_reference.rs` extends static capability closure into a discrete 12-month operating horizon. It tests whether declared service demand remains available through recurring component failures and resupply delays. This is a separate synthetic extension; the frozen v0.1 six-scenario JSON corpus remains unchanged.
+
+NASA's [Lunar Surface Technology overview](https://www.nasa.gov/lunar-surface-technology/) describes interdependent needs including reliable power, local resource extraction, landing-site construction, dust mitigation and autonomous robotics. ESA's [Space Environment Report 2026](https://www.esa.int/Space_Safety/Space_Debris/ESA_Space_Environment_Report_2026) frames servicing, repair, reuse and recycling as part of a circular space economy. These motivate service-horizon and repairability benchmarks but do not calibrate the synthetic failure events or repair durations.
+
+### Synthetic reference results
+
+| Case | Service months / 12 | Availability | Maximum consecutive outage | Outcome at 75% floor |
+|---|---:|---:|---:|---|
+| Imported spares, nominal arrivals | 9/12 | 75.00% | 1 month | Pass |
+| Imported spares, resupply delayed | 7/12 | 58.33% | 2 months | Fail |
+| Verified local repair, nominal | 9/12 | 75.00% | 1 month | Pass |
+| Verified local repair, resupply shock | 9/12 | 75.00% | 1 month | Pass |
+| Unverified local-repair claim | 1/12 | 8.33% | 11 months | Fail |
+
+The fixture uses a 12-month horizon, failure months 2, 6 and 10, and a synthetic 75% qualified-service availability floor. For import-based supply, the nominal arrival months are 4, 8 and 11; the resupply-delay scenario arrives at months 7 and 11. A repair or replacement occurring during a period does not restore service until the following period. The receipt reports service/outage months, the longest outage, repair credits, externally sourced spares consumed, deliveries and residual stock.
+
+A local-repair assertion only counts if local repair evidence is verified. The architecture is eligible for cost ranking only if every scenario declared for that architecture passes the service floor. The imported-spares architecture fails its delay shock. The verified local-repair architecture passes both declared contexts and is therefore selected despite its higher synthetic lifecycle cost.
+
+### Proposed targets
+
+- Exact matching against an independently recomputable month-by-month oracle.
+- A resupply-delay transformation must never improve availability compared with the corresponding nominal schedule.
+- An unverified repair capability contributes zero credited repair events.
+- 100% rejection of invalid event months, duplicate event definitions, and source-commit/digest violations.
+- Robust-feasible architecture selection requires passing every declared mandatory stress scenario before cost comparison.
+- Publish total service loss, worst consecutive outage, repair turnaround, inventory drawdown, external resupply dependence and remaining inventory; do not report only average availability.
+
+### Limitations and calibration plan
+
+Failure dates and repair delays are deterministic synthetic events, not measured failure rates. The reference does not optimize inventory, model simultaneous failures, or prove a locally repairable system can be built. Before empirical use, specify the service boundary and required service level, stockpile policy, wear-out/replacement process, lead-time distributions, repair capacity, energy/material constraints, common-cause failures, data provenance, uncertainty and held-out validation. Keep empirical and synthetic evidence classes distinct.
+
+Follow-up: [BENCH-SPACE-007 — time-to-failure, resupply delays and service viability runway](https://github.com/Luminous-Dynamics/symtropy/issues/1792).
