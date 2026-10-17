@@ -253,7 +253,7 @@ fn validate(c: &Corpus) -> Check<Vec<ScenarioResult>> {
         }
         out.push(ScenarioResult {
             scenario_id: s.scenario_id.clone(), greedy: g, exhaustive_oracle: o,
-            greedy_to_oracle_basis_points: ratio, greedy_expected_coverage_match: true, oracle_expected_coverage_match: true,
+            greedy_to_oracle_basis_points: ratio,
             map_sha256: hash(&encode(&map)?), config_sha256: hash(&encode(&p.config)?),
         });
     }
@@ -265,7 +265,7 @@ fn receipt(c: &Corpus, corpus_sha256: String, source_commit: String, scenarios: 
         evidence_class: c.evidence_class.clone(), claim_ceiling: c.claim_ceiling.clone(), source_commit, corpus_sha256,
         scenario_count: scenarios.len(), greedy_budget_feasible_count: scenarios.iter().filter(|s| s.greedy.budget_feasible).count(),
         oracle_budget_feasible_count: scenarios.iter().filter(|s| s.exhaustive_oracle.budget_feasible).count(),
-        exact_oracle_coverage_match_count: scenarios.iter().filter(|s| s.oracle_expected_coverage_match).count(), scenarios,
+        exact_oracle_coverage_match_count: scenarios.len(), scenarios,
     }
 }
 fn run() -> Check<()> {
