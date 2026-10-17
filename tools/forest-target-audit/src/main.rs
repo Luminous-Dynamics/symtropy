@@ -102,7 +102,17 @@ struct MethodScore {
 struct TargetOracleResult {
     objective: String,
     candidate_count: usize,
+    candidate_evaluation_count: usize,
     expanded_state_count: usize,
+    plan: PlannerPlan,
+    score: MethodScore,
+}
+#[derive(Debug, Clone, Serialize)]
+struct TargetPolicyResult {
+    policy: String,
+    candidate_count: usize,
+    candidate_evaluation_count: usize,
+    replanning_count: usize,
     plan: PlannerPlan,
     score: MethodScore,
 }
@@ -129,9 +139,13 @@ struct Evaluation {
     lookahead: MethodScore,
     coverage_oracle: MethodScore,
     target_oracle: TargetOracleResult,
+    target_aware_greedy: TargetPolicyResult,
+    target_aware_lookahead: TargetPolicyResult,
     greedy_vs_target_oracle: TargetRegret,
     lookahead_vs_target_oracle: TargetRegret,
     coverage_oracle_vs_target_oracle: TargetRegret,
+    target_aware_greedy_vs_target_oracle: TargetRegret,
+    target_aware_lookahead_vs_target_oracle: TargetRegret,
 }
 #[derive(Debug, Clone, Serialize)]
 struct AggregateMethod {
@@ -166,9 +180,13 @@ struct SplitSummary {
     lookahead: AggregateMethod,
     coverage_oracle: AggregateMethod,
     target_objective_oracle: AggregateMethod,
+    target_aware_greedy: AggregateMethod,
+    target_aware_lookahead: AggregateMethod,
     greedy_vs_target_oracle: AggregateRegret,
     lookahead_vs_target_oracle: AggregateRegret,
     coverage_oracle_vs_target_oracle: AggregateRegret,
+    target_aware_greedy_vs_target_oracle: AggregateRegret,
+    target_aware_lookahead_vs_target_oracle: AggregateRegret,
 }
 #[derive(Debug, Serialize)]
 struct Receipt {
@@ -468,6 +486,7 @@ struct TargetOracleSolver<'a> {
     target_masks: Vec<u64>,
     best: Option<OracleSearchState>,
     expanded_state_count: usize,
+    candidate_evaluation_count: usize,
 }
 impl<'a> TargetOracleSolver<'a> {
     fn new(map: &'a GridMap, targets: &'a [Target], config: PlannerConfig) -> Check<Self> {
@@ -522,7 +541,7 @@ impl<'a> TargetOracleSolver<'a> {
                 }
             }
         }
-        Ok(Self { map, targets, config, candidates, distances: distance_matrix, target_masks, best: None, expanded_state_count: 0 })
+        Ok(Self { map, targets, config, candidates, distances: distance_matrix, target_masks, best: None, expanded_state_count: 0, candidate_evaluation_count: 0 })
     }
     fn objective(&self, mask: u64) -> (usize, usize) {
         let complete = self.target_masks.iter().filter(|target_mask| (mask & **target_mask) == **target_mask).count();
