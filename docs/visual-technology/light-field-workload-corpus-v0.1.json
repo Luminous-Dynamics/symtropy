@@ -28,7 +28,7 @@
     },
     {
       "id": "symtropy-ref",
-      "url": "https://github.com/Luminous-Dynamics/symtropy/tree/main/tools/visual-optics-reference",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/tree/research/vis-optics-001-contract-2026-10-17/tools/visual-optics-reference",
       "title": "Symtropy visual optics reference package",
       "use": "Analytic geometry reference; not a full light-field optics model"
     }
