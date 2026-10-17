@@ -100,3 +100,10 @@ The branch now includes `src/verifier.rs`, an independent checker for the emitte
 Regression tests include an unchanged report, mutated stock with the outer digest recomputed, and a modified recovery claim with the digest recomputed. The point is to prove that a valid hash alone is insufficient: a self-consistent integrity hash can still describe a semantically false report, so independent semantic verification is needed.
 
 The checker verifies report structure and internal arithmetic, not source truth, model calibration, event authenticity, legal authority or physical validity. The temporal PR currently has 10 authored unit tests; exact-head CI has not established a pass.
+
+
+### Exact event receipts and inflow reconciliation
+
+Each tick receipt now carries the complete applied event record: event ID, tick, sequence, typed event payload, and a SHA-256 digest of that payload. The independent verifier checks that event IDs are globally unique, receipt ticks match, event sequences are strictly increasing within a tick, and payload digests match the serialized event content.
+
+Resource-inflow event units are independently summed by supply and compared against the ledger's per-tick inflow units. This check remains meaningful even if someone edits an event payload and recomputes the event and outer report digests: the ledger must still reconcile to the recorded event stream. Event digests are integrity links, not digital signatures or proof of source truth.
