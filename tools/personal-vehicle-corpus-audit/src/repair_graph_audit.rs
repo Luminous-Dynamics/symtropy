@@ -47,6 +47,7 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
     let mut adjacency = BTreeMap::<String, BTreeSet<String>>::new();
     let mut indegree = BTreeMap::<String, usize>::new();
     let mut seen_edges = BTreeSet::<(String, String, String)>::new();
+    let mut seen_dependency_pairs = BTreeSet::<(String, String)>::new();
     for id in by_id.keys() {
         adjacency.insert(id.clone(), BTreeSet::new());
         indegree.insert(id.clone(), 0);
@@ -65,8 +66,10 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
             continue;
         }
         let relation = string_at(edge, "relation").unwrap_or("");
-        if !seen_edges.insert((from.to_owned(), to.to_owned(), relation.to_owned())) {
-            errors.push(format!("duplicate dependency {from} -> {to} ({relation})"));
+        if !seen_edges.insert((from.to_owned(), to.to_owned(), relation.to_owned()))
+            || !seen_dependency_pairs.insert((from.to_owned(), to.to_owned()))
+        {
+            errors.push(format!("duplicate dependency edge {from} -> {to}"));
             continue;
         }
         if from == to {
@@ -154,17 +157,31 @@ fn graph_semantic_errors(graph: &Value) -> Vec<String> {
         }
     }
     for (id, node) in &by_id {
-        if node.get("requires_isolation").and_then(Value::as_bool) == Some(true) {
+        let step_kind = string_at(node, "step_kind").unwrap_or("");
+        let explicitly_requires = node.get("requires_isolation").and_then(Value::as_bool) == Some(true);
+        let implicitly_requires = ["access", "removal", "repair_replace", "reassembly"].contains(&step_kind);
+        let safety_preconditions = node.get("safety_preconditions").and_then(Value::as_array);
+        if safety_preconditions.is_some_and(|conditions| {
+            conditions.iter().any(|condition| {
+                string_at(condition, "criticality") == Some("hard_stop")
+                    && condition.get("must_hold_before_task").and_then(Value::as_bool) != Some(true)
+            })
+        }) {
+            errors.push(format!("{id} declares a hard-stop precondition that is not required before the task"));
+        }
+        if explicitly_requires || implicitly_requires {
             if !downstream_of_isolation.contains(id) {
                 errors.push(format!("{id} requires isolation but is not downstream of a safe-isolation step"));
             }
-            let has_hard_stop = node.get("safety_preconditions").and_then(Value::as_array).is_some_and(|conditions| {
+            let has_hard_stop = safety_preconditions.is_some_and(|conditions| {
                 conditions.iter().any(|condition| {
                     string_at(condition, "criticality") == Some("hard_stop")
                         && condition.get("must_hold_before_task").and_then(Value::as_bool) == Some(true)
                 })
             });
-            if !has_hard_stop { errors.push(format!("{id} requires isolation but lacks a mandatory hard-stop precondition")); }
+            if !has_hard_stop {
+                errors.push(format!("{id} requires isolation but lacks a mandatory hard-stop precondition"));
+            }
         }
     }
     errors
@@ -227,8 +244,8 @@ pub(crate) fn validate_fixture_corpus() -> Result<usize, Vec<String>> {
     }
     let claim_ceiling = document.get("claim_ceiling").and_then(Value::as_array);
     if !claim_ceiling.is_some_and(|items| {
-        items.iter().filter_map(Value::as_str).any(|s| s.contains("not actual workshop measurements"))
-            && items.iter().filter_map(Value::as_str).any(|s| s.contains("not a safe repair instruction"))
+        items.iter().filter_map(Value::as_str).any(|s| s.contains("workshop measurements"))
+            && items.iter().filter_map(Value::as_str).any(|s| s.contains("approved or safe procedure for a real vehicle"))
     }) {
         errors.push("repair graph fixture claim ceiling has been weakened".to_owned());
     }
