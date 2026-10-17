@@ -40,12 +40,13 @@ def initialTickLedger : TickLedger := ⟨none, none⟩
 with the committed (tick ID, result digest) pair. This rejects malformed
 states instead of silently treating them as idle. -/
 def activeTickIsClosed (s : TickLedger) : Prop :=
-  match s.active with
-  | none => True
-  | some tick =>
+  match s.active, s.lastFinalized with
+  | none, _ => True
+  | some tick, some (lastId, resultDigest) =>
       tick.phase = .finalized ∧
-        ∃ result, tick.resultStateDigest = some result ∧
-          s.lastFinalized = some (tick.id, result)
+        tick.id = lastId ∧
+        tick.resultStateDigest = some resultDigest
+  | some _, none => False
 
 /-- Gate for opening a new tick: prior tick closed, ID strictly increasing,
 and prior-state digest linked to the last committed result. -/
