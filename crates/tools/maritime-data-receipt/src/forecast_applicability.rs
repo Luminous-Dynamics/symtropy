@@ -85,11 +85,7 @@ struct ForecastApplicabilityReport {
     execution_performed: bool,
 }
 
-fn text_field<'a>(
-    value: &'a super::JsonValue,
-    key: &str,
-    path: &str,
-) -> Result<&'a str, String> {
+fn text_field<'a>(value: &'a super::JsonValue, key: &str, path: &str) -> Result<&'a str, String> {
     super::require_nonempty_text(super::field(value, key, path)?, &format!("{path}.{key}"))
 }
 
@@ -103,8 +99,15 @@ fn digest_is_lower_sha256(value: &str) -> bool {
 fn pinned_identifier(value: &str) -> bool {
     let normalized = value.trim().to_ascii_lowercase();
     !normalized.is_empty()
-        && !["latest", "current", "head", "unknown", "unspecified", "unversioned"]
-            .contains(&normalized.as_str())
+        && ![
+            "latest",
+            "current",
+            "head",
+            "unknown",
+            "unspecified",
+            "unversioned",
+        ]
+        .contains(&normalized.as_str())
 }
 
 fn timestamp_seconds(value: &str, path: &str) -> Result<i64, String> {
@@ -114,11 +117,16 @@ fn timestamp_seconds(value: &str, path: &str) -> Result<i64, String> {
         ));
     }
 
-    let number = |start: usize, end: usize| value[start..end].parse::<i64>()
-        .map_err(|_| format!("{path}: invalid timestamp digits"));
+    let number = |start: usize, end: usize| {
+        value[start..end]
+            .parse::<i64>()
+            .map_err(|_| format!("{path}: invalid timestamp digits"))
+    };
     let year = number(0, 4)?;
     if year == 0 {
-        return Err(format!("{path}: year zero is not a valid RFC3339 timestamp"));
+        return Err(format!(
+            "{path}: year zero is not a valid RFC3339 timestamp"
+        ));
     }
     let month = number(5, 7)?;
     let day = number(8, 10)?;
@@ -280,10 +288,8 @@ fn validate_and_evaluate(
         return Err("independent_review_required must remain true".to_owned());
     }
 
-    let init_seconds = timestamp_seconds(
-        &model_initialization_time,
-        "model_initialization_time_utc",
-    )?;
+    let init_seconds =
+        timestamp_seconds(&model_initialization_time, "model_initialization_time_utc")?;
     let issue_seconds = timestamp_seconds(&issued_at, "issued_at_utc")?;
     let assessment_seconds = timestamp_seconds(&assessment_time, "assessment_time_utc")?;
     let target_seconds = timestamp_seconds(&target_time, "target_time_utc")?;
@@ -305,10 +311,10 @@ fn validate_and_evaluate(
         );
     }
 
-    let issue_age = (issue_seconds <= assessment_seconds)
-        .then(|| (assessment_seconds - issue_seconds) as u64);
-    let forecast_lead = (target_seconds >= init_seconds)
-        .then(|| (target_seconds - init_seconds) as u64);
+    let issue_age =
+        (issue_seconds <= assessment_seconds).then(|| (assessment_seconds - issue_seconds) as u64);
+    let forecast_lead =
+        (target_seconds >= init_seconds).then(|| (target_seconds - init_seconds) as u64);
 
     let mut findings = Vec::new();
     let mut applicable = true;
@@ -404,8 +410,8 @@ pub(super) fn run_cli(
     let artifact_path = artifact_override
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(&facts.artifact.relative_path));
-    let source_commit = env::var("MARITIME_SOURCE_COMMIT")
-        .unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
+    let source_commit =
+        env::var("MARITIME_SOURCE_COMMIT").unwrap_or_else(|_| "UNBOUND_LOCAL_SOURCE".to_owned());
 
     // Do not evaluate applicability unless the receipt and artifact bytes verify first.
     super::verify(&receipt_bytes, &artifact_path, receipt_path, &source_commit)?;
@@ -465,11 +471,14 @@ mod tests {
         for part in &parts[..parts.len() - 1] {
             current = current.get_mut(*part).expect("corpus path exists");
         }
-        *current.get_mut(parts[parts.len() - 1]).expect("corpus leaf exists") = replacement;
+        *current
+            .get_mut(parts[parts.len() - 1])
+            .expect("corpus leaf exists") = replacement;
     }
 
     fn oracle_field<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
-        path.split('.').try_fold(value, |current, key| current.get(key))
+        path.split('.')
+            .try_fold(value, |current, key| current.get(key))
     }
 
     fn oracle_text<'a>(value: &'a Value, path: &str) -> Option<&'a str> {
@@ -483,8 +492,15 @@ mod tests {
     fn oracle_pinned(value: &str) -> bool {
         let value = value.trim().to_ascii_lowercase();
         !value.is_empty()
-            && !["latest", "current", "head", "unknown", "unspecified", "unversioned"]
-                .contains(&value.as_str())
+            && ![
+                "latest",
+                "current",
+                "head",
+                "unknown",
+                "unspecified",
+                "unversioned",
+            ]
+            .contains(&value.as_str())
     }
 
     // Independent calendar parser/oracle: does not call the production timestamp
@@ -518,9 +534,8 @@ mod tests {
         if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
             return None;
         }
-        let leap = |candidate: i64| {
-            candidate % 4 == 0 && (candidate % 100 != 0 || candidate % 400 == 0)
-        };
+        let leap =
+            |candidate: i64| candidate % 4 == 0 && (candidate % 100 != 0 || candidate % 400 == 0);
         let days_in_month = match month {
             1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
             4 | 6 | 9 | 11 => 30,
@@ -569,8 +584,7 @@ mod tests {
             || oracle_text(profile, "forecast.product_kind") != Some("water_level_prediction")
             || oracle_text(profile, "forecast.dataset_id")
                 != Some("synthetic-water-level-forecast-example-v0")
-            || oracle_text(profile, "forecast.dataset_revision")
-                != Some("synthetic-model-run-001")
+            || oracle_text(profile, "forecast.dataset_revision") != Some("synthetic-model-run-001")
             || oracle_text(profile, "quality.uncertainty_statement") != Some(UNCERTAINTY)
         {
             return "INVALID";
@@ -595,16 +609,22 @@ mod tests {
         {
             return "INVALID";
         }
-        if oracle_field(profile, "intended_use.scenario_analysis_only")
-            .and_then(Value::as_bool) != Some(true)
-            || oracle_field(profile, "intended_use.navigation_authorized")
-                .and_then(Value::as_bool) != Some(false)
+        if oracle_field(profile, "intended_use.scenario_analysis_only").and_then(Value::as_bool)
+            != Some(true)
+            || oracle_field(profile, "intended_use.navigation_authorized").and_then(Value::as_bool)
+                != Some(false)
             || oracle_field(profile, "intended_use.physical_truth_claim_authorized")
-                .and_then(Value::as_bool) != Some(false)
-            || oracle_field(profile, "intended_use.berth_availability_inference_authorized")
-                .and_then(Value::as_bool) != Some(false)
+                .and_then(Value::as_bool)
+                != Some(false)
+            || oracle_field(
+                profile,
+                "intended_use.berth_availability_inference_authorized",
+            )
+            .and_then(Value::as_bool)
+                != Some(false)
             || oracle_field(profile, "intended_use.independent_review_required")
-                .and_then(Value::as_bool) != Some(true)
+                .and_then(Value::as_bool)
+                != Some(true)
         {
             return "INVALID";
         }
@@ -630,10 +650,8 @@ mod tests {
             <[i64; 6]>::try_from(times).expect("six temporal fields collected");
         if init > issue
             || valid_from > valid_until
-            || oracle_text(profile, "forecast.valid_from_utc")
-                != Some("2026-10-15T00:00:00Z")
-            || oracle_text(profile, "forecast.valid_until_utc")
-                != Some("2026-10-15T06:00:00Z")
+            || oracle_text(profile, "forecast.valid_from_utc") != Some("2026-10-15T00:00:00Z")
+            || oracle_text(profile, "forecast.valid_until_utc") != Some("2026-10-15T06:00:00Z")
         {
             return "INVALID";
         }
@@ -657,8 +675,12 @@ mod tests {
     fn frozen_corpus_dispositions_match_independent_expected_results() {
         let corpus: Value = serde_json::from_slice(include_bytes!(
             "../tests/fixtures/forecast-applicability-corpus-v0.1.json"
-        )).expect("forecast corpus JSON must parse");
-        assert_eq!(corpus["corpus_id"], "luminous.symtropy.maritime-forecast-applicability-corpus");
+        ))
+        .expect("forecast corpus JSON must parse");
+        assert_eq!(
+            corpus["corpus_id"],
+            "luminous.symtropy.maritime-forecast-applicability-corpus"
+        );
         let cases = corpus["cases"].as_array().expect("cases array");
         for case in cases {
             let id = case["id"].as_str().expect("case id");
@@ -691,7 +713,9 @@ mod tests {
 
     fn assert_schema_contract(object: &Value, expected_keys: &[&str]) {
         use std::collections::BTreeSet;
-        let properties = object["properties"].as_object().expect("schema properties object");
+        let properties = object["properties"]
+            .as_object()
+            .expect("schema properties object");
         let actual: BTreeSet<&str> = properties.keys().map(String::as_str).collect();
         let expected: BTreeSet<&str> = expected_keys.iter().copied().collect();
         assert_eq!(actual, expected, "schema property set drift");
@@ -708,7 +732,8 @@ mod tests {
     fn schema_property_and_required_sets_match_rust_contracts() {
         let schema: Value = serde_json::from_str(include_str!(
             "../../../../docs/tech/MARITIME_FORECAST_APPLICABILITY_V0_1.schema.json"
-        )).expect("forecast schema must be valid JSON");
+        ))
+        .expect("forecast schema must be valid JSON");
         assert_schema_contract(&schema, ROOT_KEYS);
         assert_schema_contract(&schema["properties"]["receipt_binding"], BINDING_KEYS);
         assert_schema_contract(&schema["properties"]["forecast"], FORECAST_KEYS);
@@ -780,7 +805,10 @@ mod tests {
             && (target - init) as u64 <= max_lead
             && profile["quality"]["status"] == "synthetic";
         let result = evaluate_value(&profile).expect("base fixture metadata should be valid");
-        assert_eq!(result.status == "TEMPORALLY_APPLICABLE_NOT_ADMITTED", oracle_pass);
+        assert_eq!(
+            result.status == "TEMPORALLY_APPLICABLE_NOT_ADMITTED",
+            oracle_pass
+        );
         assert_eq!(result.issue_age_seconds, Some((assessment - issue) as u64));
         assert_eq!(result.forecast_lead_seconds, Some((target - init) as u64));
         assert_eq!(result.engineering_admission, "NotAdmitted");
