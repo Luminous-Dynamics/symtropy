@@ -50,6 +50,12 @@ jobs:
             and .evpi_calculated == false
             and .candidate_count == 8
             and .comparable_candidate_count == 5
+            and (.robust_frontier_candidate_ids | length == 5)
+            and (.stable_frontier_candidate_ids | length == 0)
+            and (.measurement_priorities[0].metric_id == "essential_trip_coverage")
+            and (.measurement_priorities[0].overlapping_interval_pair_count == 10)
+            and (.measurement_priorities[1].metric_id == "p90_access_time_minutes")
+            and (.measurement_priorities[1].overlapping_interval_pair_count == 10)
             and (.robust_frontier_candidate_ids | index("06-uncertified-low-price-import") == null)
             and (.stable_frontier_candidate_ids | index("06-uncertified-low-price-import") == null)
             and ([.candidate_reports[] | select(.candidate_id == "06-uncertified-low-price-import") | .ranking_status] == ["blocked_hard_gate"])
