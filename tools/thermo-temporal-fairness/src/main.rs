@@ -183,7 +183,7 @@ fn main() {
     );
     for metrics in &report.per_agent {
         println!(
-            "agent={} demand={} allocated={} unmet={} horizon_ratio={:?} eligible_demand_ticks={} starved_ticks={} max_starvation_streak={}",
+            "agent={} demand={} allocated={} unmet={} horizon_ratio={} eligible_demand_ticks={} starved_ticks={} max_starvation_streak={}",
             metrics.agent_id,
             metrics.total_demand,
             metrics.total_allocated,
