@@ -41,11 +41,15 @@ Each payload has a bounded mass range, dimensions, a center-of-mass fraction ins
 
 Each platform declares supported environments and payload classes, maximum mass, cargo-bay dimensions, ambient operating range, optional controlled-compartment temperature range, transmitted shock/vibration limits, route-tilt capability, combined centre-of-mass bounds, securement/containment, occupant/accessibility/patient features, privacy, recovery and emergency stop.
 
+### 2b. Route mode is a mission constraint
+
+A mission declares which route modes are admissible for the tested leg. A platform that carries the payload but cannot traverse the declared mode/route is excluded. This v0.1 benchmark evaluates one carrier leg at a time; it must not disguise an intermodal trip as a single-platform mission.
+
 ### 3. Loading layout
 
 Every payload must be placed exactly once using non-negative millimetre coordinates. In v0.1, package boxes are axis-aligned and may not overlap; rotations, deformable containers and sophisticated 3-D packing are not inferred. Each box must fit the bay and the upper bounds of the combined mass must remain within platform capacity.
 
-For the combined centre of mass, the audit checks every min/max mass-endpoint combination across the declared payloads (up to twelve in v0.1). The centre of mass is computed from package positions and package-relative centre-of-mass fractions and must remain inside the platform's declared normalized bounds. This is a bounded screening calculation, not a substitute for physical stability, acceleration, dynamic load transfer or occupant crash testing.
+For the combined centre of mass, the audit checks every min/max mass-endpoint combination across the declared payloads (up to twelve in v0.1). The centre of mass is computed from package positions and package-relative centre-of-mass fractions and must remain inside the platform's declared normalized bounds. The synthetic baseline currently yields 9 candidates eligible for human review, 8 blocked by failed hard gates, 2 blocked by platform/mode mismatch, and 2 needing gate evidence. Those counts are fixture checks, not evidence that nine real platforms are suitable. This is a bounded screening calculation, not a substitute for physical stability, acceleration, dynamic load transfer or occupant crash testing.
 
 ### 4. Feasibility gates
 
