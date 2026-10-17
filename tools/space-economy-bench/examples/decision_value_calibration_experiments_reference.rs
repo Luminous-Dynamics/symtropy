@@ -774,6 +774,7 @@ mod tests {
         assert!(value("adaptive_a_then_b_after_positive") > value("calibration_a_only"));
         assert!(value("adaptive_a_then_b_after_positive") > value("calibration_b_only"));
         assert!(value("adaptive_a_then_b_after_positive") > value("no_calibration"));
+        assert!(value("adaptive_b_then_a_after_positive") > value("adaptive_a_then_b_after_positive"));
         assert_eq!(value("adaptive_a_then_b_after_positive"), 1_543_000_000_000);
         assert_eq!(value("adaptive_a_then_b_after_negative"), 1_521_000_000_000);
         assert_eq!(value("adaptive_a_then_b_after_either_outcome"), 1_539_000_000_000);
@@ -808,10 +809,16 @@ mod tests {
         for branch in branches["calibration_a"].as_array().unwrap() { inspect(branch); }
         for branch in branches["calibration_b"].as_array().unwrap() { inspect(branch); }
         for branch in branches["adaptive_a_then_b_if_a_positive"].as_array().unwrap() { inspect(branch); }
+        for branch in branches["adaptive_b_then_a_if_b_positive"].as_array().unwrap() { inspect(branch); }
     }
 
     #[test]
     fn shared_domain_missing_outcome_and_unverified_accuracy_fail_closed() {
+        let shared_domain_b = CalibrationTest {
+            calibration_domain: CALIBRATION_A.calibration_domain,
+            ..CALIBRATION_B
+        };
+        assert!(adaptive_gross_value_numerator(&CALIBRATION_A, &shared_domain_b, true, false).is_err());
         let receipt = execute(&"a".repeat(40)).unwrap();
         assert_eq!(receipt["negative_controls"]["shared_calibration_standard"]["claimed_independence_accepted"], false);
         assert_eq!(receipt["negative_controls"]["missing_calibration_outcome"]["accepted"], false);
@@ -839,7 +846,12 @@ mod tests {
             positive_likelihood_bps_by_regime: [10_001, 1_000, 1_000],
             ..CALIBRATION_A
         };
+        let unverified = CalibrationTest {
+            evidence_verified: false,
+            ..CALIBRATION_A
+        };
         assert!(validate_test(&invalid).is_err());
+        assert!(validate_test(&unverified).is_err());
         assert!(execute("invalid-sha").is_err());
     }
 
