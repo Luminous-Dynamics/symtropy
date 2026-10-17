@@ -10,7 +10,7 @@ const BUILD_PAYOFF_RICH: i128 = 200;
 const BUILD_PAYOFF_POOR: i128 = -100;
 const IMPORT_PAYOFF: i128 = 0;
 const ASSAY_A_COST: i128 = 4;
-const ASSAY_B_COST: i128 = 5;
+const ASSAY_B_COST: i128 = 6;
 const ASSAY_C_COST: i128 = 5;
 
 const OUTCOMES_SINGLE: &[&str] = &["positive", "negative"];
@@ -33,44 +33,47 @@ struct LikelihoodModel {
 const SINGLE_ASSAY: LikelihoodModel = LikelihoodModel {
     model_id: "assay_a_single",
     outcomes: OUTCOMES_SINGLE,
-    rich_likelihood_bps: &[8_000, 2_000],
-    poor_likelihood_bps: &[2_000, 8_000],
-    description: "One assay with 80% sensitivity and 80% specificity.",
+    rich_likelihood_bps: &[7_400, 2_600],
+    poor_likelihood_bps: &[2_600, 7_400],
+    description: "One nominal 80% assay with a 20% unrepresentative-sample state, giving 74% effective marginal sensitivity/specificity.",
 };
 
-// Exact mixture: with probability 1/2, a shared calibration mode forces both
-// observations to use one common latent result; with probability 1/2, their
-// results are conditionally independent given the resource state. Both
-// marginals still have 80% sensitivity and 80% specificity.
+// Latent-state mixture: in 20% of cases, the sampled patch is not
+// representative of the site-wide resource state, making the pair uninformative
+// (25% per outcome). Otherwise the patch is representative, but a 50% shared
+// calibration mode still makes A/B conditionally dependent. The resulting
+// joint table captures both common failure modes.
 const CORRELATED_REPEAT: LikelihoodModel = LikelihoodModel {
     model_id: "assay_a_plus_shared_calibration_assay_b",
     outcomes: OUTCOMES_PAIR,
-    rich_likelihood_bps: &[7_200, 800, 800, 1_200],
-    poor_likelihood_bps: &[1_200, 800, 800, 7_200],
-    description: "Two nominal 80% assays with an explicit 50% shared-calibration mode; joint likelihoods replace a false independence assumption.",
+    rich_likelihood_bps: &[6_260, 1_140, 1_140, 1_460],
+    poor_likelihood_bps: &[1_460, 1_140, 1_140, 6_260],
+    description: "Exact mixture of a 20% unrepresentative-sample state and, conditional on a representative sample, a 50% shared-calibration mode.",
 };
 
-// Deliberately wrong shadow model: it multiplies marginal likelihoods as if the
-// two measurements were independent despite sharing calibration and sampling
-// domains. This model is diagnostic-only and must never enter policy selection.
+// Deliberately wrong shadow model: it multiplies the effective 74%/26%
+// marginal likelihoods independently, despite shared calibration and one shared
+// representativeness state. Diagnostic only; never use it for policy selection.
 const NAIVE_INDEPENDENCE: LikelihoodModel = LikelihoodModel {
     model_id: "negative_control_naive_independence",
     outcomes: OUTCOMES_PAIR,
-    rich_likelihood_bps: &[6_400, 1_600, 1_600, 400],
-    poor_likelihood_bps: &[400, 1_600, 1_600, 6_400],
-    description: "Intentionally misspecified model: multiplies marginal probabilities despite shared calibration and sample domain.",
+    rich_likelihood_bps: &[5_476, 1_924, 1_924, 676],
+    poor_likelihood_bps: &[676, 1_924, 1_924, 5_476],
+    description: "Intentionally misspecified model: independently multiplies effective marginals despite known shared calibration and sampling states.",
 };
 
-// Assay C has 90% sensitivity/specificity in this synthetic oracle. Its
-// likelihood is conditionally independent of assay A only because this fixture
-// explicitly supplies a separate calibration and sampling domain plus verified
-// dependency metadata; domain labels alone never prove independence in reality.
+// In representative patches A has 80% and C 90% sensitivity/specificity.
+// Each distinct patch has an independent 20% nonrepresentative state whose
+// result is uninformative. Marginal effective rates are therefore 74% for A
+// and 82% for C. The joint table uses the independently specified patch states
+// and different calibration domains; these are fixture assumptions, not a
+// claim that domain labels prove independence in physical surveys.
 const COMPLEMENTARY_ASSAY: LikelihoodModel = LikelihoodModel {
     model_id: "assay_a_plus_complementary_assay_c",
     outcomes: OUTCOMES_PAIR,
-    rich_likelihood_bps: &[7_200, 800, 1_800, 200],
-    poor_likelihood_bps: &[200, 1_800, 800, 7_200],
-    description: "80% assay A combined with a synthetic 90% assay C and an explicitly verified distinct failure-domain contract.",
+    rich_likelihood_bps: &[6_068, 1_332, 2_132, 468],
+    poor_likelihood_bps: &[468, 2_132, 1_332, 6_068],
+    description: "A complementary 90% nominal assay uses a separate calibration domain and independently modeled spatial-representativeness state.",
 };
 
 const NO_MEASUREMENT: LikelihoodModel = LikelihoodModel {
@@ -108,7 +111,7 @@ struct EvidenceProvenance {
     spatial_domain_a: &'static str,
     spatial_domain_b: &'static str,
     calibration_verified: bool,
-    sample_representativeness_verified: bool,
+    representativeness_model_verified: bool,
     dependence_metadata_verified: bool,
     result_observed: bool,
     assumes_conditional_independence: bool,
@@ -120,7 +123,7 @@ fn provenance_for(
     spatial_domain_a: &'static str,
     spatial_domain_b: &'static str,
     calibration_verified: bool,
-    sample_representativeness_verified: bool,
+    representativeness_model_verified: bool,
     dependence_metadata_verified: bool,
     result_observed: bool,
     assumes_conditional_independence: bool,
@@ -131,7 +134,7 @@ fn provenance_for(
         spatial_domain_a,
         spatial_domain_b,
         calibration_verified,
-        sample_representativeness_verified,
+        representativeness_model_verified: sample_representativeness_verified,
         dependence_metadata_verified,
         result_observed,
         assumes_conditional_independence,
@@ -285,8 +288,8 @@ fn validate_provenance(provenance: &EvidenceProvenance) -> Result<(), &'static s
     if !provenance.calibration_verified {
         return Err("CALIBRATION_UNVERIFIED");
     }
-    if !provenance.sample_representativeness_verified {
-        return Err("SAMPLE_NOT_REPRESENTATIVE");
+    if !provenance.representativeness_model_verified {
+        return Err("REPRESENTATIVENESS_MODEL_UNVERIFIED");
     }
     if !provenance.dependence_metadata_verified {
         return Err("DEPENDENCE_METADATA_MISSING");
@@ -434,7 +437,7 @@ fn provenance_json(provenance: &EvidenceProvenance) -> Value {
         "spatial_domain_a": provenance.spatial_domain_a,
         "spatial_domain_b": provenance.spatial_domain_b,
         "calibration_verified": provenance.calibration_verified,
-        "sample_representativeness_verified": provenance.sample_representativeness_verified,
+        "representativeness_model_verified": provenance.representativeness_model_verified,
         "dependence_metadata_verified": provenance.dependence_metadata_verified,
         "result_observed": provenance.result_observed,
         "assumes_conditional_independence": provenance.assumes_conditional_independence,
@@ -514,25 +517,25 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     {
         return Err("baseline / EVPI exact arithmetic oracle mismatch".to_owned());
     }
-    if single.gross_value_numerator != 7_000_000_000
-        || single.evsi_numerator != 2_000_000_000
+    if single.gross_value_numerator != 6_100_000_000
+        || single.evsi_numerator != 1_100_000_000
     {
         return Err("single assay expected value oracle mismatch".to_owned());
     }
-    if correlated.gross_value_numerator != 7_400_000_000
-        || correlated.evsi_numerator != 2_400_000_000
-        || correlated.outcomes[0].posterior_rich_bps_floor != 8_571
+    if correlated.gross_value_numerator != 6_670_000_000
+        || correlated.evsi_numerator != 1_670_000_000
+        || correlated.outcomes[0].posterior_rich_bps_floor != 8_108
     {
         return Err("correlated joint-likelihood oracle mismatch".to_owned());
     }
-    if naive.gross_value_numerator != 7_800_000_000
-        || naive.evsi_numerator != 2_800_000_000
-        || naive.outcomes[0].posterior_rich_bps_floor != 9_411
+    if naive.gross_value_numerator != 7_062_000_000
+        || naive.evsi_numerator != 2_062_000_000
+        || naive.outcomes[0].posterior_rich_bps_floor != 8_899
     {
         return Err("naive independence negative-control oracle mismatch".to_owned());
     }
-    if complementary.gross_value_numerator != 8_500_000_000
-        || complementary.evsi_numerator != 3_500_000_000
+    if complementary.gross_value_numerator != 7_566_000_000
+        || complementary.evsi_numerator != 2_566_000_000
     {
         return Err("complementary assay oracle mismatch".to_owned());
     }
@@ -547,10 +550,10 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         - (ASSAY_A_COST + ASSAY_B_COST) * PROBABILITY_DENOMINATOR;
 
     if baseline_net != 5_000_000_000
-        || single_net != 6_600_000_000
-        || correlated_net != 6_500_000_000
-        || complementary_net != 7_600_000_000
-        || naive_net != 6_900_000_000
+        || single_net != 5_700_000_000
+        || correlated_net != 5_670_000_000
+        || complementary_net != 6_666_000_000
+        || naive_net != 6_062_000_000
     {
         return Err("net portfolio value oracle mismatch".to_owned());
     }
@@ -626,11 +629,11 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     );
 
     let controls = vec![
-        control_json("unknown_dependence", unknown_dependence, 4),
+        control_json("unknown_dependence", unknown_dependence, 11),
         control_json("uncalibrated_instrument", uncalibrated, 15),
         control_json("spatially_unrepresentative_sample", unrepresentative, 15),
         control_json("missing_measurement_result", missing_result, 15),
-        control_json("same_standard_mislabeled_independent", NAIVE_PROVENANCE, 4),
+        control_json("same_standard_mislabeled_independent", NAIVE_PROVENANCE, 11),
     ];
     if controls.iter().any(|control| control["credited_incremental_value_units"] != 0) {
         return Err("an evidence-provenance negative control received information credit".to_owned());
@@ -668,7 +671,13 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         },
         "latent_shared_calibration_mode": {
             "probability_bps": 5_000,
-            "description": "In the shared mode both A/B observations use one common latent binary result; in the remaining half they are conditionally independent given the rich/poor site state. This creates a verified joint likelihood rather than two independent evidence claims."
+            "description": "Conditional on a representative sampled patch, this latent shared-calibration state forces A/B to use one common latent binary result; otherwise they are conditionally independent given global rich/poor state."
+        },
+        "latent_spatial_representativeness_state": {
+            "unrepresentative_probability_bps": 2_000,
+            "unrepresentative_outcome_model": "uniform four-outcome likelihood independent of the site-wide rich/poor state",
+            "representative_probability_bps": 8_000,
+            "description": "The correlated-pair likelihood mixes this state into its joint table; for the complementary assay, each spatial domain has its own independently modeled representativeness state."
         },
         "baseline": {
             "model": model_evaluation_json(&baseline),
@@ -772,34 +781,34 @@ mod tests {
     #[test]
     fn single_assay_matches_expected_value_oracle() {
         let result = evaluate_model(&SINGLE_ASSAY).unwrap();
-        assert_eq!(result.gross_value_numerator, 7_000_000_000);
-        assert_eq!(result.evsi_numerator, 2_000_000_000);
-        assert_eq!(result.outcomes[0].posterior_rich_bps_floor, 8_000);
-        assert_eq!(result.outcomes[1].posterior_rich_bps_floor, 2_000);
+        assert_eq!(result.gross_value_numerator, 6_100_000_000);
+        assert_eq!(result.evsi_numerator, 1_100_000_000);
+        assert_eq!(result.outcomes[0].posterior_rich_bps_floor, 7_400);
+        assert_eq!(result.outcomes[1].posterior_rich_bps_floor, 2_600);
     }
 
     #[test]
     fn shared_calibration_joint_model_prevents_naive_posterior_inflation() {
         let correlated = evaluate_model(&CORRELATED_REPEAT).unwrap();
         let naive = evaluate_model(&NAIVE_INDEPENDENCE).unwrap();
-        assert_eq!(correlated.gross_value_numerator, 7_400_000_000);
-        assert_eq!(correlated.evsi_numerator, 2_400_000_000);
-        assert_eq!(correlated.outcomes[0].posterior_rich_bps_floor, 8_571);
-        assert_eq!(naive.gross_value_numerator, 7_800_000_000);
-        assert_eq!(naive.evsi_numerator, 2_800_000_000);
-        assert_eq!(naive.outcomes[0].posterior_rich_bps_floor, 9_411);
-        assert_eq!(naive.gross_value_numerator - correlated.gross_value_numerator, 400_000_000);
+        assert_eq!(correlated.gross_value_numerator, 6_670_000_000);
+        assert_eq!(correlated.evsi_numerator, 1_670_000_000);
+        assert_eq!(correlated.outcomes[0].posterior_rich_bps_floor, 8_108);
+        assert_eq!(naive.gross_value_numerator, 7_062_000_000);
+        assert_eq!(naive.evsi_numerator, 2_062_000_000);
+        assert_eq!(naive.outcomes[0].posterior_rich_bps_floor, 8_899);
+        assert_eq!(naive.gross_value_numerator - correlated.gross_value_numerator, 392_000_000);
     }
 
     #[test]
     fn complementary_assay_has_higher_fixture_value_than_shared_repeat() {
         let repeated = evaluate_model(&CORRELATED_REPEAT).unwrap();
         let complementary = evaluate_model(&COMPLEMENTARY_ASSAY).unwrap();
-        assert_eq!(repeated.evsi_numerator, 2_400_000_000);
-        assert_eq!(complementary.gross_value_numerator, 8_500_000_000);
-        assert_eq!(complementary.evsi_numerator, 3_500_000_000);
+        assert_eq!(repeated.evsi_numerator, 1_670_000_000);
+        assert_eq!(complementary.gross_value_numerator, 7_566_000_000);
+        assert_eq!(complementary.evsi_numerator, 2_566_000_000);
         assert_eq!(complementary.outcomes[1].selected_reward_numerator, 0);
-        assert_eq!(complementary.outcomes[2].selected_reward_numerator, 1_400_000_000);
+        assert_eq!(complementary.outcomes[2].selected_reward_numerator, 1_466_000_000);
     }
 
     #[test]
@@ -861,9 +870,9 @@ mod tests {
         ];
         let selected = candidates.iter().max_by_key(|candidate| candidate.1).unwrap();
         assert_eq!(selected.0, "complementary_assay_a_c");
-        assert_eq!(selected.1, 7_600_000_000);
-        assert_eq!(single, 6_600_000_000);
-        assert_eq!(correlated, 6_500_000_000);
+        assert_eq!(selected.1, 6_666_000_000);
+        assert_eq!(single, 5_700_000_000);
+        assert_eq!(correlated, 5_670_000_000);
     }
 
     #[test]
@@ -884,6 +893,6 @@ mod tests {
         assert_eq!(receipt["reference_source_sha256"].as_str().unwrap().len(), 64);
         assert_eq!(receipt["portfolio_exhaustive_selection"]["selected_portfolio"], "complementary_assay_a_c");
         assert_eq!(receipt["negative_controls"]["provenance_controls"].as_array().unwrap().len(), 5);
-        assert_eq!(receipt["model_comparisons"]["shared_calibration_joint_model_a_b"]["model"]["gross_expected_value"]["numerator"], 7_400_000_000_i64);
+        assert_eq!(receipt["model_comparisons"]["shared_calibration_joint_model_a_b"]["model"]["gross_expected_value"]["numerator"], 6_670_000_000_i64);
     }
 }
