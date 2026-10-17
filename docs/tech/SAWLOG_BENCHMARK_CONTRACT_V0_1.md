@@ -92,6 +92,15 @@ TreeTrace_Douglas is a published dataset for Douglas-fir logs and downstream pro
 
 The TreeTrace paper is CC BY 4.0, but the data repository records **Custom Dataset Terms: CC BY 2.0**. Follow the dataset terms and citation instructions rather than assuming the paper license applies to every data file; review third-party image notices where applicable. The repository files are not bundled in this PR.
 
+### Cross-species extension — TreeTrace_spruce
+
+TreeTrace_spruce complements TreeTrace_Douglas with 100 Norway spruce logs, log-end RGB imagery, CT/X-ray measurements, and terrestrial LiDAR scans. Its dataset record lists the Etalab Open License 2.0, described as compatible with CC BY 2.0. It is a useful independent species/protocol track for sensing, geometry and traceability. It does not itself provide the same matched end-to-end sawmill board outcome as TreeTrace_Douglas, so do not treat it as a direct board-recovery test set.
+
+- Dataset record: https://doi.org/10.57745/WKLTJI
+- Dataset paper: https://doi.org/10.1186/s13595-023-01178-8
+
+Keep TreeTrace_spruce and TreeTrace_Douglas as separate evaluations because their acquisition protocols and conditions differ. Cross-species generalization should be an explicit held-out experiment, not an accidental result from randomly mixing samples.
+
 ### Track B — 3D log measurement and volume error
 
 Stack-LAUT includes point clouds from 10 wood stacks captured with three LiDAR devices and sawmill reference measurements for individual logs. The authors mapped 280 marked logs to measurement records. This can test point-cloud/geometry extraction and volume agreement, but does not by itself establish board count, lumber-grade or value-recovery accuracy.
