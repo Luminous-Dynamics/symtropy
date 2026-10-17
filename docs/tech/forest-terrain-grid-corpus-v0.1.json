@@ -1,0 +1,24 @@
+{
+  "suite_id": "forest-terrain-grid-fault-injection",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Deterministic software contract only; no field-performance, physical-safety, or hardware-validation claim.",
+  "seed": 20261017,
+  "scenarios": [
+    {"scenario_id":"CLEAR_ROUTE_AND_RETURN","map_variant":"clear","battery_milliunits":100,"fault":null,"expected_state":"completed","expected_reason_codes":[]},
+    {"scenario_id":"GNSS_LOSS_DEGRADES","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"gnss_loss","trigger_step":1,"deadline_steps":1},"expected_state":"degraded","expected_reason_codes":["POSE_SOURCE_DEGRADED"]},
+    {"scenario_id":"WHEEL_SLIP_DEGRADES","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"wheel_slip","trigger_step":1,"deadline_steps":1},"expected_state":"degraded","expected_reason_codes":["MOBILITY_DEGRADED"]},
+    {"scenario_id":"POSE_JUMP_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"pose_jump","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["POSE_UNCERTAINTY_EXCEEDED"]},
+    {"scenario_id":"LIDAR_DEGRADATION_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"lidar_degraded","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["PERCEPTION_UNAVAILABLE"]},
+    {"scenario_id":"OBSTACLE_EMERGENCE_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"obstacle_emergence","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["OBSTACLE_EMERGED"]},
+    {"scenario_id":"COMMS_LOSS_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"comms_loss","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["COMMS_LOSS_POLICY_BLOCK"]},
+    {"scenario_id":"BATTERY_DROP_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"battery_drop","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["RETURN_RESERVE_BREACHED"]},
+    {"scenario_id":"STALE_TIME_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"stale_time","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["TIME_SOURCE_STALE"]},
+    {"scenario_id":"MAP_DISAGREEMENT_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"map_disagreement","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["MAP_DISAGREEMENT"]},
+    {"scenario_id":"EMERGENCY_STOP_BLOCKS","map_variant":"clear","battery_milliunits":100,"fault":{"kind":"emergency_stop_engaged","trigger_step":1,"deadline_steps":1},"expected_state":"blocked","expected_reason_codes":["E_STOP_ENGAGED"]},
+    {"scenario_id":"UNKNOWN_TARGET_FAIL_CLOSED","map_variant":"unknown_target","battery_milliunits":100,"fault":null,"expected_state":"blocked","expected_reason_codes":["TARGET_NOT_TRAVERSABLE"]},
+    {"scenario_id":"BLOCKED_CORRIDOR_NO_ROUTE","map_variant":"blocked_corridor","battery_milliunits":100,"fault":null,"expected_state":"blocked","expected_reason_codes":["NO_SAFE_ROUTE"]},
+    {"scenario_id":"LOW_RETURN_RESERVE","map_variant":"clear","battery_milliunits":5,"fault":null,"expected_state":"blocked","expected_reason_codes":["BATTERY_BELOW_RETURN_RESERVE"]},
+    {"scenario_id":"SLOPE_LIMIT_NO_ROUTE","map_variant":"steep_terrain","battery_milliunits":100,"fault":null,"expected_state":"blocked","expected_reason_codes":["TARGET_NOT_TRAVERSABLE"]}
+  ]
+}
