@@ -9,5 +9,6 @@ publish = false
 [workspace]
 
 [dependencies]
+jsonschema = "0.58.6"
 serde_json = "1"
 sha2 = "0.10"
