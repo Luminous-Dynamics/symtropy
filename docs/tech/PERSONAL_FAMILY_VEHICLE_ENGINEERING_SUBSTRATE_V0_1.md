@@ -59,6 +59,25 @@ The preregistration template [Repairability Benchmark Protocol v0.1](./REPAIRABI
 
 Its hard gates prevent faster-but-incomplete work from counting as success: approved procedure, required isolation, compatible parts/tools and post-repair verification are mandatory. It calls for task-level medians/quantiles, confidence intervals, censoring/deviation ledger, technician effects, and priced local lifecycle inputs. The target of 25% lower median/P90 time on preregistered high-impact tasks remains a hypothesis until a matched physical study and independent review support it.
 
+
+## South African benchmark shortlist (screening only)
+
+To stop optimizing against a fictional competitor, the draft now includes `fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json`. The initial set is deliberately heterogeneous; it establishes price/utility boundaries, not a ranking of vehicles or a donor-platform decision.
+
+| Comparator | Advertised starting price captured on 2026-10-17 | Role in the benchmark |
+|---|---:|---|
+| Toyota Vitz | R182,400 | Entry-price / small-hatch boundary |
+| Suzuki Swift 1.2 GL MT | R228,900 | Small-hatch efficiency and serviceability |
+| Toyota Starlet | R273,700 | Mainstream hatchback and family-utility comparison |
+| Toyota Starlet Cross | R311,000 | Raised-hatch and rougher-road-use comparison |
+| Toyota Rumion | R314,100 | Higher-capacity family packaging comparison |
+
+Price snapshots come from the [Toyota South Africa vehicle range](https://www.toyota.co.za/vehicles) and [Suzuki Auto South Africa Swift model page](https://www.suzukiauto.co.za/cars/swift); Swift's published geometry/powertrain screen is linked to its [official specification page](https://www.suzukiauto.co.za/specs/swift). The manufacturer pages advertise *from* prices, not written dealer quotations or total on-road cost. The Swift page lists 3,860 mm length, 265 L boot volume, 145 mm ground clearance and a fuel-consumption figure from 4.4 L/100 km; treat all values as trim/source-specific manufacturer claims, not independently measured operating results.
+
+The baseline file stores source IDs, exact unknowns and fields still needed. Before any trade study, capture exact model year/grade, safety evidence, written dealer quotes, warranty/service-plan terms, a common parts basket and repair times from the actual target market. Add used vehicles only with documented condition, odometer, service history and inspection.
+
+**Comparison rule:** the cheapest advertised vehicle is not automatically a valid family-car baseline. Enforce a minimum passenger/cargo/child-seat/payload/handling utility gate first, then compare acquisition, energy, service, repair labour/parts, waiting, downtime and end-of-life over a matched duty cycle. The initial five-price list does not prove safety, reliability, repairability or ten-year cost.
+
 ## Core paradigm shift: design a vehicle and its maintenance ecosystem jointly
 
 Optimize across:
