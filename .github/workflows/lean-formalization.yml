@@ -32,7 +32,7 @@ jobs:
             .schema_version == "0.1.0" and
             .package == "SymtropyFormal" and
             (.contracts | length == 5) and
-            ([.contracts[].theorems[]] | unique | length == 33) and
+            ([.contracts[].theorems[]] | unique | length == 49) and
             (.negative_controls | length == 1) and
             (.dimension_system.unit_dimension_vectors | keys | sort) ==
               (.dimension_system.unit_theorems | keys | sort) and
@@ -87,17 +87,26 @@ jobs:
         shell: bash
         run: |
           jq -e '
-            .reference_vector_bindings.status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
-            .reference_vector_bindings.rust_lean_refinement_status == "NOT_ESTABLISHED" and
-            (.reference_vector_bindings.corpus_path | type == "string" and length > 0) and
-            (.reference_vector_bindings.corpus_commit | test("^[0-9a-f]{40}$")) and
-            .reference_vector_bindings.corpus_schema_status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
-            (.reference_vector_bindings.corpus_schema_path | type == "string" and length > 0) and
-            (.reference_vector_bindings.corpus_schema_commit | test("^[0-9a-f]{40}$")) and
-            (.reference_vector_bindings.bindings | length == 5) and
-            ([.reference_vector_bindings.bindings[].vector_id] | unique | length == 5) and
-            ([.reference_vector_bindings.bindings[].contract_id] | sort) == ([.contracts[].id] | sort) and
-            all(.reference_vector_bindings.bindings[]; (.vector_id | type == "string" and length > 0))
+            . as $root |
+            $root.reference_vector_bindings.status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
+            $root.reference_vector_bindings.rust_lean_refinement_status == "NOT_ESTABLISHED" and
+            ($root.reference_vector_bindings.corpus_path | type == "string" and length > 0) and
+            ($root.reference_vector_bindings.corpus_commit | test("^[0-9a-f]{40}$")) and
+            $root.reference_vector_bindings.corpus_schema_status == "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED" and
+            ($root.reference_vector_bindings.corpus_schema_path | type == "string" and length > 0) and
+            ($root.reference_vector_bindings.corpus_schema_commit | test("^[0-9a-f]{40}$")) and
+            ($root.reference_vector_bindings.bindings | length == 5) and
+            ([$root.reference_vector_bindings.bindings[].vector_id] | unique | length == 5) and
+            ([$root.reference_vector_bindings.bindings[].contract_id] | sort) == ([$root.contracts[].id] | sort) and
+            all($root.reference_vector_bindings.bindings[];
+              . as $binding |
+              (.vector_id | type == "string" and length > 0) and
+              (.output_theorems | type == "object" and length > 0) and
+              all(($binding.output_theorems | to_entries[]);
+                .value as $theorem |
+                any($root.contracts[].theorems[]; . == $theorem)
+              )
+            )
           ' formalization/lean/contracts.json >/dev/null
       - name: Reconcile pinned candidate corpus from housing evidence PR
         shell: bash
@@ -148,8 +157,18 @@ jobs:
             ([$corpus.vectors[].contract_id] | sort) ==
               ([$manifest[0].reference_vector_bindings.bindings[].contract_id] | sort) and
             all($manifest[0].reference_vector_bindings.bindings[];
-              . as $binding | any($corpus.vectors[];
-                .vector_id == $binding.vector_id and .contract_id == $binding.contract_id))
+              . as $binding |
+              any($corpus.vectors[];
+                .vector_id == $binding.vector_id and .contract_id == $binding.contract_id) and
+              (
+                ([$corpus.vectors[] | select(.vector_id == $binding.vector_id and .contract_id == $binding.contract_id)][0].expected | keys | sort)
+                == ($binding.output_theorems | keys | sort)
+              ) and
+              all(($binding.output_theorems | to_entries[]);
+                .value as $theorem |
+                any($manifest[0].contracts[].theorems[]; . == $theorem)
+              )
+            )
           ' /tmp/structural-reference-contract-vectors.json >/dev/null
 
           echo "Verified pinned vector corpus + schema blobs and reconciled all five IDs."
