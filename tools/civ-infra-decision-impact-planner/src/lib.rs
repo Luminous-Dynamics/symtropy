@@ -886,7 +886,7 @@ mod tests {
             let mut unknown = Vec::new();
             let mut frontier = Vec::new();
             for (candidate_index, candidate) in candidate_ids.iter().enumerate() {
-                match (seed_index % 3 + state_index * 3 + candidate_index * 7) % 3 {
+                match (seed_index % 3 + state_index * 2 + candidate_index * 7) % 3 {
                     0 => {
                         feasible.push(candidate.clone());
                         if (seed_index + state_index + candidate_index) % 2 == 0 {
@@ -968,6 +968,7 @@ mod tests {
             total_state_action_evaluations += input.state_signatures.len() * input.actions.len();
 
             let mut oracle_action_summaries = Vec::new();
+            let mut oracle_ranking = Vec::new();
             for action in &input.actions {
                 let (max_states, max_classes, max_discordant_pairs, separated_pairs) =
                     independent_pair_oracle(&input, action);
@@ -980,6 +981,13 @@ mod tests {
                 assert_eq!(assessed.impact.worst_case_decision_signature_classes, max_classes);
                 assert_eq!(assessed.impact.worst_case_decision_discordant_pairs_remaining, max_discordant_pairs);
                 assert_eq!(assessed.impact.decision_discordant_pairs_separated, separated_pairs);
+                oracle_ranking.push((
+                    action.action_id.clone(),
+                    max_classes,
+                    max_discordant_pairs,
+                    max_states,
+                    separated_pairs,
+                ));
                 oracle_action_summaries.push(serde_json::json!({
                     "action_id": action.action_id,
                     "worst_case_remaining_states": max_states,
@@ -988,6 +996,21 @@ mod tests {
                     "decision_discordant_pairs_separated": separated_pairs
                 }));
             }
+            oracle_ranking.sort_by(|left, right| {
+                left.1.cmp(&right.1)
+                    .then_with(|| left.2.cmp(&right.2))
+                    .then_with(|| left.3.cmp(&right.3))
+                    .then_with(|| right.4.cmp(&left.4))
+                    .then_with(|| left.0.cmp(&right.0))
+            });
+            let oracle_action_ids: Vec<String> =
+                oracle_ranking.into_iter().map(|summary| summary.0).collect();
+            let evaluated_action_ids: Vec<String> = report
+                .actions_ranked
+                .iter()
+                .map(|assessment| assessment.action_id.clone())
+                .collect();
+            assert_eq!(evaluated_action_ids, oracle_action_ids);
             cases.push(serde_json::json!({
                 "world_index": world,
                 "seed": seed,
@@ -1024,6 +1047,25 @@ mod tests {
         let mut input = base_input();
         input.state_signatures[1].state_id = input.state_signatures[0].state_id.clone();
         assert!(plan(&input, &fixture_digest(&input)).unwrap_err().contains("duplicate state_id"));
+    }
+
+    #[test]
+    fn generator_seed_changes_signatures_and_worlds_have_multiple_classes() {
+        let first = generated_input(0, 20261017);
+        let second = generated_input(0, 20261018);
+        let first_keys: Vec<String> = first
+            .state_signatures
+            .iter()
+            .map(|state| signature_key(&state.signature))
+            .collect();
+        let second_keys: Vec<String> = second
+            .state_signatures
+            .iter()
+            .map(|state| signature_key(&state.signature))
+            .collect();
+        assert_ne!(first_keys, second_keys);
+        assert!(first_keys.iter().collect::<BTreeSet<_>>().len() > 1);
+        assert!(second_keys.iter().collect::<BTreeSet<_>>().len() > 1);
     }
 
     #[test]
