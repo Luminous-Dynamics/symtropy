@@ -1006,7 +1006,8 @@ mod tests {
             oracle_algorithm: "test".into(),
             lookahead_algorithm: "test".into(),
         };
-        let result = TargetOracleSolver::new(&map, &[target], config).unwrap().solve().unwrap();
+        let targets = vec![target];
+        let result = TargetOracleSolver::new(&map, &targets, config).unwrap().solve().unwrap();
         assert_eq!(result.score.complete_target_count, 1);
         assert_eq!(result.score.visible_feature_count, 2);
         assert_eq!(result.plan.viewpoints.len(), 1);
