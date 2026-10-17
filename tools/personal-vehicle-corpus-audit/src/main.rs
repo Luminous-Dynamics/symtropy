@@ -672,7 +672,7 @@ fn validate_baseline_matrix(
         if !source_url.starts_with("https://") {
             errors.push(format!("{at}.source_url: must use HTTPS"));
         }
-        if source_urls.get(price_source_id).is_some_and(|registered| registered != source_url) {
+        if source_urls.get(price_source_id).is_some_and(|registered| registered.as_str() != source_url) {
             errors.push(format!("{at}: source_url does not match the registered source URL"));
         }
         let price = candidate.get("advertised_from_price_zar").and_then(Value::as_f64);
@@ -689,7 +689,7 @@ fn validate_baseline_matrix(
                 errors.push(format!("{at}: specification source {spec_source_id} is not registered"));
             }
             if let Some(spec_url) = string_at(candidate, "specification_source_url") {
-                if source_urls.get(spec_source_id).is_some_and(|registered| registered != spec_url) {
+                if source_urls.get(spec_source_id).is_some_and(|registered| registered.as_str() != spec_url) {
                     errors.push(format!("{at}: specification URL does not match source registry"));
                 }
             }
