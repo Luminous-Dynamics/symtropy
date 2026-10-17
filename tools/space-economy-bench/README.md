@@ -157,3 +157,24 @@ Consequently, a "potential" pathway output is not automatically "firm supply". F
 Recommended next inputs for real pathway comparison: site-specific grade/access measurements, mineralogical phases, extraction/purification recovery intervals, energy intensity under representative thermal/vacuum/dust conditions, product purity and acceptance specification, equipment life/wear parts, and data source/licence/epoch/resolution. Follow-up: [BENCH-SPACE-008](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
 
 For the broader resource-priority and chain roadmap, see [`docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md`](../../docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md), which distinguishes resource occurrence from recoverable reserves and proposes staged production chains and gates.
+
+## Resource survey selection by decision value
+
+The separate `tools/space-economy-bench/examples/resource_assay_selection_reference.rs` chooses a resource measurement based on exact expected value of sample information (EVSI), after survey cost, rather than data volume or nominal assay accuracy. It compares the best decision without a survey with the best action conditioned on each assay result, uses exact integer joint likelihood weights, and checks the perfect-information bound.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example resource_assay_selection_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example resource_assay_selection_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+Synthetic decision setup: the prior probability of a rich site is 50%; building an oxygen-production capability has payoff +200 units at a rich site and -100 at a poor site; imported oxygen is a zero-payoff fallback. The best decision without more data has expected value 50 units; the perfect-information value is 100, yielding EVPI = 50.
+
+- A verified direct assay with 90% sensitivity/specificity and cost 10 has EVSI 35 and net incremental decision value +25. The policy builds after a positive result and chooses imports after a negative result.
+- A verified low-resolution assay with 60% sensitivity/specificity and cost 2 does not change the optimal action in either outcome; EVSI is zero and it is not bought.
+- An uninformative 50%/50% assay with positive cost has EVSI zero and is not bought.
+- A claimed 90%/90% assay with no evidence backing its performance receives an effective uninformative 50%/50% likelihood model, zero information credit, and no purchase.
+
+The resulting values are synthetic decision utility, not money, site-specific prior probabilities, survey performance, lunar geology or a real investment recommendation. The purpose is to prove the decision contract: pay only for measurements that are credibly likely to change a decision enough to justify their cost. See [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813).
