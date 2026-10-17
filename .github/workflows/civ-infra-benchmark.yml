@@ -49,7 +49,11 @@ jobs:
             .schema_version == "luminous.civ_infra.corridor_report.v0.1" and
             .input_sha256 == $expected_sha and
             .claim_ceiling == "synthetic_case_only_not_real_world_qualified" and
-            ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "infeasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "infeasible" and
+              .metrics.derived_max_grade_percent == 8 and
+              .metrics.derived_cut_volume_m3 == 3520 and
+              .metrics.derived_fill_volume_m3 == 1760 and
+              .metrics.derived_total_earthworks_m3 == 5280)] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
               select(.code == "grade_limit" and .status == "violation")] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "A-shortest") | .findings[] |
@@ -57,7 +61,12 @@ jobs:
             ([.candidates[] | select(.candidate_id == "B-low-earthworks" and .disposition == "infeasible")] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "B-low-earthworks") | .findings[] |
               select(.code == "utility_clearance:power-duct-known" and .status == "violation")] | length) == 1 and
-            ([.candidates[] | select(.candidate_id == "C-reference" and .disposition == "feasible_for_synthetic_case")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference" and .disposition == "feasible_for_synthetic_case" and
+              .metrics.route_length_m == 1080 and
+              .metrics.derived_max_grade_percent == 3.5 and
+              .metrics.derived_cut_volume_m3 == 2160 and
+              .metrics.derived_fill_volume_m3 == 1620 and
+              .metrics.derived_total_earthworks_m3 == 3780)] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
               select(.code == "declared_grade_matches_profile" and .status == "pass")] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
