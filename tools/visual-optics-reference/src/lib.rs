@@ -66,6 +66,91 @@ pub struct FieldOfView {
     pub vertical_radians: f64,
 }
 
+/// Errors from bounded sRGB transfer-function and relative-luminance calculations.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TransferError {
+    /// An input channel was NaN or infinite.
+    NonFiniteInput,
+    /// An input channel was outside the declared normalized [0, 1] range.
+    OutOfRange,
+}
+
+impl fmt::Display for TransferError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NonFiniteInput => f.write_str("sRGB channel must be finite"),
+            Self::OutOfRange => f.write_str("sRGB channel must be in the normalized range [0, 1]"),
+        }
+    }
+}
+
+impl std::error::Error for TransferError {}
+
+/// Converts a normalized, gamma-encoded sRGB channel into linear-light intensity.
+///
+/// Uses the piecewise sRGB transfer function defined in the W3C CSS Color
+/// specification and accepts only in-gamut channel values in [0, 1]. This is
+/// not an HDR transfer function and does not model a physical panel's response.
+///
+/// # Errors
+///
+/// Returns an error for non-finite or out-of-range input.
+pub fn srgb_channel_to_linear(encoded: f64) -> Result<f64, TransferError> {
+    if !encoded.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    if !(0.0..=1.0).contains(&encoded) {
+        return Err(TransferError::OutOfRange);
+    }
+
+    if encoded <= 0.04045 {
+        Ok(encoded / 12.92)
+    } else {
+        Ok(((encoded + 0.055) / 1.055).powf(2.4))
+    }
+}
+
+/// Converts normalized linear-light sRGB intensity into an encoded sRGB channel.
+///
+/// This is the inverse of the piecewise sRGB transfer function for in-gamut
+/// values. It does not apply HDR tone mapping, gamut mapping, or physical panel
+/// calibration.
+///
+/// # Errors
+///
+/// Returns an error for non-finite or out-of-range input.
+pub fn linear_channel_to_srgb(linear: f64) -> Result<f64, TransferError> {
+    if !linear.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    if !(0.0..=1.0).contains(&linear) {
+        return Err(TransferError::OutOfRange);
+    }
+
+    if linear <= 0.003_130_8 {
+        Ok(12.92 * linear)
+    } else {
+        Ok(1.055 * linear.powf(1.0 / 2.4) - 0.055)
+    }
+}
+
+/// Computes normalized relative luminance from gamma-encoded sRGB values.
+///
+/// The inputs are converted to linear-light first, then combined using the
+/// Rec. 709/sRGB primary weighting coefficients. Output is normalized relative
+/// luminance Y, not absolute luminance in cd/m² and not a measurement of a
+/// physical display.
+pub fn relative_luminance_from_srgb(
+    red: f64,
+    green: f64,
+    blue: f64,
+) -> Result<f64, TransferError> {
+    let red = srgb_channel_to_linear(red)?;
+    let green = srgb_channel_to_linear(green)?;
+    let blue = srgb_channel_to_linear(blue)?;
+    Ok(0.2126 * red + 0.7152 * green + 0.0722 * blue)
+}
+
 /// Why an input could not be projected by the declared ideal model.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectionError {
@@ -459,6 +544,96 @@ mod tests {
                 Err(ProjectionError::InvalidIntrinsics)
             );
         }
+    }
+
+    #[test]
+    fn srgb_transfer_matches_known_reference_points() {
+        assert_close(
+            srgb_channel_to_linear(0.04045).expect("valid encoded value"),
+            0.04045 / 12.92,
+            1e-15,
+        );
+        assert_close(
+            srgb_channel_to_linear(0.5).expect("valid encoded value"),
+            0.214_041_140_482_232_55,
+            1e-15,
+        );
+        assert_close(
+            linear_channel_to_srgb(0.003_130_8).expect("valid linear value"),
+            12.92 * 0.003_130_8,
+            1e-15,
+        );
+        assert_eq!(srgb_channel_to_linear(0.0), Ok(0.0));
+        assert_eq!(srgb_channel_to_linear(1.0), Ok(1.0));
+        assert_eq!(linear_channel_to_srgb(0.0), Ok(0.0));
+        assert_eq!(linear_channel_to_srgb(1.0), Ok(1.0));
+    }
+
+    #[test]
+    fn srgb_transfer_round_trips_in_gamut_values() {
+        for encoded in [0.0, 0.001, 0.04045, 0.18, 0.5, 1.0] {
+            let linear = srgb_channel_to_linear(encoded).expect("encoded channel is in gamut");
+            let decoded = linear_channel_to_srgb(linear).expect("linear channel is in gamut");
+            assert_close(decoded, encoded, 1e-12);
+        }
+    }
+
+    #[test]
+    fn sRGB_transfer_rejects_non_finite_and_out_of_range_channels() {
+        for input in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                srgb_channel_to_linear(input),
+                Err(TransferError::NonFiniteInput)
+            );
+            assert_eq!(
+                linear_channel_to_srgb(input),
+                Err(TransferError::NonFiniteInput)
+            );
+        }
+
+        for input in [-0.01, 1.01] {
+            assert_eq!(
+                srgb_channel_to_linear(input),
+                Err(TransferError::OutOfRange)
+            );
+            assert_eq!(
+                linear_channel_to_srgb(input),
+                Err(TransferError::OutOfRange)
+            );
+        }
+    }
+
+    #[test]
+    fn relative_luminance_uses_linear_light_weights() {
+        assert_close(
+            relative_luminance_from_srgb(1.0, 0.0, 0.0).expect("valid RGB"),
+            0.2126,
+            1e-15,
+        );
+        assert_close(
+            relative_luminance_from_srgb(0.0, 1.0, 0.0).expect("valid RGB"),
+            0.7152,
+            1e-15,
+        );
+        assert_close(
+            relative_luminance_from_srgb(0.0, 0.0, 1.0).expect("valid RGB"),
+            0.0722,
+            1e-15,
+        );
+        assert_close(
+            relative_luminance_from_srgb(1.0, 1.0, 1.0).expect("valid RGB"),
+            1.0,
+            1e-15,
+        );
+        assert_close(
+            relative_luminance_from_srgb(0.5, 0.5, 0.5).expect("valid RGB"),
+            0.214_041_140_482_232_55,
+            1e-15,
+        );
+        assert_eq!(
+            relative_luminance_from_srgb(0.0, f64::NAN, 0.0),
+            Err(TransferError::NonFiniteInput)
+        );
     }
 
     #[test]
