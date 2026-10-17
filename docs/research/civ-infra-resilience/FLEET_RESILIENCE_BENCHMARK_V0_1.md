@@ -151,6 +151,8 @@ These are references for benchmark design, not proof that the proposed benchmark
 
 ## 10. Stage gates
 
+**Current executable boundary:** `tools/civ-infra-fleet-resilience` now contains a standalone Rust manifest preflight CLI and strict fixture contract. It validates schema/cross-references, the frozen case set, dependency acyclicity and observation timing, and emits a SHA-256-bound report explicitly marked `fixture_schema_valid_only` with zero policy runs. It does not yet implement B0/B1/B2 scheduling or recovery. Keep this distinction intact in all reports.
+
 1. Schema-valid deterministic event corpus; verify unique/resolving IDs and ensure observation time is not earlier than injection time unless the event is explicitly pre-observed.
 2. Independent reference model for tiny schedule/recovery cases.
 3. Baseline and policy runs on exactly the same events and resources.
