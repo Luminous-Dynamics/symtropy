@@ -41,7 +41,7 @@ The verifier pins exact fixture bytes, rejects unknown fields, missing/duplicate
 
 ## Differential benchmarks
 
-The authored suite includes an independent subset-based oracle over task sets, all 32 combinations of five abstract gates, a budget-exhaustion negative control, shared-prerequisite count controls, ordering invariance, unknown fields and an invalid-dependency control.
+The authored suite includes an independent subset-based oracle with its own nondominance filtering, all 32 combinations of five abstract gates, a budget-exhaustion negative control before finding a plan and a second budget control after finding one feasible plan, shared-prerequisite count controls, ordering invariance, unknown fields and an invalid-dependency control. The exhaustive oracle does not use the production Pareto-frontier function.
 
 Acceptance targets:
 - 100% agreement with the independent subset oracle on all 32 gate subsets and the frozen scenario.
