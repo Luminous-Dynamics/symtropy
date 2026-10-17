@@ -36,6 +36,7 @@ pub struct Quantity {
 pub struct SyntheticRuleset {
     pub id: String,
     pub version: String,
+    pub evidence_ref: String,
     pub max_grade_percent: Quantity,
     pub max_earthworks_m3: Quantity,
     pub min_vertical_clearance_m: Quantity,
@@ -45,6 +46,7 @@ pub struct SyntheticRuleset {
 #[serde(deny_unknown_fields)]
 pub struct WorldState {
     pub id: String,
+    pub evidence_ref: String,
     pub storm_multiplier: Quantity,
     pub utility_encroachment_m: Quantity,
 }
@@ -249,6 +251,9 @@ fn validate_fixture(fixture: &DerivedFixture) -> Vec<String> {
     if !nonempty(&fixture.ruleset.id) {
         errors.push("ruleset id must not be empty".to_string());
     }
+    if !nonempty(&fixture.ruleset.evidence_ref) {
+        errors.push("ruleset evidence_ref must not be empty".to_string());
+    }
     if fixture.ruleset.version != RULESET_VERSION {
         errors.push(format!(
             "unsupported ruleset version {}",
@@ -348,6 +353,12 @@ fn validate_fixture(fixture: &DerivedFixture) -> Vec<String> {
 
     let mut observed_states = BTreeSet::new();
     for state in &fixture.states {
+        if !nonempty(&state.evidence_ref) {
+            errors.push(format!(
+                "state {}: evidence_ref must not be empty",
+                state.id
+            ));
+        }
         valid_quantity(
             &state.storm_multiplier,
             Unit::Dimensionless,
@@ -538,7 +549,12 @@ fn derive_state(
             candidate.grade_percent.clone(),
             Comparator::LessThanOrEqual,
             fixture.ruleset.max_grade_percent.clone(),
-            &["candidate.grade_percent", "ruleset.max_grade_percent"],
+            &[
+                &candidate.evidence_ref,
+                "candidate.grade_percent",
+                &fixture.ruleset.evidence_ref,
+                "ruleset.max_grade_percent",
+            ],
             "grade_percent <= max_grade_percent".to_string(),
         ),
         finding(
@@ -546,7 +562,12 @@ fn derive_state(
             candidate.earthworks_m3.clone(),
             Comparator::LessThanOrEqual,
             fixture.ruleset.max_earthworks_m3.clone(),
-            &["candidate.earthworks_m3", "ruleset.max_earthworks_m3"],
+            &[
+                &candidate.evidence_ref,
+                "candidate.earthworks_m3",
+                &fixture.ruleset.evidence_ref,
+                "ruleset.max_earthworks_m3",
+            ],
             "earthworks_m3 <= max_earthworks_m3".to_string(),
         ),
         finding(
@@ -555,8 +576,10 @@ fn derive_state(
             Comparator::GreaterThanOrEqual,
             quantity(required_flow, Unit::LitersPerSecond),
             &[
+                &candidate.evidence_ref,
                 "candidate.drainage_capacity_lps",
                 "candidate.base_drainage_demand_lps",
+                &state.evidence_ref,
                 "state.storm_multiplier",
             ],
             "capacity_lps >= base_demand_lps * storm_multiplier".to_string(),
@@ -567,8 +590,11 @@ fn derive_state(
             Comparator::GreaterThanOrEqual,
             fixture.ruleset.min_vertical_clearance_m.clone(),
             &[
+                &candidate.evidence_ref,
                 "candidate.vertical_clearance_m",
+                &state.evidence_ref,
                 "state.utility_encroachment_m",
+                &fixture.ruleset.evidence_ref,
                 "ruleset.min_vertical_clearance_m",
             ],
             "clearance_m - utility_encroachment_m >= minimum_clearance_m".to_string(),
@@ -584,7 +610,10 @@ fn derive_state(
         "route_length_m".to_string(),
         DerivedObjective {
             quantity: candidate.route_length_m.clone(),
-            input_refs: vec!["candidate.route_length_m".to_string()],
+            input_refs: vec![
+                candidate.evidence_ref.clone(),
+                "candidate.route_length_m".to_string(),
+            ],
             equation: "route_length_m (primitive input)".to_string(),
         },
     );
@@ -592,7 +621,10 @@ fn derive_state(
         "earthworks_m3".to_string(),
         DerivedObjective {
             quantity: candidate.earthworks_m3.clone(),
-            input_refs: vec!["candidate.earthworks_m3".to_string()],
+            input_refs: vec![
+                candidate.evidence_ref.clone(),
+                "candidate.earthworks_m3".to_string(),
+            ],
             equation: "earthworks_m3 (primitive input)".to_string(),
         },
     );
@@ -601,8 +633,10 @@ fn derive_state(
         DerivedObjective {
             quantity: quantity(hydraulic_margin, Unit::LitersPerSecond),
             input_refs: vec![
+                candidate.evidence_ref.clone(),
                 "candidate.drainage_capacity_lps".to_string(),
                 "candidate.base_drainage_demand_lps".to_string(),
+                state.evidence_ref.clone(),
                 "state.storm_multiplier".to_string(),
             ],
             equation: "capacity_lps - base_demand_lps * storm_multiplier".to_string(),
@@ -613,8 +647,11 @@ fn derive_state(
         DerivedObjective {
             quantity: quantity(clearance_margin, Unit::Meter),
             input_refs: vec![
+                candidate.evidence_ref.clone(),
                 "candidate.vertical_clearance_m".to_string(),
+                state.evidence_ref.clone(),
                 "state.utility_encroachment_m".to_string(),
+                fixture.ruleset.evidence_ref.clone(),
                 "ruleset.min_vertical_clearance_m".to_string(),
             ],
             equation: "clearance_m - encroachment_m - minimum_clearance_m".to_string(),
@@ -975,6 +1012,53 @@ mod tests {
         assert_eq!(state.effective_clearance_m.value, 0.2);
         assert!(state.feasible);
         assert!(state.findings.iter().all(|finding| !finding.input_refs.is_empty()));
+    }
+
+    #[test]
+    fn derivation_traces_retain_candidate_state_and_ruleset_evidence_refs() {
+        let input = fixture();
+        let report = evaluate_json(fixture_bytes()).expect("fixture evaluates");
+        let candidate = input
+            .candidates
+            .iter()
+            .find(|candidate| candidate.id == "B-balanced")
+            .expect("candidate exists");
+        let state = input
+            .states
+            .iter()
+            .find(|state| state.id == "storm-high__encroach-high")
+            .expect("state exists");
+        let output_state = result(&report, "B-balanced")
+            .state_results
+            .iter()
+            .find(|item| item.state_id == state.id)
+            .expect("output state exists");
+
+        let grade = output_state.findings
+            .iter()
+            .find(|finding| finding.rule_id == "grade_limit")
+            .expect("grade finding exists");
+        assert!(grade.input_refs.contains(&candidate.evidence_ref));
+        assert!(grade.input_refs.contains(&input.ruleset.evidence_ref));
+
+        let drainage = output_state.findings
+            .iter()
+            .find(|finding| finding.rule_id == "hydraulic_capacity")
+            .expect("drainage finding exists");
+        assert!(drainage.input_refs.contains(&candidate.evidence_ref));
+        assert!(drainage.input_refs.contains(&state.evidence_ref));
+
+        let clearance = output_state.findings
+            .iter()
+            .find(|finding| finding.rule_id == "utility_clearance")
+            .expect("clearance finding exists");
+        assert!(clearance.input_refs.contains(&candidate.evidence_ref));
+        assert!(clearance.input_refs.contains(&state.evidence_ref));
+        assert!(clearance.input_refs.contains(&input.ruleset.evidence_ref));
+
+        let margin = &output_state.objectives["hydraulic_margin_lps"];
+        assert!(margin.input_refs.contains(&candidate.evidence_ref));
+        assert!(margin.input_refs.contains(&state.evidence_ref));
     }
 
     #[test]
