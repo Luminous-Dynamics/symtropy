@@ -56,6 +56,12 @@ Add optical equations one at a time: paraxial/thin-lens cases, then free-space s
 
 A holography case must pin wavelength, grid size, pixel pitch, propagation distance, phase/amplitude encoding, phase quantization, boundary condition, numerical method and the output comparison metric. Report reconstruction error, speckle metric, calculation time and all declared limitations separately. Never label a simulated intensity map as a physical hologram.
 
+#### Light-field-specific qualification
+
+For light-field rendering, pin the view-generation method, spatial and angular sampling grids, image-depth positions, lens-array/optical parameters, viewing-angle convention and radiometric assumptions. Report angle-resolved MTF/resolution, angular crosstalk, view continuity, geometric/depth error, absolute luminance and uniformity—not only panel pixel count or nominal field of view. Test static and moving scenes separately; for scanned/mechanical systems, capture end-to-end scan latency, synchronization drift, temporal artifacts, vibration/noise, sustained brightness and input power. Compare candidates at matched usable luminance and exposure/measurement conditions.
+
+The June 2026 *Nature Photonics* SSS-LiD paper reports 150° viewing angle and up to 8.0× horizontal / 3.2× vertical spatial-resolution improvements, but its extended data also reports an 8.6× luminance reduction for the super-Snell lens-array configuration, with 200 ms exposures in some multi-angle comparisons. These are linked trade-offs, not grounds to treat its headline FOV as a universal target. The dedicated benchmark is [VIS-LF-001 #1826](https://github.com/Luminous-Dynamics/symtropy/issues/1826), based on [the published paper](https://doi.org/10.1038/s41566-026-01938-8).
+
 ## Fixture format
 
 Each frozen case should bind:
