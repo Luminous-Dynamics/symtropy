@@ -201,3 +201,7 @@ For every policy, measure end-to-end time and energy per *accepted functional un
 ### Research track boundary
 
 NIST's robot-agility work emphasizes repeatable metrics, retasking/reconfiguration, unexpected failures and combined virtual/physical testbeds ([NIST](https://www.nist.gov/programs-projects/agility-performance-robotic-systems)). The Hilti–Trimble–Oxford 2026 construction-site SLAM dataset has 30 active-site sequences with visual-inertial observations, floor-plan priors and reference trajectories ([official dataset page](https://hilti-trimble-challenge.com/dataset-2026)). Its published terms are **CC BY-NC-SA 3.0**, which prohibit commercial use and require share-alike distribution of adaptations. Do not bundle that dataset in this repository or use it as a commercial training/evaluation corpus without a separate rights review or permission. Localization should remain a separate track: high localization scores do not qualify a construction task or work acceptance.
+
+## 13. Follow-up implementation
+
+The next stage is tracked in [CIV-INFRA-ROLLOUT-002 #1870](https://github.com/Luminous-Dynamics/symtropy/issues/1870): generalize the one-event microcase into an event-driven simulator over the 13 frozen disturbance families, keep evaluator-private and policy-visible state separate, add negative controls and an independent small-case evaluator, and build the stratified deterministic corpus before making aggregate improvement claims. Do not treat #1870 as completed by this one-case implementation.
