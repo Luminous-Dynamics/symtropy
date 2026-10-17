@@ -177,7 +177,7 @@ impl std::fmt::Display for ThermodynamicLedgerError {
 
 impl std::error::Error for ThermodynamicLedgerError {}
 
-/// Thermodynamic ledger: tracks energy flow through the consciousness-physics system.
+/// Legacy action/dissipation diagnostics plus separate operational regeneration telemetry.
 #[derive(Debug, Clone)]
 pub struct ThermodynamicLedger {
     /// Total action cost recorded this tick. This legacy accumulator is not
@@ -197,7 +197,8 @@ pub struct ThermodynamicLedger {
     pub phi_change_total: f64,
     /// Cumulative energy consumed across all ticks.
     pub lifetime_energy: f64,
-    /// Cumulative conservation error across all ticks.
+    /// Cumulative legacy action/dissipation mismatch across all ticks; not a
+    /// complete physical conservation residual.
     pub lifetime_error: f64,
     /// Number of ticks processed.
     pub tick_count: u64,
@@ -370,7 +371,8 @@ impl ThermodynamicLedger {
         Ok(())
     }
 
-    /// Finalize this tick: compute conservation error and accumulate.
+    /// Finalize this tick's legacy action/dissipation mismatch and accumulate it.
+    /// This is not whole-system energy conservation evidence.
     ///
     /// If direct writes to public fields have corrupted the ledger, this legacy
     /// wrapper returns non-finite sentinels and leaves the invalid state intact.
@@ -386,10 +388,11 @@ impl ThermodynamicLedger {
         })
     }
 
-    /// Validate and finalize a tick. The residual is normalized by the larger
-    /// of input/output energy, so a zero-input/nonzero-output imbalance cannot
-    /// be incorrectly reported as zero error. A genuinely empty ledger has
-    /// zero error. On failure, no counters are reset or accumulated.
+    /// Validate and finalize the local action/dissipation mismatch. The relative
+    /// mismatch uses the larger accumulator, so zero action cost with positive
+    /// dissipation is not reported as zero error. Regeneration is returned as a
+    /// separate flow and is not folded into this diagnostic. This method does
+    /// not close total-system energy accounting. On failure, no counters reset.
     pub fn try_tick_balance(&mut self) -> Result<TickBalance, ThermodynamicLedgerError> {
         if !self.state_is_valid() {
             return Err(ThermodynamicLedgerError::InvalidState);
@@ -482,9 +485,9 @@ impl ThermodynamicLedger {
             && Self::try_landauer_floor(bits).is_ok_and(|floor| energy >= floor)
     }
 
-    /// Lifetime conservation error rate normalized by the larger cumulative
-    /// input/error scale. This remains meaningful if inputs were zero but
-    /// outputs/errors were not; a truly empty history returns zero.
+    /// Lifetime action/dissipation mismatch rate normalized by the larger
+    /// cumulative action-cost/mismatch scale. This is not a physical conservation
+    /// error rate for the complete system.
     pub fn lifetime_error_rate(&self) -> f64 {
         if !self.state_is_valid() {
             return f64::INFINITY;
