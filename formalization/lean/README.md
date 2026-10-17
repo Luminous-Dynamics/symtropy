@@ -6,7 +6,7 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
 ## Scope of the first slice
 
 - **HousingReferences.lean** defines five primary closed-form response equations plus supporting equations for section area, extreme-fiber distance, stress, bending moment, and reactions. Exact-rational fixture theorems cover all 28 expected output fields in the shared five-vector corpus; the additional named theorem declarations are not verified until Lean CI passes.
-- **TickTransactions.lean** defines an abstract tick ledger and theorem obligations for monotonic IDs, prior/result digest linkage, phase order, idempotent finalize retries, and conflict rejection. The model uses natural-number digest stand-ins and is not a proof of the Rust implementation.
+- **TickTransactions.lean** defines an abstract tick ledger and theorem obligations for monotonic IDs, prior/result digest linkage, phase order, idempotent finalize retries, conflict rejection, and fail-closed handling of malformed intermediate states. The model uses natural-number digest stand-ins and is not a proof of the Rust implementation.
 - **Dimensions.lean** defines seven-SI-base dimension vectors, proves twelve
   dimensional-homogeneity identities and five dimensionless-group invariants,
   and includes a negative control that rejects a malformed cantilever expression.
