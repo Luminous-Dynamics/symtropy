@@ -577,8 +577,12 @@ mod tests {
                             for metric in candidate["metrics"].as_array_mut().unwrap() {
                                 if let Some(value) = values.get(metric["metric_id"].as_str().unwrap()) {
                                     metric["value"] = Value::from(*value);
-                                    metric["status"] = Value::String("synthetic_value".to_string());
+                                } else {
+                                    // Hold the remaining objective dimensions equal so the
+                                    // independent oracle tests only the declared 3D cube.
+                                    metric["value"] = Value::from(1.0);
                                 }
+                                metric["status"] = Value::String("synthetic_value".to_string());
                             }
                         }
                         let directions = ["minimize", "maximize", "minimize"];
