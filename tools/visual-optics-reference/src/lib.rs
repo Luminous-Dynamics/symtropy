@@ -682,11 +682,31 @@ mod tests {
     #[test]
     fn pq_oetf_matches_st2084_reference_points() {
         assert_eq!(nits_to_pq_signal(0.0), Ok(0.0));
-        assert_close(nits_to_pq_signal(1.0).expect("valid luminance"), 0.149_945_732_100_180_22, 1e-12);
-        assert_close(nits_to_pq_signal(100.0).expect("valid luminance"), 0.508_078_421_517_399, 1e-12);
-        assert_close(nits_to_pq_signal(203.0).expect("valid luminance"), 0.580_688_881_041_610_9, 1e-12);
-        assert_close(nits_to_pq_signal(1_000.0).expect("valid luminance"), 0.751_827_096_247_041, 1e-12);
-        assert_close(nits_to_pq_signal(4_000.0).expect("valid luminance"), 0.902_572_393_310_937_3, 1e-12);
+        assert_close(
+            nits_to_pq_signal(1.0).expect("valid luminance"),
+            0.149_945_732_100_180_22,
+            1e-12,
+        );
+        assert_close(
+            nits_to_pq_signal(100.0).expect("valid luminance"),
+            0.508_078_421_517_399,
+            1e-12,
+        );
+        assert_close(
+            nits_to_pq_signal(203.0).expect("valid luminance"),
+            0.580_688_881_041_610_9,
+            1e-12,
+        );
+        assert_close(
+            nits_to_pq_signal(1_000.0).expect("valid luminance"),
+            0.751_827_096_247_041,
+            1e-12,
+        );
+        assert_close(
+            nits_to_pq_signal(4_000.0).expect("valid luminance"),
+            0.902_572_393_310_937_3,
+            1e-12,
+        );
         assert_eq!(nits_to_pq_signal(10_000.0), Ok(1.0));
     }
 
