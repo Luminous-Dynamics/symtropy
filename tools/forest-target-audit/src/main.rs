@@ -986,6 +986,50 @@ mod tests {
     }
 
     #[test]
+    fn exact_target_oracle_completes_both_required_edges_when_one_feasible_pose_sees_them() {
+        let map = map_for(Scene::OpenGrid);
+        let target = Target {
+            target_id: "known-two-edge-target".into(),
+            kind: TargetKind::TrunkDiameterEdges,
+            center_cell: idx(2, 2),
+            required_feature_cells: vec![idx(1, 2), idx(3, 2)],
+        };
+        let config = PlannerConfig {
+            start_cell: 0,
+            energy_budget_steps: 7,
+            return_reserve_steps: 2,
+            max_viewpoints: 1,
+            sensor_range_cells: RANGE,
+            horizontal_fov_degrees: 180,
+            turn_cost_steps: 1,
+            greedy_algorithm: "test".into(),
+            oracle_algorithm: "test".into(),
+            lookahead_algorithm: "test".into(),
+        };
+        let result = TargetOracleSolver::new(&map, &[target], config).unwrap().solve().unwrap();
+        assert_eq!(result.score.complete_target_count, 1);
+        assert_eq!(result.score.visible_feature_count, 2);
+        assert_eq!(result.plan.viewpoints.len(), 1);
+        assert!(result.plan.total_budgeted_steps <= 7);
+    }
+
+    #[test]
+    fn independent_route_verifier_rejects_tampered_cost_receipts() {
+        let c = corpus();
+        let binding = &c.scenario_bindings[0];
+        let map = map_for(binding.scene);
+        let config = config_for(binding);
+        let result = TargetOracleSolver::new(
+            &map,
+            &generate_targets(&map, c.training_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap(),
+            config.clone()
+        ).unwrap().solve().unwrap();
+        let mut tampered = result.plan;
+        tampered.total_budgeted_steps = tampered.total_budgeted_steps.saturating_add(1);
+        assert!(verify_plan_contract(&map, &tampered, &config, "tamper control").is_err());
+    }
+
+    #[test]
     fn serialized_scores_are_bounded_and_deterministic() {
         let map = map_for(Scene::OpenGrid);
         let plan = PlannerPlan { budget_feasible: true, outbound_cost_steps: 0, return_distance_steps: 0, reserved_steps: 0, total_budgeted_steps: 0, viewpoints: vec![Viewpoint { x: 0, y: 2, heading: Heading::East }] };
