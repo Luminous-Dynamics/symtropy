@@ -90,7 +90,17 @@
         "condition_number": 1,
         "null_space_basis": []
       },
-      "expected_information_gain_nats": 1.6094379124341003
+      "expected_information_gain_nats": 1.6094379124341003,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ]
     },
     {
       "id": "h0-weak-high-mode",
@@ -139,7 +149,17 @@
         "condition_number": 20,
         "null_space_basis": []
       },
-      "expected_information_gain_nats": 0.8096941216436342
+      "expected_information_gain_nats": 0.8096941216436342,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ]
     },
     {
       "id": "h0-exact-null-mode",
@@ -193,7 +213,17 @@
           ]
         ]
       },
-      "expected_information_gain_nats": 0.5493061443340549
+      "expected_information_gain_nats": 0.5493061443340549,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ]
     },
     {
       "id": "h0-correlated-duplicate",
@@ -247,7 +277,17 @@
           ]
         ]
       },
-      "expected_information_gain_nats": 0.8067249769620305
+      "expected_information_gain_nats": 0.8067249769620305,
+      "prior_covariance": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ]
     }
   ],
   "acceptance_checks": [
