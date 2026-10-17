@@ -16,6 +16,7 @@ use std::{error::Error, fmt};
 pub mod timeline;
 pub mod observation;
 pub mod policy;
+pub mod policy_trace;
 pub mod verifier;
 
 pub const SETTLEMENT_SCHEMA_VERSION: u32 = 1;
