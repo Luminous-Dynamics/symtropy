@@ -14,11 +14,15 @@ The CLI reads the exact fixture bytes, validates the schema and declared metric 
 
 ## Current synthetic fixture
 
-The frozen fixture contains three intentionally different candidate alignments:
+The frozen fixture contains three intentionally different candidate alignments. The report emits derived length, maximum absolute grade, cut volume, fill volume and total earthworks, each normalized to a stable nine-decimal precision for deterministic comparison.
 
-- A-shortest: expected to be infeasible on declared grade, earthworks, drainage, and/or known/unknown utility constraints.
-- B-low-earthworks: expected to fail the known synthetic utility-clearance constraint.
-- C-reference: expected to satisfy only the explicitly modeled synthetic constraints, not to qualify a real corridor.
+| Candidate | Length | Derived maximum grade | Cut | Fill | Total earthworks | Synthetic disposition |
+|---|---:|---:|---:|---:|---:|---|
+| A-shortest | 880 m | 8.0% | 3,520 m³ | 1,760 m³ | 5,280 m³ | Infeasible: grade, earthworks and drainage limits |
+| B-low-earthworks | 980 m | 4.2% | 1,470 m³ | 980 m³ | 2,450 m³ | Infeasible: power-duct clearance |
+| C-reference | 1,080 m | 3.5% | 2,160 m³ | 1,620 m³ | 3,780 m³ | Feasible for explicitly modelled synthetic checks |
+
+The cross-section cut/fill areas, profile, utility locations, flow/capacity values and constraints are invented fixtures. The grade and volumes are calculated from those inputs; they are not derived from surveyed terrain or a full corridor solid. C is not a real-world qualified road design.
 
 It also includes one deliberately overcommitted excavator schedule. The reference checker should reject that schedule, while a test moves one work package to an adjacent half-open time window and checks that the false overlap disappears.
 
