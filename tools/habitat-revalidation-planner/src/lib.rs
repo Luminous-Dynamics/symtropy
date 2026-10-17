@@ -185,8 +185,14 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
 
     let mut feasible_plans = Vec::new();
     enumerate_plans(
-        fixture, &fixture.target_artifact_id, &initially_valid,
-        &mut BTreeSet::new(), &mut Vec::new(), 0, 0, &mut feasible_plans,
+        fixture,
+        &fixture.target_artifact_id,
+        &initially_valid,
+        &mut BTreeSet::new(),
+        &mut Vec::new(),
+        0,
+        0,
+        &mut feasible_plans,
     );
     feasible_plans.sort_by(compare_plans);
     feasible_plans.dedup_by(|left, right| left.task_ids == right.task_ids);
@@ -195,9 +201,12 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
     let mut blockers = Vec::new();
     if frontier.is_empty() {
         for task in &fixture.tasks {
-            let missing: Vec<&str> = task.required_gate_ids.iter()
+            let missing: Vec<&str> = task
+                .required_gate_ids
+                .iter()
                 .filter(|gate| !fixture.available_gate_ids.contains(gate))
-                .map(String::as_str).collect();
+                .map(String::as_str)
+                .collect();
             if !missing.is_empty() {
                 blockers.push(format!(
                     "{} blocked by unavailable required gates: {}",
@@ -276,8 +285,14 @@ fn enumerate_plans(
             ));
         } else {
             enumerate_plans(
-                fixture, target, &next_valid, used_tasks, current_task_ids,
-                next_cost, next_duration, results,
+                fixture,
+                target,
+                &next_valid,
+                used_tasks,
+                current_task_ids,
+                next_cost,
+                next_duration,
+                results,
             );
         }
         current_task_ids.pop();
@@ -296,7 +311,7 @@ fn pareto_frontier(plans: &[Plan]) -> Vec<Plan> {
     let mut frontier: Vec<Plan> = plans
         .iter()
         .filter(|candidate| {
-        !plans.iter().any(|other| {
+            !plans.iter().any(|other| {
             other.cost_units <= candidate.cost_units
                 && other.duration_units <= candidate.duration_units
                 && (other.cost_units < candidate.cost_units
@@ -408,9 +423,7 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         if task.version == 0 || task.cost_units == 0 || task.duration_units == 0 {
             errors.push(format!("{} version, cost, and duration must be positive", task.id));
         }
-        let Some(producer_artifact) = artifacts
-            .get(task.produces_artifact_id.as_str())
-        else {
+        let Some(producer_artifact) = artifacts.get(task.produces_artifact_id.as_str()) else {
             errors.push(format!(
                 "{} produces unknown artifact {:?}",
                 task.id, task.produces_artifact_id
@@ -584,14 +597,22 @@ mod tests {
             report.pareto_plans.iter().map(|p| p.duration_units).collect::<Vec<_>>(),
             vec![8, 5]
         );
-        assert_eq!(report.pareto_plans[0].task_ids, vec![
-            "T-MATERIAL-REVIEW-LOW-COST".to_owned(),
-            "T-ASBUILT-REINSPECTION".to_owned(), "T-RECOMMISSION".to_owned()
-        ]);
-        assert_eq!(report.pareto_plans[1].task_ids, vec![
-            "T-MATERIAL-REVIEW-FAST".to_owned(),
-            "T-ASBUILT-REINSPECTION".to_owned(), "T-RECOMMISSION".to_owned()
-        ]);
+        assert_eq!(
+            report.pareto_plans[0].task_ids,
+            vec![
+                "T-MATERIAL-REVIEW-LOW-COST".to_owned(),
+                "T-ASBUILT-REINSPECTION".to_owned(),
+                "T-RECOMMISSION".to_owned(),
+            ]
+        );
+        assert_eq!(
+            report.pareto_plans[1].task_ids,
+            vec![
+                "T-MATERIAL-REVIEW-FAST".to_owned(),
+                "T-ASBUILT-REINSPECTION".to_owned(),
+                "T-RECOMMISSION".to_owned(),
+            ]
+        );
         assert!(report.pareto_plans.iter().all(|plan| {
             plan.task_steps.len() == 3
                 && plan.task_steps.iter().all(|step| step.task_version == 1)
@@ -626,7 +647,11 @@ mod tests {
                 exhaustive_oracle(&candidate),
                 "gate subset mask {mask:#06b} differed from exhaustive oracle"
             );
-            if !candidate.available_gate_ids.iter().any(|gate| gate == "PROCUREMENT_REVIEW") {
+            if !candidate
+                .available_gate_ids
+                .iter()
+                .any(|gate| gate == "PROCUREMENT_REVIEW")
+            {
                 assert_eq!(actual.planning_status, "BLOCKED_NO_VALID_PLAN");
                 assert!(!actual.blocking_reasons.is_empty());
             }
@@ -642,8 +667,10 @@ mod tests {
 
     #[test]
     fn sha256_known_answer() {
-        assert_eq!(sha256_hex(b"abc"),
-            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 
     #[test]
@@ -670,10 +697,17 @@ mod tests {
     #[test]
     fn planner_cannot_skip_producer_dependencies() {
         let mut fixture = fixture();
-        let task = fixture.tasks.iter_mut().find(|task| task.id == "T-RECOMMISSION").unwrap();
+        let task = fixture
+            .tasks
+            .iter_mut()
+            .find(|task| task.id == "T-RECOMMISSION")
+            .unwrap();
         task.required_artifact_ids.retain(|id| id != "D-STRUCTURAL-CALC");
-        assert!(validate_fixture(&fixture)
-            .iter().any(|error| error.contains("prerequisites must exactly match")));
+        assert!(
+            validate_fixture(&fixture)
+                .iter()
+                .any(|error| error.contains("prerequisites must exactly match"))
+        );
     }
 
     #[test]
