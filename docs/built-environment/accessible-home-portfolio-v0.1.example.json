@@ -57,7 +57,8 @@
       "resident_disruption_points": 4,
       "access_gate": "cleared",
       "delivery_state": "proposed",
-      "note": "Invented scenario values only; actual placement, device suitability, power and operation require assessment."
+      "note": "Invented scenario values only; actual placement, device suitability, power and operation require assessment.",
+      "resolves_preference_conflicts": []
     },
     {
       "id": "battery-backed-local-alert",
@@ -87,7 +88,8 @@
       "resident_disruption_points": 1,
       "access_gate": "cleared",
       "delivery_state": "proposed",
-      "note": "Invented scenario values only; battery, device and notification path are not tested."
+      "note": "Invented scenario values only; battery, device and notification path are not tested.",
+      "resolves_preference_conflicts": []
     },
     {
       "id": "tactile-haptic-receiver",
@@ -117,7 +119,13 @@
       "resident_disruption_points": 1,
       "access_gate": "cleared",
       "delivery_state": "proposed",
-      "note": "Depends on the local alert; invented scenario values only."
+      "note": "Depends on the local alert; invented scenario values only.",
+      "resolves_preference_conflicts": [
+        {
+          "preference_id": "tactile-notification",
+          "conflicting_intervention_id": "battery-backed-local-alert"
+        }
+      ]
     },
     {
       "id": "unknown-cost-doorbell",
@@ -142,7 +150,8 @@
       "resident_disruption_points": 1,
       "access_gate": "cleared",
       "delivery_state": "proposed",
-      "note": "Must remain outside budget-feasible frontier until attributable cost bounds exist."
+      "note": "Must remain outside budget-feasible frontier until attributable cost bounds exist.",
+      "resolves_preference_conflicts": []
     },
     {
       "id": "landlord-fixed-wiring",
@@ -172,7 +181,8 @@
       "resident_disruption_points": 3,
       "access_gate": "pending",
       "delivery_state": "proposed",
-      "note": "Permission remains pending; this option must not appear as budget-feasible."
+      "note": "Permission remains pending; this option must not appear as budget-feasible.",
+      "resolves_preference_conflicts": []
     }
   ]
 }
