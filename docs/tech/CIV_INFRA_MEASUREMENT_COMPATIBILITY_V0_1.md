@@ -41,11 +41,11 @@ Acceptance targets:
 
 1. Zero false singleton classifications on the frozen/generated compatibility oracle.
 2. 100% rejection of malformed versions, unknown fields, reversed intervals, duplicate IDs, incompatible dimensions and malformed supplied digests.
-3. Out-of-domain state envelopes retain compatibility with every outcome and are never clipped.
+3. Partly or wholly out-of-domain state envelopes retain compatibility with every outcome and are never clipped.
 4. 100% preservation of the prior state set for unsupported observations, including observations that fall in a generic output bin but outside every state-specific predicted envelope.
 5. Exact meter/millimeter equivalence and order-invariant semantic reports.
 6. Exact deterministic replay for the same bytes, rule version and toolchain.
-7. No compatibility work above 10,000,000 state/outcome combinations without an explicit, separately reviewed limit change.
+7. No compatibility work above 100,000 state/outcome combinations in v0.1; higher-throughput evaluation should use a separately reviewed streaming/compact-receipt design rather than merely raising the allocation cap.
 8. Report generated world count, edge count, source commit, exact input digest, artifact checksum and wall-clock/memory measurements before asserting scale.
 
 These criteria establish implementation consistency against the declared interval contract only. They do not qualify a physical measurement system.
