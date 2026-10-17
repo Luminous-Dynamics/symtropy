@@ -1,0 +1,53 @@
+{
+  "schema_version": "visual-srgb-reference-v0",
+  "case_id": "VIS-SRGB-REFERENCES-001",
+  "status": "UNQUALIFIED",
+  "evidence_class": "ANALYTIC_REFERENCE",
+  "source": "https://www.w3.org/TR/2026/CRD-css-color-4-20261008/",
+  "profile": {
+    "name": "sRGB",
+    "channel_domain": [0.0, 1.0],
+    "linear_light_basis": true,
+    "relative_luminance_coefficients": {
+      "red": 0.2126,
+      "green": 0.7152,
+      "blue": 0.0722
+    },
+    "transfer_threshold_encoded": 0.04045,
+    "transfer_threshold_linear": 0.0031308
+  },
+  "encoded_to_linear_cases": [
+    { "encoded": 0.0, "expected_linear": 0.0 },
+    { "encoded": 0.001, "expected_linear": 0.00007739938080495357 },
+    { "encoded": 0.04045, "expected_linear": 0.0031308049535603718 },
+    { "encoded": 0.5, "expected_linear": 0.21404114048223255 },
+    { "encoded": 1.0, "expected_linear": 1.0 }
+  ],
+  "linear_to_encoded_cases": [
+    { "linear": 0.0, "expected_encoded": 0.0 },
+    { "linear": 0.0031308, "expected_encoded": 0.040449936 },
+    { "linear": 0.21404114048223255, "expected_encoded": 0.5 },
+    { "linear": 1.0, "expected_encoded": 1.0 }
+  ],
+  "relative_luminance_cases": [
+    { "rgb_srgb": [1.0, 0.0, 0.0], "expected_y": 0.2126 },
+    { "rgb_srgb": [0.0, 1.0, 0.0], "expected_y": 0.7152 },
+    { "rgb_srgb": [0.0, 0.0, 1.0], "expected_y": 0.0722 },
+    { "rgb_srgb": [1.0, 1.0, 1.0], "expected_y": 1.0 },
+    { "rgb_srgb": [0.5, 0.5, 0.5], "expected_y": 0.21404114048223255 }
+  ],
+  "tolerance": 1e-12,
+  "negative_controls_required": [
+    "NaN and infinity must reject",
+    "channel values below zero or above one must reject",
+    "relative luminance must be computed after decoding to linear light",
+    "relative luminance must not be presented as absolute luminance in cd/m2",
+    "sRGB transfer is not an HDR EOTF and does not establish physical panel response"
+  ],
+  "limitations": [
+    "UNQUALIFIED analytic reference fixture, not an HDR display test.",
+    "No physical display, luminance meter, or colorimeter was used.",
+    "Rounded standard breakpoints can produce a tiny discontinuity between the piecewise branches.",
+    "No gamut mapping, tone mapping, display calibration, or surround adaptation is modeled."
+  ]
+}

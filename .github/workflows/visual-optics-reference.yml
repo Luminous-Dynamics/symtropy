@@ -1,0 +1,49 @@
+name: Visual Optics Reference
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/visual-optics-reference/**"
+      - "docs/visual-technology/**"
+      - ".github/workflows/visual-optics-reference.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/visual-optics-reference/**"
+      - "docs/visual-technology/**"
+      - ".github/workflows/visual-optics-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-optics-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Rust reference (pinned toolchain)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # actions/checkout v4.2.2, pinned to its immutable commit.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy --component rustfmt
+          rustup default 1.96.0
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/visual-optics-reference/Cargo.toml -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/visual-optics-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --manifest-path tools/visual-optics-reference/Cargo.toml
