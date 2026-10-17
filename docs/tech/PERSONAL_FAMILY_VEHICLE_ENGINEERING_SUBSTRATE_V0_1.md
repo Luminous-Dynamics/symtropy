@@ -83,7 +83,7 @@ The baseline file stores source IDs, exact unknowns and fields still needed. Bef
 
 The source registry now records the dtic's **15 October 2026** announcement that South Africa plans to phase out current semi-knocked-down (SKD) operations and will no longer support new SKD facilities, plus the SARS APDP2 programme reference. This is a relevant manufacturing-policy risk for any local-build business case, but the announcement does not by itself resolve every facility's transition, eligibility or legal obligations. Confirm current instruments, implementation dates and project eligibility directly with dtic, ITAC and SARS before financial commitments.
 
-For design-space optimization, compare production scenarios instead of hard-coding a single tariff/incentive story:
+The new [MOBILITY-LOCALIZATION-001 #1780](https://github.com/Luminous-Dynamics/symtropy/issues/1780) workstream models this as a robust manufacturing/parts/service scenario problem. For design-space optimization, compare production scenarios instead of hard-coding a single tariff/incentive story:
 - imported complete vehicle / imported subassembly dependence;
 - locally made service parts and consumables;
 - local component sourcing with qualified supplier/quality evidence;
