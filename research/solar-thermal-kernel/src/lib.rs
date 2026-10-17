@@ -713,7 +713,7 @@ mod tests {
         assert!(first.contains("\"stored_exergy_before_discharge_j\""));
         assert!(first.contains("\"final_store_exergy_j\""));
         assert!(first.contains("\"exergy_reference_temperature_k\":300.000000000"));
-        assert!(first.contains("\\\"standing_loss_ambient_temperature_k\\\":300.000000000"));
+        assert!(first.contains("\"standing_loss_ambient_temperature_k\":300.000000000"));
         assert!(first.contains("\"useful_captured_heat_j\":700000.000000000"));
         assert!(first.contains("\"unmet_useful_heat_j\":0.000000000"));
     }
