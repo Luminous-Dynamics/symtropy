@@ -10,9 +10,10 @@
     "energy": "Wh",
     "time": "ms",
     "uncertainty": "mm",
-    "altitude": "m_above_ground_level"
+    "altitude": "m_above_ground_level",
+    "cost": "synthetic_eur_cents_per_m3"
   },
-  "expected_scenario_count": 22,
+  "expected_scenario_count": 28,
   "scenarios": [
     {
       "scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
@@ -981,6 +982,239 @@
       ],
       "expected_actuation": false,
       "scenario_id": "SYNTHETIC_WOODROBOT_022_AERIAL_UNDER_CANOPY_DEFAULT_REJECT"
+    },
+    {
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "material_state": "salvage_candidate",
+      "observations": {
+        "human_approval": "approved",
+        "calibration_state": "current",
+        "tree_condition": "recently_dead",
+        "species_status": "identified",
+        "material_quality_state": "pending_non_destructive_assessment",
+        "decay_status": "initial_assessment_complete",
+        "harvest_permission_state": "verified",
+        "landholder_consent_state": "verified",
+        "protected_species_status": "checked_not_protected",
+        "deadwood_retention_disposition": "approved_for_removal_after_ecological_review",
+        "biodiversity_review_state": "complete",
+        "hazard_review_state": "complete",
+        "pest_quarantine_state": "cleared",
+        "access_method": "existing_low_impact_access",
+        "extraction_mode": "not_selected_screening_only"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "require_landholder_consent": true,
+        "require_harvest_permission": true,
+        "require_protected_species_check": true,
+        "require_ecological_retention_review": true,
+        "require_hazard_review": true,
+        "require_pest_quarantine_review": true,
+        "require_material_quality_assessment_before_product_allocation": true,
+        "no_harvest_authority_from_screening": true
+      },
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_023_RECENTLY_DEAD_TREE_SCREEN_READY",
+      "task_type": "screen_deadwood_for_recovery",
+      "expected_decision": "eligible_for_simulated_plan",
+      "expected_reason_codes": [
+        "SCREENING_ONLY",
+        "SITE_REVIEW_COMPLETE",
+        "NO_EXTRACTION_AUTHORIZED"
+      ],
+      "evidence_class": "synthetic"
+    },
+    {
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "material_state": "salvage_candidate",
+      "observations": {
+        "human_approval": "approved",
+        "calibration_state": "current",
+        "tree_condition": "recently_dead",
+        "harvest_permission_state": "verified",
+        "landholder_consent_state": "verified",
+        "protected_species_status": "checked_not_protected",
+        "deadwood_retention_disposition": "retain_habitat",
+        "biodiversity_review_state": "complete",
+        "hazard_review_state": "complete",
+        "pest_quarantine_state": "cleared",
+        "extraction_mode": "not_selected_screening_only"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "require_landholder_consent": true,
+        "require_harvest_permission": true,
+        "require_ecological_retention_review": true,
+        "retain_when_ecological_policy_requires": true
+      },
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_024_DEADWOOD_RETAINED_FOR_HABITAT",
+      "task_type": "screen_deadwood_for_recovery",
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "DEADWOOD_RETENTION_REQUIRED"
+      ],
+      "evidence_class": "synthetic"
+    },
+    {
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "material_state": "salvage_candidate",
+      "observations": {
+        "human_approval": "approved",
+        "calibration_state": "current",
+        "tree_condition": "recently_dead",
+        "harvest_permission_state": "unknown",
+        "landholder_consent_state": "unknown",
+        "protected_species_status": "unknown",
+        "deadwood_retention_disposition": "not_assessed",
+        "biodiversity_review_state": "missing",
+        "hazard_review_state": "incomplete",
+        "pest_quarantine_state": "unknown",
+        "extraction_mode": "not_selected_screening_only"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "require_landholder_consent": true,
+        "require_harvest_permission": true,
+        "require_protected_species_check": true,
+        "require_ecological_retention_review": true,
+        "require_hazard_review": true,
+        "require_pest_quarantine_review": true
+      },
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_025_PERMISSION_OR_PROTECTION_UNKNOWN",
+      "task_type": "screen_deadwood_for_recovery",
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "HARVEST_PERMISSION_UNVERIFIED",
+        "LANDHOLDER_CONSENT_UNVERIFIED",
+        "PROTECTED_SPECIES_STATUS_UNKNOWN",
+        "ECOLOGICAL_REVIEW_INCOMPLETE"
+      ],
+      "evidence_class": "synthetic"
+    },
+    {
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "material_state": "salvage_candidate",
+      "observations": {
+        "human_approval": "approved",
+        "calibration_state": "current",
+        "tree_condition": "recently_dead",
+        "harvest_permission_state": "verified",
+        "landholder_consent_state": "verified",
+        "protected_species_status": "checked_not_protected",
+        "deadwood_retention_disposition": "approved_for_removal_after_ecological_review",
+        "biodiversity_review_state": "complete",
+        "hazard_review_state": "complete",
+        "pest_quarantine_state": "suspected_pest_or_pathogen",
+        "extraction_mode": "not_selected_screening_only"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "require_harvest_permission": true,
+        "require_ecological_retention_review": true,
+        "require_pest_quarantine_review": true,
+        "block_movement_until_biosecurity_clearance": true
+      },
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_026_BIOSECURITY_HOLD",
+      "task_type": "screen_deadwood_for_recovery",
+      "expected_decision": "blocked",
+      "expected_reason_codes": [
+        "BIOSECURITY_HOLD",
+        "NO_MOVEMENT_BEFORE_CLEARANCE"
+      ],
+      "evidence_class": "synthetic"
+    },
+    {
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "material_state": "salvage_candidate",
+      "observations": {
+        "human_approval": "approved",
+        "calibration_state": "current",
+        "tree_condition": "recently_dead",
+        "harvest_permission_state": "verified",
+        "landholder_consent_state": "verified",
+        "protected_species_status": "checked_not_protected",
+        "deadwood_retention_disposition": "approved_for_removal_after_ecological_review",
+        "biodiversity_review_state": "complete",
+        "hazard_review_state": "complete",
+        "pest_quarantine_state": "cleared",
+        "ground_or_cable_access_feasible": true,
+        "helicopter_all_in_cost_cents_per_m3": 6000,
+        "cable_yarder_all_in_cost_cents_per_m3": 1500,
+        "helicopter_cost_evidence_class": "synthetic_scenario_value",
+        "cable_cost_evidence_class": "synthetic_scenario_value",
+        "mode_selected": "cable_yarder",
+        "extraction_emissions_assessment": "not_yet_measured"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "require_harvest_permission": true,
+        "require_ecological_retention_review": true,
+        "compare_all_in_cost_including_mobilization": true,
+        "require_emissions_and_disturbance_comparison_before_real_selection": true
+      },
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_027_AIRLIFT_DOMINATED_BY_CABLE",
+      "task_type": "compare_extraction_modes",
+      "expected_decision": "eligible_for_simulated_plan",
+      "expected_reason_codes": [
+        "SYNTHETIC_COST_COMPARISON_ONLY",
+        "CABLE_YARDER_SELECTED_LOWER_DECLARED_COST",
+        "NO_EXTRACTION_AUTHORIZED"
+      ],
+      "evidence_class": "synthetic"
+    },
+    {
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "material_state": "salvage_candidate",
+      "observations": {
+        "human_approval": "approved",
+        "calibration_state": "current",
+        "tree_condition": "recently_dead",
+        "harvest_permission_state": "verified",
+        "landholder_consent_state": "verified",
+        "protected_species_status": "checked_not_protected",
+        "deadwood_retention_disposition": "approved_for_removal_after_ecological_review",
+        "biodiversity_review_state": "complete",
+        "hazard_review_state": "complete",
+        "pest_quarantine_state": "cleared",
+        "ground_or_cable_access_feasible": false,
+        "helicopter_all_in_cost_cents_per_m3": 6000,
+        "cable_yarder_all_in_cost_cents_per_m3": null,
+        "helicopter_cost_evidence_class": "synthetic_scenario_value",
+        "expected_recovered_product_margin_cents_per_m3": 9500,
+        "material_quality_state": "awaiting_non_destructive_and_mill_assessment",
+        "lift_plan_state": "requires_qualified_operator_and_rigging_review",
+        "weather_state": "within_declared_operating_envelope",
+        "rotor_clearance_state": "qualified_site_assessment_required",
+        "mode_selected": "helicopter_candidate_for_operator_review",
+        "extraction_emissions_assessment": "not_yet_measured"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "require_harvest_permission": true,
+        "require_ecological_retention_review": true,
+        "require_qualified_lift_plan_before_physical_operation": true,
+        "require_rigging_and_payload_verification": true,
+        "require_weather_and_rotor_clearance_review": true,
+        "require_product_quality_assessment": true,
+        "require_full_cost_and_emissions_assessment": true,
+        "prohibit_physical_extraction_from_simulation_decision": true
+      },
+      "expected_actuation": false,
+      "scenario_id": "SYNTHETIC_WOODROBOT_028_REMOTE_HIGH_VALUE_AIRLIFT_CANDIDATE",
+      "task_type": "compare_extraction_modes",
+      "expected_decision": "eligible_for_simulated_plan",
+      "expected_reason_codes": [
+        "NO_FEASIBLE_GROUND_OR_CABLE_ROUTE",
+        "HELICOPTER_ONLY_A_CANDIDATE_FOR_REVIEW",
+        "SYNTHETIC_COST_COMPARISON_ONLY",
+        "NO_EXTRACTION_AUTHORIZED"
+      ],
+      "evidence_class": "synthetic"
     }
   ]
 }
