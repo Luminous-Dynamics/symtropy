@@ -811,6 +811,52 @@ fn sorted_unique(mut values: Vec<String>) -> Vec<String> {
 mod tests {
     use super::*;
 
+    fn generated_property_events(base_seed: u64, scenario_index: usize) -> Vec<QueuedEvent> {
+        let kinds = [
+            DisturbanceKind::LocalizationLost,
+            DisturbanceKind::CalibrationStale,
+            DisturbanceKind::CommunicationOutage,
+            DisturbanceKind::RobotFailure,
+            DisturbanceKind::LateMaterial,
+            DisturbanceKind::MaterialMismatch,
+            DisturbanceKind::InspectionRejected,
+            DisturbanceKind::GeometryChanged,
+            DisturbanceKind::ResourceConflict,
+            DisturbanceKind::EnergyReserve,
+            DisturbanceKind::UnknownUtility,
+            DisturbanceKind::ApprovalDeclined,
+            DisturbanceKind::CapabilityStale,
+        ];
+        let mut state = base_seed
+            ^ (scenario_index as u64).wrapping_mul(0x9E3779B97F4A7C15);
+        let mut events = Vec::with_capacity(kinds.len());
+
+        for (event_index, kind) in kinds.into_iter().enumerate() {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let injection_tick = (state % 8) as u32;
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let observation_delay = (state % 4) as u32;
+
+            events.push(QueuedEvent {
+                case_id: format!("G-{scenario_index:04}-{event_index:02}"),
+                kind,
+                injection_tick,
+                observable_tick: injection_tick + observation_delay,
+                event_name: kind.as_str().to_string(),
+                affected_resources: vec![format!("resource-{event_index:02}")],
+                affected_tasks: vec![format!("task-{event_index:02}")],
+                invalidates: vec![format!("state-{event_index:02}")],
+                recovery_evidence: vec!["synthetic-recovery-receipt".to_string()],
+            });
+        }
+
+        events
+    }
+
     #[test]
     fn canonical_corpus_produces_thirteen_typed_events() {
         let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
@@ -952,6 +998,71 @@ mod tests {
         let mutated = serde_json::to_vec(&value).expect("mutated fixture serializes");
         let errors = audit_fixture_bytes(&mutated).expect_err("duplicate IDs must fail closed");
         assert!(errors.iter().any(|error| error.contains("duplicate case_id")));
+    }
+
+    #[test]
+    fn one_thousand_generated_queues_preserve_visibility_and_replay_invariants() {
+        let base_seed = 0xC1F1_1A5E_2026_u64;
+        let scenario_count = 1_000_usize;
+
+        for scenario_index in 0..scenario_count {
+            let events = generated_property_events(base_seed, scenario_index);
+            let evaluator_queue = EvaluatorEventQueue::from_events(&events);
+            let observation_queue = PolicyObservationQueue::from_events(&events);
+            let mut reversed_events = events.clone();
+            reversed_events.reverse();
+            let reversed_evaluator_queue = EvaluatorEventQueue::from_events(&reversed_events);
+            let reversed_observation_queue =
+                PolicyObservationQueue::from_events(&reversed_events);
+            let final_tick = observation_queue.final_tick();
+            let mut injected_so_far = BTreeSet::<String>::new();
+            let mut visible_so_far = BTreeSet::<String>::new();
+
+            for tick in 0..=final_tick {
+                let injected_now = evaluator_queue.events_at(tick);
+                let observed_now = observation_queue.observations_at(tick);
+                injected_so_far.extend(injected_now);
+                visible_so_far.extend(
+                    observed_now
+                        .iter()
+                        .map(|observation| observation.case_id.clone()),
+                );
+
+                for event in &events {
+                    let expected_visible = event.observable_tick <= tick;
+                    assert_eq!(
+                        visible_so_far.contains(&event.case_id),
+                        expected_visible,
+                        "scenario {scenario_index}: {} visibility differs at tick {tick}",
+                        event.case_id
+                    );
+
+                    let expected_hidden = event.injection_tick <= tick
+                        && event.observable_tick > tick;
+                    let actual_hidden = injected_so_far.contains(&event.case_id)
+                        && !visible_so_far.contains(&event.case_id);
+                    assert_eq!(
+                        actual_hidden,
+                        expected_hidden,
+                        "scenario {scenario_index}: {} hidden-event set differs at tick {tick}",
+                        event.case_id
+                    );
+                }
+
+                assert_eq!(
+                    evaluator_queue.events_at(tick),
+                    reversed_evaluator_queue.events_at(tick),
+                    "scenario {scenario_index}: injection order changed after input permutation"
+                );
+                assert_eq!(
+                    observation_queue.observations_at(tick),
+                    reversed_observation_queue.observations_at(tick),
+                    "scenario {scenario_index}: observation order changed after input permutation"
+                );
+            }
+        }
+
+        assert_eq!(scenario_count, 1_000);
     }
 
     #[test]
