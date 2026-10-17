@@ -155,6 +155,41 @@ jobs:
           ' /tmp/structural-reference-contract-vectors.json >/dev/null
 
           echo "Verified pinned vector corpus + schema blobs and reconciled all five IDs."
+      - name: Validate tick transaction formal contract manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "0.1.0" and
+            .contract_id == "thermo.tick_lifecycle.v1" and
+            .proof_file == "formalization/lean/SymtropyFormal/TickTransactions.lean" and
+            .lean_toolchain_path == "formalization/lean/lean-toolchain" and
+            .toolchain_policy == "reuse_pinned_toolchain_from_PR_1691" and
+            .rust_source.pull_request == 1726 and
+            .rust_source.source_status == "OPEN_PR_NOT_MERGED" and
+            .evidence.proof_status == "AUTHORED_NOT_VERIFIED_UNTIL_EXACT_HEAD_LEAN_CI_PASSES" and
+            .evidence.rust_refinement_status == "NOT_ESTABLISHED" and
+            .evidence.cross_language_conformance_status == "NOT_IMPLEMENTED" and
+            (.invariants | length == 8) and
+            ([.invariants[].theorem] | unique | length == 8) and
+            (.positive_trace_theorems | length == 6) and
+            ([.positive_trace_theorems[]] | unique | length == 6) and
+            (.known_answer_cases | length == 7) and
+            (.nonclaims | length >= 5)
+          ' formalization/lean/tick-transactions.json >/dev/null
+
+      - name: Typecheck every tick-transaction theorem binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'import SymtropyFormal\n\n'
+            jq -r '([.invariants[].theorem, .positive_trace_theorems[]] | unique[]) | "#check " + .' formalization/lean/tick-transactions.json
+          } > formalization/lean/TickTransactionManifestCheck.lean
+          cd formalization/lean
+          trap 'rm -f TickTransactionManifestCheck.lean' EXIT
+          lake env lean TickTransactionManifestCheck.lean
+
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
         with:
