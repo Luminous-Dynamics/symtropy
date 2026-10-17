@@ -152,10 +152,20 @@ pub struct Finding {
     pub status: CheckStatus,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct CandidateMetrics {
+    pub route_length_m: f64,
+    pub derived_max_grade_percent: f64,
+    pub derived_cut_volume_m3: f64,
+    pub derived_fill_volume_m3: f64,
+    pub derived_total_earthworks_m3: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct CandidateResult {
     pub candidate_id: String,
     pub disposition: CandidateDisposition,
+    pub metrics: CandidateMetrics,
     pub findings: Vec<Finding>,
 }
 
@@ -168,7 +178,7 @@ pub struct ScheduleConflict {
     pub capacity_units: u32,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct BenchmarkReport {
     pub schema_version: String,
     pub fixture_id: String,
@@ -186,6 +196,31 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn finite_nonnegative(value: f64) -> bool {
     value.is_finite() && value >= 0.0
+}
+
+// Report numerical metrics at a stable precision so equivalent but
+// independently ordered floating-point calculations compare deterministically.
+fn normalize_metric(value: f64) -> f64 {
+    if value.is_finite() {
+        (value * 1.0e9).round() / 1.0e9
+    } else {
+        value
+    }
+}
+
+fn candidate_metrics(
+    route_length_m: f64,
+    max_grade_percent: f64,
+    cut_volume_m3: f64,
+    fill_volume_m3: f64,
+) -> CandidateMetrics {
+    CandidateMetrics {
+        route_length_m: normalize_metric(route_length_m),
+        derived_max_grade_percent: normalize_metric(max_grade_percent),
+        derived_cut_volume_m3: normalize_metric(cut_volume_m3),
+        derived_fill_volume_m3: normalize_metric(fill_volume_m3),
+        derived_total_earthworks_m3: normalize_metric(cut_volume_m3 + fill_volume_m3),
+    }
 }
 
 fn maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
@@ -700,6 +735,12 @@ fn evaluate_candidate(
     CandidateResult {
         candidate_id: candidate.id.clone(),
         disposition: disposition_from_findings(&findings),
+        metrics: candidate_metrics(
+            candidate.length_m,
+            derived_grade,
+            cut_volume_m3,
+            fill_volume_m3,
+        ),
         findings,
     }
 }
@@ -986,6 +1027,12 @@ fn reference_candidate_result(
     CandidateResult {
         candidate_id: candidate.id.clone(),
         disposition,
+        metrics: candidate_metrics(
+            candidate.length_m,
+            derived_grade,
+            cut_volume_m3,
+            fill_volume_m3,
+        ),
         findings,
     }
 }
