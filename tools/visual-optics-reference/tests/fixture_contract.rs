@@ -183,10 +183,10 @@ fn pixel_ray_roundtrip_fixture_matches_independent_equations_and_reference() {
         (pixel.v - intrinsics.cy) / intrinsics.fy,
         1.0,
     ];
-    for index in 0..3 {
+    for (actual, expected) in oracle_ray.into_iter().zip(expected_ray) {
         assert_close(
-            oracle_ray[index],
-            expected_ray[index],
+            actual,
+            expected,
             tolerance,
             "analytic ray component",
         );
