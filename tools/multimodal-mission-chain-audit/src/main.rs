@@ -545,7 +545,6 @@ fn evaluate(root: &Value) -> Result<Value, Vec<String>> {
         let needs_accessibility = payload_list.iter().any(|p| flag(p, "accessible_transfer_required") || num(p, "occupants") > 0.0);
         let needs_patient = payload_list.iter().any(|p| flag(p, "patient_support_required") || flag(p, "caregiver_access_required"));
         let needs_privacy = payload_list.iter().any(|p| flag(p, "privacy_sensitive"));
-        let has_people = payload_list.iter().any(|p| num(p, "occupants") > 0.0);
 
         let mut gate_failures = BTreeSet::new();
         let mut unknown_evidence = BTreeSet::new();
