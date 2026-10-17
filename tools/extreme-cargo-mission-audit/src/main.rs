@@ -83,6 +83,7 @@ struct Mission {
     environment: String,
     class: String,
     payload_ids: Vec<String>,
+    allowed_modes: BTreeSet<String>,
     required_gates: BTreeSet<String>,
     ambient: Range,
     required_route_tilt_deg: f64,
@@ -338,7 +339,8 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
             if let Some(id) = read_string(item, "payload_id", &path, &mut errors) {
                 if !payload_ids.insert(id) { push(&mut errors, &path, "duplicate payload ID"); }
             }
-            match item.get("payload_class").and_then(Value::as_str) {
+            let payload_class = item.get("payload_class").and_then(Value::as_str);
+            match payload_class {
                 Some(class) if PAYLOAD_CLASSES.contains(&class) => {}
                 _ => push(&mut errors, &format!("{path}.payload_class"), "unknown payload class"),
             }
@@ -376,6 +378,17 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
             let class_is_human = occupant_class.is_some_and(|class| class != "none");
             if human != class_is_human {
                 push(&mut errors, &path, "occupant count and occupant_class disagree");
+            }
+            let expected_occupant_class = match payload_class {
+                Some("bulk_cargo" | "cold_chain" | "fragile_instrument" | "contained_liquid") => Some("none"),
+                Some("seated_passengers") => Some("seated"),
+                Some("wheelchair_user") => Some("wheelchair"),
+                Some("stretcher_patient") => Some("stretcher_patient"),
+                Some("field_crew") => Some("field_crew"),
+                _ => None,
+            };
+            if expected_occupant_class.is_some() && occupant_class != expected_occupant_class {
+                push(&mut errors, &path, "payload_class and occupant_class are incompatible");
             }
             let get_flag = |key: &str| item.get(key).and_then(Value::as_bool) == Some(true);
             if human && (!get_flag("restraint_required") || !get_flag("emergency_egress_required")) {
@@ -537,7 +550,7 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
         for (i, item) in items.iter().enumerate() {
             let path = format!("mission_scenarios[{i}]");
             const KEYS: &[&str] = &[
-                "mission_id", "environment_id", "mission_class", "payload_ids",
+                "mission_id", "environment_id", "mission_class", "payload_ids", "allowed_modes",
                 "required_gate_ids", "route_envelope", "requires_human_transport", "operating_notes",
             ];
             if !exact_keys(item, KEYS) { push(&mut errors, &path, "missing or unknown fields"); }
@@ -552,6 +565,12 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
             read_string(item, "operating_notes", &path, &mut errors);
             let payloads = read_string_set(&item["payload_ids"], &format!("{path}.payload_ids"), &mut errors, 1);
             if payloads.len() > 12 { push(&mut errors, &format!("{path}.payload_ids"), "v0.1 bounds exhaustive load-layout checks to at most 12 payloads"); }
+            let allowed_modes = read_string_set(&item["allowed_modes"], &format!("{path}.allowed_modes"), &mut errors, 1);
+            for mode in &allowed_modes {
+                if !MODES.contains(&mode.as_str()) {
+                    push(&mut errors, &format!("{path}.allowed_modes"), "unknown transport mode");
+                }
+            }
             for payload in &payloads {
                 if !payload_ids.contains(payload) {
                     push(&mut errors, &format!("{path}.payload_ids"), "undeclared payload ID");
@@ -630,6 +649,14 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
                 push(&mut errors, &format!("{path}.route_envelope"), "ambient endpoints must be finite");
             } else if route_min.unwrap() > route_max.unwrap() {
                 push(&mut errors, &format!("{path}.route_envelope"), "ambient minimum must be <= maximum");
+            } else if let Some(env_profile) = root["environments"].as_array().and_then(|items| items.iter()
+                .find(|env| env["environment_id"].as_str() == item["environment_id"].as_str())) {
+                let env_min = env_profile["min_ambient_temp_c"].as_f64();
+                let env_max = env_profile["max_ambient_temp_c"].as_f64();
+                if env_min.is_some_and(f64::is_finite) && env_max.is_some_and(f64::is_finite)
+                    && (route_min.unwrap() < env_min.unwrap() || route_max.unwrap() > env_max.unwrap()) {
+                    push(&mut errors, &format!("{path}.route_envelope"), "mission route temperatures must sit within the declared environment envelope");
+                }
             }
             match route.get("required_route_tilt_deg").and_then(Value::as_f64) {
                 Some(deg) if deg.is_finite() && (0.0..=90.0).contains(&deg) => {}
@@ -879,6 +906,8 @@ fn mission_from(value: &Value) -> Mission {
         class: value["mission_class"].as_str().unwrap().to_string(),
         payload_ids: value["payload_ids"].as_array().unwrap().iter()
             .map(|item| item.as_str().unwrap().to_string()).collect(),
+        allowed_modes: value["allowed_modes"].as_array().unwrap().iter()
+            .map(|item| item.as_str().unwrap().to_string()).collect(),
         required_gates,
         ambient: Range {
             lo: number_value(&value["route_envelope"], "min_ambient_temp_c"),
@@ -898,6 +927,9 @@ fn platform_mismatches(
     let mut findings = BTreeSet::new();
     if !platform.environments.contains(&mission.environment) {
         findings.insert("platform_not_declared_for_environment".to_string());
+    }
+    if !mission.allowed_modes.contains(&platform.mode) {
+        findings.insert(format!("transport_mode_not_allowed:{}", platform.mode));
     }
     if mission.ambient.lo < platform.ambient.lo || mission.ambient.hi > platform.ambient.hi {
         findings.insert("mission_ambient_outside_platform_envelope".to_string());
