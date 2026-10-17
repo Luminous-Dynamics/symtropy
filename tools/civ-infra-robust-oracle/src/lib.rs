@@ -479,9 +479,9 @@ fn state_evaluations(
             let constraints_complete =
                 result.constraints.len() == fixture.required_constraints.len()
                     && fixture
-                    .required_constraints
-                    .iter()
-                    .all(|id| result.constraints.contains_key(id));
+                        .required_constraints
+                        .iter()
+                        .all(|id| result.constraints.contains_key(id));
             let objectives_complete = result.objectives.len() == fixture.objectives.len()
                 && fixture
                     .objectives
