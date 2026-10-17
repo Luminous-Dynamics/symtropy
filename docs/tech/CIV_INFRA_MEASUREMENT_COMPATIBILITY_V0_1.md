@@ -24,7 +24,7 @@ This prototype demonstrates that principle with a small whitelist of determinist
 - A state interval not wholly within the model domain is flagged and treated as compatible with every outcome; it is not clipped to look more informative.
 - Outcome bins may overlap. Predicted output not covered by any bin is reported as a support gap.
 - The discrepancy interval itself is part of the exact input digest and is copied into the output receipt, so reviewers can distinguish state uncertainty from declared model error.
-- An observation that matches no outcome bin is out-of-model-support. Even if an observation falls in a bin, if no declared state envelope supports it, the prior state set is also preserved and the model/support mismatch is flagged.
+- An observation that matches no outcome bin is out-of-model-support. Even if an observation falls in a bin, if no declared state envelope supports it, the prior state set is also preserved and the model/support mismatch is flagged. Worst-case counts across named bins are explicitly conditional on the observation being supported by the declared bins; a separate support-failure bound reports the unchanged full prior state set, signature classes and discordant pairs.
 - If a supported observation is compatible with more than one state, all such states remain. No probabilities or expected value of information are manufactured.
 
 ## 3. Evidence semantics
