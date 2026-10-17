@@ -8,7 +8,7 @@ The allocator in `src/systems/thermodynamic_allocation.rs` uses IEEE-754 `f64`, 
 
 The new deterministic unit test covers:
 
-- explicit boundary values: zero, smallest positive subnormal, smallest positive normal, machine epsilon, (10^{-300}), (10^{-16}), (1), (10^{16}), (10^{300}), and `f64::MAX);
+- explicit boundary values: zero, smallest positive subnormal, smallest positive normal, machine epsilon, (10^{-300}), (10^{-16}), (1), (10^{16}), (10^{300}), and `f64::MAX`.
 - 4,096 seeded cases with recipient counts from 0 through 64 and non-negative finite values sampled across the binary64 exponent range;
 - 4,096 quarter-unit cases differentially checked against an independent integer/rational water-filling oracle; all generated source values and caps are exactly representable in binary64, while only equal-share division may round;
 - stable-ID output ordering and exact output equality after reversing input order;
