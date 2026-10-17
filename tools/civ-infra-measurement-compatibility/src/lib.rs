@@ -9,7 +9,7 @@ pub const EVALUATOR_VERSION: &str = "0.1.0";
 pub const FIXED_SCALE: i128 = 1_000_000;
 pub const MAX_STATES: usize = 100_000;
 pub const MAX_OUTCOMES: usize = 100_000;
-pub const MAX_COMPATIBILITY_EDGES: usize = 10_000_000;
+pub const MAX_COMPATIBILITY_EDGES: usize = 100_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -822,6 +822,16 @@ mod tests {
     }
 
     #[test]
+    fn partially_out_of_domain_state_is_not_clipped_or_narrowed() {
+        let mut input = base_input();
+        input.states = vec![state("crossing", Unit::Meter, 1_900_000, 2_100_000, "decision-crossing")];
+        let report = evaluate(&input, &digest(&input)).expect("partly out-of-domain state is retained");
+        assert_eq!(report.state_results[0].domain_status, DomainStatus::PartlyOrWhollyOutsideModelDomain);
+        assert_eq!(report.state_results[0].possible_outcome_ids.len(), input.outcomes.len());
+        assert_eq!(report.state_results[0].predicted_output_interval, None);
+    }
+
+    #[test]
     fn uncovered_output_range_is_explicit() {
         let mut input = base_input();
         input.states = vec![state("gap", Unit::Meter, 1_000_000, 1_800_000, "decision-gap")];
@@ -1036,8 +1046,8 @@ mod tests {
 
     #[test]
     fn compatibility_work_bound_accepts_limit_and_rejects_over_limit() {
-        assert_eq!(validate_work_bound(1_000, 10_000).expect("limit accepted"), MAX_COMPATIBILITY_EDGES);
-        assert!(validate_work_bound(1_001, 10_000).unwrap_err().contains("exceeds limit"));
+        assert_eq!(validate_work_bound(100, 1_000).expect("limit accepted"), MAX_COMPATIBILITY_EDGES);
+        assert!(validate_work_bound(101, 1_000).unwrap_err().contains("exceeds limit"));
         assert!(validate_work_bound(usize::MAX, 2).unwrap_err().contains("overflow"));
     }
 }
