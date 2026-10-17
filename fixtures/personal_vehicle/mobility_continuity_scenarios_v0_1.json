@@ -421,31 +421,96 @@
       "id": "NC-01",
       "anti_pattern": "safety_hold_bypassed",
       "must_reject": true,
-      "evidence_class": "negative_control"
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": true,
+        "dispatch_allowed": true,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
     },
     {
       "id": "NC-02",
       "anti_pattern": "unknown_lifecycle_cost_imputed_as_zero",
       "must_reject": true,
-      "evidence_class": "negative_control"
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": 0,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
     },
     {
       "id": "NC-03",
       "anti_pattern": "synthetic_result_relabelled_as_observed",
       "must_reject": true,
-      "evidence_class": "negative_control"
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "observed_field_measurement",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
     },
     {
       "id": "NC-04",
       "anti_pattern": "unavailable_fallback_counted_as_served",
       "must_reject": true,
-      "evidence_class": "negative_control"
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": false,
+        "trips_demanded": 1,
+        "trips_counted_served": 1,
+        "price_basis": "unknown",
+        "claimed_as_lifecycle_cost": false
+      }
     },
     {
       "id": "NC-05",
       "anti_pattern": "advertised_from_price_treated_as_lifecycle_cost",
       "must_reject": true,
-      "evidence_class": "negative_control"
+      "evidence_class": "negative_control",
+      "adversarial_input": {
+        "active_safety_hold": false,
+        "dispatch_allowed": false,
+        "lifecycle_cost_status": "unknown",
+        "reported_lifecycle_cost_r": null,
+        "input_evidence_class": "synthetic_scenario_input",
+        "claimed_output_evidence_class": "synthetic_scenario_input",
+        "fallback_available": true,
+        "trips_demanded": 0,
+        "trips_counted_served": 0,
+        "price_basis": "advertised_from",
+        "claimed_as_lifecycle_cost": true
+      }
     }
   ],
   "evidence_boundary": {
