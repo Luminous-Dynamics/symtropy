@@ -135,7 +135,9 @@ Do not create a new universal robot-authority subsystem. Compose established Sym
 
 ### Synthetic contract qualification
 
-Use the frozen companion corpus at `docs/tech/wood-robot-platform-corpus-v0.1.json`. It includes shop and construction controls plus aerial-mission tests for permission, no-fly constraints, wildlife disturbance, weather, privacy, geofencing and degraded recovery.
+Use the frozen companion corpus at `docs/tech/wood-robot-platform-corpus-v0.1.json`. It has 22 unique synthetic scenarios, including 13 for the aerial Scout, and covers shop/construction controls plus aerial permission, airspace/geofence, wildlife disturbance, weather, privacy, contact, payload release, measurement uncertainty and degraded recovery.
+
+The independent standalone Rust checker is at `tools/wood-robot-platform-audit/`. It enforces the declared scenario count, unique IDs, reason-coded decisions, no-actuation ceiling, generic task blockers and aerial mission hard gates. Run its focused tests and exact-source receipt command as documented in that crate; the focused workflow is `.github/workflows/wood-robot-platform-audit.yml`.
 
 The verifier should independently recompute rather than trust the planner for:
 - input and configuration digests;
