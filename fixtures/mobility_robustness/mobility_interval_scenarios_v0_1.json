@@ -1,0 +1,581 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "mobility-interval-robustness-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_market_data_included": false,
+    "notes": "Synthetic intervals only."
+  },
+  "claim_ceiling": "synthetic_interval_frontiers_are_not_market_certainty_or_recommendations",
+  "scenario": {
+    "scenario_id": "MOB-ROBUST-SYNTH-URBAN-01",
+    "context_id": "SYNTH-URBAN-EDGE-01",
+    "service_unit": "essential_trip_bundle_per_household_month",
+    "intended_user_segment": "synthetic urban household"
+  },
+  "gate_definitions": [
+    {
+      "gate_id": "legal_and_operating_scope",
+      "meaning": "Synthetic hard gate.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "essential_access_fit",
+      "meaning": "Synthetic hard gate.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "energy_or_service_access",
+      "meaning": "Synthetic hard gate.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "repair_and_recovery_path",
+      "meaning": "Synthetic hard gate.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "privacy_and_owner_control",
+      "meaning": "Synthetic hard gate.",
+      "hard_gate": true
+    }
+  ],
+  "metric_definitions": [
+    {
+      "metric_id": "monthly_budget_burden_ratio",
+      "unit": "ratio",
+      "direction": "minimize",
+      "meaning": "Synthetic metric."
+    },
+    {
+      "metric_id": "essential_trip_coverage",
+      "unit": "fraction",
+      "direction": "maximize",
+      "meaning": "Synthetic metric."
+    },
+    {
+      "metric_id": "repair_downtime_hours_month",
+      "unit": "hours_per_month",
+      "direction": "minimize",
+      "meaning": "Synthetic metric."
+    },
+    {
+      "metric_id": "p90_access_time_minutes",
+      "unit": "minutes",
+      "direction": "minimize",
+      "meaning": "Synthetic metric."
+    },
+    {
+      "metric_id": "lifecycle_resource_index",
+      "unit": "normalized_index",
+      "direction": "minimize",
+      "meaning": "Synthetic metric."
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "01-compact-ev-plus-shared-charging",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.35,
+          "upper": 0.55
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.8,
+          "upper": 0.94
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 8
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 35
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.45,
+          "upper": 0.65
+        }
+      ]
+    },
+    {
+      "candidate_id": "02-compact-hybrid-plus-local-service",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.4,
+          "upper": 0.62
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.82,
+          "upper": 0.96
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 9
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 18,
+          "upper": 32
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.6,
+          "upper": 0.8
+        }
+      ]
+    },
+    {
+      "candidate_id": "03-repairable-used-vehicle-parts-pool",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.25,
+          "upper": 0.5
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.8,
+          "upper": 0.95
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 5,
+          "upper": 16
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 15,
+          "upper": 45
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.55,
+          "upper": 0.9
+        }
+      ]
+    },
+    {
+      "candidate_id": "04-cargo-cycle-plus-transit",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.15,
+          "upper": 0.4
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.65,
+          "upper": 0.88
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 1,
+          "upper": 4
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 25,
+          "upper": 55
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.2,
+          "upper": 0.5
+        }
+      ]
+    },
+    {
+      "candidate_id": "05-community-shuttle-service",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.28,
+          "upper": 0.48
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.7,
+          "upper": 0.9
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 4,
+          "upper": 12
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 25,
+          "upper": 60
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.3,
+          "upper": 0.55
+        }
+      ]
+    },
+    {
+      "candidate_id": "06-uncertified-low-price-import",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "fail"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.05,
+          "upper": 0.2
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.85,
+          "upper": 0.98
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 1,
+          "upper": 3
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 10,
+          "upper": 20
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.1,
+          "upper": 0.3
+        }
+      ]
+    },
+    {
+      "candidate_id": "07-unconfirmed-energy-and-repair",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "unknown"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_interval",
+          "lower": 0.3,
+          "upper": 0.6
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.7,
+          "upper": 0.92
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 3,
+          "upper": 15
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 20,
+          "upper": 50
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.3,
+          "upper": 0.7
+        }
+      ]
+    },
+    {
+      "candidate_id": "08-incomplete-budget-evidence",
+      "bundle_description": "Synthetic mobility bundle.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "status": "pass"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "status": "pass"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "status": "pass"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "status": "pass"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "status": "pass"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "unknown",
+          "lower": null,
+          "upper": null
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_interval",
+          "lower": 0.72,
+          "upper": 0.9
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_interval",
+          "lower": 2,
+          "upper": 10
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_interval",
+          "lower": 18,
+          "upper": 40
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_interval",
+          "lower": 0.25,
+          "upper": 0.6
+        }
+      ]
+    }
+  ]
+}
