@@ -131,3 +131,10 @@ No inference from model confidence, reputation or optimization score to authorit
 The static core and temporal extension are under draft review in [PR #1730](https://github.com/Luminous-Dynamics/symtropy/pull/1730) and [PR #1743](https://github.com/Luminous-Dynamics/symtropy/pull/1743). They currently implement deterministic static/temporal synthetic execution, resource/floor outcomes and an independent receipt verifier. A paired multi-policy runner, intervention model with crew/parts costs, calibrated physical solvers and real-world validation are **not implemented yet**.
 
 The current policy benchmark is therefore a specification and next-step programme, not a claim that an adaptive policy has improved city or habitat outcomes.
+
+
+## Observation-boundary implementation dependency
+
+A first typed policy-information-frame builder now exists in `crates/domains/symtropy-settlement-core/src/observation.rs`, with an explicit freshness window, source/target generation, sample tick, available tick, stale/missing/conflicting/unvalidated/revoked dispositions, canonical digest and a metamorphic no-lookahead test. See [SETTLEMENT-OBS-001 #1753](https://github.com/Luminous-Dynamics/symtropy/issues/1753) and [Observation Boundary v0.1](https://github.com/Luminous-Dynamics/symtropy/blob/research/settlement-timeline-v0-1/docs/research/SETTLEMENT_OBSERVATION_BOUNDARY_V0_1.md).
+
+This is only the projection/conformance layer. The policy runner still must keep latent scenario state private, generate observations from a deterministic schedule, make decisions only from these frames, and separately receipt intervention costs/latency. No paired policy outcome or information-value result is implemented yet.
