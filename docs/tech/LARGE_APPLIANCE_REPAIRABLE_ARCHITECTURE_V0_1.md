@@ -208,6 +208,8 @@ Regulation varies by target market, model, intended use and current text. Treat 
 - Open Arsenal Specs, [Universal Appliance Standard concept](https://github.com/openarsenalspecs/Civic-Tech/blob/main/Universal%20Appliance%20Standard.md): examine the existing broad interoperability ambition and coordinate rather than proposing a competing universal product standard.
 - Symtropy [#1805 / PR #1806](https://github.com/Luminous-Dynamics/symtropy/pull/1806), Symthaea [#7695 and #7843](https://github.com/Luminous-Dynamics/symthaea/pull/7843), Mycelix [#5156](https://github.com/Luminous-Dynamics/mycelix/issues/5156): internal architecture and evidence owners.
 
+The [Open Repair Alliance's 16 October 2026 release](https://openrepair.org/announcements/over-half-a-million-records-of-open-data-on-repair/) reports 619,875 repair attempts across 34 countries. These community-event records can inform repair-barrier vocabulary and data collection, but the product mix, participation and reporting process do not make them a representative random sample of large-appliance field failures. In particular, do not use them to infer washer fault priors or prevalence without validating product coverage, selection and missingness; see its [downloads](https://openrepair.org/open-data/downloads/) and [ORDS scope](https://openrepair.org/open-data/open-standard/). The separate W0-W4 washer comparison plan is documented in [WASHER_REFERENCE_ARCHITECTURE_V0_1.md](https://github.com/Luminous-Dynamics/symtropy/blob/research/large-appliance-repairable-architecture-v0-1/docs/tech/WASHER_REFERENCE_ARCHITECTURE_V0_1.md) and the machine-readable portfolio fixture.
+
 ## 9. Decisions still open
 
 - Initial geography/market, installation type and regulatory route for the first washer.
