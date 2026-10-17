@@ -12,8 +12,7 @@ pub const REPORT_SCHEMA: &str = "luminous.habitat_decision_benchmark.report.v0.1
 pub const CLAIM_CEILING: &str =
     "synthetic_decision_impact_only_not_real_site_safety";
 const FIXTURE_SHA256: &str = "4c30be2c0e10c5a292a2dd2016860807a40caee2970253fda498b4022f87b8a9";
-const RANKING_POLICY: &str =
-    "maximize_minimax_regret_reduction_per_cost_unit_then_minimize_post_regret_then_cost_then_duration_then_id";
+const RANKING_POLICY: &str = "maximize_minimax_regret_reduction_per_cost_unit_then_minimize_post_regret_then_cost_then_duration_then_id";
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -129,9 +128,13 @@ pub fn evaluate_fixture(
         return Err(errors);
     }
 
-    let all_state_ids: Vec<String> = fixture.state_space.iter().map(|state| state.id.clone()).collect();
+    let all_state_ids: Vec<String> = fixture
+        .state_space
+        .iter()
+        .map(|state| state.id.clone())
+        .collect();
     let baseline = choose_robust_candidate(fixture, &all_state_ids)
-        .expect("validation guarantees each state has a feasible candidate and the frozen toy has a robust baseline");
+        .expect("validation guarantees a robust-feasible baseline");
     let baseline_regret = worst_regret_for_selected_candidate(fixture, baseline, &all_state_ids)
         .expect("validated finite-state candidate costs cannot overflow regret");
     let mut ranked_actions = fixture.actions.iter()
@@ -259,15 +262,24 @@ fn validate_fixture(fixture: &DecisionFixture) -> Vec<String> {
                 errors.push(format!("{} has duplicate outcome ID {:?}", action.id, outcome.id));
             }
             if outcome.state_ids.is_empty() {
-                errors.push(format!("{} outcome {} must cover at least one state", action.id, outcome.id));
+                errors.push(format!(
+                    "{} outcome {} must cover at least one state",
+                    action.id, outcome.id
+                ));
             }
             let mut local_ids = BTreeSet::new();
             for state_id in &outcome.state_ids {
                 if !state_ids.contains(state_id) {
-                    errors.push(format!("{} outcome {} references undeclared state {:?}", action.id, outcome.id, state_id));
+                    errors.push(format!(
+                        "{} outcome {} references undeclared state {:?}",
+                        action.id, outcome.id, state_id
+                    ));
                 }
                 if !local_ids.insert(state_id) {
-                    errors.push(format!("{} outcome {} repeats state {:?}", action.id, outcome.id, state_id));
+                    errors.push(format!(
+                        "{} outcome {} repeats state {:?}",
+                        action.id, outcome.id, state_id
+                    ));
                 }
                 *state_assignments.entry(state_id.clone()).or_insert(0) += 1;
             }
@@ -276,12 +288,18 @@ fn validate_fixture(fixture: &DecisionFixture) -> Vec<String> {
             match state_assignments.get(state_id).copied().unwrap_or(0) {
                 0 => errors.push(format!("{} outcomes omit state {:?}", action.id, state_id)),
                 1 => {}
-                count => errors.push(format!("{} outcomes assign state {:?} {count} times", action.id, state_id)),
+                count => errors.push(format!(
+                    "{} outcomes assign state {:?} {count} times",
+                    action.id, state_id
+                )),
             }
         }
         for assigned_id in state_assignments.keys() {
             if !state_ids.contains(assigned_id) {
-                errors.push(format!("{} contains assignment for unknown state {:?}", action.id, assigned_id));
+                errors.push(format!(
+                    "{} contains assignment for unknown state {:?}",
+                    action.id, assigned_id
+                ));
             }
         }
     }
@@ -293,7 +311,11 @@ fn validate_fixture(fixture: &DecisionFixture) -> Vec<String> {
             errors.push(format!("no candidate is feasible in declared state {:?}", state.id));
         }
     }
-    let all_state_ids: Vec<String> = fixture.state_space.iter().map(|state| state.id.clone()).collect();
+    let all_state_ids: Vec<String> = fixture
+        .state_space
+        .iter()
+        .map(|state| state.id.clone())
+        .collect();
     if !all_state_ids.is_empty() && choose_robust_candidate(fixture, &all_state_ids).is_none() {
         errors.push("no robust-feasible baseline candidate spans the full state space".to_owned());
     }
@@ -365,7 +387,12 @@ fn evaluate_action(
             vec![format!("{} outcome {} has no robust-feasible candidate", action.id, outcome.id)]
         })?;
         let regret = worst_regret_for_selected_candidate(fixture, selected, &possible_state_ids)
-            .ok_or_else(|| vec![format!("{} outcome {} has no finite regret result", action.id, outcome.id)])?;
+            .ok_or_else(|| {
+                vec![format!(
+                    "{} outcome {} has no finite regret result",
+                    action.id, outcome.id
+                )]
+            })?;
         worst_case_regret_after = worst_case_regret_after.max(regret);
         max_residual_state_count = max_residual_state_count.max(possible_state_ids.len());
         max_candidate_cost = max_candidate_cost.max(selected.cost_units);
@@ -455,7 +482,11 @@ mod tests {
                 feasible.push(candidate);
             }
         }
-        feasible.sort_by(|left, right| left.cost_units.cmp(&right.cost_units).then_with(|| left.id.cmp(&right.id)));
+        feasible.sort_by(|left, right| {
+            left.cost_units
+                .cmp(&right.cost_units)
+                .then_with(|| left.id.cmp(&right.id))
+        });
         feasible.into_iter().next()
     }
 
@@ -510,7 +541,11 @@ mod tests {
     #[test]
     fn ranked_actions_match_frozen_synthetic_expected_values() {
         let report = verify_fixture_bytes(pinned_fixture_bytes()).unwrap();
-        let ranked: Vec<&str> = report.ranked_actions.iter().map(|action| action.action_id.as_str()).collect();
+        let ranked: Vec<&str> = report
+            .ranked_actions
+            .iter()
+            .map(|action| action.action_id.as_str())
+            .collect();
         assert_eq!(ranked, vec!["A-COMBINED-SURVEY", "A-FLOOD-SURVEY", "A-GEOTECH-SURVEY"]);
 
         let combined = &report.ranked_actions[0];
@@ -538,7 +573,11 @@ mod tests {
     fn brute_force_reference_matches_every_action_and_outcome() {
         let fixture: DecisionFixture = serde_json::from_slice(pinned_fixture_bytes()).unwrap();
         let report = evaluate_fixture(&fixture, fixture_sha256(pinned_fixture_bytes())).unwrap();
-        let baseline_ids: Vec<String> = fixture.state_space.iter().map(|state| state.id.clone()).collect();
+        let baseline_ids: Vec<String> = fixture
+            .state_space
+            .iter()
+            .map(|state| state.id.clone())
+            .collect();
         let baseline = oracle_robust_candidate(&fixture, &baseline_ids).unwrap();
         let base_regret = fixture.state_space.iter().map(|state| {
             let best = oracle_state_best_cost(&fixture, &state.id).unwrap();
@@ -547,7 +586,11 @@ mod tests {
         assert_eq!(base_regret, report.baseline_worst_case_regret_units);
 
         for production in &report.ranked_actions {
-            let action = fixture.actions.iter().find(|action| action.id == production.action_id).unwrap();
+            let action = fixture
+                .actions
+                .iter()
+                .find(|action| action.id == production.action_id)
+                .unwrap();
             let (oracle_regret, oracle_choices) = oracle_action_regret(&fixture, action).unwrap();
             assert_eq!(production.worst_case_regret_after_units, oracle_regret);
             let production_choices: Vec<(String, String)> = production.outcome_decisions.iter()
@@ -568,7 +611,10 @@ mod tests {
     #[test]
     fn rejects_undeclared_hazards() {
         let mut value = fixture_value();
-        value["candidates"][0]["blocked_if_any_hazard_present"].as_array_mut().unwrap().push(json!("imaginary_hazard"));
+        value["candidates"][0]["blocked_if_any_hazard_present"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("imaginary_hazard"));
         let fixture = parse_value(value);
         let errors = validate_fixture(&fixture);
         assert!(errors.iter().any(|error| error.contains("undeclared hazard")));
@@ -585,7 +631,10 @@ mod tests {
     #[test]
     fn rejects_overlapping_action_outcomes() {
         let mut value = fixture_value();
-        value["actions"][0]["outcomes"][1]["state_ids"].as_array_mut().unwrap().push(json!("clear"));
+        value["actions"][0]["outcomes"][1]["state_ids"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("clear"));
         let errors = validate_fixture(&parse_value(value));
         assert!(errors.iter().any(|error| error.contains("assign state \"clear\" 2 times")));
     }
