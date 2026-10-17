@@ -792,7 +792,7 @@ mod tests {
         assert!(serde_json::from_value::<PlannerInput>(value).is_err());
     }
 
-    fn independent_pair_oracle(input: &PlannerInput, action: &MeasurementAction) -> (usize, usize, u64, usize) {
+    fn independent_pair_oracle(input: &PlannerInput, action: &MeasurementAction) -> (usize, usize, u64, u64) {
         let by_id: BTreeMap<&str, &DecisionSignature> = input
             .state_signatures
             .iter()
@@ -801,7 +801,6 @@ mod tests {
         let mut max_states = 0usize;
         let mut max_classes = 0usize;
         let mut max_discordant_pairs = 0u64;
-        let mut separated_pairs = 0u64;
         for outcome in &action.outcomes {
             max_states = max_states.max(outcome.state_ids.len());
             let keys: Vec<String> = outcome
@@ -852,11 +851,12 @@ mod tests {
                 pairs
             })
             .sum();
-        separated_pairs = global_discordant_pairs - remaining;
-        (max_states, max_classes, max_discordant_pairs, separated_pairs as usize)
+        let separated_pairs = global_discordant_pairs - remaining;
+        (max_states, max_classes, max_discordant_pairs, separated_pairs)
     }
 
-    fn generated_input(world: usize) -> PlannerInput {
+    fn generated_input(world: usize, seed: u64) -> PlannerInput {
+        let seed_index = seed as usize;
         let candidate_ids = vec!["A".to_owned(), "B".to_owned(), "C".to_owned(), "D".to_owned()];
         let mut state_signatures = Vec::new();
         for state_index in 0..20usize {
@@ -865,10 +865,10 @@ mod tests {
             let mut unknown = Vec::new();
             let mut frontier = Vec::new();
             for (candidate_index, candidate) in candidate_ids.iter().enumerate() {
-                match (world + state_index * 3 + candidate_index * 7) % 3 {
+                match (seed_index % 3 + state_index * 3 + candidate_index * 7) % 3 {
                     0 => {
                         feasible.push(candidate.clone());
-                        if (world + state_index + candidate_index) % 2 == 0 {
+                        if (seed_index + state_index + candidate_index) % 2 == 0 {
                             frontier.push(candidate.clone());
                         }
                     }
@@ -892,10 +892,10 @@ mod tests {
 
         let mut actions = Vec::new();
         for action_index in 0..5usize {
-            let outcome_count = 1 + ((world + action_index) % 5);
+            let outcome_count = 1 + ((seed_index + action_index) % 5);
             let mut outcome_states = vec![Vec::new(); outcome_count];
             for state_index in 0..20usize {
-                let bucket = (state_index + world * (action_index + 1)) % outcome_count;
+                let bucket = (state_index + seed_index * (action_index + 1)) % outcome_count;
                 outcome_states[bucket].push(format!("w{world:03}-s{state_index:02}"));
             }
             let outcomes = outcome_states
@@ -937,12 +937,14 @@ mod tests {
         let mut cases = Vec::new();
         let mut total_state_action_evaluations = 0usize;
         for world in 0..100usize {
-            let input = generated_input(world);
+            let seed = 20261017u64 + world as u64;
+            let input = generated_input(world, seed);
             let bytes = serde_json::to_vec(&input).expect("generated input serializes");
             let input_digest = sha256_hex(&bytes);
             let report = plan(&input, &input_digest).expect("generated world validates");
             total_state_action_evaluations += input.state_signatures.len() * input.actions.len();
 
+            let mut oracle_action_summaries = Vec::new();
             for action in &input.actions {
                 let (max_states, max_classes, max_discordant_pairs, separated_pairs) =
                     independent_pair_oracle(&input, action);
@@ -954,13 +956,21 @@ mod tests {
                 assert_eq!(assessed.impact.worst_case_remaining_states, max_states);
                 assert_eq!(assessed.impact.worst_case_decision_signature_classes, max_classes);
                 assert_eq!(assessed.impact.worst_case_decision_discordant_pairs_remaining, max_discordant_pairs);
-                assert_eq!(assessed.impact.decision_discordant_pairs_separated, separated_pairs as u64);
+                assert_eq!(assessed.impact.decision_discordant_pairs_separated, separated_pairs);
+                oracle_action_summaries.push(serde_json::json!({
+                    "action_id": action.action_id,
+                    "worst_case_remaining_states": max_states,
+                    "worst_case_decision_signature_classes": max_classes,
+                    "worst_case_decision_discordant_pairs_remaining": max_discordant_pairs,
+                    "decision_discordant_pairs_separated": separated_pairs
+                }));
             }
             cases.push(serde_json::json!({
                 "world_index": world,
-                "seed": 20261017u64 + world as u64,
+                "seed": seed,
                 "input_sha256": input_digest,
                 "input": input,
+                "oracle_action_summaries": oracle_action_summaries,
                 "report": report
             }));
         }
@@ -969,7 +979,7 @@ mod tests {
         if let Ok(path) = env::var("CIV_INFRA_DECISION_CORPUS_OUT") {
             let artifact = serde_json::json!({
                 "corpus_version": "civ-infra-decision-impact-generated/v0.1",
-                "generator": "deterministic-index-mutator-v1",
+                "generator": "seeded-modular-partition-v1",
                 "seed_base": 20261017,
                 "world_count": 100,
                 "states_per_world": 20,
