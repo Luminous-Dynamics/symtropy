@@ -159,7 +159,7 @@ Verify the adopted editions and jurisdictional requirements at project start; th
 ## 9. Execution plan
 
 1. Review this contract against the existing owners named above; resolve fields to existing types before freezing any schema.
-2. Use the frozen WP-001–WP-019 manifest and the standalone `tools/habitat-manifest-verifier` for strict structure and exact-byte integrity only. The independent semantic evaluator/golden oracle remains future work; it must verify expected dispositions and hard-gate behavior without sharing the candidate evaluator's decision code. Start with evidence-state correctness, change invalidation, and tiny exhaustive comparison before high-fidelity simulation.
+2. Use the frozen WP-001–WP-019 and TNH-001–TNH-014 manifests with `tools/habitat-manifest-verifier` for strict structure and exact-byte integrity. Use `tools/habitat-decision-benchmark` as the narrow finite-state decision-impact demonstrator. An independent semantic evaluator for the prose-based WP/TNH cases remains future work; it must validate expected dispositions without sharing the candidate decision code. Start with evidence-state correctness, change invalidation, and tiny exhaustive comparisons before high-fidelity simulation.
 3. Implement the first Sol-Atlas read-only adapter for site, coverage, freshness and hard-constraint receipts only after PRs #129/#136/#140 provide a reviewed interface.
 4. Compose Symtropy's existing decision-impact/robustness work (#1769, #1789) to prioritize surveys and model runs by their ability to change feasibility or the Pareto set. Do not invent probabilities or expected value-of-information without calibrated observation models. Then compose Symthaea's design-alternative and uncertainty/reporting interfaces; do not give the model direct building-control or approval authority.
 5. Add one specialist simulation at a time (initial candidate: whole-building energy/comfort, then water balance), each with an authoritative reference set and explicit validity envelope.
@@ -174,7 +174,17 @@ The separate [Terrain-Native Habitats benchmark v0.1](TERRAIN_NATIVE_HABITATS_BE
 
 This profile treats landform names as investigation prompts, not suitability evidence. In particular, a cliff does not prove rockfall protection, crater geometry does not establish volcanic origin, canyon beauty does not establish flood safety, and an underground layout does not establish safe egress or survivability. It composes existing Sol-Atlas coverage/constraint receipts with qualified geotechnical, hydrologic, volcanic, ecological, and life-safety evidence where applicable. The benchmark is synthetic only and does not qualify a real site or solver.
 
-## 10. Claim ceiling
+## 10. Decision-impact benchmark: choose the next investigation without guessed probabilities
+
+The standalone `tools/habitat-decision-benchmark` package composes the finite-state decision-impact direction from Symtropy #1769 and #1789. Its frozen input is `docs/research/fixtures/HABITAT_DECISION_IMPACT_V0_1.json`.
+
+The deliberately small toy world has four synthetic states (canyon flood constraint absent/present × ridge rock-instability absent/present), three candidate site concepts with invented relative cost units, and three deterministic survey actions. Every action's outcomes must form a mutually exclusive, complete partition of the frozen state space. The algorithm chooses the least-cost candidate that remains feasible across all states consistent with each possible observation.
+
+The ranking metric is **worst-case minimax-regret reduction per declared cost unit**. No priors, likelihoods, expected value-of-information, or physical-hazard probabilities are supplied or inferred. The authored reference ordering is combined survey, flood survey, then rock survey; these results exercise arithmetic and decision semantics in this toy fixture only, and say nothing about real survey economics or site safety.
+
+The Rust package includes a separate brute-force reference path, exact input-byte digest pinning, exact expected-metric assertions, and adversarial tests for unknown hazards, duplicate IDs, incomplete/overlapping outcome partitions, changed bytes, unknown fields, and states with no feasible alternative. Its output claim ceiling is synthetic decision-impact evaluation. The independent oracle does not validate whether the larger prose-based WP/TNH scenario expectations are geotechnically or semantically correct.
+
+## 11. Claim ceiling
 
 A successful synthetic benchmark would show that the implementation handles its declared fixtures and invariants. It would **not** show that Symthaea can independently architect a real house, that Symtropy's simulator predicts a physical property accurately, that Sol-Atlas has found a legally buildable/safe parcel, that Mycelix provenance makes a certificate true, or that any design is permit-ready.
 
