@@ -22,12 +22,12 @@ All absolute temperatures are kelvin; energy is interval-integrated joules; powe
 
 ## Run locally
 
-\`\`\`sh
+```sh
 cargo fmt --manifest-path research/solar-thermal-kernel/Cargo.toml -- --check
 cargo test --manifest-path research/solar-thermal-kernel/Cargo.toml
 cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt
 cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets
-\`\`\`
+```
 
 The exact-head targeted workflow is `.github/workflows/solar-thermal-kernel.yml`. The authoring environment has no Rust/Cargo toolchain, so no local compile or test pass is claimed; check the exact-head workflow rather than relying on the root workspace CI, which intentionally does not include this nested research workspace. The tests are authored and must run on the exact PR head before compiler-verified status is claimed.
 
