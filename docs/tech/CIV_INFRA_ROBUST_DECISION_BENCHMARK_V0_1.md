@@ -66,6 +66,8 @@ For R0, probability fields are disallowed unless paired with a versioned distrib
 
 The verifier operates on an explicitly identified uncertainty set W.
 
+**R0 truth boundary:** the first implementation classifies supplied state-level constraint and objective records; those records are synthetic assertions, not outputs derived from primitive engineering variables. Its independent test oracle checks the finite classification semantics, not physical truth. Before interpreting robust labels as more than robust classification of supplied assertions, R1 must derive those records from primitive, typed inputs and a versioned ruleset with an independent reference implementation. This limitation is tracked in [CIV-INFRA-ORACLE-002 #1777](https://github.com/Luminous-Dynamics/symtropy/issues/1777).
+
 R0 should support two forms:
 
 1. **Finite state set:** each state has a stable ID, provenance, and values for all required uncertain inputs.
