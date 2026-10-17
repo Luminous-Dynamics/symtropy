@@ -643,15 +643,14 @@ mod tests {
             for i in 0..5 {
                 let state = n % 3;
                 n /= 3;
-                let (name, status) = match state {
-                    0 => ("pass", &mut any_fail),
-                    1 => ("fail", &mut any_unknown),
-                    _ => ("unknown", &mut any_unknown),
+                let name = match state {
+                    0 => "pass",
+                    1 => "fail",
+                    _ => "unknown",
                 };
                 root["assessments"][index]["gate_results"][i]["status"] = json!(name);
                 if state == 1 { any_fail = true; }
                 if state == 2 { any_unknown = true; }
-                let _ = status;
             }
             let expected = if any_fail { "blocked_hard_gate" }
                 else if any_unknown { "needs_gate_evidence" }
