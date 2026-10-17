@@ -179,12 +179,6 @@ fn evaluate_fixture(
         .iter()
         .map(|condition| (condition.id.as_str(), condition))
         .collect();
-    let candidate_by_id: BTreeMap<&str, &Candidate> = fixture
-        .candidates
-        .iter()
-        .map(|candidate| (candidate.id.as_str(), candidate))
-        .collect();
-
     let mut action_reports = Vec::new();
     let mut false_safe_control_count = 0usize;
     let mut unresolved_outcome_count = 0usize;
@@ -447,7 +441,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
                     ));
                 }
                 if assignments
-                    .insert(state_id.as_str(), (outcome.classification.as_str(), outcome.id.as_str()))
+                    .insert(
+                        state_id.as_str(),
+                        (outcome.classification.as_str(), outcome.id.as_str()),
+                    )
                     .is_some()
                 {
                     errors.push(format!(
@@ -460,14 +457,19 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         let expected_classifications: BTreeSet<&str> =
             ["positive", "negative", "unresolved"].into_iter().collect();
         if classifications != expected_classifications {
-            errors.push(format!("{} must include positive, negative and unresolved outcomes", action.id));
+            errors.push(format!(
+                "{} must include positive, negative and unresolved outcomes",
+                action.id
+            ));
         }
         for state in &states {
             if !assignments.contains_key(state.id.as_str()) {
                 errors.push(format!("{} omits composite state {:?}", action.id, state.id));
                 continue;
             }
-            let Some((actual_classification, _)) = assignments.get(state.id.as_str()).copied() else {
+            let Some((actual_classification, _)) =
+                assignments.get(state.id.as_str()).copied()
+            else {
                 continue;
             };
             let expected = condition_by_id
@@ -555,7 +557,11 @@ mod tests {
         assert_eq!(outcome.classification, "negative");
         let report = evaluate_fixture(&fixture, FIXTURE_SHA256.to_owned()).unwrap();
         let action_report = report.actions.iter().find(|item| item.action_id == action.id).unwrap();
-        let outcome_report = action_report.outcomes.iter().find(|item| item.outcome_id == outcome.id).unwrap();
+        let outcome_report = action_report
+            .outcomes
+            .iter()
+            .find(|item| item.outcome_id == outcome.id)
+            .unwrap();
         assert_eq!(outcome_report.selected_candidate_id.as_deref(), Some("inland_fallback"));
     }
 
@@ -647,7 +653,11 @@ mod tests {
     #[test]
     fn invalid_mode_semantics_fail_closed() {
         let mut fixture: Fixture = serde_json::from_slice(FIXTURE_BYTES).unwrap();
-        let action = fixture.actions.iter_mut().find(|action| action.id == "A-FLOOD-SURVEY").unwrap();
+        let action = fixture
+            .actions
+            .iter_mut()
+            .find(|action| action.id == "A-FLOOD-SURVEY")
+            .unwrap();
         let outcome_index = action.outcomes.iter().position(|outcome| {
             outcome.state_ids.iter().any(|id| id == "S-CANYON-FLOOD::false_negative")
         }).unwrap();
