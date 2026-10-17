@@ -73,6 +73,9 @@ jobs:
             .observed_update.status == "supported_by_model" and
             (.observed_update.compatible_state_ids | length) == 2 and
             .decision_ambiguity.states_outside_model_domain == 0 and
+            .decision_ambiguity.outcome_worst_case_is_conditional_on_declared_support == true and
+            .decision_ambiguity.support_failure_preserves_prior == true and
+            .decision_ambiguity.support_failure_preserved_state_count == 4 and
             .model_discrepancy.interval.lower_ticks == 0 and
             .model_discrepancy.interval.upper_ticks == 0 and
             (.model_discrepancy.basis | contains("not calibrated")) and
