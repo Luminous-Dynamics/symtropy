@@ -76,8 +76,9 @@ Start with 12–20 fixtures, then contribute to the 40+ cross-domain corpus defi
 - `docs/visual-technology/fixtures/projector-pinhole-axis-001.json`
 - `docs/visual-technology/fixtures/pinhole-fov-centered-1280x720-001.json`
 - `docs/visual-technology/fixtures/pinhole-ray-roundtrip-001.json`
+- `docs/visual-technology/fixtures/srgb-transfer-and-luminance-001.json`
 
-All these files carry `UNQUALIFIED`; the new Rust integration test parses them and checks the initial equations against the reference functions, but this does not make them physical evidence or a qualified optical model.
+All these files carry `UNQUALIFIED`; the Rust integration test parses the fixtures and checks initial analytic equations against the reference functions. Passing those software tests does not make them physical evidence, a qualified optical model, an HDR EOTF, or a device calibration.
 
 1. Identity rigid transform and inverse.
 2. Known 90-degree axis rotation with handedness negative control.
