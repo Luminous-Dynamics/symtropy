@@ -51,6 +51,7 @@ fn make_receipt(
     let had_parse_error = parse_error.is_some();
     let mut errors = Vec::new();
     let mut scenario_ids = BTreeSet::new();
+    let mut evidence_ids = BTreeSet::new();
     let mut domain_profiles = BTreeSet::new();
     let mut gate_status_counts = BTreeMap::new();
     let mut disposition_counts = BTreeMap::new();
@@ -81,6 +82,33 @@ fn make_receipt(
         }
         if nonempty_string(root.get("status")) != Some("synthetic-logic-fixtures") {
             errors.push("CORPUS_STATUS_UNEXPECTED".to_string());
+        }
+
+        let evidence_contract = root.get("evidence_contract");
+        if evidence_contract.and_then(|v| v.get("synthetic_fixture_evidence_only")).and_then(Value::as_bool)
+            != Some(true)
+        {
+            errors.push("EVIDENCE_CONTRACT_MUST_IDENTIFY_SYNTHETIC_FIXTURES".to_string());
+        }
+        if evidence_contract.and_then(|v| v.get("source_reference_required")).and_then(Value::as_bool)
+            != Some(true)
+        {
+            errors.push("EVIDENCE_SOURCE_REFERENCE_MUST_BE_REQUIRED".to_string());
+        }
+        if evidence_contract.and_then(|v| v.get("empirical_calibration_claimed")).and_then(Value::as_bool)
+            != Some(false)
+        {
+            errors.push("SYNTHETIC_EVIDENCE_MUST_NOT_CLAIM_CALIBRATION".to_string());
+        }
+        let required_fields = [
+            "evidence_id", "claim", "source_ref", "method", "evidence_class",
+            "uncertainty", "coverage", "freshness_class",
+        ];
+        let declared_fields = evidence_contract.and_then(|v| v.get("required_fields")).and_then(Value::as_array);
+        if !declared_fields.map(|fields| required_fields.iter().all(|field|
+            fields.iter().any(|item| item.as_str() == Some(*field))
+        )).unwrap_or(false) {
+            errors.push("EVIDENCE_REQUIRED_FIELDS_INCOMPLETE".to_string());
         }
 
         let claim_ceiling = root.get("claim_ceiling");
@@ -184,6 +212,48 @@ fn make_receipt(
                     errors.push(format!("{label}: EXPECTED_ACTUATION_MUST_BE_FALSE"));
                 }
 
+                let evidence = scenario.get("evidence").and_then(Value::as_array);
+                match evidence {
+                    Some(records) if !records.is_empty() => {
+                        for (evidence_index, record) in records.iter().enumerate() {
+                            let evidence_label = format!("{label}: EVIDENCE_{}", evidence_index + 1);
+                            if !record.is_object() {
+                                errors.push(format!("{evidence_label}: NOT_AN_OBJECT"));
+                                continue;
+                            }
+                            match nonempty_string(record.get("evidence_id")) {
+                                Some(evidence_id) => {
+                                    if !evidence_ids.insert(evidence_id.to_string()) {
+                                        errors.push(format!("{evidence_label}: DUPLICATE_EVIDENCE_ID"));
+                                    }
+                                }
+                                None => errors.push(format!("{evidence_label}: ID_MISSING")),
+                            }
+                            for field in ["claim", "source_ref", "method", "evidence_class", "coverage", "freshness_class"] {
+                                if nonempty_string(record.get(field)).is_none() {
+                                    errors.push(format!("{evidence_label}: {field.to_ascii_uppercase()}_MISSING"));
+                                }
+                            }
+                            if !nonempty_string(record.get("source_ref"))
+                                .map(|source| source.starts_with("synthetic://"))
+                                .unwrap_or(false)
+                            {
+                                errors.push(format!("{evidence_label}: SYNTHETIC_SOURCE_REF_INVALID"));
+                            }
+                            if nonempty_string(record.get("evidence_class")) != Some("synthetic_assumption") {
+                                errors.push(format!("{evidence_label}: EVIDENCE_CLASS_MUST_BE_SYNTHETIC_ASSUMPTION"));
+                            }
+                            if nonempty_string(record.get("freshness_class")) != Some("synthetic_static") {
+                                errors.push(format!("{evidence_label}: FRESHNESS_CLASS_INVALID_FOR_SYNTHETIC_CORPUS"));
+                            }
+                            if nonempty_string(record.get("uncertainty").and_then(|v| v.get("kind"))).is_none() {
+                                errors.push(format!("{evidence_label}: UNCERTAINTY_KIND_MISSING"));
+                            }
+                        }
+                    }
+                    _ => errors.push(format!("{label}: EVIDENCE_RECORDS_MISSING_OR_EMPTY")),
+                }
+
                 let reasons = scenario.get("expected_reason_codes").and_then(Value::as_array);
                 match reasons {
                     Some(reasons) if !reasons.is_empty() => {
@@ -260,6 +330,56 @@ fn make_receipt(
                     }
                     if disposition != Some("ELIGIBLE_FOR_HUMAN_REVIEW") {
                         errors.push(format!("{label}: PREFERRED_PLAN_WITHOUT_REVIEW_ELIGIBILITY"));
+                    }
+                }
+
+                if let Some(voi) = scenario.get("value_of_information") {
+                    let loss_avoided = voi.get("expected_decision_loss_avoided_cents").and_then(Value::as_i64);
+                    let inspection_cost = voi.get("inspection_cost_cents").and_then(Value::as_i64);
+                    let delay_burden = voi.get("delay_burden_cents").and_then(Value::as_i64);
+                    let inspection_risk = voi.get("inspection_risk_cents").and_then(Value::as_i64);
+                    let reported_net = voi.get("expected_net_value_cents").and_then(Value::as_i64);
+                    let values = [loss_avoided, inspection_cost, delay_burden, inspection_risk, reported_net];
+                    if values.iter().any(Option::is_none) {
+                        errors.push(format!("{label}: VALUE_OF_INFORMATION_FIELDS_INVALID"));
+                    } else {
+                        let loss_avoided = loss_avoided.unwrap();
+                        let inspection_cost = inspection_cost.unwrap();
+                        let delay_burden = delay_burden.unwrap();
+                        let inspection_risk = inspection_risk.unwrap();
+                        let reported_net = reported_net.unwrap();
+                        if loss_avoided < 0 || inspection_cost < 0 || delay_burden < 0 || inspection_risk < 0 {
+                            errors.push(format!("{label}: VALUE_OF_INFORMATION_BURDENS_MUST_BE_NONNEGATIVE"));
+                        }
+                        let computed_net = inspection_cost
+                            .checked_add(delay_burden)
+                            .and_then(|burden| burden.checked_add(inspection_risk))
+                            .and_then(|burden| loss_avoided.checked_sub(burden));
+                        match computed_net {
+                            Some(net) => {
+                                if net != reported_net {
+                                    errors.push(format!("{label}: VALUE_OF_INFORMATION_NET_MISMATCH"));
+                                }
+                                let expected_action = if net > 0 {
+                                    "INSPECT"
+                                } else {
+                                    "DO_NOT_INSPECT_ON_VALUE_ALONE"
+                                };
+                                if nonempty_string(voi.get("expected_information_action")) != Some(expected_action) {
+                                    errors.push(format!("{label}: VALUE_OF_INFORMATION_ACTION_MISMATCH"));
+                                }
+                            }
+                            None => errors.push(format!("{label}: VALUE_OF_INFORMATION_ARITHMETIC_OVERFLOW")),
+                        }
+                    }
+                    if nonempty_string(voi.get("unit")) != Some("synthetic_eur_cents") {
+                        errors.push(format!("{label}: VALUE_OF_INFORMATION_UNIT_INVALID"));
+                    }
+                    if nonempty_string(voi.get("decision_rule")).is_none() {
+                        errors.push(format!("{label}: VALUE_OF_INFORMATION_DECISION_RULE_MISSING"));
+                    }
+                    if voi.get("calibrated_probabilities_claimed").and_then(Value::as_bool) != Some(false) {
+                        errors.push(format!("{label}: SYNTHETIC_VOI_MUST_NOT_CLAIM_CALIBRATED_PROBABILITIES"));
                     }
                 }
 
@@ -393,12 +513,13 @@ mod tests {
             None,
         );
         assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
-        assert_eq!(receipt.scenario_count, 14);
-        assert_eq!(receipt.unique_scenario_count, 14);
+        assert_eq!(receipt.scenario_count, 17);
+        assert_eq!(receipt.unique_scenario_count, 17);
         assert_eq!(receipt.domain_profile_count, 8);
         assert!(receipt.all_plan_only);
         assert_eq!(receipt.claim_ceiling, "NO_ACTUATION_AUTHORIZED");
-        assert_eq!(receipt.gate_status_counts.get("UNKNOWN"), Some(&16));
+        assert_eq!(receipt.gate_status_counts.get("UNKNOWN"), Some(&19));
+        assert_eq!(receipt.gate_status_counts.get("PASS"), Some(&13));
         assert_eq!(receipt.gate_status_counts.get("BLOCK"), Some(&3));
         assert_eq!(receipt.corpus_sha256.len(), 64);
     }
@@ -484,6 +605,30 @@ mod tests {
         corpus["scenario_count"] = json!(13);
         let receipt = audit_value(corpus);
         assert!(receipt.errors.iter().any(|e| e.contains("SCENARIO_COUNT_MISMATCH")));
+    }
+
+    #[test]
+    fn every_fixture_requires_source_coverage_and_uncertainty_metadata() {
+        let mut corpus = embedded_value();
+        corpus["scenarios"][0]["evidence"][0]["source_ref"] = json!("");
+        let receipt = audit_value(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("SOURCE_REF_MISSING")));
+    }
+
+    #[test]
+    fn value_of_information_arithmetic_and_action_must_agree() {
+        let mut corpus = embedded_value();
+        corpus["scenarios"][15]["value_of_information"]["expected_net_value_cents"] = json!(999);
+        let receipt = audit_value(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("VALUE_OF_INFORMATION_NET_MISMATCH")));
+    }
+
+    #[test]
+    fn value_of_information_action_cannot_ignore_negative_net_value() {
+        let mut corpus = embedded_value();
+        corpus["scenarios"][16]["value_of_information"]["expected_information_action"] = json!("INSPECT");
+        let receipt = audit_value(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("VALUE_OF_INFORMATION_ACTION_MISMATCH")));
     }
 
     #[test]
