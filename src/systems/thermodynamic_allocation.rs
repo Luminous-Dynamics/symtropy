@@ -170,7 +170,14 @@ pub fn allocate_max_min(
     let mut total_allocated = 0.0_f64;
     let mut allocations = Vec::with_capacity(recipients.len());
     for (recipient, amount) in recipients.iter().zip(amounts) {
-        let room = (available_supply - total_allocated).max(0.0);
+        let mut room = (available_supply - total_allocated).max(0.0);
+        // If accumulated allocation is less than half the supply, subtraction
+        // may round the remaining room back up to the original supply. Keep one
+        // representable step of slack so a tiny previous allocation cannot be
+        // silently lost when adding a near-full-supply final allocation.
+        if total_allocated > 0.0 && total_allocated < available_supply * 0.5 {
+            room = next_down_nonnegative(room);
+        }
         let accepted = amount.min(caps_for(recipient, per_recipient_limit)).min(room);
         total_allocated += accepted;
         allocations.push(RecipientAllocation {
@@ -188,6 +195,14 @@ pub fn allocate_max_min(
 
 fn caps_for(recipient: &RecipientDemand, per_recipient_limit: f64) -> f64 {
     recipient.headroom.min(per_recipient_limit)
+}
+
+fn next_down_nonnegative(value: f64) -> f64 {
+    if value <= 0.0 || !value.is_finite() {
+        value.max(0.0)
+    } else {
+        f64::from_bits(value.to_bits() - 1)
+    }
 }
 
 #[cfg(test)]
@@ -272,6 +287,24 @@ mod tests {
         .unwrap();
         assert_eq!(zero_headroom.allocations[0].amount, 0.0);
         assert_eq!(zero_headroom.unallocated_supply, 12.0);
+    }
+
+    #[test]
+    fn tiny_prior_allocation_does_not_get_lost_at_large_supply_scale() {
+        let result = allocate_max_min(
+            [
+                RecipientDemand { id: 1, headroom: 1.0e-16 },
+                RecipientDemand { id: 2, headroom: 10.0 },
+            ],
+            1.0,
+            10.0,
+        )
+        .unwrap();
+        let sum = total(&result);
+        assert!(sum <= 1.0);
+        assert!(result.total_allocated <= 1.0);
+        assert!(result.unallocated_supply >= 0.0);
+        assert!((result.total_allocated + result.unallocated_supply - 1.0).abs() < 1e-12);
     }
 
     #[test]
