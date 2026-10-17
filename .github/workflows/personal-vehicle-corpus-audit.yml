@@ -8,6 +8,7 @@ on:
       - "schemas/transport/**"
       - "tools/personal-vehicle-corpus-audit/**"
       - "tools/repair-task-graph-audit/**"
+      - "tools/vehicle-localization-scenario-audit/**"
       - ".github/workflows/personal-vehicle-corpus-audit.yml"
   push:
     branches: ["main"]
@@ -16,6 +17,7 @@ on:
       - "schemas/transport/**"
       - "tools/personal-vehicle-corpus-audit/**"
       - "tools/repair-task-graph-audit/**"
+      - "tools/vehicle-localization-scenario-audit/**"
       - ".github/workflows/personal-vehicle-corpus-audit.yml"
   workflow_dispatch:
 
@@ -49,3 +51,10 @@ jobs:
         run: cargo test --manifest-path tools/repair-task-graph-audit/Cargo.toml --all-targets
       - name: Audit frozen repairability graph fixtures
         run: cargo run --manifest-path tools/repair-task-graph-audit/Cargo.toml
+
+      - name: Check localization scenario verifier formatting
+        run: cargo fmt --manifest-path tools/vehicle-localization-scenario-audit/Cargo.toml -- --check
+      - name: Validate South African localization route matrix
+        run: cargo test --manifest-path tools/vehicle-localization-scenario-audit/Cargo.toml --all-targets
+      - name: Audit localization matrix and unresolved cost gates
+        run: cargo run --manifest-path tools/vehicle-localization-scenario-audit/Cargo.toml
