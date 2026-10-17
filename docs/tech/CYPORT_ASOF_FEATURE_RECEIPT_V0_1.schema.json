@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CyPort As-of Feature Evidence Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "status",
+    "evidence_scope",
+    "source_dataset",
+    "decision_cutoff_utc",
+    "storm_crosswalk_status",
+    "features",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "luminous.symtropy.maritime.cyport-asof-feature-receipt"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "EVIDENCE_RECEIPT_NOT_FEATURE_APPROVAL"
+    },
+    "evidence_scope": {
+      "enum": [
+        "SYNTHETIC_FIXTURE_ONLY",
+        "CANDIDATE_EVIDENCE_NOT_SOURCE_ROW_VERIFIED"
+      ]
+    },
+    "source_dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "revision",
+        "resource_path",
+        "git_blob_sha1",
+        "byte_length",
+        "interaction_id",
+        "storm_sid",
+        "port_pid",
+        "target_start_date",
+        "target_date_precision",
+        "target_timezone_status"
+      ],
+      "properties": {
+        "dataset_id": {
+          "const": "cyport_us_port_tropical_cyclone_resilience"
+        },
+        "revision": {
+          "const": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3"
+        },
+        "resource_path": {
+          "const": "Tropical_cyclone_interaction/interaction_data.csv"
+        },
+        "git_blob_sha1": {
+          "const": "21beb5b7673918143a0ab108b03acc3cccaeb330"
+        },
+        "byte_length": {
+          "const": 643047
+        },
+        "interaction_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storm_sid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "port_pid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_start_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "target_date_precision": {
+          "const": "DATE_ONLY"
+        },
+        "target_timezone_status": {
+          "const": "UNVERIFIED"
+        }
+      }
+    },
+    "decision_cutoff_utc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "storm_crosswalk_status": {
+      "enum": [
+        "VERIFIED",
+        "UNRESOLVED",
+        "SYNTHETIC_ONLY"
+      ]
+    },
+    "features": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/feature"
+      }
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feature_name",
+        "source_kind",
+        "source_uri",
+        "source_revision_or_product_id",
+        "artifact_relative_path",
+        "artifact_sha256",
+        "artifact_byte_length",
+        "source_publication_time_utc",
+        "source_retrieval_time_utc",
+        "feature_available_at_utc",
+        "valid_start_utc",
+        "valid_end_utc",
+        "units",
+        "value",
+        "missing_reason",
+        "derivation_id",
+        "join_method",
+        "storm_crosswalk_evidence_id",
+        "target_date_semantics_review_id"
+      ],
+      "properties": {
+        "feature_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_kind": {
+          "enum": [
+            "ARCHIVED_FORECAST",
+            "PUBLISHED_OBSERVATION",
+            "STATIC_CONTEXT"
+          ]
+        },
+        "source_uri": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "source_revision_or_product_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$"
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "artifact_byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_publication_time_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "source_retrieval_time_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "feature_available_at_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "valid_start_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "valid_end_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        "missing_reason": {
+          "type": ["string", "null"]
+        },
+        "derivation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "join_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storm_crosswalk_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_date_semantics_review_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
