@@ -79,10 +79,19 @@ pub struct DrainageCase {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
+pub struct ProfilePoint {
+    pub station_m: f64,
+    pub elevation_m: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct CorridorCandidate {
     pub id: String,
     pub length_m: f64,
-    pub max_grade_percent: f64,
+    /// Redundant declaration, checked against the longitudinal profile.
+    pub declared_max_grade_percent: f64,
+    pub profile_points: Vec<ProfilePoint>,
     pub estimated_earthworks_m3: f64,
     pub road_envelopes: Vec<AxisEnvelope>,
     pub drainage: DrainageCase,
@@ -169,6 +178,26 @@ fn finite_nonnegative(value: f64) -> bool {
     value.is_finite() && value >= 0.0
 }
 
+fn maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
+    if points.len() < 2 {
+        return None;
+    }
+    let mut maximum: f64 = 0.0;
+    for pair in points.windows(2) {
+        let run = pair[1].station_m - pair[0].station_m;
+        if !run.is_finite() || run <= 0.0 {
+            return None;
+        }
+        let rise = pair[1].elevation_m - pair[0].elevation_m;
+        let grade = (rise / run * 100.0).abs();
+        if !grade.is_finite() {
+            return None;
+        }
+        maximum = maximum.max(grade);
+    }
+    Some(maximum)
+}
+
 fn validate_envelope(
     envelope: &AxisEnvelope,
     require_elevation: bool,
@@ -242,7 +271,7 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
         }
         if !finite_nonnegative(candidate.length_m)
             || candidate.length_m <= 0.0
-            || !finite_nonnegative(candidate.max_grade_percent)
+            || !finite_nonnegative(candidate.declared_max_grade_percent)
             || !finite_nonnegative(candidate.estimated_earthworks_m3)
             || !finite_nonnegative(candidate.drainage.required_flow_lps)
             || !finite_nonnegative(candidate.drainage.capacity_lps)
@@ -251,6 +280,40 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
         }
         if candidate.drainage.scenario_id.trim().is_empty() {
             errors.push(format!("candidate {} has no drainage scenario id", candidate.id));
+        }
+        if candidate.profile_points.len() < 2 {
+            errors.push(format!(
+                "candidate {} needs at least two longitudinal profile points",
+                candidate.id
+            ));
+        }
+        let mut previous_station = None;
+        for (index, point) in candidate.profile_points.iter().enumerate() {
+            if !point.station_m.is_finite()
+                || !point.elevation_m.is_finite()
+                || point.station_m < 0.0
+                || point.station_m > candidate.length_m
+            {
+                errors.push(format!(
+                    "candidate {} profile point {index} has invalid station/elevation",
+                    candidate.id
+                ));
+            }
+            if previous_station.is_some_and(|station| point.station_m <= station) {
+                errors.push(format!(
+                    "candidate {} profile stations must be strictly increasing",
+                    candidate.id
+                ));
+            }
+            previous_station = Some(point.station_m);
+        }
+        if let Some(last) = candidate.profile_points.last() {
+            if (last.station_m - candidate.length_m).abs() > 1.0e-9 {
+                errors.push(format!(
+                    "candidate {} profile must terminate at its declared length",
+                    candidate.id
+                ));
+            }
         }
         if candidate.road_envelopes.is_empty() {
             errors.push(format!("candidate {} has no road envelopes", candidate.id));
@@ -421,10 +484,22 @@ fn evaluate_candidate(
     fixture: &CorridorFixture,
     candidate: &CorridorCandidate,
 ) -> CandidateResult {
+    let derived_grade = maximum_grade_percent(&candidate.profile_points)
+        .unwrap_or(f64::INFINITY);
+    let declaration_matches = (derived_grade - candidate.declared_max_grade_percent).abs()
+        <= 1.0e-9;
     let mut findings = vec![
         Finding {
             code: "grade_limit".to_string(),
-            status: if candidate.max_grade_percent <= fixture.requirements.max_grade_percent {
+            status: if derived_grade <= fixture.requirements.max_grade_percent {
+                CheckStatus::Pass
+            } else {
+                CheckStatus::Violation
+            },
+        },
+        Finding {
+            code: "declared_grade_matches_profile".to_string(),
+            status: if declaration_matches {
                 CheckStatus::Pass
             } else {
                 CheckStatus::Violation
@@ -633,13 +708,23 @@ fn reference_candidate_result(
     candidate: &CorridorCandidate,
 ) -> CandidateResult {
     let mut findings = Vec::new();
+    let derived_grade = maximum_grade_percent(&candidate.profile_points)
+        .unwrap_or(f64::INFINITY);
 
     findings.push(Finding {
         code: "grade_limit".to_string(),
-        status: if candidate.max_grade_percent > fixture.requirements.max_grade_percent {
+        status: if derived_grade > fixture.requirements.max_grade_percent {
             CheckStatus::Violation
         } else {
             CheckStatus::Pass
+        },
+    });
+    findings.push(Finding {
+        code: "declared_grade_matches_profile".to_string(),
+        status: if (derived_grade - candidate.declared_max_grade_percent).abs() <= 1.0e-9 {
+            CheckStatus::Pass
+        } else {
+            CheckStatus::Violation
         },
     });
     findings.push(Finding {
