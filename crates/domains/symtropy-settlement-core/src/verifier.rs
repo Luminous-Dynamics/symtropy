@@ -69,6 +69,8 @@ pub fn verify_timeline_report(
     let mut stable_supply_contracts = BTreeMap::<String, (crate::ResourceKind, String, u64)>::new();
     let mut stable_component_generations = BTreeMap::<String, u64>::new();
     let mut stable_floor_ids = BTreeSet::<String>::new();
+    let mut stable_demand_ids = BTreeSet::<String>::new();
+    let mut stable_scenario_id: Option<String> = None;
 
     for (index, tick) in payload.ticks.iter().enumerate() {
         let expected_tick = u64::try_from(index)
@@ -91,6 +93,40 @@ pub fn verify_timeline_report(
         }
 
         verify_snapshot(&tick.snapshot)?;
+        if stable_scenario_id
+            .as_ref()
+            .is_some_and(|scenario_id| scenario_id != &tick.snapshot.payload.scenario_id)
+        {
+            return Err(SettlementError(format!(
+                "scenario identity changed at tick {}",
+                tick.tick
+            )));
+        }
+        if stable_scenario_id.is_none() {
+            stable_scenario_id = Some(tick.snapshot.payload.scenario_id.clone());
+        }
+
+        let current_demand_ids: BTreeSet<String> = tick
+            .snapshot
+            .payload
+            .resource_allocations
+            .iter()
+            .map(|allocation| allocation.demand_id.clone())
+            .collect();
+        if current_demand_ids.len() != tick.snapshot.payload.resource_allocations.len() {
+            return Err(SettlementError(format!(
+                "duplicate demand allocation at tick {}",
+                tick.tick
+            )));
+        }
+        if index == 0 {
+            stable_demand_ids = current_demand_ids;
+        } else if stable_demand_ids != current_demand_ids {
+            return Err(SettlementError(format!(
+                "demand set changed at tick {}",
+                tick.tick
+            )));
+        }
 
         let component_ids: BTreeSet<String> = tick
             .snapshot
@@ -117,6 +153,23 @@ pub fn verify_timeline_report(
                 )
             })
             .collect();
+        for component in &tick.snapshot.payload.component_results {
+            let output_consistent = match &component.effective_state {
+                crate::ComponentState::Available => component.effective_output_units.is_some(),
+                crate::ComponentState::Failed => {
+                    component.effective_output_units == Some(0)
+                }
+                crate::ComponentState::Unknown { .. } => {
+                    component.effective_output_units.is_none()
+                }
+            };
+            if !output_consistent {
+                return Err(SettlementError(format!(
+                    "component output/state mismatch for {} at tick {}",
+                    component.component_id, tick.tick
+                )));
+            }
+        }
         if index == 0 {
             stable_component_generations = current_generations;
         } else if stable_component_generations != current_generations {
@@ -138,6 +191,77 @@ pub fn verify_timeline_report(
                 "duplicate floor result at tick {}",
                 tick.tick
             )));
+        }
+        for floor in &tick.snapshot.payload.service_floors {
+            let component = tick
+                .snapshot
+                .payload
+                .component_results
+                .iter()
+                .find(|component| component.component_id == floor.component_id)
+                .ok_or_else(|| SettlementError(format!(
+                    "floor {} references a missing component result",
+                    floor.floor_id
+                )))?;
+            if floor.effective_output_units.is_none() && floor.status == FloorStatus::Met {
+                return Err(SettlementError(format!(
+                    "unknown floor output marked Met for {} at tick {}",
+                    floor.floor_id, tick.tick
+                )));
+            }
+            if floor
+                .effective_output_units
+                .is_some_and(|units| units < floor.minimum_output_units)
+                && floor.status != FloorStatus::Breached
+            {
+                return Err(SettlementError(format!(
+                    "below-minimum output not marked Breached for {} at tick {}",
+                    floor.floor_id, tick.tick
+                )));
+            }
+            if matches!(component.effective_state, crate::ComponentState::Failed)
+                && floor.status != FloorStatus::Breached
+            {
+                return Err(SettlementError(format!(
+                    "failed component floor not Breached for {} at tick {}",
+                    floor.floor_id, tick.tick
+                )));
+            }
+            if matches!(component.effective_state, crate::ComponentState::Unknown { .. })
+                && floor.status == FloorStatus::Met
+            {
+                return Err(SettlementError(format!(
+                    "unknown component floor marked Met for {} at tick {}",
+                    floor.floor_id, tick.tick
+                )));
+            }
+            if floor.status == FloorStatus::Met {
+                for demand_id in &floor.required_demand_ids {
+                    let allocation = tick
+                        .snapshot
+                        .payload
+                        .resource_allocations
+                        .iter()
+                        .find(|allocation| allocation.demand_id == *demand_id)
+                        .ok_or_else(|| SettlementError(format!(
+                            "floor {} references missing demand {}",
+                            floor.floor_id, demand_id
+                        )))?;
+                    if matches!(
+                        allocation.outcome,
+                        crate::DemandOutcome::Shortfall
+                            | crate::DemandOutcome::ConsumerUnavailable
+                            | crate::DemandOutcome::Indeterminate
+                            | crate::DemandOutcome::ConsumerStateUnknown
+                            | crate::DemandOutcome::PoolBlockedByUnknownConsumer
+                    ) {
+                        return Err(SettlementError(format!(
+                            "floor {} is Met despite unresolved required demand {}",
+                            floor.floor_id, demand_id
+                        )));
+                    }
+                }
+            }
         }
         if index == 0 {
             stable_floor_ids = current_floor_ids;
@@ -220,6 +344,12 @@ pub fn verify_timeline_report(
         }
 
         for allocation in &tick.snapshot.payload.resource_allocations {
+            if allocation.unit_code != allocation.resource_kind.synthetic_unit_code() {
+                return Err(SettlementError(format!(
+                    "allocation unit mismatch for demand {} at tick {}",
+                    allocation.demand_id, tick.tick
+                )));
+            }
             let mut allocation_supply_ids = BTreeSet::new();
             let allocated_sum = allocation.sources.iter().try_fold(
                 0_u64,
