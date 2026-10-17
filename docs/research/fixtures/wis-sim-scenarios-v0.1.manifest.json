@@ -55,15 +55,15 @@
     "unknown_to_verified_promotions_allowed": 0,
     "consciousness_or_wisdom_scalar_emission_allowed": 0
   },
-  "status": "synthetic contract authored; verifier authored but tests and simulation not executed",
+  "status": "synthetic contract and Rust verifier authored; tests and simulation not executed",
   "claim_ceiling": "Defines inputs and invariants for future deterministic simulation runs; does not validate model assumptions, human behaviour, consciousness, wisdom, spiritual interventions or real-world outcomes.",
   "no_human_data": true,
   "no_real_world_forecast": true,
   "schema_validation_status": "STRICT_SCHEMA_PINNED; NOT_VALIDATED_WITH_JSON_SCHEMA_ENGINE",
   "verifier": {
     "path": "tools/wis-sim-fixture-verifier",
-    "authored_test_count": 18,
+    "authored_test_count": 22,
     "execution_status": "NOT_EXECUTED",
-    "scope": "selected structural contract and hash verification only; not a simulation or full JSON Schema engine"
+    "scope": "verifies exact fixture/schema digests, pinned top-level field set, variant coverage, unique seeds, policy-set consistency, scenario family/title binding and non-empty invariant/observable records. It is not full JSON Schema validation or simulation."
   }
 }
