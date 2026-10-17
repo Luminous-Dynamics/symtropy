@@ -545,9 +545,10 @@ pub fn assess_field_robot_cost_v1(
     let machine_minutes = input
         .annual_productive_machine_minutes
         .checked_add(input.annual_nonproductive_machine_minutes);
-    if machine_minutes.is_none_or(|minutes| minutes > MAX_ANNUAL_MINUTES)
-        || input.annual_operator_labor_minutes > MAX_ANNUAL_MINUTES
-    {
+    // A single machine cannot work more than the declared annual calendar
+    // envelope. Aggregate labor may exceed that envelope when multiple people
+    // contribute minutes, so it is checked for arithmetic/subset validity instead.
+    if machine_minutes.is_none_or(|minutes| minutes > MAX_ANNUAL_MINUTES) {
         push_blocker(&mut blockers, CostBlockerCodeV1::AnnualTimeBudgetExceeded, None, "annual machine or operator time exceeds the declared annual time budget");
     }
     if input.annual_supervision_minutes > input.annual_operator_labor_minutes {
@@ -911,6 +912,16 @@ mod tests {
         input.annual_nonproductive_machine_minutes = 1;
         let assessment = assess_field_robot_cost_v1(&input);
         assert!(assessment.blockers.iter().any(|b| b.code == CostBlockerCodeV1::AnnualTimeBudgetExceeded));
+    }
+
+    #[test]
+    fn aggregate_operator_labor_can_exceed_one_machine_calendar_year() {
+        let mut input = baseline_input();
+        input.annual_operator_labor_minutes = MAX_ANNUAL_MINUTES + 1;
+        input.annual_supervision_minutes = 0;
+        let assessment = assess_field_robot_cost_v1(&input);
+        assert_eq!(assessment.calculation_disposition, CostCalculationDispositionV1::Calculated);
+        assert!(assessment.breakdown.unwrap().operator_labor_minor > 0);
     }
 
     #[test]
