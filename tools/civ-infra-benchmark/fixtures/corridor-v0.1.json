@@ -36,8 +36,8 @@
         "station_end_m": 550,
         "lateral_min_m": 13,
         "lateral_max_m": 14,
-        "elevation_min_m": 0.5,
-        "elevation_max_m": 1.5,
+        "elevation_min_m": -21.5,
+        "elevation_max_m": -20.5,
         "uncertainty_m": 0.1
       }
     },
@@ -63,20 +63,29 @@
       "road_envelopes": [
         {
           "station_start_m": 0,
-          "station_end_m": 440,
+          "station_end_m": 450,
           "lateral_min_m": -4,
           "lateral_max_m": 4,
-          "elevation_min_m": 0,
-          "elevation_max_m": 35.2,
+          "elevation_min_m": -36,
+          "elevation_max_m": 0,
           "uncertainty_m": 0.1
         },
         {
-          "station_start_m": 440,
+          "station_start_m": 450,
+          "station_end_m": 550,
+          "lateral_min_m": -4,
+          "lateral_max_m": 4,
+          "elevation_min_m": -44,
+          "elevation_max_m": -36,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 550,
           "station_end_m": 880,
           "lateral_min_m": -4,
           "lateral_max_m": 4,
-          "elevation_min_m": 35.2,
-          "elevation_max_m": 70.4,
+          "elevation_min_m": -70.4,
+          "elevation_max_m": -44,
           "uncertainty_m": 0.1
         }
       ],
@@ -92,12 +101,16 @@
           "elevation_m": 0
         },
         {
-          "station_m": 440,
-          "elevation_m": 35.2
+          "station_m": 450,
+          "elevation_m": -36
+        },
+        {
+          "station_m": 550,
+          "elevation_m": -44
         },
         {
           "station_m": 880,
-          "elevation_m": 70.4
+          "elevation_m": -70.4
         }
       ],
       "declared_earthworks_m3": 5280,
@@ -125,20 +138,29 @@
       "road_envelopes": [
         {
           "station_start_m": 0,
-          "station_end_m": 490,
+          "station_end_m": 450,
           "lateral_min_m": 10,
           "lateral_max_m": 18,
-          "elevation_min_m": 0,
-          "elevation_max_m": 20.58,
+          "elevation_min_m": -18.9,
+          "elevation_max_m": 0,
           "uncertainty_m": 0.1
         },
         {
-          "station_start_m": 490,
+          "station_start_m": 450,
+          "station_end_m": 550,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -23.1,
+          "elevation_max_m": -18.9,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 550,
           "station_end_m": 980,
           "lateral_min_m": 10,
           "lateral_max_m": 18,
-          "elevation_min_m": 20.58,
-          "elevation_max_m": 41.16,
+          "elevation_min_m": -41.16,
+          "elevation_max_m": -23.1,
           "uncertainty_m": 0.1
         }
       ],
@@ -154,12 +176,16 @@
           "elevation_m": 0
         },
         {
-          "station_m": 490,
-          "elevation_m": 20.58
+          "station_m": 450,
+          "elevation_m": -18.9
+        },
+        {
+          "station_m": 550,
+          "elevation_m": -23.1
         },
         {
           "station_m": 980,
-          "elevation_m": 41.16
+          "elevation_m": -41.16
         }
       ],
       "declared_earthworks_m3": 2450,
@@ -187,20 +213,29 @@
       "road_envelopes": [
         {
           "station_start_m": 0,
-          "station_end_m": 540,
-          "lateral_min_m": 20,
-          "lateral_max_m": 28,
-          "elevation_min_m": 0,
-          "elevation_max_m": 18.9,
+          "station_end_m": 450,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -15.75,
+          "elevation_max_m": 0,
           "uncertainty_m": 0.1
         },
         {
-          "station_start_m": 540,
+          "station_start_m": 450,
+          "station_end_m": 550,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -19.25,
+          "elevation_max_m": -15.75,
+          "uncertainty_m": 0.1
+        },
+        {
+          "station_start_m": 550,
           "station_end_m": 1080,
-          "lateral_min_m": 20,
-          "lateral_max_m": 28,
-          "elevation_min_m": 18.9,
-          "elevation_max_m": 37.8,
+          "lateral_min_m": 10,
+          "lateral_max_m": 18,
+          "elevation_min_m": -37.8,
+          "elevation_max_m": -19.25,
           "uncertainty_m": 0.1
         }
       ],
@@ -216,12 +251,16 @@
           "elevation_m": 0
         },
         {
-          "station_m": 540,
-          "elevation_m": 18.9
+          "station_m": 450,
+          "elevation_m": -15.75
+        },
+        {
+          "station_m": 550,
+          "elevation_m": -19.25
         },
         {
           "station_m": 1080,
-          "elevation_m": 37.8
+          "elevation_m": -37.8
         }
       ],
       "declared_earthworks_m3": 3780,
