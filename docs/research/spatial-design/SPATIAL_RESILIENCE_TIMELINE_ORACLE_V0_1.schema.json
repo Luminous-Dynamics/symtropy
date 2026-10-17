@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.schema.json",
+  "title": "Spatial Resilience Timeline Oracle v0.1",
+  "description": "Synthetic finite-state timeline fixtures only; not a building-physics model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "required_case_count",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "SPATIAL-RESILIENCE-TIMELINE-ORACLE"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_finite_state_oracle_fixtures_not_physical_model"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "required_case_count": {
+      "const": 8
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "initial_service",
+          "stability_window",
+          "horizon",
+          "events",
+          "expected_stable_recovery_tick",
+          "expected_error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SPR-O-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 8
+          },
+          "initial_service": {
+            "type": "boolean"
+          },
+          "stability_window": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "horizon": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "generation",
+                "tick",
+                "sequence",
+                "kind"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "generation": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4294967295
+                },
+                "tick": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "sequence": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "restored",
+                    "lost"
+                  ]
+                }
+              }
+            }
+          },
+          "expected_stable_recovery_tick": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "expected_error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "empty_event_id",
+              "event_past_horizon",
+              "zero_stability_window",
+              "conflicting_duplicate",
+              "ambiguous_event_order",
+              null
+            ]
+          }
+        }
+      }
+    }
+  }
+}
