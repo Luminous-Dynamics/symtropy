@@ -65,6 +65,7 @@ jobs:
             --manifest-path tools/civ-infra-measurement-compatibility/Cargo.toml -- \
             tools/civ-infra-measurement-compatibility/fixtures/compatibility-v0.1.json \
             "$RUNNER_TEMP/civ-infra-compatibility-report.json"
+          test "$(sha256sum tools/civ-infra-measurement-compatibility/fixtures/compatibility-v0.1.json | cut -d ' ' -f 1)" = "$(jq -r '.input_sha256' "$RUNNER_TEMP/civ-infra-compatibility-report.json")"
           jq -e '
             .state_count == 4 and
             .outcome_count == 3 and
