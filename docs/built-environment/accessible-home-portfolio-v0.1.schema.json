@@ -281,7 +281,8 @@
         "resident_disruption_points",
         "access_gate",
         "delivery_state",
-        "note"
+        "note",
+        "resolves_preference_conflicts"
       ],
       "properties": {
         "id": {
@@ -339,6 +340,25 @@
         "note": {
           "type": "string",
           "minLength": 1
+        },
+        "resolves_preference_conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "preference_id",
+              "conflicting_intervention_id"
+            ],
+            "properties": {
+              "preference_id": {
+                "$ref": "#/$defs/id"
+              },
+              "conflicting_intervention_id": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
         }
       }
     }
