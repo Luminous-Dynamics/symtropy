@@ -503,7 +503,9 @@ mod tests {
     fn incomplete_coverage_cannot_be_marked_valid() {
         let mut fixture = read_fixture();
         fixture.artifacts[0].coverage_complete = false;
-        assert!(validate_fixture(&fixture).iter().any(|error| error.contains("incomplete coverage")));
+        assert!(validate_fixture(&fixture)
+            .iter()
+            .any(|error| error.contains("incomplete coverage")));
     }
 
     #[test]
