@@ -434,5 +434,116 @@
       "kind": "internal_issue",
       "scope_note": "Reuse existing Manufacturing and RepairProductiveLoop identities and evidence owners; do not create a second repair ledger."
     }
+  ],
+  "washer_architecture_variants": [
+    {
+      "id": "W0-RETAIL-CONTROL",
+      "role": "control",
+      "hypothesis": "A matched retail washer establishes function, service, energy and cost baselines without assuming the proposed design is better.",
+      "compare_against": [
+        "all washer candidate variants"
+      ],
+      "required_measurements": [
+        "cleaning and rinsing outcome under a fixed soil/load profile",
+        "water use, energy use, cycle duration and spin-drying outcome",
+        "access/disassembly/service task time and tools",
+        "parts price, delivery, labour, rework and restoration time",
+        "leakage, vibration/noise and defined post-repair verification"
+      ],
+      "failure_modes": [
+        "control set is not comparable in capacity, age, market or load profile",
+        "published label values are mistaken for measurements under our benchmark protocol",
+        "control service history is missing or selection is biased toward easy-to-repair models"
+      ],
+      "status": "proposed_no_measurements"
+    },
+    {
+      "id": "W1-ACCESSIBLE-CONVENTIONAL",
+      "role": "candidate",
+      "hypothesis": "Reversible access panels, labelled interfaces and a well-designed service manual may reduce repair effort without changing the core wet tub or drive architecture.",
+      "compare_against": [
+        "W0-RETAIL-CONTROL"
+      ],
+      "required_measurements": [
+        "panel opening and reassembly time",
+        "common-task service time and damaged-fastener rate",
+        "harness damage, strain relief and leakage after reassembly",
+        "functional test parity and post-repair recurrence",
+        "added part count, BOM cost, vibration/noise and material burden"
+      ],
+      "failure_modes": [
+        "access panels reduce structural stiffness or sealing",
+        "additional fasteners or harness routing add new failure modes",
+        "documentation improves steps but does not improve diagnosis or total restoration time"
+      ],
+      "status": "proposed_no_measurements"
+    },
+    {
+      "id": "W2-SERVICE-SPINE",
+      "role": "candidate",
+      "hypothesis": "A dedicated service path to the pump/filter, inlet valve, dispenser, door lock, heater/sensor harness, controller and drive may improve fault isolation and replacement time if interfaces do not add excessive cost or failure points.",
+      "compare_against": [
+        "W0-RETAIL-CONTROL",
+        "W1-ACCESSIBLE-CONVENTIONAL"
+      ],
+      "required_measurements": [
+        "access and replacement time by module",
+        "connector/seal failure and misconnection rate during test assembly",
+        "post-repair leak, protective electrical and functional verification",
+        "module price/inventory, parts wait and discarded mass per repair",
+        "total restore-time median/P90 and recurrence by fault class"
+      ],
+      "failure_modes": [
+        "a replaceable module contains expensive components that were not faulty",
+        "connectors, seals or rigid interfaces become frequent new failure points",
+        "diagnostic boundaries do not align with actual fault-localization evidence"
+      ],
+      "status": "proposed_no_measurements"
+    },
+    {
+      "id": "W3-BEARING-TUB-TRADE",
+      "role": "orthogonal_trade",
+      "hypothesis": "A bolted outer tub and separately serviceable bearing/seal assembly may reduce replacement cost and waste, but only if sealing, vibration, fatigue, assembly precision and recurrence remain acceptable.",
+      "compare_against": [
+        "W0-RETAIL-CONTROL",
+        "W1-ACCESSIBLE-CONVENTIONAL",
+        "W2-SERVICE-SPINE"
+      ],
+      "required_measurements": [
+        "bearing/seal replacement time and required tools",
+        "static leak and repeat-cycle seal integrity",
+        "loaded spin vibration, noise, imbalance and temperature",
+        "replacement-part cost and mass discarded",
+        "repeat-failure rate and sensitivity to assembly tolerance"
+      ],
+      "failure_modes": [
+        "serviceable joint leaks or loosens under thermal/mechanical cycling",
+        "bearing replacement precision demands costly fixtures or expert labour",
+        "lower initial material waste is offset by lower joint reliability or higher assembly cost"
+      ],
+      "status": "proposed_no_measurements"
+    },
+    {
+      "id": "W4-DRIVE-TOPOLOGY",
+      "role": "orthogonal_trade",
+      "hypothesis": "Belt and direct-drive options must be compared at matched cleaning, rinsing, spin, noise, resource and repair outcomes before a topology is selected.",
+      "compare_against": [
+        "W0-RETAIL-CONTROL",
+        "at least one accessible candidate architecture"
+      ],
+      "required_measurements": [
+        "energy and cycle performance under matched loads",
+        "speed control, vibration, acoustic noise and imbalance response",
+        "drive/belt/coupling repair time and parts availability",
+        "controller/inverter cost, failure modes and electronic waste",
+        "post-repair loaded-spin verification and recurrence"
+      ],
+      "failure_modes": [
+        "topology comparison is confounded by motor sizing, control firmware or drum design",
+        "the apparently simpler drive transfers cost into the controller or specialized service",
+        "the test rewards peak efficiency while degrading spin quality, noise or reliability"
+      ],
+      "status": "proposed_no_measurements"
+    }
   ]
 }
