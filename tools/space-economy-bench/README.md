@@ -178,3 +178,5 @@ Synthetic decision setup: the prior probability of a rich site is 50%; building 
 - A claimed 90%/90% assay with no evidence backing its performance receives an effective uninformative 50%/50% likelihood model, zero information credit, and no purchase.
 
 The resulting values are synthetic decision utility, not money, site-specific prior probabilities, survey performance, lunar geology or a real investment recommendation. The purpose is to prove the decision contract: pay only for measurements that are credibly likely to change a decision enough to justify their cost. See [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813).
+
+The next-measurement decision loop is covered by `tools/space-economy-bench/examples/resource_assay_selection_reference.rs`: it scores candidate assays by exact EVSI minus cost, rejects unverified assay-performance claims, and compares EVSI against EVPI. See [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813) and the exploration section in the [resource-production-chain map](../../docs/tech/SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md).
