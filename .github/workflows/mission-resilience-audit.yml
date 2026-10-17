@@ -45,16 +45,22 @@ jobs:
           cargo run --manifest-path tools/mission-resilience-audit/Cargo.toml -- fixtures/transport/mission_resilience_scenarios_v0_1.json > "$RUNNER_TEMP/mission-resilience-report.json"
           jq -e '
             .benchmark_id == "mission-resilience-v0.1"
-            and .mission_count == 3
-            and .candidate_plan_count == 9
-            and .stress_case_count == 6
-            and .baseline_eligible_plan_count == 6
-            and .expected_recoverable_case_count == 5
+            and .mission_count == 5
+            and .environment_count == 5
+            and .candidate_plan_count == 14
+            and .stress_case_count == 10
+            and .baseline_eligible_plan_count == 8
+            and .expected_recoverable_case_count == 6
             and .expected_recoverable_case_coverage_percent == 100
-            and .expected_no_plan_control_count == 1
-            and .expected_no_plan_control_correct_count == 1
-            and .expected_viability_oracle_match_count == 6
+            and .expected_no_plan_control_count == 4
+            and .expected_no_plan_control_correct_count == 4
+            and .expected_viability_oracle_match_count == 10
             and .expected_viability_oracle_match_percent == 100
+            and ([.environment_summaries[] | select(.environment_id == "afghanistan") | .baseline_feasible_plan_count] == [0])
+            and ([.environment_summaries[] | select(.environment_id == "afghanistan") | .expected_no_plan_control_correct_count] == [2])
+            and ([.scenario_assessments[] | select(.case_id == "sahara-heat-margin-collapse-negative") | .no_admissible_plan] == [true])
+            and ([.scenario_assessments[] | select(.case_id == "afghanistan-route-evidence-unknown-negative") | .no_admissible_plan] == [true])
+            and ([.scenario_assessments[] | select(.case_id == "afghanistan-hazard-evidence-failed-negative") | .no_admissible_plan] == [true])
             and .weighted_utility_score_produced == false
             and .universal_winner_produced == false
             and .route_or_deployment_authorized == false
