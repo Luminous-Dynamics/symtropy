@@ -371,3 +371,26 @@ The values are exact integer/rational calculations under the synthetic model. Th
 Research motivation is grounded in the [USGS lunar resource assessment](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022) and [NASA's ISRU overview](https://www.nasa.gov/overview-in-situ-resource-utilization/), which highlight the gap between possible occurrence, site-specific characteristics, recoverability and qualified commodity production. Sources motivate the benchmark but do not calibrate these synthetic assay values.
 
 Tracking issue: [BENCH-SPACE-009 — choose resource surveys by decision value, not data volume](https://github.com/Luminous-Dynamics/symtropy/issues/1813).
+
+## Active reference extension — adaptive sequential resource exploration
+
+Follow-up to [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813): [BENCH-SPACE-010 — adaptive sequential resource exploration and conditional EVSI](https://github.com/Luminous-Dynamics/symtropy/issues/1823) adds `tools/space-economy-bench/examples/sequential_resource_exploration_reference.rs`. It extends the one-shot assay contract without modifying the frozen six-scenario v0.1 corpus.
+
+The fixture models a named irreversible choice: build local oxygen production (+200 synthetic decision units for a rich site, -100 for a poor site) or use imports (0 in the model). Starting from a 50% prior:
+- A low-cost screen with 70% sensitivity/specificity costs 1 unit; its exact posteriors are 70% after a positive and 30% after a negative.
+- A 90%/90% follow-up assay costs 20 units. Conditional EVSI is 13 units on the positive branch, below cost, and 47 on the negative branch, above cost. Therefore the policy stops after a positive and runs the follow-up after a negative.
+- Expected measurement spend is 11 units. Gross expected decision value is 78.5; net expected value is 67.5, compared with 65 for buying the high-resolution assay directly and 50 for taking no measurement. The adaptive policy's net advantage over the direct assay is 2.5 synthetic units in this fixture.
+- A cost-60 negative control verifies that neither branch buys the follow-up.
+
+All calculations use a common fixed integer joint-probability denominator. The implementation rejects an unexpected analytical result, reports the branch-conditional EVSI and decision posteriors, and emits a deterministic receipt tied to the exact source commit and code digest. The focused workflow now runs the example's unit tests, asserts key receipt invariants, and includes the new receipt in lock/toolchain provenance and artifact upload.
+
+### Targets for the next benchmark generation
+
+1. **Policy optimality:** on bounded finite-state fixtures, the selected adaptive policy must match an exhaustive enumeration oracle; regret target is exactly zero under the declared model.
+2. **Arithmetic and mass integrity:** exact or bounded-rational probability mass conservation; branch probabilities sum to one; EVSI is non-negative when the decision maker may ignore information; EVSI never exceeds EVPI.
+3. **Selective measurement:** zero follow-up purchases when branch-conditional EVSI is no greater than total incremental cost; no unverified performance claim may affect accepted likelihoods.
+4. **Model robustness:** add correlated assays, spatially biased samples, missing observations, and misspecified likelihood negative controls. Independent evidence must not be treated as independent merely because it comes from separate instruments.
+5. **Mission constraints:** add sample consumption, destructive sampling, elapsed time, power, access geometry and a hard exploration budget. Compare expected value per constrained resource only after satisfying mission and evidence gates.
+6. **Calibration:** before any physical claims, validate predicted probabilities on held-out, independently ground-truthed data and report calibration error and decision regret against observed outcomes.
+
+This is a synthetic algorithm contract, not a calibrated lunar exploration strategy. Its numbers are not geological priors, field-assay sensitivity, reserve estimates, actual costs, or mission investment recommendations. The USGS framework motivates treating resource certainty and recoverability as distinct states; it does not calibrate this fixture: [USGS lunar resource assessment](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022).
