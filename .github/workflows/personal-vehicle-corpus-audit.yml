@@ -5,12 +5,14 @@ on:
     branches: ["main"]
     paths:
       - "fixtures/personal_vehicle/**"
+      - "schemas/transport/**"
       - "tools/personal-vehicle-corpus-audit/**"
       - ".github/workflows/personal-vehicle-corpus-audit.yml"
   push:
     branches: ["main"]
     paths:
       - "fixtures/personal_vehicle/**"
+      - "schemas/transport/**"
       - "tools/personal-vehicle-corpus-audit/**"
       - ".github/workflows/personal-vehicle-corpus-audit.yml"
   workflow_dispatch:
