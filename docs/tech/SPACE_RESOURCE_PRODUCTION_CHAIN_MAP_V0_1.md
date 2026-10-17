@@ -136,3 +136,20 @@ Candidate chain: prospect/characterize a specific target -> anchoring and sample
 ### Cross-body rule
 
 Every body and orbit receives its own geometry, energy, thermal, material, gravity, environmental, transportation, and evidence model. The portable abstraction is the **resource-to-qualified-service chain**; the physical coefficients do not transfer automatically. Current PR #1736 only executes synthetic lunar pathway fixtures and does not model Mars or asteroid operations.
+
+## 7. Exploration as a decision loop: select the next measurement by value
+
+The resource chain must feed back into exploration. Surveying everything at maximum resolution is neither affordable nor necessarily useful. Each prospective assay should be evaluated against a named route decision: *what action can this result change, what loss could be avoided, and is the expected improvement worth the measurement's cost and mission constraints?*
+
+The new reference `tools/space-economy-bench/examples/resource_assay_selection_reference.rs` embodies this contract with exact integer/rational EVSI calculations. The scenario is synthetic, but it checks four core principles:
+
+- The verified direct assay is worth purchasing because a positive result supports a local-oxygen build while a negative result changes the decision to import.
+- The lower-resolution and uninformative surveys do not change the preferred action and are not purchased at positive cost.
+- An unverified assay's claimed accuracy contributes zero accepted information value.
+- Expected value of sample information (EVSI) cannot exceed expected value of perfect information (EVPI) in the same decision model.
+
+This makes resource exploration decision-aware: the best next measurement is not the measurement that produces the most bytes, highest nominal resolution, or broadest map; it is the measurement with verified ability to reduce decision loss, unblock a required evidence gate, or change the optimal route. The calculation must include the alternatives available if no survey is purchased. A survey never has positive decision value if its result cannot change the choice, though it could still have scientific value outside that specific decision model; that separate value should be stated rather than smuggled into the economic calculation.
+
+For real resource planning, candidate measurements might include depth/grade samples, mineralogical assay, volatile concentration, extraction-yield experiments, site illumination/power measurements, or wear/contamination tests. Those observations have different spatial coverage, destructiveness, lead time, uncertainty and ability to affect the production route. A next-stage planner should include measurement cost, sample/lander time, power, location access, site-to-site correlation, false-positive/negative rates, and downstream option value. Use sequential experiment design: after each result, recalculate the best next measurement against the updated posterior and the new decision alternatives.
+
+The toy assay priors, sensitivity/specificity, payoffs and costs are not actual lunar data. Calibration requires independent survey performance, site-specific priors, a documented likelihood model and held-out validation. Tracking issue: [BENCH-SPACE-009](https://github.com/Luminous-Dynamics/symtropy/issues/1813).
