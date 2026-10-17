@@ -45,7 +45,7 @@ const REQUIRED_NEGATIVE_IDS: [&str; 9] = [
     "PV20_NONCONVERGED_SOLVER",
     "PV21_OUT_OF_DOMAIN",
 ];
-const REQUIRED_SOURCE_IDS: [&str; 10] = [
+const REQUIRED_SOURCE_IDS: [&str; 13] = [
     "SRC_EPA_DYNAMOMETER_SCHEDULES",
     "SRC_NHTSA_ADS_SCENARIO_FRAMEWORK",
     "SRC_SAE_J1555_201910",
@@ -56,6 +56,17 @@ const REQUIRED_SOURCE_IDS: [&str; 10] = [
     "SRC_SA_ROADWORTHINESS",
     "SRC_UN_R155",
     "SRC_UN_R156",
+    "SRC_TOYOTA_SA_MODEL_RANGE",
+    "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES",
+    "SRC_SUZUKI_SWIFT_OFFICIAL_SPECS",
+];
+
+const REQUIRED_BASELINE_IDS: [&str; 5] = [
+    "BASELINE_TOYOTA_VITZ_ENTRY_HATCH",
+    "BASELINE_SUZUKI_SWIFT_GL_MT",
+    "BASELINE_TOYOTA_STARLET_ENTRY_HATCH",
+    "BASELINE_TOYOTA_STARLET_CROSS_ENTRY",
+    "BASELINE_TOYOTA_RUMION_ENTRY_MPV",
 ];
 
 const REQUIRED_EVIDENCE_FIXTURE_IDS: [&str; 15] = [
@@ -95,6 +106,8 @@ struct AuditSummary {
     evidence_fixture_count: usize,
     evidence_schema_sha256: String,
     evidence_fixtures_sha256: String,
+    baseline_count: usize,
+    baseline_sha256: String,
 }
 
 fn string_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -520,6 +533,192 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
 }
 
 
+
+fn validate_baseline_matrix(
+    document: &Value,
+    source_registry: &Value,
+) -> AuditResult<usize> {
+    let mut errors = Vec::new();
+    check_exact_keys(
+        document,
+        &[
+            "schema_version",
+            "status",
+            "created_date",
+            "market",
+            "currency",
+            "scope",
+            "price_policy",
+            "candidates",
+            "benchmark_selection_rules",
+            "claim_ceiling",
+        ],
+        "baseline_matrix",
+        &mut errors,
+    );
+    if string_at(document, "schema_version")
+        != Some("south-africa-personal-family-vehicle-baseline-shortlist/0.1")
+    {
+        errors.push("baseline_matrix.schema_version: unexpected version".to_owned());
+    }
+    if string_at(document, "status")
+        != Some("screening shortlist only; not an endorsed design or purchase recommendation")
+    {
+        errors.push("baseline_matrix.status: shortlist must not imply recommendation or endorsement".to_owned());
+    }
+    if string_at(document, "created_date") != Some("2026-10-17")
+        || string_at(document, "market") != Some("South Africa")
+        || string_at(document, "currency") != Some("ZAR")
+    {
+        errors.push("baseline_matrix: market/date/currency snapshot identity mismatch".to_owned());
+    }
+
+    let policy = document.get("price_policy");
+    if !policy.is_some_and(|policy| {
+        policy.get("must_reverify_before_use").and_then(Value::as_bool) == Some(true)
+            && string_at(policy, "meaning").is_some_and(|text| text.contains("not quote"))
+            && policy.get("excludes").and_then(Value::as_array).is_some_and(|items| items.len() >= 5)
+    }) {
+        errors.push("baseline_matrix.price_policy: dated advertised-from prices must be reverified and exclusions retained".to_owned());
+    }
+    let rules = document.get("benchmark_selection_rules").and_then(Value::as_array);
+    if !rules.is_some_and(|items| {
+        items.len() >= 5
+            && items.iter().all(|item| item.as_str().is_some_and(|text| !text.trim().is_empty()))
+            && items.iter().filter_map(Value::as_str).any(|text| text.contains("not equivalent to lowest 10-year cost"))
+    }) {
+        errors.push("baseline_matrix.benchmark_selection_rules: comparability and low-price claim ceiling required".to_owned());
+    }
+    let claims = document.get("claim_ceiling").and_then(Value::as_array);
+    if !claims.is_some_and(|items| {
+        items.iter().filter_map(Value::as_str).any(|text| text.contains("not verified dealer quotations"))
+            && items.iter().filter_map(Value::as_str).any(|text| text.contains("No cost-of-ownership"))
+    }) {
+        errors.push("baseline_matrix.claim_ceiling: quote/spec/TCO limitations must remain explicit".to_owned());
+    }
+
+    let source_ids: BTreeSet<String> = source_registry
+        .get("sources")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|source| string_at(source, "id").map(str::to_owned))
+        .collect();
+    let source_urls: BTreeMap<String, String> = source_registry
+        .get("sources")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|source| {
+            Some((
+                string_at(source, "id")?.to_owned(),
+                string_at(source, "url")?.to_owned(),
+            ))
+        })
+        .collect();
+
+    let Some(candidates) = document.get("candidates").and_then(Value::as_array) else {
+        return Err(vec!["baseline_matrix.candidates: expected array".to_owned()]);
+    };
+    if candidates.len() != REQUIRED_BASELINE_IDS.len() {
+        errors.push(format!(
+            "baseline_matrix.candidates: expected {} entries, found {}",
+            REQUIRED_BASELINE_IDS.len(),
+            candidates.len()
+        ));
+    }
+
+    let expected_price_sources = BTreeMap::from([
+        ("BASELINE_TOYOTA_VITZ_ENTRY_HATCH", "SRC_TOYOTA_SA_MODEL_RANGE"),
+        ("BASELINE_SUZUKI_SWIFT_GL_MT", "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES"),
+        ("BASELINE_TOYOTA_STARLET_ENTRY_HATCH", "SRC_TOYOTA_SA_MODEL_RANGE"),
+        ("BASELINE_TOYOTA_STARLET_CROSS_ENTRY", "SRC_TOYOTA_SA_MODEL_RANGE"),
+        ("BASELINE_TOYOTA_RUMION_ENTRY_MPV", "SRC_TOYOTA_SA_MODEL_RANGE"),
+    ]);
+    let expected_prices_zar = BTreeMap::from([
+        ("BASELINE_TOYOTA_VITZ_ENTRY_HATCH", 182400.0),
+        ("BASELINE_SUZUKI_SWIFT_GL_MT", 228900.0),
+        ("BASELINE_TOYOTA_STARLET_ENTRY_HATCH", 273700.0),
+        ("BASELINE_TOYOTA_STARLET_CROSS_ENTRY", 311000.0),
+        ("BASELINE_TOYOTA_RUMION_ENTRY_MPV", 314100.0),
+    ]);
+    let mut seen = BTreeSet::new();
+    for (index, candidate) in candidates.iter().enumerate() {
+        let at = format!("baseline_matrix.candidates[{index}]");
+        let Some(id) = require_string(candidate, "id", &at, &mut errors) else {
+            continue;
+        };
+        if !seen.insert(id.clone()) {
+            errors.push(format!("{at}: duplicate candidate {id}"));
+        }
+        if !REQUIRED_BASELINE_IDS.contains(&id.as_str()) {
+            errors.push(format!("{at}: unregistered baseline candidate {id}"));
+        }
+        for key in ["manufacturer", "model", "role", "price_source_id", "source_url"] {
+            if require_string(candidate, key, &at, &mut errors).is_none() {
+                continue;
+            }
+        }
+        let price_source_id = string_at(candidate, "price_source_id").unwrap_or("");
+        if !source_ids.contains(price_source_id) {
+            errors.push(format!("{at}: price source {price_source_id} is not in source registry"));
+        }
+        if let Some(expected_source) = expected_price_sources.get(id.as_str()) {
+            if price_source_id != *expected_source {
+                errors.push(format!("{at}: unexpected price source for {id}"));
+            }
+        }
+        let source_url = string_at(candidate, "source_url").unwrap_or("");
+        if !source_url.starts_with("https://") {
+            errors.push(format!("{at}.source_url: must use HTTPS"));
+        }
+        if source_urls.get(price_source_id).is_some_and(|registered| registered != source_url) {
+            errors.push(format!("{at}: source_url does not match the registered source URL"));
+        }
+        let price = candidate.get("advertised_from_price_zar").and_then(Value::as_f64);
+        if !matches!(price, Some(value) if value > 0.0) {
+            errors.push(format!("{at}.advertised_from_price_zar: must be positive"));
+        }
+        if let Some(expected_price) = expected_prices_zar.get(id.as_str()) {
+            if price != Some(*expected_price) {
+                errors.push(format!("{at}: dated starting-price snapshot changed without an explicit baseline refresh"));
+            }
+        }
+        if let Some(spec_source_id) = string_at(candidate, "specification_source_id") {
+            if !source_ids.contains(spec_source_id) {
+                errors.push(format!("{at}: specification source {spec_source_id} is not registered"));
+            }
+            if let Some(spec_url) = string_at(candidate, "specification_source_url") {
+                if source_urls.get(spec_source_id).is_some_and(|registered| registered != spec_url) {
+                    errors.push(format!("{at}: specification URL does not match source registry"));
+                }
+            }
+        } else if string_at(candidate, "specification_status").is_none() {
+            errors.push(format!("{at}: missing specification source or explicit pending status"));
+        }
+        for key in ["compare_dimensions", "key_unknowns"] {
+            let values = candidate.get(key).and_then(Value::as_array);
+            if !values.is_some_and(|items| {
+                !items.is_empty()
+                    && items.iter().all(|value| value.as_str().is_some_and(|text| !text.trim().is_empty()))
+            }) {
+                errors.push(format!("{at}.{key}: explicit non-empty strings required"));
+            }
+        }
+    }
+    for id in REQUIRED_BASELINE_IDS {
+        if !seen.contains(id) {
+            errors.push(format!("baseline_matrix: missing baseline candidate {id}"));
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(candidates.len())
+    } else {
+        Err(errors)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct EvidenceEnvelopeSummary {
     fixture_count: usize,
@@ -905,6 +1104,43 @@ mod tests {
         validate_corpus(document, &bytes)
     }
 
+    fn baseline_matrix() -> Value {
+        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json"))
+            .expect("baseline shortlist should parse as JSON")
+    }
+
+    fn validate_baseline_fixture(document: &Value, registry: &Value) -> Result<usize, Vec<String>> {
+        validate_baseline_matrix(document, registry)
+    }
+
+    #[test]
+    fn south_african_baseline_shortlist_has_complete_source_bindings() {
+        let matrix = baseline_matrix();
+        let registry = source_registry();
+        assert_eq!(validate_baseline_fixture(&matrix, &registry), Ok(5));
+    }
+
+    #[test]
+    fn baseline_shortlist_rejects_unregistered_price_source() {
+        let mut matrix = baseline_matrix();
+        matrix["candidates"][0]["price_source_id"] = Value::String("SRC_UNREGISTERED".to_owned());
+        assert!(validate_baseline_fixture(&matrix, &source_registry()).is_err());
+    }
+
+    #[test]
+    fn baseline_prices_cannot_be_promoted_to_total_ownership_cost() {
+        let mut matrix = baseline_matrix();
+        matrix["price_policy"]["must_reverify_before_use"] = Value::Bool(false);
+        assert!(validate_baseline_fixture(&matrix, &source_registry()).is_err());
+    }
+
+    #[test]
+    fn baseline_candidate_census_cannot_drop_a_body_style() {
+        let mut matrix = baseline_matrix();
+        matrix["candidates"].as_array_mut().expect("candidate array").pop();
+        assert!(validate_baseline_fixture(&matrix, &source_registry()).is_err());
+    }
+
     fn evidence_schema() -> Value {
         serde_json::from_str(include_str!("../../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json"))
             .expect("evidence envelope schema should parse as JSON")
@@ -977,7 +1213,7 @@ mod tests {
     fn source_registry_has_complete_reviewed_census() {
         let registry = source_registry();
         let (count, digest) = validate_source_registry_fixture(&registry).expect("source registry contract");
-        assert_eq!(count, 10);
+        assert_eq!(count, 13);
         assert_eq!(digest.len(), 64);
     }
 
