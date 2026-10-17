@@ -541,7 +541,10 @@ mod tests {
                 let Some(index) = pending.iter().position(|task| {
                     !valid.contains(&task.produces_artifact_id)
                         && task.required_artifact_ids.iter().all(|id| valid.contains(id))
-                        && task.required_gate_ids.iter().all(|id| fixture.available_gate_ids.contains(id))
+                        && task
+                            .required_gate_ids
+                            .iter()
+                            .all(|id| fixture.available_gate_ids.contains(id))
                 }) else {
                     failed = true;
                     break;
