@@ -220,7 +220,7 @@ pub fn evaluate_baseline_policy(
 
     let payload = PolicyDecisionPayload {
         schema_version: POLICY_SCHEMA_VERSION,
-        policy_id: canonical.policy_id,
+        policy_id: canonical.policy_id.clone(),
         policy_version: canonical.policy_version,
         strategy: canonical.strategy,
         decision_tick: frame.payload.decision_tick,
