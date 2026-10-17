@@ -564,6 +564,68 @@
       ]
     },
     {
+      "scenario_id": "AUTONOMOUS_MODE_REQUIRES_REVIEW",
+      "evaluation_time_epoch_seconds": 1000,
+      "mission": {
+        "request_id": "mission-autonomous-mode-requires-review",
+        "task": "survey",
+        "autonomy_mode": "autonomous",
+        "requested_at_epoch_seconds": 950,
+        "planned_payload_mass_grams": 0,
+        "site_permission": "granted",
+        "site_permission_ref": "synthetic-site-permission-001",
+        "operator_approved": true,
+        "operator_approval_ref": "synthetic-operator-approval-001"
+      },
+      "robot": {
+        "robot_id": "forest-scout-synthetic-001",
+        "platform_class": "low_ground_pressure_scout",
+        "capabilities": [
+          "survey",
+          "map_terrain",
+          "measure_trees",
+          "inspect_log_deck"
+        ],
+        "max_slope_permille": 250,
+        "max_speed_mm_per_second": 700,
+        "max_localization_error_mm": 5000,
+        "max_payload_mass_grams": 10000
+      },
+      "safety_profile": {
+        "profile_id": "SYNTHETIC-SCOUT-PROFILE",
+        "profile_version": "0.1",
+        "approved_by_reference": "synthetic-approval-record",
+        "risk_assessment_reference": "synthetic-risk-assessment",
+        "valid_until_epoch_seconds": 2000,
+        "max_telemetry_age_seconds": 30,
+        "max_slope_permille": 200,
+        "max_speed_mm_per_second": 500,
+        "max_localization_error_mm": 2500,
+        "minimum_obstacle_clearance_mm": 1500,
+        "minimum_battery_basis_points": 2500
+      },
+      "telemetry": {
+        "captured_at_epoch_seconds": 995,
+        "localization_health": "healthy",
+        "localization_error_mm": 800,
+        "perception_health": "healthy",
+        "obstacle_sensor_health": "healthy",
+        "obstacle_status": "clear",
+        "obstacle_clearance_mm": 2500,
+        "mobility_sensor_health": "healthy",
+        "safety_controller_status": "healthy",
+        "emergency_stop_status": "ready",
+        "communications_status": "healthy",
+        "slope_permille": 100,
+        "commanded_speed_mm_per_second": 300,
+        "battery_basis_points": 8000
+      },
+      "expected_decision": "blocked_fail_closed",
+      "expected_reason_codes": [
+        "AUTONOMY_MODE_REQUIRES_SEPARATE_REVIEW"
+      ]
+    },
+    {
       "scenario_id": "CUT_OR_FELL_OUT_OF_SCOPE",
       "evaluation_time_epoch_seconds": 1000,
       "mission": {
