@@ -551,6 +551,33 @@ mod tests {
     }
 
     #[test]
+    fn all_gate_subsets_match_the_exhaustive_oracle() {
+        let base = fixture();
+        let combinations = 1usize << base.declared_gate_ids.len();
+        for mask in 0..combinations {
+            let mut candidate = base.clone();
+            candidate.available_gate_ids = base
+                .declared_gate_ids
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| mask & (1usize << index) != 0)
+                .map(|(_, gate)| gate.clone())
+                .collect();
+            let digest = sha256_hex(&serde_json::to_vec(&candidate).unwrap());
+            let actual = evaluate_fixture(&candidate, digest).unwrap();
+            assert_eq!(
+                actual.pareto_plans,
+                exhaustive_oracle(&candidate),
+                "gate subset mask {mask:#06b} differed from exhaustive oracle"
+            );
+            if !candidate.available_gate_ids.iter().any(|gate| gate == "PROCUREMENT_REVIEW") {
+                assert_eq!(actual.planning_status, "BLOCKED_NO_VALID_PLAN");
+                assert!(!actual.blocking_reasons.is_empty());
+            }
+        }
+    }
+
+    #[test]
     fn exact_fixture_bytes_are_required() {
         let mut changed = FIXTURE_BYTES.to_vec();
         changed.push(b' ');
