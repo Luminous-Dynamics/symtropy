@@ -302,6 +302,120 @@ fn verify_report(json: &str) -> Result<(), String> {
         final_exergy,
         total_store_exergy(final_t, reference_t, mass, low_t, high_t, low_cp, high_cp)?,
     )?;
+
+    // Independent two-store cascade audit. Both stores use constant cp(T), so
+    // the expected temperatures and energy limits are closed-form, hand-checkable.
+    if text_field(json, "cascade_fixture_id")? != "two-temperature-sensible-001" {
+        return Err("unexpected cascade fixture id".to_owned());
+    }
+    for (key, expected) in [
+        ("cascade_high_store_mass_kg", 1.0),
+        ("cascade_high_store_min_temperature_k", 300.0),
+        ("cascade_high_store_max_temperature_k", 500.0),
+        ("cascade_high_store_initial_temperature_k", 450.0),
+        ("cascade_high_cp_low_temperature_k", 300.0),
+        ("cascade_high_cp_low_j_per_kg_k", 1_000.0),
+        ("cascade_high_cp_high_temperature_k", 500.0),
+        ("cascade_high_cp_high_j_per_kg_k", 1_000.0),
+        ("cascade_high_max_discharge_power_w", 10_000.0),
+        ("cascade_low_store_mass_kg", 1.0),
+        ("cascade_low_store_min_temperature_k", 300.0),
+        ("cascade_low_store_max_temperature_k", 360.0),
+        ("cascade_low_store_initial_temperature_k", 300.0),
+        ("cascade_low_cp_low_temperature_k", 300.0),
+        ("cascade_low_cp_low_j_per_kg_k", 1_000.0),
+        ("cascade_low_cp_high_temperature_k", 360.0),
+        ("cascade_low_cp_high_j_per_kg_k", 1_000.0),
+        ("cascade_requested_low_store_heat_j", 40_000.0),
+        ("cascade_minimum_approach_k", 10.0),
+        ("cascade_heat_exchanger_effectiveness", 0.8),
+        ("cascade_duration_s", 10.0),
+    ] {
+        near(&format!("canonical cascade input {key}"), number(json, key)?, expected)?;
+    }
+
+    let high_mass = number(json, "cascade_high_store_mass_kg")?;
+    let high_min_t = number(json, "cascade_high_store_min_temperature_k")?;
+    let high_max_t = number(json, "cascade_high_store_max_temperature_k")?;
+    let high_initial_t = number(json, "cascade_high_store_initial_temperature_k")?;
+    let high_cp_low = number(json, "cascade_high_cp_low_j_per_kg_k")?;
+    let high_cp_high = number(json, "cascade_high_cp_high_j_per_kg_k")?;
+    let high_power = number(json, "cascade_high_max_discharge_power_w")?;
+    let low_mass = number(json, "cascade_low_store_mass_kg")?;
+    let low_min_t = number(json, "cascade_low_store_min_temperature_k")?;
+    let low_max_t = number(json, "cascade_low_store_max_temperature_k")?;
+    let low_initial_t = number(json, "cascade_low_store_initial_temperature_k")?;
+    let low_cp_low = number(json, "cascade_low_cp_low_j_per_kg_k")?;
+    let low_cp_high = number(json, "cascade_low_cp_high_j_per_kg_k")?;
+    let cascade_requested = required_nonnegative(json, "cascade_requested_low_store_heat_j")?;
+    let cascade_approach = number(json, "cascade_minimum_approach_k")?;
+    let cascade_effectiveness = number(json, "cascade_heat_exchanger_effectiveness")?;
+    let cascade_duration = number(json, "cascade_duration_s")?;
+    if high_mass <= 0.0 || low_mass <= 0.0
+        || high_cp_low <= 0.0 || high_cp_high <= 0.0
+        || low_cp_low <= 0.0 || low_cp_high <= 0.0
+        || (high_cp_low - high_cp_high).abs() > 1.0e-10
+        || (low_cp_low - low_cp_high).abs() > 1.0e-10
+        || high_min_t >= high_max_t || low_min_t >= low_max_t
+        || cascade_approach < 0.0
+        || cascade_effectiveness <= 0.0 || cascade_effectiveness > 1.0
+        || cascade_duration <= 0.0 || high_power < 0.0
+    {
+        return Err("invalid cascade fixture assumptions".to_owned());
+    }
+
+    let cutoff = low_max_t + cascade_approach;
+    near("cascade minimum source temperature", number(json, "cascade_minimum_source_temperature_k")?, cutoff)?;
+    if cutoff > high_max_t || high_initial_t <= cutoff {
+        return Err("canonical cascade source lacks required temperature grade".to_owned());
+    }
+    if boolean(json, "cascade_blocked_by_temperature")? {
+        return Err("canonical cascade fixture unexpectedly blocked".to_owned());
+    }
+
+    let high_energy_above_cutoff = high_mass * high_cp_low * (high_initial_t - cutoff);
+    let source_power_budget = high_power * cascade_duration;
+    let low_store_room = low_mass * low_cp_low * (low_max_t - low_initial_t);
+    let expected_withdrawn = high_energy_above_cutoff
+        .min(source_power_budget)
+        .min(low_store_room / cascade_effectiveness)
+        .min(cascade_requested / cascade_effectiveness);
+    let expected_accepted = expected_withdrawn * cascade_effectiveness;
+    let expected_loss = expected_withdrawn - expected_accepted;
+    let expected_unmet = cascade_requested - expected_accepted;
+    let expected_high_final_t = high_initial_t
+        - expected_withdrawn / (high_mass * high_cp_low);
+    let expected_low_final_t = low_initial_t
+        + expected_accepted / (low_mass * low_cp_low);
+
+    near("cascade source heat withdrawn",
+        required_nonnegative(json, "cascade_source_heat_withdrawn_j")?,
+        expected_withdrawn)?;
+    near("cascade low-store heat accepted",
+        required_nonnegative(json, "cascade_low_store_heat_accepted_j")?,
+        expected_accepted)?;
+    near("cascade exchanger loss",
+        required_nonnegative(json, "cascade_heat_exchanger_loss_j")?,
+        expected_loss)?;
+    near("cascade unmet request",
+        required_nonnegative(json, "cascade_unmet_low_store_heat_j")?,
+        expected_unmet)?;
+    near("cascade high-store final temperature",
+        number(json, "cascade_high_store_final_temperature_k")?,
+        expected_high_final_t)?;
+    near("cascade low-store final temperature",
+        number(json, "cascade_low_store_final_temperature_k")?,
+        expected_low_final_t)?;
+    near("cascade total energy closure",
+        high_mass * high_cp_low * (high_initial_t - high_min_t)
+            + low_mass * low_cp_low * (low_initial_t - low_min_t),
+        high_mass * high_cp_low * (expected_high_final_t - high_min_t)
+            + low_mass * low_cp_low * (expected_low_final_t - low_min_t)
+            + expected_loss)?;
+    near("cascade request accounting",
+        cascade_requested,
+        expected_accepted + expected_unmet)?;
+
     Ok(())
 }
 
@@ -329,6 +443,16 @@ mod tests {
         let tampered = report.replace(
             "\"useful_captured_heat_j\":700000.000000000",
             "\"useful_captured_heat_j\":701000.000000000",
+        );
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_cascade_transfer() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"cascade_low_store_heat_accepted_j\":40000.000000000",
+            "\"cascade_low_store_heat_accepted_j\":41000.000000000",
         );
         assert!(verify_report(&tampered).is_err());
     }
