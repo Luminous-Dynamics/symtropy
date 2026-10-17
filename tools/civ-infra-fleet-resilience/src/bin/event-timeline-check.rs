@@ -565,6 +565,9 @@ mod tests {
 
     #[test]
     fn input_array_permutation_preserves_normalized_report_semantics() {
+        let baseline_bytes = report_bytes(EMBEDDED_FIXTURE.as_bytes());
+        let baseline: TimelineReport =
+            serde_json::from_slice(&baseline_bytes).expect("baseline report should parse");
         let mut fixture: serde_json::Value =
             serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should parse");
         fixture["disturbance_cases"]
@@ -574,8 +577,15 @@ mod tests {
         let altered_fixture =
             serde_json::to_vec(&fixture).expect("permuted fixture should serialize");
         let report = report_bytes(&altered_fixture);
+        let altered: TimelineReport =
+            serde_json::from_slice(&report).expect("permuted report should parse");
         let checked = verify_report_bytes(&altered_fixture, &report)
             .expect("permuted input should verify");
+
+        assert_ne!(baseline.input_sha256, altered.input_sha256);
+        assert_eq!(baseline.event_cases, altered.event_cases);
+        assert_eq!(baseline.evaluator_timeline, altered.evaluator_timeline);
+        assert_eq!(baseline.policy_timeline, altered.policy_timeline);
         assert_ne!(
             checked.input_sha256,
             format!("{:x}", Sha256::digest(EMBEDDED_FIXTURE.as_bytes()))
