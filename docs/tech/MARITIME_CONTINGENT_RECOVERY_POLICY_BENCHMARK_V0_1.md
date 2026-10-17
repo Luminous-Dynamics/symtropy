@@ -59,7 +59,13 @@ Report each dimension separately:
 
 Do not invent probabilities for hand-authored scenarios. If scenario probabilities are not supported by evidence, report per-scenario and worst-case outcomes. A single composite “resilience score” is not a sufficient result. Report the cost of flexibility explicitly and show who bears any service displacement.
 
-## 5. Baselines and independent oracle
+## 5. Frozen machine-readable corpus
+
+The first frozen synthetic corpus is [`benchmarks/fixtures/MARITIME_CONTINGENT_RECOVERY_V0_1.json`](https://github.com/Luminous-Dynamics/symtropy/blob/research/maritime-contingent-recovery-v0-1/benchmarks/fixtures/MARITIME_CONTINGENT_RECOVERY_V0_1.json). It contains 12 named conformance cases covering alternate berth recovery, one reserve competing across demands, physical-resource aliasing, expired options, stale forecasts, contradictory evidence, duplicate/replayed triggers, changed payload under one idempotency key, no-disruption plan stability, search truncation, half-open intervals, and input permutation.
+
+These examples are a versioned starter corpus, not yet an executable test result. The eventual independent harness must parse and validate the fixtures, add independently hand-checked complete tiny search spaces, and prove that every expected disposition is exercised. Any schema or expectation change must be versioned and reviewed with a changed fixture manifest/digest.
+
+## 6. Baselines and independent oracle
 
 Compare the same frozen cases against:
 1. fixed primary plan with no recourse;
