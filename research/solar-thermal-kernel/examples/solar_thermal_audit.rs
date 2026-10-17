@@ -145,10 +145,10 @@ fn verify_report(json: &str) -> Result<(), String> {
     if text_field(json, "source_binding")? != "not-source-hash-bound" {
         return Err("report's source-binding declaration changed".to_owned());
     }
-    if boolean(json, "all_verifiers_passed")? != true {
+    if !boolean(json, "all_verifiers_passed")? {
         return Err("model-side verifier flag is false".to_owned());
     }
-    if boolean(json, "hardware_validated")? != false {
+    if boolean(json, "hardware_validated")? {
         return Err("synthetic fixture must not claim hardware validation".to_owned());
     }
 
@@ -223,7 +223,7 @@ fn verify_report(json: &str) -> Result<(), String> {
     let delivered = required_nonnegative(json, "useful_heat_delivered_j")?;
     let exchanger_loss = required_nonnegative(json, "heat_exchanger_loss_j")?;
     let unmet = required_nonnegative(json, "unmet_useful_heat_j")?;
-    if !(0.0 < effectiveness && effectiveness <= 1.0) || approach < 0.0 {
+    if effectiveness <= 0.0 || effectiveness > 1.0 || approach < 0.0 {
         return Err("invalid heat-exchanger assumptions".to_owned());
     }
     near("source heat split", withdrawn, delivered + exchanger_loss)?;
