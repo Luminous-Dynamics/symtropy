@@ -123,6 +123,7 @@ fn check_aerial_scenario(s: &Scenario, errors: &mut Vec<String>) {
         "prohibit_payload_release",
         "require_return_reserve",
         "prohibit_default_under_canopy_flight",
+        "require_required_surface_observed",
     ];
     for gate in required_hard_gates {
         if !expected_true(h, gate) {
@@ -156,6 +157,15 @@ fn check_aerial_scenario(s: &Scenario, errors: &mut Vec<String>) {
     }
     if value_bool(o, "contact_detected").is_none() {
         push_missing(errors, id, "contact_detected");
+    }
+    if value_bool(o, "required_surface_visible").is_none() {
+        push_missing(errors, id, "required_surface_visible");
+    }
+    if value_u64(o, "pose_uncertainty_mm").is_none() {
+        push_missing(errors, id, "pose_uncertainty_mm");
+    }
+    if value_u64(h, "maximum_pose_uncertainty_mm").is_none() {
+        push_missing(errors, id, "maximum_pose_uncertainty_mm");
     }
     require_string(o, "human_approval", id, errors);
 
@@ -191,6 +201,16 @@ fn check_aerial_scenario(s: &Scenario, errors: &mut Vec<String>) {
     }
     if value_str(o, "flight_profile") != Some("straight_pass_no_hover") {
         blocking_conditions.push(("UNDER_CANOPY_NOT_ALLOWED_IN_DEFAULT_PROFILE", "flight_profile"));
+    }
+    if value_bool(o, "required_surface_visible") != Some(true) {
+        blocking_conditions.push(("REQUIRED_FEATURE_OCCLUDED", "required_surface_visible"));
+    }
+    match (value_u64(o, "pose_uncertainty_mm"), value_u64(h, "maximum_pose_uncertainty_mm")) {
+        (Some(actual), Some(maximum)) if actual > maximum => {
+            blocking_conditions.push(("POSE_UNCERTAINTY_EXCEEDS_LIMIT", "pose_uncertainty_mm"));
+        }
+        (None, _) | (_, None) => {}
+        _ => {}
     }
     if value_bool(o, "contact_detected") != Some(false) {
         blocking_conditions.push(("PHYSICAL_CONTACT_DETECTED", "contact_detected"));
