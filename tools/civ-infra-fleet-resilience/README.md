@@ -58,3 +58,15 @@ cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -
 The frozen reference outcomes are B0: safe stop with no accepted synthetic output; B1: four tasks including final inspection completed at tick 8; B2: the same synthetic acceptance at tick 6 after one reassignment at tick 2. The two-tick difference is specific to this hand-authored case, not a performance estimate. The report hashes the exact fixture bytes and fails closed if policy outcomes do not match the fixture.
 
 This extends the *execution boundary* beyond the manifest-only tool, but only to one scenario and a small hand-coded discrete-tick model. It is not yet a rollout of all 13 declared disturbances, a general planner, physics, hardware validation, real inspection evidence, safe dispatch, or field-productivity measurement. The Rust compile and tests must pass on the exact commit before this executable is considered verified.
+
+## Typed event timeline audit
+
+A separate binary audits the existing 13-case disturbance manifest as a deterministic event queue, with evaluator-only injections kept separate from a policy-visible observation projection:
+
+```sh
+cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin event-timeline-audit -- docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json
+```
+
+For v0.1, the timeline has 13 distinct typed disturbance kinds, 3 delayed observations, 4 total ticks of observation delay, a maximum delay of 2 ticks, and snapshots for ticks 0 through 7. In the changed-site-geometry case (R-008), the evaluator sees injection at tick 2 while the policy projection must not see the event until tick 4. Same-tick event and observation lists are sorted deterministically. The report hashes exact input bytes.
+
+This binary audits event identity, references, timing, deterministic release ordering and projection separation. It deliberately reports `policy_simulation_executed: false` and `policy_runs_performed: 0`. It does not simulate recovery, task execution or the B0/B1/B2 policies. That remains the goal of [CIV-INFRA-ROLLOUT-002 #1870](https://github.com/Luminous-Dynamics/symtropy/issues/1870).
