@@ -61,7 +61,7 @@ These are proposed qualification targets, not current measured results.
 1. Zero accepted invalid traces for allocation-above-demand and ineligible positive-credit controls.
 2. Exact agreement between per-agent totals and independent recomputation for every corpus trace.
 3. Zero output changes from irrelevant agent-order permutations.
-4. The alternating fixture must report horizon service profile [1/1, 1/1].
+4. The alternating fixture must report horizon service profile [1/2, 1/2].
 5. The monopoly negative control must report [0/1, 1/1], two starved ticks, and a maximum two-tick starvation streak for the disadvantaged agent.
 6. Add generated demand patterns with bursty/intermittent eligibility, asymmetric demand, repeated recipients, and horizon lengths from 1 to 100,000 ticks.
 7. Measure p50/p95/p99 evaluator latency and memory separately from allocator runtime. Include trace SHA, agent count, horizon length, machine and toolchain.
