@@ -954,8 +954,10 @@ fn evaluate_scenario(scenario: &Scenario) -> DecisionCaseResult {
         .collect();
     actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
 
-    let mut recommended: Vec<&ActionImpact> =
-        actions.iter().filter(|action| action.status == "evaluated").collect();
+    let mut recommended: Vec<&ActionImpact> = actions
+        .iter()
+        .filter(|action| action.status == "evaluated" && action.decision_relevant)
+        .collect();
     recommended.sort_by(|left, right| {
         let left_resolved = scenario
             .actions
@@ -1226,6 +1228,7 @@ mod tests {
         );
         let case = summary.results.iter().find(|result| result.case_id == "SPR-V-002").unwrap();
         assert!(case.actions.iter().all(|action| !action.decision_relevant));
+        assert!(case.recommended_action_order.is_empty());
     }
 
     #[test]
