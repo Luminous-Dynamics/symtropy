@@ -597,25 +597,16 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     let approach = TemperatureDifferenceK::new(10.0)?;
     let effectiveness = Fraction::new(0.9)?;
     let duration = Seconds::new(100.0)?;
-    let (final_state, discharge) = discharge_to_load(
-        &config,
-        after_loss,
-        demand,
-        supply_temp,
-        approach,
-        effectiveness,
+    let discharge_request = DischargeRequest {
+        requested_useful_heat: demand,
+        required_supply_temperature: supply_temp,
+        minimum_approach: approach,
+        heat_exchanger_effectiveness: effectiveness,
         duration,
-    )?;
-    verify_discharge_report(
-        &config,
-        after_loss,
-        demand,
-        supply_temp,
-        approach,
-        effectiveness,
-        duration,
-        discharge,
-    )?;
+    };
+    let (final_state, discharge) =
+        discharge_to_load(&config, after_loss, discharge_request)?;
+    verify_discharge_report(&config, after_loss, discharge_request, discharge)?;
 
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-receipt-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\""
@@ -789,21 +780,21 @@ mod tests {
     fn discharge_satisfies_temperature_cutoff_and_closes_exchange_balance() {
         let c = cfg(400.0); let s = c.initial_state(); let eff = Fraction::new(0.9).unwrap();
         let approach = TemperatureDifferenceK::new(10.0).unwrap();
-        let (after, r) = discharge_to_load(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0)).unwrap();
+        let (after, r) = discharge_to_load(&c, s, DischargeRequest { requested_useful_heat: e(50_000.0), required_supply_temperature: k(350.0), minimum_approach: approach, heat_exchanger_effectiveness: eff, duration: dt(100.0) }).unwrap();
         assert!(close(r.useful_heat_delivered.value(), 50_000.0));
         assert!(r.temperature_after.value() >= 360.0);
         assert!(after.temperature.value() < s.temperature.value());
-        verify_discharge_report(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0), r).unwrap();
+        verify_discharge_report(&c, s, DischargeRequest { requested_useful_heat: e(50_000.0), required_supply_temperature: k(350.0), minimum_approach: approach, heat_exchanger_effectiveness: eff, duration: dt(100.0) }, r).unwrap();
     }
     #[test]
     fn blocks_load_when_source_is_too_cold() {
         let c = cfg(365.0); let s = c.initial_state(); let approach = TemperatureDifferenceK::new(10.0).unwrap();
-        let (after, r) = discharge_to_load(&c, s, e(10_000.0), k(355.0), approach, Fraction::new(0.95).unwrap(), dt(10.0)).unwrap();
+        let (after, r) = discharge_to_load(&c, s, DischargeRequest { requested_useful_heat: e(10_000.0), required_supply_temperature: k(355.0), minimum_approach: approach, heat_exchanger_effectiveness: Fraction::new(0.95).unwrap(), duration: dt(10.0) }).unwrap();
         assert!(r.blocked_by_temperature);
         assert!(close(r.useful_heat_delivered.value(), 0.0));
         assert!(close(r.unmet_useful_heat.value(), 10_000.0));
         assert_eq!(after, s);
-        verify_discharge_report(&c, s, e(10_000.0), k(355.0), approach, Fraction::new(0.95).unwrap(), dt(10.0), r).unwrap();
+        verify_discharge_report(&c, s, DischargeRequest { requested_useful_heat: e(10_000.0), required_supply_temperature: k(355.0), minimum_approach: approach, heat_exchanger_effectiveness: Fraction::new(0.95).unwrap(), duration: dt(10.0) }, r).unwrap();
     }
     #[test]
     fn verifier_rejects_tampered_collector_report() {
@@ -822,9 +813,9 @@ mod tests {
     #[test]
     fn verifier_rejects_tampered_discharge_report() {
         let c = cfg(400.0); let s = c.initial_state(); let approach = TemperatureDifferenceK::new(10.0).unwrap(); let eff = Fraction::new(0.9).unwrap();
-        let (_, r) = discharge_to_load(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0)).unwrap();
+        let (_, r) = discharge_to_load(&c, s, DischargeRequest { requested_useful_heat: e(50_000.0), required_supply_temperature: k(350.0), minimum_approach: approach, heat_exchanger_effectiveness: eff, duration: dt(100.0) }).unwrap();
         let bad = DischargeReport { useful_heat_delivered: e(49_000.0), ..r };
-        assert!(matches!(verify_discharge_report(&c, s, e(50_000.0), k(350.0), approach, eff, dt(100.0), bad), Err(ModelError::ReportMismatch(_))));
+        assert!(matches!(verify_discharge_report(&c, s, DischargeRequest { requested_useful_heat: e(50_000.0), required_supply_temperature: k(350.0), minimum_approach: approach, heat_exchanger_effectiveness: eff, duration: dt(100.0) }, bad), Err(ModelError::ReportMismatch(_))));
     }
     #[test]
     fn rejects_zero_kelvin_and_efficiency_above_one() {
@@ -850,11 +841,11 @@ mod tests {
     fn discharge_obeys_power_limit_and_keeps_unmet_demand_visible() {
         let c = StoreConfig::new(StoreConfigSpec { max_discharge_power: PowerW::new(1_000.0).unwrap(), ..spec(&cfg(400.0), 400.0) }).unwrap();
         let s = c.initial_state(); let approach = TemperatureDifferenceK::new(5.0).unwrap(); let eff = Fraction::new(1.0).unwrap();
-        let (after, r) = discharge_to_load(&c, s, e(50_000.0), k(310.0), approach, eff, dt(10.0)).unwrap();
+        let (after, r) = discharge_to_load(&c, s, DischargeRequest { requested_useful_heat: e(50_000.0), required_supply_temperature: k(310.0), minimum_approach: approach, heat_exchanger_effectiveness: eff, duration: dt(10.0) }).unwrap();
         assert!(close(r.source_heat_withdrawn.value(), 10_000.0));
         assert!(close(r.useful_heat_delivered.value(), 10_000.0));
         assert!(close(r.unmet_useful_heat.value(), 40_000.0));
         assert!(after.temperature.value() >= 315.0);
-        verify_discharge_report(&c, s, e(50_000.0), k(310.0), approach, eff, dt(10.0), r).unwrap();
+        verify_discharge_report(&c, s, DischargeRequest { requested_useful_heat: e(50_000.0), required_supply_temperature: k(310.0), minimum_approach: approach, heat_exchanger_effectiveness: eff, duration: dt(10.0) }, r).unwrap();
     }
 }
