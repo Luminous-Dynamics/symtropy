@@ -50,13 +50,19 @@ fn assert_vector_value(vector_id: &str, expected: &Value, key: &str, actual: f64
     assert!(
         (actual - expected_value).abs()
             <= tolerance * expected_value.abs().max(f64::MIN_POSITIVE),
-        "{vector_id}: {key} mismatch (actual={actual:.17e}, expected={expected_value:.17e}, tolerance={tolerance:.3e})"
+        "{}: {} mismatch (actual={:.17e}, expected={:.17e}, tolerance={:.3e})",
+        vector_id,
+        key,
+        actual,
+        expected_value,
+        tolerance
     );
 }
 
 #[test]
 fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
-    let corpus: Value = serde_json::from_str(CORPUS).expect("contract vector corpus must be valid JSON");
+    let corpus: Value =
+        serde_json::from_str(CORPUS).expect("contract vector corpus must be valid JSON");
     assert_eq!(
         corpus["corpus_id"].as_str(),
         Some("symtropy.structural-reference-contract-vectors.v1")
@@ -100,7 +106,13 @@ fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
                     meters(number(inputs, "depth_m")),
                 )
                 .expect("positive rectangular-section vector");
-                assert_vector_value(vector_id, expected, "area_m2", result.area_m2.get(), tolerance);
+                assert_vector_value(
+                    vector_id,
+                    expected,
+                    "area_m2",
+                    result.area_m2.get(),
+                    tolerance,
+                );
                 assert_vector_value(
                     vector_id,
                     expected,
@@ -127,7 +139,13 @@ fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
                     meters(number(inputs, "depth_m")),
                 )
                 .expect("positive axial-bar vector");
-                assert_vector_value(vector_id, expected, "area_m2", result.section.area_m2.get(), tolerance);
+                assert_vector_value(
+                    vector_id,
+                    expected,
+                    "area_m2",
+                    result.section.area_m2.get(),
+                    tolerance,
+                );
                 assert_vector_value(
                     vector_id,
                     expected,
@@ -159,7 +177,13 @@ fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
                     meters(number(inputs, "depth_m")),
                 )
                 .expect("positive cantilever vector");
-                assert_vector_value(vector_id, expected, "area_m2", result.section.area_m2.get(), tolerance);
+                assert_vector_value(
+                    vector_id,
+                    expected,
+                    "area_m2",
+                    result.section.area_m2.get(),
+                    tolerance,
+                );
                 assert_vector_value(
                     vector_id,
                     expected,
@@ -232,7 +256,13 @@ fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
                     typed_load_case,
                 )
                 .expect("positive simply-supported beam vector");
-                assert_vector_value(vector_id, expected, "area_m2", result.section.area_m2.get(), tolerance);
+                assert_vector_value(
+                    vector_id,
+                    expected,
+                    "area_m2",
+                    result.section.area_m2.get(),
+                    tolerance,
+                );
                 assert_vector_value(
                     vector_id,
                     expected,
