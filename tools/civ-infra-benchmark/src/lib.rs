@@ -86,13 +86,23 @@ pub struct ProfilePoint {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
+pub struct CrossSection {
+    pub station_m: f64,
+    pub cut_area_m2: f64,
+    pub fill_area_m2: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct CorridorCandidate {
     pub id: String,
     pub length_m: f64,
     /// Redundant declaration, checked against the longitudinal profile.
     pub declared_max_grade_percent: f64,
     pub profile_points: Vec<ProfilePoint>,
-    pub estimated_earthworks_m3: f64,
+    /// Redundant declaration, checked against trapezoidal integration of cut/fill areas.
+    pub declared_earthworks_m3: f64,
+    pub cross_sections: Vec<CrossSection>,
     pub road_envelopes: Vec<AxisEnvelope>,
     pub drainage: DrainageCase,
 }
@@ -198,6 +208,31 @@ fn maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
     Some(maximum)
 }
 
+fn maximum_earthworks_volume(sections: &[CrossSection]) -> Option<(f64, f64)> {
+    if sections.len() < 2 {
+        return None;
+    }
+    let mut cut_volume_m3 = 0.0;
+    let mut fill_volume_m3 = 0.0;
+    for pair in sections.windows(2) {
+        let interval_m = pair[1].station_m - pair[0].station_m;
+        if !interval_m.is_finite() || interval_m <= 0.0 {
+            return None;
+        }
+        let cut = interval_m * (pair[0].cut_area_m2 + pair[1].cut_area_m2) / 2.0;
+        let fill = interval_m * (pair[0].fill_area_m2 + pair[1].fill_area_m2) / 2.0;
+        if !cut.is_finite() || !fill.is_finite() {
+            return None;
+        }
+        cut_volume_m3 += cut;
+        fill_volume_m3 += fill;
+        if !cut_volume_m3.is_finite() || !fill_volume_m3.is_finite() {
+            return None;
+        }
+    }
+    Some((cut_volume_m3, fill_volume_m3))
+}
+
 fn validate_envelope(
     envelope: &AxisEnvelope,
     require_elevation: bool,
@@ -272,7 +307,7 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
         if !finite_nonnegative(candidate.length_m)
             || candidate.length_m <= 0.0
             || !finite_nonnegative(candidate.declared_max_grade_percent)
-            || !finite_nonnegative(candidate.estimated_earthworks_m3)
+            || !finite_nonnegative(candidate.declared_earthworks_m3)
             || !finite_nonnegative(candidate.drainage.required_flow_lps)
             || !finite_nonnegative(candidate.drainage.capacity_lps)
         {
@@ -325,6 +360,52 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                 ));
             }
         }
+        if candidate.cross_sections.len() < 2 {
+            errors.push(format!(
+                "candidate {} needs at least two cross-sections",
+                candidate.id
+            ));
+        }
+        if candidate
+            .cross_sections
+            .first()
+            .is_some_and(|section| section.station_m.abs() > 1.0e-9)
+        {
+            errors.push(format!(
+                "candidate {} cross-sections must start at station zero",
+                candidate.id
+            ));
+        }
+        let mut previous_section_station = None;
+        for (index, section) in candidate.cross_sections.iter().enumerate() {
+            if !section.station_m.is_finite()
+                || section.station_m < 0.0
+                || section.station_m > candidate.length_m
+                || !finite_nonnegative(section.cut_area_m2)
+                || !finite_nonnegative(section.fill_area_m2)
+            {
+                errors.push(format!(
+                    "candidate {} cross-section {index} has invalid station/area",
+                    candidate.id
+                ));
+            }
+            if previous_section_station.is_some_and(|station| section.station_m <= station) {
+                errors.push(format!(
+                    "candidate {} cross-section stations must be strictly increasing",
+                    candidate.id
+                ));
+            }
+            previous_section_station = Some(section.station_m);
+        }
+        if let Some(last) = candidate.cross_sections.last() {
+            if (last.station_m - candidate.length_m).abs() > 1.0e-9 {
+                errors.push(format!(
+                    "candidate {} cross-sections must terminate at its declared length",
+                    candidate.id
+                ));
+            }
+        }
+
         if candidate.road_envelopes.is_empty() {
             errors.push(format!("candidate {} has no road envelopes", candidate.id));
         }
@@ -335,6 +416,61 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                 &format!("candidate {} road envelope {index}", candidate.id),
                 &mut errors,
             );
+        }
+        let mut ordered_envelopes: Vec<&AxisEnvelope> =
+            candidate.road_envelopes.iter().collect();
+        ordered_envelopes.sort_by(|left, right| {
+            left.station_start_m.total_cmp(&right.station_start_m)
+        });
+        if ordered_envelopes
+            .first()
+            .is_some_and(|envelope| envelope.station_start_m.abs() > 1.0e-9)
+        {
+            errors.push(format!(
+                "candidate {} road envelopes must start at station zero",
+                candidate.id
+            ));
+        }
+        if ordered_envelopes
+            .last()
+            .is_some_and(|envelope| (envelope.station_end_m - candidate.length_m).abs() > 1.0e-9)
+        {
+            errors.push(format!(
+                "candidate {} road envelopes must terminate at its declared length",
+                candidate.id
+            ));
+        }
+        for pair in ordered_envelopes.windows(2) {
+            if pair[1].station_start_m > pair[0].station_end_m + 1.0e-9 {
+                errors.push(format!(
+                    "candidate {} road envelopes contain an uncovered station interval",
+                    candidate.id
+                ));
+            }
+        }
+        for envelope in &ordered_envelopes {
+            if let (Some(minimum), Some(maximum)) =
+                (envelope.elevation_min_m, envelope.elevation_max_m)
+            {
+                for point in &candidate.profile_points {
+                    if point.station_m >= envelope.station_start_m - 1.0e-9
+                        && point.station_m <= envelope.station_end_m + 1.0e-9
+                        && (point.elevation_m < minimum - 1.0e-9
+                            || point.elevation_m > maximum + 1.0e-9)
+                    {
+                        errors.push(format!(
+                            "candidate {} road envelope does not contain profile point at station {}",
+                            candidate.id, point.station_m
+                        ));
+                    }
+                }
+            }
+        }
+        if maximum_earthworks_volume(&candidate.cross_sections).is_none() {
+            errors.push(format!(
+                "candidate {} cross-sections cannot produce finite earthworks volumes",
+                candidate.id
+            ));
         }
     }
 
@@ -498,6 +634,12 @@ fn evaluate_candidate(
         .unwrap_or(f64::INFINITY);
     let declaration_matches = (derived_grade - candidate.declared_max_grade_percent).abs()
         <= 1.0e-9;
+    let (cut_volume_m3, fill_volume_m3) =
+        maximum_earthworks_volume(&candidate.cross_sections).unwrap_or((f64::INFINITY, 0.0));
+    let derived_earthworks_m3 = cut_volume_m3 + fill_volume_m3;
+    let earthworks_declaration_matches = derived_earthworks_m3.is_finite()
+        && (derived_earthworks_m3 - candidate.declared_earthworks_m3).abs()
+            <= 1.0e-6 * derived_earthworks_m3.abs().max(1.0);
     let mut findings = vec![
         Finding {
             code: "grade_limit".to_string(),
@@ -517,7 +659,15 @@ fn evaluate_candidate(
         },
         Finding {
             code: "earthworks_budget".to_string(),
-            status: if candidate.estimated_earthworks_m3 <= fixture.requirements.max_earthworks_m3 {
+            status: if derived_earthworks_m3 <= fixture.requirements.max_earthworks_m3 {
+                CheckStatus::Pass
+            } else {
+                CheckStatus::Violation
+            },
+        },
+        Finding {
+            code: "declared_earthworks_matches_sections".to_string(),
+            status: if earthworks_declaration_matches {
                 CheckStatus::Pass
             } else {
                 CheckStatus::Violation
@@ -720,6 +870,9 @@ fn reference_candidate_result(
     let mut findings = Vec::new();
     let derived_grade = maximum_grade_percent(&candidate.profile_points)
         .unwrap_or(f64::INFINITY);
+    let (cut_volume_m3, fill_volume_m3) =
+        maximum_earthworks_volume(&candidate.cross_sections).unwrap_or((f64::INFINITY, 0.0));
+    let derived_earthworks_m3 = cut_volume_m3 + fill_volume_m3;
 
     findings.push(Finding {
         code: "grade_limit".to_string(),
@@ -739,10 +892,21 @@ fn reference_candidate_result(
     });
     findings.push(Finding {
         code: "earthworks_budget".to_string(),
-        status: if candidate.estimated_earthworks_m3 > fixture.requirements.max_earthworks_m3 {
+        status: if derived_earthworks_m3 > fixture.requirements.max_earthworks_m3 {
             CheckStatus::Violation
         } else {
             CheckStatus::Pass
+        },
+    });
+    findings.push(Finding {
+        code: "declared_earthworks_matches_sections".to_string(),
+        status: if derived_earthworks_m3.is_finite()
+            && (derived_earthworks_m3 - candidate.declared_earthworks_m3).abs()
+                <= 1.0e-6 * derived_earthworks_m3.abs().max(1.0)
+        {
+            CheckStatus::Pass
+        } else {
+            CheckStatus::Violation
         },
     });
     findings.push(Finding {
