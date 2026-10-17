@@ -307,6 +307,53 @@
       "rights_and_provenance": [
         "Manufacturer-stated data; bind each value to exact trim/version and retain citation rather than copying protected imagery or brochure content."
       ]
+    },
+    {
+      "id": "SRC_SA_DTIC_SKD_POLICY_2026_10",
+      "title": "Minister Tau announces end of Semi-Knock-Down operations in South Africa's automotive sector",
+      "organization": "South African Department of Trade, Industry and Competition",
+      "url": "https://www.thedtic.gov.za/minister-tau-announces-end-of-semi-knock-down-operations-in-sas-automotive-sector/",
+      "accessed_on": "2026-10-17",
+      "role": "manufacturing_policy_risk",
+      "evidence_class": "official_policy_announcement",
+      "status": "announcement published 2026-10-15; implementation instruments, dates and project-specific applicability still require confirmation",
+      "usable_for": [
+        "flag SKD policy exposure during South African manufacturing strategy screening",
+        "motivate local-value-add and supplier-qualification alternatives in design-space analysis",
+        "identify questions for direct DTIC/ITAC/SARS review before committing investment"
+      ],
+      "not_usable_for": [
+        "legal advice on a specific applicant or facility",
+        "assertion that all SKD activity has already ceased or determination of a transition date",
+        "assumption that any particular CKD plan qualifies for APDP2 incentives"
+      ],
+      "rights_and_provenance": [
+        "Government announcement is a primary policy statement, not a substitute for applicable legislation, Gazette text or individual written authority.",
+        "Reconfirm the current APDP2/ITAC/SARS rules and implementation schedule before any investment or pricing decision."
+      ]
+    },
+    {
+      "id": "SRC_SA_SARS_APDP2",
+      "title": "Automotive Production and Development Programme (APDP2)",
+      "organization": "South African Revenue Service",
+      "url": "https://www.sars.gov.za/customs-and-excise/registration-licensing-and-accreditation/automotive-production-and-development-programme-apdp/",
+      "accessed_on": "2026-10-17",
+      "role": "manufacturing_incentive_and_compliance_reference",
+      "evidence_class": "official_programme_guidance",
+      "status": "official APDP2 reference located; current regulations, notices and project eligibility require verification",
+      "usable_for": [
+        "identify customs/licensing/programme registration issues for a proposed South African vehicle manufacturing route",
+        "structure a compliance question list for a qualified tax/customs/homologation adviser"
+      ],
+      "not_usable_for": [
+        "calculate project-specific incentive amounts without full eligibility facts",
+        "infer type approval, vehicle roadworthiness or manufacturer authorization",
+        "assume a proposed local-content or assembly plan is eligible without written confirmation"
+      ],
+      "rights_and_provenance": [
+        "Bind every financial assumption to the current law, applicable rebate item and an appropriately dated official source.",
+        "Verify current details with SARS/ITAC and qualified advisers before investment."
+      ]
     }
   ],
   "next_evidence_gates": [
