@@ -1,0 +1,387 @@
+{
+  "schema_version": "personal-family-vehicle-scenario-corpus/0.1",
+  "corpus_id": "symtropy-personal-family-road-vehicle-synthetic-v0.1",
+  "created_date": "2026-10-17",
+  "status": "synthetic-research-fixture-not-validated-physics",
+  "vehicle_profile": {
+    "id": "family-road-vehicle-synthetic-v0.1",
+    "geometry_and_mass": {
+      "curb_mass_kg": 1400,
+      "wheelbase_m": 2.6,
+      "track_width_m": 1.55,
+      "nominal_tire_radius_m": 0.31,
+      "nominal_center_of_gravity_height_m": 0.55
+    },
+    "assumptions": [
+      "Every numeric value in this profile is synthetic and exists only to exercise schema and evidence-handling paths.",
+      "The profile is not a proposed production specification and is not calibrated to any real vehicle.",
+      "The values must not be used to select components, estimate roadworthiness or predict real braking distance."
+    ],
+    "validated_envelope": {
+      "speed_min_mps": 0,
+      "speed_max_mps": 35,
+      "ambient_temperature_min_c": -10,
+      "ambient_temperature_max_c": 45,
+      "payload_max_kg": 400
+    }
+  },
+  "status_semantics": {
+    "eligible_for_model_evaluation": "Input contract appears complete for a named model; this is not a physical result or safety pass.",
+    "insufficient_evidence": "Required provenance, validation envelope or model capability is absent; abstain.",
+    "reject_before_simulation": "Input/schema/units/configuration violates a hard precondition; do not invoke solver.",
+    "simulation_failure_not_promoted": "The solver failed or did not converge; preserve failure evidence and emit no valid prediction.",
+    "eligible_only_if_wet_profile_is_validated": "Evaluate only if independent evidence covers that exact surface/condition; otherwise abstain.",
+    "eligible_only_for_validated_actuator_profile": "Evaluate only when the specified actuator-degradation profile is calibrated and validated.",
+    "eligible_if_load_profile_is_in_bounds": "Evaluate only within the declared load/CG model envelope.",
+    "reject_as_mismatched_configuration": "Exact hardware/configuration revisions do not match the calibration/compatibility manifest.",
+    "reject_as_tampered_evidence": "The run result's provenance conflicts with the exact manifest.",
+    "eligible_if_powertrain_profile_is_validated": "Evaluate only if the specified powertrain derating profile is validated.",
+    "eligible_for_lifecycle_model_not_automatic_failure_claim": "Lifecycle accounting may represent overdue service; physical failure must remain a separate evidence-backed event.",
+    "insufficient_evidence_if_transient_contact_is_unmodeled": "Abstain if the model cannot represent the transient contact profile.",
+    "insufficient_evidence_if_split_mu_dynamics_are_unvalidated": "Abstain if split-friction steering/yaw dynamics have not been validated.",
+    "insufficient_evidence_if_thermal_brake_model_unqualified": "Abstain if brake thermal/fade behavior is outside the validated profile.",
+    "insufficient_evidence_if_brake_blending_unqualified": "Abstain if regenerative/friction brake handoff is not qualified.",
+    "insufficient_evidence_if_relevant_suspension_dynamics_are_missing": "Abstain if the model lacks the required ride/suspension states.",
+    "insufficient_evidence_if_contact_loss_is_unmodeled": "Abstain if contact loss is outside the model's represented state.",
+    "eligible_only_for_model_evaluation": "Eligibility authorizes only model evaluation within its stated envelope."
+  },
+  "claim_ceiling": [
+    "This corpus tests schema, manifest binding, expected statuses and declared invariants only.",
+    "It contains synthetic, not measured, vehicle parameters.",
+    "No case establishes physical braking, handling, crashworthiness, roadworthiness, vehicle lifetime, commercial cost savings or autonomous-driving safety."
+  ],
+  "cases": [
+    {
+      "id": "PV01_NOMINAL_DRY",
+      "kind": "positive_control",
+      "description": "Nominal straight-line and low-curvature maneuver inside the declared synthetic profile.",
+      "inputs": {
+        "speed_mps": 16.7,
+        "road_mu": 0.8,
+        "grade_rad": 0,
+        "payload_kg": 150,
+        "temperature_c": 20
+      },
+      "required_invariants": [
+        "uses_exact_model_and_configuration_digest",
+        "reports_uncertainty_and_units",
+        "does_not_emit_physical_safety_claim"
+      ],
+      "expected_disposition": "eligible_for_model_evaluation"
+    },
+    {
+      "id": "PV02_WET_LOW_MU",
+      "kind": "stress_case",
+      "description": "Reduced friction compared with PV01 with the same initial speed and declared braking policy.",
+      "inputs": {
+        "speed_mps": 16.7,
+        "road_mu": 0.35,
+        "grade_rad": 0,
+        "payload_kg": 150,
+        "temperature_c": 20
+      },
+      "required_invariants": [
+        "records_friction_change",
+        "recomputes_braking_prediction",
+        "compares_against_matched_dry_case"
+      ],
+      "expected_disposition": "eligible_only_if_wet_profile_is_validated"
+    },
+    {
+      "id": "PV03_FRICTION_TRANSITION",
+      "kind": "stress_case",
+      "description": "Friction changes along the trajectory; steady-state friction alone is insufficient.",
+      "inputs": {
+        "speed_mps": 16.7,
+        "road_mu_before": 0.8,
+        "road_mu_after": 0.3,
+        "transition_position_m": 18
+      },
+      "required_invariants": [
+        "records_transition_location",
+        "uses_time_or_position_varying_surface_profile"
+      ],
+      "expected_disposition": "insufficient_evidence_if_transient_contact_is_unmodeled"
+    },
+    {
+      "id": "PV04_SPLIT_MU",
+      "kind": "stress_case",
+      "description": "Left and right tire contact patches have different friction.",
+      "inputs": {
+        "speed_mps": 16.7,
+        "road_mu_left": 0.75,
+        "road_mu_right": 0.25
+      },
+      "required_invariants": [
+        "reports_yaw_and_lateral_response_or_abstains",
+        "does_not_infer_stability_from_longitudinal_distance_only"
+      ],
+      "expected_disposition": "insufficient_evidence_if_split_mu_dynamics_are_unvalidated"
+    },
+    {
+      "id": "PV05_PAYLOAD_CG_SHIFT",
+      "kind": "stress_case",
+      "description": "Payload changes both total mass and center-of-gravity estimate.",
+      "inputs": {
+        "payload_kg": 350,
+        "payload_cg_x_m": 0.45,
+        "payload_cg_z_m": 0.55
+      },
+      "required_invariants": [
+        "recomputes_mass_and_cg",
+        "binds_load_to_configuration_digest",
+        "compares_against_baseline"
+      ],
+      "expected_disposition": "eligible_if_load_profile_is_in_bounds"
+    },
+    {
+      "id": "PV06_OVERLOAD",
+      "kind": "negative_control",
+      "description": "Payload exceeds the declared profile limit.",
+      "inputs": {
+        "payload_kg": 700,
+        "payload_profile_limit_kg": 400
+      },
+      "required_invariants": [
+        "rejects_or_abstains_before_prediction",
+        "does_not_clamp_overload_silently"
+      ],
+      "expected_disposition": "reject_before_simulation"
+    },
+    {
+      "id": "PV07_BRAKE_FADE",
+      "kind": "stress_case",
+      "description": "Brake temperature is outside the validated nominal range.",
+      "inputs": {
+        "brake_temperature_c": 520,
+        "nominal_brake_temperature_max_c": 350
+      },
+      "required_invariants": [
+        "requires_qualified_thermal_braking_model",
+        "reports_brake_fade_uncertainty"
+      ],
+      "expected_disposition": "insufficient_evidence_if_thermal_brake_model_unqualified"
+    },
+    {
+      "id": "PV08_REGEN_FRICTION_HANDOFF",
+      "kind": "stress_case",
+      "description": "Regenerative braking availability drops and friction brakes must take the difference.",
+      "inputs": {
+        "speed_mps": 20,
+        "regen_available_fraction_before": 0.8,
+        "regen_available_fraction_after": 0
+      },
+      "required_invariants": [
+        "records_regen_availability_change",
+        "checks_total_braking_demand_continuity",
+        "does_not_claim_braking_compliance"
+      ],
+      "expected_disposition": "insufficient_evidence_if_brake_blending_unqualified"
+    },
+    {
+      "id": "PV09_ROUGH_ROAD",
+      "kind": "stress_case",
+      "description": "A bounded synthetic rough-road/pothole excitation.",
+      "inputs": {
+        "speed_mps": 8,
+        "road_input_amplitude_m": 0.06,
+        "road_input_wavelength_m": 1.2
+      },
+      "required_invariants": [
+        "reports_suspension_and_tire_travel",
+        "uses_declared_road_input_units"
+      ],
+      "expected_disposition": "insufficient_evidence_if_relevant_suspension_dynamics_are_missing"
+    },
+    {
+      "id": "PV10_WHEEL_UNLOADING",
+      "kind": "stress_case",
+      "description": "A load/road combination may reduce normal load at one wheel.",
+      "inputs": {
+        "lateral_accel_mps2": 4,
+        "road_mu": 0.45,
+        "payload_kg": 300
+      },
+      "required_invariants": [
+        "reports_wheel_normal_load_or_abstains",
+        "does_not_assume_all_wheels_remain_loaded"
+      ],
+      "expected_disposition": "insufficient_evidence_if_contact_loss_is_unmodeled"
+    },
+    {
+      "id": "PV11_TIRE_REVISION_CHANGE",
+      "kind": "negative_control",
+      "description": "Tire generation differs from the calibration manifest.",
+      "inputs": {
+        "scenario_tire_revision": "TIRE-SYNTH-B",
+        "calibrated_tire_revision": "TIRE-SYNTH-A"
+      },
+      "required_invariants": [
+        "invalidates_incompatible_calibration",
+        "requires_explicit_requalification"
+      ],
+      "expected_disposition": "reject_as_mismatched_configuration"
+    },
+    {
+      "id": "PV12_STEERING_DEGRADATION",
+      "kind": "stress_case",
+      "description": "Declared steering actuator authority is reduced.",
+      "inputs": {
+        "steering_authority_fraction": 0.55,
+        "nominal_steering_authority_fraction": 1
+      },
+      "required_invariants": [
+        "records_actuator_degradation",
+        "reports_reachability_or_abstains",
+        "does_not_claim_autonomous_fallback_capability"
+      ],
+      "expected_disposition": "eligible_only_for_validated_actuator_profile"
+    },
+    {
+      "id": "PV13_SENSOR_BIAS_STALE_CALIBRATION",
+      "kind": "negative_control",
+      "description": "Sensor bias and stale calibration invalidate a control-facing prediction.",
+      "inputs": {
+        "sensor_bias_mps2": 1.2,
+        "calibration_age_days": 730,
+        "max_calibration_age_days": 180
+      },
+      "required_invariants": [
+        "marks_calibration_stale",
+        "does_not_emit_fresh_state_claim",
+        "abstains_from_control_facing_prediction"
+      ],
+      "expected_disposition": "insufficient_evidence"
+    },
+    {
+      "id": "PV14_POWERTRAIN_DERATING",
+      "kind": "stress_case",
+      "description": "Powertrain output is derated due to thermal constraints.",
+      "inputs": {
+        "available_power_fraction": 0.6,
+        "component_temperature_c": 135,
+        "derating_threshold_c": 110
+      },
+      "required_invariants": [
+        "reports_available_power_and_thermal_state",
+        "recomputes_energy_and_performance_estimates"
+      ],
+      "expected_disposition": "eligible_if_powertrain_profile_is_validated"
+    },
+    {
+      "id": "PV15_OVERDUE_MAINTENANCE",
+      "kind": "stress_case",
+      "description": "A maintenance item is overdue; maintenance status must affect the lifecycle model but not fabricate a physical failure.",
+      "inputs": {
+        "service_interval_km": 15000,
+        "km_since_service": 22000,
+        "maintenance_item": "synthetic_brake_inspection"
+      },
+      "required_invariants": [
+        "records_overdue_status",
+        "separates_scheduled_cost_from_failure_probability",
+        "does_not_assert_failure_without_evidence"
+      ],
+      "expected_disposition": "eligible_for_lifecycle_model_not_automatic_failure_claim"
+    },
+    {
+      "id": "PV16_INCOMPATIBLE_PART",
+      "kind": "negative_control",
+      "description": "Installed part revision is outside the declared compatibility scope.",
+      "inputs": {
+        "installed_part_revision": "PART-SYNTH-9",
+        "allowed_part_revisions": [
+          "PART-SYNTH-1",
+          "PART-SYNTH-2"
+        ]
+      },
+      "required_invariants": [
+        "rejects_unqualified_configuration",
+        "keeps_part_identity_separate_from_compatibility"
+      ],
+      "expected_disposition": "reject_as_mismatched_configuration"
+    },
+    {
+      "id": "PV17_INVALID_UNITS",
+      "kind": "negative_control",
+      "description": "A required physical parameter is supplied with an invalid unit symbol.",
+      "inputs": {
+        "speed": {
+          "value": 50,
+          "unit": "horsepower"
+        },
+        "road_mu": {
+          "value": 0.8,
+          "unit": "dimensionless"
+        }
+      },
+      "required_invariants": [
+        "unit_validation_precedes_solver_invocation",
+        "does_not_coerce_unknown_units"
+      ],
+      "expected_disposition": "reject_before_simulation"
+    },
+    {
+      "id": "PV18_MISSING_PROVENANCE",
+      "kind": "negative_control",
+      "description": "A required solver build or source for a calibrated parameter is absent.",
+      "inputs": {
+        "solver_id": "",
+        "parameter_source_ref": null,
+        "model_digest": "sha256:synthetic-placeholder"
+      },
+      "required_invariants": [
+        "requires_solver_identity",
+        "requires_parameter_source_or_explicit_assumption_class",
+        "marks_claim_ceiling"
+      ],
+      "expected_disposition": "insufficient_evidence"
+    },
+    {
+      "id": "PV19_SOLVER_IDENTITY_MUTATION",
+      "kind": "negative_control",
+      "description": "Output claims a solver version that differs from the run manifest.",
+      "inputs": {
+        "manifest_solver_version": "solver-synth-0.1",
+        "result_solver_version": "solver-synth-0.2"
+      },
+      "required_invariants": [
+        "rejects_provenance_mismatch",
+        "binds_output_to_exact_solver_revision"
+      ],
+      "expected_disposition": "reject_as_tampered_evidence"
+    },
+    {
+      "id": "PV20_NONCONVERGED_SOLVER",
+      "kind": "negative_control",
+      "description": "The solver returns a non-convergence state.",
+      "inputs": {
+        "solver_status": "non_converged",
+        "iterations": 1000,
+        "max_iterations": 1000
+      },
+      "required_invariants": [
+        "does_not_promote_partial_result_to_valid_prediction",
+        "retains_failure_receipt"
+      ],
+      "expected_disposition": "simulation_failure_not_promoted"
+    },
+    {
+      "id": "PV21_OUT_OF_DOMAIN",
+      "kind": "negative_control",
+      "description": "An operating condition lies beyond every declared validated envelope.",
+      "inputs": {
+        "speed_mps": 55,
+        "validated_speed_max_mps": 35,
+        "ambient_temperature_c": 58,
+        "validated_temperature_max_c": 45
+      },
+      "required_invariants": [
+        "detects_out_of_domain",
+        "returns_insufficient_evidence",
+        "does_not_extrapolate_silently"
+      ],
+      "expected_disposition": "insufficient_evidence"
+    }
+  ]
+}
