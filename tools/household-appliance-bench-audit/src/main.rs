@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 mod decision;
+mod faults;
 mod portfolio;
 mod sourcing;
 mod stakeholder;
@@ -500,6 +501,13 @@ fn run() -> Result<(), String> {
             "--decision-schema and --decision-profile must be supplied together".to_owned(),
         );
     }
+    let faults_schema_path = read_arg_path("--faults-schema");
+    let faults_curriculum_path = read_arg_path("--faults-curriculum");
+    if faults_schema_path.is_some() != faults_curriculum_path.is_some() {
+        return Err(
+            "--faults-schema and --faults-curriculum must be supplied together".to_owned(),
+        );
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -620,6 +628,35 @@ fn run() -> Result<(), String> {
             "assessment": assessment,
             "eligible_comparative_evidence_available": decision_summary.eligible_candidate_count >= 2,
             "product_winner_declared": false,
+            "product_safety_assessed": false
+        });
+    }
+
+    if let (Some(faults_schema_path), Some(faults_curriculum_path)) =
+        (faults_schema_path, faults_curriculum_path)
+    {
+        let faults_schema_raw = fs::read_to_string(&faults_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", faults_schema_path.display()))?;
+        let faults_curriculum_raw = fs::read_to_string(&faults_curriculum_path)
+            .map_err(|error| format!("cannot read {}: {error}", faults_curriculum_path.display()))?;
+        let faults_summary = faults::audit_fault_curriculum_texts(
+            &faults_schema_raw,
+            &faults_curriculum_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["washer_fault_to_repair_curriculum"] = json!({
+            "status": "PASS_FAULT_CURRICULUM_CONTRACT_ONLY",
+            "task_count": faults_summary.task_count,
+            "user_tier_task_count": faults_summary.user_tier_count,
+            "qualified_tier_task_count": faults_summary.qualified_tier_count,
+            "reference_count": faults_summary.reference_count,
+            "schema_sha256": faults_summary.schema_sha256,
+            "curriculum_sha256": faults_summary.curriculum_sha256,
+            "schema_path": faults_schema_path.display().to_string(),
+            "curriculum_path": faults_curriculum_path.display().to_string(),
+            "physical_fault_trials_completed": false,
+            "local_prevalence_established": false,
             "product_safety_assessed": false
         });
     }
