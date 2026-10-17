@@ -51,7 +51,7 @@ The reference fixture is deliberately adversarial:
 - Expected GHG/cost frontier: **high-loop** and **verified-reuse**.
 - A nominally attractive **unverified-loop** candidate is excluded without a score.
 
-Expected total synthetic GHG burden: high-loop 34,896 gCO₂e; verified-reuse 38,084 gCO₂e; remanufacture 39,614 gCO₂e; virgin baseline 53,520 gCO₂e. Expected burdens are scenario probability-weighted, then rounded to the nearest gram. The robust policy differs from the expected policy because weak-displacement scenario regret is large for high-loop. This does not mean the robust policy is always superior; it illustrates which declared risk preference changes the decision.
+Expected total synthetic GHG burden: high-loop 40,776 gCO₂e; verified-reuse 41,361 gCO₂e; remanufacture 43,148 gCO₂e; virgin baseline 53,520 gCO₂e. Expected burdens are scenario probability-weighted, then rounded to the nearest gram. The robust policy differs from the expected policy because weak-displacement scenario regret is large for high-loop. This does not mean the robust policy is always superior; it illustrates which declared risk preference changes the decision.
 
 A scenario mutation that removes all substitution credit from the weak-displacement state should reverse the expected-impact selection from high-loop to verified-reuse. This is a falsifiable ranking-sensitivity test.
 
