@@ -14,6 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::{error::Error, fmt};
 
 pub mod timeline;
+pub mod observation;
 pub mod verifier;
 
 pub const SETTLEMENT_SCHEMA_VERSION: u32 = 1;
