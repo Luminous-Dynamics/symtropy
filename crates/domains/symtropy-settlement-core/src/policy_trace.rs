@@ -106,16 +106,25 @@ pub fn run_policy_trace(
         });
 
         let mut decision = evaluate_baseline_policy(&canonical_policy, &frame)?;
-        if let DecisionDisposition::RepairRequested { request } = &decision.payload.disposition {
+        let request = match &decision.payload.disposition {
+            DecisionDisposition::RepairRequested { request } => Some(request.clone()),
+            _ => None,
+        };
+        if let Some(request) = request {
             let key = (request.target_component.clone(), request.target_generation);
-            if pending.contains_key(&key) {
-                decision = rewrite_as_no_action(decision, "repair_already_pending")?;
+            if let Some(existing) = pending.get(&key) {
+                decision = rewrite_as_pending_suppression(
+                    decision,
+                    request.target_component,
+                    request.target_generation,
+                    existing.action_id.clone(),
+                )?;
             } else {
                 pending.insert(
                     key,
                     PendingRepair {
                         requested_at_tick: decision_tick,
-                        action_id: request.action_id.clone(),
+                        action_id: request.action_id,
                     },
                 );
             }
@@ -244,10 +253,19 @@ pub fn verify_policy_trace(
         });
 
         match &decision.payload.disposition {
-            DecisionDisposition::NoAction { reason_code } => {
-                if reason_code == "repair_already_pending" && pending.is_empty() {
+            DecisionDisposition::NoAction { .. } => {}
+            DecisionDisposition::RepairSuppressedPending {
+                target_component,
+                target_generation,
+                pending_action_id,
+            } => {
+                let key = (target_component.clone(), *target_generation);
+                if pending
+                    .get(&key)
+                    .is_none_or(|existing| existing.action_id != *pending_action_id)
+                {
                     return Err(SettlementError(format!(
-                        "decision at tick {expected_tick} claims a pending repair without one"
+                        "suppressed repair at tick {expected_tick} does not reference the active pending request"
                     )));
                 }
             }
@@ -276,12 +294,16 @@ pub fn verify_policy_trace(
     Ok(())
 }
 
-fn rewrite_as_no_action(
+fn rewrite_as_pending_suppression(
     mut decision: PolicyDecision,
-    reason_code: &str,
+    target_component: ComponentId,
+    target_generation: u64,
+    pending_action_id: String,
 ) -> Result<PolicyDecision, SettlementError> {
-    decision.payload.disposition = DecisionDisposition::NoAction {
-        reason_code: reason_code.into(),
+    decision.payload.disposition = DecisionDisposition::RepairSuppressedPending {
+        target_component,
+        target_generation,
+        pending_action_id,
     };
     let encoded = serde_json::to_vec(&decision.payload)
         .map_err(|error| SettlementError(format!("serialize suppressed decision: {error}")))?;
@@ -405,7 +427,7 @@ mod tests {
         ));
         assert!(matches!(
             &trace.payload.steps[2].decision.payload.disposition,
-            DecisionDisposition::NoAction { reason_code } if reason_code == "repair_already_pending"
+            DecisionDisposition::RepairSuppressedPending { .. }
         ));
         assert!(matches!(
             &trace.payload.steps[3].decision.payload.disposition,
