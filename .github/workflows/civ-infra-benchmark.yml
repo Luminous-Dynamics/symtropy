@@ -67,6 +67,13 @@ jobs:
               .metrics.derived_cut_volume_m3 == 2160 and
               .metrics.derived_fill_volume_m3 == 1620 and
               .metrics.derived_total_earthworks_m3 == 3780)] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "D-resilient-detour" and .disposition == "feasible_for_synthetic_case" and
+              .metrics.route_length_m == 1200 and
+              .metrics.derived_max_grade_percent == 2.5 and
+              .metrics.derived_cut_volume_m3 == 2400 and
+              .metrics.derived_fill_volume_m3 == 1800 and
+              .metrics.derived_total_earthworks_m3 == 4200)] | length) == 1 and
+            .pareto_frontier_candidate_ids == ["C-reference", "D-resilient-detour"] and
             ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
               select(.code == "declared_grade_matches_profile" and .status == "pass")] | length) == 1 and
             ([.candidates[] | select(.candidate_id == "C-reference") | .findings[] |
