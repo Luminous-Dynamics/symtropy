@@ -40,7 +40,8 @@
         1
       ]
     ],
-    "information_gain": "expected_information_gain_nats = 0.5 * ln(det(I + Sa * H^T * R^-1 * H)); Sa is the declared prior covariance"
+    "information_gain": "expected_information_gain_nats = 0.5 * ln(det(I + Sa * H^T * R^-1 * H)); Sa is the declared prior covariance",
+    "observation_cost_model": "each observation channel has unit acquisition cost, so all two-channel H0 fixtures have total cost 2"
   },
   "fixtures": [
     {
@@ -100,7 +101,13 @@
           0,
           1
         ]
-      ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.8047189562170501
     },
     {
       "id": "h0-weak-high-mode",
@@ -159,7 +166,13 @@
           0,
           1
         ]
-      ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.4048470608218171
     },
     {
       "id": "h0-exact-null-mode",
@@ -223,7 +236,13 @@
           0,
           1
         ]
-      ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.27465307216702745
     },
     {
       "id": "h0-correlated-duplicate",
@@ -287,13 +306,20 @@
           0,
           1
         ]
-      ]
+      ],
+      "observation_costs": [
+        1,
+        1
+      ],
+      "total_acquisition_cost": 2,
+      "expected_information_gain_per_cost": 0.40336248848101525
     }
   ],
   "acceptance_checks": [
     "The Rust code fixture matrices, covariance, values and identifiers exactly match these frozen public inputs.",
     "Computed covariance-whitened singular values and rank match the references within stated tolerance.",
     "The exact null and correlated duplicate controls remain rank deficient; no unique-state claim is accepted.",
-    "The benchmark status remains specification_not_executed until a complete receipt passes independent qualification."
+    "The benchmark status remains specification_not_executed until a complete receipt passes independent qualification.",
+    "Compare policy utility per declared cost, not only raw EIG; complementary and correlated-duplicate fixtures both spend two unit-cost observations."
   ]
 }
