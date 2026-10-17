@@ -22,7 +22,7 @@ Recent timber-robotics work suggests several converging directions:
 - A 2026 wood-frame study highlights vision-driven adaptive manipulation, but its grasp and geometry results remain tied to its tested setup and should not be transferred as expected performance without comparable hardware, stock and protocols: https://www.sciencedirect.com/science/article/pii/S0926580526000993
 - A review of timber-robotization case studies identifies technology readiness, systematic evaluation, safety, productivity evidence, cost and workforce training as important scaling challenges: https://research.tudelft.nl/en/publications/review-of-advances-in-the-robotization-of-timber-construction/
 
-The strategic gap is not merely a new robot arm. It is a coherent and testable portfolio connecting variable materials, sensing, fixtures, tools, task planning, human decisions, as-built evidence, maintenance and reversible reuse.
+For forestry, the strategic gap starts with a non-contact aerial Scout rather than a ground rover. Canopy-scale mapping and targeted revisit must remain distinct from precise trunk/DBH measurement; neither should silently substitute for the other. The strategic gap is not merely a new robot arm. It is a coherent and testable portfolio connecting variable materials, sensing, fixtures, tools, task planning, human decisions, as-built evidence, maintenance and reversible reuse.
 
 ## Paradigm shifts
 
@@ -56,13 +56,42 @@ Platform codes identify candidate profiles only. They do not assert that hardwar
 
 | Profile | Primary jobs | Initial boundary |
 |---|---|---|
-| P0 Forest Scout / survey rover | Inventory, terrain observation, tree/log target observations, map confidence | Compose existing forest visibility and target-completeness work; no harvest authority |
+| P0 Aerial Forest Scout | Non-contact canopy mapping, stand structure, change detection, forest/log-deck context, uncertainty-aware revisit planning | Airborne stand-off sensing only; no contact, landing in forest, sampling, spraying, dropped payloads or harvest authority |
 | P1 Timber presentation assistant | Supervised presentation of boards/beams to a fixture using a fixed gantry or low-speed base | Payload, grasp, stability, pinch zones and load-retention proofs precede hardware |
 | P2 Open woodworking cell | Metrology, clamping, drilling, milling, sanding and fastening modules | Start with offline planning, metrology and non-powered tool dry runs; cutting tools require engineered guarding/interlocks |
 | P3 Carpentry assembly companion | Part recognition, fixture registration, holding, clamping and fastening assistance | Explicit human approval and tool/state checks; no unconstrained collaborative motion |
 | P4 Jobsite logistics/inspection rover | Material/tool delivery, part IDs, as-built capture and inspection workflow | No load-bearing temporary works, autonomous lifting or unreviewed code judgments |
 | P5 Timber-positioning coordinator | Combine local observations and propose alignment/sequence alongside a qualified hoist/crane or human-led lift | Plan proposal only; lifts and structural placement require a separately approved lift plan and site controls |
 | P6 Reuse/remanufacture station | Scan recovered members, locate likely fasteners/defects, estimate as-found geometry, propose disassembly/cutting plans | Geometric scan is not species/grade verification or structural recertification |
+
+### P0-Aerial Forest Scout: non-invasive operating concept
+
+The Scout is an aerial sensing platform, not a ground rover. Its default mission observes from a stand-off distance and returns evidence; it never touches trees, soil, wildlife, or timber.
+
+**Two operational tiers, not one universal airframe**
+
+- **P0-A — canopy-scale survey:** prioritize a small efficient fixed-wing or lift-and-cruise VTOL platform when the site supports approved launch/recovery. Use straight, predictable survey tracks and avoid hovering or repeated low passes. This is the standard reconnaissance mode.
+- **P0-B — targeted aerial revisit:** use a compact multirotor only for a justified local revisit when flight permission, ecological review, weather, stand-off policy, and recovery conditions permit. Hover time is minimized and capped by the site-specific plan.
+- **Under-canopy autonomy is not the default.** GNSS-denied flight among branches introduces collision and wildlife-disturbance risks. Treat it as a separate research/permit profile, not a fallback when canopy data is incomplete.
+
+**Non-invasive by contract**
+
+- No physical contact with trees, wildlife, soil, buildings or timber; no anchors, markers, tags, sample collection, chemical application, payload drops or branch manipulation.
+- Takeoff and landing occur at a designated existing clearing or prepared recovery area; no routine landing inside sensitive habitat.
+- Flight planning considers known sensitive habitats, breeding periods, wildlife buffers, weather, airspace restrictions and site permission. A detected disturbance triggers abort/diversion and a review hold on repeat sorties until a human-reviewed policy permits them.
+- Prefer passive RGB and, only when the use case warrants it, multispectral sensing. Add airborne LiDAR only when its expected structural information justifies cost, weight, power and laser-safety review. Thermal sensing is opt-in for a declared purpose, not always-on wildlife surveillance.
+- Do not claim a universal safe altitude or noise threshold. Research suggests altitude, distance, approach geometry, speed, hovering and species sensitivity affect disturbance; a >50 m altitude stratum has shown lower disturbance in some nesting-bird evidence, but this is not a universal rule or a substitute for an approved site- and species-specific envelope.
+- Apply data minimization: avoid intentional capture of people/private spaces, restrict raw-data access and retention, and document geographic coverage and privacy handling. Do not upload raw imagery merely because connectivity exists.
+
+**What it can reliably aim to report**
+
+Canopy extent/height structure, gaps, stand change, forest edges, access routes and candidate tree/log observations with source/time/resolution, registration error, visible/occluded areas, and uncertainty. Individual-tree DBH inferred only from canopy-scale data must remain an estimate with a qualified evidence label; if the trunk is not visible at adequate geometry/resolution, report it as unobserved rather than fabricated. Field plots or other independently qualified measurements are needed to establish accuracy.
+
+**Aerial mission gates**
+
+A plan is ineligible when site/property permission, aviation authorization, weather envelope, geofence/no-fly checks, privacy controls, or the declared safe-recovery plan is missing; it must also respect the locally configured wildlife policy. On communication loss, low energy, sensor disagreement or localization uncertainty, execute only the pre-reviewed recovery/degraded-state policy. An assumed return-to-home path is not inherently safe over canopy or sensitive habitat.
+
+The >50 m altitude band and every numeric threshold in the synthetic corpus are experimental scenario values only. They do not define a legal minimum or guarantee absence of disturbance.
 
 The first physical pilot should not attempt all seven. Choose a low-consequence, measurable use case after simulation contracts and a qualified risk assessment; a bench-top measurement-and-fixture cell or material-identification rover is a stronger early candidate than a heavy autonomous lifting platform.
 
@@ -83,7 +112,7 @@ Do not create a new universal robot-authority subsystem. Compose established Sym
 
 ### Synthetic contract qualification
 
-Use the frozen companion corpus at `docs/tech/wood-robot-platform-corpus-v0.1.json`. Initial scenarios include nominal plan-only readiness, expired calibration, failed extraction/interlock, occlusion, fixture mismatch, reclaimed-member uncertainty, insufficient energy reserve, missing temporary support, human-declined approval and localization loss.
+Use the frozen companion corpus at `docs/tech/wood-robot-platform-corpus-v0.1.json`. It includes shop and construction controls plus aerial-mission tests for permission, no-fly constraints, wildlife disturbance, weather, privacy, geofencing and degraded recovery.
 
 The verifier should independently recompute rather than trust the planner for:
 - input and configuration digests;
@@ -96,7 +125,7 @@ The verifier should independently recompute rather than trust the planner for:
 ### Proposed gates (targets, not achieved results)
 
 - 100% exact replay for identical corpus bytes, seed, configuration and tested revision.
-- Zero task-ready decisions when required calibration, fixture confirmation, source observation, extraction/interlock, support state or human approval is missing.
+- Zero task-ready decisions when required calibration, fixture confirmation, source observation, extraction/interlock, support state, human approval, flight permission, airspace/geofence clearance, wildlife policy, weather envelope, privacy handling or safe-recovery plan is missing.
 - 100% rejection of injected hard-constraint violations in the frozen corpus.
 - Zero false completion when required features or inspection evidence is occluded, missing or inconclusive.
 - Every test result binds source SHA, corpus/config digests, scenario seed, platform/tool revisions, expected vs observed decisions, reason codes and the claim ceiling.
@@ -117,7 +146,7 @@ A first pilot may test the hypothesis of at least 20% reduction in total task ti
 
 ## Safety and integration boundary
 
-The v0.1 corpus has no motor-command schema and grants no real-world actuation authority. Industrial robot safety should start with ISO 10218-1:2025 (robot requirements, https://www.iso.org/standard/73933.html) and ISO 10218-2:2025 (application/cell integration, https://www.iso.org/standard/73934.html), then be extended to the actual woodworking machine, lift, dust extraction, electrical installation, site and jurisdiction. The ISO 19085 woodworking-machine safety series is also relevant; its common-requirements page identifies ISO 19085-1:2021 and says ISO/FDIS 19085-1 is in approval to replace it (https://www.iso.org/standard/77655.html and https://committee.iso.org/standard/89048.html). Check applicable machine-specific parts and current status during hardware design. A robot-cell standard does not replace the hazards review for the actual woodworking machine, mobile platform, crane or construction task.
+The aerial Scout's v0.1 corpus has no flight-command schema and grants no real-world actuation authority. The same plan-only boundary applies to the other robot profiles. Industrial robot safety should start with ISO 10218-1:2025 (robot requirements, https://www.iso.org/standard/73933.html) and ISO 10218-2:2025 (application/cell integration, https://www.iso.org/standard/73934.html), then be extended to the actual woodworking machine, lift, dust extraction, electrical installation, site and jurisdiction. The ISO 19085 woodworking-machine safety series is also relevant; its common-requirements page identifies ISO 19085-1:2021 and says ISO/FDIS 19085-1 is in approval to replace it (https://www.iso.org/standard/77655.html and https://committee.iso.org/standard/89048.html). Check applicable machine-specific parts and current status during hardware design. A robot-cell standard does not replace the hazards review for the actual woodworking machine, mobile platform, crane or construction task.
 
 A later physical prototype requires task-specific risk assessment, safety-rated controls, suitable guarding/interlocks, extraction and fire/dust controls where applicable, qualified review, and documented verification/validation. Emergency stops, brakes, load retention, human proximity behavior and fault responses must be physically tested; simulation cannot prove those behaviors.
 
