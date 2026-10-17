@@ -270,7 +270,8 @@ jobs:
             and .surveys[3].effective_specificity_used_bps == 5000
             and .surveys[3].evsi.numerator == 0
             and .surveys[3].purchase_survey == false
-            and ([.surveys[].evsi.numerator <= .evpi.numerator] | all)
+            and (.evpi.numerator == 5000000000)
+            and all(.surveys[]; .evsi.numerator <= 5000000000)
           ' space-economy-resource-assay-selection-receipt.json
 
       - name: Bind toolchain and dependency-lock provenance to receipts
