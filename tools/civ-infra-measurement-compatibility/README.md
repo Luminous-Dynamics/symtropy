@@ -25,11 +25,12 @@ The public byte API hashes the exact raw JSON bytes itself, parses those same by
 - If the predicted output interval extends into a region not covered by any outcome bin, the report flags the uncovered region.
 - If an observation matches no declared bin, or matches a bin but no state envelope supports it, the status becomes \`out_of_model_support\`; the prior state set is preserved. Worst-case metrics over declared bins are conditional on declared support and are reported separately from the all-prior-states support-failure bound.
 - Cost or outcome likelihoods are not inferred. The report is a possibility/compatibility result, not a probability model.
+- The report labels worst-case ambiguity across declared bins as conditional on the declared support model. It also reports the support-failure branch explicitly: no state is eliminated, and the full prior decision-signature ambiguity remains.
 
 ## Evidence and tests
 
 - Frozen four-state, three-outcome synthetic fixture with meter/millimeter conversion and a supported observation that leaves multiple states possible.
-- 24 authored Rust tests for unit conversion, nonlinear outward rounding, overlapping boundaries, unsupported observations, out-of-domain state handling, model-support gaps, provenance syntax, order invariance, and a direct interval-overlap oracle.
+- 25 authored Rust tests for unit conversion, nonlinear outward rounding, overlapping boundaries, unsupported observations, out-of-domain state handling, model-support gaps, provenance syntax, order invariance, and a direct interval-overlap oracle.
 - Generated suite: 100 seeded worlds × 20 states × 5 outcome bins = 10,000 state/outcome evaluations. Fifty worlds use length identity (meter/millimeter-compatible) and fifty use the nonlinear dimensionless square; 50 worlds also carry non-zero synthetic additive discrepancy envelopes. The independent oracle compares the full state/outcome edge set, independently propagating square bounds with outward rounding and independently applying the declared discrepancy interval.
 - CI writes full generated inputs, SHA-256 digests, reports, reference edge counts and an artifact checksum manifest. The workflow is scoped to this crate plus its protocol and checks out the exact PR head.
 - Pre-allocation cap: 100,000 state/outcome combinations, deliberately conservative for v0.1 memory use.
