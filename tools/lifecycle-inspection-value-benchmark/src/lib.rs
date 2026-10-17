@@ -96,8 +96,6 @@ pub fn evaluate(bytes: &[u8], source_revision: &str) -> Result<Report, String> {
         .map_err(|error| format!("manifest rejected: {error}"))?;
     validate(&manifest)?;
 
-    let actions: BTreeMap<&str, &LossAction> = manifest.actions.iter()
-        .map(|action| (action.id.as_str(), action)).collect();
     let denominator = manifest.prior_serviceable_weight
         .checked_add(manifest.prior_degraded_weight)
         .and_then(|sum| sum.checked_mul(manifest.likelihood_denominator))
@@ -125,7 +123,7 @@ pub fn evaluate(bytes: &[u8], source_revision: &str) -> Result<Report, String> {
     )?];
     for inspection in inspections {
         candidates.push(evaluate_inspection(
-            &manifest, inspection, &actions, baseline_loss_numerator, denominator,
+            &manifest, inspection, baseline_loss_numerator, denominator,
         )?);
     }
     candidates.sort_by(|a, b| a.inspection_id.cmp(&b.inspection_id));
@@ -292,7 +290,6 @@ fn evaluate_no_inspection(
 fn evaluate_inspection(
     manifest: &Manifest,
     inspection: &Inspection,
-    actions: &BTreeMap<&str, &LossAction>,
     baseline_loss: u64,
     denominator: u64,
 ) -> Result<CandidateResult, String> {
