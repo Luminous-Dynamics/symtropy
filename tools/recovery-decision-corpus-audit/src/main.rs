@@ -318,8 +318,22 @@ fn make_receipt(
                 }
 
                 let candidates = scenario.get("candidate_plans").and_then(Value::as_array);
-                if candidates.is_none() {
-                    errors.push(format!("{label}: CANDIDATE_PLANS_MISSING_OR_NOT_ARRAY"));
+                match candidates {
+                    Some(plans) if !plans.is_empty() => {
+                        let mut plan_names = BTreeSet::new();
+                        for (plan_index, plan) in plans.iter().enumerate() {
+                            match nonempty_string(Some(plan)) {
+                                Some(name) => {
+                                    if !plan_names.insert(name.to_string()) {
+                                        errors.push(format!("{label}: DUPLICATE_CANDIDATE_PLAN: {name}"));
+                                    }
+                                }
+                                None => errors.push(format!("{label}: CANDIDATE_PLAN_{}_INVALID", plan_index + 1)),
+                            }
+                        }
+                    }
+                    Some(_) => errors.push(format!("{label}: CANDIDATE_PLANS_EMPTY")),
+                    None => errors.push(format!("{label}: CANDIDATE_PLANS_MISSING_OR_NOT_ARRAY")),
                 }
                 if let Some(preferred) = nonempty_string(scenario.get("preferred_plan_for_review")) {
                     let found = candidates
@@ -340,7 +354,7 @@ fn make_receipt(
                     let inspection_risk = voi.get("inspection_risk_cents").and_then(Value::as_i64);
                     let reported_net = voi.get("expected_net_value_cents").and_then(Value::as_i64);
                     let values = [loss_avoided, inspection_cost, delay_burden, inspection_risk, reported_net];
-                    if values.iter().any(Option::is_none) {
+                    if values.iter().any(|value| value.is_none()) {
                         errors.push(format!("{label}: VALUE_OF_INFORMATION_FIELDS_INVALID"));
                     } else {
                         let loss_avoided = loss_avoided.unwrap();
@@ -368,6 +382,18 @@ fn make_receipt(
                                 if nonempty_string(voi.get("expected_information_action")) != Some(expected_action) {
                                     errors.push(format!("{label}: VALUE_OF_INFORMATION_ACTION_MISMATCH"));
                                 }
+                                if expected_action == "INSPECT" {
+                                    let inspection_candidate_exists = candidates
+                                        .map(|plans| plans.iter().any(|plan| {
+                                            plan.as_str()
+                                                .map(|name| name.to_ascii_lowercase().contains("inspect"))
+                                                .unwrap_or(false)
+                                        }))
+                                        .unwrap_or(false);
+                                    if !inspection_candidate_exists {
+                                        errors.push(format!("{label}: POSITIVE_VOI_WITHOUT_INSPECTION_CANDIDATE"));
+                                    }
+                                }
                             }
                             None => errors.push(format!("{label}: VALUE_OF_INFORMATION_ARITHMETIC_OVERFLOW")),
                         }
@@ -388,6 +414,12 @@ fn make_receipt(
                         errors.push(format!("{label}: SYNTHETIC_ESTIMATES_NOT_AN_OBJECT"));
                     } else if let Some(entries) = estimates.as_object() {
                         for (plan, estimate) in entries {
+                            let candidate_exists = candidates
+                                .map(|plans| plans.iter().any(|candidate| candidate.as_str() == Some(plan.as_str())))
+                                .unwrap_or(false);
+                            if !candidate_exists {
+                                errors.push(format!("{label}: ESTIMATE_FOR_UNKNOWN_CANDIDATE_PLAN: {plan}"));
+                            }
                             if !estimate.is_object() {
                                 errors.push(format!("{label}: ESTIMATE_NOT_AN_OBJECT: {plan}"));
                                 continue;
@@ -629,6 +661,31 @@ mod tests {
         corpus["scenarios"][16]["value_of_information"]["expected_information_action"] = json!("INSPECT");
         let receipt = audit_value(corpus);
         assert!(receipt.errors.iter().any(|e| e.contains("VALUE_OF_INFORMATION_ACTION_MISMATCH")));
+    }
+
+    #[test]
+    fn duplicate_evidence_ids_are_rejected() {
+        let mut corpus = embedded_value();
+        let duplicate = corpus["scenarios"][0]["evidence"][0]["evidence_id"].clone();
+        corpus["scenarios"][1]["evidence"][0]["evidence_id"] = duplicate;
+        let receipt = audit_value(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("DUPLICATE_EVIDENCE_ID")));
+    }
+
+    #[test]
+    fn empty_candidate_plan_list_is_rejected() {
+        let mut corpus = embedded_value();
+        corpus["scenarios"][1]["candidate_plans"] = json!([]);
+        let receipt = audit_value(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("CANDIDATE_PLANS_EMPTY")));
+    }
+
+    #[test]
+    fn positive_value_of_information_requires_an_inspection_option() {
+        let mut corpus = embedded_value();
+        corpus["scenarios"][15]["candidate_plans"] = json!(["repair", "replace", "hold"]);
+        let receipt = audit_value(corpus);
+        assert!(receipt.errors.iter().any(|e| e.contains("POSITIVE_VOI_WITHOUT_INSPECTION_CANDIDATE")));
     }
 
     #[test]
