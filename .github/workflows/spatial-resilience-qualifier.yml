@@ -63,6 +63,8 @@ jobs:
             docs/research/spatial-design/SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.schema.json \
             docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.json \
             docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.schema.json \
+            docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_PROTOCOL_V0_1.md \
+            tools/spatial-resilience-qualifier/README.md \
             tools/spatial-resilience-qualifier/Cargo.toml \
             tools/spatial-resilience-qualifier/src/lib.rs \
             tools/spatial-resilience-qualifier/src/main.rs \
