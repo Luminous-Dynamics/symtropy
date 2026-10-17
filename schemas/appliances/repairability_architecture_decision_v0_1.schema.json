@@ -371,7 +371,10 @@
             "minLength": 20
           },
           "status": {
-            "const": "requirements_not_frozen"
+            "enum": [
+              "requirements_not_frozen",
+              "requirements_frozen"
+            ]
           },
           "requirements": {
             "type": "array",
@@ -387,7 +390,8 @@
                 "threshold",
                 "rationale",
                 "evidence_needed",
-                "status"
+                "status",
+                "frozen_before_candidate_measurements"
               ],
               "properties": {
                 "id": {
@@ -424,7 +428,13 @@
                   "minLength": 10
                 },
                 "status": {
-                  "const": "threshold_not_frozen"
+                  "enum": [
+                    "threshold_not_frozen",
+                    "frozen_before_candidate_measurements"
+                  ]
+                },
+                "frozen_before_candidate_measurements": {
+                  "type": "boolean"
                 }
               }
             }
