@@ -62,3 +62,8 @@ NASA distinguishes product verification (proof against specified requirements) f
 NIST's 2026 digital-twins workshop report highlights interoperability, verification/validation/uncertainty quantification and cybersecurity as open challenges in trustworthy, scalable lifecycle models: https://www.nist.gov/publications/digital-twins-workshops-summary-report
 
 These sources motivate traceability and explicit search confidence; they do not validate this invented portfolio or supply real-world planning costs.
+
+
+## Extended differential stress case
+
+The Rust test suite builds an in-memory third target that shares the existing as-built evidence and adds one abstract gate. It compares all 64 subsets of six gates against the independent subset oracle. The full-gate frontier is expected at cost/duration (16,12) and (19,9). An independent JavaScript calculation matched all 64 subsets; this is not a Rust test execution result.
