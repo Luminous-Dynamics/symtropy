@@ -298,3 +298,45 @@ A local-repair assertion only counts if local repair evidence is verified. The a
 Failure dates and repair delays are deterministic synthetic events, not measured failure rates. The reference does not optimize inventory, model simultaneous failures, or prove a locally repairable system can be built. Before empirical use, specify the service boundary and required service level, stockpile policy, wear-out/replacement process, lead-time distributions, repair capacity, energy/material constraints, common-cause failures, data provenance, uncertainty and held-out validation. Keep empirical and synthetic evidence classes distinct.
 
 Follow-up: [BENCH-SPACE-007 — time-to-failure, resupply delays and service viability runway](https://github.com/Luminous-Dynamics/symtropy/issues/1792).
+
+ 
+## Active reference extension — resource evidence to production chains
+
+The example `tools/space-economy-bench/examples/resource_chain_reference.rs` adds a small mass-balanced pathway network. It is a separate extension; the original v0.1 six-scenario corpus is unchanged. Its purpose is to prevent a material catalogue from being mistaken for a productive economy.
+
+### Research motivation
+
+NASA's [ISRU overview](https://www.nasa.gov/overview-in-situ-resource-utilization/) notes that volatile location, form, concentration, distribution and accessibility remain incompletely characterized and that many demonstrations to date involved analog materials under Earth conditions for limited durations. USGS's [Assessment of Lunar Resource Exploration in 2022](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022) provides a resource-assessment framework that treats resource type, certainty and recoverability distinctly. NASA's [Lunar Enabling Infrastructure Accelerator](https://www.nasa.gov/news-release/nasa-calls-for-proposals-to-accelerate-lunar-surface-technologies/) now explicitly connects power generation, oxygen extraction from regolith, advanced manufacturing and nanomaterials. These priorities reinforce a chain-level model; they do not validate the numerical fixture used here.
+
+### Candidate production-chain families
+
+1. **Bulk regolith to shielding/berm aggregate:** excavate, screen and move a large mass stream. Begin with products whose value does not require high-purity feedstock—such as bulk shielding or terrain works—while keeping structural qualification as a distinct gate.
+2. **Regolith to oxygen:** extract oxygen chemically bound in mineral phases; track energy, residue and process lifetime. Treat Fe/Al/Ti/Si-bearing residue as potential feedstock, not refined metal inventory, until separation yield and product quality are verified.
+3. **Polar volatile-bearing feed to water:** prospect the site, excavate/heat, collect vapour, purify and condition water. The concentration and accessibility assumptions are site-specific and must remain unknown until measured.
+4. **Polar water to hydrogen and oxygen:** allocate recovered water to electrolysis and account for hydrogen/oxygen storage, conditioning, losses and delivery. Water delivered for life support and water consumed as electrolysis feed are alternative allocations; do not count the same recovered water twice.
+5. **Recycling loop:** recover water, selected metals, polymers, and repairable modules. Model filter/catalyst/seal replacement, contamination, degradation, energy and recovery efficiency; a recycled stream is not automatically equivalent to virgin-grade product.
+
+### Synthetic fixture oracle
+
+| Route | Feed batch | Conditional product streams | Residuals | Evidence-gated output |
+|---|---:|---|---:|---|
+| Bulk shielding aggregate | 1,000 kg regolith | 900 kg aggregate | 100 kg screening rejects | 900 kg within the explicitly passing synthetic gate |
+| Regolith oxygen | 1,000 kg regolith | 200 kg oxygen | 800 kg residue | 0 kg: process/product gates fail and assumed energy demand (6,000 kWh) exceeds the synthetic 5,000 kWh budget |
+| Polar feed to water | 100 kg volatile-bearing material | 54 kg purified water | 46 kg residuals | 0 kg: site-feed, process and product-quality gates are unverified |
+| Same polar batch to electrolysis | Same 100 kg batch | 48 kg oxygen + 6 kg hydrogen | 46 kg residuals | 0 kg for same evidence gates |
+
+Every alternative closes mass balance exactly. The polar-water-to-water and polar-water-to-electrolysis pathways share an allocation-group ID and cannot be summed. The 54 kg purified water is an intermediate consumed by the electrolysis route, not an additional output alongside the oxygen and hydrogen. The water electrolysis split uses stoichiometric mass balance only; energy, purity, storage loss and attainable production rates remain uncalibrated.
+
+The regolith oxygen fixture assumes 400 kg oxygen inventory in a 1,000 kg batch and 50% recovery; all batch sizes, fractions, yields, energy demands and evidence-gate flags in this reference are synthetic. They are not lunar grade estimates, reserves, production forecasts, measured energy intensities or technology qualification. The positive bulk-aggregate scenario is only a gate-logic test and does not assert that an actual lunar site has been sampled or a process has been space-qualified.
+
+### Proposed targets
+
+- Zero unexplained mass-balance delta on every pathway.
+- 100% rejection of resource supply when a required site/access, process qualification, declared-use product quality or power gate fails.
+- Zero double counting of intermediate material or alternative routes consuming the same batch.
+- Zero refined-metal credit from an unqualified mixed residue.
+- Distinct fields for resource occurrence, measured site feed, recoverable amount, process output, qualified product and delivered supply.
+- Each empirical input includes source, site/body, time/epoch, spatial resolution, data license, uncertainty, sampling/measurement method and model version.
+- Reports include yield intervals/sensitivity, kWh/kg qualified product, tailings/residuals, consumables and wear-part needs, throughput, repair downtime, purity, and cost per delivered qualified kilogram.
+
+Follow-on: [BENCH-SPACE-008 — resource evidence to auditable production chains and coproducts](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
