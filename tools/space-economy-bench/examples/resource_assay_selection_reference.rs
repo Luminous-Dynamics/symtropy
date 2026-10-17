@@ -61,6 +61,8 @@ struct Evaluation {
     cost_units: i128,
     positive_event_weight: i128,
     negative_event_weight: i128,
+    posterior_rich_after_positive_bps: i128,
+    posterior_rich_after_negative_bps: i128,
     choose_build_after_positive: bool,
     choose_build_after_negative: bool,
     gross_value_after_survey_numerator: i128,
@@ -165,6 +167,8 @@ fn evaluate_survey(survey: &Survey) -> Result<Evaluation, String> {
         cost_units: survey.cost_units,
         positive_event_weight,
         negative_event_weight,
+        posterior_rich_after_positive_bps: positive_rich_weight * BASIS_POINTS / positive_event_weight,
+        posterior_rich_after_negative_bps: negative_rich_weight * BASIS_POINTS / negative_event_weight,
         choose_build_after_positive: positive_build_value > IMPORT_PAYOFF * positive_event_weight,
         choose_build_after_negative: negative_build_value > IMPORT_PAYOFF * negative_event_weight,
         gross_value_after_survey_numerator,
@@ -202,6 +206,8 @@ fn evaluation_json(
         "effective_specificity_used_bps": result.effective_specificity_bps,
         "positive_outcome_joint_weight": result.positive_event_weight,
         "negative_outcome_joint_weight": result.negative_event_weight,
+        "posterior_rich_site_probability_after_positive_bps": result.posterior_rich_after_positive_bps,
+        "posterior_rich_site_probability_after_negative_bps": result.posterior_rich_after_negative_bps,
         "decision_after_positive": if result.choose_build_after_positive { "build_local_oxygen" } else { "import_oxygen" },
         "decision_after_negative": if result.choose_build_after_negative { "build_local_oxygen" } else { "import_oxygen" },
         "expected_value_with_survey_before_cost": rational_json(result.gross_value_after_survey_numerator, JOINT_DENOMINATOR),
@@ -349,6 +355,8 @@ mod tests {
         let result = evaluate_survey(&SURVEYS[0]).unwrap();
         assert_eq!(result.evsi_numerator, 3_500_000_000);
         assert_eq!(result.net_incremental_value_numerator, 2_500_000_000);
+        assert_eq!(result.posterior_rich_after_positive_bps, 9_000);
+        assert_eq!(result.posterior_rich_after_negative_bps, 1_000);
         assert!(result.purchase);
         let receipt = execute(&"a".repeat(40)).unwrap();
         assert_eq!(receipt["selected_measurement"], "direct_sample_assay");
@@ -359,6 +367,8 @@ mod tests {
         let result = evaluate_survey(&SURVEYS[1]).unwrap();
         assert_eq!(result.evsi_numerator, 0);
         assert_eq!(result.net_incremental_value_numerator, -200_000_000);
+        assert_eq!(result.posterior_rich_after_positive_bps, 6_000);
+        assert_eq!(result.posterior_rich_after_negative_bps, 4_000);
         assert_eq!(result.choose_build_after_positive, result.choose_build_after_negative);
         assert!(!result.purchase);
     }
