@@ -99,6 +99,7 @@ struct SearchState {
     expanded_states: usize,
     max_expanded_states: usize,
     incomplete: bool,
+    incomplete_reason: Option<String>,
     feasible_plans: Vec<Plan>,
 }
 
@@ -191,6 +192,7 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
         expanded_states: 0,
         max_expanded_states: fixture.max_expanded_states,
         incomplete: false,
+        incomplete_reason: None,
         feasible_plans: Vec::new(),
     };
     enumerate_portfolios(
@@ -234,10 +236,9 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
         blockers.sort();
         blockers.dedup();
     } else if planning_status == "SEARCH_INCOMPLETE" {
-        blockers.push(format!(
-            "search budget exhausted after {} expanded states; found plans are provisional",
-            state.expanded_states
-        ));
+        blockers.push(state.incomplete_reason.clone().unwrap_or_else(|| {
+            "search incomplete; found plans are provisional".to_owned()
+        }));
     }
 
     Ok(Report {
@@ -293,6 +294,10 @@ fn enumerate_portfolios(
 ) {
     if state.expanded_states >= state.max_expanded_states {
         state.incomplete = true;
+        state.incomplete_reason = Some(format!(
+            "state expansion budget exhausted at {} states",
+            state.max_expanded_states
+        ));
         return;
     }
     state.expanded_states += 1;
@@ -315,10 +320,18 @@ fn enumerate_portfolios(
         }
         let Some(next_cost) = cost.checked_add(task.cost_units) else {
             state.incomplete = true;
+            state.incomplete_reason = Some(format!(
+                "cost accumulation overflow at task {}",
+                task.id
+            ));
             return;
         };
         let Some(next_duration) = duration.checked_add(task.duration_units) else {
             state.incomplete = true;
+            state.incomplete_reason = Some(format!(
+                "duration accumulation overflow at task {}",
+                task.id
+            ));
             return;
         };
         used_tasks.insert(task.id.clone());
@@ -684,6 +697,19 @@ mod tests {
         assert!(!report.frontier_complete);
         assert!(report.expanded_states <= 1);
         assert!(!report.blocking_reasons.is_empty());
+    }
+
+    #[test]
+    fn budget_expiry_after_one_plan_is_still_incomplete() {
+        let mut fixture = fixture();
+        fixture.max_expanded_states = 5;
+        let digest = sha256_hex(&serde_json::to_vec(&fixture).unwrap());
+        let result = evaluate_fixture(&fixture, digest).unwrap();
+        assert_eq!(result.planning_status, "SEARCH_INCOMPLETE");
+        assert!(!result.frontier_complete);
+        assert_eq!(result.known_feasible_plan_count, 1);
+        assert_eq!(result.pareto_plan_count, 1);
+        assert!(result.blocking_reasons[0].contains("budget exhausted"));
     }
 
     #[test]
