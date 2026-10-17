@@ -33,7 +33,7 @@ fn scalar<'a>(json: &'a str, key: &str) -> Result<&'a str, String> {
     let index = found.ok_or_else(|| format!("missing report field: {key}"))?;
     let start = index + needle.len();
     let tail = &json[start..];
-    let end = tail.find(|ch| ch == ',' || ch == '}')
+    let end = tail.find([',', '}'])
         .ok_or_else(|| format!("unterminated report field: {key}"))?;
     let value = tail[..end].trim();
     if value.is_empty() {
@@ -92,7 +92,7 @@ fn required_nonnegative(json: &str, key: &str) -> Result<f64, String> {
 fn specific_enthalpy(t: f64, low_t: f64, high_t: f64, low_cp: f64, high_cp: f64)
     -> Result<f64, String>
 {
-    if !(low_t < high_t) || low_cp <= 0.0 || high_cp <= 0.0 || t < low_t || t > high_t {
+    if low_t >= high_t || low_cp <= 0.0 || high_cp <= 0.0 || t < low_t || t > high_t {
         return Err("temperature or cp(T) bounds are invalid for the declared curve".to_owned());
     }
     let delta = t - low_t;
