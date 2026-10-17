@@ -5,9 +5,7 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
 
 ## Scope of the first slice
 
-- **HousingReferences.lean** defines five elementary closed-form reference
-  equations and theorem declarations for positivity, exact scaling, and exact
-  rational known-answer values.
+- **HousingReferences.lean** defines five primary closed-form response equations plus supporting equations for section area, extreme-fiber distance, stress, bending moment, and reactions. Exact-rational fixture theorems cover all 28 expected output fields in the shared five-vector corpus; the additional named theorem declarations are not verified until Lean CI passes.
 - **Dimensions.lean** defines seven-SI-base dimension vectors, proves eight
   dimensional-homogeneity identities and five dimensionless-group invariants,
   and includes a negative control that rejects a malformed cantilever expression.
@@ -15,7 +13,13 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
   Lean theorem anchor.
 - **contracts.json** maps stable contract IDs to assumptions, input/output SI
   units, theorem IDs, candidate housing fixture links, dimension status, and
-  negative controls.
+  negative controls. It also maps every expected output field in the pinned
+  Rust contract-vector corpus to a named Lean theorem.
+- **Shared contract vectors** are authored on open housing-evidence PR #1653.
+  Lean CI fetches that candidate PR, verifies pinned commit/blob identities,
+  and reconciles each vector ID, contract ID, output key, and theorem name.
+  This is traceability and exact-contract coverage, not an automated proof that
+  the Rust implementation refines the real-valued Lean functions.
 
 The current numerical definitions accept untyped real numbers. The dimensional
 proofs validate equations in a separate exponent model; they do not yet make
