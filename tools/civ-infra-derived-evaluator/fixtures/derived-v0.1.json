@@ -1,0 +1,233 @@
+{
+  "schema_version": "luminous.civ_infra.derived_fixture.v0.1",
+  "fixture_id": "synthetic-primitive-derived-corridor-v0.1",
+  "ruleset": {
+    "id": "synthetic-corridor-rules",
+    "version": "0.1",
+    "max_grade_percent": {
+      "value": 7,
+      "unit": "percent"
+    },
+    "max_earthworks_m3": {
+      "value": 4000,
+      "unit": "cubic_meters"
+    },
+    "min_vertical_clearance_m": {
+      "value": 0.15,
+      "unit": "meter"
+    },
+    "evidence_ref": "synthetic-ruleset-source-v0.1"
+  },
+  "storm_multiplier_support": [
+    {
+      "value": 1,
+      "unit": "dimensionless"
+    },
+    {
+      "value": 1.5,
+      "unit": "dimensionless"
+    }
+  ],
+  "utility_encroachment_support_m": [
+    {
+      "value": 0,
+      "unit": "meter"
+    },
+    {
+      "value": 0.2,
+      "unit": "meter"
+    }
+  ],
+  "states": [
+    {
+      "id": "storm-low__encroach-low",
+      "storm_multiplier": {
+        "value": 1,
+        "unit": "dimensionless"
+      },
+      "utility_encroachment_m": {
+        "value": 0,
+        "unit": "meter"
+      },
+      "evidence_ref": "synthetic-state-source:storm-low__encroach-low"
+    },
+    {
+      "id": "storm-low__encroach-high",
+      "storm_multiplier": {
+        "value": 1,
+        "unit": "dimensionless"
+      },
+      "utility_encroachment_m": {
+        "value": 0.2,
+        "unit": "meter"
+      },
+      "evidence_ref": "synthetic-state-source:storm-low__encroach-high"
+    },
+    {
+      "id": "storm-high__encroach-low",
+      "storm_multiplier": {
+        "value": 1.5,
+        "unit": "dimensionless"
+      },
+      "utility_encroachment_m": {
+        "value": 0,
+        "unit": "meter"
+      },
+      "evidence_ref": "synthetic-state-source:storm-high__encroach-low"
+    },
+    {
+      "id": "storm-high__encroach-high",
+      "storm_multiplier": {
+        "value": 1.5,
+        "unit": "dimensionless"
+      },
+      "utility_encroachment_m": {
+        "value": 0.2,
+        "unit": "meter"
+      },
+      "evidence_ref": "synthetic-state-source:storm-high__encroach-high"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "A-shortest",
+      "evidence_ref": "synthetic-candidate-A-v0.1",
+      "route_length_m": {
+        "value": 900,
+        "unit": "meter"
+      },
+      "grade_percent": {
+        "value": 8,
+        "unit": "percent"
+      },
+      "earthworks_m3": {
+        "value": 2400,
+        "unit": "cubic_meters"
+      },
+      "drainage_capacity_lps": {
+        "value": 100,
+        "unit": "liters_per_second"
+      },
+      "base_drainage_demand_lps": {
+        "value": 60,
+        "unit": "liters_per_second"
+      },
+      "vertical_clearance_m": {
+        "value": 0.5,
+        "unit": "meter"
+      }
+    },
+    {
+      "id": "B-balanced",
+      "evidence_ref": "synthetic-candidate-B-v0.1",
+      "route_length_m": {
+        "value": 1200,
+        "unit": "meter"
+      },
+      "grade_percent": {
+        "value": 5,
+        "unit": "percent"
+      },
+      "earthworks_m3": {
+        "value": 3000,
+        "unit": "cubic_meters"
+      },
+      "drainage_capacity_lps": {
+        "value": 120,
+        "unit": "liters_per_second"
+      },
+      "base_drainage_demand_lps": {
+        "value": 70,
+        "unit": "liters_per_second"
+      },
+      "vertical_clearance_m": {
+        "value": 0.4,
+        "unit": "meter"
+      }
+    },
+    {
+      "id": "C-fragile-clearance",
+      "evidence_ref": "synthetic-candidate-C-v0.1",
+      "route_length_m": {
+        "value": 1050,
+        "unit": "meter"
+      },
+      "grade_percent": {
+        "value": 6,
+        "unit": "percent"
+      },
+      "earthworks_m3": {
+        "value": 2000,
+        "unit": "cubic_meters"
+      },
+      "drainage_capacity_lps": {
+        "value": 110,
+        "unit": "liters_per_second"
+      },
+      "base_drainage_demand_lps": {
+        "value": 60,
+        "unit": "liters_per_second"
+      },
+      "vertical_clearance_m": {
+        "value": 0.28,
+        "unit": "meter"
+      }
+    },
+    {
+      "id": "D-resilient",
+      "evidence_ref": "synthetic-candidate-D-v0.1",
+      "route_length_m": {
+        "value": 1400,
+        "unit": "meter"
+      },
+      "grade_percent": {
+        "value": 4,
+        "unit": "percent"
+      },
+      "earthworks_m3": {
+        "value": 3600,
+        "unit": "cubic_meters"
+      },
+      "drainage_capacity_lps": {
+        "value": 145,
+        "unit": "liters_per_second"
+      },
+      "base_drainage_demand_lps": {
+        "value": 80,
+        "unit": "liters_per_second"
+      },
+      "vertical_clearance_m": {
+        "value": 0.65,
+        "unit": "meter"
+      }
+    },
+    {
+      "id": "E-under-capacity",
+      "evidence_ref": "synthetic-candidate-E-v0.1",
+      "route_length_m": {
+        "value": 1100,
+        "unit": "meter"
+      },
+      "grade_percent": {
+        "value": 6,
+        "unit": "percent"
+      },
+      "earthworks_m3": {
+        "value": 1900,
+        "unit": "cubic_meters"
+      },
+      "drainage_capacity_lps": {
+        "value": 50,
+        "unit": "liters_per_second"
+      },
+      "base_drainage_demand_lps": {
+        "value": 60,
+        "unit": "liters_per_second"
+      },
+      "vertical_clearance_m": {
+        "value": 0.5,
+        "unit": "meter"
+      }
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+name: CIV-INFRA Primitive-Derived Evaluator
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-derived-evaluator/**"
+      - ".github/workflows/civ-infra-derived-evaluator.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-derived-evaluator/**"
+      - ".github/workflows/civ-infra-derived-evaluator.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  derived-evaluator:
+    name: Primitive-derived rules and oracle checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-infra-derived-evaluator/Cargo.toml -- --check
+      - name: Run reference and adversarial tests
+        env:
+          CIV_INFRA_DERIVED_CORPUS_OUT: ${{ runner.temp }}/civ-infra-derived-corpus.json
+        run: cargo test --locked --manifest-path tools/civ-infra-derived-evaluator/Cargo.toml
+      - name: Upload generated primitive-input differential evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: civ-infra-derived-corpus-${{ github.sha }}
+          path: ${{ runner.temp }}/civ-infra-derived-corpus.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Emit and check exact-input report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="tools/civ-infra-derived-evaluator/fixtures/derived-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/derived-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-derived-evaluator/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.derived_report.v0.1" and
+            .evaluator_version == "0.1.0" and
+            .input_sha256 == $expected_sha and
+            .claim_ceiling == "synthetic_rules_and_declared_finite_states_only" and
+            ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "robust_infeasible_for_declared_set")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-balanced" and .disposition == "robust_feasible_for_declared_set")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-fragile-clearance" and .disposition == "conditionally_feasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "D-resilient" and .disposition == "robust_feasible_for_declared_set")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "E-under-capacity" and .disposition == "robust_infeasible_for_declared_set")] | length) == 1 and
+            .robust_pareto_frontier_candidate_ids == ["B-balanced", "D-resilient"]
+          ' "$report"
