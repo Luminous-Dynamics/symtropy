@@ -167,12 +167,15 @@ fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
         );
         for action in &case.actions {
             println!(
-                "  action={} status={} decision_relevant={} hard_change={} pareto_change={} worst_states={:?} cost={} duration={}",
+                "  action={} status={} decision_relevant={} hard_change={} pareto_change={} ",
                 action.action_id,
                 action.status,
                 action.decision_relevant,
                 action.changes_hard_feasible_set,
-                action.changes_pareto_set,
+                action.changes_pareto_set
+            );
+            println!(
+                "    worst_states={:?} cost={} duration={}",
                 action.worst_case_remaining_state_count,
                 action.estimated_cost_units,
                 action.estimated_duration_ticks
