@@ -551,5 +551,210 @@
       ],
       "status": "proposed_no_measurements"
     }
-  ]
+  ],
+  "washer_benchmark_protocol": {
+    "protocol_id": "WASHER-BENCHMARK-PROTOCOL-001",
+    "status": "draft_pending_control_selection",
+    "claim_ceiling": "no_measurements_no_comparison_claim",
+    "control_plan": {
+      "minimum_units": 3,
+      "selection_state": "not_selected",
+      "matching_fields": [
+        "front-load format and declared rated capacity class",
+        "market/region and available voltage/water installation requirements",
+        "model revision, age/condition and known service history",
+        "programme/settings and allowed load profile",
+        "published usable capacity and stated water/energy label or specification"
+      ],
+      "documented_fields": [
+        "exact make/model/revision, serial/configuration redacted where appropriate, purchase date and price",
+        "market/region, installation conditions, measured condition and known history",
+        "public user/service manuals, part numbers, repair information and license/access conditions",
+        "parts price/date/source, shipping, stock status and observed delivery time",
+        "control selection criteria, exclusions, missing documents and reasons for non-comparability"
+      ]
+    },
+    "workload_plan": {
+      "status": "not_frozen",
+      "variables_to_freeze": [
+        "dry textile mass and load composition",
+        "textile type and repeatable soil challenge",
+        "water hardness and incoming water temperature",
+        "detergent type and measured dosage",
+        "selected programme, settings and spin options",
+        "ambient temperature and supply conditions",
+        "number of repeat cycles and rules for invalid runs",
+        "instrument positions and test operator instructions",
+        "candidate/control order, wash-load assignment and any randomization",
+        "cleaning/rinse assessment method and acceptance floor"
+      ],
+      "functional_outputs": [
+        "cleaning outcome under a documented repeatable soil/load method",
+        "rinsing outcome under a documented residue or validated surrogate method",
+        "spin-drying outcome or residual moisture under a defined method",
+        "cycle duration and stable completion outcome"
+      ],
+      "deviation_policy": "Record all deviations and missing readings with reasons. Do not silently delete a run or change the programme, load, dosage, or exclusion rule after observing a candidate result; repeat only under the preregistered rerun rule and preserve the original record."
+    },
+    "instrumentation_plan": {
+      "status": "not_selected",
+      "required_channels": [
+        "electrical energy per completed cycle with uncertainty and calibration status",
+        "water volume per cycle with uncertainty and calibration status",
+        "elapsed programme duration using a common start/stop definition",
+        "cleaning and rinsing result from a documented assessment method",
+        "spin-drying result and observed abnormal vibration/noise where the approved lab method supports it",
+        "leakage and other safety observations under the approved test procedure"
+      ],
+      "calibration_policy": "Before measurement, bind each instrument and method to identity, calibration/status, range, resolution, uncertainty, installation/placement and operator procedure. If the measurement is outside calibrated range or calibration evidence is missing, the value remains invalid/unknown rather than being imputed.",
+      "raw_data_policy": "Retain raw observations, test-unit identity, protocol revision, instrument/calibration identifiers, software/configuration, deviations, exclusions and digests. A summary value without the originating observation and test profile is not sufficient evidence."
+    },
+    "metrics": [
+      {
+        "id": "cleaning_quality",
+        "dimension": "functional_output",
+        "unit": "method-specific score or outcome",
+        "denominator": "declared standard load and soil challenge",
+        "method": "Use one documented repeatable cleaning assessment method on candidate and control with matching loads, materials, settings and scoring.",
+        "comparison_rule": "noninferiority_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "rinsing_quality",
+        "dimension": "functional_output",
+        "unit": "validated residue/rinse metric",
+        "denominator": "declared standard load and detergent dose",
+        "method": "Use a documented validated residue or rinse assessment method; do not infer rinsing quality from programme completion or water volume alone.",
+        "comparison_rule": "noninferiority_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "spin_drying_outcome",
+        "dimension": "functional_output",
+        "unit": "percentage or method-specific residual moisture",
+        "denominator": "declared textile mass after the same cycle",
+        "method": "Measure the same declared spin-drying endpoint on matched loads and settings using a documented method.",
+        "comparison_rule": "noninferiority_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "water_per_successful_load",
+        "dimension": "resource_use",
+        "unit": "litres",
+        "denominator": "a load meeting the frozen functional output floors",
+        "method": "Measure water supplied per cycle and report per successful load and per declared kg only when the cleaning/rinse outcome passes.",
+        "comparison_rule": "lower_is_better_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "energy_per_successful_load",
+        "dimension": "resource_use",
+        "unit": "kWh",
+        "denominator": "a load meeting the frozen functional output floors",
+        "method": "Measure cycle energy using calibrated equipment and report duration/settings with it; a lower value is not an improvement if required function fails.",
+        "comparison_rule": "lower_is_better_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "cycle_duration",
+        "dimension": "functional_output",
+        "unit": "minutes",
+        "denominator": "a completed load that meets output floors",
+        "method": "Use frozen start/stop conditions and report full programme duration; describe resource-duration trade-offs separately.",
+        "comparison_rule": "descriptive_separate_gate",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "total_restore_time",
+        "dimension": "serviceability",
+        "unit": "minutes and elapsed hours",
+        "denominator": "a repair attempt from first triage to verified restoration or documented stop",
+        "method": "Break out diagnosis, access, hands-on repair, reassembly, verification, waiting, shipping, travel, failed attempts and rework; report median and P90.",
+        "comparison_rule": "lower_is_better_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "repair_cost",
+        "dimension": "lifecycle_cost",
+        "unit": "market currency per verified restoration",
+        "denominator": "a completed repair task with verified function or an explicit failed attempt",
+        "method": "Separate parts, shipping, labour, diagnostics, repeat visits, failed attempts, downtime and waste; attach market/date/tariff and uncertainty.",
+        "comparison_rule": "lower_is_better_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "recurrence",
+        "dimension": "reliability",
+        "unit": "recurrences per repaired unit during a declared follow-up window",
+        "denominator": "exact unit with a verified initial repair and complete observation window",
+        "method": "Record pending/complete/failed/inconclusive follow-up separately; one successful post-check cannot establish recurrence-free repair.",
+        "comparison_rule": "descriptive_separate_gate",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "critical_safety_findings",
+        "dimension": "safety_gate",
+        "unit": "count and severity class",
+        "denominator": "all prescribed tests and service tasks",
+        "method": "Use a qualified hazard-specific procedure and independent review; never average a critical safety failure into energy or cost scores.",
+        "comparison_rule": "descriptive_separate_gate",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      },
+      {
+        "id": "discarded_material",
+        "dimension": "lifecycle_cost",
+        "unit": "mass per verified repair",
+        "denominator": "a completed repair task",
+        "method": "Weigh or otherwise trace actual discarded assemblies/materials and preserve unknown mass as unknown; compare whole-module replacement against component repair.",
+        "comparison_rule": "lower_is_better_after_control_pilot",
+        "status": "method_to_be_frozen_before_candidate_measurements"
+      }
+    ],
+    "analysis_freeze": {
+      "stage_a": "freeze_measurement_method_and_control_selection_before_any_measurements",
+      "stage_b": "control_only_pilot_establishes_repeatability_and_instrument_uncertainty",
+      "stage_c": "freeze_numeric_margins_exclusions_and_analysis_before_candidate_measurements",
+      "missing_data_policy": "unknown_not_zero",
+      "no_post_hoc_rule": "After the control-only pilot, freeze the functional noninferiority margins, test exclusions, analysis, rerun logic, sample plan and claim language before collecting candidate measurements. Do not change thresholds because candidate results look favourable or unfavourable."
+    },
+    "service_trials": {
+      "status": "not_scheduled",
+      "fault_tasks": [
+        "U0: clean accessible drain filter using documented user isolation/water-capture procedure",
+        "U0: clean detergent dispenser and door seal according to manual",
+        "P: diagnose an inlet restriction or valve symptom using an approved isolated procedure",
+        "P: diagnose drain restriction versus pump fault and verify post-repair drain function",
+        "P: replace a door-lock or sensor/harness assembly and verify functional behaviour",
+        "P: compare tub/bearing repair versus larger assembly replacement under a reviewed fixture",
+        "P: verify leakage, protective electrical checks and guarded functional cycle after internal repair"
+      ],
+      "time_components": [
+        "triage and evidence review",
+        "tool setup and isolation",
+        "access/disassembly and fault localisation",
+        "parts search, delivery/wait and return travel",
+        "hands-on intervention and reassembly",
+        "post-repair functional/safety verification",
+        "cleanup, failed attempts and rework"
+      ],
+      "outcome_fields": [
+        "exact unit/design/BOM/part/procedure revisions",
+        "observed symptom and diagnosis hypothesis kept distinct from confirmed cause",
+        "planned versus actually consumed/replaced parts",
+        "post-repair cleaning/draining/leak/electrical result under applicable procedure",
+        "residual defect, failed attempt and total restoration time/cost",
+        "recurrence status and named follow-up window"
+      ],
+      "role_boundary": "Only approved U0 tasks enter user-maintenance usability trials. Internal mains/heater/drive work, heavy tub/bearing work, powered spin/imbalance tests, leakage/electrical protective checks and any task requiring specialist instrumentation stay within a qualified, hazard-reviewed service/lab procedure. Do not energize with guards removed or bypass protection."
+    },
+    "evidence_rules": [
+      "A protocol document or schema pass is not a measured appliance result.",
+      "Control selection, test method and workload must be frozen before any comparative measurements.",
+      "Numeric functional margins and analysis must be frozen before candidate-unit measurements, not selected after seeing candidate results.",
+      "A cycle that fails the declared cleaning/rinsing floors cannot count as a successful output denominator for efficiency claims.",
+      "Unknown parts delay, labour, cost, calibration or mass stays unknown and is never coerced to zero.",
+      "Simulation, a diagnostic hypothesis, a work-order close or a single nominal post-check cannot be promoted to physical restoration or recurrence-free evidence.",
+      "Safety and conformity remain separate hard gates that cannot be offset by lower energy, water, cost or restore time."
+    ]
+  }
 }
