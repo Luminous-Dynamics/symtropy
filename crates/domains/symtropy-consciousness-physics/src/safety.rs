@@ -71,16 +71,43 @@ pub enum SafetyTier {
     Red,
 }
 
+/// Why a Φ value cannot be classified against the safety-tier domain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvalidPhi {
+    /// The value is NaN or an infinity.
+    NonFinite,
+    /// The finite value is outside the declared inclusive domain [0, 1].
+    OutOfRange,
+}
+
 impl SafetyTier {
     /// Determine safety tier from Φ value, using the hardcoded 0.6 / 0.3 / 0.1
     /// cut points.
     ///
-    /// **Not used by any platform demo in this workspace.** Measured platform
-    /// Φ clusters around 0.1, so this classifies every real platform as
-    /// Orange or Red permanently. See the module-level docs and prefer
+    /// This compatibility wrapper fails closed: invalid values map to Red.
+    /// Call [`try_from_phi`] when invalid telemetry should be distinguishable
+    /// from a valid low-Φ state. These cut points are not calibrated for any
+    /// platform demo; see the module-level docs and prefer
     /// [`sprint_floor_gain`] with a measured threshold.
     pub fn from_phi(phi: f64) -> Self {
-        if phi > 0.6 {
+        Self::try_from_phi(phi).unwrap_or(Self::Red)
+    }
+
+    /// Classify a finite Φ in the declared inclusive domain [0, 1].
+    ///
+    /// Non-finite values and finite values outside the domain are rejected
+    /// rather than allowing values such as +∞ to grant Green-tier authority.
+    /// Strict threshold behavior is preserved: equality at 0.1 is Red, at
+    /// 0.3 is Orange, and at 0.6 is Yellow.
+    pub fn try_from_phi(phi: f64) -> Result<Self, InvalidPhi> {
+        if !phi.is_finite() {
+            return Err(InvalidPhi::NonFinite);
+        }
+        if !(0.0..=1.0).contains(&phi) {
+            return Err(InvalidPhi::OutOfRange);
+        }
+
+        Ok(if phi > 0.6 {
             Self::Green
         } else if phi > 0.3 {
             Self::Yellow
@@ -88,7 +115,7 @@ impl SafetyTier {
             Self::Orange
         } else {
             Self::Red
-        }
+        })
     }
 
     /// Motor gain multiplier [0.0, 1.0].
@@ -168,19 +195,61 @@ impl SafetyTier {
 /// assert!((gain - 0.3).abs() < 1e-9);  // signal below sprint → floor.
 /// ```
 ///
-/// # Panics
+/// Input parameter being rejected by the checked sprint/floor mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SprintFloorParameter {
+    Signal,
+    SprintThreshold,
+    Floor,
+}
+
+/// Invalid input for the checked sprint/floor mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvalidSprintFloorInput {
+    NonFinite(SprintFloorParameter),
+    OutOfRange(SprintFloorParameter),
+}
+
+/// Compute the two-level gain after validating all inputs are finite and in [0, 1].
 ///
-/// Does not panic. `floor` outside [0, 1] is accepted but the caller
-/// is responsible for choosing a physically sensible value — typically
-/// above whatever gain floor the inverse-kinematics loop needs to
-/// converge, and below 1.0.
-#[inline]
-pub fn sprint_floor_gain(signal: f64, sprint_threshold: f64, floor: f64) -> f64 {
-    if signal > sprint_threshold {
+/// Equality at the threshold remains on the floor: sprint activates only when
+/// `signal > sprint_threshold`. This function validates numeric domains only;
+/// choosing a suitable threshold/floor still requires platform-specific
+/// calibration and safety analysis.
+pub fn try_sprint_floor_gain(
+    signal: f64,
+    sprint_threshold: f64,
+    floor: f64,
+) -> Result<f64, InvalidSprintFloorInput> {
+    for (value, parameter) in [
+        (signal, SprintFloorParameter::Signal),
+        (sprint_threshold, SprintFloorParameter::SprintThreshold),
+        (floor, SprintFloorParameter::Floor),
+    ] {
+        if !value.is_finite() {
+            return Err(InvalidSprintFloorInput::NonFinite(parameter));
+        }
+        if !(0.0..=1.0).contains(&value) {
+            return Err(InvalidSprintFloorInput::OutOfRange(parameter));
+        }
+    }
+
+    Ok(if signal > sprint_threshold {
         1.0
     } else {
         floor
-    }
+    })
+}
+
+/// Compatibility wrapper for the checked two-level signal → gain mapping.
+///
+/// Invalid inputs fail closed to zero gain. Call [`try_sprint_floor_gain`]
+/// when callers need to distinguish invalid configuration/telemetry from a
+/// valid zero-gain result. Numeric validation does not replace platform
+/// calibration or a safety case.
+#[inline]
+pub fn sprint_floor_gain(signal: f64, sprint_threshold: f64, floor: f64) -> f64 {
+    try_sprint_floor_gain(signal, sprint_threshold, floor).unwrap_or(0.0)
 }
 
 #[cfg(test)]
@@ -195,6 +264,57 @@ mod tests {
         assert_eq!(SafetyTier::from_phi(0.05), SafetyTier::Red);
         assert_eq!(SafetyTier::from_phi(0.0), SafetyTier::Red);
         assert_eq!(SafetyTier::from_phi(1.0), SafetyTier::Green);
+    }
+
+    #[test]
+    fn tier_thresholds_are_strict_and_stable_at_adjacent_floats() {
+        let below_01 = f64::from_bits(0.1_f64.to_bits() - 1);
+        let above_01 = f64::from_bits(0.1_f64.to_bits() + 1);
+        let below_03 = f64::from_bits(0.3_f64.to_bits() - 1);
+        let above_03 = f64::from_bits(0.3_f64.to_bits() + 1);
+        let below_06 = f64::from_bits(0.6_f64.to_bits() - 1);
+        let above_06 = f64::from_bits(0.6_f64.to_bits() + 1);
+
+        assert_eq!(SafetyTier::from_phi(below_01), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(0.1), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(above_01), SafetyTier::Orange);
+
+        assert_eq!(SafetyTier::from_phi(below_03), SafetyTier::Orange);
+        assert_eq!(SafetyTier::from_phi(0.3), SafetyTier::Orange);
+        assert_eq!(SafetyTier::from_phi(above_03), SafetyTier::Yellow);
+
+        assert_eq!(SafetyTier::from_phi(below_06), SafetyTier::Yellow);
+        assert_eq!(SafetyTier::from_phi(0.6), SafetyTier::Yellow);
+        assert_eq!(SafetyTier::from_phi(above_06), SafetyTier::Green);
+    }
+
+    #[test]
+    fn checked_phi_rejects_invalid_domain_and_nonfinite_values() {
+        assert_eq!(
+            SafetyTier::try_from_phi(f64::NAN),
+            Err(InvalidPhi::NonFinite)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(f64::INFINITY),
+            Err(InvalidPhi::NonFinite)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(f64::NEG_INFINITY),
+            Err(InvalidPhi::NonFinite)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(-f64::EPSILON),
+            Err(InvalidPhi::OutOfRange)
+        );
+        assert_eq!(
+            SafetyTier::try_from_phi(1.0 + f64::EPSILON),
+            Err(InvalidPhi::OutOfRange)
+        );
+
+        // Legacy callers remain fail-closed without a signature change.
+        assert_eq!(SafetyTier::from_phi(f64::NAN), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(f64::INFINITY), SafetyTier::Red);
+        assert_eq!(SafetyTier::from_phi(-f64::EPSILON), SafetyTier::Red);
     }
 
     #[test]
@@ -234,6 +354,67 @@ mod tests {
     // ── sprint_floor_gain (empirically-derived minimal mapping) ────────
 
     #[test]
+    fn checked_sprint_floor_gain_accepts_domain_endpoints() {
+        assert_eq!(try_sprint_floor_gain(0.0, 0.0, 0.0), Ok(0.0));
+        assert_eq!(try_sprint_floor_gain(1.0, 0.0, 0.0), Ok(1.0));
+        assert_eq!(try_sprint_floor_gain(0.5, 0.5, 1.0), Ok(1.0));
+        assert_eq!(try_sprint_floor_gain(0.5, 0.5, 0.0), Ok(0.0));
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_rejects_nonfinite_each_parameter() {
+        use InvalidSprintFloorInput::NonFinite;
+        use SprintFloorParameter::*;
+
+        assert_eq!(
+            try_sprint_floor_gain(f64::NAN, 0.5, 0.3),
+            Err(NonFinite(Signal))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, f64::INFINITY, 0.3),
+            Err(NonFinite(SprintThreshold))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, 0.5, f64::NEG_INFINITY),
+            Err(NonFinite(Floor))
+        );
+        assert_eq!(sprint_floor_gain(f64::INFINITY, 0.5, 0.3), 0.0);
+        assert_eq!(sprint_floor_gain(0.5, f64::NAN, 0.3), 0.0);
+        assert_eq!(sprint_floor_gain(0.5, 0.5, f64::NAN), 0.0);
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_rejects_out_of_range_each_parameter() {
+        use InvalidSprintFloorInput::OutOfRange;
+        use SprintFloorParameter::*;
+
+        assert_eq!(
+            try_sprint_floor_gain(-f64::EPSILON, 0.5, 0.3),
+            Err(OutOfRange(Signal))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, 1.0 + f64::EPSILON, 0.3),
+            Err(OutOfRange(SprintThreshold))
+        );
+        assert_eq!(
+            try_sprint_floor_gain(0.5, 0.5, -0.1),
+            Err(OutOfRange(Floor))
+        );
+        assert_eq!(sprint_floor_gain(0.5, 0.5, 1.1), 0.0);
+    }
+
+    #[test]
+    fn checked_sprint_floor_gain_preserves_strict_threshold() {
+        let threshold = 0.135_f64;
+        let below = f64::from_bits(threshold.to_bits() - 1);
+        let above = f64::from_bits(threshold.to_bits() + 1);
+
+        assert_eq!(try_sprint_floor_gain(below, threshold, 0.3), Ok(0.3));
+        assert_eq!(try_sprint_floor_gain(threshold, threshold, 0.3), Ok(0.3));
+        assert_eq!(try_sprint_floor_gain(above, threshold, 0.3), Ok(1.0));
+    }
+
+    #[test]
     fn sprint_floor_gain_full_above_threshold() {
         // Strictly above the sprint threshold → full authority.
         assert_eq!(sprint_floor_gain(0.14, 0.135, 0.3), 1.0);
@@ -263,7 +444,7 @@ mod tests {
         // No intermediate values — every output is either floor or 1.0.
         // This is the "middle tiers are superfluous" finding locked in.
         let floor = 0.3;
-        for phi_x100 in 0..200 {
+        for phi_x100 in 0..=100 {
             let phi = phi_x100 as f64 / 100.0;
             let g = sprint_floor_gain(phi, 0.135, floor);
             assert!(
