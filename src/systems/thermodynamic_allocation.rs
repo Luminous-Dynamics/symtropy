@@ -478,10 +478,12 @@ mod tests {
         let mut sorted = recipients.to_vec();
         sorted.sort_unstable_by_key(|recipient| recipient.id);
         assert_eq!(result.allocations.len(), sorted.len());
-        assert!(result
-            .allocations
-            .windows(2)
-            .all(|pair| pair[0].id < pair[1].id));
+        assert!(
+            result
+                .allocations
+                .windows(2)
+                .all(|pair| pair[0].id < pair[1].id)
+        );
         for (recipient, allocation) in sorted.iter().zip(&result.allocations) {
             let cap = recipient.headroom.min(limit);
             assert!(allocation.amount.is_finite());
