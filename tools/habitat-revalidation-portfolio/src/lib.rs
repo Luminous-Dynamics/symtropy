@@ -464,8 +464,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             ));
             continue;
         };
-        let required: BTreeSet<&str> =
-            task.required_artifact_ids.iter().map(String::as_str).collect();
+        let required: BTreeSet<&str> = task
+            .required_artifact_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         let expected: BTreeSet<&str> =
             producer.depends_on.iter().map(String::as_str).collect();
         if required.len() != task.required_artifact_ids.len() || required != expected {
@@ -474,8 +477,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
                 task.id, task.produces_artifact_id
             ));
         }
-        let gates: BTreeSet<&str> =
-            task.required_gate_ids.iter().map(String::as_str).collect();
+        let gates: BTreeSet<&str> = task
+            .required_gate_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         if gates.len() != task.required_gate_ids.len() {
             errors.push(format!("{} repeats a required gate", task.id));
         }
@@ -494,7 +500,9 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             errors.push("artifact dependency graph contains a cycle".to_owned());
             break;
         }
-        for id in ready { remaining.remove(id); }
+        for id in ready {
+            remaining.remove(id);
+        }
     }
     errors
 }
@@ -657,7 +665,11 @@ mod tests {
             assert!(actual.frontier_complete);
             assert_eq!(
                 actual.planning_status,
-                if expected.is_empty() { "NO_VALID_PLAN_PROVEN" } else { "OPTIMAL_EXACT" }
+                if expected.is_empty() {
+                    "NO_VALID_PLAN_PROVEN"
+                } else {
+                    "OPTIMAL_EXACT"
+                }
             );
         }
     }
@@ -726,7 +738,9 @@ mod tests {
         fixture.tasks.reverse();
         fixture.artifacts.reverse();
         fixture.available_gate_ids.reverse();
-        for artifact in &mut fixture.artifacts { artifact.depends_on.reverse(); }
+        for artifact in &mut fixture.artifacts {
+            artifact.depends_on.reverse();
+        }
         for task in &mut fixture.tasks {
             task.required_artifact_ids.reverse();
             task.required_gate_ids.reverse();
