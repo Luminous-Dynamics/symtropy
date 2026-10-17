@@ -577,7 +577,6 @@ mod tests {
         .is_err());
     }
 
-
     #[test]
     fn subnormal_si_magnitudes_are_rejected_but_minimum_normal_is_admissible() {
         let smallest_subnormal = f64::from_bits(1);
