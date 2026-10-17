@@ -146,7 +146,8 @@
               "field_present",
               "metric_zero",
               "value_equals",
-              "boolean_true"
+              "boolean_true",
+              "field_absent"
             ]
           },
           "scope": {
