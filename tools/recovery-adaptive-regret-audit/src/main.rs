@@ -1037,7 +1037,7 @@ mod tests {
         // Try to encode hidden-scenario-dependent choices in a side channel;
         // the policy schema forbids scenario IDs as a decision key.
         corpus["policies"][4]["initial_decisions"] = json!({
-            "access_clear":"ground",
+            "S01_ACCESS_CLEAR_LOW_HANDLING":"ground",
             "S02_ACCESS_CLEAR_HIGH_HANDLING":"cable",
             "remote_rough":"cable",
             "cable_only":"cable",
