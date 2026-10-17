@@ -116,3 +116,23 @@ The best order depends on the customer service and site. A remote science outpos
 - **Reproducibility:** every benchmark result binds exact inputs, assumptions, source/code revision, process version, units, test configuration and independent reference result.
 
 The current Rust reference `tools/space-economy-bench/examples/resource_chain_reference.rs` encodes a small synthetic contract for four alternative routes. Its fixture values deliberately do not estimate lunar grade, reserves, energy intensity, recovery rate or process readiness. See [BENCH-SPACE-008](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
+
+## 6. Destination-specific extensions beyond the Moon
+
+These are candidates for later, separate modules—not inputs to the current lunar mass-balance fixtures. Do not reuse lunar feedstock grades, power assumptions, or recovery values for these bodies.
+
+### Mars: atmospheric CO2 to oxygen
+
+NASA's MOXIE demonstration on Perseverance operated on Mars, producing oxygen in 16 runs and 122 grams total; its best production was 12 grams per hour at 98% purity or better. NASA presents this as technology demonstration evidence, not a full-scale propellant plant. Source: [NASA/JPL, MOXIE completes Mars mission, 6 September 2023](https://www.nasa.gov/solar-system/nasas-oxygen-generating-experiment-moxie-completes-mars-mission/).
+
+Candidate chain: atmospheric intake and dust control -> compression/flow management -> high-temperature electrochemical processing -> oxygen purity/flow verification -> storage/conditioning -> life-support or oxidizer user. Track the carbon monoxide coproduct, thermal/power duty, intake dust, cell wear, and the gap between a demonstrated instrument and industrial-scale throughput. The benchmark should scale demand from grams/hour to a named mission requirement only after measured energy, duty cycle, lifetime, and reliability inputs are available.
+
+### Carbonaceous asteroids: water/volatile and carbon-bearing streams
+
+NASA reports that returned Bennu material contains evidence of carbon and water, and NASA TechPort describes a completed CAVoR concept for thermally extracting water and water bound to clay minerals from carbonaceous chondrite material, potentially producing hydrogen-rich syngas and downstream products. Sources: [NASA on Bennu sample findings](https://www.nasa.gov/news-release/nasas-bennu-asteroid-sample-contains-carbon-water/) and [NASA TechPort: CAVoR](https://techport.nasa.gov/projects/89816).
+
+Candidate chain: prospect/characterize a specific target -> anchoring and sample collection in ultra-low gravity -> thermal extraction -> water/volatile capture -> separate streams by measured composition -> process into water, hydrogen-rich gas or other products only if yield/purity justify it -> store and transfer to a destination with real demand. A laboratory sample establishes composition of that sample; it does not prove a mineable deposit, representative target-wide grade, economic recovery, or a viable return/transfer system. Target-specific navigation, anchoring, thermal control, collection and transfer can dominate a simple "resource content" calculation.
+
+### Cross-body rule
+
+Every body and orbit receives its own geometry, energy, thermal, material, gravity, environmental, transportation, and evidence model. The portable abstraction is the **resource-to-qualified-service chain**; the physical coefficients do not transfer automatically. Current PR #1736 only executes synthetic lunar pathway fixtures and does not model Mars or asteroid operations.
