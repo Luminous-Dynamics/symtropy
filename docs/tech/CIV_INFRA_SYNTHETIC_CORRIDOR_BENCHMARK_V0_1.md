@@ -164,7 +164,49 @@ Official references:
 - FHWA Integrated Digital Project Delivery: https://www.fhwa.dot.gov/innovation/everydaycounts/edc_8/digital_project_delivery.cfm
 - OpenStreetMap Foundation licence/attribution guidance: https://osmfoundation.org/wiki/Licence/Attribution_Guidelines
 
-## 10. Explicit non-claims
+## 10. Competitive baseline and research-derived differentiator
+
+This program must not frame the field as if automated civil design does not already exist. Existing specialist systems cover substantial parts of the problem:
+
+- **Road/corridor BIM:** Bentley documents OpenRoads Designer workflows for terrain, road geometry, corridor modelling, dynamic cross-sections, earthworks quantities, drainage, geotechnical integration, utility design and exports including IFC/LandXML: https://www.bentley.com/en/products/openroads-designer/
+- **Rail-specific BIM:** OpenRail Designer documents rail alignment, cant/turnout/yard design, geotechnical and drainage workflows, utility-clash detection, and plan/profile/cross-section documentation: https://www.bentley.com/products/openrail-designer
+- **Water distribution:** EPA EPANET is a public-domain hydraulic/water-quality engine used for design, sizing, operations, energy, quality and resilience analysis: https://www.epa.gov/water-research/epanet
+- **Urban drainage:** EPA SWMM is open source and supports runoff, pipes/channels, storage, pumps, combined/sanitary systems and dynamic hydraulic routing: https://www.epa.gov/water-research/storm-water-management-model-swmm
+- **Construction automation:** FHWA research identifies remote sensing, underground-utility locating, 3D design, machine control/automation, field technology and inspection as established automation areas: https://www.fhwa.dot.gov/publications/research/infrastructure/pavements/16030/
+- **Utility uncertainty and records:** ASCE/UESI/CI 38-22 addresses investigation/documentation of existing utilities and quality levels; ASCE/UESI/CI 75-22 addresses utility data recording/exchange. These are candidates for profile-specific adapters, not universal legal requirements: https://www.asce.org/communities/institutes-and-technical-groups/utility-engineering-and-surveying-institute/publications
+
+These references establish existing tool capabilities, not independent proof of any vendor's marketing performance. The benchmark should not claim superiority from feature lists or product-reported case studies.
+
+### Defensible project objective
+
+The research gap to test is not "can we draw a 3D road?" It is whether we can create an **open, reproducible, uncertainty-aware engineering thread across specialist tools**:
+
+1. Compare competing corridor options under matched scenarios and shared physical-resource constraints.
+2. Bind every result to exact design/source/model generations and preserve rights, units, coordinate frame, uncertainty, and unsupported conditions.
+3. Independently recompute constraint, quantity and capacity checks rather than trusting an optimizer's self-reported PASS.
+4. Select field investigations by decision value while keeping mandatory safety/qualification gates non-waivable.
+5. Carry a design proposal through construction planning and observed as-built discrepancy without automatically converting model output into procurement, permit, dispatch or commissioning authority.
+6. Use established discipline solvers and open exchange formats wherever they are adequate, instead of building new competing hydraulic or road-design engines.
+
+### Standards-scope caveat
+
+OGC LandInfra/InfraGML covers alignments, roads, railways, facilities and survey concepts, but the OGC LandInfra 1.0 conceptual-model page states that the initial release excluded "wet infrastructure" (water distribution, wastewater and storm drainage), which was anticipated as a future extension. Do not assume an alignment/road exchange file alone gives full canonical semantics for pipes, drainage or water networks: https://docs.ogc.org/is/15-111r1/15-111r1.html
+
+IFC 4.3.2.0 is an official infrastructure-capable release with roads, railways, waterways, bridges and port facilities in scope; buildingSMART also lists IFC 4.4.0.0 as a draft. Evaluate against the published 4.3.2.0 schema unless a later version is separately qualified: https://standards.buildingsmart.org/IFC/RELEASE/IFC4_3/ and https://standards.buildingsmart.org/
+
+### Fair comparative-benchmark rule
+
+When candidate outputs from existing systems are available and permission permits their use, freeze:
+- product/version and enabled modules;
+- input source/date/coordinate frame and coverage;
+- which constraints were entered and supported;
+- manual intervention/time and unhandled cases;
+- exports and information lost at each tool boundary;
+- objective metrics, uncertainty and independent verification rules.
+
+Compare only equivalent claims. A tool that supports an expert's manual design is not comparable to a tool operating autonomously; a model that excludes geotechnical, utility or drainage evidence cannot win by treating those constraints as absent. Use the transparent C0 baselines first, and defer vendor-versus-project outcome claims until an independently reproducible matched evaluation exists.
+
+## 11. Explicit non-claims
 
 This document does not claim:
 - an implemented or benchmarked civil-infrastructure solver;
