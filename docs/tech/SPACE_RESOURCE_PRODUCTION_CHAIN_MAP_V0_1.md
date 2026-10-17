@@ -1,0 +1,118 @@
+---
+title: Lunar Resource-to-Production Chain Map
+version: 0.1
+status: research-roadmap
+date: 2026-10-17
+scope: lunar surface resource evidence, process chains, and early industrial priorities
+evidence_class: mixed-official-research-and-explicitly-labeled-engineering-hypotheses
+---
+
+# Lunar Resource-to-Production Chain Map v0.1
+
+## Executive position
+
+Do not model the Moon as a list of resources waiting to be mined. Model it as a set of *site-specific material flows, process capabilities, energy constraints, maintenance dependencies, product specifications, and evidence gaps*. A substance's presence is not a reserve; a theoretically possible chemical conversion is not an operational process; an output stream is not a qualified product; a local-content percentage is not industrial independence.
+
+The USGS lunar resource assessment framework explicitly separates resource type, certainty, and recoverability; only the portion technically recoverable and convertible to a commodity within mission and budgetary constraints qualifies as a reserve. It describes lunar regolith minerals as broadly accessible, while emphasizing that polar water ice still has major unknowns in form, quantity, quality, and distribution pending ground truth. See [USGS Circular 1507 summary](https://www.usgs.gov/publications/assessment-lunar-resource-exploration-2022).
+
+NASA likewise notes that water and volatile resources are not fully characterized in location, form, concentration, distribution, and accessibility, and that many ISRU analog demonstrations have been short duration and under Earth conditions. Current NASA technology priorities connect surface power, oxygen extraction from regolith, in-space manufacturing, and advanced materials rather than treating them as isolated products. Sources:
+- [NASA: Overview of In-Situ Resource Utilization](https://www.nasa.gov/overview-in-situ-resource-utilization/)
+- [NASA: Lunar Enabling Infrastructure Accelerator, 8 September 2026](https://www.nasa.gov/news-release/nasa-calls-for-proposals-to-accelerate-lunar-surface-technologies/)
+- [NASA: Lunar Surface Technology](https://www.nasa.gov/lunar-surface-technology/)
+
+This document separates source-grounded resource context from proposed priority ordering. It is a research map, not a reserve report, mine plan, or economic forecast.
+
+## 1. Evidence ladder: from occurrence to dependable supply
+
+Every resource/product claim should state its highest passed evidence state. Progress is not automatic and may be site-, lot-, product-, and time-specific.
+
+1. **Possible occurrence:** remote sensing, sample analogy, or scientific hypothesis suggests a material may exist.
+2. **Site prospecting:** location-specific measurements constrain depth, grade/concentration, form, temperature, illumination, terrain, and uncertainty.
+3. **Measured feed lot:** a physical batch is sampled and characterized with provenance and an accepted sampling error.
+4. **Recovery demonstrated:** a declared process extracts the material from representative feed and closes mass/elemental balance.
+5. **Qualified product:** the output meets a stated purity, mechanical, chemical, pressure, contamination, and safety specification for one named use.
+6. **Durable pilot operation:** throughput, energy, maintenance, wear parts, duty cycle, degradation, and recovery are measured over a representative duration/environment.
+7. **Reliable delivered supply:** storage, handling, transport, inventory buffers and availability meet a defined customer's service window.
+8. **Recoverable reserve / viable chain:** uncertainty, extraction, energy, equipment, maintenance, logistics, environmental constraints, time and budget are evaluated for a specific plan.
+
+A system must not skip states using words such as "available", "local", "ISRU-ready", "closed-loop", or "self-sufficient". Unknown values stay unknown; they are not zero cost or guaranteed capacity.
+
+## 2. Resource families and likely early products
+
+| Resource / input | What is supported | Candidate first products | Major gates and cautions |
+|---|---|---|---|
+| Solar energy | USGS identifies especially abundant sunlight on some high ridges near lunar poles; site and architecture still matter. | Power for excavation, communications, heating, processing, water systems and manufacturing. | Illumination time series, seasonal/terrain shadow, storage, transmission, thermal rejection, array cleaning/abrasion, mass and repairability. Power is a prerequisite in most chains, not a free input. |
+| Bulk regolith | Surface loose-rock material is widespread, but engineering properties are site-specific. | Berms, shielding, landing-area preparation, roads/terrain works, bulk fill; possibly screened construction feedstock. | Excavation, traction, electrostatic/dust management, grain size, abrasion, transport throughput, settlement, sintering/bonding and product qualification. Bulk shielding is easier to qualify than pressure-retaining structures. |
+| Oxygen chemically bound in regolith minerals | NASA's current infrastructure programme explicitly targets regolith oxygen extraction; oxygen is a product target, not already free gas. | Breathing oxygen, oxidizer feed and potentially process oxidant, after product/usage qualification. | Energy per kilogram of qualified oxygen, temperature, recovery, reactor consumables, tailings, maintenance, storage, purity and duty cycle. Mixed residues are not automatically refined metals. |
+| Polar water / volatile-bearing material | Evidence supports polar volatile interest and likely water ice, but accessible concentration, depth, form, quality, and distribution remain uncertain. | Purified process/life-support water; as a separate allocation, electrolysis feed for hydrogen and oxygen. | Site-specific prospecting, excavation at low temperatures, thermal loss, capture efficiency, purification, extraction energy, cold-region logistics, power, storage and transport. Never treat a polar occurrence map as mineable reserves. |
+| Fe/Al/Ti/Si-bearing mineral phases and residues | These elements and potential feedstock phases are relevant to lunar ISRU research. | After extraction/separation and qualification: metal powders, simple parts, alloys, glass/ceramics, wiring or other manufacturing feedstock as supported by the specific process. | Mineralogy, separation chemistry, reductants/electrodes, energy intensity, impurity control, alloying/heat treatment, precision machinery, tooling and product-quality validation. Do not credit these as outputs from oxygen extraction until separately recovered and measured. |
+| Glass, ceramics, refractory and sintered material | Regolith-based construction and additive construction are active development areas. | Tiles, blocks, landing/traffic surfaces, thermal-resistant bulk components, radiation-shield structures. | Particle preparation, thermal energy, melt/sinter properties, cracking, dust, thermal cycling, mechanical testing, contamination and repair procedures. Do not label bulk aggregate as structural-grade. |
+| Recycled water and consumables | Recycling can reduce imported throughput if recovery, contamination and equipment maintenance are accounted for. | Recovered water, oxygen and selected reusable components/materials. | Recovery fraction, contaminants, filter/catalyst/seal replacement, degradation over repeated cycles, energy use, microbial/chemical control, and waste residuals. A recycled stream is not automatically virgin-grade. |
+| Carbon-, nitrogen-, phosphorus-, sulfur-bearing and high-purity speciality inputs | Their site-specific abundance/accessibility and the capability to produce high-purity forms must be established; the chain must not assume they are plentiful because bulk regolith is abundant. | Life-support/biosphere nutrients, polymers/chemicals, catalysts and speciality materials only when feedstock and product evidence support them. | Local concentration, recovery, competing uses, impurity, inventory buffer, recycling closure and supply dependence. Plan selective recycling and resupply until site-specific evidence demonstrates otherwise. |
+| Electronics, high-purity semiconductors, sensors and precision control components | They are multi-stage industrial products requiring many specialized inputs and high process control; bulk silicon-bearing regolith does not imply chip manufacturing capability. | Initially, repair/refurbishment, modular replacement, connector/cable repair, enclosure/shielding, and limited simple electronics assembly where parts are qualified. | High-purity feedstock, dopants/chemicals, vacuum/clean processing, precision equipment, metrology, yield, radiation qualification, and upstream tool maintenance. Model them as recurring imports unless the full chain is actually demonstrated. |
+
+## 3. Production chains worth benchmarking first
+
+### Chain A — Site characterization -> power -> bulk regolith utility
+
+**Sequence:** identify a candidate worksite -> characterize illumination, slopes, temperature, and regolith properties -> qualify power and storage -> excavate/screen/move regolith -> produce berm/shielding or landing-area aggregate -> inspect/maintain machinery.
+
+Why first: the product can tolerate lower material purity than metals, electronics, or pressure vessels; the chain also creates useful infrastructure and enables later processes. Its primary metrics are mass moved per energy, verified throughput, power availability, equipment wear, downtime, dust exposure, and accepted product quality—not just kilograms dug.
+
+Do not compare sites using sunlight duration alone. Track where power is available at the hours and locations demanded, energy-storage losses, power distribution, thermal rejection, and maintenance requirements.
+
+### Chain B — Regolith -> oxygen -> qualified use
+
+**Sequence:** site/sample characterization -> excavation/beneficiation -> oxygen-extraction process -> gas capture and purification -> storage/conditioning -> delivery to life support or a propellant customer. Track all non-gas residue and the process's consumables.
+
+The same mass stream may contain candidate Fe/Al/Ti/Si-bearing residues, but the benchmark must not count refined metal as an oxygen-extraction coproduct. A separate separation route must prove its own input/output balance, recovery, purity, energy, tooling and product specification.
+
+High-value metrics: kilograms of *qualified* oxygen per tonne of actual feed; energy per qualified kilogram; recovery interval by feed class; reagent/electrode/consumable usage; residual composition; product purity; availability and replacement interval; and cost per delivered kilogram.
+
+### Chain C — Volatile prospecting -> water or electrolysis products
+
+**Sequence:** geophysical/orbital evidence -> site prospecting and sampling -> excavation -> thermal extraction and vapour capture -> purification -> choose a use: (1) deliver water or (2) electrolysis into hydrogen and oxygen -> condition/store/deliver each product.
+
+The use choice is a shared-resource allocation decision: the same recovered water cannot be simultaneously sold as water and consumed as electrolysis feed. Use an explicit allocation group/inventory ledger.
+
+High-value metrics: concentration/depth uncertainty; accessible kilograms per excavation hour; extraction and purification recovery; thermal/electrical energy per kilogram; losses; purity; storage/boil-off; maintenance; site-to-consumer logistics; and delivered-service value. Run value-of-information calculations to select the next survey or sample that most reduces decision loss—not simply the next easy measurement.
+
+### Chain D — Qualified mineral stream -> simple metal/feedstock -> repair/spares
+
+**Sequence:** characterize residue/mineralogy -> separate a specific metal-bearing stream -> reduce/refine -> test purity and mechanical properties -> form qualified stock (powder, wire, bar, or feedstock) -> manufacture simple parts -> inspect -> return parts to service.
+
+Start with repair-critical, lower-complexity parts whose material specifications are tolerant and whose failure consequences are understood. Do not jump from "metal detected" to "local machine shop"; tooling, heat treatment, quality assurance, seals, bearings, control electronics and machine maintenance may remain imported dependencies.
+
+### Chain E — Waste and used components -> recovered feedstock -> qualified reuse
+
+**Sequence:** collect and segregate waste -> assay contaminants -> disassemble/condition -> recover selected materials -> quality test -> return accepted material to one named process; safely store/dispose of rejects.
+
+Benchmark the full repeated loop over several cycles. Track mass recovery, contamination accumulation, energy, filter/catalyst replacement, degradation, and loss of product grade. A first pass yield is not evidence of a sustainable closed loop.
+
+## 4. Initial prioritization hypothesis
+
+This is a proposed engineering sequence to test, not a claim that every site or architecture should follow it.
+
+1. **Survey and model first.** Improve knowledge of site resources, illumination/power, slope, temperature, geology, process conditions and transport distances. A wrong site assumption can strand every downstream investment.
+2. **Exploit bulk utility before high purity.** Start with screening, excavation, berms, shielding, and landing/road works where the accepted product specification is achievable.
+3. **Demonstrate one useful commodity end-to-end.** Choose either regolith oxygen or a prospect-confirmed volatile/water pathway based on site, power, mission demand and measured uncertainty. A lab yield alone is not a deployed supply.
+4. **Close repair and spare loops.** Establish diagnostics, reversible modular replacements, repair, part recovery, and local manufacture of selected simple components. Measure whether this reduces outage time and Earth-sourced mass.
+5. **Add metals, glass and advanced manufacturing incrementally.** Require independently tested purity, energy, mechanical performance, product repeatability, tool maintenance, and yield before counting the products as available.
+6. **Defer full semiconductor, sophisticated chemical and biosphere closure claims.** Preserve supply and recycling strategies; promote these capabilities only when their complete upstream toolchain, feedstocks, consumables, and maintenance needs are shown to close for a declared horizon.
+
+The best order depends on the customer service and site. A remote science outpost, propellant depot and construction base have different demand vectors; one universal "best resource" ranking hides those differences.
+
+## 5. Benchmark gates
+
+- **Mass/elemental conservation:** zero unexplained imbalance; explicitly account for process gas, contaminants, rejects, losses, and recycled streams.
+- **Evidence integrity:** zero inferred-resource-to-reserve promotions without site, recoverability, and constraint evidence; exact source/site/epoch/model lineage for each input.
+- **No double counting:** each feedstock lot has an allocation identity; alternate routes cannot use the same mass twice.
+- **Energy feasibility:** process demand plus auxiliaries and storage/thermal losses must fit the site energy budget under required operating periods, not only nominal sunny hours.
+- **Product truth:** zero kilograms counted as firm product until process, product spec, and delivery/handling gates pass.
+- **Coproduct discipline:** zero metal/refined-material credit until downstream separation, recovery, purity and quality are verified independently.
+- **Process robustness:** report distribution/range of recovery, throughput, duty cycle, consumable use, maintenance interval and product quality across representative feeds and operating conditions.
+- **Service economics:** compare cost per delivered qualified unit and service availability over a declared horizon, with Earth-sourced replacement mass, outage/recovery cost and end-of-life obligations.
+- **Decision value:** measure whether a proposed survey or experiment changes the selected route or reduces expected decision loss; stop paying for measurements that do not change decisions.
+- **Reproducibility:** every benchmark result binds exact inputs, assumptions, source/code revision, process version, units, test configuration and independent reference result.
+
+The current Rust reference `tools/space-economy-bench/examples/resource_chain_reference.rs` encodes a small synthetic contract for four alternative routes. Its fixture values deliberately do not estimate lunar grade, reserves, energy intensity, recovery rate or process readiness. See [BENCH-SPACE-008](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
