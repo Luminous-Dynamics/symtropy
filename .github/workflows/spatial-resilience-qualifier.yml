@@ -3,13 +3,13 @@ name: Spatial resilience qualifier
 on:
   pull_request:
     paths:
-      - "docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_*"
+      - "docs/research/spatial-design/SPATIAL_RESILIENCE_*"
       - "tools/spatial-resilience-qualifier/**"
       - ".github/workflows/spatial-resilience-qualifier.yml"
   push:
     branches: [main]
     paths:
-      - "docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_*"
+      - "docs/research/spatial-design/SPATIAL_RESILIENCE_*"
       - "tools/spatial-resilience-qualifier/**"
       - ".github/workflows/spatial-resilience-qualifier.yml"
   workflow_dispatch:
