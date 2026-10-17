@@ -97,6 +97,8 @@ Targets below are proposed acceptance criteria, not measured performance.
 
 The cross-domain decision-impact owners are already tracked in Symtropy [CIV-INFRA-ROBUST-001 #1769](https://github.com/Luminous-Dynamics/symtropy/issues/1769) and [CIV-INFRA-DECISION-001 #1789](https://github.com/Luminous-Dynamics/symtropy/issues/1789). Terrain-native work should compose their finite-state robustness and next-measurement contracts rather than create a parallel value-of-information engine. Without defensible priors and observation likelihoods, report deterministic decision impact and worst-case changes—not expected VoI or invented probabilities.
 
+The cross-domain decision-impact demonstrator is `tools/habitat-decision-benchmark`, with fixture `docs/research/fixtures/HABITAT_DECISION_IMPACT_V0_1.json`. It tests a small finite-state example of choosing a next survey by worst-case regret reduction per declared cost unit without probabilities. Its four hazard states and survey costs are invented toy values; it is not a terrain model, a survey recommendation for any real parcel, or expected value-of-information.
+
 ## 7. Next useful measurement, not fake certainty
 
 A useful result is sometimes a ranked investigation plan rather than a building concept. Potential investigations may include a qualified topographic/hydrologic survey, geotechnical fieldwork and laboratory testing, groundwater monitoring, rock-mass discontinuity mapping, current official hazard assessment, or ecological/jurisdictional review. The required work and methods must be chosen by qualified professionals for the actual site.
