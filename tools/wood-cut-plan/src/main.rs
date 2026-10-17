@@ -131,6 +131,14 @@ struct PlanReceipt {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct GreedyBaselineReceipt {
+    strategy: &'static str,
+    meets_minimum_pieces: bool,
+    failure_reason: Option<String>,
+    plan: PlanReceipt,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ScenarioReceipt {
     scenario_id: String,
     status: &'static str,
@@ -139,6 +147,8 @@ struct ScenarioReceipt {
     search_nodes: u64,
     feasible_plan_count: usize,
     pareto_plan_count: usize,
+    baseline_is_covered_by_pareto_frontier: bool,
+    greedy_baseline: GreedyBaselineReceipt,
     pareto_plans: Vec<PlanReceipt>,
 }
 
@@ -572,6 +582,96 @@ fn apply_pattern(
     Ok(next)
 }
 
+fn run_greedy_baseline(
+    scenario: &Scenario,
+    eligible: &[bool],
+) -> Check<PartialPlan> {
+    // Greedy comparator: at each cut, choose the highest declared synthetic
+    // value-per-length product that still fits and has unmet demand. This is
+    // intentionally simple, deterministic and not an assertion of industry
+    // best practice.
+    let mut order: Vec<usize> = (0..scenario.products.len()).collect();
+    order.sort_by(|left, right| {
+        let left_product = &scenario.products[*left];
+        let right_product = &scenario.products[*right];
+        let left_cross = u128::from(right_product.unit_value_microcredits)
+            * u128::from(left_product.length_mm);
+        let right_cross = u128::from(left_product.unit_value_microcredits)
+            * u128::from(right_product.length_mm);
+        left_cross.cmp(&right_cross).then_with(|| {
+            left_product.product_id.cmp(&right_product.product_id)
+        })
+    });
+
+    let mut partial = PartialPlan::empty(scenario.products.len());
+    for (stock_index, stock_length_mm) in scenario.stock_lengths_mm.iter().copied().enumerate() {
+        let mut counts = vec![0_u32; scenario.products.len()];
+        let mut product_length_mm = 0_u64;
+        let mut piece_count = 0_u32;
+        loop {
+            let mut selected = None;
+            for index in &order {
+                let product = &scenario.products[*index];
+                if !eligible[*index]
+                    || partial.product_counts[*index]
+                        .checked_add(counts[*index])
+                        .is_none_or(|count| count >= product.demand_units)
+                {
+                    continue;
+                }
+                let candidate_length = product_length_mm
+                    .checked_add(product.length_mm)
+                    .ok_or_else(|| "greedy candidate length overflow".to_owned())?;
+                let candidate_piece_count = piece_count
+                    .checked_add(1)
+                    .ok_or_else(|| "greedy candidate piece count overflow".to_owned())?;
+                let candidate_kerf = scenario
+                    .kerf_mm
+                    .checked_mul(u64::from(candidate_piece_count - 1))
+                    .ok_or_else(|| "greedy candidate kerf overflow".to_owned())?;
+                let candidate_used = candidate_length
+                    .checked_add(candidate_kerf)
+                    .ok_or_else(|| "greedy candidate used length overflow".to_owned())?;
+                if candidate_used <= stock_length_mm {
+                    selected = Some((*index, candidate_length, candidate_piece_count));
+                    break;
+                }
+            }
+            let Some((index, new_length, new_piece_count)) = selected else {
+                break;
+            };
+            counts[index] = counts[index]
+                .checked_add(1)
+                .ok_or_else(|| "greedy SKU count overflow".to_owned())?;
+            product_length_mm = new_length;
+            piece_count = new_piece_count;
+        }
+
+        let pattern = make_pattern(
+            stock_length_mm,
+            scenario.kerf_mm,
+            scenario.minimum_reusable_offcut_mm,
+            &counts,
+            &scenario.products,
+        )?;
+        partial = apply_pattern(
+            &partial,
+            &pattern,
+            stock_index,
+            stock_length_mm,
+            &scenario.products,
+        )?;
+    }
+    Ok(partial)
+}
+
+fn weakly_dominates(other: &PlanReceipt, candidate: &PlanReceipt) -> bool {
+    other.sale_value_microcredits >= candidate.sale_value_microcredits
+        && other.product_length_mm >= candidate.product_length_mm
+        && other.reusable_offcut_length_mm >= candidate.reusable_offcut_length_mm
+        && other.unrecoverable_loss_length_mm <= candidate.unrecoverable_loss_length_mm
+}
+
 fn plan_key(plan: &PartialPlan) -> (Vec<u32>, u64, u64, u64, u64, u64) {
     (
         plan.product_counts.clone(),
@@ -663,6 +763,25 @@ fn evaluate_scenario_with_budget(
     let mut budget = SearchBudget {
         nodes: 0,
         limit: budget_limit,
+    };
+    let greedy_partial = run_greedy_baseline(scenario, &eligible)?;
+    let greedy_meets_minimum = greedy_partial.fulfilled_demand_units
+        >= scenario.minimum_pieces_required;
+    let greedy_failure = if greedy_meets_minimum {
+        None
+    } else {
+        Some(format!(
+            "greedy baseline fulfilled {} pieces, below required minimum {}",
+            greedy_partial.fulfilled_demand_units, scenario.minimum_pieces_required
+        ))
+    };
+    let greedy_plan = greedy_partial.clone().into_receipt(&scenario.products);
+    check_conservation(&scenario.stock_lengths_mm, &greedy_plan)?;
+    let greedy_baseline = GreedyBaselineReceipt {
+        strategy: "highest_synthetic_value_per_length_first_fit",
+        meets_minimum_pieces: greedy_meets_minimum,
+        failure_reason: greedy_failure,
+        plan: greedy_plan,
     };
     let mut raw_plans: Vec<PartialPlan> = Vec::new();
 
@@ -798,6 +917,17 @@ fn evaluate_scenario_with_budget(
         }
     }
 
+    let baseline_is_covered_by_pareto_frontier = greedy_baseline.meets_minimum_pieces
+        && frontier
+            .iter()
+            .any(|plan| weakly_dominates(plan, &greedy_baseline.plan));
+    if greedy_baseline.meets_minimum_pieces && !baseline_is_covered_by_pareto_frontier {
+        return Err(format!(
+            "{}: internal reference error: Pareto frontier does not dominate or match feasible greedy baseline",
+            scenario.scenario_id
+        ));
+    }
+
     Ok(ScenarioReceipt {
         scenario_id: scenario.scenario_id.clone(),
         status: "pass",
@@ -806,6 +936,8 @@ fn evaluate_scenario_with_budget(
         search_nodes: budget.nodes,
         feasible_plan_count,
         pareto_plan_count: frontier.len(),
+        baseline_is_covered_by_pareto_frontier,
+        greedy_baseline,
         pareto_plans: frontier,
     })
 }
