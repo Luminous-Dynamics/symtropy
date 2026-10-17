@@ -36,7 +36,7 @@ The JSON receipt includes exact SHA-256 hashes of the manifest and schema, case 
 - a recovery window that extends past the horizon;
 - zero-length stability window and event beyond the declared horizon.
 
-Tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
+15 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
 
 ## Versioning and trust boundaries
 
