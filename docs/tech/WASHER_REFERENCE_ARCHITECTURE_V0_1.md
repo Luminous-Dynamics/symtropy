@@ -80,6 +80,8 @@ A common document schema is reusable across appliance families; a common physica
 
 ## 4. Architecture variants to compare
 
+Machine-readable variant identities and status are maintained in [`fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json`](https://github.com/Luminous-Dynamics/symtropy/blob/research/large-appliance-repairable-architecture-v0-1/fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json): `W0-RETAIL-CONTROL`, `W1-ACCESSIBLE-CONVENTIONAL`, `W2-SERVICE-SPINE`, `W3-BEARING-TUB-TRADE`, and `W4-DRIVE-TOPOLOGY`. They are hypotheses with required measurements and named failure modes—not measured scores or a ranking of completed designs.
+
 ### W0 — retail control
 
 At least three comparable commercial units where practical. Capture model/revision, year/condition, rated capacity, programme settings, public manuals/parts documentation, price/date/market and data gaps. Do not silently treat a well-documented premium model as equivalent to a low-cost model without a declared comparison question.
