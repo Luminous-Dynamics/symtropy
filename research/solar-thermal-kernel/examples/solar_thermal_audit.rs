@@ -212,8 +212,8 @@ fn verify_report(json: &str) -> Result<(), String> {
     let loss_duration = number(json, "standing_loss_duration_s")?;
     let reference_t = number(json, "exergy_reference_temperature_k")?;
     if mass <= 0.0 || min_t >= max_t || min_t != low_t || max_t != high_t
-        || initial_t != min_t || optical_efficiency < 0.0 || optical_efficiency > 1.0
-        || charge_effectiveness <= 0.0 || charge_effectiveness > 1.0
+        || initial_t != min_t || !(0.0..=1.0).contains(&optical_efficiency)
+        || !(0.0..=1.0).contains(&charge_effectiveness) || charge_effectiveness == 0.0
         || max_charge_power < 0.0 || max_discharge_power < 0.0
         || charge_duration <= 0.0 || discharge_duration <= 0.0 || loss_duration <= 0.0
         || conductance < 0.0 || ambient_t <= 0.0
