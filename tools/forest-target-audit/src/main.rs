@@ -439,6 +439,175 @@ fn config_for(binding: &ScenarioBinding) -> PlannerConfig {
         lookahead_algorithm: "receding horizon; select first action from best feasible sequence of up to two added viewpoints".into(),
     }
 }
+#[derive(Debug, Clone)]
+struct OracleCandidate {
+    cell: usize,
+    view: Viewpoint,
+    feature_mask: u64,
+}
+#[derive(Debug, Clone)]
+struct OracleSearchState {
+    selected: Vec<usize>,
+    feature_mask: u64,
+    outbound: u16,
+    at: usize,
+    heading: Heading,
+}
+struct TargetOracleSolver<'a> {
+    map: &'a GridMap,
+    targets: &'a [Target],
+    config: PlannerConfig,
+    candidates: Vec<OracleCandidate>,
+    distances: Vec<Vec<Option<u16>>>,
+    target_masks: Vec<u64>,
+    best: Option<OracleSearchState>,
+}
+impl<'a> TargetOracleSolver<'a> {
+    fn new(map: &'a GridMap, targets: &'a [Target], config: PlannerConfig) -> Check<Self> {
+        if config.max_viewpoints > 3 {
+            return Err("exact target oracle is bounded to at most three viewpoints".into());
+        }
+        if !clear(map, config.start_cell) {
+            return Err("target oracle start cell is not traversable".into());
+        }
+        if config.energy_budget_steps <= config.return_reserve_steps {
+            return Err("target oracle budget must exceed return reserve".into());
+        }
+        let feature_cells: Vec<usize> = targets.iter()
+            .flat_map(|t| t.required_feature_cells.iter().copied()).collect();
+        if feature_cells.is_empty() || feature_cells.len() > 64 {
+            return Err("target oracle requires 1..=64 required feature samples".into());
+        }
+        if feature_cells.iter().any(|cell| *cell >= N || !clear(map, *cell)) {
+            return Err("target oracle feature must lie on a clear grid cell".into());
+        }
+        let mut target_masks = Vec::with_capacity(targets.len());
+        let mut offset = 0usize;
+        for target in targets {
+            if target.required_feature_cells.is_empty() {
+                return Err(format!("{} has no required features", target.target_id));
+            }
+            let mut mask = 0u64;
+            for _ in &target.required_feature_cells {
+                mask |= 1u64 << offset;
+                offset += 1;
+            }
+            target_masks.push(mask);
+        }
+        let distances: Vec<Vec<Option<u16>>> = (0..N).map(|i| distances(map, i)).collect();
+        let mut candidates = Vec::new();
+        for cell in 0..N {
+            if !clear(map, cell) || distances[config.start_cell][cell].is_none() { continue; }
+            let p = xy(cell);
+            for heading in [Heading::North, Heading::East, Heading::South, Heading::West] {
+                let view = Viewpoint { x: p.x, y: p.y, heading };
+                let feature_mask = feature_cells.iter().enumerate().fold(0u64, |mask, (bit, target_cell)| {
+                    if can_see(map, view, *target_cell) { mask | (1u64 << bit) } else { mask }
+                });
+                if feature_mask != 0 {
+                    candidates.push(OracleCandidate { cell, view, feature_mask });
+                }
+            }
+        }
+        Ok(Self { map, targets, config, candidates, distances, target_masks, best: None })
+    }
+    fn objective(&self, mask: u64) -> (usize, usize) {
+        let complete = self.target_masks.iter().filter(|target_mask| (mask & **target_mask) == **target_mask).count();
+        (complete, mask.count_ones() as usize)
+    }
+    fn total(&self, outbound: u16, selected: &[usize]) -> Option<(u16, u16)> {
+        let last = selected.last().map(|i| self.candidates[*i].cell).unwrap_or(self.config.start_cell);
+        let back = self.distances[last][self.config.start_cell]?;
+        Some((back, outbound.saturating_add(back).saturating_add(self.config.return_reserve_steps)))
+    }
+    fn better(&self, candidate: &OracleSearchState, current: &OracleSearchState) -> bool {
+        let (cc, cf) = self.objective(candidate.feature_mask);
+        let (bc, bf) = self.objective(current.feature_mask);
+        if cc != bc { return cc > bc; }
+        if cf != bf { return cf > bf; }
+        let ct = self.total(candidate.outbound, &candidate.selected).map(|v| v.1).unwrap_or(u16::MAX);
+        let bt = self.total(current.outbound, &current.selected).map(|v| v.1).unwrap_or(u16::MAX);
+        if ct != bt { return ct < bt; }
+        if candidate.selected.len() != current.selected.len() { return candidate.selected.len() < current.selected.len(); }
+        candidate.selected < current.selected
+    }
+    fn search(&mut self, state: OracleSearchState) {
+        if self.best.as_ref().map_or(true, |best| self.better(&state, best)) {
+            self.best = Some(state.clone());
+        }
+        if state.selected.len() >= usize::from(self.config.max_viewpoints) { return; }
+        for candidate_index in 0..self.candidates.len() {
+            if state.selected.contains(&candidate_index) { continue; }
+            let (cell, view, candidate_mask) = {
+                let candidate = &self.candidates[candidate_index];
+                (candidate.cell, candidate.view, candidate.feature_mask)
+            };
+            if candidate_mask & !state.feature_mask == 0 { continue; }
+            let Some(travel) = self.distances[state.at][cell] else { continue; };
+            let turn = if state.heading == view.heading { 0 } else { self.config.turn_cost_steps };
+            let outbound = state.outbound.saturating_add(travel).saturating_add(turn);
+            let Some(back) = self.distances[cell][self.config.start_cell] else { continue; };
+            let total = outbound.saturating_add(back).saturating_add(self.config.return_reserve_steps);
+            if total > self.config.energy_budget_steps { continue; }
+            let mut selected = state.selected.clone();
+            selected.push(candidate_index);
+            self.search(OracleSearchState {
+                selected,
+                feature_mask: state.feature_mask | candidate_mask,
+                outbound,
+                at: cell,
+                heading: view.heading,
+            });
+        }
+    }
+    fn solve(mut self) -> Check<TargetOracleResult> {
+        let initial = OracleSearchState {
+            selected: Vec::new(), feature_mask: 0, outbound: 0,
+            at: self.config.start_cell, heading: Heading::North,
+        };
+        self.search(initial);
+        let best = self.best.ok_or_else(|| "target oracle found no feasible state".to_owned())?;
+        let (back, total) = self.total(best.outbound, &best.selected)
+            .ok_or_else(|| "target oracle best state has no return path".to_owned())?;
+        let viewpoints: Vec<Viewpoint> = best.selected.iter()
+            .map(|i| self.candidates[*i].view).collect();
+        let plan = PlannerPlan {
+            budget_feasible: total <= self.config.energy_budget_steps,
+            outbound_cost_steps: best.outbound,
+            return_distance_steps: back,
+            reserved_steps: self.config.return_reserve_steps,
+            total_budgeted_steps: total,
+            viewpoints,
+        };
+        verify_plan_contract(self.map, &plan, &self.config, "target-objective oracle")?;
+        let score = score_plan(self.map, &plan, self.targets)?;
+        let (complete, visible) = self.objective(best.feature_mask);
+        if score.complete_target_count != complete || score.visible_feature_count != visible {
+            return Err("target oracle bit-mask objective disagrees with independently scored plan".into());
+        }
+        Ok(TargetOracleResult {
+            objective: "maximize complete targets; then maximize visible required feature samples; then minimize budgeted steps; then minimize viewpoint count; final ties use stable candidate order".into(),
+            plan,
+            score,
+        })
+    }
+}
+fn target_regret(oracle: &MethodScore, compared: &MethodScore) -> TargetRegret {
+    TargetRegret {
+        oracle_complete_target_count: oracle.complete_target_count,
+        compared_complete_target_count: compared.complete_target_count,
+        complete_target_regret: oracle.complete_target_count.saturating_sub(compared.complete_target_count),
+        complete_target_ratio_basis_points: if oracle.complete_target_count == 0 {
+            None
+        } else {
+            Some(basis_points(compared.complete_target_count, oracle.complete_target_count))
+        },
+        oracle_visible_feature_count: oracle.visible_feature_count,
+        compared_visible_feature_count: compared.visible_feature_count,
+        visible_feature_delta_to_oracle: oracle.visible_feature_count as i64 - compared.visible_feature_count as i64,
+    }
+}
+
 fn validate_corpus(c: &Corpus) -> Check<()> {
     if c.suite_id.trim().is_empty() || c.suite_version.trim().is_empty()
         || c.generator_version.trim().is_empty() || c.claim_ceiling.trim().is_empty() {
