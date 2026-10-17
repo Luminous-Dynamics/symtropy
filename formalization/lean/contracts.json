@@ -495,6 +495,9 @@
     ],
     "corpus_schema_path": "docs/built-environment/benchmarks/structural-reference-contract-vectors.schema.json",
     "corpus_schema_commit": "1c0ee11e8947f58b8681fd5675325cd7b8c13008",
-    "corpus_schema_status": "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED"
+    "corpus_schema_status": "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED",
+    "source_pr_number": 1653,
+    "corpus_blob_sha": "c4b58eb5b766bfc717b7836b9e524f98fce20b56",
+    "corpus_schema_blob_sha": "5d605129a0b200ac2c9bded591af9d16e5ab96c4"
   }
 }
