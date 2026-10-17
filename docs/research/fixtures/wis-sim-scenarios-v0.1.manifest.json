@@ -3,7 +3,7 @@
   "corpus_id": "WIS-SIM-001",
   "corpus_version": "0.1",
   "fixture_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl",
-  "fixture_sha256": "a2c68183edf45b8c56ab11a882b37bbbcd4321c76ff533a417bc9d0b073c50e5",
+  "fixture_sha256": "9cfb9354d35590cae967a0cd00907effa7dbba58590a90f62b05fa40c0e62101",
   "hash_algorithm": "SHA-256",
   "record_format": "JSON Lines; UTF-8; newline-terminated",
   "record_count": 28,
