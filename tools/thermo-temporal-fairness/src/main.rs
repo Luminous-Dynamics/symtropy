@@ -6,7 +6,7 @@ use std::env;
 use std::fs;
 use std::process;
 
-use thermo_temporal_fairness::{evaluate, AgentSeries, AllocationTrace};
+use thermo_temporal_fairness::{evaluate, AgentSeries, AllocationTrace, Fraction};
 
 const MAX_TICKS: u64 = 1_000_000;
 
@@ -124,6 +124,18 @@ fn parse_trace(input: &str) -> Result<AllocationTrace, String> {
     Ok(AllocationTrace { case_id, agents })
 }
 
+fn format_fraction(fraction: &Fraction) -> String {
+    format!("{}/{}", fraction.numerator(), fraction.denominator())
+}
+
+fn format_optional_fraction(fraction: Option<&Fraction>) -> String {
+    fraction.map(format_fraction).unwrap_or_else(|| "none".to_owned())
+}
+
+fn format_profile(profile: &[Fraction]) -> String {
+    profile.iter().map(format_fraction).collect::<Vec<_>>().join(",")
+}
+
 fn usage() -> &'static str {
     "usage: thermo-temporal-fairness --audit <trace.tsv>"
 }
@@ -153,10 +165,22 @@ fn main() {
     println!("case_id={}", report.case_id);
     println!("valid_trace={}", report.valid_trace);
     println!("tick_count={}", report.tick_count);
-    println!("sorted_horizon_service_profile={:?}", report.sorted_horizon_service_profile);
-    println!("worst_eligible_slot_service_ratio={:?}", report.worst_eligible_slot_service_ratio);
-    println!("minimum_horizon_service_ratio={:?}", report.minimum_horizon_service_ratio);
-    println!("maximum_horizon_service_ratio={:?}", report.maximum_horizon_service_ratio);
+    println!(
+        "sorted_horizon_service_profile={}",
+        format_profile(&report.sorted_horizon_service_profile)
+    );
+    println!(
+        "worst_eligible_slot_service_ratio={}",
+        format_optional_fraction(report.worst_eligible_slot_service_ratio.as_ref())
+    );
+    println!(
+        "minimum_horizon_service_ratio={}",
+        format_optional_fraction(report.minimum_horizon_service_ratio.as_ref())
+    );
+    println!(
+        "maximum_horizon_service_ratio={}",
+        format_optional_fraction(report.maximum_horizon_service_ratio.as_ref())
+    );
     for metrics in &report.per_agent {
         println!(
             "agent={} demand={} allocated={} unmet={} horizon_ratio={:?} eligible_demand_ticks={} starved_ticks={} max_starvation_streak={}",
@@ -164,7 +188,7 @@ fn main() {
             metrics.total_demand,
             metrics.total_allocated,
             metrics.total_unmet_demand,
-            metrics.horizon_service_ratio,
+            format_optional_fraction(metrics.horizon_service_ratio.as_ref()),
             metrics.eligible_demand_ticks,
             metrics.starved_ticks,
             metrics.maximum_consecutive_starvation_ticks
