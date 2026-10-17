@@ -6,10 +6,12 @@ A standalone Rust contract auditor for the synthetic cross-domain corpus at `doc
 
 The auditor checks corpus-level invariants before a later reference oracle or planner can consume fixtures:
 
-- valid schema/corpus identity and declared scenario count;
+- valid schema/corpus identity and declared scenario count (17 frozen scenarios across 8 domain profiles);
 - unique, non-empty scenario IDs and domain profiles;
 - explicit `NO_ACTUATION_AUTHORIZED` claim ceiling;
 - every fixture sets `expected_actuation=false`;
+- each evidence record has a unique identifier, synthetic source reference, claim, method, evidence class, uncertainty kind, coverage and freshness classification;
+- value-of-information examples have correct net-value arithmetic and a consistent inspect / do-not-inspect-on-value-alone label;
 - mandatory gate statuses are limited to `PASS`, `BLOCK`, and `UNKNOWN`;
 - `BLOCK` gates cannot be represented as generally eligible, and `UNKNOWN` gates cannot be represented as eligible;
 - any preferred plan exists among the declared candidates and only appears on a human-review-eligible fixture;
@@ -31,6 +33,12 @@ cargo run --quiet --manifest-path tools/recovery-decision-corpus-audit/Cargo.tom
 ```
 
 The executable writes a JSON receipt to stdout and exits non-zero on invalid input. The receipt includes the exact byte-level SHA-256 of the corpus and source commit, declared/unique scenario counts, domain count, gate/disposition counts, errors, and a claim ceiling. Do not compare receipts with different source commits or corpus digests as if they were the same evidence event.
+
+## New hostile fixtures
+
+- Performance screening can pass while an independent PV insulation/wet-leakage safety test remains unknown; the reuse operation stays held.
+- One synthetic inspection has positive net information value after cost, delay and risk; a second has negative net value and does not justify that test *on value alone*. Both leave unresolved repair qualification held.
+- The VOI values are invented arithmetic fixtures; the checker does not estimate real probabilities or certify that a test is worth doing in an actual operation.
 
 ## Evidence boundaries
 
