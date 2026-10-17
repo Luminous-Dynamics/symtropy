@@ -59,3 +59,5 @@ jobs:
           --corpus fixtures/household_appliance/benchmark_scenarios_v0_1.json
           --portfolio-schema schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json
           --portfolio fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json
+          --sourcing-schema schemas/appliances/washer_parts_resilience_snapshot_v0_1.schema.json
+          --sourcing-snapshot fixtures/appliances/washer_parts_resilience_snapshot_v0_1.json
