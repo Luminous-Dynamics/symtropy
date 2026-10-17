@@ -977,7 +977,8 @@ mod tests {
 
     #[test]
     fn changed_geometry_stays_hidden_until_tick_four() {
-        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let report =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let tick_two = report.policy_timeline.iter().find(|tick| tick.tick == 2).unwrap();
         let tick_three = report.policy_timeline.iter().find(|tick| tick.tick == 3).unwrap();
         let tick_four = report.policy_timeline.iter().find(|tick| tick.tick == 4).unwrap();
@@ -997,7 +998,8 @@ mod tests {
 
     #[test]
     fn policy_observation_payload_omits_hidden_injection_time() {
-        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let report =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let tick_four = report.policy_timeline.iter().find(|tick| tick.tick == 4).unwrap();
         let geometry = tick_four
             .newly_observed_events
@@ -1023,7 +1025,8 @@ mod tests {
 
     #[test]
     fn same_tick_events_are_ordered_deterministically() {
-        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let report =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let tick_two = report.evaluator_timeline.iter().find(|tick| tick.tick == 2).unwrap();
         assert_eq!(
             tick_two.injected_event_ids,
@@ -1076,7 +1079,8 @@ mod tests {
 
     #[test]
     fn zero_delay_events_are_visible_on_the_injection_tick() {
-        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let report =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let tick_two = report.policy_timeline.iter().find(|tick| tick.tick == 2).unwrap();
         assert!(tick_two.newly_observed_event_ids.iter().any(|id| id == "R-001"));
         assert!(tick_two.visible_event_ids.iter().any(|id| id == "R-001"));
@@ -1084,7 +1088,8 @@ mod tests {
 
     #[test]
     fn no_policy_projection_uses_future_or_unobserved_events() {
-        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let report =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         for tick in &report.policy_timeline {
             for event in &report.event_cases {
                 if event.observable_tick > u64::from(tick.tick) {
@@ -1216,7 +1221,8 @@ mod tests {
 
     #[test]
     fn report_digest_binds_exact_fixture_bytes() {
-        let baseline = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let baseline =
+            audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let mut whitespace_variant = EMBEDDED_FIXTURE.as_bytes().to_vec();
         whitespace_variant.push(b' ');
         let replay =
