@@ -43,6 +43,23 @@ The audit is a separate Rust crate and reimplements visibility instead of import
 
 Both the planner receipt and target corpus are byte-hashed in the final receipt. The hosted workflow tests both Rust crates, asserts the expected evaluation/seed counts and score bounds, and uploads the two exact-input receipts. A queued workflow is not a pass.
 
+## Target-objective oracle extension
+
+The target audit now contains a second, independently specified exhaustive objective. It enumerates every feasible sequence in its bounded candidate space (at most three viewpoints and no more than 64 required feature samples) and scores the union of visible required features.
+
+Its lexicographic objective is versioned in the emitted receipt:
+
+1. maximize the number of complete targets;
+2. maximize the number of required feature samples observed;
+3. minimize movement + heading-change + shortest return + reserve cost;
+4. minimize the number of viewpoints;
+5. break remaining ties by deterministic candidate order.
+
+Only viewpoints that reveal at least one required feature are enumerated. A viewpoint that adds no new required feature cannot improve either primary objective and is not needed to optimize the final cost/fewer-viewpoints tie-break under this simplified metric model. All candidates are constrained to the traversable component reachable from the start. The result is still exact only for this declared discrete candidate set and simple step/turn costs.
+
+The receipt now includes the target-oracle viewpoint sequence and its independently checked cost fields, per-target truth/visibility, per-case complete-target regret for greedy and lookahead, aggregate ratios where the denominator is nonzero, and worst-case per-case regret for each split. The ratio is serialized as null when the target oracle completes zero targets. The cell-coverage oracle stays separate and can score fewer useful forestry targets despite seeing more total cells.
+
+This makes target-completeness regret measurable rather than inferred from raw cell coverage. It does not establish a production-grade target-aware planner: the current operational baselines remain unchanged, and the exact oracle is a tiny-instance reference only.
 ## Research basis
 
 - [OA-NBV: Occlusion-Aware Next-Best-View Planning for Human-Centered Active Perception](https://arxiv.org/abs/2603.11072) studies target-centric visibility and completeness with feasible viewpoints. Its reported success and observation improvements are for its own human-centered experiments, not forestry.
@@ -57,6 +74,7 @@ These are targets to work toward, not achieved results or forestry standards.
 | Stage | Gate | Evidence needed |
 |---|---|---|
 | Contract v0.1 | 100% plan feasibility; zero train/test seed overlap; zero impossible target-completeness credit; exact deterministic replay | Focused Rust tests and exact-head workflow receipt |
+| Target-objective oracle | 100% feasible oracle plans; no feasible greedy/lookahead plan may beat the oracle's lexicographic score; publish held-out and worst-case regret | Exhaustive tiny-scene target-feature search, independent route-cost verification and receipt assertions |
 | Target-aware planning | Add a *target-objective* exhaustive oracle for tiny scenes; aim for ≥90% of its held-out aggregate score and publish worst-case regret per scene | Same feature definition, sensor budget, return reserve and seed split for every planner |
 | Generalization | At least 1,000 procedurally generated scenes, distinct tuning/acceptance seeds, multiple occluder arrangements, narrow passages, unknown space and distractor objects | Held-out target and map-generation manifests, hashes, per-scenario results and mutation/negative controls |
 | Field calibration | Report DBH bias, MAE, RMSE, p50/p90/p95 error, detection precision/recall and incomplete-target rate, stratified by diameter, species, occlusion, sensor and terrain | Independent annotated plots/point clouds, calibration records, uncertainty intervals and a preregistered protocol |
@@ -65,7 +83,7 @@ These are targets to work toward, not achieved results or forestry standards.
 ## Next research and implementation slice
 
 1. Replace the four-template occupancy model with a versioned procedural map-topology generator; keep that map seed split independent from target-layout seeds.
-2. Add a target-specific exhaustive oracle and a task-aware selection objective, preserving greedy/lookahead baselines unchanged.
+2. Use the new target-objective exhaustive oracle as the reference; implement a target-aware receding-horizon candidate policy that minimizes held-out regret while preserving existing greedy/lookahead baselines unchanged.
 3. Add observation uncertainty, pose error and sensor-specific false positives/negatives only when those parameters can be declared and, later, calibrated.
 4. Add 3D/cylindrical trunk and log-end geometry and compare predicted diameter/contour evidence to independent ground truth.
 5. Only after those gates, consider target-specific active sensing in Symthaea; keep mission feasibility and machine safety hard constraints, never weighted away by information gain.
