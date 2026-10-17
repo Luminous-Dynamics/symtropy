@@ -924,6 +924,22 @@ mod tests {
     }
 
     #[test]
+    fn frozen_reference_frontier_sizes_match_independent_fixture_oracle() {
+        let corpus = parsed_corpus();
+        let expected = [6_usize, 21_usize, 2_usize];
+        for (scenario, expected_count) in corpus.scenarios.iter().zip(expected) {
+            let receipt = evaluate_scenario_with_budget(scenario, MAX_SEARCH_NODES)
+                .expect("scenario evaluates");
+            assert_eq!(
+                receipt.pareto_plan_count,
+                expected_count,
+                "unexpected Pareto frontier size for {}",
+                scenario.scenario_id
+            );
+        }
+    }
+
+    #[test]
     fn ineligible_structural_demand_is_never_fulfilled() {
         let corpus = parsed_corpus();
         let scenario = &corpus.scenarios[0];
