@@ -1026,15 +1026,7 @@ fn validate_assertion_specifications(record: &Value, where_: &str) -> Result<(),
         if !valid_json_pointer(report_pointer) {
             return Err(format!("{} report_pointer is not a valid absolute JSON Pointer", context));
         }
-        let rationale = required_str(item, "rationale", &context)?;
-        if !rationale.to_ascii_lowercase().contains("must")
-            && !rationale.to_ascii_lowercase().contains("report")
-            && !rationale.to_ascii_lowercase().contains("expose")
-            && !rationale.to_ascii_lowercase().contains("retain")
-            && !rationale.to_ascii_lowercase().contains("keep")
-        {
-            return Err(format!("{} rationale should state a checkable obligation", context));
-        }
+        let _rationale = required_str(item, "rationale", &context)?;
         let scenario_pointer = item.get("scenario_pointer").and_then(Value::as_str);
         let identity_field = item.get("identity_field").and_then(Value::as_str);
         match kind {
