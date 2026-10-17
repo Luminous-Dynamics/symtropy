@@ -101,6 +101,8 @@ struct MethodScore {
 #[derive(Debug, Clone, Serialize)]
 struct TargetOracleResult {
     objective: String,
+    candidate_count: usize,
+    expanded_state_count: usize,
     plan: PlannerPlan,
     score: MethodScore,
 }
@@ -465,6 +467,7 @@ struct TargetOracleSolver<'a> {
     distances: Vec<Vec<Option<u16>>>,
     target_masks: Vec<u64>,
     best: Option<OracleSearchState>,
+    expanded_state_count: usize,
 }
 impl<'a> TargetOracleSolver<'a> {
     fn new(map: &'a GridMap, targets: &'a [Target], config: PlannerConfig) -> Check<Self> {
@@ -519,7 +522,7 @@ impl<'a> TargetOracleSolver<'a> {
                 }
             }
         }
-        Ok(Self { map, targets, config, candidates, distances: distance_matrix, target_masks, best: None })
+        Ok(Self { map, targets, config, candidates, distances: distance_matrix, target_masks, best: None, expanded_state_count: 0 })
     }
     fn objective(&self, mask: u64) -> (usize, usize) {
         let complete = self.target_masks.iter().filter(|target_mask| (mask & **target_mask) == **target_mask).count();
@@ -542,6 +545,7 @@ impl<'a> TargetOracleSolver<'a> {
         candidate.selected < current.selected
     }
     fn search(&mut self, state: OracleSearchState) {
+        self.expanded_state_count = self.expanded_state_count.saturating_add(1);
         if self.best.as_ref().map_or(true, |best| self.better(&state, best)) {
             self.best = Some(state.clone());
         }
@@ -576,6 +580,8 @@ impl<'a> TargetOracleSolver<'a> {
             at: self.config.start_cell, heading: Heading::North,
         };
         self.search(initial);
+        let candidate_count = self.candidates.len();
+        let expanded_state_count = self.expanded_state_count;
         let best = self.best.take().ok_or_else(|| "target oracle found no feasible state".to_owned())?;
         let (back, total) = self.total(best.outbound, &best.selected)
             .ok_or_else(|| "target oracle best state has no return path".to_owned())?;
@@ -596,6 +602,7 @@ impl<'a> TargetOracleSolver<'a> {
             return Err("target oracle bit-mask objective disagrees with independently scored plan".into());
         }
         Ok(TargetOracleResult {
+            candidate_count, expanded_state_count,
             objective: "maximize complete targets; then maximize visible required feature samples; then minimize budgeted steps; then minimize viewpoint count; final ties use stable candidate order".into(),
             plan,
             score,
@@ -1012,6 +1019,8 @@ mod tests {
         assert_eq!(result.score.visible_feature_count, 2);
         assert_eq!(result.plan.viewpoints.len(), 1);
         assert!(result.plan.total_budgeted_steps <= 7);
+        assert!(result.candidate_count > 0);
+        assert!(result.expanded_state_count > 0);
     }
 
     #[test]
