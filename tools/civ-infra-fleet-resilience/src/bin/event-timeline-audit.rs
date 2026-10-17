@@ -840,6 +840,32 @@ mod tests {
     }
 
     #[test]
+    fn policy_observation_payload_omits_hidden_injection_time() {
+        let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
+        let tick_four = report.policy_timeline.iter().find(|tick| tick.tick == 4).unwrap();
+        let geometry = tick_four
+            .newly_observed_events
+            .iter()
+            .find(|observation| observation.case_id == "R-008")
+            .expect("geometry revision observation should release at tick four");
+        assert_eq!(geometry.observed_at_tick, 4);
+        assert_eq!(geometry.event_name, "site_geometry_revision_changed");
+        assert!(geometry.invalidates.iter().any(|item| item == "site-snapshot"));
+        assert!(geometry.affected_tasks.iter().any(|item| item == "trench-segment-01"));
+
+        let json = serde_json::to_value(&report).expect("report serializes");
+        let observations = json["policy_timeline"][4]["newly_observed_events"]
+            .as_array()
+            .expect("observation array exists");
+        let payload = observations
+            .iter()
+            .find(|value| value["case_id"] == "R-008")
+            .expect("R-008 payload exists");
+        assert!(payload.get("injection_tick").is_none());
+        assert!(payload.get("world_state").is_none());
+    }
+
+    #[test]
     fn same_tick_events_are_ordered_deterministically() {
         let report = audit_fixture_bytes(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should audit");
         let tick_two = report.evaluator_timeline.iter().find(|tick| tick.tick == 2).unwrap();
