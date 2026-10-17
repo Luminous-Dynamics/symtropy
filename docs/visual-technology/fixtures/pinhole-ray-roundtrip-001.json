@@ -1,7 +1,7 @@
 {
   "schema_version": "visual-pinhole-ray-v0",
   "case_id": "VIS-RAY-ROUNDTRIP-001",
-  "status": "PROPOSED_NOT_EXECUTED",
+  "status": "UNQUALIFIED",
   "evidence_class": "ANALYTIC_REFERENCE",
   "model": {
     "name": "ideal_rectified_pinhole",
