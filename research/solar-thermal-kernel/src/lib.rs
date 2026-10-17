@@ -19,6 +19,7 @@ pub enum ModelError {
     ReceiverLossExceedsAbsorbedEnergy,
     InvalidDischargeEfficiency,
     EnergyAboveStoreCapacity,
+    TemperatureBelowReference,
     ReportMismatch(&'static str),
 }
 
@@ -37,6 +38,7 @@ impl fmt::Display for ModelError {
             Self::ReceiverLossExceedsAbsorbedEnergy => write!(f, "receiver loss exceeds absorbed solar energy"),
             Self::InvalidDischargeEfficiency => write!(f, "exchanger effectiveness must be in (0, 1]"),
             Self::EnergyAboveStoreCapacity => write!(f, "requested stored energy exceeds configured capacity"),
+            Self::TemperatureBelowReference => write!(f, "thermal exergy requires the final temperature to be at or above the reference temperature"),
             Self::ReportMismatch(n) => write!(f, "independent report verification failed: {n}"),
         }
     }
@@ -86,6 +88,7 @@ macro_rules! positive_unit {
     };
 }
 nonnegative_unit!(EnergyJ, "energy_j");
+nonnegative_unit!(ExergyJ, "exergy_j");
 positive_unit!(Kelvin, "temperature_k");
 nonnegative_unit!(TemperatureDifferenceK, "temperature_difference_k");
 positive_unit!(MassKg, "mass_kg");
@@ -148,6 +151,64 @@ impl HeatCapacityCurve {
             return Ok(-self.integrate_forward(to.value(), from.value()));
         }
         Ok(self.integrate_forward(from.value(), to.value()))
+    }
+
+    /// Computes sensible thermal exergy per kg relative to a reference
+    /// environment temperature. Assumes a homogeneous solid/liquid store in
+    /// local equilibrium with cp(T) defined by this curve:
+    ///
+    /// exergy / kg = integral[cp(T) * (1 - T_ref / T), T_ref..T]
+    ///
+    /// Both temperatures must lie within the measured/declared cp(T) curve,
+    /// and T >= T_ref. This is not latent or chemical exergy.
+    pub fn specific_exergy(
+        &self,
+        reference_temperature: Kelvin,
+        temperature: Kelvin,
+    ) -> Result<ExergyJ, ModelError> {
+        let (minimum, maximum) = self.temperature_bounds();
+        for t in [reference_temperature, temperature] {
+            if t.value() < minimum.value() || t.value() > maximum.value() {
+                return Err(ModelError::TemperatureOutsideHeatCapacityCurve);
+            }
+        }
+        if temperature.value() < reference_temperature.value() {
+            return Err(ModelError::TemperatureBelowReference);
+        }
+        if temperature.value() == reference_temperature.value() {
+            return ExergyJ::new(0.0);
+        }
+
+        let sensible_enthalpy =
+            self.specific_enthalpy(reference_temperature, temperature)?;
+        let cp_over_t = self.integrate_cp_over_temperature(
+            reference_temperature.value(),
+            temperature.value(),
+        );
+        let exergy = sensible_enthalpy
+            - reference_temperature.value() * cp_over_t;
+        // Roundoff near the reference temperature can produce a tiny negative.
+        ExergyJ::new(exergy.max(0.0))
+    }
+
+    fn integrate_cp_over_temperature(&self, low: f64, high: f64) -> f64 {
+        let mut sum = 0.0;
+        for pair in self.points.windows(2) {
+            let t0 = pair[0].temperature.value();
+            let t1 = pair[1].temperature.value();
+            let a = low.max(t0);
+            let b = high.min(t1);
+            if b <= a {
+                continue;
+            }
+            let cp0 = pair[0].specific_heat.value();
+            let cp1 = pair[1].specific_heat.value();
+            let slope = (cp1 - cp0) / (t1 - t0);
+            // On this segment, cp(T) = intercept + slope * T.
+            let intercept = cp0 - slope * t0;
+            sum += intercept * (b / a).ln() + slope * (b - a);
+        }
+        sum
     }
 
     fn integrate_forward(&self, low: f64, high: f64) -> f64 {
@@ -264,6 +325,19 @@ impl StoreConfig {
     pub fn initial_state(&self) -> StoreState { StoreState { temperature: self.initial_temperature } }
     pub fn stored_energy(&self, state: StoreState) -> Result<EnergyJ, ModelError> {
         stored_energy_at(self, state.temperature)
+    }
+
+    /// Sensible thermal exergy relative to the stated environment temperature.
+    /// The reference and state temperatures must lie within cp(T)'s domain.
+    pub fn stored_exergy(
+        &self,
+        state: StoreState,
+        reference_temperature: Kelvin,
+    ) -> Result<ExergyJ, ModelError> {
+        stored_energy_at(self, state.temperature)?;
+        let specific = self.heat_capacity
+            .specific_exergy(reference_temperature, state.temperature)?;
+        ExergyJ::new(self.mass.value() * specific.value())
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -602,6 +676,51 @@ mod tests {
         assert!(first.contains("\\"all_verifiers_passed\\":true"));
         assert!(first.contains("\\"hardware_validated\\":false"));
         assert!(first.contains("\\"claim_level\\":\\"synthetic-mechanics-only\\""));
+    }
+
+    #[test]
+    fn exergy_is_less_than_energy_and_matches_variable_cp_integral() {
+        let c = curve();
+        // cp(T) = 5*T - 500 J/(kg K), from 300 K to 400 K.
+        // Integral cp dT = 125,000 J/kg.
+        // Integral cp/T dT = 500 - 500*ln(4/3).
+        // B = 125,000 - 300*(500 - 500*ln(4/3)).
+        let exergy = c.specific_exergy(k(300.0), k(400.0)).unwrap().value();
+        assert!(close(exergy, 18_152.3108684));
+        assert!(exergy > 0.0);
+        assert!(exergy < c.specific_enthalpy(k(300.0), k(400.0)).unwrap());
+    }
+
+    #[test]
+    fn exergy_is_zero_at_reference_and_monotone_above_it() {
+        let c = curve();
+        assert_eq!(c.specific_exergy(k(300.0), k(300.0)).unwrap().value(), 0.0);
+        let mut last = 0.0;
+        for temp in [320.0, 340.0, 360.0, 380.0, 400.0, 440.0, 480.0, 500.0] {
+            let now = c.specific_exergy(k(300.0), k(temp)).unwrap().value();
+            assert!(now >= last, "exergy must be monotonic for T >= T_ref");
+            last = now;
+        }
+    }
+
+    #[test]
+    fn exergy_rejects_final_temperature_below_reference() {
+        assert_eq!(
+            curve().specific_exergy(k(350.0), k(340.0)),
+            Err(ModelError::TemperatureBelowReference)
+        );
+    }
+
+    #[test]
+    fn stored_exergy_scales_with_store_mass() {
+        let one_kg = cfg(400.0);
+        let one = one_kg.stored_exergy(one_kg.initial_state(), k(300.0)).unwrap().value();
+        let two_kg = StoreConfig::new(StoreConfigSpec {
+            mass: MassKg::new(2.0).unwrap(),
+            ..spec(&one_kg, 400.0)
+        }).unwrap();
+        let two = two_kg.stored_exergy(two_kg.initial_state(), k(300.0)).unwrap().value();
+        assert!(close(two, 2.0 * one));
     }
 
     #[test]
