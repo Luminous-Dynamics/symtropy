@@ -1,14 +1,13 @@
-use jsonschema::draft202012;
 use jsonschema::Validator;
-use serde_json::{json, Value};
+use jsonschema::draft202012;
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const PROFILE_SCHEMA_ID: &str =
-    "urn:luminous-dynamics:vehicle:personalization-profile-set:0.1";
+const PROFILE_SCHEMA_ID: &str = "urn:luminous-dynamics:vehicle:personalization-profile-set:0.1";
 const CAPABILITY_SCHEMA_ID: &str =
     "urn:luminous-dynamics:vehicle:personalization-capability-set:0.1";
 const PROFILE_SET_VERSION: &str = "vehicle-personalization-profile-set/0.1";
@@ -41,7 +40,9 @@ fn schema_validator(schema: &Value, expected_id: &str) -> Result<Validator, Stri
         return Err(format!("schema $id must be {expected_id}"));
     }
     if !draft202012::meta::is_valid(schema) {
-        return Err(format!("schema {expected_id} fails Draft 2020-12 meta-schema validation"));
+        return Err(format!(
+            "schema {expected_id} fails Draft 2020-12 meta-schema validation"
+        ));
     }
     draft202012::options()
         .should_validate_formats(true)
@@ -116,7 +117,9 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
         return Err(format!("{capability_id}: unknown context {context}"));
     }
     if bool_at(capability_set, "profile_changes_blocked_while_moving") != Some(true) {
-        return Err(format!("{capability_id}: moving profile edits must remain blocked"));
+        return Err(format!(
+            "{capability_id}: moving profile edits must remain blocked"
+        ));
     }
 
     let features = capability_set
@@ -146,10 +149,10 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
     let contrast_supported = requested_contrast != "high"
         || has_value(features, "supported_themes", &json!("high_contrast"));
 
-    let reduced_motion_requested = bool_at(display, "reduced_motion")
-        .ok_or("reduced_motion missing")?;
-    let reduced_motion_supported = !reduced_motion_requested
-        || bool_at(features, "supports_reduced_motion") == Some(true);
+    let reduced_motion_requested =
+        bool_at(display, "reduced_motion").ok_or("reduced_motion missing")?;
+    let reduced_motion_supported =
+        !reduced_motion_requested || bool_at(features, "supports_reduced_motion") == Some(true);
 
     let requested_temperature =
         number_at(cabin, "preferred_temperature_c").ok_or("preferred_temperature_c missing")?;
@@ -158,7 +161,9 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
         .and_then(Value::as_array)
         .ok_or("allowed_temperature_range_c missing")?;
     if temperature_range.len() != 2 {
-        return Err(format!("{capability_id}: temperature range must contain exactly two values"));
+        return Err(format!(
+            "{capability_id}: temperature range must contain exactly two values"
+        ));
     }
     let minimum_temperature = temperature_range[0]
         .as_f64()
@@ -174,21 +179,32 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
 
     let requested_ambient_color = cabin.get("ambient_light").cloned().unwrap_or(Value::Null);
     let ambient_supported = bool_at(features, "supports_ambient_lighting") == Some(true)
-        && has_value(features, "supported_ambient_colors", &requested_ambient_color);
-    let requested_ambient_intensity =
-        number_at(cabin, "ambient_intensity_fraction").ok_or("ambient_intensity_fraction missing")?;
+        && has_value(
+            features,
+            "supported_ambient_colors",
+            &requested_ambient_color,
+        );
+    let requested_ambient_intensity = number_at(cabin, "ambient_intensity_fraction")
+        .ok_or("ambient_intensity_fraction missing")?;
     let maximum_ambient_intensity = number_at(features, "max_ambient_intensity_fraction")
         .ok_or("max_ambient_intensity_fraction missing")?;
     let ambient_intensity_supported = bool_at(features, "supports_ambient_lighting") == Some(true)
         && requested_ambient_intensity <= maximum_ambient_intensity;
 
     let requested_seat_ref = cabin.get("seat_preset_ref").cloned().unwrap_or(Value::Null);
-    let seat_supported = requested_seat_ref.is_null()
-        || bool_at(features, "supports_seat_memory") == Some(true);
+    let seat_supported =
+        requested_seat_ref.is_null() || bool_at(features, "supports_seat_memory") == Some(true);
 
     let requested_listening_style = audio.get("listening_style").cloned().unwrap_or(Value::Null);
-    let listening_supported = has_value(features, "supported_listening_styles", &requested_listening_style);
-    let requested_cue_style = audio.get("preferred_cue_style").cloned().unwrap_or(Value::Null);
+    let listening_supported = has_value(
+        features,
+        "supported_listening_styles",
+        &requested_listening_style,
+    );
+    let requested_cue_style = audio
+        .get("preferred_cue_style")
+        .cloned()
+        .unwrap_or(Value::Null);
     let cue_supported = has_value(features, "supported_cue_styles", &requested_cue_style);
     let requested_volume =
         number_at(audio, "preferred_volume_fraction").ok_or("preferred_volume_fraction missing")?;
@@ -196,17 +212,22 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
         .ok_or("max_preferred_volume_fraction missing")?;
     let volume_supported = requested_volume <= maximum_volume;
 
-    let large_controls_requested = bool_at(accessibility, "large_controls")
-        .ok_or("large_controls missing")?;
-    let large_controls_supported = !large_controls_requested
-        || bool_at(features, "supports_large_controls") == Some(true);
-    let captions = text_at(accessibility, "optional_captions").ok_or("optional_captions missing")?;
-    let captions_supported = captions == "off" || bool_at(features, "supports_captions") == Some(true);
-    let tactile_requested = bool_at(accessibility, "tactile_feedback")
-        .ok_or("tactile_feedback missing")?;
-    let tactile_supported = !tactile_requested
-        || bool_at(features, "supports_tactile_feedback") == Some(true);
-    let requested_voice = accessibility.get("voice_assistance").cloned().unwrap_or(Value::Null);
+    let large_controls_requested =
+        bool_at(accessibility, "large_controls").ok_or("large_controls missing")?;
+    let large_controls_supported =
+        !large_controls_requested || bool_at(features, "supports_large_controls") == Some(true);
+    let captions =
+        text_at(accessibility, "optional_captions").ok_or("optional_captions missing")?;
+    let captions_supported =
+        captions == "off" || bool_at(features, "supports_captions") == Some(true);
+    let tactile_requested =
+        bool_at(accessibility, "tactile_feedback").ok_or("tactile_feedback missing")?;
+    let tactile_supported =
+        !tactile_requested || bool_at(features, "supports_tactile_feedback") == Some(true);
+    let requested_voice = accessibility
+        .get("voice_assistance")
+        .cloned()
+        .unwrap_or(Value::Null);
     let voice_supported = has_value(features, "supported_voice_modes", &requested_voice);
 
     let mut decisions = vec![
@@ -337,11 +358,17 @@ fn compile_profile_plan(profile: &Value, capability_set: &Value) -> Result<Value
             text_at(decision, "disposition") == Some("preview_apply_if_owner_confirms")
         })
     {
-        return Err(format!("{capability_id}: moving context produced an applicable preference"));
+        return Err(format!(
+            "{capability_id}: moving context produced an applicable preference"
+        ));
     }
 
-    let privacy = profile.get("privacy").ok_or("privacy preferences missing")?;
-    let safety = profile.get("interaction_policy").ok_or("interaction policy missing")?;
+    let privacy = profile
+        .get("privacy")
+        .ok_or("privacy preferences missing")?;
+    let safety = profile
+        .get("interaction_policy")
+        .ok_or("interaction policy missing")?;
     let report = json!({
         "plan_id": format!("{profile_id}::{capability_id}"),
         "profile_id": profile_id,
@@ -432,8 +459,8 @@ fn build_report(
 }
 
 fn read_json(path: &PathBuf) -> Result<(Vec<u8>, Value), String> {
-    let bytes = fs::read(path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let bytes =
+        fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
     let value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("{} is not valid JSON: {error}", path.display()))?;
     Ok((bytes, value))
@@ -446,8 +473,9 @@ fn main() -> ExitCode {
         PathBuf::from("fixtures/personal_vehicle/vehicle_personalization_profiles_v0_1.json");
     let mut capability_schema_path =
         PathBuf::from("schemas/transport/vehicle_personalization_capability_set_v0_1.schema.json");
-    let mut capability_set_path =
-        PathBuf::from("fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json");
+    let mut capability_set_path = PathBuf::from(
+        "fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json",
+    );
 
     let args: Vec<String> = env::args().skip(1).collect();
     let mut index = 0;
@@ -590,7 +618,12 @@ mod tests {
             "../../../fixtures/personal_vehicle/vehicle_personalization_capability_sets_v0_1.json"
         ))
         .expect("capability set");
-        (profile_schema, profile_set, capability_schema, capability_set)
+        (
+            profile_schema,
+            profile_set,
+            capability_schema,
+            capability_set,
+        )
     }
 
     fn report_fixture() -> Value {
@@ -599,8 +632,7 @@ mod tests {
         let profile_set_bytes = serde_json::to_vec(&profile_set).expect("profile bytes");
         let capability_schema_bytes =
             serde_json::to_vec(&capability_schema).expect("capability schema bytes");
-        let capability_set_bytes =
-            serde_json::to_vec(&capability_set).expect("capability bytes");
+        let capability_set_bytes = serde_json::to_vec(&capability_set).expect("capability bytes");
         build_report(
             &profile_schema_bytes,
             &profile_set_bytes,
@@ -651,7 +683,10 @@ mod tests {
         assert_eq!(report["capability_set_count"].as_u64(), Some(2));
         assert_eq!(report["plan_count"].as_u64(), Some(8));
         assert_eq!(report["plans"].as_array().expect("plans").len(), 8);
-        assert_eq!(report["evidence_class"], "synthetic_capability_match_output");
+        assert_eq!(
+            report["evidence_class"],
+            "synthetic_capability_match_output"
+        );
     }
 
     #[test]
@@ -660,7 +695,10 @@ mod tests {
         let plan = find_plan(&report, "vpf_access001", "demo_moving_vehicle");
         assert_eq!(plan["preview_only"], true);
         assert_eq!(plan["hardware_or_vehicle_control_calls"].as_u64(), Some(0));
-        assert_eq!(plan["safety_boundary"]["moving_context_defers_changes"], true);
+        assert_eq!(
+            plan["safety_boundary"]["moving_context_defers_changes"],
+            true
+        );
         for decision in plan["decisions"].as_array().expect("decisions") {
             if text_at(decision, "disposition") != Some("not_requested") {
                 assert_eq!(decision["disposition"], "defer_until_parked");
@@ -702,7 +740,11 @@ mod tests {
         let decision = find_decision(plan, "cabin.seat_preset_ref");
         assert_eq!(decision["disposition"], "preserve_unapplied");
         assert_eq!(decision["requested_value"], "seat_access01");
-        assert!(text_at(decision, "reason").unwrap().contains("not declared"));
+        assert!(
+            text_at(decision, "reason")
+                .unwrap()
+                .contains("not declared")
+        );
     }
 
     #[test]
@@ -718,11 +760,20 @@ mod tests {
     fn owner_privacy_and_recovery_guards_are_carried_into_every_plan() {
         let report = report_fixture();
         for plan in report["plans"].as_array().expect("plans") {
-            assert_eq!(plan["privacy_boundary"]["storage_mode"], "device_local_encrypted");
+            assert_eq!(
+                plan["privacy_boundary"]["storage_mode"],
+                "device_local_encrypted"
+            );
             assert_eq!(plan["privacy_boundary"]["local_export_enabled"], true);
             assert_eq!(plan["privacy_boundary"]["local_delete_enabled"], true);
-            assert_eq!(plan["privacy_boundary"]["profile_preferences_written_to_vehicle"], false);
-            assert_eq!(plan["safety_boundary"]["vehicle_dynamics_or_controls_modified"], false);
+            assert_eq!(
+                plan["privacy_boundary"]["profile_preferences_written_to_vehicle"],
+                false
+            );
+            assert_eq!(
+                plan["safety_boundary"]["vehicle_dynamics_or_controls_modified"],
+                false
+            );
         }
     }
 
@@ -730,7 +781,10 @@ mod tests {
     fn identical_inputs_produce_identical_report_digest() {
         let first = report_fixture();
         let second = report_fixture();
-        assert_eq!(first["report_digest_sha256"], second["report_digest_sha256"]);
+        assert_eq!(
+            first["report_digest_sha256"],
+            second["report_digest_sha256"]
+        );
         assert_eq!(first, second);
     }
 
@@ -750,8 +804,7 @@ mod tests {
     #[test]
     fn moving_manifest_cannot_allow_profile_changes() {
         let (profile_schema, profile_set, capability_schema, mut capability_set) = frozen_values();
-        capability_set["capability_sets"][1]["profile_changes_blocked_while_moving"] =
-            json!(false);
+        capability_set["capability_sets"][1]["profile_changes_blocked_while_moving"] = json!(false);
         let profile_validator =
             schema_validator(&profile_schema, PROFILE_SCHEMA_ID).expect("profile schema");
         let capability_validator =
