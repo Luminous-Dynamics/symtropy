@@ -551,7 +551,10 @@ mod tests {
         manifest["registered_invariant_ids"][0] = Value::String("made_up_invariant".to_owned());
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
         let summary = validate_manifest_bytes(&bytes, EMBEDDED_SCHEMA.as_bytes());
-        assert!(has_code(&summary, "SCHEMA_VALIDATION_FAILED") || has_code(&summary, "INVARIANT_REGISTRY_DRIFT"));
+        assert!(
+            has_code(&summary, "SCHEMA_VALIDATION_FAILED")
+                || has_code(&summary, "INVARIANT_REGISTRY_DRIFT")
+        );
     }
 
     #[test]
