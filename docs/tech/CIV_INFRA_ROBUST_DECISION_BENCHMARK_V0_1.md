@@ -182,7 +182,7 @@ Report false positives and false negatives separately. Never allow a performance
 
 ## 10. Staged implementation
 
-- **R0 — specification and finite oracle:** freeze fixtures and semantics; no hydraulic solver needed.
+- **R0 — specification and finite oracle:** freeze fixtures and semantics; no hydraulic solver needed. The current implementation supports only finite discrete supports and verifies the complete Cartesian product (up to a 100,000-state cap); correlated/joint supports and intervals fail closed until separately specified and soundly checked.
 - **R1 — robust classification:** interval/state-set evaluation, state-level evidence, sound fail-closed statuses.
 - **R2 — robust Pareto and decision-impact planner:** preserve objectives; exhaustive small-case action oracle; no assumed probabilities.
 - **R3 — calibrated probabilistic VoI:** only after distribution, likelihood, cost and validation contracts exist.
