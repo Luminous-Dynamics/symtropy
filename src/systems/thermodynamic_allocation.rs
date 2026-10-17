@@ -361,6 +361,113 @@ mod tests {
         }
     }
 
+    /// Adversarial property sweep across the IEEE-754 exponent range.
+    ///
+    /// This checks hard safety invariants and exact ID-order determinism, not
+    /// equivalence to real-number max-min fairness. Subnormal budgets may not
+    /// be divisible into equal non-zero f64 shares; leaving such a residual
+    /// unallocated is conservative and is measured separately from overspend.
+    #[test]
+    fn wide_exponent_inputs_preserve_safety_and_permutation_invariance() {
+        let mut seed = 0xd1b5_4a32_d192_ed03_u64;
+        let smallest_subnormal = f64::from_bits(1);
+        let edge_values = [
+            0.0,
+            smallest_subnormal,
+            f64::MIN_POSITIVE,
+            f64::EPSILON,
+            1.0e-300,
+            1.0e-16,
+            1.0,
+            1.0e16,
+            1.0e300,
+            f64::MAX,
+        ];
+
+        // Pair boundary values with unrelated exponent scales to exercise
+        // cancellation, saturation, and representability transitions.
+        for (case, &supply) in edge_values.iter().enumerate() {
+            let limit = edge_values[(case * 7 + 3) % edge_values.len()];
+            let recipients: Vec<_> = (0..edge_values.len())
+                .map(|index| RecipientDemand {
+                    id: index as u64 + 1,
+                    headroom: edge_values[(index + case) % edge_values.len()],
+                })
+                .collect();
+            assert_allocation_safety(&recipients, supply, limit);
+        }
+
+        // Deterministic random finite non-negative values, with exponents
+        // sampled across the representable range rather than only [0, 1e3].
+        for trial in 0..4096 {
+            let count = (next_random(&mut seed) % 65) as usize;
+            let supply = next_finite_nonnegative(&mut seed);
+            let limit = next_finite_nonnegative(&mut seed);
+            let recipients: Vec<_> = (0..count)
+                .map(|id| RecipientDemand {
+                    id: id as u64,
+                    headroom: next_finite_nonnegative(&mut seed),
+                })
+                .collect();
+
+            let result = assert_allocation_safety(&recipients, supply, limit);
+            assert_eq!(
+                result,
+                allocate_max_min(recipients.iter().rev().copied(), supply, limit).unwrap(),
+                "wide-exponent permutation mismatch in trial {trial}"
+            );
+        }
+    }
+
+    fn assert_allocation_safety(
+        recipients: &[RecipientDemand],
+        supply: f64,
+        limit: f64,
+    ) -> AllocationResult {
+        let result = allocate_max_min(recipients.iter().copied(), supply, limit).unwrap();
+        assert!(result.total_allocated.is_finite());
+        assert!(result.unallocated_supply.is_finite());
+        assert!(result.total_allocated >= 0.0);
+        assert!(result.total_allocated <= supply);
+        assert!(result.unallocated_supply >= 0.0);
+        assert!(result.unallocated_supply <= supply);
+
+        // The result itself reports allocations in stable-ID order. Recompute
+        // the total in that same order so accounting uses one canonical sum.
+        assert_eq!(result.total_allocated, total(&result));
+        let accounted = result.total_allocated + result.unallocated_supply;
+        assert!(accounted.is_finite());
+        assert!(accounted <= supply, "accounting exceeded source supply");
+
+        let mut sorted = recipients.to_vec();
+        sorted.sort_unstable_by_key(|recipient| recipient.id);
+        assert_eq!(result.allocations.len(), sorted.len());
+        assert!(result
+            .allocations
+            .windows(2)
+            .all(|pair| pair[0].id < pair[1].id));
+        for (recipient, allocation) in sorted.iter().zip(&result.allocations) {
+            let cap = recipient.headroom.min(limit);
+            assert!(allocation.amount.is_finite());
+            assert!(allocation.amount >= 0.0);
+            assert!(allocation.amount <= cap);
+            assert_eq!(allocation.id, recipient.id);
+        }
+        result
+    }
+
+    fn next_finite_nonnegative(seed: &mut u64) -> f64 {
+        let raw = next_random(seed);
+        const FRACTION_MASK: u64 = (1_u64 << 52) - 1;
+        if raw & 0b111 == 0 {
+            // Include zero and subnormals with deliberate frequency.
+            return f64::from_bits(raw & FRACTION_MASK);
+        }
+        // Exponent 0..=2046 excludes NaN and infinity. The sign bit is zero.
+        let exponent = ((raw >> 53) % 2047) << 52;
+        f64::from_bits(exponent | (raw & FRACTION_MASK))
+    }
+
     fn next_random(seed: &mut u64) -> u64 {
         *seed = seed
             .wrapping_mul(6_364_136_223_846_793_005)
