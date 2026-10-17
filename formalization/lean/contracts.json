@@ -24,7 +24,8 @@
         "SymtropyFormal.rectangularSecondMoment_dimensions",
         "SymtropyFormal.rectangularSectionShapeFactor_dimensions",
         "SymtropyFormal.rectangularSectionArea_cantilever_fixture_value",
-        "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value"
+        "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value",
+        "SymtropyFormal.rectangularSectionArea_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -96,7 +97,8 @@
         "SymtropyFormal.axialExtension_normalized_strain_dimensionless",
         "SymtropyFormal.rectangularSectionArea_axialBar_fixture_value",
         "SymtropyFormal.axialBarStress_fixture_value",
-        "SymtropyFormal.axialBarSupportReaction_fixture_value"
+        "SymtropyFormal.axialBarSupportReaction_fixture_value",
+        "SymtropyFormal.axialBarStress_formula_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -171,7 +173,8 @@
         "SymtropyFormal.extremeFiberDistance_cantilever_fixture_value",
         "SymtropyFormal.cantileverMaximumBendingMoment_fixture_value",
         "SymtropyFormal.cantileverMaximumBendingStress_fixture_value",
-        "SymtropyFormal.cantileverSupportReaction_fixture_value"
+        "SymtropyFormal.cantileverSupportReaction_fixture_value",
+        "SymtropyFormal.beamBendingStress_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -248,7 +251,8 @@
         "SymtropyFormal.extremeFiberDistance_simplySupported_fixture_value",
         "SymtropyFormal.simplySupportedMidpointMaximumBendingMoment_fixture_value",
         "SymtropyFormal.simplySupportedMidpointMaximumBendingStress_fixture_value",
-        "SymtropyFormal.simplySupportedMidpointSupportReaction_fixture_value"
+        "SymtropyFormal.simplySupportedMidpointSupportReaction_fixture_value",
+        "SymtropyFormal.beamBendingStress_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
@@ -326,7 +330,9 @@
         "SymtropyFormal.extremeFiberDistance_simplySupported_fixture_value",
         "SymtropyFormal.simplySupportedUniformMaximumBendingMoment_fixture_value",
         "SymtropyFormal.simplySupportedUniformMaximumBendingStress_fixture_value",
-        "SymtropyFormal.simplySupportedUniformSupportReaction_fixture_value"
+        "SymtropyFormal.simplySupportedUniformSupportReaction_fixture_value",
+        "SymtropyFormal.beamBendingStress_dimensions",
+        "SymtropyFormal.simplySupportedUniformMaximumBendingMoment_dimensions"
       ],
       "rust_binding_status": "NOT_ESTABLISHED",
       "benchmark_link_status": "CANDIDATE_FIXTURE_ON_OPEN_PR_1653_NOT_MERGED",
