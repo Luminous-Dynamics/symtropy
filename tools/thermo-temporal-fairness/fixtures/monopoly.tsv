@@ -1,0 +1,8 @@
+THERMO-TEMPORAL-TRACE	1
+CASE	repeated-monopoly-two-ticks
+
+# Every tick serves one eligible recipient and starves the other.
+OBS	0	1	1	true	1
+OBS	0	2	1	true	0
+OBS	1	1	1	true	1
+OBS	1	2	1	true	0
