@@ -151,11 +151,11 @@ These are references for benchmark design, not proof that the proposed benchmark
 
 ## 10. Stage gates
 
-**Current executable boundary:** `tools/civ-infra-fleet-resilience` now contains a standalone Rust manifest preflight CLI and strict fixture contract. It validates schema/cross-references, the frozen case set, dependency acyclicity and observation timing, and emits a SHA-256-bound report explicitly marked `fixture_schema_valid_only` with zero policy runs. It does not yet implement B0/B1/B2 scheduling or recovery. Keep this distinction intact in all reports.
+**Current executable boundary:** `tools/civ-infra-fleet-resilience` contains a standalone Rust manifest verifier plus a bounded exhaustive oracle for three tiny static scheduling instances. It checks the strict schema/cross-references, dependency acyclicity and event timing, then verifies expected makespans of 5 and 4 ticks for the two feasible cases and infeasibility of the 3-tick horizon case. Its report binds exact input bytes. It still runs zero B0/B1/B2 policies and does not simulate injected failures, adaptive replanning or physical recovery. The Rust suite and exact-head CI must qualify these changes before execution is called verified.
 
 1. Schema-valid deterministic event corpus; verify unique/resolving IDs and ensure observation time is not earlier than injection time unless the event is explicitly pre-observed.
-2. Independent reference model for tiny schedule/recovery cases.
-3. Baseline and policy runs on exactly the same events and resources.
+2. Expand the tiny static schedule oracle toward exhaustive event-conditioned schedule cases; preserve finite search bounds and compare each result with a separately implemented oracle.
+3. Implement B0/B1/B2 policies and record policy-visible observations separately from the evaluator's hidden state.
 4. Adversarial testing of stale state, event ordering, duplicate events, dropped observations, schedule boundary semantics, missing outputs and forged completion.
 5. Add construction-site SLAM data as a separate localization-input track after terms and formats are reviewed.
 6. Only after synthetic correctness, define a supervised low-consequence physical pilot with calibrated sensors, safeguarding, competent operators, site permissions and independent review.
