@@ -20,7 +20,7 @@ This specification does **not** propose another universal solver or duplicate th
 
 The draft now contains:
 - 21-case synthetic vehicle scenario corpus (`fixtures/personal_vehicle/scenario_corpus_v0_1.json`);
-- 13-entry rights-aware benchmark/source inventory (`fixtures/personal_vehicle/benchmark_source_registry_v0_1.json`);
+- 15-entry rights-aware benchmark/source inventory (`fixtures/personal_vehicle/benchmark_source_registry_v0_1.json`);
 - a five-model South African advertised-price screening shortlist (`fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json`);
 - common cross-project engineering evidence envelope schema plus 15 fixtures (`schemas/transport/engineering_evidence_envelope_v0_1.schema.json`, `fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json`);
 - repairability task-graph schema plus 16 fixtures (`schemas/transport/repair_task_graph_v0_1.schema.json`, `fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json`);
@@ -32,7 +32,7 @@ The evidence envelope binds artifact and subject/configuration identity, produce
 
 The repairability graph expresses versioned service steps, exact component revisions, dependency edges, tools/availability, safety preconditions, estimate-vs-observation timing, procedure reuse status, lifecycle-cost inputs and a named post-repair check. Its semantic validator rejects duplicate IDs, dangling/duplicate edges, cycles, missing/unreachable post-checks and access/removal/repair/reassembly tasks that skip required isolation. The “observed-shaped” example uses synthetic values to validate record shape only; it is not workshop evidence.
 
-The 13-entry source registry differentiates standard input schedules from measured validation data, records sources for repairability/autonomy/safety planning, and adds official South African manufacturer pages with clear source and quote limitations. No outside dataset or normative standards text is vendored. Neither the registry nor a public manufacturer page is a completed legal/data-rights review.
+The 15-entry source registry differentiates standard input schedules from measured validation data, records sources for repairability/autonomy/safety planning, and adds official South African manufacturer pages with clear source and quote limitations. No outside dataset or normative standards text is vendored. Neither the registry nor a public manufacturer page is a completed legal/data-rights review.
 
 Even a successful contract verifier would establish only schema/corpus/metadata conformance. It does not compute vehicle dynamics, verify Mycelix cryptographic signatures, adjudicate rights, establish legal title, qualify a physical vehicle or repair procedure, measure workshop performance, or establish regulatory compliance.
 
@@ -77,6 +77,21 @@ Price snapshots come from the [Toyota South Africa vehicle range](https://www.to
 The baseline file stores source IDs, exact unknowns and fields still needed. Before any trade study, capture exact model year/grade, safety evidence, written dealer quotes, warranty/service-plan terms, a common parts basket and repair times from the actual target market. Add used vehicles only with documented condition, odometer, service history and inspection.
 
 **Comparison rule:** the cheapest advertised vehicle is not automatically a valid family-car baseline. Enforce a minimum passenger/cargo/child-seat/payload/handling utility gate first, then compare acquisition, energy, service, repair labour/parts, waiting, downtime and end-of-life over a matched duty cycle. The initial five-price list does not prove safety, reliability, repairability or ten-year cost.
+
+
+## South African manufacturing route: localization-ready, not subsidy-dependent
+
+The source registry now records the dtic's **15 October 2026** announcement that South Africa plans to phase out current semi-knocked-down (SKD) operations and will no longer support new SKD facilities, plus the SARS APDP2 programme reference. This is a relevant manufacturing-policy risk for any local-build business case, but the announcement does not by itself resolve every facility's transition, eligibility or legal obligations. Confirm current instruments, implementation dates and project eligibility directly with dtic, ITAC and SARS before financial commitments.
+
+For design-space optimization, compare production scenarios instead of hard-coding a single tariff/incentive story:
+- imported complete vehicle / imported subassembly dependence;
+- locally made service parts and consumables;
+- local component sourcing with qualified supplier/quality evidence;
+- tooling, repair workforce and regional service capacity;
+- meaningful local value-add / eligible CKD-style manufacturing only where the current written policy confirms the route;
+- localization capex, skills, supplier qualification, homologation and warranty costs.
+
+The objective is not “maximize local content regardless of cost.” It is to find robust designs that remain serviceable and economically plausible when policy, supplier access or foreign-exchange conditions change. Each manufacturing scenario must include dated primary sources, uncertainty and explicit non-eligibility assumptions; the public source inventory is not legal advice or an incentive approval.
 
 ## Core paradigm shift: design a vehicle and its maintenance ecosystem jointly
 
