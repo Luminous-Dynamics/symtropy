@@ -776,7 +776,7 @@ fn evaluate_scenario_with_budget(
             .then(a.product_length_mm.cmp(&b.product_length_mm))
             .then(a.reusable_offcut_length_mm.cmp(&b.reusable_offcut_length_mm))
             .then(a.unrecoverable_loss_length_mm.cmp(&b.unrecoverable_loss_length_mm))
-            .then(a.product_counts.cmp(&b.product_counts))
+            .then_with(|| a.product_counts.iter().cmp(b.product_counts.iter()))
     });
 
     for plan in &frontier {
