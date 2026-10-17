@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn missing_appliance_family_is_rejected() {
         let mut portfolio = canonical_portfolio();
-        portfolio["families"].as_array_mut().expect("families").remove(5);
+        portfolio["families"][5]["id"] = json!("unexpected_hvac_family");
         let errors = audit_mutation(&portfolio).expect_err("missing family must fail");
         assert!(
             errors
