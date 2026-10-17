@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 mod adaptive_resilience;
+mod cyport_benchmark_tasks;
 mod cyport_interaction_profile;
 mod disruption_rehearsal;
 mod forecast_applicability;
@@ -1071,6 +1072,16 @@ fn verify(
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let first_arg = args.next();
+    if first_arg.as_deref() == Some("--validate-cyport-benchmark-tasks") {
+        let contract_path = args.next().ok_or_else(|| {
+            "usage: maritime-data-receipt --validate-cyport-benchmark-tasks <contract-json-path>"
+                .to_owned()
+        })?;
+        if args.next().is_some() {
+            return Err("too many arguments for CyPort benchmark task validation".to_owned());
+        }
+        return cyport_benchmark_tasks::run_cli(&contract_path);
+    }
     if first_arg.as_deref() == Some("--validate-cyport-episode-split-manifest") {
         let manifest_path = args.next().ok_or_else(|| {
             "usage: maritime-data-receipt --validate-cyport-episode-split-manifest <manifest-json-path>"

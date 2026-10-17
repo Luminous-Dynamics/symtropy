@@ -1,0 +1,260 @@
+{
+  "schema_id": "luminous.symtropy.maritime.cyport-benchmark-tasks",
+  "schema_version": "0.1.0",
+  "status": "FROZEN_BENCHMARK_CONTRACT_NOT_MODEL_VALIDATED",
+  "source": {
+    "id": "cyport_us_port_tropical_cyclone_resilience",
+    "revision": "5cb1d8778d3968c5e50d0b8cb8213f2414d692d3",
+    "path": "Tropical_cyclone_interaction/interaction_data.csv",
+    "git_blob_sha1": "21beb5b7673918143a0ab108b03acc3cccaeb330",
+    "byte_length": 643047
+  },
+  "split_manifest": {
+    "path": "docs/tech/CYPORT_EPISODE_SPLIT_V0_1.json",
+    "schema_id": "luminous.symtropy.maritime.cyport-episode-split",
+    "schema_version": "0.1.0",
+    "split_unit": "SID",
+    "splits": [
+      {
+        "name": "train",
+        "years": "2015-2020",
+        "storms": 59,
+        "rows": 1471
+      },
+      {
+        "name": "calibration",
+        "years": "2021",
+        "storms": 13,
+        "rows": 308
+      },
+      {
+        "name": "test",
+        "years": "2022-2023",
+        "storms": 18,
+        "rows": 148
+      }
+    ],
+    "total_storms": 90,
+    "total_rows": 1927
+  },
+  "feature_policy": {
+    "status": "NO_FEATURES_WHITELISTED_PENDING_POINT_IN_TIME_AUDIT",
+    "forecast_issue_time_required": true,
+    "split_group_key": "SID",
+    "join_only_keys": [
+      "ID",
+      "SID",
+      "PID"
+    ],
+    "outcome_or_post_event_fields_forbidden": [
+      "total_impact",
+      "total_impact_value",
+      "max_impact",
+      "start_recovery_date",
+      "end_recovery_date",
+      "day_of_recover"
+    ],
+    "unverified_exposure_fields": [
+      "start_date",
+      "end_date",
+      "DD",
+      "CCD",
+      "BCD",
+      "SSHS",
+      "WIND",
+      "PRESSURE",
+      "DISTANCE",
+      "Wind_speed",
+      "Surge_height",
+      "Rainfall"
+    ],
+    "allowed_feature_fields": [],
+    "point_in_time_provenance_required": true,
+    "data_availability_gate": "For every proposed feature, record when it was actually knowable to an operator, source revision, units, missingness, transformations, and whether it is a forecast or a realized measurement. Do not whitelist a field until that record passes review."
+  },
+  "tasks": [
+    {
+      "id": "impact_window_marker_state",
+      "status": "DEFINED_NOT_READY_FOR_MODEL_FIT",
+      "estimand": "Predict whether the retrospective source records a coherent impact/recovery marker triplet; this is a source-recording proxy, not physical truth.",
+      "target_fields": [
+        "start_recovery_date",
+        "end_recovery_date",
+        "day_of_recover"
+      ],
+      "label_definition": "positive iff all three recovery fields are present and individually valid; negative iff all three are sentinel-coded; any mixed triplet is a data-quality failure, not a label.",
+      "sample_policy": "All source rows after strict triplet validation; quarantine mixed triplets. Never infer that a missing triplet means zero physical impact.",
+      "permitted_feature_fields": [],
+      "forbidden_feature_fields": [
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
+        "max_impact",
+        "start_recovery_date",
+        "total_impact",
+        "total_impact_value"
+      ],
+      "metrics": [
+        "PR-AUC",
+        "precision",
+        "recall",
+        "specificity",
+        "recall_at_fixed_false_alarm_budget",
+        "Brier_score",
+        "log_loss",
+        "calibration_error"
+      ],
+      "baselines": [
+        "training_prevalence_constant",
+        "training_only_port_or_season_climatology",
+        "regularized_logistic_regression"
+      ],
+      "benchmark_goal": "After feature provenance is audited and sample adequacy is demonstrated, target at least +0.05 absolute PR-AUC over the strongest non-leaking train-only climatology baseline, with storm-cluster uncertainty reported; do not use raw accuracy as the primary score."
+    },
+    {
+      "id": "rounded_impact_occurrence",
+      "status": "DEFINED_NOT_READY_FOR_MODEL_FIT",
+      "estimand": "Predict whether the rounded source field total_impact is greater than zero; this does not mean all zero-valued rows experienced no physical impact.",
+      "target_fields": [
+        "total_impact"
+      ],
+      "label_definition": "positive iff the validated integer total_impact is greater than zero. Preserve the four pinned-source cases where total_impact is zero while recovery markers and other impact proxies are present.",
+      "sample_policy": "All valid rows; report positive-class counts and positive storm clusters. Do not silently relabel zero-rounded records as confirmed no-impact.",
+      "permitted_feature_fields": [],
+      "forbidden_feature_fields": [
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
+        "max_impact",
+        "start_recovery_date",
+        "total_impact",
+        "total_impact_value"
+      ],
+      "metrics": [
+        "PR-AUC",
+        "precision",
+        "recall",
+        "specificity",
+        "recall_at_fixed_false_alarm_budget",
+        "Brier_score",
+        "log_loss",
+        "calibration_error"
+      ],
+      "baselines": [
+        "training_prevalence_constant",
+        "training_only_port_or_season_climatology",
+        "regularized_logistic_regression",
+        "hurdle_occurrence_component"
+      ],
+      "benchmark_goal": "Target positive Brier skill versus the training-prevalence baseline and at least +0.05 absolute PR-AUC versus the strongest non-leaking train-only baseline; show the operational false-alarm/recall trade-off, not a single accuracy headline."
+    },
+    {
+      "id": "rounded_impact_severity",
+      "status": "DEFINED_NOT_READY_FOR_MODEL_FIT",
+      "estimand": "Predict the source's non-negative integer rounded equivalent-days-lost value; report zero-inclusive and positive-only performance separately.",
+      "target_fields": [
+        "total_impact"
+      ],
+      "label_definition": "Use the validated integer total_impact as the label. Do not use total_impact_value, max_impact, recovery markers, or day_of_recover as predictors for this task.",
+      "sample_policy": "Score all rows and separately report rows with total_impact greater than zero; retain zeros to expose excess-zero behavior.",
+      "permitted_feature_fields": [],
+      "forbidden_feature_fields": [
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
+        "max_impact",
+        "start_recovery_date",
+        "total_impact",
+        "total_impact_value"
+      ],
+      "metrics": [
+        "MAE_all_rows",
+        "RMSE_all_rows",
+        "Poisson_deviance_all_rows",
+        "MAE_positive_rows",
+        "storm_cluster_bootstrap_interval"
+      ],
+      "baselines": [
+        "training_median_constant",
+        "training_mean_constant",
+        "regularized_count_model",
+        "hurdle_negative_binomial",
+        "RPNB_Lindley_paper_reproduction_track"
+      ],
+      "benchmark_goal": "Target at least 10% lower test MAE than the training-only median baseline and improved count deviance, with storm-cluster uncertainty on the difference. Treat this as aspirational until the held-out positive-storm count supports inference."
+    },
+    {
+      "id": "recovery_duration_descriptive",
+      "status": "DESCRIPTIVE_ONLY_CENSORING_UNRESOLVED",
+      "estimand": "Describe source-recorded day_of_recover among rows with coherent recovery markers; do not claim a forecast target until observation-window and censoring semantics are resolved.",
+      "target_fields": [
+        "day_of_recover",
+        "start_recovery_date",
+        "end_recovery_date"
+      ],
+      "label_definition": "Include only valid rows where the recovery triplet is fully present. Do not impute missing marker triplets to zero and do not label them right-censored without an explicit observation cutoff.",
+      "sample_policy": "Descriptive distributions and provenance audit only. Defer predictive evaluation until the original curve construction, at-risk origin, and observation end are recorded.",
+      "permitted_feature_fields": [],
+      "forbidden_feature_fields": [
+        "ID",
+        "PID",
+        "SID",
+        "day_of_recover",
+        "end_recovery_date",
+        "max_impact",
+        "start_recovery_date",
+        "total_impact",
+        "total_impact_value"
+      ],
+      "metrics": [
+        "median_and_quantiles",
+        "missingness_by_year_and_port",
+        "storm_clustered_uncertainty_after_semantics_review",
+        "prediction_interval_coverage_only_after_model_is_permitted"
+      ],
+      "baselines": [
+        "descriptive_empirical_distribution_only_until_censoring_review"
+      ],
+      "benchmark_goal": "Before any recovery prediction claim, establish a documented time origin and censoring rule, then demonstrate nominal 90% interval coverage between 85% and 95% on a sufficiently large external set with at least 30 independently observed storm episodes."
+    }
+  ],
+  "protocol": {
+    "train_only_transform_fit": true,
+    "calibration_split": "calibration",
+    "test_split": "test",
+    "test_once_after_protocol_lock": true,
+    "group_key": "SID",
+    "uncertainty_method": "storm_cluster_bootstrap",
+    "bootstrap_replicates": 2000,
+    "random_seed": 20261016,
+    "raw_accuracy_primary_metric": false,
+    "report_confusion_matrix_for_classification": true,
+    "report_positive_storm_cluster_count": true,
+    "suppress_confirmatory_language_if_positive_test_storm_clusters_below": 10,
+    "feature_availability_audit_required": true,
+    "all_tuning_and_threshold_selection_confined_to_train_and_calibration": true
+  },
+  "paper_reproduction": {
+    "status": "SEPARATE_TRACK_NOT_IMPLEMENTED",
+    "paper_doi": "10.1016/j.trd.2026.105420",
+    "distinction": "The paper reports a random 80:20 development split and a filtered 1,093-row model-fitting subset. The full-corpus chronological SID-grouped test in this contract is intentionally different and its score must not be presented as a like-for-like replication.",
+    "required_before_comparison": [
+      "recover and document the exact filtering rule and retained IDs",
+      "match outcome construction and transformations",
+      "match the published split protocol in a clearly isolated reproduction",
+      "report the chronological storm-held-out result separately"
+    ]
+  },
+  "claim_ceiling": [
+    "This file freezes task semantics and evaluation policy; it does not fit, validate, or recommend any predictive model.",
+    "The pinned public temporal test is reproducible but not a secret blind holdout.",
+    "No row-level score may be represented as independent-storm generalization without storm-clustered analysis.",
+    "No prediction authorizes a navigation, port closure, emergency, staffing, or other physical/operational decision."
+  ]
+}
