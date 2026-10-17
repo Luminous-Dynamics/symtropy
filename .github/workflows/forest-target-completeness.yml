@@ -1,0 +1,89 @@
+name: Forest Target-Completeness Held-Out Audit
+
+on:
+  push:
+    branches: ["feat/forest-target-completeness-audit-v0-1"]
+    paths:
+      - "tools/forest-target-audit/**"
+      - "tools/forest-next-best-view/**"
+      - "docs/tech/forest-target-completeness-corpus-v0.1.json"
+      - "docs/tech/forest-next-best-view-corpus-v0.1.json"
+      - ".github/workflows/forest-target-completeness.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/forest-target-audit/**"
+      - "tools/forest-next-best-view/**"
+      - "docs/tech/forest-target-completeness-corpus-v0.1.json"
+      - "docs/tech/forest-next-best-view-corpus-v0.1.json"
+      - ".github/workflows/forest-target-completeness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forest-target-completeness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  held-out-target-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Test and execute cell-coverage planners
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo test --manifest-path tools/forest-next-best-view/Cargo.toml
+          cargo run --quiet --manifest-path tools/forest-next-best-view/Cargo.toml -- \
+            docs/tech/forest-next-best-view-corpus-v0.1.json --source-commit "$source_commit" > forest-next-best-view-receipt.json
+          jq -e '.result == "validated" and .scenario_count == 6 and .greedy_budget_feasible_count == 6 and .lookahead_budget_feasible_count == 6 and .oracle_budget_feasible_count == 6' forest-next-best-view-receipt.json
+      - name: Test independent target-feature auditor
+        run: cargo test --manifest-path tools/forest-target-audit/Cargo.toml
+      - name: Score frozen training and held-out target seeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/forest-target-audit/Cargo.toml -- \
+            forest-next-best-view-receipt.json \
+            --target-corpus docs/tech/forest-target-completeness-corpus-v0.1.json \
+            --source-commit "$source_commit" > forest-target-completeness-receipt.json
+          jq -e '
+            .result == "validated"
+            and .scenario_count == 6
+            and .seed_overlap_count == 0
+            and .training_seed_count == 4
+            and .held_out_seed_count == 6
+            and .evaluation_count == 60
+            and .training_evaluation_count == 24
+            and .held_out_evaluation_count == 36
+            and .training.evaluation_count == 24
+            and .held_out.evaluation_count == 36
+            and (.target_corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.planner_receipt_sha256 | test("^[0-9a-f]{64}$"))
+            and all(.evaluations[]; .greedy.budget_feasible and .lookahead.budget_feasible and .coverage_oracle.budget_feasible)
+            and all(.evaluations[]; .greedy.feature_visibility_basis_points <= 10000 and .lookahead.feature_visibility_basis_points <= 10000 and .coverage_oracle.feature_visibility_basis_points <= 10000)
+            and all(.evaluations[]; all(.greedy.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.lookahead.targets[]; .complete == (.visible_feature_count == .required_feature_count)) and all(.coverage_oracle.targets[]; .complete == (.visible_feature_count == .required_feature_count)))
+            and (.source_commit == .planner_source_commit)
+          ' forest-target-completeness-receipt.json
+      - name: Upload exact-input benchmark receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: forest-target-completeness-receipts
+          path: |
+            forest-next-best-view-receipt.json
+            forest-target-completeness-receipt.json
+          if-no-files-found: error
+          retention-days: 90
