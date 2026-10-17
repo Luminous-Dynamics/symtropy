@@ -339,4 +339,4 @@ The regolith oxygen fixture assumes 400 kg oxygen inventory in a 1,000 kg batch 
 - Each empirical input includes source, site/body, time/epoch, spatial resolution, data license, uncertainty, sampling/measurement method and model version.
 - Reports include yield intervals/sensitivity, kWh/kg qualified product, tailings/residuals, consumables and wear-part needs, throughput, repair downtime, purity, and cost per delivered qualified kilogram.
 
-Follow-on: [BENCH-SPACE-008 — resource evidence to auditable production chains and coproducts](https://github.com/Luminous-Dynamics/symtropy/issues/1803).
+Follow-on: [BENCH-SPACE-008 — resource evidence to auditable production chains and coproducts](https://github.com/Luminous-Dynamics/symtropy/issues/1803). See the broader [Lunar Resource-to-Production Chain Map v0.1](SPACE_RESOURCE_PRODUCTION_CHAIN_MAP_V0_1.md) for resource evidence tiers, proposed first industries, process chains, and staged benchmark gates.
