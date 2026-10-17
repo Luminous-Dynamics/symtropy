@@ -1090,7 +1090,8 @@ mod tests {
         field.register(h, 100.0, 10.0);
         {
             let entity = field.entities.get_mut(&h).unwrap();
-            entity.energy.consume(20.0);
+            // Leave only 0.1 units of headroom so the source request is capped.
+            entity.energy.consume(99.9);
         }
         let available_before = field.entities.get(&h).unwrap().energy.available;
 
@@ -1107,7 +1108,9 @@ mod tests {
         let available_after = field.entities.get(&h).unwrap().energy.available;
         let balance = field.ledger.try_tick_balance().unwrap();
         let accepted = available_after - available_before;
+        let requested = leakage.total_effect_at(&nalgebra::SVector::from([1.0, 0.0, 0.0]));
         assert!(accepted > 0.0, "source should regenerate energy");
+        assert!(accepted < requested, "reservoir capacity should cap accepted regeneration");
         assert_eq!(balance.regeneration_in, accepted);
         assert_eq!(balance.energy_out, 0.0, "inflow must not be encoded as dissipation");
     }
