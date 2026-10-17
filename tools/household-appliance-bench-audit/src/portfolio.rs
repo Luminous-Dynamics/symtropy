@@ -322,10 +322,32 @@ fn audit_values(
         "EU ecodesign requirements: refrigerators and freezers",
         "EU ecodesign requirements: tumble dryers",
         "Open Arsenal Specs Universal Appliance Standard concept",
+        "Open Repair Alliance repair-attempt dataset (October 2026 release)",
     ] {
         if !reference_titles.contains(required_reference) {
             errors.push(format!("required source reference missing: {required_reference}"));
         }
+    }
+
+    let repair_dataset = portfolio
+        .get("references")
+        .and_then(Value::as_array)
+        .and_then(|references| {
+            references.iter().find(|reference| {
+                text_at(reference, "title")
+                    == Some("Open Repair Alliance repair-attempt dataset (October 2026 release)")
+            })
+        });
+    let scope_note = repair_dataset.and_then(|reference| text_at(reference, "scope_note"));
+    if scope_note.is_none_or(|note| {
+        !note.contains("not a representative random sample")
+            || !note.contains("selection")
+            || !note.contains("washer fault prevalence")
+    }) {
+        errors.push(
+            "Open Repair Alliance source must preserve the sampling-bias/no-washer-prevalence caveat"
+                .to_owned(),
+        );
     }
 
     if !errors.is_empty() {
@@ -422,6 +444,29 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn open_repair_dataset_cannot_be_used_as_unqualified_washer_prevalence() {
+        let mut portfolio = canonical_portfolio();
+        let reference = portfolio["references"]
+            .as_array_mut()
+            .expect("references")
+            .iter_mut()
+            .find(|reference| {
+                reference["title"]
+                    == "Open Repair Alliance repair-attempt dataset (October 2026 release)"
+            })
+            .expect("Open Repair Alliance reference");
+        reference["scope_note"] =
+            json!("This dataset proves the most common washer field failure rates.");
+        let errors = audit_mutation(&portfolio)
+            .expect_err("repair event data must retain the sampling caveat");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("sampling-bias/no-washer-prevalence caveat"))
+        );
+    }
 
     #[test]
     fn washer_variant_cannot_be_marked_as_measured_before_physical_tests() {
