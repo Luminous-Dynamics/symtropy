@@ -444,6 +444,121 @@ pub fn verify_discharge_report(c: &StoreConfig, s: StoreState, request: EnergyJ,
         r.useful_heat_delivered.value() + r.unmet_useful_heat.value())
 }
 
+/// Runs a fixed, synthetic end-to-end fixture and emits deterministic JSON.
+///
+/// The receipt records source inputs and intermediate boundaries, then marks
+/// verification true only after each recomputation path accepts the reports.
+/// It is a mechanics smoke artifact, not an engineering performance claim.
+pub fn canonical_demo_receipt() -> Result<String, ModelError> {
+    let collector_input = CollectorInput {
+        incident_solar: EnergyJ::new(1_000_000.0)?,
+        optical_efficiency: Fraction::new(0.8)?,
+        receiver_loss: EnergyJ::new(100_000.0)?,
+    };
+    let collector = capture_solar(collector_input)?;
+    verify_collector_report(collector_input, collector)?;
+
+    let curve = HeatCapacityCurve::new(vec![
+        HeatCapacityPoint::new(
+            Kelvin::new(300.0)?,
+            SpecificHeatJPerKgK::new(1_000.0)?,
+        ),
+        HeatCapacityPoint::new(
+            Kelvin::new(500.0)?,
+            SpecificHeatJPerKgK::new(2_000.0)?,
+        ),
+    ])?;
+    let config = StoreConfig::new(StoreConfigSpec {
+        mass: MassKg::new(1.0)?,
+        heat_capacity: curve,
+        min_temperature: Kelvin::new(300.0)?,
+        max_temperature: Kelvin::new(500.0)?,
+        initial_temperature: Kelvin::new(300.0)?,
+        max_charge_power: PowerW::new(10_000.0)?,
+        max_discharge_power: PowerW::new(10_000.0)?,
+        standing_loss_conductance: ThermalConductanceWPerK::new(10.0)?,
+    })?;
+
+    let initial = config.initial_state();
+    let (charged, charge) = charge_store(
+        &config,
+        initial,
+        collector.useful_captured_heat,
+        Seconds::new(100.0)?,
+    )?;
+    verify_charge_report(
+        &config,
+        initial,
+        collector.useful_captured_heat,
+        Seconds::new(100.0)?,
+        charge,
+    )?;
+
+    let (after_loss, loss) = apply_standing_loss(
+        &config,
+        charged,
+        Kelvin::new(300.0)?,
+        Seconds::new(10.0)?,
+    )?;
+    verify_standing_loss_report(
+        &config,
+        charged,
+        Kelvin::new(300.0)?,
+        Seconds::new(10.0)?,
+        loss,
+    )?;
+
+    let demand = EnergyJ::new(10_000.0)?;
+    let supply_temp = Kelvin::new(450.0)?;
+    let approach = TemperatureDifferenceK::new(10.0)?;
+    let effectiveness = Fraction::new(0.9)?;
+    let duration = Seconds::new(100.0)?;
+    let (final_state, discharge) = discharge_to_load(
+        &config,
+        after_loss,
+        demand,
+        supply_temp,
+        approach,
+        effectiveness,
+        duration,
+    )?;
+    verify_discharge_report(
+        &config,
+        after_loss,
+        demand,
+        supply_temp,
+        approach,
+        effectiveness,
+        duration,
+        discharge,
+    )?;
+
+    let mut json = String::from(
+        "{\"schema\":\"solar-thermal-kernel-receipt-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\""
+    );
+    fn number(out: &mut String, key: &str, value: f64) {
+        out.push_str(&format!(",\"{}\":{:.9}", key, value));
+    }
+    number(&mut json, "incident_solar_j", collector.incident_solar.value());
+    number(&mut json, "optical_loss_j", collector.optical_loss.value());
+    number(&mut json, "absorbed_solar_j", collector.absorbed_solar.value());
+    number(&mut json, "receiver_loss_j", collector.receiver_loss.value());
+    number(&mut json, "useful_captured_heat_j", collector.useful_captured_heat.value());
+    number(&mut json, "store_energy_accepted_j", charge.accepted_input.value());
+    number(&mut json, "store_energy_rejected_j", charge.rejected_input.value());
+    number(&mut json, "store_temperature_after_charge_k", charge.temperature_after.value());
+    number(&mut json, "standing_loss_j", loss.heat_lost.value());
+    number(&mut json, "store_temperature_after_loss_k", loss.temperature_after.value());
+    number(&mut json, "requested_useful_heat_j", discharge.requested_useful_heat.value());
+    number(&mut json, "source_heat_withdrawn_j", discharge.source_heat_withdrawn.value());
+    number(&mut json, "useful_heat_delivered_j", discharge.useful_heat_delivered.value());
+    number(&mut json, "heat_exchanger_loss_j", discharge.heat_exchanger_loss.value());
+    number(&mut json, "unmet_useful_heat_j", discharge.unmet_useful_heat.value());
+    number(&mut json, "final_store_temperature_k", final_state.temperature.value());
+    json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
+    Ok(json)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -474,6 +589,17 @@ mod tests {
             max_discharge_power: c.max_discharge_power,
             standing_loss_conductance: c.standing_loss_conductance,
         }
+    }
+
+    #[test]
+    fn receipt_is_deterministic_and_explicitly_synthetic() {
+        let first = canonical_demo_receipt().unwrap();
+        let second = canonical_demo_receipt().unwrap();
+        assert_eq!(first, second);
+        assert!(first.starts_with("{\\"schema\\":\\"solar-thermal-kernel-receipt-v0.1\\""));
+        assert!(first.contains("\\"all_verifiers_passed\\":true"));
+        assert!(first.contains("\\"hardware_validated\\":false"));
+        assert!(first.contains("\\"claim_level\\":\\"synthetic-mechanics-only\\""));
     }
 
     #[test]
