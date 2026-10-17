@@ -577,6 +577,18 @@ mod tests {
         assert!(validate(&c).unwrap_err().contains("current geometry calibration requires an instrument_id"));
     }
     #[test]
+    fn fixed_point_geometry_integrator_has_frozen_reference_values() {
+        let c = corpus();
+        let expected = [245_044_227_u128, 280_230_065_u128, 245_044_227_u128];
+        for (scenario, expected_volume) in c.scenarios.iter().zip(expected) {
+            assert_eq!(
+                estimated_geometry_volume_mm3(&scenario.log).unwrap(),
+                expected_volume
+            );
+        }
+    }
+
+    #[test]
     fn geometry_error_is_scored_not_discarded_as_invalid_data() {
         let mut c = corpus();
         c.scenarios[1].log.gross_volume_mm3 = 304_000_000;
