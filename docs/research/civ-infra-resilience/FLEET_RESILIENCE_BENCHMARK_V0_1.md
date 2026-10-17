@@ -205,3 +205,13 @@ NIST's robot-agility work emphasizes repeatable metrics, retasking/reconfigurati
 ## 13. Follow-up implementation
 
 The next stage is tracked in [CIV-INFRA-ROLLOUT-002 #1870](https://github.com/Luminous-Dynamics/symtropy/issues/1870): generalize the one-event microcase into an event-driven simulator over the 13 frozen disturbance families, keep evaluator-private and policy-visible state separate, add negative controls and an independent small-case evaluator, and build the stratified deterministic corpus before making aggregate improvement claims. Do not treat #1870 as completed by this one-case implementation.
+
+## 14. Event-queue contract slice
+
+The `event-timeline-audit` binary adds a first reusable event-queue boundary over the frozen 13 disturbance cases. Each case is mapped to a typed disturbance kind; injected world events are represented in an evaluator timeline, while policy observations are emitted in a distinct policy projection only at `observable_tick` and afterward. Same-tick event IDs are sorted for deterministic replay. The report binds exact input bytes by SHA-256.
+
+On the present fixture, the timeline audit expects 13 distinct kinds, 3 delayed observations, 4 total observation-delay ticks, a 2-tick maximum delay, and 8 snapshots for ticks 0 through 7. Specifically, the geometry-revision disturbance R-008 is injected at tick 2, appears in the evaluator's hidden-but-injected set at ticks 2 and 3, and enters the policy-visible set at tick 4. Test cases exercise that boundary, same-tick sorting, zero-delay delivery, exact-byte digests, strict-schema rejection and invalid timing rejection.
+
+This is a **timeline audit, not a policy simulation**: its report explicitly sets `policy_simulation_executed=false` and `policy_runs_performed=0`. The subsequent stage in [#1870](https://github.com/Luminous-Dynamics/symtropy/issues/1870) must make policy code consume only the policy projection, then simulate task-state transitions and recovery against the 13 disturbance classes. Do not count this slice as the 1,000-rollout benchmark target.
+
+Measurement design is consistent with NIST's focus on system-level mobile-robot performance, dynamic/unstructured conditions, task efficiency, completion quality and testable measurement methods ([NIST Mobility Performance of Robotic Systems](https://www.nist.gov/programs-projects/mobility-performance-robotic-systems), updated 24 April 2026). This project remains synthetic and does not claim standards conformance or physical robot qualification.
