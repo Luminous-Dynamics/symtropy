@@ -156,6 +156,15 @@ struct ScenarioSummary {
     section_station_count: usize,
     defect_count: usize,
     gross_log_volume_mm3: u64,
+    species_evidence_state: EvidenceState,
+    source_id: String,
+    source_license: String,
+    source_method: String,
+    source_measured_at: String,
+    source_calibration_status: CalibrationStatus,
+    source_uncertainty_ppm: u32,
+    sawing_variation_mm: u64,
+    defects: Vec<DefectSummary>,
     geometry_volume_estimate_mm3: u128,
     absolute_geometry_delta_mm3: u128,
     geometry_tolerance_mm3: u128,
@@ -167,6 +176,15 @@ struct ScenarioSummary {
     accounting_status: &'static str,
     grade_rule_id: String,
     grade_rule_version: String,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct DefectSummary {
+    defect_id: String,
+    kind: DefectKind,
+    axial_start_mm: u64,
+    axial_end_mm: u64,
+    evidence_state: EvidenceState,
 }
 
 fn nonempty(s: &str, field: &str, context: &str) -> Check<()> {
@@ -256,6 +274,9 @@ fn validate_scenario(s: &Scenario) -> Check<()> {
     nonempty(&l.source.method, "source.method", ctx)?;
     valid_date(&l.source.measured_at, "source.measured_at", ctx)?;
     if let Some(id) = &l.source.instrument_id { nonempty(id, "source.instrument_id", ctx)?; }
+    if l.source.calibration_status == CalibrationStatus::Current && l.source.instrument_id.is_none() {
+        return Err(format!("{ctx}: current calibration requires an instrument_id"));
+    }
     if l.source.uncertainty_ppm > 1_000_000 { return Err(format!("{ctx}: source uncertainty exceeds 100%")); }
     if l.stations.len() < 2 || l.stations.len() > 1000 { return Err(format!("{ctx}: station count must be 2..=1000")); }
     if l.stations[0].axial_position_mm != 0 || l.stations.last().map(|p| p.axial_position_mm) != Some(l.length_mm) {
@@ -366,7 +387,20 @@ fn summary(s: &Scenario) -> Check<ScenarioSummary> {
     Ok(ScenarioSummary {
         scenario_id: s.scenario_id.clone(), log_id: s.log.log_id.clone(), evidence_class: s.evidence_class.clone(),
         length_mm: s.log.length_mm, section_station_count: s.log.stations.len(), defect_count: s.log.defects.len(),
-        gross_log_volume_mm3: s.log.gross_volume_mm3, geometry_volume_estimate_mm3: geometry_volume,
+        gross_log_volume_mm3: s.log.gross_volume_mm3,
+        species_evidence_state: s.log.species_evidence_state,
+        source_id: s.log.source.source_id.clone(),
+        source_license: s.log.source.license.clone(),
+        source_method: s.log.source.method.clone(),
+        source_measured_at: s.log.source.measured_at.clone(),
+        source_calibration_status: s.log.source.calibration_status,
+        source_uncertainty_ppm: s.log.source.uncertainty_ppm,
+        sawing_variation_mm: s.machine.sawing_variation_mm,
+        defects: s.log.defects.iter().map(|d| DefectSummary {
+            defect_id: d.defect_id.clone(), kind: d.kind, axial_start_mm: d.axial_start_mm,
+            axial_end_mm: d.axial_end_mm, evidence_state: d.evidence_state,
+        }).collect(),
+        geometry_volume_estimate_mm3: geometry_volume,
         absolute_geometry_delta_mm3: geometry_delta, geometry_tolerance_mm3: geometry_tolerance,
         observed_board_count: s.observation.boards.len(),
         observed_board_volume_mm3: boards, known_byproduct_volume_mm3: byproducts, known_output_volume_mm3: combined,
