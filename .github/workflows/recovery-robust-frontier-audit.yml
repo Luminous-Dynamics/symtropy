@@ -33,8 +33,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Install Rust toolchain
+      - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
       - name: Run independent robustness tests
         run: cargo test --manifest-path tools/recovery-robust-frontier-audit/Cargo.toml
       - name: Compute frontier receipt from exact source commit
@@ -52,6 +54,9 @@ jobs:
             and .plan_count == 6
             and .objective_count == 3
             and .feasible_plan_count == 4
+            and .expected_frontier_matches == true
+            and .expected_certificates_match == true
+            and (.ineligible_plans | length == 2)
             and .frontier == ["fast_local_specialist", "local_sorted_reuse", "uncertain_remote_extraction"]
             and (.dominance_certificates | length == 1)
             and .all_plan_only == true
