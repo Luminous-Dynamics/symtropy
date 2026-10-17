@@ -60,7 +60,6 @@
     {
       "id": "A-shortest",
       "length_m": 880,
-      "estimated_earthworks_m3": 6200,
       "road_envelopes": [
         {
           "station_start_m": 0,
@@ -100,12 +99,29 @@
           "station_m": 880,
           "elevation_m": 70.4
         }
+      ],
+      "declared_earthworks_m3": 5280,
+      "cross_sections": [
+        {
+          "station_m": 0,
+          "cut_area_m2": 4,
+          "fill_area_m2": 2
+        },
+        {
+          "station_m": 440,
+          "cut_area_m2": 4,
+          "fill_area_m2": 2
+        },
+        {
+          "station_m": 880,
+          "cut_area_m2": 4,
+          "fill_area_m2": 2
+        }
       ]
     },
     {
       "id": "B-low-earthworks",
       "length_m": 980,
-      "estimated_earthworks_m3": 2400,
       "road_envelopes": [
         {
           "station_start_m": 0,
@@ -145,12 +161,29 @@
           "station_m": 980,
           "elevation_m": 41.16
         }
+      ],
+      "declared_earthworks_m3": 2450,
+      "cross_sections": [
+        {
+          "station_m": 0,
+          "cut_area_m2": 1.5,
+          "fill_area_m2": 1
+        },
+        {
+          "station_m": 490,
+          "cut_area_m2": 1.5,
+          "fill_area_m2": 1
+        },
+        {
+          "station_m": 980,
+          "cut_area_m2": 1.5,
+          "fill_area_m2": 1
+        }
       ]
     },
     {
       "id": "C-reference",
       "length_m": 1080,
-      "estimated_earthworks_m3": 3800,
       "road_envelopes": [
         {
           "station_start_m": 0,
@@ -189,6 +222,24 @@
         {
           "station_m": 1080,
           "elevation_m": 37.8
+        }
+      ],
+      "declared_earthworks_m3": 3780,
+      "cross_sections": [
+        {
+          "station_m": 0,
+          "cut_area_m2": 2,
+          "fill_area_m2": 1.5
+        },
+        {
+          "station_m": 540,
+          "cut_area_m2": 2,
+          "fill_area_m2": 1.5
+        },
+        {
+          "station_m": 1080,
+          "cut_area_m2": 2,
+          "fill_area_m2": 1.5
         }
       ]
     }
