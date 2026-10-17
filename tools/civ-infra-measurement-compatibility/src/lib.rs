@@ -449,7 +449,7 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
             "nanometre ticks; interval endpoints are normalized, not displayed-unit values".to_owned()
         },
         claim_ceiling: concat!(
-            "finite_typed_intervals_and_declared_transform_only; ",
+            "finite_typed_intervals_declared_transform_and_discrepancy_only; ",
             "model_artifacts_not_resolved; ",
             "no_probability_or_physical_validity_claim"
         )
