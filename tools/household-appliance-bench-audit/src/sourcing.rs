@@ -68,7 +68,9 @@ fn audit_values(
         errors.push("sourcing snapshot schema_version must remain 0.1.0".to_owned());
     }
     if text_at(snapshot, "snapshot_id") != Some(SNAPSHOT_ID) {
-        errors.push(format!("sourcing snapshot identity must remain {SNAPSHOT_ID}"));
+        errors.push(format!(
+            "sourcing snapshot identity must remain {SNAPSHOT_ID}"
+        ));
     }
     if text_at(snapshot, "target_market") != Some("ZA") {
         errors.push("sourcing snapshot market must remain ZA until explicitly reviewed".to_owned());
@@ -84,10 +86,22 @@ fn audit_values(
     }
 
     let selection = snapshot.get("selection_rule").unwrap_or(&Value::Null);
-    if selection.get("minimum_physical_control_units").and_then(Value::as_u64).is_none_or(|n| n < 3)
-        || selection.get("control_units_same_model_revision").and_then(Value::as_bool) != Some(true)
-        || selection.get("three_brands_may_be_pooled_as_n").and_then(Value::as_bool) != Some(false)
-        || selection.get("donor_is_valid_control").and_then(Value::as_bool) != Some(false)
+    if selection
+        .get("minimum_physical_control_units")
+        .and_then(Value::as_u64)
+        .is_none_or(|n| n < 3)
+        || selection
+            .get("control_units_same_model_revision")
+            .and_then(Value::as_bool)
+            != Some(true)
+        || selection
+            .get("three_brands_may_be_pooled_as_n")
+            .and_then(Value::as_bool)
+            != Some(false)
+        || selection
+            .get("donor_is_valid_control")
+            .and_then(Value::as_bool)
+            != Some(false)
         || text_at(selection, "missing_data_policy") != Some("unknown_not_zero")
     {
         errors.push(
@@ -96,7 +110,10 @@ fn audit_values(
         );
     }
 
-    let Some(candidates) = snapshot.get("candidate_shortlist").and_then(Value::as_array) else {
+    let Some(candidates) = snapshot
+        .get("candidate_shortlist")
+        .and_then(Value::as_array)
+    else {
         return Err(vec!["candidate_shortlist must be an array".to_owned()]);
     };
     if candidates.len() != CANDIDATE_IDS.len() {
@@ -132,7 +149,9 @@ fn audit_values(
         }
         if text_at(candidate, "control_state") != Some("not_selected") {
             selected_control_count += 1;
-            errors.push(format!("{id}: no control can be selected from a desk snapshot alone"));
+            errors.push(format!(
+                "{id}: no control can be selected from a desk snapshot alone"
+            ));
         }
         if candidate.get("capacity_kg").and_then(Value::as_f64) != Some(8.0) {
             errors.push(format!(
@@ -179,7 +198,9 @@ fn audit_values(
             // a human check that it is applicable and lawfully accessible.
             let url = text_at(docs, "service_manual_url").unwrap_or_default();
             if !url.starts_with("https://") {
-                errors.push(format!("{id}: service_manual_url must be HTTPS when present"));
+                errors.push(format!(
+                    "{id}: service_manual_url must be HTTPS when present"
+                ));
             }
         }
     }
@@ -189,14 +210,19 @@ fn audit_values(
         }
     }
 
-    let Some(probes) = snapshot.get("parts_catalogue_probes").and_then(Value::as_array) else {
+    let Some(probes) = snapshot
+        .get("parts_catalogue_probes")
+        .and_then(Value::as_array)
+    else {
         return Err(vec!["parts_catalogue_probes must be an array".to_owned()]);
     };
     let mut part_probe_ids = BTreeSet::new();
     let mut model_fit_confirmed_probe_count = 0usize;
     for (index, probe) in probes.iter().enumerate() {
         let Some(id) = text_at(probe, "id") else {
-            errors.push(format!("parts_catalogue_probes[{index}].id must be a string"));
+            errors.push(format!(
+                "parts_catalogue_probes[{index}].id must be a string"
+            ));
             continue;
         };
         if !part_probe_ids.insert(id.to_owned()) {
@@ -238,17 +264,20 @@ fn audit_values(
             errors.push(format!("duplicate proposed target {id}"));
         }
         if text_at(target, "status") != Some("proposal_not_result") {
-            errors.push(format!("{id}: sourcing benchmark target must remain proposal_not_result"));
+            errors.push(format!(
+                "{id}: sourcing benchmark target must remain proposal_not_result"
+            ));
         }
     }
     let evidence_rules = snapshot.get("evidence_rules").and_then(Value::as_array);
     if evidence_rules.is_none_or(|rules| {
-        rules.iter().filter_map(Value::as_str).any(|rule| {
-            rule.to_ascii_lowercase()
-                .contains("unknown equals zero")
-        }) || !rules
+        rules
             .iter()
-            .any(|rule| rule.contains("Three different brands cannot be pooled"))
+            .filter_map(Value::as_str)
+            .any(|rule| rule.to_ascii_lowercase().contains("unknown equals zero"))
+            || !rules
+                .iter()
+                .any(|rule| rule.contains("Three different brands cannot be pooled"))
     }) {
         errors.push(
             "evidence rules must preserve unknown-not-zero and the same-design control interpretation"
@@ -290,9 +319,8 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../schemas/appliances/washer_parts_resilience_snapshot_v0_1.schema.json"
     );
-    const SNAPSHOT: &str = include_str!(
-        "../../../fixtures/appliances/washer_parts_resilience_snapshot_v0_1.json"
-    );
+    const SNAPSHOT: &str =
+        include_str!("../../../fixtures/appliances/washer_parts_resilience_snapshot_v0_1.json");
 
     fn canonical_snapshot() -> Value {
         serde_json::from_str(SNAPSHOT).expect("sourcing snapshot JSON must parse")
@@ -324,7 +352,11 @@ mod tests {
         let mut snapshot = canonical_snapshot();
         snapshot["candidate_shortlist"][1]["id"] = json!("DEFY-DAW408");
         let errors = audit_mutation(&snapshot).expect_err("duplicate candidate ID must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate candidate ID")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate candidate ID"))
+        );
     }
 
     #[test]
@@ -349,7 +381,11 @@ mod tests {
         let mut snapshot = canonical_snapshot();
         snapshot["parts_catalogue_probes"][0]["evidence_state"] = json!("installed_and_verified");
         let errors = audit_mutation(&snapshot).expect_err("generic listing cannot confirm fit");
-        assert!(errors.iter().any(|error| error.contains("cannot claim installed_and_verified")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("cannot claim installed_and_verified"))
+        );
     }
 
     #[test]
