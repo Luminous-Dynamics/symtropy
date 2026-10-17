@@ -494,15 +494,15 @@ jobs:
             and (.calibration_envelope_sha256 | test("^[0-9a-f]{64}$"))
             and (.drift_model_spec_sha256 | test("^[0-9a-f]{64}$"))
             and .fixture_type == "synthetic_calibration_transfer_shift"
-            and .summary.scenario_count == 14
-            and .summary.out_of_domain_negative_control_count == 13
-            and .summary.naive_false_valid_claim_count == 13
+            and .summary.scenario_count == 16
+            and .summary.out_of_domain_negative_control_count == 15
+            and .summary.naive_false_valid_claim_count == 15
             and .summary.envelope_gate_false_valid_claim_count == 0
             and .summary.envelope_gate_false_rejection_count == 0
             and .summary.all_rejection_reason_codes_match == true
             and .scenarios[0].scenario_id == "in_domain_control"
             and .scenarios[0].envelope_validation.accepted == true
-            and (.negative_controls | length == 13)
+            and (.negative_controls | length == 15)
             and all(.negative_controls[]; .negative_control_pass == true and .evidence_credit_under_envelope_gate == 0)
             and .drift_monitor.noise_only_false_alarm == false
             and .drift_monitor.detection_index_zero_based == 5
