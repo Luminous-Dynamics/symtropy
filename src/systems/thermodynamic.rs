@@ -371,10 +371,7 @@ mod tick_guard_tests {
             expected_duplicates += duplicates;
 
             for _ in 0..duplicates {
-                assert!(
-                    !guard.admit(identity),
-                    "duplicate tick {tick} was admitted"
-                );
+                assert!(!guard.admit(identity), "duplicate tick {tick} was admitted");
             }
         }
 
