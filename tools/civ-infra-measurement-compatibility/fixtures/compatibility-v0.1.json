@@ -10,7 +10,15 @@
       "lower_ticks": 0,
       "upper_ticks": 2000000
     },
-    "transform": "identity"
+    "transform": "identity",
+    "model_discrepancy": {
+      "unit": "meter",
+      "interval": {
+        "lower_ticks": 0,
+        "upper_ticks": 0
+      },
+      "basis": "synthetic zero-discrepancy assumption; not calibrated"
+    }
   },
   "states": [
     {
