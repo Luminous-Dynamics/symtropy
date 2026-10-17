@@ -5,11 +5,13 @@ on:
     branches: ["main"]
     paths:
       - "tools/visual-optics-reference/**"
+      - "docs/visual-technology/**"
       - ".github/workflows/visual-optics-reference.yml"
   push:
     branches: ["main"]
     paths:
       - "tools/visual-optics-reference/**"
+      - "docs/visual-technology/**"
       - ".github/workflows/visual-optics-reference.yml"
   workflow_dispatch:
 
