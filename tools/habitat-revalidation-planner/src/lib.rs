@@ -143,24 +143,6 @@ fn make_plan(
     }
 }
 
-pub fn evaluate_fixture_for_tests(
-    fixture: &Fixture,
-) -> Result<Report, Vec<String>> {
-    evaluate_fixture(fixture, FIXTURE_SHA256.to_owned())
-}
-
-pub fn verify_fixture_bytes(bytes: &[u8]) -> Result<Report, Vec<String>> {
-    let digest = sha256_hex(bytes);
-    if digest != FIXTURE_SHA256 {
-        return Err(vec![format!(
-            "frozen revalidation fixture digest mismatch: expected {FIXTURE_SHA256}, got {digest}"
-        )]);
-    }
-    let fixture: Fixture = serde_json::from_slice(bytes)
-        .map_err(|error| vec![format!("revalidation fixture rejected: {error}")])?;
-    evaluate_fixture(&fixture, digest)
-}
-
 fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, Vec<String>> {
     let errors = validate_fixture(fixture);
     if !errors.is_empty() { return Err(errors); }
@@ -211,7 +193,9 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
             }
         }
         if blockers.is_empty() {
-            blockers.push("no dependency-valid task sequence can restore the requested target".to_owned());
+            blockers.push(
+                "no dependency-valid task sequence can restore the requested target".to_owned(),
+            );
         }
         blockers.sort();
         blockers.dedup();
@@ -314,7 +298,9 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
 
     let mut artifacts = BTreeMap::new();
     for artifact in &fixture.artifacts {
-        if artifact.id.trim().is_empty() { errors.push("artifact ID must not be blank".to_owned()); }
+        if artifact.id.trim().is_empty() {
+            errors.push("artifact ID must not be blank".to_owned());
+        }
         if artifacts.insert(artifact.id.as_str(), artifact).is_some() {
             errors.push(format!("duplicate artifact ID {:?}", artifact.id));
         }
@@ -323,8 +309,12 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         }
         let mut deps = BTreeSet::new();
         for dep in &artifact.depends_on {
-            if dep == &artifact.id { errors.push(format!("{} cannot depend on itself", artifact.id)); }
-            if !deps.insert(dep.as_str()) { errors.push(format!("{} repeats dependency {:?}", artifact.id, dep)); }
+            if dep == &artifact.id {
+                errors.push(format!("{} cannot depend on itself", artifact.id));
+            }
+            if !deps.insert(dep.as_str()) {
+                errors.push(format!("{} repeats dependency {:?}", artifact.id, dep));
+            }
         }
     }
     if !artifacts.contains_key(fixture.target_artifact_id.as_str()) {
@@ -333,9 +323,14 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     for artifact in &fixture.artifacts {
         for dependency in &artifact.depends_on {
             if !artifacts.contains_key(dependency.as_str()) {
-                errors.push(format!("{} references unknown dependency {:?}", artifact.id, dependency));
+                errors.push(format!(
+                    "{} references unknown dependency {:?}",
+                    artifact.id, dependency
+                ));
             } else if artifact.status == "valid_for_claim"
-                && artifacts.get(dependency.as_str()).is_some_and(|dep| dep.status != "valid_for_claim")
+                && artifacts
+                    .get(dependency.as_str())
+                    .is_some_and(|dep| dep.status != "valid_for_claim")
             {
                 errors.push(format!(
                     "{} cannot remain valid_for_claim while dependency {} is not valid",
@@ -345,16 +340,26 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         }
     }
 
-    let declared_gates: BTreeSet<&str> = fixture.declared_gate_ids.iter().map(String::as_str).collect();
+    let declared_gates: BTreeSet<&str> = fixture
+        .declared_gate_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     if declared_gates.len() != fixture.declared_gate_ids.len() {
         errors.push("declared gate IDs must be unique".to_owned());
     }
-    let available_gates: BTreeSet<&str> = fixture.available_gate_ids.iter().map(String::as_str).collect();
+    let available_gates: BTreeSet<&str> = fixture
+        .available_gate_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     if available_gates.len() != fixture.available_gate_ids.len() {
         errors.push("available gate IDs must be unique".to_owned());
     }
     for gate in &available_gates {
-        if !declared_gates.contains(gate) { errors.push(format!("available gate {:?} was not declared", gate)); }
+        if !declared_gates.contains(gate) {
+            errors.push(format!("available gate {:?} was not declared", gate));
+        }
     }
 
     let mut task_ids = BTreeSet::new();
@@ -362,12 +367,17 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         if task.id.trim().is_empty() || task.description.trim().is_empty() {
             errors.push("task ID and description must not be blank".to_owned());
         }
-        if !task_ids.insert(task.id.as_str()) { errors.push(format!("duplicate task ID {:?}", task.id)); }
+        if !task_ids.insert(task.id.as_str()) {
+            errors.push(format!("duplicate task ID {:?}", task.id));
+        }
         if task.version == 0 || task.cost_units == 0 || task.duration_units == 0 {
             errors.push(format!("{} version, cost, and duration must be positive", task.id));
         }
         let Some(producer_artifact) = artifacts.get(task.produces_artifact_id.as_str()) else {
-            errors.push(format!("{} produces unknown artifact {:?}", task.id, task.produces_artifact_id));
+            errors.push(format!(
+                "{} produces unknown artifact {:?}",
+                task.id, task.produces_artifact_id
+            ));
             continue;
         };
         let required: BTreeSet<&str> =
@@ -380,7 +390,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
                 task.id, task.produces_artifact_id
             ));
         }
-        let task_gates: BTreeSet<&str> = task.required_gate_ids.iter().map(String::as_str).collect();
+        let task_gates: BTreeSet<&str> = task
+            .required_gate_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         if task_gates.len() != task.required_gate_ids.len() {
             errors.push(format!("{} repeats a required gate", task.id));
         }
@@ -454,7 +468,10 @@ mod tests {
                 if valid.contains(&fixture.target_artifact_id) { break; }
                 if valid.contains(&task.produces_artifact_id)
                     || !task.required_artifact_ids.iter().all(|id| valid.contains(id))
-                    || !task.required_gate_ids.iter().all(|id| fixture.available_gate_ids.contains(id))
+                    || !task
+                        .required_gate_ids
+                        .iter()
+                        .all(|id| fixture.available_gate_ids.contains(id))
                 {
                     break;
                 }
@@ -463,7 +480,13 @@ mod tests {
                 cost += task.cost_units;
                 duration += task.duration_units;
                 if task.produces_artifact_id == fixture.target_artifact_id {
-                    feasible.push(make_plan(fixture, &fixture.target_artifact_id, &ids, cost, duration));
+                    feasible.push(make_plan(
+                        fixture,
+                        &fixture.target_artifact_id,
+                        &ids,
+                        cost,
+                        duration,
+                    ));
                     break;
                 }
             }
@@ -494,8 +517,14 @@ mod tests {
         assert_eq!(report.task_count, 4);
         assert_eq!(report.enumerated_feasible_plan_count, 2);
         assert_eq!(report.pareto_plan_count, 2);
-        assert_eq!(report.pareto_plans.iter().map(|p| p.cost_units).collect::<Vec<_>>(), vec![12, 15]);
-        assert_eq!(report.pareto_plans.iter().map(|p| p.duration_units).collect::<Vec<_>>(), vec![8, 5]);
+        assert_eq!(
+            report.pareto_plans.iter().map(|p| p.cost_units).collect::<Vec<_>>(),
+            vec![12, 15]
+        );
+        assert_eq!(
+            report.pareto_plans.iter().map(|p| p.duration_units).collect::<Vec<_>>(),
+            vec![8, 5]
+        );
         assert_eq!(report.pareto_plans[0].task_ids, vec![
             "T-MATERIAL-REVIEW-LOW-COST".to_owned(),
             "T-ASBUILT-REINSPECTION".to_owned(), "T-RECOMMISSION".to_owned()
@@ -562,7 +591,12 @@ mod tests {
     fn valid_target_requires_all_its_dependencies_to_be_valid() {
         let mut fixture = fixture();
         for id in ["D-MATERIAL-ORDER", "D-ASBUILT-RECEIPT", "D-COMMISSIONING-RECEIPT"] {
-            fixture.artifacts.iter_mut().find(|a| a.id == id).unwrap().status = "valid_for_claim".to_owned();
+            fixture
+                .artifacts
+                .iter_mut()
+                .find(|artifact| artifact.id == id)
+                .unwrap()
+                .status = "valid_for_claim".to_owned();
         }
         let report = evaluate_fixture(&fixture, FIXTURE_SHA256.to_owned()).unwrap();
         assert_eq!(report.planning_status, "TARGET_ALREADY_VALID");
