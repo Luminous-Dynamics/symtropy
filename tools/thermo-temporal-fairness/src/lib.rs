@@ -361,7 +361,7 @@ mod tests {
         assert!(report.valid_trace, "{:?}", report.violations);
         assert_eq!(
             report.sorted_horizon_service_profile,
-            vec![Fraction::new(1, 1), Fraction::new(1, 1)]
+            vec![Fraction::new(1, 2), Fraction::new(1, 2)]
         );
         assert_eq!(report.per_agent[0].maximum_consecutive_starvation_ticks, 1);
         assert_eq!(report.per_agent[1].maximum_consecutive_starvation_ticks, 1);
