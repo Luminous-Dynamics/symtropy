@@ -508,6 +508,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         return Err("calibration B gross EVSI oracle mismatch".to_owned());
     }
     let no_test_gross = NO_ASSAY_VALUE_CENTI * GLOBAL_MASS;
+    let redundant_gross = test_gross_value_numerator(&REDUNDANT_TEST)?;
     let evpi_numerator = 150_000_000_000_i128;
     for (test_gross, label) in [
         (test_a_gross, "calibration_a"),
@@ -536,7 +537,6 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     if selected_candidate.0 != "adaptive_a_then_b_after_positive" {
         return Err("exhaustive finite policy enumeration selected an unexpected tree".to_owned());
     }
-    let redundant_gross = test_gross_value_numerator(&REDUNDANT_TEST)?;
     if redundant_gross != NO_ASSAY_VALUE_CENTI * GLOBAL_MASS {
         return Err("uninformative test must not change the posterior-mean action".to_owned());
     }
