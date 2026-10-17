@@ -8,6 +8,7 @@ Standalone Rust reference benchmark for [Symtropy #1878](https://github.com/Lumi
 cargo fmt --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml -- --check
 cargo test --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml
 SOURCE_REVISION="$(git rev-parse HEAD)" cargo run --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml
+SOURCE_REVISION="$(git rev-parse HEAD)" cargo run --manifest-path tools/lifecycle-horizon-benchmark/Cargo.toml -- --policy-search
 ```
 
 ## Why a horizon benchmark
@@ -40,3 +41,12 @@ A 2025 materials-passport paper recommends deconstruction audits, preserving exi
 ## Claim ceiling
 
 Synthetic contract conformance only. It does not establish actual degradation, useful remaining life, real repair yield, supplier claims, safety qualification, life-cycle assessment, or environmental benefit. A passing benchmark is not authorization to operate, repair, disassemble, procure, or dispose of a physical asset.
+
+
+## Exhaustive finite policy-space search
+
+The same crate provides a separate --policy-search report mode. The fixture declares six canonical action profiles over three cycles; the tool enumerates all 6^3 = 216 sequences, independent of the input ordering of the action list, and compares every production transition with the independent reference transition. The receipt pins the complete candidate denominator, unique policy count, eligible count, rejection counts by disposition, and the full non-dominated frontier.
+
+The search includes terminal condition reserve as an additional maximized objective alongside lineage-weighted service hours. This exposes the residual asset state at the horizon boundary instead of silently assuming that two plans that deliver the same historical service leave equivalent assets. The original shortlist frontier and exhaustive frontier answer different questions: the former compares manually selected examples; the latter covers the declared finite action universe and includes terminal condition as an explicit objective.
+
+Expected synthetic result: 216 unique policies, 198 complete eligible policies, six condition-floor rejections, twelve repair-budget rejections, and two non-dominated policies: continue/continue/remanufacture and continue/continue/repair. These outputs derive from fictional condition and lifecycle values and are not physical performance claims.
