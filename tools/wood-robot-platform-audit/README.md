@@ -5,7 +5,7 @@ Standalone Rust checker for the frozen synthetic portfolio corpus. It checks evi
 ## Run locally
 
 ```sh
-cargo fmt --manifest-path tools/wood-robot-platform-audit/Cargo.toml -- --check
+cargo fmt --manifest-path tools/wood-robot-platform-audit/Cargo.toml
 cargo test --manifest-path tools/wood-robot-platform-audit/Cargo.toml
 cargo run --quiet --manifest-path tools/wood-robot-platform-audit/Cargo.toml -- \
   docs/tech/wood-robot-platform-corpus-v0.1.json \
@@ -14,13 +14,18 @@ cargo run --quiet --manifest-path tools/wood-robot-platform-audit/Cargo.toml -- 
 
 The source commit must be a 40-character hexadecimal Git SHA. The receipt binds the exact corpus bytes via SHA-256, source commit, scenario counts, decisions and contract findings.
 
+## Frozen corpus
+
+The v0.1.0 corpus contains 22 unique scenarios, including 13 aerial Forest Scout scenarios. All are plan-only synthetic fixtures; every expected physical-actuation value must remain false.
+
 ## Contract covered
 
 - Corpus is explicitly synthetic and `plan_only_no_actuation`.
 - Scenario IDs are unique; expected scenario count matches actual inputs.
 - Every scenario has a known decision, non-empty reason codes and `expected_actuation=false`.
 - An eligible candidate cannot ignore generic task blockers such as missing approval, expired calibration, fixture mismatch, localization loss, required extraction/interlock failures, or insufficient return reserve.
-- The aerial Scout cannot be considered plan-eligible without verified site/flight permissions, clear airspace/geofence, declared weather and wildlife policies, no detected disturbance, configured privacy handling, valid recovery, stand-off compliance, no contact or payload release, current localization, human approval and sufficient return reserve.
+- The aerial Scout cannot be considered plan-eligible without verified site/flight permissions, clear airspace/geofence, declared weather and wildlife policies, no detected disturbance, visible required features within the declared pose-uncertainty limit, configured privacy handling, valid recovery, stand-off compliance, no contact or payload release, current localization, human approval and sufficient return reserve.
+- Detected wildlife disturbance and physical contact require a blocked safe-degraded state with no unreviewed repeat sortie or continued mission.
 - Adversarial tests mutate the frozen positive fixture to prove that key aerial gates fail closed.
 
 ## Claim ceiling
