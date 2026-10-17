@@ -215,6 +215,16 @@ fn evaluation_json(
     })
 }
 
+fn find_evaluation<'a>(
+    evaluations: &'a [(Survey, Evaluation)],
+    survey_id: &str,
+) -> Result<&'a Evaluation, String> {
+    evaluations.iter()
+        .find(|(survey, _)| survey.survey_id == survey_id)
+        .map(|(_, evaluation)| evaluation)
+        .ok_or_else(|| format!("missing expected survey {survey_id}"))
+}
+
 fn execute(source_commit: &str) -> Result<Value, String> {
     if source_commit.len() != 40
         || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
@@ -237,15 +247,10 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         return Err("baseline/EVPI analytical oracle mismatch".to_owned());
     }
 
-    let find = |id: &str| -> Result<&Evaluation, String> {
-        evaluations.iter().find(|(survey, _)| survey.survey_id == id)
-            .map(|(_, evaluation)| evaluation)
-            .ok_or_else(|| format!("missing expected survey {id}"))
-    };
-    let direct = find("direct_sample_assay")?;
-    let low_resolution = find("low_resolution_remote_assay")?;
-    let uninformative = find("uninformative_assay")?;
-    let unverified = find("unverified_high_accuracy_claim")?;
+    let direct = find_evaluation(&evaluations, "direct_sample_assay")?;
+    let low_resolution = find_evaluation(&evaluations, "low_resolution_remote_assay")?;
+    let uninformative = find_evaluation(&evaluations, "uninformative_assay")?;
+    let unverified = find_evaluation(&evaluations, "unverified_high_accuracy_claim")?;
 
     if direct.evsi_numerator != 3_500_000_000
         || direct.net_incremental_value_numerator != 2_500_000_000
