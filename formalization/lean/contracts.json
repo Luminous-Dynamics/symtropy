@@ -462,5 +462,36 @@
       "purpose": "Guard against accidental removal of the L^3 factor from the cantilever deflection equation."
     }
   ],
-  "rust_refinement_status": "NOT_ESTABLISHED"
+  "rust_refinement_status": "NOT_ESTABLISHED",
+  "reference_vector_bindings": {
+    "status": "CANDIDATE_ON_OPEN_PR_1653_NOT_MERGED",
+    "corpus_path": "docs/built-environment/benchmarks/structural-reference-contract-vectors-v1.json",
+    "corpus_commit": "5f28fba1096e84b1ebd1fa83661ed70558b67ba3",
+    "rust_test_path": "crates/apps/symtropy-housing-evidence/tests/structural_reference_contract_vectors.rs",
+    "rust_test_status": "AUTHORED_NOT_EXECUTED",
+    "rust_lean_refinement_status": "NOT_ESTABLISHED",
+    "note": "Stable shared IDs support traceability and differential testing. The vector corpus is not an independently implemented verifier and does not itself prove that the Rust implementation refines the Lean definitions.",
+    "bindings": [
+      {
+        "vector_id": "geometry.rectangular-section.cantilever-fixture.v1",
+        "contract_id": "geometry.rectangular_section.second_moment.v1"
+      },
+      {
+        "vector_id": "mechanics.axial-bar.fixture.v1",
+        "contract_id": "mechanics.axial_bar.extension.v1"
+      },
+      {
+        "vector_id": "mechanics.cantilever.tip-load.fixture.v1",
+        "contract_id": "mechanics.cantilever.tip_deflection.v1"
+      },
+      {
+        "vector_id": "mechanics.simply-supported.midpoint-load.fixture.v1",
+        "contract_id": "mechanics.simply_supported.midpoint_point_load.v1"
+      },
+      {
+        "vector_id": "mechanics.simply-supported.uniform-load.fixture.v1",
+        "contract_id": "mechanics.simply_supported.uniform_load.v1"
+      }
+    ]
+  }
 }
