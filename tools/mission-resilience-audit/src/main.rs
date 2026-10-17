@@ -917,6 +917,83 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_six_gate_status_matrix_is_fail_closed() {
+        let input = fixture();
+        let mission = &input["missions"][0];
+        let base_plan = input["plans"][0].clone();
+        let states = ["passed", "unknown", "failed"];
+
+        for encoded in 0usize..729 {
+            let mut cursor = encoded;
+            let mut plan = base_plan.clone();
+            let mut any_failed = false;
+            let mut any_unknown = false;
+
+            for field in GATE_FIELDS {
+                let status = states[cursor % states.len()];
+                cursor /= states.len();
+                plan["gates"][field] = serde_json::json!(status);
+                any_failed |= status == "failed";
+                any_unknown |= status == "unknown";
+            }
+
+            let result = assess_plan(mission, &plan, "generated-gate-matrix", None).unwrap();
+            let expected = if any_failed {
+                "blocked_hard_gate"
+            } else if any_unknown {
+                "needs_gate_evidence"
+            } else {
+                "eligible_for_human_review"
+            };
+            assert_eq!(result["disposition"], expected, "gate combination {encoded}");
+        }
+    }
+
+    #[test]
+    fn all_sixty_four_capability_combinations_respect_mission_requirements() {
+        let input = fixture();
+        let mut mission = input["missions"][0].clone();
+        for field in CAPABILITY_FIELDS {
+            mission["requirements"][field] = serde_json::json!(true);
+        }
+        let base_plan = input["plans"][0].clone();
+
+        for mask in 0usize..64 {
+            let mut plan = base_plan.clone();
+            let mut all_present = true;
+            for (index, field) in CAPABILITY_FIELDS.iter().enumerate() {
+                let enabled = (mask & (1 << index)) != 0;
+                plan["capabilities"][*field] = serde_json::json!(enabled);
+                all_present &= enabled;
+            }
+
+            let result = assess_plan(&mission, &plan, "generated-capability-matrix", None).unwrap();
+            let expected = if all_present {
+                "eligible_for_human_review"
+            } else {
+                "blocked_constraints"
+            };
+            assert_eq!(result["disposition"], expected, "capability mask {mask}");
+        }
+    }
+
+    #[test]
+    fn metric_bounds_reject_overflow_and_implausible_stress_inputs() {
+        let mut oversized_duration = fixture();
+        oversized_duration["plans"][0]["duration_minutes"] = serde_json::json!(i64::MAX);
+        assert!(audit(&oversized_duration)
+            .unwrap_err()
+            .contains("duration_minutes must be between"));
+
+        let mut oversized_delta = fixture();
+        oversized_delta["stress_cases"][0]["impacts"][0]["duration_delta_minutes"] =
+            serde_json::json!(100_000_001);
+        assert!(audit(&oversized_delta)
+            .unwrap_err()
+            .contains("duration delta must be between"));
+    }
+
+    #[test]
     fn unknown_fields_and_duplicate_stress_impacts_are_rejected() {
         let mut extra_field = fixture();
         extra_field["plans"][0]["optimistic_score"] = json!(999);
