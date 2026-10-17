@@ -28,9 +28,10 @@ cargo fmt --package symtropy-geophysics-benchmark -- --check
 - Complementary channels can separately expose both toy state coordinates.
 - The weak high-mode fixture records sensitivity 0.1 and higher measurement variance, rather than implying resolution from the parameterization.
 - Two states with very different hidden-mode values produce exactly identical observations in the null-mode case.
+- The exact expected-information-gain reference distinguishes complementary observations (1.6094379124341003 nats) from the correlated duplicate pair (0.8067249769620305 nats). Treating the duplicate errors as independent incorrectly raises the reference to 1.0986122886681098 nats.
 - Correlated duplicate covariance is preserved and positive definite; its expected information gain is 0.8067249769620305 nats, versus 1.0986122886681098 under a deliberately false independent-noise assumption. This is an analytic control, not an empirical performance result.
 - Non-finite values, asymmetric covariance and singular covariance fail closed.
 
 No empirical performance benchmark has been run yet. The source is a small H0 control surface, not a geodynamo solver.
 
-Fourteen Rust tests are authored, including exact comparisons with the public fixture manifest. They are not yet executed; check the exact-head CI workflows before claiming qualification.
+Fifteen Rust tests are authored, including exact comparisons with the public fixture manifest. They are not yet executed; check the exact-head CI workflows before claiming qualification.
