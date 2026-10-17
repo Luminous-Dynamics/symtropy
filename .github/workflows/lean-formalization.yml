@@ -139,15 +139,16 @@ jobs:
 
           git show "${corpus_commit}:${corpus_path}" > /tmp/structural-reference-contract-vectors.json
           jq -e --slurpfile manifest "$manifest" '
-            .schema_version == "1.0.0" and
-            .corpus_id == "symtropy.structural-reference-contract-vectors.v1" and
-            .status == "ANALYTICAL_REFERENCE_CONFORMANCE_ONLY" and
-            (.vectors | length == 5) and
-            ([.vectors[].vector_id] | unique | length == 5) and
-            ([.vectors[].contract_id] | sort) ==
+            . as $corpus |
+            $corpus.schema_version == "1.0.0" and
+            $corpus.corpus_id == "symtropy.structural-reference-contract-vectors.v1" and
+            $corpus.status == "ANALYTICAL_REFERENCE_CONFORMANCE_ONLY" and
+            ($corpus.vectors | length == 5) and
+            ([$corpus.vectors[].vector_id] | unique | length == 5) and
+            ([$corpus.vectors[].contract_id] | sort) ==
               ([$manifest[0].reference_vector_bindings.bindings[].contract_id] | sort) and
             all($manifest[0].reference_vector_bindings.bindings[];
-              . as $binding | any(.vectors[];
+              . as $binding | any($corpus.vectors[];
                 .vector_id == $binding.vector_id and .contract_id == $binding.contract_id))
           ' /tmp/structural-reference-contract-vectors.json >/dev/null
 
