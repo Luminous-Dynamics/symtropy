@@ -35,6 +35,7 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.96.0
           components: clippy, rustfmt
       - name: Check formatting
         run: cargo fmt --package symtropy-geophysics-benchmark -- --check
