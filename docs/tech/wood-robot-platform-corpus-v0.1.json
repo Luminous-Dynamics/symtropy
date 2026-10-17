@@ -478,7 +478,7 @@
         "airspace_state": "clear",
         "geofence_state": "valid",
         "weather_state": "within_declared_envelope",
-        "wildlife_policy_state": "abort_on_disturbance",
+        "wildlife_policy_state": "approved_site_specific_profile",
         "wildlife_disturbance_state": "disturbance_detected",
         "privacy_handling_state": "configured_data_minimization",
         "recovery_plan_state": "verified_designated_recovery_area",
