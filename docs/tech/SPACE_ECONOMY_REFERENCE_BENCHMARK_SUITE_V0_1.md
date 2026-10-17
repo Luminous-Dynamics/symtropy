@@ -353,7 +353,7 @@ Prior probability of a rich site is 50%. Building local oxygen-production capabi
 - Best value without survey: 50 synthetic units.
 - Expected value of perfect information (EVPI): 50 units.
 - Verified 90% sensitivity/specificity direct assay costing 10 units: EVSI 35, net incremental value +25. Build after a positive result; import after a negative result.
-- Verified 60% sensitivity/specificity lower-resolution assay costing 2 units: EVSI zero because the optimal action remains the same after either result; don't buy it.
+- Verified 60% sensitivity/specificity lower-resolution assay costing 2 units: EVSI zero because the optimal action remains the same after either result; don't buy it. The receipt shows the posterior rich-site probabilities as 60% after positive and 40% after negative.
 - Uninformative 50%/50% assay costing 1: EVSI zero and don't buy.
 - Unverified claim of 90%/90% accuracy: the accepted model uses an uninformative 50%/50% likelihood, grants zero information credit, and doesn't buy it.
 
