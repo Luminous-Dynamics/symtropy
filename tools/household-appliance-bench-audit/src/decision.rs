@@ -671,8 +671,14 @@ mod tests {
     fn overlapping_bounds_do_not_create_a_false_winner() {
         let mut decision = synthetic_scored_decision();
         for observation in decision["candidates"][1]["observations"].as_array_mut().unwrap() {
-            observation["lower"] = json!(-1.0);
-            observation["upper"] = json!(1.0);
+            observation["lower"] = json!(0.0);
+            observation["upper"] = json!(5.0);
+            if matches!(
+                text_at(observation, "criterion_id"),
+                Some("first_visit_verified_repair_rate" | "target_window_part_fulfilment_rate")
+            ) {
+                observation["upper"] = json!(1.0);
+            }
         }
         assert!(!robustly_dominates(
             &decision,
