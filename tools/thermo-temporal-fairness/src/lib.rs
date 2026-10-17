@@ -288,7 +288,7 @@ pub fn evaluate(trace: &AllocationTrace) -> TemporalReport {
                 }
 
                 let ratio = Fraction::new(u128::from(allocated), u128::from(demand));
-                if worst_slot_ratio.as_ref().is_none_or(|previous| ratio < *previous) {
+                if worst_slot_ratio.as_ref().is_none_or(|previous| ratio.cmp(previous).is_lt()) {
                     worst_slot_ratio = Some(ratio);
                 }
             } else {
