@@ -225,9 +225,26 @@ fn nonempty(s: &str, field: &str, context: &str) -> Check<()> {
 }
 fn valid_date(s: &str, field: &str, context: &str) -> Check<()> {
     let b = s.as_bytes();
-    if b.len() != 10 || b[4] != b'-' || b[7] != b'-'
-        || !b.iter().enumerate().all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit()) {
-        return Err(format!("{context}: {field} must use YYYY-MM-DD"));
+    let shape_valid = b.len() == 10
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && b.iter().enumerate().all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
+    if !shape_valid {
+        return Err(format!("{context}: {field} must use a valid YYYY-MM-DD date"));
+    }
+    let year = s[0..4].parse::<u32>().unwrap_or(0);
+    let month = s[5..7].parse::<u32>().unwrap_or(0);
+    let day = s[8..10].parse::<u32>().unwrap_or(0);
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => 0,
+    };
+    if year == 0 || day == 0 || day > max_day {
+        return Err(format!("{context}: {field} must use a valid YYYY-MM-DD date"));
     }
     Ok(())
 }
@@ -562,6 +579,15 @@ mod tests {
         assert_eq!(summary(&c.scenarios[0]).unwrap().accounting_status, "within_tolerance");
         assert_eq!(summary(&c.scenarios[1]).unwrap().accounting_status, "partial_only");
     }
+    #[test]
+    fn impossible_calendar_dates_are_rejected_but_leap_days_are_allowed() {
+        assert!(valid_date("2024-02-29", "date", "test").is_ok());
+        assert!(valid_date("2026-02-28", "date", "test").is_ok());
+        assert!(valid_date("2026-02-30", "date", "test").is_err());
+        assert!(valid_date("2025-02-29", "date", "test").is_err());
+        assert!(valid_date("2026-13-01", "date", "test").is_err());
+    }
+
     #[test]
     fn unordered_geometry_fails_closed() {
         let mut c = corpus();
