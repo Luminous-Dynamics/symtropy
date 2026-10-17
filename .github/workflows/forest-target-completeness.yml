@@ -74,7 +74,7 @@ jobs:
             and (.target_corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.planner_receipt_sha256 | test("^[0-9a-f]{64}$"))
             and (.target_objective | contains("maximize complete targets"))
-            and all(.evaluations[]; .generated_target_count == 3)
+            and all(.evaluations[]; .generated_target_count == 3 and .target_oracle.candidate_count <= 100 and .target_oracle.expanded_state_count > 0 and .target_oracle.expanded_state_count <= 980201)
             and all(.evaluations[]; .greedy.budget_feasible and .lookahead.budget_feasible and .coverage_oracle.budget_feasible and .target_oracle.plan.budget_feasible)
             and all(.evaluations[]; .greedy.feature_visibility_basis_points <= 10000 and .lookahead.feature_visibility_basis_points <= 10000 and .coverage_oracle.feature_visibility_basis_points <= 10000 and .target_oracle.score.feature_visibility_basis_points <= 10000)
             and all(.evaluations[]; .target_oracle.plan.total_budgeted_steps == (.target_oracle.plan.outbound_cost_steps + .target_oracle.plan.return_distance_steps + .target_oracle.plan.reserved_steps))
