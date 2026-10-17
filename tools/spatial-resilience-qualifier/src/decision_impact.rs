@@ -569,11 +569,22 @@ fn compare_id_field(
     path: &str,
     summary: &mut DecisionImpactSummary,
 ) {
-    let values = expected.get(field).and_then(Value::as_array);
-    let expected_values: Option<Vec<String>> = values?.iter()
+    let Some(values) = expected.get(field).and_then(Value::as_array) else {
+        summary.fail(
+            "DECISION_EXPECTED_FIELD_MISSING",
+            format!("{path}.{field}"),
+            "Expected identifier array is missing or malformed.",
+        );
+        return;
+    };
+    let expected_values: Option<Vec<String>> = values
+        .iter()
         .map(|value| value.as_str().map(ToOwned::to_owned))
         .collect();
-    if expected_values.as_ref().is_none_or(|values| !same_ids(values, actual)) {
+    if expected_values
+        .as_ref()
+        .is_none_or(|values| !same_ids(values, actual))
+    {
         summary.fail(
             "DECISION_EXPECTATION_MISMATCH",
             format!("{path}.{field}"),
