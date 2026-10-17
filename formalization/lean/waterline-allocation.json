@@ -1,0 +1,208 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "thermo.maxmin_waterline_certificate.v1",
+  "title": "Proof-carrying exact-rational max-min allocation certificate",
+  "proof_file": "formalization/lean/SymtropyFormal/WaterlineAllocation.lean",
+  "toolchain_path": "formalization/lean/lean-toolchain",
+  "toolchain_policy": "reuse_pinned_toolchain_from_PR_1691",
+  "allocation_policy": "allocation_i = min(cap_i, waterline)",
+  "theorem_status": "AUTHORED_NOT_VERIFIED_UNTIL_EXACT_HEAD_LEAN_CI_PASSES",
+  "algorithm_finder_completeness": "NOT_ESTABLISHED",
+  "rust_refinement_status": "NOT_ESTABLISHED",
+  "floating_point_conformance_status": "NOT_IMPLEMENTED",
+  "live_ecs_integration_status": "NOT_IMPLEMENTED",
+  "source_reference": {
+    "issue": 1761,
+    "allocator_pr": 1748,
+    "source_branch": "feat/order-independent-well-allocation-2026-10-17",
+    "observed_source_commit": "9c1d8b5ab5eba2612c2cba94659f80251b0e9202",
+    "source_status": "OPEN_PR_NOT_MERGED"
+  },
+  "theorem_bindings": [
+    {
+      "id": "allocation.nonnegative",
+      "theorem": "SymtropyFormal.waterline_allocation_nonnegative",
+      "claim": "A non-negative cap and waterline yield a non-negative per-recipient allocation."
+    },
+    {
+      "id": "allocation.cap",
+      "theorem": "SymtropyFormal.waterline_allocation_respects_cap",
+      "claim": "No per-recipient allocation exceeds its cap."
+    },
+    {
+      "id": "allocation.saturating-recipient",
+      "theorem": "SymtropyFormal.waterline_saturates_constrained_recipient",
+      "claim": "A cap at or below the waterline is saturated exactly at cap."
+    },
+    {
+      "id": "allocation.equal-share",
+      "theorem": "SymtropyFormal.waterline_equalizes_unsaturated_recipient",
+      "claim": "A recipient whose cap is above the waterline receives exactly the waterline amount."
+    },
+    {
+      "id": "allocation.permutation",
+      "theorem": "SymtropyFormal.waterline_allocation_permutation_invariant",
+      "claim": "Permuting cap input permutes allocations correspondingly."
+    },
+    {
+      "id": "allocation.supply",
+      "theorem": "SymtropyFormal.accepted_waterline_respects_supply",
+      "claim": "An accepted certificate cannot allocate more than available supply."
+    },
+    {
+      "id": "allocation.capacity",
+      "theorem": "SymtropyFormal.accepted_waterline_respects_total_capacity",
+      "claim": "An accepted certificate cannot allocate more than total recipient capacity."
+    },
+    {
+      "id": "allocation.nonnegative-vector",
+      "theorem": "SymtropyFormal.accepted_waterline_allocations_nonnegative",
+      "claim": "Every allocation in an accepted certificate is non-negative."
+    },
+    {
+      "id": "allocation.positive-control",
+      "theorem": "SymtropyFormal.sample_waterline_certificate_is_accepted",
+      "claim": "The constrained-plus-equal-share example is accepted."
+    },
+    {
+      "id": "allocation.negative-control",
+      "theorem": "SymtropyFormal.over_budget_waterline_certificate_is_rejected",
+      "claim": "A certificate that over-allocates the source budget is rejected."
+    },
+    {
+      "id": "allocation.empty-demand",
+      "theorem": "SymtropyFormal.empty_demand_waterline_certificate_is_accepted",
+      "claim": "Empty demand leaves supply unallocated and is accepted."
+    },
+    {
+      "id": "allocation.zero-supply",
+      "theorem": "SymtropyFormal.zero_supply_waterline_certificate_is_accepted",
+      "claim": "Zero supply allocates zero even with positive caps."
+    },
+    {
+      "id": "allocation.capacity-limited",
+      "theorem": "SymtropyFormal.capacity_limited_waterline_certificate_is_accepted",
+      "claim": "When supply exceeds total capacity, all recipients saturate and the certificate closes to total capacity."
+    },
+    {
+      "id": "allocation.negative-cap-rejected",
+      "theorem": "SymtropyFormal.negative_cap_waterline_certificate_is_rejected",
+      "claim": "A negative recipient cap causes certificate rejection."
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "capped-and-shared",
+      "supply": "5",
+      "caps": [
+        "1",
+        "4",
+        "10"
+      ],
+      "waterline": "2",
+      "allocations": [
+        "1",
+        "2",
+        "2"
+      ],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "over-budget",
+      "supply": "5",
+      "caps": [
+        "1",
+        "4",
+        "10"
+      ],
+      "waterline": "3",
+      "allocations": [
+        "1",
+        "3",
+        "3"
+      ],
+      "expected": "REJECT"
+    },
+    {
+      "id": "empty-demand",
+      "supply": "9",
+      "caps": [],
+      "waterline": "0",
+      "allocations": [],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "zero-supply",
+      "supply": "0",
+      "caps": [
+        "4",
+        "5"
+      ],
+      "waterline": "0",
+      "allocations": [
+        "0",
+        "0"
+      ],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "supply-above-capacity",
+      "supply": "10",
+      "caps": [
+        "1",
+        "2"
+      ],
+      "waterline": "3",
+      "allocations": [
+        "1",
+        "2"
+      ],
+      "expected": "ACCEPT"
+    },
+    {
+      "id": "negative-cap",
+      "supply": "1",
+      "caps": [
+        "-1",
+        "2"
+      ],
+      "waterline": "0",
+      "allocations": [
+        "-1",
+        "0"
+      ],
+      "expected": "REJECT"
+    }
+  ],
+  "proposed_benchmarks": {
+    "certificate_acceptance_false_positive_count": 0,
+    "cap_violations": 0,
+    "budget_overspends": 0,
+    "tested_recipient_counts": [
+      0,
+      1,
+      2,
+      10,
+      1000,
+      10000
+    ],
+    "report": [
+      "p50",
+      "p95",
+      "p99",
+      "memory_bytes",
+      "accepted_certificates",
+      "rejected_certificates",
+      "oracle_mismatches"
+    ],
+    "status": "PROPOSED_NOT_MEASURED"
+  },
+  "nonclaims": [
+    "No theorem that a waterline finder can always construct a valid certificate for every feasible supply/cap vector.",
+    "No proof that the production IEEE-754 Rust allocator refines the exact-rational model.",
+    "No bound on floating-point rounding error or tiny residuals.",
+    "No stable-ID uniqueness/order enforcement inside this initial abstract cap-list model.",
+    "No joint policy for overlapping energy wells.",
+    "No evidence of live ECS integration or physical correctness."
+  ]
+}

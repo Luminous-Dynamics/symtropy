@@ -178,6 +178,30 @@ jobs:
             (.nonclaims | length >= 5)
           ' formalization/lean/tick-transactions.json >/dev/null
 
+      - name: Validate exact-rational waterline certificate manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "0.1.0" and
+            .contract_id == "thermo.maxmin_waterline_certificate.v1" and
+            .proof_file == "formalization/lean/SymtropyFormal/WaterlineAllocation.lean" and
+            .toolchain_path == "formalization/lean/lean-toolchain" and
+            .toolchain_policy == "reuse_pinned_toolchain_from_PR_1691" and
+            .theorem_status == "AUTHORED_NOT_VERIFIED_UNTIL_EXACT_HEAD_LEAN_CI_PASSES" and
+            .algorithm_finder_completeness == "NOT_ESTABLISHED" and
+            .rust_refinement_status == "NOT_ESTABLISHED" and
+            .floating_point_conformance_status == "NOT_IMPLEMENTED" and
+            .live_ecs_integration_status == "NOT_IMPLEMENTED" and
+            (.theorem_bindings | length == 14) and
+            ([.theorem_bindings[].theorem] | unique | length == 14) and
+            (.fixtures | length == 6) and
+            (any(.fixtures[]; .expected == "ACCEPT")) and
+            (any(.fixtures[]; .expected == "REJECT")) and
+            (.proposed_benchmarks.status == "PROPOSED_NOT_MEASURED") and
+            (.nonclaims | length >= 5)
+          ' formalization/lean/waterline-allocation.json >/dev/null
+
       - name: Build pinned Lean project and audit theorem namespace
         uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
         with:
@@ -187,6 +211,18 @@ jobs:
           axiom-audit: true
           axiom-audit-root: SymtropyFormal
           axiom-audit-allow: propext,Classical.choice,Quot.sound
+      - name: Typecheck every waterline allocation theorem binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'import SymtropyFormal\n\n'
+            jq -r '([.theorem_bindings[].theorem] | unique[]) | "#check " + .' formalization/lean/waterline-allocation.json
+          } > formalization/lean/WaterlineAllocationManifestCheck.lean
+          cd formalization/lean
+          trap 'rm -f WaterlineAllocationManifestCheck.lean' EXIT
+          lake env lean WaterlineAllocationManifestCheck.lean
+
       - name: Typecheck every tick-transaction theorem binding
         shell: bash
         run: |

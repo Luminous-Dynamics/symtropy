@@ -7,6 +7,7 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
 
 - **HousingReferences.lean** defines five primary closed-form response equations plus supporting equations for section area, extreme-fiber distance, stress, bending moment, and reactions. Exact-rational fixture theorems cover all 28 expected output fields in the shared five-vector corpus; the additional named theorem declarations are not verified until Lean CI passes.
 - **TickTransactions.lean** defines an abstract tick ledger and theorem obligations for monotonic IDs, prior/result digest linkage, phase order, idempotent finalize retries, conflict rejection, and fail-closed handling of malformed intermediate states. The model uses natural-number digest stand-ins and is not a proof of the Rust implementation.
+- **WaterlineAllocation.lean** specifies a proof-carrying exact-rational max-min allocation policy: each output is `min(cap, waterline)`, an accepted certificate closes total allocation to `min(supply, total capacity)`, and saturated/unsaturated recipients obey the waterline rule. The model does not prove the waterline finder complete or the production `f64` allocator equivalent.
 - **Dimensions.lean** defines seven-SI-base dimension vectors, proves twelve
   dimensional-homogeneity identities and five dimensionless-group invariants,
   and includes a negative control that rejects a malformed cantilever expression.
@@ -22,7 +23,7 @@ supporting the public Symtropy engine. It is not a Rust production dependency.
   This is traceability and exact-contract coverage, not an automated proof that
   the Rust implementation refines the real-valued Lean functions.
 
-The tick model is catalogued separately in **tick-transactions.json**. It pins the observed source PR/head for future comparison but marks Rust refinement as NOT ESTABLISHED until a shared corpus and independent conformance check exist.
+The tick model is catalogued separately in **tick-transactions.json**. It pins the observed source PR/head for future comparison but marks Rust refinement as NOT ESTABLISHED until a shared corpus and independent conformance check exist. The allocation contract is catalogued in **waterline-allocation.json**, which explicitly keeps algorithm completeness, Rust refinement, floating-point conformance, and live integration open.
 
 The current numerical definitions accept untyped real numbers. The dimensional
 proofs validate equations in a separate exponent model; they do not yet make
