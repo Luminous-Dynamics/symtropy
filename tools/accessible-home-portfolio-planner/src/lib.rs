@@ -276,8 +276,8 @@ fn validate(input: &PortfolioInput) -> Vec<String> {
     if input.currency.len() != 3 || !input.currency.bytes().all(|byte| byte.is_ascii_uppercase()) {
         errors.push("currency must be a three-letter uppercase code".into());
     }
-    if input.planning_horizon_months == 0 {
-        errors.push("planning_horizon_months must be positive".into());
+    if input.planning_horizon_months == 0 || input.planning_horizon_months > 120 {
+        errors.push("planning_horizon_months must be in 1..=120".into());
     }
     if input.interventions.is_empty() {
         errors.push("at least one intervention is required".into());
@@ -989,6 +989,22 @@ mod tests {
         }
         let errors = eval_value(&value).expect_err("too many interventions must fail closed");
         assert!(contains_error(&errors, "exceeds exhaustive-search limit"));
+    }
+
+    #[test]
+    fn planning_horizon_upper_bound_is_enforced() {
+        let mut value = fixture();
+        value["planning_horizon_months"] = json!(121);
+        let errors = eval_value(&value).expect_err("out-of-contract horizon must fail closed");
+        assert!(contains_error(&errors, "planning_horizon_months must be in 1..=120"));
+    }
+
+    #[test]
+    fn invalid_preference_conflict_resolution_target_is_rejected() {
+        let mut value = fixture();
+        value["interventions"][2]["resolves_preference_conflicts"][0]["conflicting_intervention_id"] = json!("offline-tactile-unit");
+        let errors = eval_value(&value).expect_err("target must declare the matching preference conflict");
+        assert!(contains_error(&errors, "does not declare a conflict"));
     }
 
     #[test]
