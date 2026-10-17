@@ -8,7 +8,7 @@ on:
       - "docs/research/civ-infra-resilience/**"
       - ".github/workflows/civ-infra-fleet-resilience.yml"
   pull_request:
-    branches: ["main"]
+    branches: ["main", "docs/civ-infra-fleet-resilience-v0-1"]
     paths:
       - "tools/civ-infra-fleet-resilience/**"
       - "docs/research/civ-infra-resilience/**"
@@ -96,4 +96,32 @@ jobs:
             ([.policy_results[] | select(.policy_id == "B0" and .status == "protective_stop_no_accepted_output" and .accepted_synthetic_work == false and .makespan_ticks == null and .completed_task_count == 0 and .interrupted_attempt_count == 1 and .event_observed_tick == null and .knowledge_leak_detected == false)] | length) == 1 and
             ([.policy_results[] | select(.policy_id == "B1" and .status == "synthetic_acceptance_complete" and .accepted_synthetic_work == true and .makespan_ticks == 8 and .completed_task_count == 4 and .resource_reassignments == 0 and .event_observed_tick == 2 and .replan_tick == null and .knowledge_leak_detected == false)] | length) == 1 and
             ([.policy_results[] | select(.policy_id == "B2" and .status == "synthetic_acceptance_complete" and .accepted_synthetic_work == true and .makespan_ticks == 6 and .completed_task_count == 4 and .resource_reassignments == 1 and .event_observed_tick == 2 and .replan_tick == 2 and .knowledge_leak_detected == false)] | length) == 1
+          ' "$report"
+
+      - name: Audit event queue and observation boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-event-timeline-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin event-timeline-audit -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.event_timeline_audit.v0.1" and
+            .input_sha256 == $expected_sha and
+            .classification == "synthetic_only" and
+            .timeline_status == "canonical_event_queue_timing_audited" and
+            .timeline_audit_executed == true and
+            .policy_simulation_executed == false and
+            .policy_runs_performed == 0 and
+            .counts.disturbance_cases == 13 and
+            .counts.typed_disturbance_kinds == 13 and
+            .counts.delayed_observations == 3 and
+            .counts.total_observation_delay_ticks == 4 and
+            .counts.maximum_observation_delay_ticks == 2 and
+            .counts.timeline_tick_count == 8 and
+            ([.evaluator_timeline[] | select(.tick == 2) | .injected_event_ids[] | select(. == "R-008")] | length) == 1 and
+            ([.evaluator_timeline[] | select(.tick == 2) | .events_injected_but_not_yet_observable[] | select(. == "R-008")] | length) == 1 and
+            ([.policy_timeline[] | select(.tick == 3) | .visible_event_ids[] | select(. == "R-008")] | length) == 0 and
+            ([.policy_timeline[] | select(.tick == 4) | .visible_event_ids[] | select(. == "R-008")] | length) == 1
           ' "$report"
