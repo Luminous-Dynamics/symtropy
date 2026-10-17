@@ -75,6 +75,8 @@ If correlations/dependencies are known, preserve the joint structure. Do not for
 
 If the system cannot demonstrate that its scenario set covers the stated uncertainty contract, it must report **coverage_incomplete** and cannot label the result robust-feasible.
 
+**R0 coverage rule:** for finite discrete supports with no modeled dependencies, the verifier must independently enumerate the Cartesian product, confirm that every joint tuple is present exactly once, and fail closed if the state product exceeds a documented resource cap. A Boolean claim such as `exhaustive_joint_state_set: true` is not evidence of completeness. R0 does not certify correlated/joint scenario sets yet; those require a future explicit dependency model and evidence-backed coverage contract. Bounded intervals remain unknown until a sound interval evaluator exists.
+
 ## 5. Candidate dispositions
 
 For each candidate, evaluate every required constraint in every admitted state, preserving state-level findings and input provenance.
