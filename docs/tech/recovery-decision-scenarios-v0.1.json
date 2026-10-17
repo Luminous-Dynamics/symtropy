@@ -1,0 +1,239 @@
+{
+  "schema_version": "recovery-decision-scenarios-v0.1",
+  "corpus_id": "RECOVERY-ORACLE-001",
+  "status": "synthetic-logic-fixtures",
+  "scenario_count": 14,
+  "units": {
+    "cost": "synthetic_eur_cents_per_qualified_unit",
+    "yield": "dimensionless_fraction",
+    "energy": "synthetic_kwh_per_qualified_unit"
+  },
+  "claim_ceiling": {
+    "real_world_measurements": false,
+    "field_accuracy_claimed": false,
+    "expected_actuation": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "contract": {
+    "gate_statuses": ["PASS", "BLOCK", "UNKNOWN"],
+    "unknown_is_pass": false,
+    "failed_or_unknown_mandatory_gate_makes_affected_plan_feasible": false,
+    "unknown_evidence_disposition": "HOLD_FOR_EVIDENCE",
+    "human_or_domain_authority_review_required": true,
+    "domain_thresholds_transfer_between_profiles": false
+  },
+  "scenarios": [
+    {
+      "id": "REC-001-FOREST-DEADWOOD-HABITAT",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "recently_dead_standing_tree",
+      "evidence": ["remote screening suggests timber potential"],
+      "mandatory_gates": [
+        {"gate": "ecological_retention_review", "status": "BLOCK", "reason": "habitat retention zone applies"},
+        {"gate": "permission", "status": "UNKNOWN", "reason": "not evaluated"}
+      ],
+      "candidate_plans": ["retain_in_place", "ground_extraction", "cable_extraction", "helicopter_extraction"],
+      "expected_disposition": "BLOCK_RECOVERY_PLANS",
+      "expected_reason_codes": ["DEADWOOD_RETENTION_REQUIRED", "PERMISSION_UNKNOWN"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-002-FOREST-CABLE-BEATS-HELICOPTER",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "qualified-log-lot-synthetic",
+      "evidence": ["synthetic qualified-volume estimate", "synthetic route assumptions"],
+      "mandatory_gates": [
+        {"gate": "permission", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "ecological_review", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "rigging_and_safety_review", "status": "PASS", "reason": "synthetic fixture only"}
+      ],
+      "candidate_plans": ["cable_extraction", "helicopter_extraction"],
+      "synthetic_estimates": {
+        "cable_extraction": {"cost_cents_per_qualified_unit": 1500, "qualified_yield_fraction": 0.82},
+        "helicopter_extraction": {"cost_cents_per_qualified_unit": 6000, "qualified_yield_fraction": 0.82}
+      },
+      "expected_disposition": "ELIGIBLE_FOR_HUMAN_REVIEW",
+      "preferred_plan_for_review": "cable_extraction",
+      "expected_reason_codes": ["LOWER_SYNTHETIC_TOTAL_COST_PER_QUALIFIED_UNIT"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-003-FOREST-REMOTE-AIRLIFT-UNRESOLVED",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "remote-high-value-log-lot-synthetic",
+      "evidence": ["synthetic gross and qualified value estimates"],
+      "mandatory_gates": [
+        {"gate": "permission", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "weather_and_aircraft_limits", "status": "UNKNOWN", "reason": "no current operational assessment"},
+        {"gate": "rigging_and_rotor_clearance", "status": "UNKNOWN", "reason": "unverified geometry"},
+        {"gate": "qualified_total_cost", "status": "UNKNOWN", "reason": "mobilization and flight-cycle estimates incomplete"}
+      ],
+      "candidate_plans": ["leave_in_place", "cable_extraction", "helicopter_extraction"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["WEATHER_OR_AIRCRAFT_LIMITS_UNKNOWN", "RIGGING_CLEARANCE_UNKNOWN", "TOTAL_COST_INCOMPLETE"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-004-FOREST-DECLINING-LIVE-TREE",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "living_tree_with_declining_vitality",
+      "evidence": ["remote imagery suggests canopy decline; mortality unconfirmed"],
+      "mandatory_gates": [
+        {"gate": "tree_status_and_silvicultural_decision", "status": "UNKNOWN", "reason": "still living or status unresolved"},
+        {"gate": "permission", "status": "UNKNOWN", "reason": "not evaluated"}
+      ],
+      "candidate_plans": ["monitor", "qualified_arborist_assessment", "deadwood_salvage"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["LIVE_TREE_REQUIRES_SEPARATE_DECISION", "PERMISSION_UNKNOWN"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE",
+      "domain_profile": "photovoltaic_reuse_v0",
+      "asset_class": "retired_pv_module",
+      "evidence": ["visual inspection complete", "insulation test pass", "I-V curve within profile limits", "electroluminescence reviewed"],
+      "mandatory_gates": [
+        {"gate": "electrical_safety_profile", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "second_life_acceptance_profile", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "buyer_and_installation_authority", "status": "PASS", "reason": "synthetic fixture only"}
+      ],
+      "candidate_plans": ["reuse_after_qualified_review", "recycle"],
+      "synthetic_estimates": {
+        "reuse_after_qualified_review": {"cost_cents_per_qualified_unit": 900, "qualified_yield_fraction": 0.9},
+        "recycle": {"cost_cents_per_qualified_unit": 1200, "qualified_yield_fraction": 0.95}
+      },
+      "expected_disposition": "ELIGIBLE_FOR_HUMAN_REVIEW",
+      "preferred_plan_for_review": "reuse_after_qualified_review",
+      "expected_reason_codes": ["PROFILE_TESTS_PASS_SYNTHETIC_FIXTURE_ONLY"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-006-PV-INSULATION-FAILURE",
+      "domain_profile": "photovoltaic_reuse_v0",
+      "asset_class": "retired_pv_module",
+      "evidence": ["insulation resistance test failed"],
+      "mandatory_gates": [
+        {"gate": "electrical_safety_profile", "status": "BLOCK", "reason": "insulation test failure"}
+      ],
+      "candidate_plans": ["reuse_as_is", "isolate_for_qualified_assessment", "authorized_recycling"],
+      "expected_disposition": "BLOCK_AFFECTED_PLANS",
+      "expected_reason_codes": ["INSULATION_FAILURE_BLOCKS_REUSE_AS_IS"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-007-WIND-BLADE-CONDITION-UNKNOWN",
+      "domain_profile": "wind_blade_recovery_v0",
+      "asset_class": "decommissioned_composite_blade",
+      "evidence": ["visual condition summary only", "transport envelope incomplete"],
+      "mandatory_gates": [
+        {"gate": "structural_condition", "status": "UNKNOWN", "reason": "required tests not completed"},
+        {"gate": "handling_and_transport", "status": "UNKNOWN", "reason": "route and lift study absent"}
+      ],
+      "candidate_plans": ["repair_or_reuse", "mechanical_recycling", "other_qualified_recovery"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["BLADE_CONDITION_UNKNOWN", "TRANSPORT_QUALIFICATION_MISSING"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-008-DISASTER-DEBRIS-ASBESTOS-UNKNOWN",
+      "domain_profile": "post_disaster_materials_v0",
+      "asset_class": "mixed_building_debris",
+      "evidence": ["remote survey only", "building age/material history incomplete"],
+      "mandatory_gates": [
+        {"gate": "hazardous_material_screening", "status": "UNKNOWN", "reason": "asbestos and other contaminants not ruled out"},
+        {"gate": "worker_and_public_safety_plan", "status": "UNKNOWN", "reason": "no qualified work plan"}
+      ],
+      "candidate_plans": ["manual_sorting", "robotic_sorting", "reuse", "recycling", "authorized_specialist_assessment"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["CONTAMINATION_STATUS_UNKNOWN", "SAFE_HANDLING_PLAN_MISSING"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW",
+      "domain_profile": "post_disaster_materials_v0",
+      "asset_class": "separated_concrete_aggregate",
+      "evidence": ["batch identity preserved", "contamination screen pass", "laboratory material tests pass synthetic profile"],
+      "mandatory_gates": [
+        {"gate": "contamination_profile", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "target_use_engineering_acceptance", "status": "UNKNOWN", "reason": "target application and authority not yet approved"}
+      ],
+      "candidate_plans": ["qualified_secondary_aggregate_review", "downcycle", "authorized_disposal"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["TARGET_USE_ACCEPTANCE_PENDING"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-010-BRIDGE-CRACK-SEVERITY-UNKNOWN",
+      "domain_profile": "infrastructure_component_v0",
+      "asset_class": "bridge_steel_component",
+      "evidence": ["robotic imagery indicates possible crack; severity and extent uncertain"],
+      "mandatory_gates": [
+        {"gate": "structural_engineer_assessment", "status": "UNKNOWN", "reason": "qualified assessment missing"},
+        {"gate": "operating_authority", "status": "UNKNOWN", "reason": "no authority decision in input"}
+      ],
+      "candidate_plans": ["continue_operation", "restrict_operation", "repair", "replace"],
+      "expected_disposition": "HOLD_FOR_AUTHORITY_REVIEW",
+      "expected_reason_codes": ["DEFECT_SEVERITY_UNRESOLVED", "OPERATING_AUTHORITY_MISSING"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-011-INDUSTRIAL-PUMP-REPAIR-CANDIDATE",
+      "domain_profile": "industrial_asset_recovery_v0",
+      "asset_class": "industrial_pump",
+      "evidence": ["diagnostic coverage complete for selected failure modes", "parts availability confirmed synthetic fixture"],
+      "mandatory_gates": [
+        {"gate": "isolation_and_safe_work_plan", "status": "PASS", "reason": "synthetic fixture only"},
+        {"gate": "repair_quality_acceptance", "status": "PASS", "reason": "synthetic fixture only"}
+      ],
+      "candidate_plans": ["repair_and_test", "replace_with_new", "authorized_reconditioning"],
+      "synthetic_estimates": {
+        "repair_and_test": {"cost_cents_per_qualified_unit": 4200, "qualified_yield_fraction": 0.88},
+        "replace_with_new": {"cost_cents_per_qualified_unit": 7800, "qualified_yield_fraction": 0.99}
+      },
+      "expected_disposition": "ELIGIBLE_FOR_HUMAN_REVIEW",
+      "preferred_plan_for_review": "repair_and_test",
+      "expected_reason_codes": ["LOWER_SYNTHETIC_LIFECYCLE_COST_CANDIDATE"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-012-SWOLLEN-BATTERY",
+      "domain_profile": "battery_recovery_v0",
+      "asset_class": "lithium_battery_pack",
+      "evidence": ["swelling reported; chemistry and internal state not fully characterized"],
+      "mandatory_gates": [
+        {"gate": "thermal_and_electrical_hazard_profile", "status": "BLOCK", "reason": "swelling is a hazard signal requiring qualified handling"}
+      ],
+      "candidate_plans": ["ordinary_disassembly", "isolate_and_transfer_to_authorized_specialist"],
+      "expected_disposition": "BLOCK_AFFECTED_PLANS",
+      "expected_reason_codes": ["BATTERY_HAZARD_BLOCKS_ORDINARY_DISASSEMBLY"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-013-EWASTE-DATA-DISPOSITION-UNKNOWN",
+      "domain_profile": "electronic_recovery_v0",
+      "asset_class": "retired_compute_equipment",
+      "evidence": ["hardware test suggests possible reuse", "data-owner disposition absent"],
+      "mandatory_gates": [
+        {"gate": "data_security_and_ownership", "status": "UNKNOWN", "reason": "storage ownership and sanitization authority not evidenced"}
+      ],
+      "candidate_plans": ["resale_or_reuse", "certified_data_sanitization", "material_recycling"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["DATA_DISPOSITION_AUTHORITY_UNKNOWN"],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-014-WATERCOURSE-WOODY-DEBRIS-RETENTION",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "fallen_wood_in_watercourse",
+      "evidence": ["remote survey detects woody debris; hydrologic and habitat role uncertain"],
+      "mandatory_gates": [
+        {"gate": "flood_and_channel_assessment", "status": "UNKNOWN", "reason": "role in channel dynamics unresolved"},
+        {"gate": "habitat_and_permission_review", "status": "UNKNOWN", "reason": "retention value and authority not assessed"}
+      ],
+      "candidate_plans": ["retain_and_monitor", "qualified_selective_removal_review"],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": ["WATERCOURSE_ROLE_UNRESOLVED", "HABITAT_AND_PERMISSION_REVIEW_REQUIRED"],
+      "expected_actuation": false
+    }
+  ]
+}
