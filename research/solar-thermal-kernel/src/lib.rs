@@ -8,6 +8,8 @@
 
 use std::{error::Error, fmt, fmt::Write as _};
 
+pub mod cascade;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModelError {
     NonFinite(&'static str),
