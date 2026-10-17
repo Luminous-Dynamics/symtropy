@@ -989,3 +989,10 @@ mod timeline_fixture_tests {
         assert!(has_code(&summary, "TIMELINE_SCHEMA_VALIDATION_FAILED"));
     }
 }
+
+
+pub mod outcomes;
+pub use outcomes::{
+    validate_outcome_fixtures_bytes, CandidateDisposition, ComparisonResult, OutcomeFailure,
+    OutcomeSummary, EMBEDDED_OUTCOME_CORPUS, EMBEDDED_OUTCOME_SCHEMA,
+};
