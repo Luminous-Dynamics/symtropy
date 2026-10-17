@@ -30,7 +30,7 @@ Package: `tools/habitat-revalidation-planner`
 - Exhaustively enumerates feasible task sequences, then keeps nondominated options on cost and duration instead of hiding preferences behind one score.
 - Returns explicit blockers when a required gate is unavailable; no unavailable task is assumed completed.
 - Emits per-step task version, produced artifact, required evidence, required gates, cost/duration units and a synthetic-only claim ceiling.
-- A separate exhaustive sequence oracle checks the frozen Pareto frontier.
+- A separate exhaustive sequence oracle checks the frozen Pareto frontier and all 16 combinations of the four declared abstract gates.
 
 ## Expected synthetic Pareto frontier
 
