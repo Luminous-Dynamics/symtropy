@@ -205,68 +205,67 @@ pub fn verify_timeline_report(
                 .component_results
                 .iter()
                 .find(|component| component.component_id == floor.component_id)
-                .ok_or_else(|| SettlementError(format!(
-                    "floor {} references a missing component result",
-                    floor.floor_id
-                )))?;
-            if floor.effective_output_units.is_none() && floor.status == FloorStatus::Met {
-                return Err(SettlementError(format!(
-                    "unknown floor output marked Met for {} at tick {}",
-                    floor.floor_id, tick.tick
-                )));
-            }
+                .ok_or_else(|| {
+                    SettlementError(format!(
+                        "floor {} references a missing component result",
+                        floor.floor_id
+                    ))
+                })?;
+
+            let mut proven_breach = matches!(
+                &component.effective_state,
+                crate::ComponentState::Failed
+            );
+            let mut indeterminate = matches!(
+                &component.effective_state,
+                crate::ComponentState::Unknown { .. }
+            ) || floor.effective_output_units.is_none();
+
             if floor
                 .effective_output_units
                 .is_some_and(|units| units < floor.minimum_output_units)
-                && floor.status != FloorStatus::Breached
             {
-                return Err(SettlementError(format!(
-                    "below-minimum output not marked Breached for {} at tick {}",
-                    floor.floor_id, tick.tick
-                )));
+                proven_breach = true;
             }
-            if matches!(&component.effective_state, crate::ComponentState::Failed)
-                && floor.status != FloorStatus::Breached
-            {
-                return Err(SettlementError(format!(
-                    "failed component floor not Breached for {} at tick {}",
-                    floor.floor_id, tick.tick
-                )));
-            }
-            if matches!(&component.effective_state, crate::ComponentState::Unknown { .. })
-                && floor.status == FloorStatus::Met
-            {
-                return Err(SettlementError(format!(
-                    "unknown component floor marked Met for {} at tick {}",
-                    floor.floor_id, tick.tick
-                )));
-            }
-            if floor.status == FloorStatus::Met {
-                for demand_id in &floor.required_demand_ids {
-                    let allocation = tick
-                        .snapshot
-                        .payload
-                        .resource_allocations
-                        .iter()
-                        .find(|allocation| allocation.demand_id == *demand_id)
-                        .ok_or_else(|| SettlementError(format!(
+
+            for demand_id in &floor.required_demand_ids {
+                let allocation = tick
+                    .snapshot
+                    .payload
+                    .resource_allocations
+                    .iter()
+                    .find(|allocation| allocation.demand_id == *demand_id)
+                    .ok_or_else(|| {
+                        SettlementError(format!(
                             "floor {} references missing demand {}",
                             floor.floor_id, demand_id
-                        )))?;
-                    if matches!(
-                        &allocation.outcome,
-                        crate::DemandOutcome::Shortfall
-                            | crate::DemandOutcome::ConsumerUnavailable
-                            | crate::DemandOutcome::Indeterminate
-                            | crate::DemandOutcome::ConsumerStateUnknown
-                            | crate::DemandOutcome::PoolBlockedByUnknownConsumer
-                    ) {
-                        return Err(SettlementError(format!(
-                            "floor {} is Met despite unresolved required demand {}",
-                            floor.floor_id, demand_id
-                        )));
+                        ))
+                    })?;
+                match &allocation.outcome {
+                    crate::DemandOutcome::Shortfall
+                    | crate::DemandOutcome::ConsumerUnavailable => {
+                        proven_breach = true;
                     }
+                    crate::DemandOutcome::Indeterminate
+                    | crate::DemandOutcome::ConsumerStateUnknown
+                    | crate::DemandOutcome::PoolBlockedByUnknownConsumer => {
+                        indeterminate = true;
+                    }
+                    crate::DemandOutcome::FullySatisfied
+                    | crate::DemandOutcome::MinimumSatisfied => {}
                 }
+            }
+
+            let status_consistent = match floor.status {
+                FloorStatus::Met => !proven_breach && !indeterminate,
+                FloorStatus::Breached => proven_breach,
+                FloorStatus::Blocked => !proven_breach && indeterminate,
+            };
+            if !status_consistent {
+                return Err(SettlementError(format!(
+                    "service floor status disagrees with supporting evidence for {} at tick {}",
+                    floor.floor_id, tick.tick
+                )));
             }
         }
         if index == 0 {
