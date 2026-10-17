@@ -38,10 +38,16 @@ jobs:
           components: clippy, rustfmt
 
       - name: Run unit and negative-control tests
-        run: cargo test --manifest-path research/solar-thermal-kernel/Cargo.toml
+        run: cargo test --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets
 
       - name: Emit deterministic synthetic report
         run: cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt
+
+      - name: Independently audit emitted report
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_receipt | cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example solar_thermal_audit
 
       - name: Run Clippy
         run: cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets -- -D warnings
