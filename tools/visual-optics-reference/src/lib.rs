@@ -134,6 +134,63 @@ pub fn linear_channel_to_srgb(linear: f64) -> Result<f64, TransferError> {
     }
 }
 
+const PQ_M1: f64 = 2610.0 / 16_384.0;
+const PQ_M2: f64 = 2523.0 / 32.0;
+const PQ_C1: f64 = 3424.0 / 4_096.0;
+const PQ_C2: f64 = 2413.0 / 128.0;
+const PQ_C3: f64 = 2392.0 / 128.0;
+
+/// Decodes a normalized SMPTE ST 2084 / ITU-R BT.2100 PQ signal to absolute luminance.
+///
+/// The output is in candelas per square metre (cd/m²) and is bounded by the
+/// nominal 0–10,000 cd/m² PQ range. This is a reference EOTF, not tone mapping,
+/// panel calibration, or a measurement of actual physical display luminance.
+///
+/// # Errors
+///
+/// Returns an error for non-finite input or a signal outside [0, 1].
+pub fn pq_signal_to_nits(signal: f64) -> Result<f64, TransferError> {
+    if !signal.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    if !(0.0..=1.0).contains(&signal) {
+        return Err(TransferError::OutOfRange);
+    }
+
+    let powered = signal.powf(1.0 / PQ_M2);
+    let numerator = (powered - PQ_C1).max(0.0);
+    let denominator = PQ_C2 - PQ_C3 * powered;
+    let normalized = (numerator / denominator).powf(1.0 / PQ_M1);
+    Ok(10_000.0 * normalized)
+}
+
+/// Encodes absolute luminance as a normalized SMPTE ST 2084 / ITU-R BT.2100 PQ signal.
+///
+/// Input luminance is in cd/m² and must lie in the nominal 0–10,000 range.
+/// Zero is canonicalized to signal zero, selecting black from the interval of
+/// very-low PQ codes that decode to zero due to the EOTF's clipped numerator.
+///
+/// This is an encoding reference, not HDR mastering, tone mapping, gamut mapping,
+/// or physical display calibration.
+///
+/// # Errors
+///
+/// Returns an error for non-finite input or luminance outside [0, 10,000].
+pub fn nits_to_pq_signal(nits: f64) -> Result<f64, TransferError> {
+    if !nits.is_finite() {
+        return Err(TransferError::NonFiniteInput);
+    }
+    if !(0.0..=10_000.0).contains(&nits) {
+        return Err(TransferError::OutOfRange);
+    }
+    if nits == 0.0 {
+        return Ok(0.0);
+    }
+
+    let normalized = (nits / 10_000.0).powf(PQ_M1);
+    Ok(((PQ_C1 + PQ_C2 * normalized) / (1.0 + PQ_C3 * normalized)).powf(PQ_M2))
+}
+
 /// Computes normalized relative luminance from gamma-encoded sRGB values.
 ///
 /// The inputs are converted to linear-light first, then combined using the
@@ -600,6 +657,57 @@ mod tests {
                 linear_channel_to_srgb(input),
                 Err(TransferError::OutOfRange)
             );
+        }
+    }
+
+    #[test]
+    fn pq_eotf_matches_st2084_reference_points() {
+        assert_eq!(pq_signal_to_nits(0.0), Ok(0.0));
+        assert_close(pq_signal_to_nits(0.5).expect("valid PQ signal"), 92.245_708_994_065_27, 1e-9);
+        assert_close(
+            pq_signal_to_nits(0.508_078_421_517_399).expect("valid PQ signal"),
+            100.0,
+            1e-8,
+        );
+        assert_close(
+            pq_signal_to_nits(0.751_827_096_247_041).expect("valid PQ signal"),
+            1_000.0,
+            1e-8,
+        );
+        assert_close(pq_signal_to_nits(1.0).expect("valid PQ signal"), 10_000.0, 1e-8);
+    }
+
+    #[test]
+    fn pq_oetf_matches_st2084_reference_points() {
+        assert_eq!(nits_to_pq_signal(0.0), Ok(0.0));
+        assert_close(nits_to_pq_signal(1.0).expect("valid luminance"), 0.149_945_732_100_180_22, 1e-12);
+        assert_close(nits_to_pq_signal(100.0).expect("valid luminance"), 0.508_078_421_517_399, 1e-12);
+        assert_close(nits_to_pq_signal(203.0).expect("valid luminance"), 0.580_688_881_041_610_9, 1e-12);
+        assert_close(nits_to_pq_signal(1_000.0).expect("valid luminance"), 0.751_827_096_247_041, 1e-12);
+        assert_close(nits_to_pq_signal(4_000.0).expect("valid luminance"), 0.902_572_393_310_937_3, 1e-12);
+        assert_eq!(nits_to_pq_signal(10_000.0), Ok(1.0));
+    }
+
+    #[test]
+    fn pq_transfer_round_trips_luminance_range() {
+        for nits in [0.0, 0.001, 0.01, 0.1, 1.0, 100.0, 203.0, 1_000.0, 4_000.0, 10_000.0] {
+            let signal = nits_to_pq_signal(nits).expect("test luminance is in PQ range");
+            let decoded = pq_signal_to_nits(signal).expect("encoded signal is in PQ range");
+            assert_close(decoded, nits, 1e-7);
+        }
+    }
+
+    #[test]
+    fn pq_transfer_rejects_non_finite_and_out_of_range_inputs() {
+        for signal in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(pq_signal_to_nits(signal), Err(TransferError::NonFiniteInput));
+            assert_eq!(nits_to_pq_signal(signal), Err(TransferError::NonFiniteInput));
+        }
+        for signal in [-0.001, 1.001] {
+            assert_eq!(pq_signal_to_nits(signal), Err(TransferError::OutOfRange));
+        }
+        for nits in [-0.001, 10_000.001] {
+            assert_eq!(nits_to_pq_signal(nits), Err(TransferError::OutOfRange));
         }
     }
 
