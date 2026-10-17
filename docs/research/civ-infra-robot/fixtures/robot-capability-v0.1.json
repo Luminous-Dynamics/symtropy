@@ -1,0 +1,292 @@
+{
+  "schema_version": "civ-infra-robot-capability-fixture/0.1",
+  "fixture_id": "civ-infra-robot-corridor-synthetic-001",
+  "classification": "synthetic_only",
+  "claim_ceiling": "Software-contract fixture only; no hardware, safety, engineering, productivity, or field-validity claim.",
+  "warning": "Every numeric capability below is invented for adversarial software tests. These numbers are not manufacturer specifications, safe operating limits, design values, or field observations.",
+  "units": {
+    "distance": "m",
+    "mass": "kg",
+    "time": "fixture_tick",
+    "angle_slope": "percent_grade",
+    "position_error": "m"
+  },
+  "coordinate_frame": {
+    "frame_id": "local-grid-m-v1",
+    "revision": 1,
+    "origin": "synthetic fixture origin",
+    "crs": "local Cartesian fixture frame; not a real-world CRS"
+  },
+  "evidence_states": [
+    "synthetic_fixture_only",
+    "vendor_assertion",
+    "calibrated_observation",
+    "independently_qualified",
+    "missing",
+    "stale",
+    "conflicted"
+  ],
+  "robots": [
+    {
+      "robot_id": "survey-rover-01",
+      "revision": 1,
+      "platform_class": "mobile_survey_rover",
+      "configuration_id": "survey-rover-01-config-a",
+      "tool_id": "survey-sensor-pack-a",
+      "frame_id": "local-grid-m-v1",
+      "capacity_one_resources": ["survey-rover-01"],
+      "calibration": {
+        "id": "survey-rover-01-cal-a",
+        "epoch": 1,
+        "status": "current",
+        "evidence_state": "synthetic_fixture_only"
+      },
+      "capabilities": [
+        {
+          "task_class": "survey_stakeout",
+          "workspace_bbox_m": [0.0, -25.0, 1000.0, 25.0],
+          "max_position_error_m": 0.05,
+          "supported_output": "synthetic_control_points",
+          "evidence_state": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "robot_id": "excavator-01",
+      "revision": 1,
+      "platform_class": "tracked_excavator",
+      "configuration_id": "excavator-01-config-a",
+      "tool_id": "trench-bucket-0.4m",
+      "frame_id": "local-grid-m-v1",
+      "capacity_one_resources": ["excavator-01"],
+      "calibration": {
+        "id": "excavator-01-cal-a",
+        "epoch": 1,
+        "status": "current",
+        "evidence_state": "synthetic_fixture_only"
+      },
+      "capabilities": [
+        {
+          "task_class": "trench_excavation",
+          "tool_id": "trench-bucket-0.4m",
+          "min_depth_m": 0.0,
+          "max_depth_m": 1.2,
+          "bucket_width_interval_m": [0.3, 0.5],
+          "max_ground_grade_pct": 8.0,
+          "max_position_error_m": 0.08,
+          "supported_material_class": "synthetic_earth",
+          "evidence_state": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "robot_id": "utility-cart-01",
+      "revision": 1,
+      "platform_class": "mobile_material_placement_cart",
+      "configuration_id": "utility-cart-01-config-a",
+      "tool_id": "pipe-clamp-a",
+      "frame_id": "local-grid-m-v1",
+      "capacity_one_resources": ["utility-cart-01"],
+      "calibration": {
+        "id": "utility-cart-01-cal-a",
+        "epoch": 1,
+        "status": "current",
+        "evidence_state": "synthetic_fixture_only"
+      },
+      "capabilities": [
+        {
+          "task_class": "utility_component_placement",
+          "tool_id": "pipe-clamp-a",
+          "max_payload_kg": 80.0,
+          "max_reach_m": 1.0,
+          "max_pose_error_m": 0.03,
+          "supported_material_classes": ["water_pipe", "power_duct", "data_conduit"],
+          "evidence_state": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "robot_id": "inspection-rover-01",
+      "revision": 1,
+      "platform_class": "mobile_inspection_rover",
+      "configuration_id": "inspection-rover-01-config-a",
+      "tool_id": "geometry-sensor-pack-a",
+      "frame_id": "local-grid-m-v1",
+      "capacity_one_resources": ["inspection-rover-01"],
+      "calibration": {
+        "id": "inspection-rover-01-cal-a",
+        "epoch": 1,
+        "status": "current",
+        "evidence_state": "synthetic_fixture_only"
+      },
+      "capabilities": [
+        {
+          "task_class": "as_built_inspection",
+          "max_position_error_m": 0.02,
+          "supported_output": "synthetic_geometry_observation",
+          "evidence_state": "synthetic_fixture_only"
+        }
+      ]
+    }
+  ],
+  "work_packages": [
+    {
+      "task_id": "survey-segment-01",
+      "revision": 1,
+      "task_class": "survey_stakeout",
+      "site_snapshot_id": "site-synth-01-r1",
+      "geometry_revision": 1,
+      "frame_id": "local-grid-m-v1",
+      "required_workspace_bbox_m": [0.0, -20.0, 1000.0, 20.0],
+      "max_position_error_m": 0.1,
+      "required_calibration_status": "current",
+      "required_evidence_state": "synthetic_fixture_only",
+      "required_outputs": ["synthetic_control_points"],
+      "schedule": {"start_tick": 0, "end_tick": 2}
+    },
+    {
+      "task_id": "trench-segment-01",
+      "revision": 1,
+      "task_class": "trench_excavation",
+      "site_snapshot_id": "site-synth-01-r1",
+      "geometry_revision": 1,
+      "frame_id": "local-grid-m-v1",
+      "required_tool_id": "trench-bucket-0.4m",
+      "required_depth_m": 1.0,
+      "required_bucket_width_m": 0.4,
+      "max_ground_grade_pct": 6.0,
+      "max_position_error_m": 0.1,
+      "required_material_class": "synthetic_earth",
+      "required_calibration_status": "current",
+      "required_evidence_state": "synthetic_fixture_only",
+      "schedule": {"start_tick": 2, "end_tick": 4},
+      "required_preconditions": ["survey-segment-01-admitted", "utility-unknowns-reviewed"],
+      "required_postconditions": ["trench-geometry-observation", "trench-inspection"]
+    },
+    {
+      "task_id": "place-water-pipe-01",
+      "revision": 1,
+      "task_class": "utility_component_placement",
+      "site_snapshot_id": "site-synth-01-r1",
+      "geometry_revision": 1,
+      "frame_id": "local-grid-m-v1",
+      "required_tool_id": "pipe-clamp-a",
+      "material_class": "water_pipe",
+      "component_mass_kg": 55.0,
+      "required_reach_m": 0.8,
+      "max_pose_error_m": 0.05,
+      "required_calibration_status": "current",
+      "required_evidence_state": "synthetic_fixture_only",
+      "schedule": {"start_tick": 4, "end_tick": 6},
+      "required_preconditions": ["trench-inspection-accepted", "component-identity-verified"],
+      "required_postconditions": ["as-built-inspection-receipt"]
+    },
+    {
+      "task_id": "inspect-water-pipe-01",
+      "revision": 1,
+      "task_class": "as_built_inspection",
+      "site_snapshot_id": "site-synth-01-r1",
+      "geometry_revision": 2,
+      "frame_id": "local-grid-m-v1",
+      "max_position_error_m": 0.05,
+      "required_calibration_status": "current",
+      "required_evidence_state": "synthetic_fixture_only",
+      "required_outputs": ["synthetic_geometry_observation"],
+      "schedule": {"start_tick": 6, "end_tick": 7},
+      "required_preconditions": ["place-water-pipe-01-completion-candidate"],
+      "required_postconditions": ["as-built-inspection-receipt"]
+    }
+  ],
+  "assignment_cases": [
+    {
+      "case_id": "C0-001",
+      "description": "Survey task within the survey rover's declared synthetic workspace and tolerance.",
+      "robot_id": "survey-rover-01",
+      "task_id": "survey-segment-01",
+      "mutations": [],
+      "expected_disposition": "CompatibleForSyntheticCase"
+    },
+    {
+      "case_id": "C0-002",
+      "description": "The trench task requires a different tool than the robot actually carries.",
+      "robot_id": "excavator-01",
+      "task_id": "trench-segment-01",
+      "mutations": [{"field": "task.required_tool_id", "value": "demolition-hammer-a"}],
+      "expected_disposition": "Incompatible"
+    },
+    {
+      "case_id": "C0-003",
+      "description": "Component load exceeds the placement cart's declared synthetic payload limit.",
+      "robot_id": "utility-cart-01",
+      "task_id": "place-water-pipe-01",
+      "mutations": [{"field": "task.component_mass_kg", "value": 95.0}],
+      "expected_disposition": "Incompatible"
+    },
+    {
+      "case_id": "C0-004",
+      "description": "The otherwise matching survey profile has a stale calibration.",
+      "robot_id": "survey-rover-01",
+      "task_id": "survey-segment-01",
+      "mutations": [{"field": "robot.calibration.status", "value": "stale"}],
+      "expected_disposition": "UnknownReviewRequired"
+    },
+    {
+      "case_id": "C0-005",
+      "description": "The assignment references a site snapshot different from the task's current site snapshot.",
+      "robot_id": "utility-cart-01",
+      "task_id": "place-water-pipe-01",
+      "mutations": [{"field": "assignment.site_snapshot_id", "value": "site-synth-01-r0"}],
+      "expected_disposition": "EvidenceInconsistent"
+    },
+    {
+      "case_id": "C0-006",
+      "description": "Unbounded unknown utility geometry intersects the proposed trench envelope.",
+      "robot_id": "excavator-01",
+      "task_id": "trench-segment-01",
+      "mutations": [{"field": "site.utility_geometry_evidence", "value": "unbounded_unknown_intersects_work_envelope"}],
+      "expected_disposition": "UnknownReviewRequired"
+    },
+    {
+      "case_id": "C0-007",
+      "description": "A task is marked complete even though its required as-built inspection receipt is missing.",
+      "robot_id": "utility-cart-01",
+      "task_id": "place-water-pipe-01",
+      "mutations": [{"field": "completion.required_inspection_receipt", "value": "missing"}],
+      "expected_disposition": "UnknownReviewRequired"
+    },
+    {
+      "case_id": "C0-008",
+      "description": "Two tasks overlap on a capacity-one excavator resource under half-open interval semantics.",
+      "robot_id": "excavator-01",
+      "task_id": "trench-segment-01",
+      "mutations": [{"field": "schedule.conflicting_interval", "value": [3, 5]}],
+      "expected_disposition": "Incompatible"
+    },
+    {
+      "case_id": "C0-009",
+      "description": "The requested task class is outside the v0.1 declared capability vocabulary.",
+      "robot_id": "utility-cart-01",
+      "task_id": "place-water-pipe-01",
+      "mutations": [{"field": "task.task_class", "value": "pressure_vessel_welding"}],
+      "expected_disposition": "Unsupported"
+    },
+    {
+      "case_id": "C0-010",
+      "description": "The work package requires independently qualified evidence but the profile only has synthetic fixture evidence.",
+      "robot_id": "utility-cart-01",
+      "task_id": "place-water-pipe-01",
+      "mutations": [{"field": "task.required_evidence_state", "value": "independently_qualified"}],
+      "expected_disposition": "UnknownReviewRequired"
+    }
+  ],
+  "qualification_status": "proposed_fixture_not_yet_executed",
+  "required_future_checks": [
+    "Strict JSON parse and schema validation",
+    "All case IDs unique and all referenced IDs resolve",
+    "Independent capability matcher reproduces every expected disposition",
+    "Half-open interval scheduling oracle proves the C0-008 overlap",
+    "Canonical normalized outputs are stable on exact replay",
+    "Permutation tests preserve semantic results",
+    "Exact-head Rust tests and CI status recorded; queued is not PASS"
+  ]
+}
