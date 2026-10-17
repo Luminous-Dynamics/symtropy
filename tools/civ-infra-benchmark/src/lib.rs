@@ -57,7 +57,8 @@ pub struct AxisEnvelope {
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceState {
     KnownSynthetic,
-    Unknown,
+    BoundedUnknown,
+    UnboundedUnknown,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -521,15 +522,21 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
             ));
         }
         if let Some(envelope) = &utility.occupancy {
+            if utility.evidence == EvidenceState::UnboundedUnknown {
+                errors.push(format!(
+                    "utility {} cannot claim unbounded unknown extent and also constrain it to an envelope",
+                    utility.id
+                ));
+            }
             validate_envelope(
                 envelope,
                 utility.evidence == EvidenceState::KnownSynthetic,
                 &format!("utility {}", utility.id),
                 &mut errors,
             );
-        } else if utility.evidence == EvidenceState::KnownSynthetic {
+        } else if utility.evidence != EvidenceState::UnboundedUnknown {
             errors.push(format!(
-                "utility {} claims known geometry but has no occupancy envelope",
+                "utility {} needs an envelope unless its spatial extent is unbounded unknown",
                 utility.id
             ));
         }
@@ -594,6 +601,9 @@ fn utility_check(
     let Some(utility_envelope) = utility.occupancy.as_ref() else {
         return CheckStatus::Unknown;
     };
+    if utility.evidence == EvidenceState::UnboundedUnknown {
+        return CheckStatus::Unknown;
+    }
 
     let mut unknown_seen = false;
     for road in &candidate.road_envelopes {
@@ -616,7 +626,7 @@ fn utility_check(
             continue;
         }
 
-        if utility.evidence == EvidenceState::Unknown {
+        if utility.evidence == EvidenceState::BoundedUnknown {
             unknown_seen = true;
             continue;
         }
@@ -849,6 +859,9 @@ fn reference_utility_status(
     let Some(asset) = utility.occupancy.as_ref() else {
         return CheckStatus::Unknown;
     };
+    if utility.evidence == EvidenceState::UnboundedUnknown {
+        return CheckStatus::Unknown;
+    }
 
     let mut unresolved = false;
     for corridor in &candidate.road_envelopes {
@@ -871,7 +884,7 @@ fn reference_utility_status(
             continue;
         }
 
-        if utility.evidence != EvidenceState::KnownSynthetic {
+        if utility.evidence == EvidenceState::BoundedUnknown {
             unresolved = true;
             continue;
         }
@@ -1260,7 +1273,7 @@ mod tests {
     }
 
     #[test]
-    fn overlapping_unknown_utility_blocks_positive_feasibility_claim() {
+    fn overlapping_bounded_unknown_utility_blocks_positive_feasibility_claim() {
         let bytes = fixture_bytes();
         let mut fixture = parse_fixture(&bytes);
         let unknown = fixture
@@ -1551,6 +1564,37 @@ mod tests {
         candidate.metrics.derived_total_earthworks_m3 = 0.0;
         let errors = verify_report(&bytes, &report).expect_err("metric tampering must fail");
         assert!(errors.iter().any(|error| error.contains("candidate metrics")));
+    }
+
+    #[test]
+    fn unbounded_unknown_utility_blocks_clearance_claim_even_without_geometry() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let unknown = fixture
+            .utilities
+            .iter_mut()
+            .find(|utility| utility.id == "legacy-comms-unknown")
+            .expect("unknown utility fixture exists");
+        unknown.evidence = EvidenceState::UnboundedUnknown;
+        unknown.occupancy = None;
+
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let report = evaluate_json(&modified).expect("unbounded unknown is representable");
+        let reference = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate result exists");
+        assert_eq!(
+            reference.disposition,
+            CandidateDisposition::UnknownReviewRequired
+        );
+        assert!(reference.findings.iter().any(|finding| {
+            finding.code == "utility_clearance:legacy-comms-unknown"
+                && finding.status == CheckStatus::Unknown
+        }));
+        verify_report(&modified, &report)
+            .expect("reference checker must not convert unbounded unknown to clear");
     }
 
 }
