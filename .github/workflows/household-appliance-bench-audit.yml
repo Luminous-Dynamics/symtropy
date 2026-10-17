@@ -61,3 +61,5 @@ jobs:
           --portfolio fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json
           --sourcing-schema schemas/appliances/washer_parts_resilience_snapshot_v0_1.schema.json
           --sourcing-snapshot fixtures/appliances/washer_parts_resilience_snapshot_v0_1.json
+          --decision-schema schemas/appliances/repairability_architecture_decision_v0_1.schema.json
+          --decision-profile fixtures/appliances/repairability_architecture_decision_v0_1.json
