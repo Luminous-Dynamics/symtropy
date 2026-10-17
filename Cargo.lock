@@ -9395,6 +9395,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-settlement-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "symtropy-symthaea-adapter"
 version = "0.1.0"
 dependencies = [
