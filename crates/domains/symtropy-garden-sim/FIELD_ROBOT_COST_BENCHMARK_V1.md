@@ -14,7 +14,7 @@ This module computes component-wise costs only. It does not choose a cross-candi
 - Exact integer fields are serialized as decimal strings to avoid JSON consumers rounding large integers.
 - Annualized capital = ceiling((acquisition cost − salvage value) / useful life).
 - Productive/nonproductive machine-time cost = ceiling(minutes × machine cost per hour / 60) per component.
-- Operator cost = ceiling(total operator-labor minutes × labor cost per hour / 60). Supervision minutes are a subset of operator-labor minutes, not added again.
+- Operator cost = ceiling(total operator-labor minutes × labor cost per hour / 60). Supervision minutes are a subset of operator-labor minutes, not added again. Aggregate labor minutes may exceed one machine's annual calendar time when multiple workers contribute; only a single machine's runtime is bounded by the annual machine-time envelope.
 - Maintenance = ceiling(total machine minutes × cost per 100 machine-hours / 6000).
 - External route logistics = ceiling(annual route metres × cost per kilometre / 1000).
 - Mobilization = missions/year × cost/mission.
@@ -38,7 +38,7 @@ Required evidence domains: site geometry, completed service output, capital cost
 
 ## Benchmark inventory
 
-The frozen synthetic case inventory is `fixtures/field_robot_cost_cases.v1.tsv` (24 test-case IDs). The Rust tests include a hand-calculated baseline, route-distance sensitivity, no-robot baseline, exact ceiling arithmetic, currency/schema/time/output blockers, evidence-quality controls, overflow controls, and JSON exact-integer round-trip. The manifest is included in a structural test; it is a test inventory, not field data.
+The frozen synthetic case inventory is `fixtures/field_robot_cost_cases.v1.tsv` (25 test-case IDs). The Rust tests include a hand-calculated baseline, route-distance sensitivity, no-robot baseline, exact ceiling arithmetic, currency/schema/time/output blockers, evidence-quality controls, overflow controls, and JSON exact-integer round-trip. The manifest is included in a structural test; it is a test inventory, not field data.
 
 ## Target metrics
 
