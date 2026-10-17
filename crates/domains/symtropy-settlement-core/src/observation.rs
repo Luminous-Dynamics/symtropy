@@ -73,6 +73,8 @@ pub struct ObservationRecord {
     pub sample_tick: u64,
     /// Synthetic tick when this record became available to a decision-maker.
     pub available_tick: u64,
+    /// Maximum sample age (in synthetic ticks) permitted to remain Current.
+    pub freshness_window_ticks: u64,
     pub disposition: ObservationDisposition,
 }
 
@@ -135,6 +137,18 @@ pub fn build_policy_information_frame(
         .records
         .into_iter()
         .filter(|record| record.available_tick <= decision_tick)
+        .map(|mut record| {
+            if decision_tick.saturating_sub(record.sample_tick)
+                > record.freshness_window_ticks
+            {
+                if let ObservationDisposition::Current { value } = record.disposition {
+                    record.disposition = ObservationDisposition::Stale {
+                        last_value: value,
+                    };
+                }
+            }
+            record
+        })
         .collect();
     let payload = PolicyInformationFramePayload {
         schema_version: OBSERVATION_SCHEMA_VERSION,
@@ -186,6 +200,26 @@ pub fn verify_policy_information_frame(
                 "future observation {} leaked into decision tick {}",
                 record.observation_id, payload.decision_tick
             )));
+        }
+        let sample_age = payload.decision_tick - record.sample_tick;
+        match &record.disposition {
+            ObservationDisposition::Current { .. }
+                if sample_age > record.freshness_window_ticks =>
+            {
+                return Err(SettlementError(format!(
+                    "over-age observation {} is incorrectly marked Current",
+                    record.observation_id
+                )));
+            }
+            ObservationDisposition::Stale { .. }
+                if sample_age <= record.freshness_window_ticks =>
+            {
+                return Err(SettlementError(format!(
+                    "observation {} is marked Stale inside its freshness window",
+                    record.observation_id
+                )));
+            }
+            _ => {}
         }
         if !ids.insert(record.observation_id.clone()) {
             return Err(SettlementError(format!(
@@ -248,9 +282,11 @@ fn validate_record(record: &ObservationRecord) -> Result<(), SettlementError> {
     match &record.disposition {
         ObservationDisposition::Current { .. } => {}
         ObservationDisposition::Stale { .. } => {
-            if record.sample_tick == record.available_tick {
+            if record.available_tick.saturating_sub(record.sample_tick)
+                <= record.freshness_window_ticks
+            {
                 return Err(SettlementError(format!(
-                    "stale observation {} has no declared delay",
+                    "stale observation {} is inside its declared freshness window",
                     record.observation_id
                 )));
             }
@@ -308,6 +344,7 @@ mod tests {
             target_generation: 1,
             sample_tick,
             available_tick,
+            freshness_window_ticks: 1,
             disposition,
         }
     }
@@ -386,7 +423,7 @@ mod tests {
         .unwrap();
 
         assert!(matches!(
-            frame.payload.observations[0].disposition,
+            &frame.payload.observations[0].disposition,
             ObservationDisposition::Stale { .. }
         ));
         assert_eq!(frame.payload.observations[0].sample_tick, 1);
@@ -418,7 +455,7 @@ mod tests {
             ObservationDisposition::Missing { .. }
         ));
         assert!(matches!(
-            frame.payload.observations[1].disposition,
+            &frame.payload.observations[1].disposition,
             ObservationDisposition::Conflicting { .. }
         ));
     }
