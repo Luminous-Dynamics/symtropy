@@ -234,3 +234,11 @@ Candidate follow-on tracks:
 - **End-to-end construction work:** only this track combines task graph, material/site/robot state, inspection evidence, recovery and end-to-end cost/time per accepted functional unit.
 
 For each track, freeze the input revision, evaluation unit, denominator, negative controls, data rights, tool versions and claim ceiling before running a comparative benchmark. A localization win must not be treated as task acceptance; a defect detector score must not be treated as an accepted construction receipt; and a simulated planner win must not be treated as field productivity.
+
+## 17. Statistical comparison protocol
+
+Use *paired scenario comparisons*, not separate random samples: B0, B1 and B2 receive the same initial state, frozen event manifest, resource budget, deterministic seed and scenario revision. Reserve a held-out seed/case set for comparative claims; do not tune B2 on the same rollouts used to report its win. Report the full per-case paired difference and every predeclared stratum (fault family, observation delay, redundancy, recoverability, dependency-graph shape, inspection result). A pooled median cannot conceal a materially worse stratum or a hard-gate failure.
+
+For the proposed 10% median time-to-accepted-work improvement goal, require (a) the point estimate reaches 10%, (b) a predeclared paired uncertainty interval supports an improvement rather than a noise-only result, (c) hard safety/evidence gates have zero regressions, and (d) rejected, aborted, unsupported and missing outcomes remain visible in the denominator. Choose the uncertainty procedure and confidence level before the run; for example, use a paired bootstrap interval for time deltas and binomial uncertainty intervals for per-case acceptance/rejection rates. Do not calculate recovery-time quantiles on strata with inadequate observations or describe synthetic confidence intervals as field-reliability evidence.
+
+Before expanding to simulation, freeze the policy versions and metric definitions. During the 1,000-rollout stage, publish scenario counts and outcomes by stratum plus the exact seed range and generator revision. Larger scenario counts are useful for tail exploration but cannot replace calibrated physical measurements or a supervised field study.
