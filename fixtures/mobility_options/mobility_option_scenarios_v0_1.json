@@ -1,0 +1,621 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "mobility-options-pareto-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_market_data_included": false,
+    "notes": "All candidate values and gate dispositions are illustrative synthetic test values. They are not measured costs, service levels, safety or legal evidence, life-cycle data, or recommendations."
+  },
+  "claim_ceiling": "synthetic_pareto_results_are_not_real_market_affordability_or_safety_evidence",
+  "scenario": {
+    "scenario_id": "MOB-OPT-SYNTH-URBAN-01",
+    "context_id": "SYNTH-URBAN-EDGE-01",
+    "service_unit": "essential_trip_bundle_per_household_month",
+    "intended_user_segment": "synthetic urban household with basic cargo and no assumed private charging"
+  },
+  "gate_definitions": [
+    {
+      "gate_id": "legal_and_operating_scope",
+      "meaning": "The candidate's declared legal/product scope is explicitly admissible for this synthetic scenario.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "essential_access_fit",
+      "meaning": "The option fits the declared trip, passenger/cargo and access needs in this synthetic scenario.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "energy_or_service_access",
+      "meaning": "A compatible energy/replenishment or service commitment is explicitly present for this synthetic scenario.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "repair_and_recovery_path",
+      "meaning": "A declared maintenance/repair/recovery path exists for this synthetic scenario.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "privacy_and_owner_control",
+      "meaning": "Owner data/control and privacy obligations are met for this synthetic scenario.",
+      "hard_gate": true
+    }
+  ],
+  "metric_definitions": [
+    {
+      "metric_id": "monthly_budget_burden_ratio",
+      "unit": "ratio",
+      "direction": "minimize",
+      "meaning": "Synthetic monthly mobility cost divided by a synthetic declared mobility budget; no price or income claim."
+    },
+    {
+      "metric_id": "essential_trip_coverage",
+      "unit": "fraction",
+      "direction": "maximize",
+      "meaning": "Synthetic fraction of defined essential trip demand served within declared requirements."
+    },
+    {
+      "metric_id": "repair_downtime_hours_month",
+      "unit": "hours_per_month",
+      "direction": "minimize",
+      "meaning": "Synthetic unavailable hours per month including repair/service delay."
+    },
+    {
+      "metric_id": "p90_access_time_minutes",
+      "unit": "minutes",
+      "direction": "minimize",
+      "meaning": "Synthetic 90th-percentile door-to-service access time in this scenario."
+    },
+    {
+      "metric_id": "lifecycle_resource_index",
+      "unit": "normalized_index",
+      "direction": "minimize",
+      "meaning": "Synthetic relative lifecycle resource-impact index. Not a measured emissions or environmental indicator."
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "01-compact-ev-plus-shared-charging",
+      "bundle_description": "Compact EV plus a declared shared/public charging service bundle (synthetic only).",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.7,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.96,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 6,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 20,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.42,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "02-compact-hybrid-plus-local-service",
+      "bundle_description": "Compact hybrid plus an independent local service plan (synthetic only).",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.64,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.95,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 7,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 15,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.7,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "03-repairable-used-vehicle-parts-pool",
+      "bundle_description": "Repairable used vehicle plus a verified parts pool (synthetic only).",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.56,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.91,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 8,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 13,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.86,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "04-cargo-cycle-plus-transit",
+      "bundle_description": "Cargo cycle plus transit and secure storage/access arrangement (synthetic only).",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.32,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.8,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 3,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 26,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.2,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "05-community-shuttle-service",
+      "bundle_description": "Community shuttle service bundle with declared operating hours and access (synthetic only).",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.78,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.9,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 4,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 34,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.3,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "06-uncertified-low-price-import",
+      "bundle_description": "Deliberately invalid low-cost option; the synthetic legal/scope hard gate fails.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "fail",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.1,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.99,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 1,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 8,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.05,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "07-no-confirmed-energy-or-service",
+      "bundle_description": "Option whose energy access and repair path are not confirmed in this synthetic scenario.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "unknown",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "unknown",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "synthetic_value",
+          "value": 0.35,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.85,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "unknown",
+          "value": null,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 18,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.28,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    },
+    {
+      "candidate_id": "08-low-upfront-cost-with-unknown-lifecycle-burden",
+      "bundle_description": "Option with a low synthetic initial burden but unknown full monthly burden; cannot be ranked.",
+      "gates": [
+        {
+          "gate_id": "legal_and_operating_scope",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "essential_access_fit",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "energy_or_service_access",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "repair_and_recovery_path",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "gate_id": "privacy_and_owner_control",
+          "disposition": "pass",
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ],
+      "metrics": [
+        {
+          "metric_id": "monthly_budget_burden_ratio",
+          "unit": "ratio",
+          "status": "unknown",
+          "value": null,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "essential_trip_coverage",
+          "unit": "fraction",
+          "status": "synthetic_value",
+          "value": 0.89,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "repair_downtime_hours_month",
+          "unit": "hours_per_month",
+          "status": "synthetic_value",
+          "value": 5,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "p90_access_time_minutes",
+          "unit": "minutes",
+          "status": "synthetic_value",
+          "value": 17,
+          "evidence_class": "synthetic_fixture_only"
+        },
+        {
+          "metric_id": "lifecycle_resource_index",
+          "unit": "normalized_index",
+          "status": "synthetic_value",
+          "value": 0.55,
+          "evidence_class": "synthetic_fixture_only"
+        }
+      ]
+    }
+  ]
+}
