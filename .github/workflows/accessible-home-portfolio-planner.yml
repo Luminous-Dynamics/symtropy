@@ -47,3 +47,19 @@ jobs:
           grep -q '"pareto_frontier":' /tmp/accessible-home-portfolio-report.json
           grep -Eq '"input_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-portfolio-report.json
           grep -q '"claim_limit":' /tmp/accessible-home-portfolio-report.json
+      - name: Run portfolio search scaling smoke test
+        run: |
+          cargo run --release --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml --bin accessible-home-portfolio-benchmark -- --interventions 10 --warmup 1 --iterations 3 > /tmp/accessible-home-portfolio-benchmark.json
+          grep -q '"synthetic_only": true' /tmp/accessible-home-portfolio-benchmark.json
+          grep -q '"intervention_count": 10' /tmp/accessible-home-portfolio-benchmark.json
+          grep -q '"evaluated_subset_count": 1024' /tmp/accessible-home-portfolio-benchmark.json
+          grep -Eq '"input_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-portfolio-benchmark.json
+          grep -Eq '"receipt_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-portfolio-benchmark.json
+          grep -q '"timed_iterations": 3' /tmp/accessible-home-portfolio-benchmark.json
+      - name: Preserve synthetic portfolio benchmark smoke report
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessible-home-portfolio-benchmark-smoke
+          path: /tmp/accessible-home-portfolio-benchmark.json
+          if-no-files-found: error
+          retention-days: 7
