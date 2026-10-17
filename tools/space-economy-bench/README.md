@@ -204,3 +204,31 @@ cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml 
 ```
 
 All likelihoods, payoffs and costs are synthetic—not lunar survey accuracy, geological priors, resource reserves, dollar values or mission investment advice. The fixture assumes the declared stage likelihoods are usable as given; real use must test conditional dependence, spatial sampling bias, representativeness, destructive sample limits, time/power/access constraints, and held-out calibration. Research tracking: [BENCH-SPACE-010](https://github.com/Luminous-Dynamics/symtropy/issues/1823).
+
+## Correlation-aware assays and constrained exploration
+
+The new `tools/space-economy-bench/examples/correlated_assay_evidence_reference.rs` addresses a common measurement-fusion error: multiplying likelihoods as if two assays were independent even though they reuse calibration standards and the same sampled patch. It also models an explicit latent spatial-representativeness state.
+
+The synthetic oracle assumes a 20% chance that a sample patch is not representative of the site-wide resource state. In that state, results are uninformative. Conditional on a representative patch, two nominal 80% assays have a 50% shared-calibration mode. Their joint likelihood is stored explicitly and its four outcome weights sum exactly to 10,000 bps in each resource state.
+
+| Portfolio/model | Gross expected value | EVSI | Measurement cost | Net value |
+|---|---:|---:|---:|---:|
+| No measurement | 50 | 0 | 0 | 50 |
+| One assay A | 61 | 11 | 4 | 57 |
+| A + B, correct shared-state model | 66.7 | 16.7 | 10 | 56.7 |
+| A + B, false independence model | 70.62 | 20.62 | 10 | 60.62 (diagnostic only) |
+| A + complementary C | 75.66 | 25.66 | 9 | **66.66** |
+
+The false independence model raises the double-positive posterior from 81.08% under the explicit joint/shared-state model to 89.01%. It predicts a gross value 3.92 units higher than the correlated model and would incorrectly make the repeated pair look worth purchasing. Because the claimed independence conflicts with shared calibration and spatial domains, its result is rejected from portfolio selection.
+
+The complementary assay uses a separate calibration domain and a separately modeled spatial domain; under this synthetic assumption, the effective two-measurement portfolio has the highest net expected value. Separate labels alone do not establish conditional independence in a real survey.
+
+The finite optimizer enumerates all permitted portfolios and selects `complementary_assay_a_c` with zero regret against that enumeration. Hard resource caps are two assays, two sample units, four power units and two elapsed hours; a three-assay overrun is rejected. Five negative controls reject missing dependence metadata, uncalibrated instruments, unmodeled/nonrepresentative sampling, missing results and a false independence claim. Eleven authored tests cover table mass, expected-value oracles, posteriors, evidence gates, budget rejection and source binding.
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example correlated_assay_evidence_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example correlated_assay_evidence_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+All rates, latent-state probabilities, payoffs and costs are synthetic. The calibration and representativeness flags validate only the benchmark fixture contract; they do not mean real lunar samples are representative. Research motivation: [NIST correlation in measurement uncertainty](https://www.nist.gov/publications/correlation-uncertainty-measurement-discussion-state-art-techniques), [NIST covariance propagation guidance](https://www.itl.nist.gov/div898/handbook/mpc/section5/mpc55.htm), and the literature on [Bayesian data fusion with unknown correlation](https://www.sciencedirect.com/science/article/pii/S1566253517302890). Follow-up: [BENCH-SPACE-011](https://github.com/Luminous-Dynamics/symtropy/issues/1824).
