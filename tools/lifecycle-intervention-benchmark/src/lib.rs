@@ -62,7 +62,7 @@ pub struct Metrics {
     pub ghg_co2e_g: Option<u64>,
     pub water_ml: Option<u64>,
     pub residual_waste_g: Option<u64>,
-    pub value_retained_bp: Option<u32>,
+    pub original_asset_service_hours_retained: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -368,8 +368,8 @@ fn evaluate_option(
     if !complete_metrics {
         reasons.push("one or more required lifecycle metrics are missing".to_owned());
     }
-    if option.metrics.value_retained_bp.is_some_and(|value| value > 10_000) {
-        reasons.push("value_retained_bp must be between 0 and 10000".to_owned());
+    if option.metrics.original_asset_service_hours_retained.is_some_and(|value| value > 10_000) {
+        reasons.push("original_asset_service_hours_retained must be between 0 and 10000".to_owned());
     }
 
     let disposition = if !digest_valid {
@@ -382,7 +382,7 @@ fn evaluate_option(
         Disposition::IncompatibleFunctionalUnit
     } else if !balance {
         Disposition::RejectedMassBalance
-    } else if option.metrics.value_retained_bp.is_some_and(|value| value > 10_000) {
+    } else if option.metrics.original_asset_service_hours_retained.is_some_and(|value| value > 10_000) {
         Disposition::InvalidMetrics
     } else if [&option.safety, &option.function, &option.inspection].iter().any(|gate| **gate == Gate::Fail) {
         Disposition::RejectedHardGate
@@ -431,7 +431,7 @@ fn metrics_complete(metrics: &Metrics) -> bool {
         && metrics.ghg_co2e_g.is_some()
         && metrics.water_ml.is_some()
         && metrics.residual_waste_g.is_some()
-        && metrics.value_retained_bp.is_some()
+        && metrics.original_asset_service_hours_retained.is_some()
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -449,7 +449,7 @@ fn production_dominates(a: &InterventionOption, b: &InterventionOption) -> bool 
         && am.ghg_co2e_g.unwrap() <= bm.ghg_co2e_g.unwrap()
         && am.water_ml.unwrap() <= bm.water_ml.unwrap()
         && am.residual_waste_g.unwrap() <= bm.residual_waste_g.unwrap();
-    let retention_no_worse = am.value_retained_bp.unwrap() >= bm.value_retained_bp.unwrap();
+    let retention_no_worse = am.original_asset_service_hours_retained.unwrap() >= bm.original_asset_service_hours_retained.unwrap();
     let strict =
         am.cost_cents.unwrap() < bm.cost_cents.unwrap()
         || am.virgin_material_g.unwrap() < bm.virgin_material_g.unwrap()
@@ -457,7 +457,7 @@ fn production_dominates(a: &InterventionOption, b: &InterventionOption) -> bool 
         || am.ghg_co2e_g.unwrap() < bm.ghg_co2e_g.unwrap()
         || am.water_ml.unwrap() < bm.water_ml.unwrap()
         || am.residual_waste_g.unwrap() < bm.residual_waste_g.unwrap()
-        || am.value_retained_bp.unwrap() > bm.value_retained_bp.unwrap();
+        || am.original_asset_service_hours_retained.unwrap() > bm.original_asset_service_hours_retained.unwrap();
     minimizing_no_worse && retention_no_worse && strict
 }
 
@@ -480,7 +480,7 @@ fn oracle_frontier(options: &[&InterventionOption]) -> BTreeSet<String> {
             o.metrics.ghg_co2e_g.unwrap() as i128,
             o.metrics.water_ml.unwrap() as i128,
             o.metrics.residual_waste_g.unwrap() as i128,
-            -(o.metrics.value_retained_bp.unwrap() as i128),
+            -(o.metrics.original_asset_service_hours_retained.unwrap() as i128),
         ]
     };
     let mut frontier = BTreeSet::new();

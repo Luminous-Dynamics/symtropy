@@ -141,7 +141,7 @@
             "ghg_co2e_g": 1200,
             "water_ml": 300,
             "residual_waste_g": 100,
-            "value_retained_bp": 8000
+            "original_asset_service_hours_retained": 8000
           },
           "flows": {
             "input_g": 1000,
@@ -167,7 +167,7 @@
             "ghg_co2e_g": 1800,
             "water_ml": 800,
             "residual_waste_g": 20,
-            "value_retained_bp": 9500
+            "original_asset_service_hours_retained": 9500
           },
           "flows": {
             "input_g": 1000,
@@ -193,7 +193,7 @@
             "ghg_co2e_g": 2200,
             "water_ml": 900,
             "residual_waste_g": 130,
-            "value_retained_bp": 7000
+            "original_asset_service_hours_retained": 7000
           },
           "flows": {
             "input_g": 1000,
@@ -242,7 +242,7 @@
             "ghg_co2e_g": 1200,
             "water_ml": 300,
             "residual_waste_g": 100,
-            "value_retained_bp": 8000
+            "original_asset_service_hours_retained": 8000
           },
           "flows": {
             "input_g": 1000,
@@ -268,7 +268,7 @@
             "ghg_co2e_g": 250,
             "water_ml": 50,
             "residual_waste_g": 0,
-            "value_retained_bp": 9900
+            "original_asset_service_hours_retained": 9900
           },
           "flows": {
             "input_g": 1000,
@@ -294,7 +294,7 @@
             "ghg_co2e_g": 250,
             "water_ml": 50,
             "residual_waste_g": 0,
-            "value_retained_bp": 9900
+            "original_asset_service_hours_retained": 9900
           },
           "flows": {
             "input_g": 1000,
@@ -342,7 +342,7 @@
             "ghg_co2e_g": 3000,
             "water_ml": 700,
             "residual_waste_g": 200,
-            "value_retained_bp": 2000
+            "original_asset_service_hours_retained": 0
           },
           "flows": {
             "input_g": 1000,
@@ -368,7 +368,7 @@
             "ghg_co2e_g": 2700,
             "water_ml": 600,
             "residual_waste_g": 100,
-            "value_retained_bp": 2500
+            "original_asset_service_hours_retained": 0
           },
           "flows": {
             "input_g": 1000,
@@ -394,7 +394,7 @@
             "ghg_co2e_g": 7900,
             "water_ml": 2000,
             "residual_waste_g": 300,
-            "value_retained_bp": 1000
+            "original_asset_service_hours_retained": 0
           },
           "flows": {
             "input_g": 1000,
@@ -442,7 +442,7 @@
             "ghg_co2e_g": 800,
             "water_ml": 250,
             "residual_waste_g": 100,
-            "value_retained_bp": 9000
+            "original_asset_service_hours_retained": 9000
           },
           "flows": {
             "input_g": 1000,
@@ -468,7 +468,7 @@
             "ghg_co2e_g": 8000,
             "water_ml": 3000,
             "residual_waste_g": 200,
-            "value_retained_bp": 3000
+            "original_asset_service_hours_retained": 0
           },
           "flows": {
             "input_g": 1000,
@@ -494,7 +494,7 @@
             "ghg_co2e_g": 8000,
             "water_ml": 3000,
             "residual_waste_g": 200,
-            "value_retained_bp": 3000
+            "original_asset_service_hours_retained": 0
           },
           "flows": {
             "input_g": 1000,
@@ -542,7 +542,7 @@
             "ghg_co2e_g": 400,
             "water_ml": 100,
             "residual_waste_g": 20,
-            "value_retained_bp": 9000
+            "original_asset_service_hours_retained": 9000
           },
           "flows": {
             "input_g": 1000,
@@ -568,7 +568,7 @@
             "ghg_co2e_g": 8000,
             "water_ml": 3000,
             "residual_waste_g": 1000,
-            "value_retained_bp": 0
+            "original_asset_service_hours_retained": 0
           },
           "flows": {
             "input_g": 1000,

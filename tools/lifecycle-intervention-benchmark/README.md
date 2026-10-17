@@ -12,7 +12,7 @@ SOURCE_REVISION="$(git rev-parse HEAD)" cargo run --manifest-path tools/lifecycl
 
 ## Model
 
-All fixture values are synthetic, integer-valued illustration inputs. The model compares cost, virgin material input, energy, greenhouse-gas impact, water, residual waste, and a declared value-retention indicator. Six metrics are minimized; value retention is maximized. The engine exposes non-dominated options, not one composite sustainability score.
+All fixture values are synthetic, integer-valued illustration inputs. The model compares cost, virgin material input, energy, greenhouse-gas impact, water, residual waste, and a original-asset service hours retained. Six metrics are minimized; original-asset service hours retained is maximized. The engine exposes non-dominated options, not one composite sustainability score.
 
 Before an option can be ranked, its evidence digest/status/claim/scope/coverage, safety gate, functional-unit identity, inspection gate, required metrics, and exact material-fate balance must pass. Missing metrics remain unknown, never zero. The mutually exclusive final fates of the old asset are kept in service, reused component, recycled material, energy recovery, and residual; the sums must equal the declared input mass, and residual must agree with the residual-waste metric.
 

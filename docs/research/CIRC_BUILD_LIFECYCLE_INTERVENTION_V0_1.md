@@ -28,7 +28,7 @@ An option is rankable only if:
 1. The referenced evidence's exact payload SHA-256 matches, evidence status is valid, the claim is the lifecycle-eligibility claim, the scope matches, and coverage is complete.
 2. Safety, functional delivery, and post-intervention inspection all pass.
 3. The option delivers the scenario's exact functional unit.
-4. Required lifecycle metrics are present, value retention is within its declared range, and the mass-fate ledger conserves the declared input exactly.
+4. Required lifecycle metrics are present, original-asset service hours retained must lie within its declared range, and the mass-fate ledger conserves the declared input exactly.
 5. Reported residual waste matches the residual mass flow.
 
 Fail-closed states are distinct: eligible, hard-gate rejection, rejected evidence, invalid digest, out-of-scope, incompatible functional unit, rejected mass balance, incomplete coverage, unknown, and invalid metrics.
@@ -37,7 +37,7 @@ The mass fate ledger partitions the prior asset into mutually exclusive bins: ke
 
 ## Objective vector
 
-Minimize each of: lifecycle cost per functional unit, virgin material input, energy, GHG impact, water, and residual waste. Maximize declared material/function value retained (basis points; 0–10,000).
+Minimize each of: lifecycle cost per functional unit, virgin material input, energy, GHG impact, water, and residual waste. Maximize original-asset service hours retained (hours, 0–10,000).
 
 This intentionally produces a set of non-dominated choices instead of pretending the metrics have universal exchange rates. Safety and evidence gates are not objectives and cannot be traded away.
 
