@@ -446,10 +446,7 @@
           "duration_basis_id": "synthetic-duration-basis-v1"
         }
       ],
-      "expected_recommended_action_order": [
-        "mean-load-probe",
-        "high-frequency-metering"
-      ]
+      "expected_recommended_action_order": []
     },
     {
       "id": "SPR-V-003",
@@ -858,8 +855,7 @@
         }
       ],
       "expected_recommended_action_order": [
-        "wall-survey-plus-qualified-fire-review",
-        "wall-only-survey"
+        "wall-survey-plus-qualified-fire-review"
       ]
     },
     {
