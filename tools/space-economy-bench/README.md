@@ -183,3 +183,24 @@ The next-measurement decision loop is covered by `tools/space-economy-bench/exam
 
 
 The direct assay produces synthetic posterior probabilities of 90% after a positive result and 10% after a negative result. The lower-resolution assay produces 60%/40%; because both outcomes still favor the same build decision under this payoff model, its EVSI remains zero. The receipt exposes these posteriors alongside the chosen conditional action so reviewers can audit why a result does or does not change the route.
+
+## Adaptive sequential resource exploration
+
+The separate `tools/space-economy-bench/examples/sequential_resource_exploration_reference.rs` tests a conditional measurement policy rather than a one-shot survey ranking. It first runs a cheap synthetic remote screen (70% sensitivity/specificity, cost 1), then calculates the expected value of a 90%/90% follow-up separately for each observed branch. The follow-up costs 20 synthetic units and is bought only when branch-conditional EVSI exceeds its cost.
+
+For the fixed fixture:
+- Prior rich-site probability: 50%; local-build payoff +200 if rich and -100 if poor; import payoff 0.
+- The posterior after the screen is 70% following a positive result and 30% following a negative result.
+- Conditional follow-up EVSI is 13 units after a positive screen, so the 20-unit follow-up is rejected; after a negative screen it is 47 units, so the follow-up is purchased.
+- The adaptive policy's expected survey cost is 11 units and net expected value is 67.5; buying the high-resolution assay directly costs 20 and has net expected value 65. Thus the adaptive policy's net advantage is 2.5 synthetic units in this deliberately chosen fixture.
+- A cost-60 negative control buys no follow-up on either branch.
+
+The implementation enumerates exact integer joint probability weights under one fixed denominator, never uses floating point to select the policy, and emits a receipt binding the source commit and source SHA-256.
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example sequential_resource_exploration_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example sequential_resource_exploration_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+All likelihoods, payoffs and costs are synthetic—not lunar survey accuracy, geological priors, resource reserves, dollar values or mission investment advice. The fixture assumes the declared stage likelihoods are usable as given; real use must test conditional dependence, spatial sampling bias, representativeness, destructive sample limits, time/power/access constraints, and held-out calibration. Research tracking: [BENCH-SPACE-010](https://github.com/Luminous-Dynamics/symtropy/issues/1823).
