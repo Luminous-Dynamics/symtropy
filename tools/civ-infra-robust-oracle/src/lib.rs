@@ -676,6 +676,30 @@ fn evaluate_fixture(fixture: &RobustFixture, input_sha256: String) -> RobustRepo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::Serialize;
+    use sha2::{Digest, Sha256};
+
+    #[derive(Serialize)]
+    struct GeneratedCaseEvidence {
+        fixture_id: String,
+        input_sha256: String,
+        candidate_state_evaluations: usize,
+        oracle_dispositions: BTreeMap<String, CandidateDisposition>,
+        evaluated_dispositions: BTreeMap<String, CandidateDisposition>,
+        oracle_frontier: Vec<String>,
+        evaluated_frontier: Vec<String>,
+    }
+
+    #[derive(Serialize)]
+    struct GeneratedCorpusEvidence {
+        schema_version: String,
+        base_fixture_sha256: String,
+        generator: String,
+        initial_seed: String,
+        generated_fixture_count: usize,
+        total_candidate_state_evaluations: usize,
+        cases: Vec<GeneratedCaseEvidence>,
+    }
 
     fn fixture_bytes() -> &'static [u8] {
         include_bytes!("../fixtures/robust-v0.1.json")
@@ -841,6 +865,7 @@ mod tests {
     fn generated_finite_worlds_match_independent_oracle_for_over_ten_thousand_states() {
         let mut seed = 0xC1_71_1F_A5_2026_u64;
         let mut state_evaluations = 0usize;
+        let mut case_evidence = Vec::new();
         const GENERATED_FIXTURES: usize = 625;
 
         for case_index in 0..GENERATED_FIXTURES {
@@ -878,9 +903,37 @@ mod tests {
                 report.robust_pareto_frontier_candidate_ids,
                 "Pareto mismatch for generated fixture {case_index}"
             );
+            let evaluated_dispositions = report
+                .candidates
+                .iter()
+                .map(|candidate| (candidate.candidate_id.clone(), candidate.disposition))
+                .collect::<BTreeMap<_, _>>();
+            case_evidence.push(GeneratedCaseEvidence {
+                fixture_id: fixture.fixture_id.clone(),
+                input_sha256: format!("{:x}", Sha256::digest(&bytes)),
+                candidate_state_evaluations: fixture.candidates.len() * fixture.states.len(),
+                oracle_dispositions: expected,
+                evaluated_dispositions,
+                oracle_frontier: expected_frontier,
+                evaluated_frontier: report.robust_pareto_frontier_candidate_ids,
+            });
         }
 
         assert_eq!(state_evaluations, 12_500);
+        if let Ok(path) = std::env::var("CIV_INFRA_CORPUS_OUT") {
+            let evidence = GeneratedCorpusEvidence {
+                schema_version: "luminous.civ_infra.robust_generated_corpus.v0.1".to_string(),
+                base_fixture_sha256: format!("{:x}", Sha256::digest(fixture_bytes())),
+                generator: "lcg64-6364136223846793005-1442695040888963407".to_string(),
+                initial_seed: "0xC1711FA52026".to_string(),
+                generated_fixture_count: case_evidence.len(),
+                total_candidate_state_evaluations: state_evaluations,
+                cases: case_evidence,
+            };
+            let json =
+                serde_json::to_vec_pretty(&evidence).expect("corpus evidence serializes");
+            std::fs::write(path, json).expect("generated corpus evidence writes");
+        }
     }
 
     #[test]
