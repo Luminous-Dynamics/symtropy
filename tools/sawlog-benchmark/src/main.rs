@@ -247,27 +247,45 @@ fn totals(s: &Scenario) -> Check<(u128, u128, u128)> {
     Ok((boards, byproducts, combined))
 }
 fn estimated_geometry_volume_mm3(log: &LogGeometry) -> Check<u128> {
-    // Each measured section is treated as an ellipse. Integrate its area along the
-    // log axis with a trapezoid rule; the result is a reference estimate, not CT truth.
-    let mut volume = 0.0_f64;
+    // V = pi/8 * sum((d_major * d_minor)_i + (d_major * d_minor)_(i+1)) * dx.
+    // A scaled integer pi and checked u128 arithmetic make rounding reproducible
+    // across targets; this is an elliptical-section estimate, not CT truth.
+    const PI_SCALED: u128 = 3_141_592_653_590;
+    const PI_SCALE: u128 = 1_000_000_000_000;
+    const DENOMINATOR: u128 = 8 * PI_SCALE;
+
+    let mut diameter_integral = 0_u128;
     for pair in log.stations.windows(2) {
         let left = &pair[0];
         let right = &pair[1];
-        let left_area = std::f64::consts::PI
-            * (left.major_diameter_mm as f64)
-            * (left.minor_diameter_mm as f64)
-            / 4.0;
-        let right_area = std::f64::consts::PI
-            * (right.major_diameter_mm as f64)
-            * (right.minor_diameter_mm as f64)
-            / 4.0;
-        let dx = (right.axial_position_mm - left.axial_position_mm) as f64;
-        volume += (left_area + right_area) * 0.5 * dx;
+        let left_product = u128::from(left.major_diameter_mm)
+            .checked_mul(u128::from(left.minor_diameter_mm))
+            .ok_or_else(|| format!("{}: left section area product overflow", log.log_id))?;
+        let right_product = u128::from(right.major_diameter_mm)
+            .checked_mul(u128::from(right.minor_diameter_mm))
+            .ok_or_else(|| format!("{}: right section area product overflow", log.log_id))?;
+        let paired_area = left_product
+            .checked_add(right_product)
+            .ok_or_else(|| format!("{}: paired section area overflow", log.log_id))?;
+        let dx = u128::from(right.axial_position_mm - left.axial_position_mm);
+        let segment = paired_area
+            .checked_mul(dx)
+            .ok_or_else(|| format!("{}: geometry segment volume overflow", log.log_id))?;
+        diameter_integral = diameter_integral
+            .checked_add(segment)
+            .ok_or_else(|| format!("{}: integrated geometry volume overflow", log.log_id))?;
     }
-    if !volume.is_finite() || volume <= 0.0 || volume > u64::MAX as f64 {
+    let scaled_volume = diameter_integral
+        .checked_mul(PI_SCALED)
+        .ok_or_else(|| format!("{}: scaled geometry volume overflow", log.log_id))?;
+    let rounded = scaled_volume
+        .checked_add(DENOMINATOR / 2)
+        .ok_or_else(|| format!("{}: geometry rounding overflow", log.log_id))?
+        / DENOMINATOR;
+    if rounded == 0 || rounded > u128::from(u64::MAX) {
         return Err(format!("{}: geometry-derived volume is outside representable bounds", log.log_id));
     }
-    Ok(volume.round() as u128)
+    Ok(rounded)
 }
 
 fn validate(c: &Corpus) -> Check<()> {
