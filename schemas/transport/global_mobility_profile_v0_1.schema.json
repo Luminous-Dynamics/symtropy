@@ -395,11 +395,11 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "basic_operation_without_cloud",
-            "offline_safe_degraded_behavior",
-            "owner_data_control",
+            "basic_operation_without_cloud_required",
+            "offline_safe_degraded_behavior_required",
+            "owner_data_control_required",
             "cloud_required_for_basic_function",
-            "privacy_by_default"
+            "privacy_by_default_required"
           ],
           "properties": {
             "cloud_required_for_basic_function": {
@@ -424,7 +424,7 @@
           "additionalProperties": false,
           "required": [
             "manual_language_status",
-            "local_units_supported",
+            "local_units_support_required",
             "offline_manuals_required",
             "language_list"
           ],
