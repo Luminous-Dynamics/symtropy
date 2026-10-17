@@ -95,6 +95,8 @@ Targets below are proposed acceptance criteria, not measured performance.
 - Test small exhaustive candidate sets first; later scale to 100 / 1,000 / 10,000 synthetic candidates and report p50/p95/p99, memory, hardware, compiler and corpus digest.
 - Establish runtime targets only after an exact, reproducible baseline. Queue state does not count as validation.
 
+The cross-domain decision-impact owners are already tracked in Symtropy [CIV-INFRA-ROBUST-001 #1769](https://github.com/Luminous-Dynamics/symtropy/issues/1769) and [CIV-INFRA-DECISION-001 #1789](https://github.com/Luminous-Dynamics/symtropy/issues/1789). Terrain-native work should compose their finite-state robustness and next-measurement contracts rather than create a parallel value-of-information engine. Without defensible priors and observation likelihoods, report deterministic decision impact and worst-case changes—not expected VoI or invented probabilities.
+
 ## 7. Next useful measurement, not fake certainty
 
 A useful result is sometimes a ranked investigation plan rather than a building concept. Potential investigations may include a qualified topographic/hydrologic survey, geotechnical fieldwork and laboratory testing, groundwater monitoring, rock-mass discontinuity mapping, current official hazard assessment, or ecological/jurisdictional review. The required work and methods must be chosen by qualified professionals for the actual site.
