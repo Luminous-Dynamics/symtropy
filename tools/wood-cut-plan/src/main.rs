@@ -180,12 +180,6 @@ impl PartialPlan {
         }
     }
 
-    fn loss_length_mm(&self) -> Check<u64> {
-        self.kerf_loss_mm
-            .checked_add(self.unusable_residual_length_mm)
-            .ok_or_else(|| "unrecoverable-loss length overflow".to_owned())
-    }
-
     fn into_receipt(self, products: &[ProductSpec]) -> PlanReceipt {
         let product_counts = products
             .iter()
@@ -1048,11 +1042,15 @@ mod tests {
             .expect("frozen reference corpus evaluates");
         assert_eq!(receipt["result"], "pass");
         assert_eq!(receipt["scenario_count"], 3);
-        assert!(receipt["scenarios"]
-            .as_array()
-            .expect("scenario list")
-            .iter()
-            .all(|scenario| scenario["status"] == "pass"));
+        let scenarios = receipt["scenarios"].as_array().expect("scenario list");
+        assert!(scenarios.iter().all(|scenario| scenario["status"] == "pass"));
+        assert_eq!(scenarios[0]["greedy_baseline"]["plan"]["sale_value_microcredits"], 1500);
+        assert_eq!(scenarios[1]["greedy_baseline"]["plan"]["sale_value_microcredits"], 2060);
+        assert_eq!(scenarios[2]["greedy_baseline"]["plan"]["sale_value_microcredits"], 50);
+        assert!(scenarios.iter().all(|scenario| {
+            scenario["greedy_baseline"]["meets_minimum_pieces"] == true
+                && scenario["baseline_is_covered_by_pareto_frontier"] == true
+        }));
     }
 
     #[test]
