@@ -457,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_four_synthetic_profiles_and_seven_controls() {
+    fn accepts_four_synthetic_profiles_and_eight_controls() {
         let (schema, fixture, _) = frozen_values();
         let result = audit(&schema, &fixture).expect("frozen personalization contract");
         assert_eq!(result.profile_count, 4);
