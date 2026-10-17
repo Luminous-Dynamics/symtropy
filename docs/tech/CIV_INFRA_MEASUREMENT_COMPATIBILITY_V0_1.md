@@ -27,7 +27,7 @@ This prototype demonstrates that principle with a small whitelist of determinist
 
 ## 3. Evidence semantics
 
-Model and upstream-report references are preserved in the report. Supplied SHA-256 strings are checked for syntax, not retrieved from an artifact store or verified against bytes. The exact input JSON byte hash is computed by the CLI and bound to the report.
+Model and upstream-report references are preserved in the report. Supplied artifact SHA-256 strings are checked for syntax, not retrieved from an artifact store or verified against bytes. The public byte API hashes the exact raw JSON bytes itself, parses those same bytes, and binds that digest to the report; callers cannot supply a replacement input digest. Inputs above 4 MiB are rejected before parsing.
 
 Consequently, v0.1 does **not** establish model authenticity, sensor calibration, observation-model correctness, model validation or engineering truth. \`model_artifact_ref\` is traceability metadata, not proof. A later artifact adapter must retrieve the exact referenced bytes, verify the hash and scope, and record verified/unverified status before the output can claim source-backed model provenance.
 
@@ -45,7 +45,7 @@ Acceptance targets:
 4. 100% preservation of the prior state set for unsupported observations, including observations that fall in a generic output bin but outside every state-specific predicted envelope.
 5. Exact meter/millimeter equivalence and order-invariant semantic reports.
 6. Exact deterministic replay for the same bytes, rule version and toolchain.
-7. No compatibility work above 100,000 state/outcome combinations in v0.1; higher-throughput evaluation should use a separately reviewed streaming/compact-receipt design rather than merely raising the allocation cap.
+7. Inputs above 4 MiB are rejected before parsing; no compatibility work above 100,000 state/outcome combinations is allowed in v0.1; higher-throughput evaluation should use a separately reviewed streaming/compact-receipt design rather than merely raising the allocation cap.
 8. Report generated world count, edge count, source commit, exact input digest, artifact checksum and wall-clock/memory measurements before asserting scale.
 
 These criteria establish implementation consistency against the declared interval contract only. They do not qualify a physical measurement system.
