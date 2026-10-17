@@ -54,7 +54,6 @@ fn parse_args() -> Result<Options, String> {
 fn build_input(count: usize) -> Result<Vec<u8>, String> {
     validate_count(count)?;
     let groups = 5usize;
-    let options_per_group = count / groups;
     let hard_constraints: Vec<Value> = (0..groups).map(|g| json!({
         "id": format!("bench-hard-{g}"),
         "statement": format!("Synthetic constraint group {g} must have a declared planned remediation."),
