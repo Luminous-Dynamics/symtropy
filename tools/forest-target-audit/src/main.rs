@@ -563,47 +563,51 @@ impl<'a> TargetOracleSolver<'a> {
         if candidate.selected.len() != current.selected.len() { return candidate.selected.len() < current.selected.len(); }
         candidate.selected < current.selected
     }
-    fn search(&mut self, state: OracleSearchState) {
+    fn start_state(&self) -> OracleSearchState {
+        OracleSearchState {
+            selected: Vec::new(),
+            feature_mask: 0,
+            outbound: 0,
+            at: self.config.start_cell,
+            heading: Heading::North,
+        }
+    }
+    fn transition(&self, state: &OracleSearchState, candidate_index: usize) -> Option<OracleSearchState> {
+        if state.selected.contains(&candidate_index) { return None; }
+        let candidate = self.candidates.get(candidate_index)?;
+        if candidate.feature_mask & !state.feature_mask == 0 { return None; }
+        let travel = self.distances[state.at][candidate.cell]?;
+        let turn = if state.heading == candidate.view.heading { 0 } else { self.config.turn_cost_steps };
+        let outbound = state.outbound.saturating_add(travel).saturating_add(turn);
+        let back = self.distances[candidate.cell][self.config.start_cell]?;
+        let total = outbound.saturating_add(back).saturating_add(self.config.return_reserve_steps);
+        if total > self.config.energy_budget_steps { return None; }
+        let mut selected = state.selected.clone();
+        selected.push(candidate_index);
+        Some(OracleSearchState {
+            selected,
+            feature_mask: state.feature_mask | candidate.feature_mask,
+            outbound,
+            at: candidate.cell,
+            heading: candidate.view.heading,
+        })
+    }
+    fn search(&mut self, state: OracleSearchState, limit: usize) {
         self.expanded_state_count = self.expanded_state_count.saturating_add(1);
         if self.best.as_ref().map_or(true, |best| self.better(&state, best)) {
             self.best = Some(state.clone());
         }
-        if state.selected.len() >= usize::from(self.config.max_viewpoints) { return; }
+        if state.selected.len() >= limit { return; }
         for candidate_index in 0..self.candidates.len() {
-            if state.selected.contains(&candidate_index) { continue; }
-            let (cell, view, candidate_mask) = {
-                let candidate = &self.candidates[candidate_index];
-                (candidate.cell, candidate.view, candidate.feature_mask)
-            };
-            if candidate_mask & !state.feature_mask == 0 { continue; }
-            let Some(travel) = self.distances[state.at][cell] else { continue; };
-            let turn = if state.heading == view.heading { 0 } else { self.config.turn_cost_steps };
-            let outbound = state.outbound.saturating_add(travel).saturating_add(turn);
-            let Some(back) = self.distances[cell][self.config.start_cell] else { continue; };
-            let total = outbound.saturating_add(back).saturating_add(self.config.return_reserve_steps);
-            if total > self.config.energy_budget_steps { continue; }
-            let mut selected = state.selected.clone();
-            selected.push(candidate_index);
-            self.search(OracleSearchState {
-                selected,
-                feature_mask: state.feature_mask | candidate_mask,
-                outbound,
-                at: cell,
-                heading: view.heading,
-            });
+            self.candidate_evaluation_count = self.candidate_evaluation_count.saturating_add(1);
+            if let Some(next) = self.transition(&state, candidate_index) {
+                self.search(next, limit);
+            }
         }
     }
-    fn solve(mut self) -> Check<TargetOracleResult> {
-        let initial = OracleSearchState {
-            selected: Vec::new(), feature_mask: 0, outbound: 0,
-            at: self.config.start_cell, heading: Heading::North,
-        };
-        self.search(initial);
-        let candidate_count = self.candidates.len();
-        let expanded_state_count = self.expanded_state_count;
-        let best = self.best.take().ok_or_else(|| "target oracle found no feasible state".to_owned())?;
+    fn plan_and_score(&self, best: &OracleSearchState, label: &str) -> Check<(PlannerPlan, MethodScore)> {
         let (back, total) = self.total(best.outbound, &best.selected)
-            .ok_or_else(|| "target oracle best state has no return path".to_owned())?;
+            .ok_or_else(|| format!("{label}: selected state has no return path"))?;
         let viewpoints: Vec<Viewpoint> = best.selected.iter()
             .map(|i| self.candidates[*i].view).collect();
         let plan = PlannerPlan {
@@ -614,19 +618,92 @@ impl<'a> TargetOracleSolver<'a> {
             total_budgeted_steps: total,
             viewpoints,
         };
-        verify_plan_contract(self.map, &plan, &self.config, "target-objective oracle")?;
+        verify_plan_contract(self.map, &plan, &self.config, label)?;
         let score = score_plan(self.map, &plan, self.targets)?;
         let (complete, visible) = self.objective(best.feature_mask);
         if score.complete_target_count != complete || score.visible_feature_count != visible {
-            return Err("target oracle bit-mask objective disagrees with independently scored plan".into());
+            return Err(format!("{label}: bit-mask objective disagrees with independently scored plan"));
         }
+        Ok((plan, score))
+    }
+    fn solve(mut self) -> Check<TargetOracleResult> {
+        let initial = self.start_state();
+        let limit = usize::from(self.config.max_viewpoints);
+        self.search(initial, limit);
+        let candidate_count = self.candidates.len();
+        let expanded_state_count = self.expanded_state_count;
+        let candidate_evaluation_count = self.candidate_evaluation_count;
+        let best = self.best.take().ok_or_else(|| "target oracle found no feasible state".to_owned())?;
+        let (plan, score) = self.plan_and_score(&best, "target-objective oracle")?;
         Ok(TargetOracleResult {
-            candidate_count, expanded_state_count,
+            candidate_count,
+            candidate_evaluation_count,
+            expanded_state_count,
             objective: "maximize complete targets; then maximize visible required feature samples; then minimize budgeted steps; then minimize viewpoint count; final ties use stable candidate order".into(),
             plan,
             score,
         })
     }
+    fn target_aware_greedy(mut self) -> Check<TargetPolicyResult> {
+        let candidate_count = self.candidates.len();
+        let mut state = self.start_state();
+        let mut replanning_count = 0usize;
+        while state.selected.len() < usize::from(self.config.max_viewpoints) {
+            replanning_count += 1;
+            let mut best_next: Option<OracleSearchState> = None;
+            for candidate_index in 0..self.candidates.len() {
+                self.candidate_evaluation_count = self.candidate_evaluation_count.saturating_add(1);
+                if let Some(next) = self.transition(&state, candidate_index) {
+                    if best_next.as_ref().map_or(true, |prior| self.better(&next, prior)) {
+                        best_next = Some(next);
+                    }
+                }
+            }
+            match best_next {
+                Some(next) => state = next,
+                None => break,
+            }
+        }
+        let candidate_evaluation_count = self.candidate_evaluation_count;
+        let (plan, score) = self.plan_and_score(&state, "target-aware greedy")?;
+        Ok(TargetPolicyResult {
+            policy: "greedy: maximize complete targets, then required-feature visibility, then minimize cost".into(),
+            candidate_count,
+            candidate_evaluation_count,
+            replanning_count,
+            plan,
+            score,
+        })
+    }
+    fn target_aware_receding_horizon(mut self) -> Check<TargetPolicyResult> {
+        let candidate_count = self.candidates.len();
+        let mut state = self.start_state();
+        let mut replanning_count = 0usize;
+        let max_views = usize::from(self.config.max_viewpoints);
+        while state.selected.len() < max_views {
+            replanning_count += 1;
+            let horizon_limit = (state.selected.len() + 2).min(max_views);
+            self.best = Some(state.clone());
+            self.search(state.clone(), horizon_limit);
+            let horizon_best = self.best.take()
+                .ok_or_else(|| "target-aware lookahead found no feasible horizon state".to_owned())?;
+            if horizon_best.selected.len() <= state.selected.len() { break; }
+            let next_index = horizon_best.selected[state.selected.len()];
+            state = self.transition(&state, next_index)
+                .ok_or_else(|| "target-aware lookahead could not replay its first horizon action".to_owned())?;
+        }
+        let candidate_evaluation_count = self.candidate_evaluation_count;
+        let (plan, score) = self.plan_and_score(&state, "target-aware two-step receding horizon")?;
+        Ok(TargetPolicyResult {
+            policy: "two-step receding horizon: replan after one chosen viewpoint; optimize complete targets, then required-feature visibility, then cost".into(),
+            candidate_count,
+            candidate_evaluation_count,
+            replanning_count,
+            plan,
+            score,
+        })
+    }
+
 }
 fn target_regret(oracle: &MethodScore, compared: &MethodScore) -> TargetRegret {
     TargetRegret {
