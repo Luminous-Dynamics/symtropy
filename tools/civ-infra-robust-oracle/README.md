@@ -14,7 +14,9 @@ The report hashes the exact fixture bytes and states the claim ceiling. The five
 
 ## Fail-closed behavior
 
-- Only explicitly declared finite discrete support plus an exhaustive joint state set can support an R0 robust classification.
+- R0 independently checks that the declared exhaustive state set contains every tuple in the full Cartesian product of the finite discrete supports, with no missing or duplicate tuples.
+- R0 caps exhaustive Cartesian evaluation at 100,000 joint states; oversized products fail closed instead of being sampled.
+- Correlated/joint supports are not yet certified by R0. A trusted boolean is not enough: correlated scenarios need a future explicit, evidence-backed dependency contract.
 - Bounded intervals are not treated as safe merely because endpoints/samples are present; R0 reports unknown until an interval-safe evaluator exists.
 - Unbounded unknowns, unknown evidence and incomplete scenario coverage prevent robust-feasible claims.
 - Missing per-candidate state results or missing objective/constraint evidence produce unknown, not pass.
