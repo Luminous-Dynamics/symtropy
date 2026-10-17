@@ -1,0 +1,813 @@
+{
+  "title": "Light-field display angle-depth-luminance-dynamics workload corpus",
+  "corpus_id": "VIS-LF-CORPUS-001",
+  "schema_version": "0.1.0",
+  "status": "UNQUALIFIED",
+  "created_date": "2026-10-17",
+  "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/1826",
+  "case_count": 24,
+  "minimum_case_count": 24,
+  "references": [
+    {
+      "id": "ssslid-2026",
+      "url": "https://doi.org/10.1038/s41566-026-01938-8",
+      "title": "Super-Snell scanning light-field display (Nature Photonics, 2026)",
+      "use": "Published reference and trade-off analysis; not assumed to be reproduced"
+    },
+    {
+      "id": "lf-resolution-method",
+      "url": "https://trepo.tuni.fi/bitstream/handle/10024/213976/LFResolutionMeasurement_JSTSP_final.pdf?sequence=-1",
+      "title": "Quantifying spatial and angular resolution of light field 3D displays",
+      "use": "Spatial/angular resolution measurement concepts"
+    },
+    {
+      "id": "camera-in-loop-2026",
+      "url": "https://opg.optica.org/abstract.cfm?uri=DH-2026-Tu1A.3",
+      "title": "Camera-in-the-loop optical calibration (Optica, 2026)",
+      "use": "Calibration-in-loop methodological reference"
+    },
+    {
+      "id": "symtropy-ref",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/tree/research/vis-optics-001-contract-2026-10-17/tools/visual-optics-reference",
+      "title": "Symtropy visual optics reference package",
+      "use": "Analytic geometry reference; not a full light-field optics model"
+    }
+  ],
+  "evidence_lanes": {
+    "software_synthetic": "Deterministic metadata/model negative controls; no physical-performance or upstream legal-rights claim.",
+    "physical_measurement": "Requires named device, calibration, angle/depth geometry, instruments, raw data and uncertainty."
+  },
+  "cases": [
+    {
+      "id": "VIS-LF-ANGLE-SWEEP-001",
+      "title": "Usable viewing-angle envelope, not nominal field of view",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "nominal_sweep_degrees": {
+          "start": -75,
+          "end": 75,
+          "step": 5
+        },
+        "image_depth_mm": [
+          0,
+          20,
+          40
+        ],
+        "test_chart": "pinned resolution-and-contrast target"
+      },
+      "expected_behavior": "Report nominal optical angle separately from usable angle. A point counts as usable only if preregistered luminance, MTF, crosstalk and geometric-error floors are all met.",
+      "metrics": [
+        "usable angle by depth",
+        "nominal angle",
+        "angle-resolved MTF",
+        "luminance cd/m2",
+        "crosstalk",
+        "measurement uncertainty"
+      ],
+      "failure_modes": [
+        "nominal angle reported as usable angle",
+        "missing edge angles",
+        "averaging over failed view zones"
+      ],
+      "claim_limit": "The 150-degree sweep is a proposed test range motivated by one 2026 paper, not a universal target or an assumed result.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-MTF-CENTER-002",
+      "title": "Center-view spatial resolution at reference depth",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "observation_angle_degrees": 0,
+        "image_depth_mm": 0,
+        "target": "calibrated resolution chart",
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ]
+      },
+      "expected_behavior": "Report horizontal and vertical MTF/MTF50/MTF10 and chart result at the stated depth; retain raw captures and optics/display settings.",
+      "metrics": [
+        "MTF curve",
+        "MTF50",
+        "MTF10",
+        "line-pair resolution",
+        "repeatability"
+      ],
+      "failure_modes": [
+        "panel pixel count treated as reconstructed resolution",
+        "unreported focus or exposure"
+      ],
+      "claim_limit": "Only applies to the named device/configuration and center view.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-MTF-OFFAXIS-003",
+      "title": "Off-axis resolution degradation",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "observation_angles_degrees": [
+          -75,
+          -60,
+          -45,
+          -30,
+          30,
+          45,
+          60,
+          75
+        ],
+        "image_depth_mm": 0,
+        "target": "same calibrated resolution chart"
+      },
+      "expected_behavior": "Measure angle-resolved MTF and compare with center view using the same chart, camera geometry, exposure policy and luminance floor.",
+      "metrics": [
+        "MTF by angle",
+        "relative MTF loss",
+        "usable angle after threshold"
+      ],
+      "failure_modes": [
+        "only central view measured",
+        "changed exposure or focus between angle samples"
+      ],
+      "claim_limit": "If the device cannot support an angle, mark not applicable rather than fabricating a measurement.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-DEPTH-020MM-004",
+      "title": "Resolution and geometry at 20 mm image depth",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "image_depth_mm": 20,
+        "observation_angles_degrees": [
+          -60,
+          -30,
+          0,
+          30,
+          60
+        ],
+        "target": "known layered depth/edge chart"
+      },
+      "expected_behavior": "Measure spatial fidelity, depth-plane placement, focus and view consistency for the declared 20 mm depth plane.",
+      "metrics": [
+        "MTF by angle",
+        "depth placement error mm",
+        "edge reprojection error",
+        "brightness by view"
+      ],
+      "failure_modes": [
+        "rendered depth treated as physically reconstructed depth",
+        "depth target inferred only from software"
+      ],
+      "claim_limit": "Depth applies to the selected optical setup and viewing geometry.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-DEPTH-040MM-005",
+      "title": "Resolution and geometry at 40 mm image depth",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "image_depth_mm": 40,
+        "observation_angles_degrees": [
+          -60,
+          -30,
+          0,
+          30,
+          60
+        ],
+        "target": "known layered depth/edge chart"
+      },
+      "expected_behavior": "Measure fidelity and depth-plane error separately from the 0 and 20 mm cases; preserve results even when the device does not support that plane.",
+      "metrics": [
+        "MTF by angle",
+        "depth placement error mm",
+        "edge reprojection error",
+        "brightness by view"
+      ],
+      "failure_modes": [
+        "depth performance generalized from one plane",
+        "unsupported depth silently omitted"
+      ],
+      "claim_limit": "This is a test plane, not a promised device capability.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-DEPTH-ERROR-006",
+      "title": "Known-depth ordering and reconstruction error",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "planes_mm": [
+          0,
+          20,
+          40
+        ],
+        "rendered_objects": [
+          "front",
+          "middle",
+          "back"
+        ],
+        "target": "calibrated multi-plane geometry"
+      },
+      "expected_behavior": "Verify the relative order and measured position of each plane from defined viewing positions; report error and uncertainty per plane.",
+      "metrics": [
+        "absolute depth error",
+        "ordering errors",
+        "viewpoint consistency"
+      ],
+      "failure_modes": [
+        "qualitative 3D impression treated as depth accuracy",
+        "camera focus plane not recorded"
+      ],
+      "claim_limit": "No claim of natural accommodation cues from depth ordering alone.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-CROSSTALK-007",
+      "title": "Adjacent-view optical crosstalk",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "pattern": "one view white, adjacent views black; reverse roles",
+        "angles_degrees": [
+          -60,
+          -30,
+          0,
+          30,
+          60
+        ]
+      },
+      "expected_behavior": "Measure leakage into neighboring angular views under a fixed pattern and instrument configuration.",
+      "metrics": [
+        "adjacent-view crosstalk percent",
+        "angle dependence",
+        "black-floor uncertainty"
+      ],
+      "failure_modes": [
+        "crosstalk inferred from simulated rays",
+        "black floor below instrument resolution reported as zero"
+      ],
+      "claim_limit": "Use a declared crosstalk definition and do not compare unlike instruments or patterns.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-CONTINUITY-008",
+      "title": "View-zone continuity and aliasing",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "pattern": "moving vertical line with sub-degree viewpoint increments",
+        "depth_planes_mm": [
+          0,
+          20,
+          40
+        ]
+      },
+      "expected_behavior": "Detect view discontinuities, repeated/reversed viewpoints, aliasing and geometry jumps as the observer moves through measured angles.",
+      "metrics": [
+        "view discontinuity count",
+        "edge-position jumps",
+        "view repeat interval",
+        "angular sampling"
+      ],
+      "failure_modes": [
+        "measurements only at nominal view centers",
+        "between-view artifacts ignored"
+      ],
+      "claim_limit": "Interpolation between sampled views is not evidence of continuous parallax.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-LUMINANCE-ANGLE-009",
+      "title": "Absolute luminance map over angle and depth",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "pattern": "calibrated white/gray patches",
+        "image_depth_mm": [
+          0,
+          20,
+          40
+        ],
+        "observation_angle_degrees": {
+          "start": -75,
+          "end": 75,
+          "step": 5
+        }
+      },
+      "expected_behavior": "Measure absolute luminance and uniformity at each valid angle/depth under stated ambient conditions; preserve raw radiometry and instrument calibration.",
+      "metrics": [
+        "luminance cd/m2 by angle/depth",
+        "uniformity",
+        "color shift",
+        "uncertainty"
+      ],
+      "failure_modes": [
+        "camera RGB treated as absolute radiometry",
+        "exposure adjusted but not recorded"
+      ],
+      "claim_limit": "No brightness result can be inferred from the paper's reported relative luminance tradeoff.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-USEFUL-ANGLE-010",
+      "title": "Brightness-conditioned useful-viewing-angle frontier",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "preregistered_luminance_floor_cd_m2": "set before measurement for target environment",
+        "preregistered_mtf_floor": "set before measurement",
+        "preregistered_crosstalk_ceiling": "set before measurement",
+        "angles_degrees": {
+          "start": -75,
+          "end": 75,
+          "step": 5
+        }
+      },
+      "expected_behavior": "Calculate useful viewing angle only where all preregistered image-quality and brightness thresholds are met; publish each threshold and failed region.",
+      "metrics": [
+        "usable angle",
+        "angle-by-angle constraint status",
+        "Pareto frontier by threshold"
+      ],
+      "failure_modes": [
+        "threshold selected after results",
+        "wide angle counted despite unreadable/dim image"
+      ],
+      "claim_limit": "The correct floor depends on target environment and task; do not use one universal threshold.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-COLOR-ANGLE-011",
+      "title": "Color and white-point shift across viewing angles",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "patterns": [
+          "neutral grayscale",
+          "primary/secondary patches",
+          "color-volume subset"
+        ],
+        "angles_degrees": [
+          -60,
+          -30,
+          0,
+          30,
+          60
+        ]
+      },
+      "expected_behavior": "Report color error and white-point shift by angle with colorimeter/spectroradiometer profile and uncertainty.",
+      "metrics": [
+        "Delta-ITP or declared suitable metric",
+        "white-point shift",
+        "gamut/color-volume by angle"
+      ],
+      "failure_modes": [
+        "uncalibrated RGB camera used as spectroradiometer",
+        "center-view color generalized across FOV"
+      ],
+      "claim_limit": "Color-space coverage alone does not demonstrate color fidelity across views.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-STATIC-REF-012",
+      "title": "Static scene reconstruction fidelity",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "target": "rights-cleared pinned scene/chart corpus",
+        "viewpoints": "fixed angle/depth grid",
+        "reference": "same scene with calibrated source captures"
+      },
+      "expected_behavior": "Compare each view and depth plane against the reference using declared geometric and photometric metrics; keep synthetic references distinct from measurements.",
+      "metrics": [
+        "per-view pixel/edge error",
+        "MTF",
+        "photometric residual",
+        "view-to-view consistency"
+      ],
+      "failure_modes": [
+        "single hero image selected",
+        "post-processing differs between candidate and reference"
+      ],
+      "claim_limit": "Image similarity does not independently prove depth cues or temporal fidelity.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-DYNAMIC-013",
+      "title": "Dynamic-scene temporal fidelity under scan",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "motion_profiles": [
+          "slow edge",
+          "fast edge",
+          "lateral object crossing views",
+          "scene cut"
+        ],
+        "target_rates_hz": [
+          30,
+          60
+        ],
+        "capture": "high-speed synchronized capture if apparatus supports it"
+      },
+      "expected_behavior": "Measure motion distortion, tearing, ghosting, view switching and end-to-end temporal behavior separately from static quality. Unsupported rates remain not evaluated.",
+      "metrics": [
+        "latency",
+        "frame-time distribution",
+        "scan-induced warp",
+        "motion blur",
+        "view switching artifacts"
+      ],
+      "failure_modes": [
+        "still images used as dynamic evidence",
+        "nominal refresh substituted for captured frame timing"
+      ],
+      "claim_limit": "60 Hz is a proposed test profile, not a minimum universal device specification.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-EXPOSURE-NEG-014",
+      "title": "Long-exposure capture cannot hide scan artifacts",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "comparison": [
+          "short synchronized exposure or high-speed capture",
+          "200 ms integration exposure"
+        ],
+        "dynamic_target": "moving high-contrast object"
+      },
+      "expected_behavior": "Demonstrate that report conclusions are not based only on a long exposure that averages temporal behavior; disclose exposure and synchronized timing for every capture.",
+      "metrics": [
+        "artifact visibility by exposure",
+        "temporal residual",
+        "exposure metadata completeness"
+      ],
+      "failure_modes": [
+        "long exposure mistaken for motion clarity",
+        "frame integration time missing"
+      ],
+      "claim_limit": "The 200 ms value is a control motivated by a published figure, not a universal capture requirement.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-SYNC-DRIFT-015",
+      "title": "Scan synchronization drift over sustained operation",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "duration_minutes": 30,
+        "repeat_cycles": 3,
+        "record": "scan phase, trigger, frame timestamps and image registration"
+      },
+      "expected_behavior": "Measure sync phase/drift over repeated sustained runs and retain time series; report restarts and calibration changes.",
+      "metrics": [
+        "sync drift",
+        "phase jitter",
+        "dropped scan/frame events",
+        "geometric drift"
+      ],
+      "failure_modes": [
+        "single scan reported as long-term stability",
+        "unsynchronized clocks"
+      ],
+      "claim_limit": "The 30-minute duration is a proposed baseline; longer life testing is a separate gate.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "camera-in-loop-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-POWER-THERMAL-016",
+      "title": "Power, heat and sustained brightness tradeoff",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "workloads": [
+          "static multi-view chart",
+          "dynamic 3D scene",
+          "high-brightness pattern"
+        ],
+        "record": "input power and temperature time series until declared steady state"
+      },
+      "expected_behavior": "Report power and thermal state alongside luminance/resolution. Compare configurations at matched useful image quality and state whether mechanisms/electronics are included.",
+      "metrics": [
+        "input power W",
+        "energy per rendered minute",
+        "temperature",
+        "sustained luminance",
+        "thermal throttling"
+      ],
+      "failure_modes": [
+        "optical-only energy excludes scan mechanism",
+        "peak brightness compared to sustained result"
+      ],
+      "claim_limit": "No energy-saving claim without a calibrated meter and matched output conditions.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-AMBIENT-017",
+      "title": "Ambient-light robustness and contrast",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "ambient_illuminance_lux": [
+          5,
+          50,
+          500
+        ],
+        "patterns": [
+          "black/white contrast",
+          "fine text",
+          "depth edges"
+        ],
+        "record": "surface reflectance and incident light geometry"
+      },
+      "expected_behavior": "Measure contrast and usable-angle changes in each declared environment; report when the device becomes unsuitable rather than extrapolating beyond tested conditions.",
+      "metrics": [
+        "contrast by angle",
+        "usable view envelope",
+        "ambient reflection component",
+        "text/edge threshold"
+      ],
+      "failure_modes": [
+        "dark-room demonstration generalized to daylight",
+        "ambient illuminance reported without geometry"
+      ],
+      "claim_limit": "The proposed lux levels are illustrative test points, not standard tiers.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-MECHANICS-018",
+      "title": "Mechanical vibration, noise and optical alignment sensitivity",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "architecture": "identify whether scan/mechanical elements exist",
+        "tests": [
+          "stationary noise/vibration",
+          "declared repeated scan cycles",
+          "known small alignment perturbation"
+        ]
+      },
+      "expected_behavior": "For mechanical/scanned designs, report vibration/noise, alignment drift and safe/known degraded behavior. Mark mechanical metrics not applicable only when no relevant mechanism exists.",
+      "metrics": [
+        "vibration spectrum",
+        "sound level",
+        "alignment drift",
+        "cycle count"
+      ],
+      "failure_modes": [
+        "mechanical tradeoffs omitted",
+        "not-applicable used without architectural justification"
+      ],
+      "claim_limit": "This does not establish product lifetime or product safety.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-CAL-REPEAT-019",
+      "title": "Independent-session calibration repeatability",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "sessions": 3,
+        "operators": 2,
+        "calibration_target": "same pinned chart",
+        "split": "hold out one session from tuning"
+      },
+      "expected_behavior": "Estimate repeatability across sessions/operators and report calibration variance; tune on one subset and evaluate on held-out session.",
+      "metrics": [
+        "reprojection residual",
+        "MTF variation",
+        "luminance variation",
+        "calibration time"
+      ],
+      "failure_modes": [
+        "same session used for tune and final result",
+        "only best calibration selected"
+      ],
+      "claim_limit": "Three sessions/two operators is a proposed minimal fixture, not proof of broad reproducibility.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "camera-in-loop-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-STALE-CAL-NEG-020",
+      "title": "Stale or mismatched calibration negative control",
+      "lane": "software_synthetic",
+      "minimum_evidence_class": "SYNTHETIC_MODEL",
+      "stimulus": {
+        "mutations": [
+          "device ID changed",
+          "lens-array profile swapped",
+          "calibration validity expired",
+          "pixel pitch edited without revision"
+        ]
+      },
+      "expected_behavior": "The evaluator must mark the measurement unqualified or require recalibration whenever device/profile identity or validity no longer matches.",
+      "metrics": [
+        "stale-profile detection",
+        "qualification state"
+      ],
+      "failure_modes": [
+        "calibration ID ignored",
+        "old profile silently reused"
+      ],
+      "claim_limit": "This tests metadata handling; it is not a physical calibration experiment.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "symtropy-ref",
+        "ssslid-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-RAW-NEG-021",
+      "title": "Missing/corrupted measurement artifact blocks claims",
+      "lane": "software_synthetic",
+      "minimum_evidence_class": "SYNTHETIC_MODEL",
+      "stimulus": {
+        "mutations": [
+          "raw capture missing",
+          "capture digest mismatch",
+          "instrument calibration record absent",
+          "uncertainty field removed"
+        ]
+      },
+      "expected_behavior": "The evidence gate rejects or marks unknown any physical performance claim whose required measurement or context artifact is absent/corrupt.",
+      "metrics": [
+        "negative-control detection",
+        "effective qualification state"
+      ],
+      "failure_modes": [
+        "screenshot substitutes for raw data",
+        "producer-declared pass trusted"
+      ],
+      "claim_limit": "Correct evidence gating does not establish the measured optical result.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "symtropy-ref",
+        "ssslid-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-DEVICE-NEG-022",
+      "title": "Device/profile identity mismatch",
+      "lane": "software_synthetic",
+      "minimum_evidence_class": "SYNTHETIC_MODEL",
+      "stimulus": {
+        "mutations": [
+          "results from device A labelled device B",
+          "firmware/optics configuration changed",
+          "unsupported resolution entered"
+        ]
+      },
+      "expected_behavior": "Cross-device or cross-configuration results are never merged as one qualified result without an explicit compatibility/transfer study.",
+      "metrics": [
+        "mismatch detection",
+        "device-bound claim scope"
+      ],
+      "failure_modes": [
+        "result generalized by product family name",
+        "hardware revisions conflated"
+      ],
+      "claim_limit": "A matching model name is not evidence of identical optics or calibration.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "symtropy-ref",
+        "ssslid-2026"
+      ]
+    },
+    {
+      "id": "VIS-LF-BASELINE-023",
+      "title": "Matched-task baseline comparison",
+      "lane": "physical_measurement",
+      "minimum_evidence_class": "BENCH_MEASURED",
+      "stimulus": {
+        "baselines": [
+          "conventional 2D panel for 2D task",
+          "conventional lenticular/light-field display if available",
+          "reproduced SSS-LiD method if rights/hardware permit"
+        ],
+        "content": "same rights-cleared source scenes, target size and stated ambient"
+      },
+      "expected_behavior": "Compare only metrics appropriate to the task and disclose incomparable dimensions. A 2D baseline can benchmark a 2D task but cannot claim equivalent multi-view depth.",
+      "metrics": [
+        "matched-task image fidelity",
+        "useful angular coverage",
+        "luminance",
+        "power/cost context"
+      ],
+      "failure_modes": [
+        "unfair mismatched baseline",
+        "published headline treated as reproduced result"
+      ],
+      "claim_limit": "No single universal baseline spans every display architecture.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "lf-resolution-method"
+      ]
+    },
+    {
+      "id": "VIS-LF-SOURCE-RIGHTS-024",
+      "title": "Published code/dataset identity and reuse-rights check",
+      "lane": "software_synthetic",
+      "minimum_evidence_class": "SYNTHETIC_MODEL",
+      "stimulus": {
+        "sources": [
+          "SSS-LiD element-image generation code",
+          "associated Zenodo dataset"
+        ],
+        "capture": "repository commit/version, archive digest, license and terms snapshots"
+      },
+      "expected_behavior": "A synthetic fixture requires exact source artifact identities and a rights-state field; unknown/uncleared rights block distribution. This test checks the gate logic, not that upstream rights have been verified.",
+      "metrics": [
+        "source identity completeness",
+        "rights state",
+        "reproducibility artifact coverage"
+      ],
+      "failure_modes": [
+        "citation mistaken for license",
+        "source tree changes without pinned commit"
+      ],
+      "claim_limit": "This case tests provenance-gate behavior only. Actual upstream code/data identity, license terms and permissions remain unverified until a source audit is recorded.",
+      "status": "UNQUALIFIED",
+      "reference_ids": [
+        "ssslid-2026",
+        "symtropy-ref"
+      ]
+    }
+  ]
+}

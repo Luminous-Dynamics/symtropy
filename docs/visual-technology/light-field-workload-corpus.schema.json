@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/light-field-workload-corpus-0.1.0.json",
+  "title": "VIS-LF-CORPUS-001",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "corpus_id",
+    "schema_version",
+    "status",
+    "created_date",
+    "owner_issue",
+    "case_count",
+    "minimum_case_count",
+    "references",
+    "evidence_lanes",
+    "cases"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus_id": {
+      "const": "VIS-LF-CORPUS-001"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "UNQUALIFIED"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "owner_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "case_count": {
+      "const": 24
+    },
+    "minimum_case_count": {
+      "const": 24
+    },
+    "references": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "url",
+          "title",
+          "use"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "use": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidence_lanes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "lane",
+          "minimum_evidence_class",
+          "stimulus",
+          "expected_behavior",
+          "metrics",
+          "failure_modes",
+          "claim_limit",
+          "status",
+          "reference_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^VIS-LF-[A-Z0-9-]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lane": {
+            "enum": [
+              "software_synthetic",
+              "physical_measurement"
+            ]
+          },
+          "minimum_evidence_class": {
+            "enum": [
+              "ANALYTIC_REFERENCE",
+              "SYNTHETIC_MODEL",
+              "BENCH_MEASURED",
+              "INDEPENDENTLY_REPLICATED"
+            ]
+          },
+          "stimulus": {
+            "type": "object",
+            "minProperties": 1
+          },
+          "expected_behavior": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metrics": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "failure_modes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "claim_limit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "UNQUALIFIED"
+          },
+          "reference_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "ssslid-2026",
+                "lf-resolution-method",
+                "camera-in-loop-2026",
+                "symtropy-ref"
+              ]
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "lane": {
+                  "const": "software_synthetic"
+                }
+              },
+              "required": [
+                "lane"
+              ]
+            },
+            "then": {
+              "properties": {
+                "minimum_evidence_class": {
+                  "const": "SYNTHETIC_MODEL"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "lane": {
+                  "const": "physical_measurement"
+                }
+              },
+              "required": [
+                "lane"
+              ]
+            },
+            "then": {
+              "properties": {
+                "minimum_evidence_class": {
+                  "const": "BENCH_MEASURED"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
