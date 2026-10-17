@@ -191,6 +191,7 @@ fn validate_fixture(input: &Value) -> Result<(), String> {
             mission,
             &[
                 "mission_id",
+                "environment_id",
                 "deadline_minutes",
                 "minimum_energy_reserve_pct",
                 "minimum_condition_margin_c",
@@ -199,6 +200,12 @@ fn validate_fixture(input: &Value) -> Result<(), String> {
             &path,
         )?;
         let id = text(mission, "mission_id", &path)?;
+        let environment = text(mission, "environment_id", &path)?;
+        if !["amazon_basin", "congo_basin", "antarctica", "sahara", "afghanistan"]
+            .contains(&environment)
+        {
+            return Err(fail(&path, "environment_id is not a supported benchmark environment"));
+        }
         if !mission_ids.insert(id.to_string()) {
             return Err(fail(&path, "duplicate mission_id"));
         }
@@ -659,6 +666,7 @@ fn audit(input: &Value) -> Result<Value, String> {
         scenario_assessments.push(json!({
             "case_id": case_id,
             "mission_id": mission_id,
+            "environment_id": mission["environment_id"],
             "description": case["description"],
             "expected_feasible_plan": expected_feasible,
             "feasible_plan_ids": viable_ids,
@@ -697,6 +705,7 @@ fn audit(input: &Value) -> Result<Value, String> {
             .count();
         mission_summaries.push(json!({
             "mission_id": mission_id,
+            "environment_id": mission["environment_id"],
             "candidate_plan_count": plans_by_mission.get(mission_id).unwrap().len(),
             "baseline_feasible_plan_ids": eligible_ids(baseline),
             "baseline_pareto_plan_ids": pareto_ids(baseline),
@@ -705,6 +714,74 @@ fn audit(input: &Value) -> Result<Value, String> {
             "all_stress_case_coverage_percent": percent(viable_cases, mission_cases.len()),
             "expected_recoverable_case_count": expected_viable_cases,
             "expected_recoverable_case_coverage_percent": percent(viable_expected_cases, expected_viable_cases)
+        }));
+    }
+
+    let mut environment_ids = BTreeSet::new();
+    for mission in input["missions"].as_array().unwrap() {
+        environment_ids.insert(mission["environment_id"].as_str().unwrap().to_string());
+    }
+    let mut environment_summaries = Vec::new();
+    for environment_id in environment_ids {
+        let environment_mission_ids: Vec<String> = mission_map
+            .values()
+            .filter(|mission| mission["environment_id"].as_str() == Some(&environment_id))
+            .map(|mission| mission["mission_id"].as_str().unwrap().to_string())
+            .collect();
+        let mut candidate_plan_count = 0usize;
+        let mut baseline_feasible_plan_count = 0usize;
+        let mut stress_case_count = 0usize;
+        let mut stress_cases_with_feasible_plan_count = 0usize;
+        let mut expected_recoverable_case_count = 0usize;
+        let mut expected_recoverable_case_with_plan_count = 0usize;
+        let mut expected_no_plan_control_count = 0usize;
+        let mut expected_no_plan_control_correct_count = 0usize;
+
+        for mission_id in &environment_mission_ids {
+            candidate_plan_count += plans_by_mission.get(mission_id).unwrap().len();
+            baseline_feasible_plan_count +=
+                eligible_ids(baseline_by_mission.get(mission_id).unwrap()).len();
+            for case in scenario_assessments
+                .iter()
+                .filter(|case| case["mission_id"].as_str() == Some(mission_id))
+            {
+                stress_case_count += 1;
+                let has_plan = case["feasible_plan_count"].as_u64().unwrap() > 0;
+                let expected_plan = case["expected_feasible_plan"].as_bool().unwrap();
+                if has_plan {
+                    stress_cases_with_feasible_plan_count += 1;
+                }
+                if expected_plan {
+                    expected_recoverable_case_count += 1;
+                    if has_plan {
+                        expected_recoverable_case_with_plan_count += 1;
+                    }
+                } else {
+                    expected_no_plan_control_count += 1;
+                    if !has_plan {
+                        expected_no_plan_control_correct_count += 1;
+                    }
+                }
+            }
+        }
+        environment_summaries.push(json!({
+            "environment_id": environment_id,
+            "mission_count": environment_mission_ids.len(),
+            "candidate_plan_count": candidate_plan_count,
+            "baseline_feasible_plan_count": baseline_feasible_plan_count,
+            "stress_case_count": stress_case_count,
+            "stress_cases_with_feasible_plan_count": stress_cases_with_feasible_plan_count,
+            "all_stress_case_coverage_percent": percent(
+                stress_cases_with_feasible_plan_count,
+                stress_case_count
+            ),
+            "expected_recoverable_case_count": expected_recoverable_case_count,
+            "expected_recoverable_case_coverage_percent": percent(
+                expected_recoverable_case_with_plan_count,
+                expected_recoverable_case_count
+            ),
+            "expected_no_plan_control_count": expected_no_plan_control_count,
+            "expected_no_plan_control_correct_count": expected_no_plan_control_correct_count
         }));
     }
 
@@ -717,6 +794,7 @@ fn audit(input: &Value) -> Result<Value, String> {
         "claim_ceiling": CLAIM_CEILING,
         "provenance_kind": "synthetic_only",
         "mission_count": mission_map.len(),
+        "environment_count": environment_summaries.len(),
         "candidate_plan_count": input["plans"].as_array().unwrap().len(),
         "stress_case_count": total_cases,
         "baseline_eligible_plan_count": baseline_eligible_count,
@@ -739,7 +817,8 @@ fn audit(input: &Value) -> Result<Value, String> {
         "real_world_validated": false,
         "baseline_assessments": baseline_assessments,
         "scenario_assessments": scenario_assessments,
-        "mission_summaries": mission_summaries
+        "mission_summaries": mission_summaries,
+        "environment_summaries": environment_summaries
     }))
 }
 
@@ -804,15 +883,16 @@ mod tests {
     #[test]
     fn fixture_counts_and_regression_outputs_are_explicit() {
         let output = report();
-        assert_eq!(output["mission_count"], 3);
-        assert_eq!(output["candidate_plan_count"], 9);
-        assert_eq!(output["stress_case_count"], 6);
-        assert_eq!(output["baseline_eligible_plan_count"], 6);
-        assert_eq!(output["expected_recoverable_case_count"], 5);
+        assert_eq!(output["mission_count"], 5);
+        assert_eq!(output["environment_count"], 5);
+        assert_eq!(output["candidate_plan_count"], 14);
+        assert_eq!(output["stress_case_count"], 10);
+        assert_eq!(output["baseline_eligible_plan_count"], 8);
+        assert_eq!(output["expected_recoverable_case_count"], 6);
         assert_eq!(output["expected_recoverable_case_coverage_percent"], 100.0);
-        assert_eq!(output["expected_no_plan_control_count"], 1);
-        assert_eq!(output["expected_no_plan_control_correct_count"], 1);
-        assert_eq!(output["expected_viability_oracle_match_count"], 6);
+        assert_eq!(output["expected_no_plan_control_count"], 4);
+        assert_eq!(output["expected_no_plan_control_correct_count"], 4);
+        assert_eq!(output["expected_viability_oracle_match_count"], 10);
         assert_eq!(output["expected_viability_oracle_match_percent"], 100.0);
         assert_eq!(output["route_or_deployment_authorized"], false);
         assert_eq!(output["real_world_validated"], false);
@@ -836,6 +916,27 @@ mod tests {
         assert_eq!(negative["no_admissible_plan"], true);
         assert_eq!(negative["feasible_plan_count"], 0);
         assert_eq!(negative["outcome_matches_expectation"], true);
+    }
+
+    #[test]
+    fn environment_stratification_keeps_afghanistan_unresolved_and_blocked() {
+        let output = report();
+        let environments = output["environment_summaries"].as_array().unwrap();
+        assert_eq!(environments.len(), 5);
+        let afghanistan = environments
+            .iter()
+            .find(|item| item["environment_id"] == "afghanistan")
+            .unwrap();
+        assert_eq!(afghanistan["baseline_feasible_plan_count"], 0);
+        assert_eq!(afghanistan["stress_cases_with_feasible_plan_count"], 0);
+        assert_eq!(afghanistan["expected_no_plan_control_count"], 2);
+        assert_eq!(afghanistan["expected_no_plan_control_correct_count"], 2);
+        assert!(output["baseline_assessments"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["mission_id"] == "afghanistan-civilian-aid-payload")
+            .all(|item| item["disposition"] == "needs_gate_evidence"));
     }
 
     #[test]
