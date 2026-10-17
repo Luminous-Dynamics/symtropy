@@ -172,6 +172,86 @@ fn subset_keys<T>(values: &BTreeMap<String, T>, allowed: &BTreeSet<String>) -> b
     values.keys().all(|key| allowed.contains(key))
 }
 
+const MAX_EXHAUSTIVE_STATES: usize = 100_000;
+
+fn canonical_float_key(value: f64) -> u64 {
+    if value == 0.0 {
+        0.0f64.to_bits()
+    } else {
+        value.to_bits()
+    }
+}
+
+// R0 only certifies exhaustiveness when every uncertainty has finite discrete
+// support and every Cartesian tuple appears exactly once. Correlated/joint
+// supports need a future explicit dependency contract, not a trusted boolean.
+fn validate_cartesian_state_coverage(fixture: &RobustFixture, errors: &mut Vec<String>) {
+    if !fixture.exhaustive_joint_state_set
+        || fixture
+            .uncertainties
+            .iter()
+            .any(|item| !matches!(&item.support, Support::FiniteValues { .. }))
+    {
+        return;
+    }
+
+    let mut uncertainties = fixture.uncertainties.iter().collect::<Vec<_>>();
+    uncertainties.sort_by(|left, right| left.id.cmp(&right.id));
+
+    let mut expected_tuples: BTreeSet<Vec<u64>> = BTreeSet::from([Vec::new()]);
+    for uncertainty in &uncertainties {
+        let Support::FiniteValues { values } = &uncertainty.support else {
+            return;
+        };
+        let Some(next_len) = expected_tuples.len().checked_mul(values.len()) else {
+            errors.push("state coverage: Cartesian product size overflow".to_string());
+            return;
+        };
+        if next_len > MAX_EXHAUSTIVE_STATES {
+            errors.push(format!(
+                "state coverage: Cartesian product has {next_len} states, exceeding R0 cap {MAX_EXHAUSTIVE_STATES}"
+            ));
+            return;
+        }
+
+        let mut next = BTreeSet::new();
+        for prefix in &expected_tuples {
+            for value in values {
+                let mut tuple = prefix.clone();
+                tuple.push(canonical_float_key(*value));
+                next.insert(tuple);
+            }
+        }
+        expected_tuples = next;
+    }
+
+    let mut observed_tuples = BTreeSet::new();
+    for state in &fixture.states {
+        let Some(tuple) = uncertainties
+            .iter()
+            .map(|uncertainty| state.values.get(&uncertainty.id).copied())
+            .collect::<Option<Vec<_>>>()
+        else {
+            continue;
+        };
+        observed_tuples.insert(
+            tuple
+                .into_iter()
+                .map(canonical_float_key)
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    if observed_tuples != expected_tuples || observed_tuples.len() != fixture.states.len() {
+        errors.push(format!(
+            "state coverage: exhaustive Cartesian support requires {} unique joint states, but fixture provides {} states and {} unique joint tuples",
+            expected_tuples.len(),
+            fixture.states.len(),
+            observed_tuples.len()
+        ));
+    }
+}
+
 fn validate_fixture(fixture: &RobustFixture) -> Vec<String> {
     let mut errors = Vec::new();
     if fixture.schema_version != FIXTURE_SCHEMA {
@@ -269,6 +349,8 @@ fn validate_fixture(fixture: &RobustFixture) -> Vec<String> {
             errors.push(format!("objective {}: unit must not be empty", objective.id));
         }
     }
+
+    validate_cartesian_state_coverage(fixture, &mut errors);
 
     for state in &fixture.states {
         if !same_keys(&state.values, &uncertainty_ids) {
@@ -708,6 +790,36 @@ mod tests {
         assert_eq!(range.maximum, Some(20.0));
         assert_eq!(range.observed_states, 4);
         assert_eq!(range.expected_states, 4);
+    }
+
+    #[test]
+    fn exhaustive_flag_cannot_hide_an_omitted_cartesian_state() {
+        let mut fixture = parse_fixture();
+        fixture.states.retain(|state| state.id != "soft-storm");
+        for candidate in &mut fixture.candidates {
+            candidate
+                .state_results
+                .retain(|result| result.state_id != "soft-storm");
+        }
+        // All supplied records remain internally complete. Only recomputing
+        // the joint support reveals that one of the four possible worlds is absent.
+        let bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors = evaluate_json(&bytes).expect_err(
+            "an exhaustive boolean must not certify an incomplete Cartesian state set",
+        );
+        assert!(errors.iter().any(|error| {
+            error.contains("Cartesian support requires 4 unique joint states")
+        }));
+    }
+
+    #[test]
+    fn duplicate_joint_tuple_cannot_count_as_full_state_coverage() {
+        let mut fixture = parse_fixture();
+        fixture.states[3].values = fixture.states[2].values.clone();
+        let bytes = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors =
+            evaluate_json(&bytes).expect_err("duplicate joint tuple leaves one support tuple absent");
+        assert!(errors.iter().any(|error| error.contains("state coverage")));
     }
 
     #[test]
