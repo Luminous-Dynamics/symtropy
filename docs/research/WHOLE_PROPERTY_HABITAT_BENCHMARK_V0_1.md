@@ -166,6 +166,12 @@ Verify the adopted editions and jurisdictional requirements at project start; th
 8. Progress from synthetic fixtures to measured lab and occupied-building evidence; preserve held-out buildings/climates and report performance drift.
 9. Require qualified licensed/local professionals for design, permitting, construction, commissioning and any claimed refuge/shelter capability.
 
+## Terrain-native subprofile
+
+The separate [Terrain-Native Habitats benchmark v0.1](TERRAIN_NATIVE_HABITATS_BENCHMARK_V0_1.md) extends this whole-property contract to ravines, canyon floors and walls, mountain slopes/ridges, impact craters, volcanic craters/calderas, karst depressions, and partly embedded or underground variants. Its machine-readable 14-case corpus is `docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json`.
+
+This profile treats landform names as investigation prompts, not suitability evidence. In particular, a cliff does not prove rockfall protection, crater geometry does not establish volcanic origin, canyon beauty does not establish flood safety, and an underground layout does not establish safe egress or survivability. It composes existing Sol-Atlas coverage/constraint receipts with qualified geotechnical, hydrologic, volcanic, ecological, and life-safety evidence where applicable. The benchmark is synthetic only and does not qualify a real site or solver.
+
 ## 10. Claim ceiling
 
 A successful synthetic benchmark would show that the implementation handles its declared fixtures and invariants. It would **not** show that Symthaea can independently architect a real house, that Symtropy's simulator predicts a physical property accurately, that Sol-Atlas has found a legally buildable/safe parcel, that Mycelix provenance makes a certificate true, or that any design is permit-ready.
