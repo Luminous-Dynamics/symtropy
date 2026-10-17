@@ -42,6 +42,12 @@ Reject malformed transforms, unknown frames, non-finite values, zero/negative de
 
 Represent a declared transfer function/tone curve and its assumptions. Verify domain/range, monotonicity where required, bounded numeric behavior and exact reference points. SDR/HDR compliance, real luminance, local-dimming behavior and panel temporal behavior cannot be established by a transfer-function fixture alone.
 
+### B2. Pixel-to-ray and geometric field-of-view references
+
+The isolated reference crate also computes an unnormalized camera-space ray from a continuous pixel coordinate and geometric horizontal/vertical field of view from focal lengths, principal point and image dimensions. These functions are intended as small consistency oracles for coordinate/angle math, not an XR optical model.
+
+For XR specifically, keep panel resolution, per-eye render extent, nominal FOV and usable/perceived FOV distinct. Meta's developer documentation updated 25 September 2026 provides one dated profile: 70° × 66° nominal straight-ahead FOV and 58° × 54° p90 perceived target, with fit, eye position and gaze reducing usable view. Do not generalize those values to other headsets; test against each device's runtime projections and through-the-lens measurements when available. Source: https://developers.meta.com/vr/essentials/field-of-view/.
+
 ### C. Bounded optical forward models
 
 Add optical equations one at a time: paraxial/thin-lens cases, then free-space scalar propagation where its assumptions apply, then quantization/sampling. Record whether polarization, coherence, vector diffraction, aberrations, partial coherence, temperature drift or measured component imperfections are excluded. The correct result for an input outside the declared validity envelope is abstention/rejection—not a plausible-looking image.
@@ -66,7 +72,12 @@ The expected-output oracle and its tests must be independent of candidate model-
 
 ## First known-answer cases
 
-Start with 12–20 fixtures, then contribute to the 40+ cross-domain corpus defined in Symthaea #7820.
+Start with 12–20 fixtures, then contribute to the 40+ cross-domain corpus defined in Symthaea #7820. Proposed examples currently include the pinhole axis, centered 1280×720 field of view, and pixel-to-ray round trip:
+- `docs/visual-technology/fixtures/projector-pinhole-axis-001.json`
+- `docs/visual-technology/fixtures/pinhole-fov-centered-1280x720-001.json`
+- `docs/visual-technology/fixtures/pinhole-ray-roundtrip-001.json`
+
+All these files currently carry `PROPOSED_NOT_EXECUTED`; they are not yet loaded by an independent fixture runner.
 
 1. Identity rigid transform and inverse.
 2. Known 90-degree axis rotation with handedness negative control.
