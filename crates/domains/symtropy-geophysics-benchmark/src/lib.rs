@@ -174,7 +174,7 @@ impl PublicObservationFixture {
             .model_relative_seconds
             .iter()
             .any(|value| !value.is_finite())
-            || self.model_relative_seconds[0] >= self.model_relative_seconds[1]
+            || self.model_relative_seconds[0] > self.model_relative_seconds[1]
         {
             return Err(FixtureValidationError::InvalidTimeAxis);
         }
@@ -417,7 +417,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             observation_covariance: [[0.25, 0.0], [0.0, 0.25]],
             prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
             observed_values: [2.0, -1.0],
-            model_relative_seconds: [0.0, 1.0],
+            model_relative_seconds: [0.0, 0.0],
             observation_units: "synthetic_dimensionless",
             provenance,
         },
@@ -737,6 +737,48 @@ mod tests {
         fixture.prior_covariance[1][1] = 0.01;
         let tight_prior = fixture.expected_information_gain_nats().unwrap();
         assert!(tight_prior < baseline - 0.004);
+    }
+
+    #[test]
+    fn simultaneous_observation_channels_may_share_a_model_time() {
+        for fixture_id in FixtureId::ALL {
+            assert_eq!(public_fixture(fixture_id).model_relative_seconds, [0.0, 0.0]);
+            assert_eq!(public_fixture(fixture_id).validate(), Ok(()));
+        }
+    }
+
+    #[test]
+    fn time_axis_rejects_out_of_order_but_allows_equal_timestamps() {
+        let mut fixture = public_fixture(FixtureId::WeakHighMode);
+        fixture.model_relative_seconds = [2.0, 1.0];
+        assert_eq!(fixture.validate(), Err(FixtureValidationError::InvalidTimeAxis));
+        fixture.model_relative_seconds = [1.0, 1.0];
+        assert_eq!(fixture.validate(), Ok(()));
+    }
+
+    #[test]
+    fn observation_row_permutation_preserves_rank_singular_values_and_information_gain() {
+        let original = public_fixture(FixtureId::WeakHighMode);
+        let mut permuted = original.clone();
+        permuted.observation_ids.swap(0, 1);
+        permuted.observation_costs.swap(0, 1);
+        permuted.observed_values.swap(0, 1);
+        permuted.model_relative_seconds.swap(0, 1);
+        permuted.observation_operator.swap(0, 1);
+        permuted.observation_covariance.swap(0, 1);
+        for row in &mut permuted.observation_covariance {
+            row.swap(0, 1);
+        }
+
+        let a = original.analyze_observability(1e-12, 1e-12).unwrap();
+        let b = permuted.analyze_observability(1e-12, 1e-12).unwrap();
+        assert_eq!(a.numerical_rank, b.numerical_rank);
+        close(a.singular_values[0], b.singular_values[0]);
+        close(a.singular_values[1], b.singular_values[1]);
+        close(
+            original.expected_information_gain_nats().unwrap(),
+            permuted.expected_information_gain_nats().unwrap(),
+        );
     }
 
     #[test]
