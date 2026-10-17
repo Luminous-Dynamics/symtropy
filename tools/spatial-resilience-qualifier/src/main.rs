@@ -180,6 +180,10 @@ fn emit_decision_impact(summary: &DecisionImpactSummary, json_output: bool) {
                 action.estimated_cost_units,
                 action.estimated_duration_ticks
             );
+            println!(
+                "    cost_basis={} duration_basis={}",
+                action.cost_basis_id, action.duration_basis_id
+            );
             if !action.rejection_codes.is_empty() {
                 println!("    rejection_codes={:?}", action.rejection_codes);
             }
