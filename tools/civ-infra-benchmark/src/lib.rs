@@ -142,7 +142,7 @@ pub struct ScheduleConflict {
     pub resource_id: String,
     pub start_tick: u64,
     pub end_tick: u64,
-    pub observed_demand_units: u32,
+    pub observed_demand_units: u64,
     pub capacity_units: u32,
 }
 
@@ -494,10 +494,10 @@ fn schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConflict> {
             }
             // All work windows are half-open [start, end), so adjacent jobs
             // that meet at a tick do not overlap.
-            let observed_demand_units: u32 = uses
+            let observed_demand_units: u64 = uses
                 .iter()
                 .filter(|usage| usage.start_tick <= start_tick && usage.end_tick >= end_tick)
-                .map(|usage| usage.units)
+                .map(|usage| u64::from(usage.units))
                 .sum();
             let capacity_units = capacities[resource.id.as_str()];
             if observed_demand_units > capacity_units {
@@ -703,7 +703,7 @@ fn reference_schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConfli
             let demand = assigned
                 .iter()
                 .filter(|usage| usage.start_tick < end && usage.end_tick > start)
-                .fold(0_u32, |sum, usage| sum.saturating_add(usage.units));
+                .fold(0_u64, |sum, usage| sum.saturating_add(u64::from(usage.units)));
             if demand > resource.capacity_units {
                 expected.push(ScheduleConflict {
                     resource_id: resource.id.clone(),
