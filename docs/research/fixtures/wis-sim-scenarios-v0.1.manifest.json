@@ -3,7 +3,7 @@
   "corpus_id": "WIS-SIM-001",
   "corpus_version": "0.1",
   "fixture_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl",
-  "fixture_sha256": "9cfb9354d35590cae967a0cd00907effa7dbba58590a90f62b05fa40c0e62101",
+  "fixture_sha256": "9f4886a9973a522beb88f28b8168be4197d59f673f314379ee848f9c476741d0",
   "hash_algorithm": "SHA-256",
   "record_format": "JSON Lines; UTF-8; newline-terminated",
   "record_count": 28,
@@ -14,7 +14,7 @@
     "adversarial": 21
   },
   "schema_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.schema.json",
-  "schema_sha256": "ab9765e6a10c9215a23aa2f3d4e0dc326f4e88dddeaf4cb9e47c37cca5c7ce46",
+  "schema_sha256": "e7311bc39d0c31260310b2ee1e4abacda8e0c8f3d17717d1a968e9b2fd3b0252",
   "seed_policy": "Fixed deterministic_seed per case; no ambient randomness permitted for fixture qualification.",
   "policy_comparison_set": [
     "no_intervention_v0",
@@ -55,15 +55,17 @@
     "unknown_to_verified_promotions_allowed": 0,
     "consciousness_or_wisdom_scalar_emission_allowed": 0
   },
-  "status": "synthetic contract and Rust verifier authored; tests and simulation not executed",
+  "status": "scenario inputs and typed assertion specs authored; structural verifier tests not executed; simulation not run",
   "claim_ceiling": "Defines inputs and invariants for future deterministic simulation runs; does not validate model assumptions, human behaviour, consciousness, wisdom, spiritual interventions or real-world outcomes.",
   "no_human_data": true,
   "no_real_world_forecast": true,
   "schema_validation_status": "STRICT_SCHEMA_PINNED; NOT_VALIDATED_WITH_JSON_SCHEMA_ENGINE",
   "verifier": {
     "path": "tools/wis-sim-fixture-verifier",
-    "authored_test_count": 22,
+    "authored_test_count": 27,
     "execution_status": "NOT_EXECUTED",
-    "scope": "verifies exact fixture/schema digests, pinned top-level field set, variant coverage, unique seeds, policy-set consistency, scenario family/title binding and non-empty invariant/observable records. It is not full JSON Schema validation or simulation."
-  }
+    "scope": "hash-first validation of fixture, scenario schema and typed assertion records; fixed top-level field set; required variant matrix; unique seeds; policy-set consistency; family/title binding. Not full JSON Schema validation, not run-report validation, and not simulation."
+  },
+  "run_report_schema_path": "docs/research/fixtures/wis-sim-run-report-v0.1.schema.json",
+  "run_report_schema_sha256": "cc3e80c4c140062c0ad76b318693c1a5feb13e5686bcd86c8be9ee10a45e47b8"
 }
