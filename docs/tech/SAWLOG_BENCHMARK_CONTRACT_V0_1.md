@@ -78,6 +78,36 @@ Candidate starting targets to validate with practitioners:
 - Quantify by-products only where measured; downstream reuse credits require traceable destinations and lifecycle boundaries.
 - Track missingness and how quality changes when geometry stations, defect observations or calibration metadata are removed.
 
+## Real-data leads researched (2026-10-17)
+
+Do not treat these sources as one blended benchmark. They cover different tasks and should have separate split rules and metrics.
+
+### Track A — log-to-board traceability and product quality
+
+TreeTrace_Douglas is a published dataset for Douglas-fir logs and downstream products. Its paper describes 52 long logs, 156 short logs, 208 discs and 346 boards, including log-end images, volume estimates, board positions, machine-grading imagery and board-quality/mechanical measurements. The paper reports that boards were collected for a 32-short-log subsample and 152 of 156 short logs were sawn. That makes it the strongest candidate found here for a first log-to-board traceability pilot, while recognizing the modest count and single-species focus.
+
+- Dataset DOI: https://doi.org/10.15454/YUNEGL
+- Dataset metadata: https://metadata-afs.nancy.inra.fr/geonetwork/srv/fre/catalog.search#/metadata/d9eef6e4-f195-41f4-b6c2-2ab46adc637e
+- Dataset paper: https://doi.org/10.1186/s13595-022-01163-7
+
+The paper is CC BY 4.0, but verify the dataset repository's own terms and individual third-party image rights before copying, transforming or redistributing the data. The repository files are not bundled in this PR.
+
+### Track B — 3D log measurement and volume error
+
+Stack-LAUT includes point clouds from 10 wood stacks captured with three LiDAR devices and sawmill reference measurements for individual logs. The authors mapped 280 marked logs to measurement records. This can test point-cloud/geometry extraction and volume agreement, but does not by itself establish board count, lumber-grade or value-recovery accuracy.
+
+- Dataset record (published 2025-01-08): https://doi.org/10.5281/zenodo.14609648
+
+Confirm the dataset's license and redistribution terms directly in the repository metadata before adopting it. The record describes a large collection; begin with only the reference-measurement tables and a small, permission-compatible point-cloud subset rather than downloading or mirroring the full corpus by default.
+
+### Track C — board-surface defect perception (supporting only)
+
+Public board-surface defect-image datasets can test knot/crack detection, but they are not substitutes for log geometry, sawing settings or matched mill outputs. Keep image-detection metrics (precision/recall, class confusion, localization and calibration) separate from recovery metrics. In particular, a knot classifier does not confer structural-grade eligibility; the applicable grading rules and inspection remain an independent gate.
+
+### Pilot decision
+
+Start with metadata and a small authorized sample from Tracks A and B. Keep original source units and identities, record separate data/license provenance, and split by tree/log and preferably site/mill to avoid related samples leaking between calibration and test sets. Do not publish any derived sample until its terms are reviewed. If no compatible redistribution rights exist, write a private adapter/report pipeline over locally obtained licensed data and publish only metrics and synthetic fixtures.
+
 ## Next sequence
 
 1. Freeze the validator and synthetic adversarial suite.
