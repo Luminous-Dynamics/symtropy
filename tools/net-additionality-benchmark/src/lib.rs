@@ -189,8 +189,8 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
                     .map(|outcome| (result.id.as_str(), outcome.total_ghg_gco2e))
             })
             .min_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(right.0)))
+            .map(|(id, ghg)| (id.to_owned(), ghg))
             .ok_or_else(|| format!("no eligible outcome for scenario {}", scenario.id))?;
-        let oracle_id = oracle_id.to_owned();
 
         scenario_oracles.push(ScenarioOracle {
             scenario_id: scenario.id.clone(),
