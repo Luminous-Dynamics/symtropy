@@ -883,6 +883,36 @@ mod tests {
     }
 
     #[test]
+    fn independent_verifier_accepts_an_untampered_timeline_report() {
+        let report = evaluate_timeline(&fixture()).unwrap();
+        assert!(crate::verifier::verify_timeline_report(&report).is_ok());
+    }
+
+    #[test]
+    fn independent_verifier_rejects_conservation_tampering_even_if_digest_is_recomputed() {
+        let mut report = evaluate_timeline(&fixture()).unwrap();
+        report.payload.ticks[0].resource_transitions[0].closing_units += 1;
+        let encoded = serde_json::to_vec(&report.payload).unwrap();
+        report.payload_sha256 = super::super::sha256_hex(&encoded);
+        assert!(crate::verifier::verify_timeline_report(&report).is_err());
+    }
+
+    #[test]
+    fn independent_verifier_rederives_recovery_summary() {
+        let mut report = evaluate_timeline(&fixture()).unwrap();
+        let recovery = report
+            .payload
+            .floor_recovery
+            .iter_mut()
+            .find(|floor| floor.floor_id == "water-floor")
+            .unwrap();
+        recovery.stable_recovery_tick = Some(4);
+        let encoded = serde_json::to_vec(&report.payload).unwrap();
+        report.payload_sha256 = super::super::sha256_hex(&encoded);
+        assert!(crate::verifier::verify_timeline_report(&report).is_err());
+    }
+
+    #[test]
     fn duplicate_event_sequence_at_one_tick_is_rejected() {
         let mut input = fixture();
         input.events.push(SettlementEvent {
