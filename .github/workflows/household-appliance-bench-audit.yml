@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
+      - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
       - "tools/household-appliance-bench-audit/**"
@@ -13,6 +14,7 @@ on:
     branches: ["main"]
     paths:
       - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
+      - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
       - "tools/household-appliance-bench-audit/**"
