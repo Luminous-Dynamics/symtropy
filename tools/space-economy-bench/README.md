@@ -71,3 +71,19 @@ cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example
 ```
 
 These are synthetic capacities and costs, not actual market shares or launch procurement forecasts. The benchmark assigns no outage probabilities. See [BENCH-SPACE-004](https://github.com/Luminous-Dynamics/symtropy/issues/1750).
+
+## Orbital sustainability as a hard-constrained common-pool resource
+
+The separate reference `tools/space-economy-bench/examples/orbital_externality_reference.rs` makes the externality explicit. It compares lifecycle cost plus end-of-life provision, a qualified-service floor, and a synthetic residual-burden budget. The order is hard gates first, then lifecycle cost and a Pareto frontier; a lower private cost cannot buy its way out of a failed burden gate.
+
+The negative control claims 20 synthetic units of debris removal without verified evidence. It receives zero removal credit and remains infeasible. The two feasible options—`design_for_removal` (82 synthetic cost units, 13 residual burden units) and `service_and_reuse` (88 cost units, 8 burden units)—are both retained on the Pareto frontier rather than collapsed to one weighted-score winner. The cheap disposable fixture costs 60 units but leaves 32 burden units against a budget of 15, so it is rejected.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example orbital_externality_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+**Evidence boundary:** SOBU (synthetic orbital burden unit) is a fixture-only dimensionless unit, not a physical debris-risk measure, collision probability, standard, or regulator's threshold. This reference is not an orbital-dynamics simulation and must not be transferred to lunar orbit/surface decisions without a separate scope and independently justified model. The 2026 ESA Space Environment Report motivates this research direction—orbital environment health has worsened and ESA says active debris removal is needed alongside prevention—but does not calibrate these fixture numbers: https://www.esa.int/Space_Safety/Space_Debris/ESA_Space_Environment_Report_2026. OECD similarly identifies orbital sustainability, market concentration, and critical-input dependencies as distinct systemic risks: https://www.oecd.org/en/publications/the-space-economy-at-a-glance-2026_cbf9b240-en/full-report/managing-vulnerabilities-dependencies-and-sustainability-risks-of-the-space-economy_4d97ef6d.html.
