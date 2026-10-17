@@ -536,25 +536,25 @@ jobs:
             and .summary.detector_count == 3
             and .summary.shift_condition_count == 9
             and .summary.total_shift_episodes_per_detector == 576
-            and .summary.held_out_null_episodes == 256
+            and .summary.held_out_null_episodes == 512
             and .summary.training_false_alarm_budget_bps == 100
             and .summary.all_training_thresholds_within_false_alarm_budget == true
             and .summary.thresholds_fitted_on_null_training_data_only == true
             and .summary.held_out_streams_used_for_final_metrics == true
             and .summary.detectors_are_not_ranked_by_delay_alone == true
             and (.detector_comparisons | length == 3)
-            and all(.detector_comparisons[]; .threshold_selection.false_alarm_rate_bps <= 100 and .threshold_selection.threshold_frozen_before_held_out_scoring == true and (.conditions | length == 9))
+            and all(.detector_comparisons[]; .threshold_selection.upper_95_percent_wilson_false_alarm_bps <= 100 and .threshold_selection.threshold_frozen_before_held_out_scoring == true and (.conditions | length == 9))
             and all(.detector_comparisons[].conditions[]; .episodes == 64 and .detection_probability_bps >= 0 and .detection_probability_bps <= 10000 and .miss_rate_bps >= 0 and .miss_rate_bps <= 10000 and .pre_shift_false_alarm_count >= 0 and .total_post_shift_observations_exposed_before_detection >= 0 and (.detection_probability_wilson_95_bps | length == 2) and .detection_probability_wilson_95_bps[0] <= .detection_probability_wilson_95_bps[1] and .detection_probability_wilson_95_bps[0] >= 0 and .detection_probability_wilson_95_bps[1] <= 10000 and (.miss_rate_wilson_95_bps | length == 2) and .miss_rate_wilson_95_bps[0] <= .miss_rate_wilson_95_bps[1])
             and (.held_out_null_results | length == 3)
-            and ([.detector_comparisons[].frozen_threshold_milli] == [4000, 10000, 1500])
-            and ([.held_out_null_results[].false_alarm_episodes] == [0, 0, 4])
-            and .detector_comparisons[0].conditions[4].detected_after_shift == 4
-            and .detector_comparisons[0].conditions[4].missed == 60
+            and ([.detector_comparisons[].frozen_threshold_milli] == [4250, 10000, 1750])
+            and ([.held_out_null_results[].false_alarm_episodes] == [0, 0, 0])
+            and .detector_comparisons[0].conditions[4].detected_after_shift == 1
+            and .detector_comparisons[0].conditions[4].missed == 63
             and .detector_comparisons[1].conditions[4].detected_after_shift == 64
             and .detector_comparisons[1].conditions[8].detected_after_shift == 64
-            and .detector_comparisons[2].conditions[4].detected_after_shift == 60
-            and .detector_comparisons[2].conditions[6].detected_within_5_samples == 39
-            and all(.held_out_null_results[]; .episodes == 256 and .false_alarm_rate_bps >= 0 and .false_alarm_rate_bps <= 10000 and .held_out_from_threshold_selection == true and (.false_alarm_rate_wilson_95_bps | length == 2) and .false_alarm_rate_wilson_95_bps[0] <= .false_alarm_rate_wilson_95_bps[1] and .false_alarm_rate_wilson_95_bps[0] >= 0 and .false_alarm_rate_wilson_95_bps[1] <= 10000)
+            and .detector_comparisons[2].conditions[4].detected_after_shift == 35
+            and .detector_comparisons[2].conditions[6].detected_within_5_samples == 22
+            and all(.held_out_null_results[]; .episodes == 512 and .false_alarm_rate_bps >= 0 and .false_alarm_rate_bps <= 10000 and .held_out_from_threshold_selection == true and (.false_alarm_rate_wilson_95_bps | length == 2) and .false_alarm_rate_wilson_95_bps[0] <= .false_alarm_rate_wilson_95_bps[1] and .false_alarm_rate_wilson_95_bps[0] >= 0 and .false_alarm_rate_wilson_95_bps[1] <= 10000)
             and .partition_integrity.seed_ranges_disjoint == true
             and .partition_integrity.held_out_streams_used_for_threshold_tuning == false
             and .partition_integrity.test_data_used_for_fit_or_calibration == false
