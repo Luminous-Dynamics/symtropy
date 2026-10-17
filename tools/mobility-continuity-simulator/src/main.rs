@@ -351,12 +351,15 @@ fn simulate_scenario(
         "evidence_class": evidence_class,
         "primary_dispatch_gate_open": primary_gate_open,
         "synthetic_fallback_gate_open": fallback_eligible,
+        "synthetic_fallback_capacity_fraction": arch_fallback_fraction,
+        "fallback_accessibility_fraction": Value::Null,
+        "uncertainty_interval_coverage": Value::Null,
         "annual_essential_trip_demand": demand_count,
         "primary_trips_fulfilled": primary_trips,
         "fallback_trips_fulfilled": fallback_trips,
         "essential_trips_fulfilled": fulfilled,
         "unmet_essential_trips": unmet_trips,
-        "essential_trip_fulfilment_ratio": fulfilment_ratio,
+        "essential_trip_fulfillment_ratio": fulfilment_ratio,
         "out_of_service_hours": out_of_service_hours,
         "repair_event_count": repair_event_durations.len(),
         "time_to_safe_recovery_p50_hours": p50,
@@ -365,6 +368,7 @@ fn simulate_scenario(
         "synthetic_fallback_mobility_spend_r": fallback_spend,
         "synthetic_variable_mobility_spend_r": variable_spend,
         "synthetic_variable_spend_per_fulfilled_trip_r": spend_per_fulfilled_trip,
+        "cost_per_fulfilled_essential_trip_r": Value::Null,
         "whole_life_cost_per_fulfilled_trip_r": Value::Null,
         "whole_life_cost_status": "not_evaluated_missing_capital_financing_insurance_maintenance_parts_and_depreciation_inputs",
         "quantile_interpretation": "descriptive quantiles of two fixed synthetic repair events; not a statistical confidence interval or population estimate"
@@ -612,7 +616,10 @@ mod tests {
     fn lifecycle_cost_stays_unknown() {
         let report = report_fixture();
         for result in report["results"].as_array().expect("results") {
+            assert!(result["cost_per_fulfilled_essential_trip_r"].is_null());
             assert!(result["whole_life_cost_per_fulfilled_trip_r"].is_null());
+            assert!(result["fallback_accessibility_fraction"].is_null());
+            assert!(result["uncertainty_interval_coverage"].is_null());
             assert_eq!(
                 result["whole_life_cost_status"],
                 "not_evaluated_missing_capital_financing_insurance_maintenance_parts_and_depreciation_inputs"
