@@ -52,9 +52,9 @@ jobs:
           jq -e '
             .corpus_version == "civ-infra-measurement-compatibility-generated/v0.1" and
             .world_count == 100 and
-            .states_per_world == 10 and
-            .outcomes_per_world == 3 and
-            .state_outcome_evaluations == 3000 and
+            .states_per_world == 20 and
+            .outcomes_per_world == 5 and
+            .state_outcome_evaluations == 10000 and
             (.cases | length) == 100 and
             .generated_compatibility_edges > 0
           ' "$CIV_INFRA_COMPATIBILITY_CORPUS_OUT"
