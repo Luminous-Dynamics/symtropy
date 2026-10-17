@@ -229,6 +229,7 @@
       "additionalProperties": false,
       "required": [
         "mission_id",
+        "environment_id",
         "deadline_minutes",
         "minimum_energy_reserve_pct",
         "minimum_condition_margin_c",
@@ -256,6 +257,16 @@
         },
         "requirements": {
           "$ref": "#/$defs/requirements"
+        },
+        "environment_id": {
+          "type": "string",
+          "enum": [
+            "amazon_basin",
+            "congo_basin",
+            "antarctica",
+            "sahara",
+            "afghanistan"
+          ]
         }
       }
     },
