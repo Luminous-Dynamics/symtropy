@@ -322,42 +322,50 @@ fn action_for_weights(weights: [i128; 3]) -> Action {
     bayes_action(weights)
 }
 
-fn adaptive_gross_value_numerator() -> Result<i128, String> {
+fn adaptive_gross_value_numerator(
+    run_b_after_a_positive: bool,
+    run_b_after_a_negative: bool,
+) -> Result<i128, String> {
     validate_test(&CALIBRATION_A)?;
     validate_test(&CALIBRATION_B)?;
 
     let a_positive = update_weights(PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, true)?;
     let a_negative = update_weights(PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, false)?;
 
-    let b_positive_after_a_positive = update_weights(a_positive, &CALIBRATION_B, true)?;
-    let b_negative_after_a_positive = update_weights(a_positive, &CALIBRATION_B, false)?;
+    let branch_gross = |weights: [i128; 3], run_b: bool| -> Result<i128, String> {
+        if run_b {
+            let b_positive = update_weights(weights, &CALIBRATION_B, true)?;
+            let b_negative = update_weights(weights, &CALIBRATION_B, false)?;
+            Ok(action_value_weighted(b_positive, action_for_weights(b_positive))
+                + action_value_weighted(b_negative, action_for_weights(b_negative)))
+        } else {
+            // Lift a branch that stops after A into the common two-stage mass.
+            Ok(action_value_weighted(weights, action_for_weights(weights)) * BASIS_POINTS)
+        }
+    };
 
-    let a_positive_b_positive_reward = action_value_weighted(
-        b_positive_after_a_positive,
-        action_for_weights(b_positive_after_a_positive),
-    );
-    let a_positive_b_negative_reward = action_value_weighted(
-        b_negative_after_a_positive,
-        action_for_weights(b_negative_after_a_positive),
-    );
-
-    // If A is negative, the exact branch oracle stops. Multiply its branch mass
-    // by BASIS_POINTS to embed it in the common two-stage denominator.
-    let a_negative_stop = action_value_weighted(a_negative, Action::KeepBaseline) * BASIS_POINTS;
-
-    Ok(a_positive_b_positive_reward
-        + a_positive_b_negative_reward
-        + a_negative_stop)
+    Ok(branch_gross(a_positive, run_b_after_a_positive)?
+        + branch_gross(a_negative, run_b_after_a_negative)?)
 }
 
-fn adaptive_expected_test_cost_numerator() -> i128 {
+fn adaptive_expected_test_cost_numerator(
+    run_b_after_a_positive: bool,
+    run_b_after_a_negative: bool,
+) -> i128 {
     let a_positive_mass = total_weight(update_weights(
-        PRIOR_MODEL_WEIGHTS,
-        &CALIBRATION_A,
-        true,
+        PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, true
     ).expect("validated static test"));
-    DIRECT_CALIBRATION_A_COST_CENTI * GLOBAL_MASS
-        + CALIBRATION_B_COST_CENTI * a_positive_mass * BASIS_POINTS
+    let a_negative_mass = total_weight(update_weights(
+        PRIOR_MODEL_WEIGHTS, &CALIBRATION_A, false
+    ).expect("validated static test"));
+    let mut cost = DIRECT_CALIBRATION_A_COST_CENTI * GLOBAL_MASS;
+    if run_b_after_a_positive {
+        cost += CALIBRATION_B_COST_CENTI * a_positive_mass * BASIS_POINTS;
+    }
+    if run_b_after_a_negative {
+        cost += CALIBRATION_B_COST_CENTI * a_negative_mass * BASIS_POINTS;
+    }
+    cost
 }
 
 fn policy_scores() -> Result<Vec<(String, i128, i128)>, String> {
@@ -368,8 +376,12 @@ fn policy_scores() -> Result<Vec<(String, i128, i128)>, String> {
         - CALIBRATION_A.cost_centi * total_mass;
     let test_b = test_gross_value_numerator(&CALIBRATION_B)?
         - CALIBRATION_B.cost_centi * total_mass;
-    let adaptive = adaptive_gross_value_numerator()?
-        - adaptive_expected_test_cost_numerator();
+    let adaptive_after_positive = adaptive_gross_value_numerator(true, false)?
+        - adaptive_expected_test_cost_numerator(true, false);
+    let adaptive_after_negative = adaptive_gross_value_numerator(false, true)?
+        - adaptive_expected_test_cost_numerator(false, true);
+    let adaptive_both_branches = adaptive_gross_value_numerator(true, true)?
+        - adaptive_expected_test_cost_numerator(true, true);
     let redundant = test_gross_value_numerator(&REDUNDANT_TEST)?
         - REDUNDANT_TEST.cost_centi * total_mass;
 
@@ -377,7 +389,9 @@ fn policy_scores() -> Result<Vec<(String, i128, i128)>, String> {
         ("no_calibration".to_owned(), no_test, denominator),
         ("calibration_a_only".to_owned(), test_a, denominator),
         ("calibration_b_only".to_owned(), test_b, denominator),
-        ("adaptive_a_then_b_after_positive".to_owned(), adaptive, denominator),
+        ("adaptive_a_then_b_after_positive".to_owned(), adaptive_after_positive, denominator),
+        ("adaptive_a_then_b_after_negative".to_owned(), adaptive_after_negative, denominator),
+        ("adaptive_a_then_b_after_either_outcome".to_owned(), adaptive_both_branches, denominator),
         ("uninformative_test_negative_control".to_owned(), redundant, denominator),
     ];
     Ok(scores)
@@ -466,7 +480,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
 
     let test_a_gross = test_gross_value_numerator(&CALIBRATION_A)?;
     let test_b_gross = test_gross_value_numerator(&CALIBRATION_B)?;
-    let adaptive_gross = adaptive_gross_value_numerator()?;
+    let adaptive_gross = adaptive_gross_value_numerator(true, false)?;
     let scores = policy_scores()?;
 
     let expected = [
@@ -495,6 +509,19 @@ fn execute(source_commit: &str) -> Result<Value, String> {
     }
     if adaptive_gross - NO_ASSAY_VALUE_CENTI * GLOBAL_MASS != 76_500_000_000_i128 {
         return Err("adaptive calibration-tree EVSI oracle mismatch".to_owned());
+    }
+    let find_score = |id: &str| scores.iter().find(|(policy_id, _, _)| policy_id == id)
+        .map(|(_, value, _)| *value).ok_or_else(|| format!("missing enumerated policy {id}"));
+    if find_score("adaptive_a_then_b_after_positive")? != 1_543_000_000_000_i128
+        || find_score("adaptive_a_then_b_after_negative")? != 1_521_000_000_000_i128
+        || find_score("adaptive_a_then_b_after_either_outcome")? != 1_539_000_000_000_i128
+    {
+        return Err("exhaustive adaptive calibration-tree policy oracle mismatch".to_owned());
+    }
+    let selected_candidate = scores.iter().max_by_key(|(_, numerator, _)| *numerator)
+        .ok_or_else(|| "no calibration policy candidate".to_owned())?;
+    if selected_candidate.0 != "adaptive_a_then_b_after_positive" {
+        return Err("exhaustive finite policy enumeration selected an unexpected tree".to_owned());
     }
     let redundant_gross = test_gross_value_numerator(&REDUNDANT_TEST)?;
     if redundant_gross != NO_ASSAY_VALUE_CENTI * GLOBAL_MASS {
@@ -555,8 +582,18 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         },
         "branch_decisions": branch_reports,
         "policy_comparison": policy_reports,
-        "selected_policy": "adaptive_a_then_b_after_positive",
-        "exhaustive_finite_policy_regret": rational_json(0, CENTI),
+        "selected_policy": scores.iter().max_by_key(|(_, numerator, _)| *numerator).unwrap().0,
+        "exhaustive_policy_enumeration": {
+            "candidate_count": scores.len(),
+            "adaptive_branch_choices_enumerated": [
+                "never_run_b_after_a",
+                "run_b_only_after_a_positive",
+                "run_b_only_after_a_negative",
+                "run_b_after_either_a_outcome"
+            ],
+            "selection_objective": "maximum expected net utility under the explicitly declared equal model weights",
+            "regret_vs_enumerated_candidate_policies": rational_json(0, CENTI)
+        },
         "negative_controls": {
             "uninformative_calibration": {
                 "expected_value_before_test": rational_json(NO_ASSAY_VALUE_CENTI, CENTI),
@@ -670,10 +707,14 @@ mod tests {
         assert!(value("adaptive_a_then_b_after_positive") > value("calibration_a_only"));
         assert!(value("adaptive_a_then_b_after_positive") > value("calibration_b_only"));
         assert!(value("adaptive_a_then_b_after_positive") > value("no_calibration"));
-        assert_eq!(value("adaptive_a_then_b_after_positive"), 1_543_500_000_000);
+        assert_eq!(value("adaptive_a_then_b_after_positive"), 1_543_000_000_000);
+        assert_eq!(value("adaptive_a_then_b_after_negative"), 1_521_000_000_000);
+        assert_eq!(value("adaptive_a_then_b_after_either_outcome"), 1_539_000_000_000);
         assert_eq!(value("calibration_a_only"), 1_525_000_000_000);
         assert_eq!(value("calibration_b_only"), 1_507_500_000_000);
         assert_eq!(value("no_calibration"), 1_500_000_000_000);
+        let selected = scores.iter().max_by_key(|(_, numerator, _)| *numerator).unwrap();
+        assert_eq!(selected.0, "adaptive_a_then_b_after_positive");
     }
 
     #[test]
