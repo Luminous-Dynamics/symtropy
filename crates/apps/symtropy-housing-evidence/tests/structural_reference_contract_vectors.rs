@@ -29,6 +29,34 @@ fn number(object: &Value, name: &str) -> f64 {
         .unwrap_or_else(|| panic!("expected finite numeric field {name}"))
 }
 
+fn corpus_schema_errors(corpus: &Value) -> Vec<String> {
+    let schema: Value =
+        serde_json::from_str(SCHEMA).expect("contract vector schema must be valid JSON");
+    draft202012::meta::validate(&schema).expect("contract vector schema must be Draft 2020-12");
+    let validator = draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
+        .expect("contract vector schema must compile");
+    validator
+        .iter_errors(corpus)
+        .map(|error| error.to_string())
+        .collect()
+}
+
+fn ensure_unique_vector_ids(vectors: &[Value]) -> Result<(), String> {
+    let mut ids = BTreeSet::new();
+    for vector in vectors {
+        let id = vector
+            .get("vector_id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "vector_id must be a string".to_string())?;
+        if !ids.insert(id.to_string()) {
+            return Err(format!("duplicate vector_id: {id}"));
+        }
+    }
+    Ok(())
+}
+
 fn meters(value: f64) -> Meters {
     Meters::try_from_si(value).expect("positive finite SI length")
 }
@@ -64,20 +92,71 @@ fn assert_vector_value(vector_id: &str, expected: &Value, key: &str, actual: f64
 }
 
 #[test]
+fn contract_vector_schema_and_identity_negative_controls_reject_mutations() {
+    let baseline: Value =
+        serde_json::from_str(CORPUS).expect("contract vector corpus must be valid JSON");
+    assert!(
+        corpus_schema_errors(&baseline).is_empty(),
+        "untouched contract corpus must conform to its schema"
+    );
+
+    let mut missing_output = baseline.clone();
+    missing_output["vectors"][2]["expected"]
+        .as_object_mut()
+        .expect("expected outputs are an object")
+        .remove("maximum_deflection_m");
+    assert!(
+        !corpus_schema_errors(&missing_output).is_empty(),
+        "removing a required output must fail schema validation"
+    );
+
+    let mut missing_input = baseline.clone();
+    missing_input["vectors"][1]["inputs"]
+        .as_object_mut()
+        .expect("inputs are an object")
+        .remove("length_m");
+    assert!(
+        !corpus_schema_errors(&missing_input).is_empty(),
+        "removing a required input must fail schema validation"
+    );
+
+    let mut mismatched_load_kind = baseline.clone();
+    mismatched_load_kind["vectors"][3]["load_case"]["kind"] =
+        serde_json::json!("uniform_distributed_load");
+    assert!(
+        !corpus_schema_errors(&mismatched_load_kind).is_empty(),
+        "a load case that conflicts with its contract ID must fail schema validation"
+    );
+
+    let mut weakened_tolerance = baseline.clone();
+    weakened_tolerance["numeric_policy"]["relative_tolerance"] = serde_json::json!(0.0);
+    assert!(
+        !corpus_schema_errors(&weakened_tolerance).is_empty(),
+        "a zero relative tolerance must fail schema validation"
+    );
+
+    let mut unknown_contract = baseline.clone();
+    unknown_contract["vectors"][0]["contract_id"] =
+        serde_json::json!("mechanics.unknown.contract.v1");
+    assert!(
+        !corpus_schema_errors(&unknown_contract).is_empty(),
+        "an unknown contract ID must fail schema validation"
+    );
+
+    let mut duplicate_id = baseline;
+    duplicate_id["vectors"][1]["vector_id"] = duplicate_id["vectors"][0]["vector_id"].clone();
+    let vectors = duplicate_id["vectors"].as_array().expect("vectors array");
+    assert!(
+        ensure_unique_vector_ids(vectors).is_err(),
+        "duplicate vector IDs must be rejected independently of JSON Schema"
+    );
+}
+
+#[test]
 fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
     let corpus: Value =
         serde_json::from_str(CORPUS).expect("contract vector corpus must be valid JSON");
-    let schema: Value =
-        serde_json::from_str(SCHEMA).expect("contract vector schema must be valid JSON");
-    draft202012::meta::validate(&schema).expect("contract vector schema must be Draft 2020-12");
-    let validator = draft202012::options()
-        .should_validate_formats(true)
-        .build(&schema)
-        .expect("contract vector schema must compile");
-    let schema_errors: Vec<String> = validator
-        .iter_errors(&corpus)
-        .map(|error| error.to_string())
-        .collect();
+    let schema_errors = corpus_schema_errors(&corpus);
     assert!(
         schema_errors.is_empty(),
         "contract vector corpus violates its schema: {schema_errors:#?}"
@@ -98,17 +177,13 @@ fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
         .expect("vectors must be an array");
     assert_eq!(vectors.len(), 5, "all five mathematical contract families must be represented");
 
-    let mut vector_ids = BTreeSet::new();
+    ensure_unique_vector_ids(vectors).expect("vector IDs must be unique");
     let mut contract_ids = BTreeSet::new();
 
     for vector in vectors {
         let vector_id = vector["vector_id"]
             .as_str()
             .expect("vector_id must be a string");
-        assert!(
-            vector_ids.insert(vector_id.to_string()),
-            "vector_id must be unique: {vector_id}"
-        );
         let contract_id = vector["contract_id"]
             .as_str()
             .expect("contract_id must be a string");
