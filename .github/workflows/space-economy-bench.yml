@@ -175,7 +175,7 @@ jobs:
             and ([.portfolios[0].target_state.blockers[] | select(.capability_id == "sensor_module" and .reason_code == "RECURRING_IMPORT_DEPENDENCY")] | length == 1)
             and .portfolios[1].claimed_local_content_percent == 78
             and .portfolios[1].target_state.locally_closed == true
-            and .negative_controls | length == 4
+            and (.negative_controls | length == 4)
           ' space-economy-industrial-closure-receipt.json
 
       - name: Bind toolchain and dependency-lock provenance to receipts
