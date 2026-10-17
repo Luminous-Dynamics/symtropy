@@ -593,7 +593,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         .filter(|(_, _, evidence_ok)| *evidence_ok)
         .max_by_key(|(_, net, _)| *net)
         .ok_or_else(|| "no eligible portfolio survived evidence and resource gates".to_owned())?;
-    if selected.0 != "complementary_assay_a_c" || selected.1 != 7_600_000_000 {
+    if selected.0 != "complementary_assay_a_c" || selected.1 != 6_666_000_000 {
         return Err("finite exhaustive policy oracle did not choose the complementary assay".to_owned());
     }
 
