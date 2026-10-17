@@ -1,0 +1,67 @@
+name: CIV-INFRA Fleet Resilience Manifest
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-fleet-resilience/**"
+      - "docs/research/civ-infra-resilience/**"
+      - ".github/workflows/civ-infra-fleet-resilience.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-fleet-resilience/**"
+      - "docs/research/civ-infra-resilience/**"
+      - ".github/workflows/civ-infra-fleet-resilience.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  manifest:
+    name: Manifest contract checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- --check
+
+      - name: Run manifest and adversarial tests
+        run: cargo test --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml
+
+      - name: Emit and inspect fixture validation report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-fleet-resilience-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.fleet_resilience_manifest_report.v0.1" and
+            .input_sha256 == $expected_sha and
+            .validation_status == "fixture_schema_valid_only" and
+            .benchmark_executed == false and
+            .policy_runs_performed == 0 and
+            .counts.policies == 4 and
+            .counts.resources == 5 and
+            .counts.task_nodes == 4 and
+            .counts.disturbance_cases == 13 and
+            .counts.evidence_vocabulary_items == 32 and
+            .counts.evaluation_rules == 7 and
+            ([.disturbance_cases[].status] | unique) == ["declared_not_simulated"] and
+            ([.disturbance_cases[].case_id] | sort) == [
+              "R-001", "R-002", "R-003", "R-004", "R-005", "R-006", "R-007",
+              "R-008", "R-009", "R-010", "R-011", "R-012", "R-013"
+            ]
+          ' "$report"
