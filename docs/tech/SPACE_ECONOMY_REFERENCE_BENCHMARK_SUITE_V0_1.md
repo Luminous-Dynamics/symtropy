@@ -484,3 +484,16 @@ Each outcome reports updated unnormalized model weights and posterior floors, th
 - For real deployments, preregister the model set/priors, use held-out calibration data and report posterior calibration, uncertainty coverage and realized downstream decision regret.
 
 This is motivated by research on [calibration experimental design with field-response and model uncertainty](https://www.sciencedirect.com/science/article/pii/S0045782516302274) and NIST's guidance on [uncertainties of future values corrected with a calibration curve](https://www.itl.nist.gov/div898/handbook/mpc/section3/mpc367.htm). The implementation is an independent synthetic finite-tree benchmark, not a reproduction of those methods and not empirical evidence about lunar survey instruments, resources or economics.
+
+## Active reference extension — calibration transfer under domain shift (BENCH-SPACE-014)
+
+The next reference, `tools/space-economy-bench/examples/calibration_transfer_shift_reference.rs`, treats calibration applicability as a bounded, versioned claim instead of a permanent instrument property. The fixture envelope binds instrument and revision; reference-standard identity and SHA-256; revocation state; body, site and patch; valid epoch range; temperature; power mode; input range; sample preparation; and calibration-model SHA-256.
+
+The finite scenario suite contains one valid control and 13 negative controls. The naive baseline accepts every observation, creating 13 false-valid claims. The envelope-gated policy accepts the single valid control, rejects all 13 negative controls with reason-coded failures, and produces zero false-valid updates and zero in-domain false rejections for this synthetic fixture. The workflow asserts those exact invariants and retains the receipt with source, envelope and drift-model digests.
+
+The drift sub-benchmark keeps statistical drift detection distinct from metadata invalidation. It applies a two-consecutive-residual threshold: isolated noise does not trigger the fixture detector, while a sustained shift is detected at sample index 5 after onset at index 4. That is a one-sample detection delay; one shifted sample is exposed before the alarm. A synthetic loss/recalibration comparison reports 12 avoided loss units, 7 units of recalibration cost and net value 5. These values only test accounting and policy behavior; they are not empirical instrument characteristics.
+
+**Required research metrics:** false-valid rate on declared out-of-envelope cases; in-domain false rejection; drift false-alarm rate and detection delay together; pre-alarm exposure; recalibration cost and downstream regret avoided; held-out calibration/coverage; and content-addressed provenance. Split fixtures are grouped by site and strictly ordered by epoch, and test data are declared unavailable to fitting/calibration. Before any real-world threshold is claimed, use representative held-out observations and independent reference measurements.
+
+This is not evidence that a physical spectrometer will drift in these ways or that any lunar process is viable. It is a deterministic contract and negative-control suite only. Tracking issue: [BENCH-SPACE-014](https://github.com/Luminous-Dynamics/symtropy/issues/1860).
+
