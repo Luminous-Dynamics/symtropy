@@ -917,4 +917,55 @@ mod tests {
         let errors = evaluate_json(&modified).expect_err("duplicate IDs must fail");
         assert!(errors.iter().any(|error| error.contains("duplicate candidate id")));
     }
+    #[test]
+    fn equivalent_input_order_preserves_semantics_but_changes_exact_byte_digest() {
+        let original_bytes = fixture_bytes();
+        let original = evaluate_json(&original_bytes).expect("original fixture evaluates");
+        let mut reordered_fixture = parse_fixture(&original_bytes);
+        reordered_fixture.candidates.reverse();
+        reordered_fixture.utilities.reverse();
+        reordered_fixture.resources.reverse();
+        reordered_fixture.work_packages.reverse();
+        for package in &mut reordered_fixture.work_packages {
+            package.resource_uses.reverse();
+        }
+        let reordered_bytes =
+            serde_json::to_vec(&reordered_fixture).expect("reordered fixture serializes");
+        let reordered = evaluate_json(&reordered_bytes).expect("reordered fixture evaluates");
+
+        assert_eq!(original.candidates, reordered.candidates);
+        assert_eq!(original.schedule_conflicts, reordered.schedule_conflicts);
+        assert_ne!(original.input_sha256, reordered.input_sha256);
+        verify_report(&reordered_bytes, &reordered)
+            .expect("reference checker should accept reordered semantic equivalent");
+    }
+
+    #[test]
+    fn large_aggregate_resource_demand_cannot_wrap_u32_and_hide_overcommitment() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        fixture
+            .resources
+            .iter_mut()
+            .find(|resource| resource.id == "excavator")
+            .expect("excavator resource exists")
+            .capacity_units = u32::MAX;
+        for package in &mut fixture.work_packages {
+            for usage in &mut package.resource_uses {
+                if usage.resource_id == "excavator" {
+                    usage.units = u32::MAX;
+                }
+            }
+        }
+
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let report = evaluate_json(&modified).expect("large but representable demands evaluate");
+        assert_eq!(report.schedule_conflicts.len(), 1);
+        assert!(
+            report.schedule_conflicts[0].observed_demand_units
+                > u64::from(u32::MAX)
+        );
+        verify_report(&modified, &report).expect("reference checker should match wide arithmetic");
+    }
+
 }
