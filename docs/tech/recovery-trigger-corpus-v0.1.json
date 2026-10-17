@@ -484,5 +484,6 @@
       "expected_reason_code": "ENTRY_THRESHOLD_MET_REVIEW_ONLY",
       "expected_actuation": false
     }
-  ]
+  ],
+  "algorithm_id": "versioned-signpost-trigger-evaluator-v0.1"
 }
