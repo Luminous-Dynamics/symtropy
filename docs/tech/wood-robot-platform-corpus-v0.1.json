@@ -1,0 +1,325 @@
+{
+  "suite_id": "WOOD_ROBOT_PLATFORM",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "purpose": "Adversarial plan-eligibility fixtures for modular woodworking, carpentry, and timber-construction robot concepts.",
+  "claim_ceiling": "Schema/task-contract fixtures only. No robot performance, physical safety, timber grade, structural approval, legal harvesting, or field accuracy claim.",
+  "execution_mode": "plan_only_no_actuation",
+  "units": {
+    "length": "mm",
+    "energy": "Wh",
+    "time": "ms",
+    "uncertainty": "mm"
+  },
+  "expected_scenario_count": 10,
+  "scenarios": [
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_001_NOMINAL_METROLOGY_PLAN",
+      "platform_profile": "P2_OPEN_WOODWORKING_CELL",
+      "task_type": "measure_and_fixture_stock",
+      "material_state": "new_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 1,
+        "required_surface_visible": true,
+        "fixture_state": "confirmed",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "not_required_for_task",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 500,
+        "required_return_reserve_wh": 100,
+        "temporary_support_state": "not_required"
+      },
+      "hard_constraints": {
+        "minimum_calibration_state": "current",
+        "required_observation": true,
+        "require_fixture_confirmation": true,
+        "require_interlock_when_applicable": true,
+        "require_human_approval": true,
+        "require_return_reserve": true,
+        "require_temporary_support_when_declared": true
+      },
+      "expected_decision": "eligible_for_simulated_plan",
+      "expected_reason_codes": ["PLAN_ONLY", "INPUT_EVIDENCE_COMPLETE"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_002_EXPIRED_CALIBRATION",
+      "platform_profile": "P2_OPEN_WOODWORKING_CELL",
+      "task_type": "precision_drill_plan",
+      "material_state": "new_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 2,
+        "required_surface_visible": true,
+        "fixture_state": "confirmed",
+        "tool_state": "compatible",
+        "calibration_state": "expired",
+        "extraction_state": "available",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 400,
+        "required_return_reserve_wh": 80,
+        "temporary_support_state": "not_required"
+      },
+      "hard_constraints": {
+        "minimum_calibration_state": "current",
+        "required_observation": true,
+        "require_fixture_confirmation": true,
+        "require_interlock_when_applicable": true,
+        "require_human_approval": true,
+        "require_return_reserve": true,
+        "require_temporary_support_when_declared": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": ["CALIBRATION_EXPIRED"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_003_EXTRACTION_UNAVAILABLE",
+      "platform_profile": "P2_OPEN_WOODWORKING_CELL",
+      "task_type": "dust_producing_milling_plan",
+      "material_state": "new_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 1,
+        "required_surface_visible": true,
+        "fixture_state": "confirmed",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "unavailable",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 500,
+        "required_return_reserve_wh": 100,
+        "temporary_support_state": "not_required"
+      },
+      "hard_constraints": {
+        "minimum_calibration_state": "current",
+        "required_observation": true,
+        "require_fixture_confirmation": true,
+        "require_interlock_when_applicable": true,
+        "require_extraction_for_dust_producing_tasks": true,
+        "require_human_approval": true,
+        "require_return_reserve": true,
+        "require_temporary_support_when_declared": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": ["REQUIRED_EXTRACTION_UNAVAILABLE"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_004_REQUIRED_SURFACE_OCCLUDED",
+      "platform_profile": "P0_FOREST_SCOUT",
+      "task_type": "complete_trunk_or_log_feature_observation",
+      "material_state": "field_observed_candidate",
+      "observations": {
+        "part_pose": "estimated",
+        "pose_uncertainty_mm": 35,
+        "required_surface_visible": false,
+        "fixture_state": "not_applicable",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "not_applicable",
+        "interlock_state": "not_applicable",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 300,
+        "required_return_reserve_wh": 60,
+        "temporary_support_state": "not_required"
+      },
+      "hard_constraints": {
+        "required_observation": true,
+        "maximum_pose_uncertainty_mm": 10,
+        "all_required_features_visible_or_independently_observed": true,
+        "require_return_reserve": true
+      },
+      "expected_decision": "insufficient_evidence",
+      "expected_reason_codes": ["REQUIRED_FEATURE_OCCLUDED", "POSE_UNCERTAINTY_EXCEEDS_LIMIT"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_005_FIXTURE_DOES_NOT_MATCH_PART",
+      "platform_profile": "P3_CARPENTRY_ASSEMBLY_COMPANION",
+      "task_type": "position_and_fastener_plan",
+      "material_state": "new_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 2,
+        "required_surface_visible": true,
+        "fixture_state": "mismatch",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "available",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 400,
+        "required_return_reserve_wh": 75,
+        "temporary_support_state": "confirmed"
+      },
+      "hard_constraints": {
+        "minimum_calibration_state": "current",
+        "required_observation": true,
+        "require_fixture_confirmation": true,
+        "require_interlock_when_applicable": true,
+        "require_human_approval": true,
+        "require_temporary_support_when_declared": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": ["FIXTURE_PART_MISMATCH"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_006_RECLAIMED_MEMBER_STRUCTURAL_UNCERTAINTY",
+      "platform_profile": "P6_REUSE_REMANUFACTURE_STATION",
+      "task_type": "assess_reclaimed_member_for_structural_reuse",
+      "material_state": "reclaimed",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 4,
+        "required_surface_visible": false,
+        "fixture_state": "confirmed",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "not_applicable",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 250,
+        "required_return_reserve_wh": 50,
+        "temporary_support_state": "not_required",
+        "grade_evidence_state": "unknown",
+        "hidden_fastener_state": "unresolved",
+        "internal_defect_state": "unknown"
+      },
+      "hard_constraints": {
+        "require_grade_evidence_for_structural_use": true,
+        "require_hidden_fastener_resolution_before_disassembly": true,
+        "require_required_surfaces_observed": true
+      },
+      "expected_decision": "insufficient_evidence",
+      "expected_reason_codes": ["STRUCTURAL_GRADE_UNQUALIFIED", "HIDDEN_FASTENER_UNRESOLVED", "REQUIRED_SURFACE_OCCLUDED"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_007_MOBILE_MISSION_CANNOT_RETURN",
+      "platform_profile": "P4_JOBSITE_LOGISTICS_INSPECTION_ROVER",
+      "task_type": "material_delivery_and_inspection_route",
+      "material_state": "mixed_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 5,
+        "required_surface_visible": true,
+        "fixture_state": "not_applicable",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "not_applicable",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 42,
+        "required_return_reserve_wh": 55,
+        "temporary_support_state": "not_required"
+      },
+      "hard_constraints": {
+        "require_valid_localization": true,
+        "require_return_reserve": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": ["RETURN_RESERVE_INFEASIBLE"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_008_ASSEMBLY_MISSING_TEMPORARY_SUPPORT",
+      "platform_profile": "P5_TIMBER_POSITIONING_COORDINATOR",
+      "task_type": "propose_panel_alignment_sequence",
+      "material_state": "engineered_panel",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 3,
+        "required_surface_visible": true,
+        "fixture_state": "confirmed",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "not_applicable",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "valid",
+        "remaining_energy_wh": 500,
+        "required_return_reserve_wh": 0,
+        "temporary_support_state": "missing"
+      },
+      "hard_constraints": {
+        "require_declared_lift_plan": true,
+        "require_temporary_support_when_declared": true,
+        "require_human_approval": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": ["TEMPORARY_SUPPORT_MISSING", "LIFT_PLAN_NOT_SUPPLIED"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_009_HUMAN_DECLINES_PROPOSAL",
+      "platform_profile": "P3_CARPENTRY_ASSEMBLY_COMPANION",
+      "task_type": "clamp_and_fastener_plan",
+      "material_state": "new_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 1,
+        "required_surface_visible": true,
+        "fixture_state": "confirmed",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "available",
+        "interlock_state": "available",
+        "human_approval": "declined",
+        "localization_state": "valid",
+        "remaining_energy_wh": 400,
+        "required_return_reserve_wh": 80,
+        "temporary_support_state": "confirmed"
+      },
+      "hard_constraints": {
+        "require_human_approval": true,
+        "no_action_after_decline": true
+      },
+      "expected_decision": "blocked",
+      "expected_reason_codes": ["HUMAN_APPROVAL_DECLINED"],
+      "expected_actuation": false
+    },
+    {
+      "scenario_id": "SYNTHETIC_WOODROBOT_010_LOCALIZATION_LOSS_DURING_MOBILE_TASK",
+      "platform_profile": "P4_JOBSITE_LOGISTICS_INSPECTION_ROVER",
+      "task_type": "material_delivery_and_inspection_route",
+      "material_state": "mixed_stock",
+      "observations": {
+        "part_pose": "observed",
+        "pose_uncertainty_mm": 8,
+        "required_surface_visible": true,
+        "fixture_state": "not_applicable",
+        "tool_state": "compatible",
+        "calibration_state": "current",
+        "extraction_state": "not_applicable",
+        "interlock_state": "available",
+        "human_approval": "approved",
+        "localization_state": "lost",
+        "remaining_energy_wh": 200,
+        "required_return_reserve_wh": 60,
+        "temporary_support_state": "not_required"
+      },
+      "hard_constraints": {
+        "require_valid_localization": true,
+        "require_safe_degraded_state_on_localization_loss": true,
+        "require_return_reserve": true
+      },
+      "expected_decision": "blocked_safe_degraded_state",
+      "expected_reason_codes": ["LOCALIZATION_LOST", "MOTION_NOT_AUTHORIZED"],
+      "expected_actuation": false
+    }
+  ]
+}
