@@ -3,7 +3,7 @@
   "status": "proposed_synthetic_conformance_corpus",
   "synthetic_only": true,
   "intended_use": "Schema/contract planning and future independent-verifier fixtures; not physical validation, a permit, a design approval, or a safety certification.",
-  "scenario_count": 18,
+  "scenario_count": 19,
   "scenarios": [
     {
       "id": "WP-001",
@@ -253,6 +253,21 @@
       "required_invariants": [
         "All declared dependent outputs require revalidation.",
         "Unrelated outputs may be reused only if dependency rules justify it."
+      ],
+      "claim_ceiling": "synthetic_conformance_only"
+    },
+    {
+      "id": "WP-019",
+      "profile": "HOME-BASE",
+      "domain": "cyberphysical_resilience",
+      "setup": "A compromised third-party cloud credential attempts unauthorized changes to building subsystems; the resident network is then disconnected for the declared recovery interval.",
+      "expected_gate_state": "hard_gate_failure",
+      "negative_control": true,
+      "evidence_class": "synthetic",
+      "required_invariants": [
+        "Remote or cloud identity compromise must not grant unbounded control across independent building subsystems.",
+        "Essential functions retain the declared local/manual fallback and authorized override during disconnection.",
+        "The test fixture is synthetic; it does not establish penetration-test coverage or physical security."
       ],
       "claim_ceiling": "synthetic_conformance_only"
     }
