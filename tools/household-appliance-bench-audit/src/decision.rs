@@ -80,7 +80,7 @@ fn observation_by_id<'a>(candidate: &'a Value, id: &str) -> Option<&'a Value> {
         .find(|observation| text_at(observation, "criterion_id") == Some(id))
 }
 
-fn gate_status(candidate: &Value, expected_gate: &str) -> &str {
+fn gate_status(candidate: &Value, expected_gate: &str) -> &'static str {
     let Some(gates) = candidate.get("hard_gates").and_then(Value::as_array) else {
         return "unknown";
     };
