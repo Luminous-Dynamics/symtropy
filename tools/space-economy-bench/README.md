@@ -263,3 +263,40 @@ cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml 
 ```
 
 Research grounding: the 2026 paper [Robust Bayesian Decision Making under Adversarial Uncertainty](https://proceedings.mlr.press/v337/harikumar26a.html) argues for experiment selection that targets decision stability under plausible model misspecification rather than information gain or nominal optimality alone. NIST's [measurement-uncertainty guidance](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-5-combined-standard-uncertainty) also emphasizes accounting for covariances where relevant. These sources motivate the benchmark; they do not validate its synthetic values. Follow-up: [BENCH-SPACE-012](https://github.com/Luminous-Dynamics/symtropy/issues/1837).
+
+## Choose calibration experiments by downstream decision value
+
+The `tools/space-economy-bench/examples/decision_value_calibration_experiments_reference.rs` reference removes the perfect-calibration oracle from the previous example and gives calibration itself a finite experiment-design problem. It uses three explicit, equally weighted **synthetic** assay-quality regimes (high: net assay value 65, moderate: 35, uninformative: 30) and a baseline alternative worth 50. These equal model weights are a fixture prior, not field evidence.
+
+Two imperfect calibration experiments have different expected utility:
+- Calibration A, cost 1.00, has positive-result likelihoods 90% / 40% / 10% in the high/moderate/uninformative regimes. Alone, it yields expected net value 50.8333.
+- Calibration B, cost 0.25, has positive-result likelihoods 70% / 20% / 30%. Alone, it yields expected net value 50.25.
+- An uninformative 50% / 50% / 50% control costs 0.10; it cannot change a decision and is rejected.
+
+The benchmark exhaustively enumerates the two possible test orders and whether the second test runs after the positive branch, negative branch, both branches or neither:
+| Calibration policy | Expected net value |
+|---|---:|
+| No calibration | 50.00 |
+| A only | 50.8333 |
+| B only | 50.25 |
+| A then B, only after A-positive | 51.4333 |
+| A then B, only after A-negative | 50.70 |
+| A then B, after either outcome | 51.30 |
+| B then A, only after B-positive | **51.90** |
+| B then A, only after B-negative | 49.65 |
+| B then A, after either outcome | 51.30 |
+| Uninformative test control | 49.90 |
+
+The winner is **B first, then A only after B-positive**. B's positive branch has 40% probability under the synthetic equal model weights; running A only there makes expected calibration spend 0.65 (0.25 + 0.40 × 1.00) and preserves the gross decision value of 52.55. By contrast, running A first then B after A-positive spends about 1.1167 expected units for the same gross value.
+
+Each possible observed branch reports its exact unnormalized model weights, posterior probability floors, posterior-mean decision, maximin action and minimax-regret action. Because every likelihood in this fixture is nonzero, all three regimes remain possible after any result: maximin and minimax-regret continue to prefer the baseline action (assay worst case 30 vs baseline 50; maximum regret 20 vs 15), while posterior-mean decisions can change by branch. The model-class EVPI is 5 and expected calibration EVSI is bounded by it.
+
+Hard limits remain two calibration tests, two samples, four power units and two hours. The code hashes the explicit model and calibration-test specifications separately from its source. Negative controls cover a redundant test, shared standards, missing results and unsupported calibration-accuracy claims.
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example decision_value_calibration_experiments_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example decision_value_calibration_experiments_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+Research motivation: [Hu, Ao and Mahadevan, *Calibration experimental design considering field response and model uncertainty*](https://www.sciencedirect.com/science/article/pii/S0045782516302274) explicitly studies calibration-design optimization under model uncertainty and testing budgets. NIST's [uncertainties of calibrated values guidance](https://www.itl.nist.gov/div898/handbook/mpc/section3/mpc367.htm) notes the joint contribution of limited calibration-curve data and future-measurement uncertainty. The Symtropy fixture is an independent finite reference; these sources do not validate its numerical assumptions. Follow-up: [BENCH-SPACE-013](https://github.com/Luminous-Dynamics/symtropy/issues/1847).
