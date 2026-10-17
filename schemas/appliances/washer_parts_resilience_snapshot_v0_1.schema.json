@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:washer-parts-resilience-snapshot:0.1.0",
+  "title": "Washer Parts-Resilience Sourcing Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "as_of_date",
+    "target_market",
+    "status",
+    "claim_ceiling",
+    "selection_rule",
+    "candidate_shortlist",
+    "parts_catalogue_probes",
+    "proposed_targets",
+    "evidence_rules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "snapshot_id": {
+      "const": "WASHER-SOURCING-SNAPSHOT-001"
+    },
+    "as_of_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "target_market": {
+      "const": "ZA"
+    },
+    "status": {
+      "const": "desk_research_not_purchased"
+    },
+    "claim_ceiling": {
+      "const": "no_control_selected_no_physical_test_no_parts_fit_claim"
+    },
+    "selection_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_physical_control_units",
+        "control_units_same_model_revision",
+        "three_brands_may_be_pooled_as_n",
+        "donor_is_valid_control",
+        "missing_data_policy"
+      ],
+      "properties": {
+        "minimum_physical_control_units": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "control_units_same_model_revision": {
+          "const": true
+        },
+        "three_brands_may_be_pooled_as_n": {
+          "const": false
+        },
+        "donor_is_valid_control": {
+          "const": false
+        },
+        "missing_data_policy": {
+          "const": "unknown_not_zero"
+        }
+      }
+    },
+    "candidate_shortlist": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "manufacturer",
+          "exact_model",
+          "capacity_kg",
+          "max_spin_rpm",
+          "price_observations",
+          "model_documentation",
+          "purchase_state",
+          "control_state",
+          "selection_note"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "manufacturer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exact_model": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capacity_kg": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "max_spin_rpm": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "maximum": 5000
+          },
+          "price_observations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "currency",
+                "amount_minor",
+                "source_type",
+                "source_url",
+                "price_kind",
+                "evidence_state"
+              ],
+              "properties": {
+                "currency": {
+                  "const": "ZAR"
+                },
+                "amount_minor": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "source_type": {
+                  "enum": [
+                    "manufacturer",
+                    "retailer",
+                    "price_aggregator",
+                    "retailer_manual_host"
+                  ]
+                },
+                "source_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                },
+                "price_kind": {
+                  "enum": [
+                    "advertised_sale",
+                    "advertised_regular",
+                    "aggregator_offer",
+                    "single_listing_discovery"
+                  ]
+                },
+                "evidence_state": {
+                  "const": "public_snapshot_not_a_quote"
+                }
+              }
+            }
+          },
+          "model_documentation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "product_or_spec_url",
+              "owner_manual_url",
+              "service_manual_url",
+              "documentation_note"
+            ],
+            "properties": {
+              "product_or_spec_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "owner_manual_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "service_manual_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "documentation_note": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "purchase_state": {
+            "const": "not_purchased"
+          },
+          "control_state": {
+            "const": "not_selected"
+          },
+          "selection_note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "parts_catalogue_probes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "part_description",
+          "manufacturer_or_seller",
+          "price_currency",
+          "price_minor",
+          "source_url",
+          "exact_model_fit_state",
+          "evidence_state",
+          "interpretation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "part_description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "manufacturer_or_seller": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_currency": {
+            "const": "ZAR"
+          },
+          "price_minor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "exact_model_fit_state": {
+            "enum": [
+              "confirmed_with_documented_fit",
+              "unconfirmed",
+              "not_applicable"
+            ]
+          },
+          "compatibility_evidence_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "evidence_state": {
+            "enum": [
+              "public_catalogue_listing_only",
+              "written_quote",
+              "delivered_and_inspected",
+              "installed_and_verified"
+            ]
+          },
+          "interpretation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "exact_model_fit_state": {
+                  "const": "confirmed_with_documented_fit"
+                }
+              },
+              "required": [
+                "exact_model_fit_state"
+              ]
+            },
+            "then": {
+              "required": [
+                "compatibility_evidence_url"
+              ],
+              "properties": {
+                "compatibility_evidence_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https://"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "proposed_targets": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "target",
+          "unit",
+          "status",
+          "measurement_rule"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "proposal_not_result"
+          },
+          "measurement_rule": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidence_rules": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

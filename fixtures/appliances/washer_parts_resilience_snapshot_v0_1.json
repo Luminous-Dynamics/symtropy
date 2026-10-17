@@ -1,0 +1,199 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_id": "WASHER-SOURCING-SNAPSHOT-001",
+  "as_of_date": "2026-10-17",
+  "target_market": "ZA",
+  "status": "desk_research_not_purchased",
+  "claim_ceiling": "no_control_selected_no_physical_test_no_parts_fit_claim",
+  "selection_rule": {
+    "minimum_physical_control_units": 3,
+    "control_units_same_model_revision": true,
+    "three_brands_may_be_pooled_as_n": false,
+    "donor_is_valid_control": false,
+    "missing_data_policy": "unknown_not_zero"
+  },
+  "candidate_shortlist": [
+    {
+      "id": "DEFY-DAW408",
+      "manufacturer": "Defy",
+      "exact_model": "DAW 408",
+      "capacity_kg": 8,
+      "max_spin_rpm": 1200,
+      "price_observations": [
+        {
+          "currency": "ZAR",
+          "amount_minor": 549900,
+          "source_type": "price_aggregator",
+          "source_url": "https://www.pricecheck.co.za/offers/254915254/Defy%2BDAW408%2B8KG%2BFront%2BLoader%2BWashing%2BMachine%2BManhattan%2BGrey",
+          "price_kind": "aggregator_offer",
+          "evidence_state": "public_snapshot_not_a_quote"
+        },
+        {
+          "currency": "ZAR",
+          "amount_minor": 589900,
+          "source_type": "price_aggregator",
+          "source_url": "https://www.pricecheck.co.za/offers/254915254/Defy%2BDAW408%2B8KG%2BFront%2BLoader%2BWashing%2BMachine%2BManhattan%2BGrey",
+          "price_kind": "aggregator_offer",
+          "evidence_state": "public_snapshot_not_a_quote"
+        }
+      ],
+      "model_documentation": {
+        "product_or_spec_url": "https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-408",
+        "owner_manual_url": "https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-408",
+        "service_manual_url": null,
+        "documentation_note": "Official page lists 8 kg, 1200 rpm and 230 V/50 Hz and exposes a user-manual download; exact revision and service-level access still require confirmation."
+      },
+      "purchase_state": "not_purchased",
+      "control_state": "not_selected",
+      "selection_note": "Check exact DAW 408 versus DAW408B suffix and current stock. Manufacturer page did not show an online retailer at snapshot time. Multi-retailer price discovery is not a live quote or stock confirmation."
+    },
+    {
+      "id": "HISENSE-WF1I8022BT",
+      "manufacturer": "Hisense",
+      "exact_model": "WF1I8022BT",
+      "capacity_kg": 8,
+      "max_spin_rpm": 1200,
+      "price_observations": [
+        {
+          "currency": "ZAR",
+          "amount_minor": 519900,
+          "source_type": "retailer",
+          "source_url": "https://www.hificorp.co.za/hisense-8kg-front-load-washer-titanium-grey-wf1i8022bt",
+          "price_kind": "advertised_sale",
+          "evidence_state": "public_snapshot_not_a_quote"
+        },
+        {
+          "currency": "ZAR",
+          "amount_minor": 599900,
+          "source_type": "retailer",
+          "source_url": "https://www.hificorp.co.za/hisense-8kg-front-load-washer-titanium-grey-wf1i8022bt",
+          "price_kind": "advertised_regular",
+          "evidence_state": "public_snapshot_not_a_quote"
+        }
+      ],
+      "model_documentation": {
+        "product_or_spec_url": "https://www.hificorp.co.za/hisense-8kg-front-load-washer-titanium-grey-wf1i8022bt",
+        "owner_manual_url": null,
+        "service_manual_url": null,
+        "documentation_note": "Retailer lists 8 kg and 1200 rpm, with advertised sale/regular prices and delivery text. The live stock and exact-model parts path must be reconfirmed; retailer page alone does not establish service documentation."
+      },
+      "purchase_state": "not_purchased",
+      "control_state": "not_selected",
+      "selection_note": "Promotional price was listed through 31 October 2026. Recheck exact stock, delivery terms and documentation at selection time."
+    },
+    {
+      "id": "SAMSUNG-WW80T3040BS-FA",
+      "manufacturer": "Samsung",
+      "exact_model": "WW80T3040BS/FA",
+      "capacity_kg": 8,
+      "max_spin_rpm": 1400,
+      "price_observations": [
+        {
+          "currency": "ZAR",
+          "amount_minor": 499900,
+          "source_type": "price_aggregator",
+          "source_url": "https://www.pricesite.co.za/washing-machines/?type=front-loader",
+          "price_kind": "aggregator_offer",
+          "evidence_state": "public_snapshot_not_a_quote"
+        },
+        {
+          "currency": "ZAR",
+          "amount_minor": 549900,
+          "source_type": "price_aggregator",
+          "source_url": "https://www.pricesite.co.za/washing-machines/?type=front-loader",
+          "price_kind": "aggregator_offer",
+          "evidence_state": "public_snapshot_not_a_quote"
+        }
+      ],
+      "model_documentation": {
+        "product_or_spec_url": "https://www.samsung.com/za/washers-and-dryers/washing-machines/ww3000tm-front-loading-quick-wash-drum-clean-delay-end-8kg-silver-ww80t3040bs-fa/",
+        "owner_manual_url": "https://www.samsung.com/za/washers-and-dryers/washing-machines/ww3000tm-front-loading-quick-wash-drum-clean-delay-end-8kg-silver-ww80t3040bs-fa/",
+        "service_manual_url": null,
+        "documentation_note": "Samsung South Africa page lists an 8 kg model and user manual; its listed maximum spin speed of 1400 rpm differs from the 1200 rpm alternatives and must remain a matching variable."
+      },
+      "purchase_state": "not_purchased",
+      "control_state": "not_selected",
+      "selection_note": "Confirm exact suffix/revision, current local stock and part availability. It is a lead, not a matched control by virtue of capacity alone."
+    },
+    {
+      "id": "MIDEA-MF110W80B-T",
+      "manufacturer": "Midea",
+      "exact_model": "MF110W80B-T",
+      "capacity_kg": 8,
+      "max_spin_rpm": null,
+      "price_observations": [
+        {
+          "currency": "ZAR",
+          "amount_minor": 499999,
+          "source_type": "price_aggregator",
+          "source_url": "https://www.pricecheck.co.za/search?search=8+kg+Front+Loader+Washing+Machine",
+          "price_kind": "single_listing_discovery",
+          "evidence_state": "public_snapshot_not_a_quote"
+        }
+      ],
+      "model_documentation": {
+        "product_or_spec_url": "https://www.midea.com/za/support-southafrica",
+        "owner_manual_url": "https://retail.mideasouthafrica.com/wp-content/uploads/MF110W80B-T-Manual.pdf",
+        "service_manual_url": null,
+        "documentation_note": "A South African-hosted owner manual is public and a retail price listing was found; a model-specific part-supply/qualified-service pathway remains unverified."
+      },
+      "purchase_state": "not_purchased",
+      "control_state": "not_selected",
+      "selection_note": "Price observation is a single listing discovery, not a quote. Reconfirm current seller/model/revision and the maximum-spin specification from the exact rating sheet before matching; the spin value is intentionally unknown in this snapshot."
+    }
+  ],
+  "parts_catalogue_probes": [
+    {
+      "id": "DEFY-GENERIC-DOOR-LOCK",
+      "part_description": "Generic catalogue entry labelled DOOR LOCK; part number/model fit not established",
+      "manufacturer_or_seller": "Defy Service Centre",
+      "price_currency": "ZAR",
+      "price_minor": 15470,
+      "source_url": "https://defyservice.co.za/product-category/spares/",
+      "exact_model_fit_state": "unconfirmed",
+      "compatibility_evidence_url": null,
+      "evidence_state": "public_catalogue_listing_only",
+      "interpretation": "An advertised catalogue price demonstrates only that a generic door-lock line is listed. It is explicitly not evidence that it fits DAW 408/DAW408B or any shortlisted model, is in stock, or will be delivered."
+    }
+  ],
+  "proposed_targets": [
+    {
+      "id": "dual_source_critical_repairs",
+      "target": "Two independently verified supply paths for the most consequential/common repair classes, with exceptions explicitly reported",
+      "unit": "repair_classes_with_dual_sources / declared_classes",
+      "status": "proposal_not_result",
+      "measurement_rule": "Count only exact-model-compatible suppliers with dated evidence; multiple storefronts fed by one sole distributor may not be independent."
+    },
+    {
+      "id": "local_delivery_p90",
+      "target": "Aim for 90% of declared routine-repair parts delivered locally within five business days",
+      "unit": "orders and elapsed business days",
+      "status": "proposal_not_result",
+      "measurement_rule": "Record accepted order, dispatch and physical delivery dates; show sample size, cancellations and P50/P90 only when supported."
+    },
+    {
+      "id": "repair_affordability",
+      "target": "Aim for all-in restoration cost below 35% of like-for-like replacement price for selected common repair classes where safety and recurrence remain acceptable",
+      "unit": "currency ratio per verified restoration",
+      "status": "proposal_not_result",
+      "measurement_rule": "Include diagnosis, parts, freight, labour, waiting-related cost, rework and disposal separately; publish assumptions and uncertainty."
+    },
+    {
+      "id": "exact_fit_evidence",
+      "target": "Every declared common-repair class has a part-compatibility record or an explicit unknown/single-source marker",
+      "unit": "classes with defensible compatibility evidence / declared classes",
+      "status": "proposal_not_result",
+      "measurement_rule": "A generic catalogue listing, photograph or verbal assurance is not a model/revision compatibility record."
+    }
+  ],
+  "evidence_rules": [
+    "This is a dated public-source snapshot, not a purchase order, quote, stock check, teardown, measurement or serviceability result.",
+    "Three different brands cannot be pooled into a three-unit same-design repeatability set.",
+    "A used donor is not a valid operational control unless it is independently qualified for the declared function/performance comparison.",
+    "Model suffix, market version and revision must be frozen before control selection.",
+    "Prices and stock observations must be refreshed at purchase time and include delivery, returns, taxes and warranty terms where applicable.",
+    "Part compatibility is unknown until documented for the exact model/revision; unknown is not false, zero or an affirmative fit claim.",
+    "The exact model-specific safety procedure and required qualifications govern all physical work; a parts benchmark never authorizes hazardous DIY repair.",
+    "Every target remains a proposal until the measurement plan is frozen and evidence is collected."
+  ]
+}

@@ -7,6 +7,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+mod portfolio;
+mod sourcing;
+
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
 const EXPECTED_CASE_IDS: [&str; 30] = [
     "HAP-001", "HAP-002", "HAP-003", "HAP-004", "HAP-005", "HAP-006", "HAP-007", "HAP-008",
@@ -476,14 +479,25 @@ fn read_arg_path(flag: &str) -> Option<PathBuf> {
 fn run() -> Result<(), String> {
     let schema_path = read_arg_path("--schema").unwrap_or_else(default_schema_path);
     let corpus_path = read_arg_path("--corpus").unwrap_or_else(default_corpus_path);
+    let portfolio_schema_path = read_arg_path("--portfolio-schema");
+    let portfolio_path = read_arg_path("--portfolio");
+    if portfolio_schema_path.is_some() != portfolio_path.is_some() {
+        return Err("--portfolio-schema and --portfolio must be supplied together".to_owned());
+    }
+    let sourcing_schema_path = read_arg_path("--sourcing-schema");
+    let sourcing_snapshot_path = read_arg_path("--sourcing-snapshot");
+    if sourcing_schema_path.is_some() != sourcing_snapshot_path.is_some() {
+        return Err("--sourcing-schema and --sourcing-snapshot must be supplied together".to_owned());
+    }
+
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
     let corpus_raw = fs::read_to_string(&corpus_path)
         .map_err(|error| format!("cannot read {}: {error}", corpus_path.display()))?;
 
     let summary = audit_texts(&schema_raw, &corpus_raw).map_err(|errors| errors.join("\n"))?;
-    let report = json!({
-        "report_version": "household-appliance-bench-audit/0.1",
+    let mut report = json!({
+        "report_version": "household-appliance-bench-audit/0.2",
         "status": "PASS_SYNTHETIC_CONTRACT_ONLY",
         "physical_qualification": false,
         "product_safety_assessment": false,
@@ -496,6 +510,66 @@ fn run() -> Result<(), String> {
         "schema_path": schema_path.display().to_string(),
         "corpus_path": corpus_path.display().to_string()
     });
+
+    if let (Some(portfolio_schema_path), Some(portfolio_path)) =
+        (portfolio_schema_path, portfolio_path)
+    {
+        let portfolio_schema_raw = fs::read_to_string(&portfolio_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", portfolio_schema_path.display()))?;
+        let portfolio_raw = fs::read_to_string(&portfolio_path)
+            .map_err(|error| format!("cannot read {}: {error}", portfolio_path.display()))?;
+        let portfolio_summary = portfolio::audit_portfolio_texts(
+            &portfolio_schema_raw,
+            &portfolio_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["large_appliance_portfolio"] = json!({
+            "status": "PASS_SYNTHETIC_PORTFOLIO_CONTRACT_ONLY",
+            "family_count": portfolio_summary.family_count,
+            "washer_variant_count": portfolio_summary.washer_variant_count,
+            "washer_protocol_metric_count": portfolio_summary.washer_protocol_metric_count,
+            "proposed_target_count": portfolio_summary.proposed_target_count,
+            "schema_sha256": portfolio_summary.schema_sha256,
+            "portfolio_sha256": portfolio_summary.portfolio_sha256,
+            "schema_path": portfolio_schema_path.display().to_string(),
+            "portfolio_path": portfolio_path.display().to_string(),
+            "physical_performance_established": false,
+            "product_safety_assessed": false
+        });
+    }
+
+    if let (Some(sourcing_schema_path), Some(sourcing_snapshot_path)) =
+        (sourcing_schema_path, sourcing_snapshot_path)
+    {
+        let sourcing_schema_raw = fs::read_to_string(&sourcing_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", sourcing_schema_path.display()))?;
+        let sourcing_snapshot_raw = fs::read_to_string(&sourcing_snapshot_path)
+            .map_err(|error| format!("cannot read {}: {error}", sourcing_snapshot_path.display()))?;
+        let sourcing_summary = sourcing::audit_sourcing_texts(
+            &sourcing_schema_raw,
+            &sourcing_snapshot_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["washer_parts_resilience_sourcing"] = json!({
+            "status": "PASS_DESK_SNAPSHOT_CONTRACT_ONLY",
+            "candidate_lead_count": sourcing_summary.candidate_count,
+            "price_observation_count": sourcing_summary.price_observation_count,
+            "parts_catalogue_probe_count": sourcing_summary.part_probe_count,
+            "model_fit_confirmed_probe_count": sourcing_summary.model_fit_confirmed_probe_count,
+            "selected_control_count": sourcing_summary.selected_control_count,
+            "purchased_candidate_count": sourcing_summary.purchased_candidate_count,
+            "schema_sha256": sourcing_summary.schema_sha256,
+            "snapshot_sha256": sourcing_summary.snapshot_sha256,
+            "schema_path": sourcing_schema_path.display().to_string(),
+            "snapshot_path": sourcing_snapshot_path.display().to_string(),
+            "physical_performance_established": false,
+            "product_safety_assessed": false,
+            "purchase_authorized": false
+        });
+    }
+
     println!(
         "{}",
         serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?
