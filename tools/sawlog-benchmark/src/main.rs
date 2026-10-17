@@ -341,11 +341,6 @@ fn validate_scenario(s: &Scenario) -> Check<()> {
         }
         max_diameter = max_diameter.max(p.major_diameter_mm);
     }
-    let geometry_volume = estimated_geometry_volume_mm3(l)?;
-    let declared_gross = u128::from(l.gross_volume_mm3);
-    let geometry_delta = geometry_volume.abs_diff(declared_gross);
-    let _geometry_tolerance = declared_gross * u128::from(s.geometry_tolerance_ppm) / 1_000_000;
-    // A prediction outside the target is scored as a miss, not discarded as malformed input.
     if l.defects.len() > 1000 { return Err(format!("{ctx}: defect count exceeds 1000")); }
     let mut defect_ids = BTreeSet::new();
     for d in &l.defects {
@@ -556,17 +551,12 @@ mod tests {
         assert!(validate(&c).unwrap_err().contains("strictly increasing"));
     }
     #[test]
-    fn declared_gross_volume_must_match_geometry_within_tolerance() {
-        let mut c = corpus();
-        c.scenarios[0].log.gross_volume_mm3 += 20_000_000;
-        assert!(validate(&c).unwrap_err().contains("geometry-derived volume differs"));
-    }
     #[test]
     fn current_calibration_requires_an_instrument_identity() {
         let mut c = corpus();
-        c.scenarios[0].log.source.calibration_status = CalibrationStatus::Current;
-        c.scenarios[0].log.source.instrument_id = None;
-        assert!(validate(&c).unwrap_err().contains("current calibration requires an instrument_id"));
+        c.scenarios[0].log.geometry_source.calibration_status = CalibrationStatus::Current;
+        c.scenarios[0].log.geometry_source.instrument_id = None;
+        assert!(validate(&c).unwrap_err().contains("current geometry calibration requires an instrument_id"));
     }
     #[test]
     fn geometry_error_is_scored_not_discarded_as_invalid_data() {
@@ -614,9 +604,10 @@ mod tests {
         let digest = format!("{:x}", Sha256::digest(FIXTURE.as_bytes()));
         let build = || {
             serde_json::to_string(&Receipt {
-                result: "pass", validator_version: VERSION, suite_id: c.suite_id.clone(),
+                result: "validated", validator_version: VERSION, suite_id: c.suite_id.clone(),
                 suite_version: c.suite_version.clone(), claim_ceiling: c.claim_ceiling.clone(),
-                scenario_count: 2, corpus_sha256: digest.clone(), source_commit: "a".repeat(40),
+                scenario_count: 3, corpus_sha256: digest.clone(), source_commit: "a".repeat(40),
+                geometry_metrics: aggregate_geometry_metrics(&c.scenarios.iter().map(summary).collect::<Check<Vec<_>>>().unwrap()).unwrap(),
                 scenarios: c.scenarios.iter().map(summary).collect::<Check<Vec<_>>>().unwrap(),
             }).unwrap()
         };
