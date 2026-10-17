@@ -8,6 +8,8 @@ struct Fixture {
     fixture_id: String,
     classification: String,
     claim_ceiling: String,
+    resources: Vec<serde_json::Value>,
+    task_graph: Vec<serde_json::Value>,
     disturbance_cases: Vec<FixtureDisturbance>,
 }
 
@@ -359,8 +361,8 @@ fn expected_report(fixture: &Fixture, fixture_bytes: &[u8]) -> TimelineReport {
             total_observation_delay_ticks,
             maximum_observation_delay_ticks,
             timeline_tick_count: evaluator_timeline.len(),
-            referenced_resources: 0,
-            referenced_tasks: 0,
+            referenced_resources: fixture.resources.len(),
+            referenced_tasks: fixture.task_graph.len(),
         },
         event_cases,
         evaluator_timeline,
