@@ -783,6 +783,16 @@ mod tests {
     }
 
     #[test]
+    fn identical_manifest_and_source_revision_emit_identical_receipts() {
+        let input = include_bytes!("../fixtures/net-additionality-v0-1.json");
+        let first = evaluate(input, "frozen-revision").expect("first evaluation succeeds");
+        let second = evaluate(input, "frozen-revision").expect("second evaluation succeeds");
+        let first_bytes = serde_json::to_vec(&first).expect("first receipt serializes");
+        let second_bytes = serde_json::to_vec(&second).expect("second receipt serializes");
+        assert_eq!(first_bytes, second_bytes);
+    }
+
+    #[test]
     fn arithmetic_overflow_is_rejected_without_wrapping() {
         let mut manifest = fixture_manifest();
         manifest.demand_units = u64::MAX;
