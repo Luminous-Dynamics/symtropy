@@ -14,7 +14,7 @@ The CLI reads the exact fixture bytes, validates the schema and declared metric 
 
 ## Current synthetic fixture
 
-The frozen fixture contains three intentionally different candidate alignments. The report emits derived length, maximum absolute grade, cut volume, fill volume and total earthworks, each normalized to a stable nine-decimal precision for deterministic comparison. Result dispositions distinguish physical constraint infeasibility, inconsistency between declared and derived evidence, unknown/review-required cases, and feasibility for the explicitly modelled synthetic checks.
+The frozen fixture contains four intentionally different candidate alignments. Each candidate is evaluated against three declared synthetic drainage scenarios (low flow, design storm, severe storm); the model records each case independently rather than hiding a failing stress condition in a nominal score. The report emits derived length, maximum absolute grade, cut volume, fill volume and total earthworks, each normalized to a stable nine-decimal precision for deterministic comparison. Result dispositions distinguish physical constraint infeasibility, inconsistency between declared and derived evidence, unknown/review-required cases, and feasibility for the explicitly modelled synthetic checks.
 
 | Candidate | Length | Derived maximum grade | Cut | Fill | Total earthworks | Synthetic disposition |
 |---|---:|---:|---:|---:|---:|---|
@@ -25,7 +25,7 @@ The frozen fixture contains three intentionally different candidate alignments. 
 
 The V0 Pareto frontier uses only three minimization metrics—route length, maximum absolute grade, and total earthworks—and admits only candidates that pass every explicitly modelled synthetic check. Under that declared trade space, C-reference and D-resilient-detour are both non-dominated: C is shorter and needs less earthwork, while D has the gentler profile. This is a bounded synthetic demonstration of a Pareto set, not evidence that either real-world alternative is preferable.
 
-The cross-section cut/fill areas, profile, utility locations, flow/capacity values and constraints are invented fixtures. The grade and volumes are calculated from those inputs; they are not derived from surveyed terrain or a full corridor solid. C is not a real-world qualified road design.
+The cross-section cut/fill areas, profile, utility locations, and scenario-specific flow/capacity values and constraints are invented fixtures. Drainage scenarios only exercise direct demand-versus-declared-capacity checks; they are not hydraulic-solver runs. The grade and volumes are calculated from those inputs; they are not derived from surveyed terrain or a full corridor solid. C is not a real-world qualified road design.
 
 It also includes one deliberately overcommitted excavator schedule. The reference checker should reject that schedule, while a test moves one work package to an adjacent half-open time window and checks that the false overlap disappears.
 
@@ -37,7 +37,7 @@ It also includes one deliberately overcommitted excavator schedule. The referenc
 - Utility evidence distinguishes bounded unknown (a conservative station/lateral envelope exists but depth or other important properties remain unknown) from unbounded unknown (no useful location envelope exists). Unbounded unknown utilities block clearance claims for every candidate; absence of geometry is never treated as clearance.
 - Maximum longitudinal grade is derived from the candidate's piecewise-linear station/elevation profile and checked against the declared grade. The declaration is retained as a consistency check, not trusted as the result.
 - Cut and fill volumes are derived by trapezoidal integration of the supplied cross-section cut/fill areas. Those areas themselves are synthetic inputs; they are not derived from a terrain mesh, surveyed ground surface or designed corridor solids.
-- Drainage demand/capacity values are declared fixture attributes and compared directly; V0 does not derive flow capacity from a hydraulic solver.
+- Three drainage demand/capacity scenarios are evaluated independently for each candidate; those values are declared fixture attributes, and V0 does not derive flow or capacity from a hydraulic solver.
 - The reference checker is a separate recomputation path in the same codebase, not an independently maintained implementation or third-party audit. It compares independently calculated metrics within a stated numerical tolerance.
 - This package does not generate road geometry, solve an alignment, qualify pavement/structures/geotechnical design, produce IFC/InfraGML, or authorize procurement/construction.
 - No benchmark target should be reported as passed until this exact source is formatted, compiled, and the tests run; a queued or missing CI status is not evidence of a pass.
