@@ -242,6 +242,71 @@
       "rights_and_provenance": [
         "Determine applicability with the relevant authority and qualified homologation support."
       ]
+    },
+    {
+      "id": "SRC_TOYOTA_SA_MODEL_RANGE",
+      "title": "Toyota South Africa model range and advertised starting prices",
+      "organization": "Toyota South Africa",
+      "url": "https://www.toyota.co.za/vehicles",
+      "accessed_on": "2026-10-17",
+      "role": "market_baseline_screening",
+      "evidence_class": "manufacturer_model_range",
+      "status": "manufacturer model-range page listed starting prices on access date; exact variant and dealer quote pending",
+      "usable_for": [
+        "initial South African new-vehicle baseline shortlist",
+        "dated screening comparison of advertised starting prices for Vitz, Starlet, Starlet Cross and Rumion"
+      ],
+      "not_usable_for": [
+        "out-the-door price or financed cost",
+        "real-world fuel economy, maintenance cost, repair lead time or lifetime ownership cost",
+        "complete trim-level specification or safety comparison without exact variant documents"
+      ],
+      "rights_and_provenance": [
+        "Prices are a volatile webpage snapshot and must be reconfirmed using dated written dealer quotes.",
+        "Do not redistribute manufacturer images, brochures or restricted material without rights review."
+      ]
+    },
+    {
+      "id": "SRC_SUZUKI_SWIFT_OFFICIAL_PRICES",
+      "title": "Suzuki Swift South Africa model/pricing page",
+      "organization": "Suzuki Auto South Africa",
+      "url": "https://www.suzukiauto.co.za/cars/swift",
+      "accessed_on": "2026-10-17",
+      "role": "market_baseline_screening",
+      "evidence_class": "manufacturer_model_range",
+      "status": "official page displayed variant starting prices on access date; dealer quote and costs excluded",
+      "usable_for": [
+        "entry/trim price screening of Suzuki Swift GL, GL+, CVT and GLX variants",
+        "manufacturer-declared fuel-consumption claim and warranty/service-plan offer screening"
+      ],
+      "not_usable_for": [
+        "real-world fuel consumption or fuel cost prediction without route/driver/condition evidence",
+        "out-the-door price, parts availability, repair duration or 10-year TCO"
+      ],
+      "rights_and_provenance": [
+        "Record exact variant, page capture, timestamp, currency and quote expiry before using price in a decision.",
+        "Reconfirm price and warranty/service-plan conditions with a dated dealer quote."
+      ]
+    },
+    {
+      "id": "SRC_SUZUKI_SWIFT_OFFICIAL_SPECS",
+      "title": "Suzuki Swift South Africa official specifications",
+      "organization": "Suzuki Auto South Africa",
+      "url": "https://www.suzukiauto.co.za/specs/swift",
+      "accessed_on": "2026-10-17",
+      "role": "market_baseline_specification",
+      "evidence_class": "manufacturer_specification",
+      "status": "official model specification page inspected; exact chosen variant and current brochure version must be recorded",
+      "usable_for": [
+        "initial dimensions, kerb-mass range, powertrain, nominal ground-clearance, boot-volume and listed safety-feature screening"
+      ],
+      "not_usable_for": [
+        "independent safety-rating comparison",
+        "actual payload margin, measured energy consumption, serviceability, field reliability or measured repair time"
+      ],
+      "rights_and_provenance": [
+        "Manufacturer-stated data; bind each value to exact trim/version and retain citation rather than copying protected imagery or brochure content."
+      ]
     }
   ],
   "next_evidence_gates": [
