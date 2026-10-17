@@ -399,8 +399,8 @@ fn run() -> Result<(), String> {
         "indeterminate_controls": summary.indeterminate_controls,
         "schema_sha256": summary.schema_sha256,
         "corpus_sha256": summary.corpus_sha256,
-        "schema_path": schema_path,
-        "corpus_path": corpus_path
+        "schema_path": schema_path.display().to_string(),
+        "corpus_path": corpus_path.display().to_string()
     });
     println!(
         "{}",
