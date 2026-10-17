@@ -4,7 +4,7 @@
 
 Symtropy already has a proof-carrying physics RFC (#1682), a pinned Lean engineering prototype (#1691), and a Rust tick-transaction primitive under review (#1726). This contract connects these strands without duplicating the broad RFC or overstating what Lean proves.
 
-The abstract model in \`formalization/lean/SymtropyFormal/TickTransactions.lean\` declares eight lifecycle lemmas: strictly increasing logical tick IDs, continuity of prior/result state digests, legal phase ordering, rejection of finalization before physics, idempotent same-result retries, rejection of conflicting retries, rejection of pre-populated result state before physics, and rejection of an unlinked prior-state digest at finalization.
+The abstract model in \`formalization/lean/SymtropyFormal/TickTransactions.lean\` declares eight lifecycle/negative-control lemmas and six positive transition theorems for a concrete two-tick valid trace. They cover strictly increasing logical tick IDs, prior/result digest linkage, legal phase ordering, rejection of finalization before physics, idempotent same-result retries, rejection of conflicting retries, malformed pre-populated result state, and rejection of an unlinked prior-state digest at finalization.
 
 ## Research transfer from OpenAI's public proof work
 
@@ -14,7 +14,7 @@ The Symtropy adaptation is deliberately narrower than research theorem discovery
 1. Write an explicit invariant and its assumptions.
 2. State a model in a pinned proof assistant.
 3. Keep a negative control for each important reject condition.
-4. Record theorem names and status in a machine-readable manifest.
+4. Record theorem names and status in a machine-readable manifest, and make CI validate the manifest and `#check` every referenced theorem.
 5. Test the implementation against shared known-answer cases.
 6. Establish a refinement relation before calling the implementation verified.
 
@@ -44,7 +44,9 @@ This model does not prove:
 
 ## Benchmarks and gates
 
-The next proposed benchmark is correctness before speed: zero accepted illegal transitions, zero stale-ID accepts, zero state-chain-linkage violations, and zero conflicting-finalize accepts across exhaustive small state combinations and seeded traces. This runtime campaign is not implemented or measured in this PR. Report coverage counts and rejected-case counts, not just a pass percentage.
+The Lean file now has a positive control showing a valid two-tick trace is admitted, in addition to negative controls. This is authored source until the pinned Lean build completes.
+
+The next proposed runtime benchmark is correctness before speed: zero accepted illegal transitions, zero stale-ID accepts, zero state-chain-linkage violations, and zero conflicting-finalize accepts across exhaustive small state combinations and seeded traces. This runtime campaign is not implemented or measured in this PR. Report coverage counts and rejected-case counts, not just a pass percentage.
 
 For a future runtime trace campaign, target:
 - 100% rejection of enumerated illegal state transitions;
