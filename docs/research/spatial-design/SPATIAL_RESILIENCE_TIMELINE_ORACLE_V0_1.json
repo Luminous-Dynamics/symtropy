@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmark_id": "SPATIAL-RESILIENCE-TIMELINE-ORACLE",
+  "version": "0.1.0",
+  "status": "synthetic_finite_state_oracle_fixtures_not_physical_model",
+  "claim_ceiling": "This corpus validates only deterministic finite-state service availability semantics. It contains no physical building or thermal predictions.",
+  "required_case_count": 8,
+  "cases": [
+    {
+      "id": "SPR-O-001",
+      "title": "Stable recovery restarts after recurrence",
+      "initial_service": false,
+      "stability_window": 2,
+      "horizon": 10,
+      "events": [
+        {
+          "id": "restore-a",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "restored"
+        },
+        {
+          "id": "loss-a",
+          "generation": 1,
+          "tick": 4,
+          "sequence": 1,
+          "kind": "lost"
+        },
+        {
+          "id": "restore-b",
+          "generation": 1,
+          "tick": 6,
+          "sequence": 1,
+          "kind": "restored"
+        }
+      ],
+      "expected_stable_recovery_tick": 8,
+      "expected_error": null
+    },
+    {
+      "id": "SPR-O-002",
+      "title": "Loss exactly on the stability boundary interrupts recovery",
+      "initial_service": false,
+      "stability_window": 2,
+      "horizon": 10,
+      "events": [
+        {
+          "id": "restore-a",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "restored"
+        },
+        {
+          "id": "loss-a",
+          "generation": 1,
+          "tick": 4,
+          "sequence": 1,
+          "kind": "lost"
+        }
+      ],
+      "expected_stable_recovery_tick": null,
+      "expected_error": null
+    },
+    {
+      "id": "SPR-O-003",
+      "title": "Exact duplicate event delivery is idempotent",
+      "initial_service": false,
+      "stability_window": 2,
+      "horizon": 10,
+      "events": [
+        {
+          "id": "restore-a",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "restored"
+        },
+        {
+          "id": "restore-a",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "restored"
+        },
+        {
+          "id": "loss-a",
+          "generation": 1,
+          "tick": 7,
+          "sequence": 1,
+          "kind": "lost"
+        }
+      ],
+      "expected_stable_recovery_tick": 4,
+      "expected_error": null
+    },
+    {
+      "id": "SPR-O-004",
+      "title": "Conflicting reuse of event identity is rejected",
+      "initial_service": false,
+      "stability_window": 2,
+      "horizon": 10,
+      "events": [
+        {
+          "id": "same-id",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "restored"
+        },
+        {
+          "id": "same-id",
+          "generation": 1,
+          "tick": 3,
+          "sequence": 1,
+          "kind": "restored"
+        }
+      ],
+      "expected_stable_recovery_tick": null,
+      "expected_error": "conflicting_duplicate"
+    },
+    {
+      "id": "SPR-O-005",
+      "title": "Same-tick events require explicit unique order",
+      "initial_service": false,
+      "stability_window": 2,
+      "horizon": 10,
+      "events": [
+        {
+          "id": "restore-a",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "restored"
+        },
+        {
+          "id": "loss-a",
+          "generation": 1,
+          "tick": 2,
+          "sequence": 1,
+          "kind": "lost"
+        }
+      ],
+      "expected_stable_recovery_tick": null,
+      "expected_error": "ambiguous_event_order"
+    },
+    {
+      "id": "SPR-O-006",
+      "title": "Event beyond the horizon is rejected",
+      "initial_service": false,
+      "stability_window": 2,
+      "horizon": 10,
+      "events": [
+        {
+          "id": "restore-a",
+          "generation": 1,
+          "tick": 11,
+          "sequence": 1,
+          "kind": "restored"
+        }
+      ],
+      "expected_stable_recovery_tick": null,
+      "expected_error": "event_past_horizon"
+    },
+    {
+      "id": "SPR-O-007",
+      "title": "Zero-length stability window is rejected",
+      "initial_service": false,
+      "stability_window": 0,
+      "horizon": 10,
+      "events": [],
+      "expected_stable_recovery_tick": null,
+      "expected_error": "zero_stability_window"
+    },
+    {
+      "id": "SPR-O-008",
+      "title": "Tick overflow cannot create a false recovery",
+      "initial_service": false,
+      "stability_window": 1,
+      "horizon": 4294967295,
+      "events": [
+        {
+          "id": "restore-near-max",
+          "generation": 1,
+          "tick": 4294967295,
+          "sequence": 1,
+          "kind": "restored"
+        }
+      ],
+      "expected_stable_recovery_tick": null,
+      "expected_error": null
+    }
+  ]
+}
