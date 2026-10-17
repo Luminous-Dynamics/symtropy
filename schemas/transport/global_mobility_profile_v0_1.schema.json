@@ -402,19 +402,19 @@
             "privacy_by_default"
           ],
           "properties": {
-            "basic_operation_without_cloud": {
-              "type": "boolean"
-            },
-            "offline_safe_degraded_behavior": {
-              "type": "boolean"
-            },
-            "owner_data_control": {
-              "type": "boolean"
-            },
             "cloud_required_for_basic_function": {
               "type": "boolean"
             },
-            "privacy_by_default": {
+            "basic_operation_without_cloud_required": {
+              "type": "boolean"
+            },
+            "offline_safe_degraded_behavior_required": {
+              "type": "boolean"
+            },
+            "owner_data_control_required": {
+              "type": "boolean"
+            },
+            "privacy_by_default_required": {
               "type": "boolean"
             }
           }
@@ -432,9 +432,6 @@
             "manual_language_status": {
               "$ref": "#/$defs/status"
             },
-            "local_units_supported": {
-              "type": "boolean"
-            },
             "offline_manuals_required": {
               "const": true
             },
@@ -444,6 +441,9 @@
               "items": {
                 "type": "string"
               }
+            },
+            "local_units_support_required": {
+              "type": "boolean"
             }
           }
         },
