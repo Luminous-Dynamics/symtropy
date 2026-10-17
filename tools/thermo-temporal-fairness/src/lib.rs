@@ -127,6 +127,9 @@ pub struct AgentTemporalMetrics {
     pub total_demand: u128,
     pub total_allocated: u128,
     pub total_unmet_demand: u128,
+    pub total_eligible_demand: u128,
+    pub total_eligible_allocated: u128,
+    pub total_eligible_unmet_demand: u128,
     pub horizon_service_ratio: Option<Fraction>,
     pub eligible_demand_ticks: u64,
     pub starved_ticks: u64,
@@ -245,6 +248,35 @@ pub fn evaluate(trace: &AllocationTrace) -> TemporalReport {
             .zip(&agent.allocated)
             .map(|(demand, allocation)| u128::from(demand.saturating_sub(*allocation)))
             .sum();
+        let eligible_demand_values: Vec<u64> = agent
+            .demand
+            .iter()
+            .zip(&agent.eligible)
+            .filter_map(|(demand, eligible)| (*eligible).then_some(*demand))
+            .collect();
+        let eligible_allocation_values: Vec<u64> = agent
+            .allocated
+            .iter()
+            .zip(&agent.eligible)
+            .filter_map(|(allocation, eligible)| (*eligible).then_some(*allocation))
+            .collect();
+        let total_eligible_demand = checked_total(
+            &eligible_demand_values,
+            agent.id,
+            "eligible demand",
+            &mut violations,
+        );
+        let total_eligible_allocated = checked_total(
+            &eligible_allocation_values,
+            agent.id,
+            "eligible allocation",
+            &mut violations,
+        );
+        let total_eligible_unmet_demand: u128 = eligible_demand_values
+            .iter()
+            .zip(&eligible_allocation_values)
+            .map(|(demand, allocation)| u128::from(demand.saturating_sub(*allocation)))
+            .sum();
 
         let mut eligible_demand_ticks = 0_u64;
         let mut starved_ticks = 0_u64;
@@ -296,8 +328,8 @@ pub fn evaluate(trace: &AllocationTrace) -> TemporalReport {
             }
         }
 
-        let horizon_ratio = (total_demand > 0)
-            .then(|| Fraction::new(total_allocated, total_demand));
+        let horizon_ratio = (total_eligible_demand > 0)
+            .then(|| Fraction::new(total_eligible_allocated, total_eligible_demand));
         if let Some(ratio) = &horizon_ratio {
             profile.push(ratio.clone());
         }
@@ -306,6 +338,9 @@ pub fn evaluate(trace: &AllocationTrace) -> TemporalReport {
             total_demand,
             total_allocated,
             total_unmet_demand,
+            total_eligible_demand,
+            total_eligible_allocated,
+            total_eligible_unmet_demand,
             horizon_service_ratio: horizon_ratio,
             eligible_demand_ticks,
             starved_ticks,
@@ -390,13 +425,21 @@ mod tests {
     fn ineligible_ticks_break_starvation_streaks() {
         let trace = AllocationTrace {
             case_id: "ineligibility-breaks-streak".to_owned(),
-            agents: vec![series(7, &[1, 0, 1], &[true, false, true], &[0, 0, 1])],
+            agents: vec![series(7, &[1, 5, 1], &[true, false, true], &[0, 0, 1])],
         };
         let report = evaluate(&trace);
         assert!(report.valid_trace, "{:?}", report.violations);
         assert_eq!(report.per_agent[0].eligible_demand_ticks, 2);
         assert_eq!(report.per_agent[0].starved_ticks, 1);
         assert_eq!(report.per_agent[0].maximum_consecutive_starvation_ticks, 1);
+        assert_eq!(report.per_agent[0].total_demand, 7);
+        assert_eq!(report.per_agent[0].total_eligible_demand, 2);
+        assert_eq!(report.per_agent[0].total_eligible_allocated, 1);
+        assert_eq!(report.per_agent[0].total_eligible_unmet_demand, 1);
+        assert_eq!(
+            report.per_agent[0].horizon_service_ratio,
+            Some(Fraction::new(1, 2))
+        );
     }
 
     #[test]
