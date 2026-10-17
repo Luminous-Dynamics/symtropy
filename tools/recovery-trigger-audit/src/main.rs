@@ -346,7 +346,8 @@ fn make_receipt(
     }
 
     trigger_results.sort_by(|a, b| a.case_id.cmp(&b.case_id));
-    let expected_outcomes_match = errors.iter().all(|error| !error.contains("EXPECTED_OUTCOME_MISMATCH") && !error.contains("EXPECTED_REASON_CODE_MISMATCH"));
+    let expected_outcomes_match = trigger_results.len() == trigger_count
+        && errors.iter().all(|error| !error.contains("EXPECTED_OUTCOME_MISMATCH") && !error.contains("EXPECTED_REASON_CODE_MISMATCH"));
     AuditReceipt {
         result: if errors.is_empty() { "pass" } else { "fail" }.to_string(),
         schema_version,
