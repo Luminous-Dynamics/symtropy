@@ -27,9 +27,10 @@ invalid Rust calls unrepresentable, enforce units in the runtime, or prove the
 Rust implementation computes these functions.
 
 The project pins Lean 4.35.0 and an immutable Mathlib commit. CI validates
-the theorem-to-contract mapping, builds the package, and audits the
-SymtropyFormal namespace for unapproved axioms/placeholders. No theorem counts
-as verified until that exact revision passes.
+the theorem-to-contract mapping, builds the package, audits the SymtropyFormal
+namespace for unapproved axioms/placeholders, and compiler-checks every mapped
+theorem name from a generated temporary Lean module. No theorem counts as
+verified until that exact revision passes.
 
 ## Run locally
 
