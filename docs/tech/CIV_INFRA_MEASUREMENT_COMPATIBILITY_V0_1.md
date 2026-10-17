@@ -35,7 +35,7 @@ Consequently, v0.1 does **not** establish model authenticity, sensor calibration
 
 Frozen fixture: four synthetic states, three outcome bins, meter/millimeter conversions, overlapping intervals, and a supported observation that leaves two states possible.
 
-Generated suite: 100 deterministic seeds × 20 states × 5 bins = 10,000 state/outcome evaluations. A separate direct interval-overlap calculation checks the complete compatibility-edge set, not only its count; serialized reruns are compared exactly. CI stores each full input, its SHA-256, expected edge pairs/count and full report in an artifact.
+Generated suite: 100 deterministic seeds × 20 states × 5 bins = 10,000 state/outcome evaluations. Fifty worlds use length identity and fifty use the nonlinear dimensionless square. A separate direct oracle derives output intervals independently (including outward-rounded square bounds) and compares the complete compatibility-edge set, not just its count. Serialized reruns are compared exactly. CI stores every input, its SHA-256, expected edge pairs/count and full report in an artifact.
 
 Acceptance targets:
 
