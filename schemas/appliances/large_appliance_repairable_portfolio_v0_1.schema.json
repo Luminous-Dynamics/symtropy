@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:large-appliance-repairable-portfolio:0.1.0",
+  "title": "Large Appliance Repairable Architecture Portfolio v0.1",
+  "description": "Proposed architecture and benchmark profiles. Proposed values are not empirical performance, conformity or legal conclusions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "portfolio_id",
+    "status",
+    "claim_ceiling",
+    "selection_policy",
+    "common_architecture_hypotheses",
+    "benchmark_policy",
+    "families",
+    "references"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "portfolio_id": { "const": "LARGE-APPLIANCE-REPAIRABLE-001" },
+    "status": { "const": "proposed_architecture_and_benchmark_profile" },
+    "claim_ceiling": { "const": "no_physical_performance_or_conformity_claim" },
+    "selection_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first_large_appliance", "reason", "not_a_market_ranking"],
+      "properties": {
+        "first_large_appliance": { "enum": ["washing_machine", "dishwasher", "refrigerator_freezer", "heat_pump_dryer", "heat_pump_water_heater", "heat_pump_hvac"] },
+        "reason": { "type": "string", "minLength": 20 },
+        "not_a_market_ranking": { "const": true }
+      }
+    },
+    "common_architecture_hypotheses": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "proposal", "success_condition", "failure_modes"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9-]{2,48}$" },
+          "proposal": { "type": "string", "minLength": 15 },
+          "success_condition": { "type": "string", "minLength": 15 },
+          "failure_modes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 5 } }
+        }
+      }
+    },
+    "benchmark_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["controls_minimum", "freeze_before_test", "metrics", "proposed_targets", "no_claims"],
+      "properties": {
+        "controls_minimum": { "type": "integer", "minimum": 1 },
+        "freeze_before_test": { "type": "array", "minItems": 5, "items": { "type": "string" } },
+        "metrics": { "type": "array", "minItems": 5, "items": { "type": "string" } },
+        "proposed_targets": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "target", "status", "guardrail"],
+            "properties": {
+              "id": { "type": "string" },
+              "target": { "type": "string", "minLength": 10 },
+              "status": { "const": "proposal_not_result" },
+              "guardrail": { "type": "string", "minLength": 10 }
+            }
+          }
+        },
+        "no_claims": { "type": "array", "minItems": 3, "items": { "type": "string" } }
+      }
+    },
+    "families": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "priority",
+          "why",
+          "architecture_hypotheses",
+          "user_maintenance_tasks",
+          "qualified_service_tasks",
+          "function_metrics",
+          "hazards",
+          "regulatory_references",
+          "status"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,50}$" },
+          "name": { "type": "string", "minLength": 4 },
+          "priority": { "type": "integer", "minimum": 1, "maximum": 6 },
+          "why": { "type": "string", "minLength": 15 },
+          "architecture_hypotheses": { "type": "array", "minItems": 2, "items": { "type": "string", "minLength": 10 } },
+          "user_maintenance_tasks": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 5 } },
+          "qualified_service_tasks": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 5 } },
+          "function_metrics": { "type": "array", "minItems": 3, "items": { "type": "string", "minLength": 5 } },
+          "hazards": { "type": "array", "minItems": 2, "items": { "type": "string", "minLength": 5 } },
+          "regulatory_references": { "type": "array", "items": { "type": "string", "format": "uri" } },
+          "status": { "const": "proposed_no_physical_validation" }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "url", "kind", "scope_note"],
+        "properties": {
+          "title": { "type": "string", "minLength": 3 },
+          "url": { "type": "string", "format": "uri" },
+          "kind": { "enum": ["official_regulation", "official_guidance", "existing_standard_project", "internal_issue"] },
+          "scope_note": { "type": "string", "minLength": 10 }
+        }
+      }
+    }
+  }
+}
