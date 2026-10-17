@@ -619,11 +619,28 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     verify_discharge_report(&config, after_loss, discharge_request, discharge)?;
 
     let mut json = String::from(
-        "{\"schema\":\"solar-thermal-kernel-receipt-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\""
+        "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
     fn number(out: &mut String, key: &str, value: f64) {
         out.push_str(&format!(",\"{key}\":{value:.9}"));
     }
+    number(&mut json, "exergy_reference_temperature_k", 300.0);
+    number(&mut json, "store_mass_kg", 1.0);
+    number(&mut json, "store_min_temperature_k", 300.0);
+    number(&mut json, "store_max_temperature_k", 500.0);
+    number(&mut json, "cp_curve_low_temperature_k", 300.0);
+    number(&mut json, "cp_curve_low_j_per_kg_k", 1_000.0);
+    number(&mut json, "cp_curve_high_temperature_k", 500.0);
+    number(&mut json, "cp_curve_high_j_per_kg_k", 2_000.0);
+    number(&mut json, "maximum_charge_power_w", 10_000.0);
+    number(&mut json, "maximum_discharge_power_w", 10_000.0);
+    number(&mut json, "standing_loss_conductance_w_per_k", 10.0);
+    number(&mut json, "charge_duration_s", 100.0);
+    number(&mut json, "standing_loss_duration_s", 10.0);
+    number(&mut json, "load_supply_temperature_k", 450.0);
+    number(&mut json, "minimum_heat_exchanger_approach_k", 10.0);
+    number(&mut json, "heat_exchanger_effectiveness", 0.9);
+    number(&mut json, "discharge_duration_s", 100.0);
     number(&mut json, "incident_solar_j", collector.incident_solar.value());
     number(&mut json, "optical_loss_j", collector.optical_loss.value());
     number(&mut json, "absorbed_solar_j", collector.absorbed_solar.value());
