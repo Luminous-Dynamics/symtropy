@@ -193,7 +193,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "coldchain_lastmile_van",
@@ -218,7 +219,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "accessible_ferry",
@@ -243,7 +245,8 @@
       "has_caregiver_access": true,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "accessible_shuttle",
@@ -268,7 +271,8 @@
       "has_caregiver_access": true,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "congo_low_disturbance_rover",
@@ -293,7 +297,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "congo_sample_van",
@@ -318,7 +323,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "polar_sled_train",
@@ -343,7 +349,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "polar_crawler",
@@ -368,7 +375,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "dunerunner_cargo_rover",
@@ -393,7 +401,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "dune_service_truck",
@@ -418,7 +427,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "aidrover_supply",
@@ -443,7 +453,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "afg_clinic_van",
@@ -468,7 +479,8 @@
       "has_caregiver_access": false,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "afg_patient_carrier",
@@ -492,7 +504,8 @@
       "has_caregiver_access": true,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     },
     {
       "platform_id": "afg_patient_van",
@@ -516,7 +529,8 @@
       "has_caregiver_access": true,
       "has_emergency_egress": true,
       "has_privacy_controls": true,
-      "has_recovery_plan": true
+      "has_recovery_plan": true,
+      "has_emergency_stop": true
     }
   ],
   "hub_profiles": [
