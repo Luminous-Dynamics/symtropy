@@ -193,9 +193,9 @@ jobs:
             .rust_refinement_status == "NOT_ESTABLISHED" and
             .floating_point_conformance_status == "NOT_IMPLEMENTED" and
             .live_ecs_integration_status == "NOT_IMPLEMENTED" and
-            (.theorem_bindings | length == 10) and
-            ([.theorem_bindings[].theorem] | unique | length == 10) and
-            (.fixtures | length == 2) and
+            (.theorem_bindings | length == 14) and
+            ([.theorem_bindings[].theorem] | unique | length == 14) and
+            (.fixtures | length == 6) and
             (any(.fixtures[]; .expected == "ACCEPT")) and
             (any(.fixtures[]; .expected == "REJECT")) and
             (.proposed_benchmarks.status == "PROPOSED_NOT_MEASURED") and
