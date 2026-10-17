@@ -7,9 +7,9 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+mod decision;
 mod portfolio;
 mod sourcing;
-mod decision;
 mod stakeholder;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:household-appliance-benchmark-corpus:0.1.0";
@@ -496,7 +496,9 @@ fn run() -> Result<(), String> {
     let decision_schema_path = read_arg_path("--decision-schema");
     let decision_profile_path = read_arg_path("--decision-profile");
     if decision_schema_path.is_some() != decision_profile_path.is_some() {
-        return Err("--decision-schema and --decision-profile must be supplied together".to_owned());
+        return Err(
+            "--decision-schema and --decision-profile must be supplied together".to_owned(),
+        );
     }
 
     let schema_raw = fs::read_to_string(&schema_path)
@@ -527,11 +529,9 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("cannot read {}: {error}", portfolio_schema_path.display()))?;
         let portfolio_raw = fs::read_to_string(&portfolio_path)
             .map_err(|error| format!("cannot read {}: {error}", portfolio_path.display()))?;
-        let portfolio_summary = portfolio::audit_portfolio_texts(
-            &portfolio_schema_raw,
-            &portfolio_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let portfolio_summary =
+            portfolio::audit_portfolio_texts(&portfolio_schema_raw, &portfolio_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
         report["large_appliance_portfolio"] = json!({
             "status": "PASS_SYNTHETIC_PORTFOLIO_CONTRACT_ONLY",
@@ -553,13 +553,13 @@ fn run() -> Result<(), String> {
     {
         let sourcing_schema_raw = fs::read_to_string(&sourcing_schema_path)
             .map_err(|error| format!("cannot read {}: {error}", sourcing_schema_path.display()))?;
-        let sourcing_snapshot_raw = fs::read_to_string(&sourcing_snapshot_path)
-            .map_err(|error| format!("cannot read {}: {error}", sourcing_snapshot_path.display()))?;
-        let sourcing_summary = sourcing::audit_sourcing_texts(
-            &sourcing_schema_raw,
-            &sourcing_snapshot_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let sourcing_snapshot_raw =
+            fs::read_to_string(&sourcing_snapshot_path).map_err(|error| {
+                format!("cannot read {}: {error}", sourcing_snapshot_path.display())
+            })?;
+        let sourcing_summary =
+            sourcing::audit_sourcing_texts(&sourcing_schema_raw, &sourcing_snapshot_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
         report["washer_parts_resilience_sourcing"] = json!({
             "status": "PASS_DESK_SNAPSHOT_CONTRACT_ONLY",
@@ -586,17 +586,13 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("cannot read {}: {error}", decision_schema_path.display()))?;
         let decision_profile_raw = fs::read_to_string(&decision_profile_path)
             .map_err(|error| format!("cannot read {}: {error}", decision_profile_path.display()))?;
-        let (decision_summary, assessment) = decision::audit_decision_texts(
-            &decision_schema_raw,
-            &decision_profile_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let (decision_summary, assessment) =
+            decision::audit_decision_texts(&decision_schema_raw, &decision_profile_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
-        let (stakeholder_summary, stakeholder_report) = stakeholder::audit_stakeholder_texts(
-            &decision_schema_raw,
-            &decision_profile_raw,
-        )
-        .map_err(|errors| errors.join("\n"))?;
+        let (stakeholder_summary, stakeholder_report) =
+            stakeholder::audit_stakeholder_texts(&decision_schema_raw, &decision_profile_raw)
+                .map_err(|errors| errors.join("\n"))?;
 
         report["stakeholder_repairability_profiles"] = json!({
             "status": "PASS_STAKEHOLDER_PROFILE_CONTRACT_ONLY",
