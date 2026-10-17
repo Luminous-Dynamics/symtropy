@@ -459,7 +459,9 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
         || resource_ids.len() != fixture.resources.len()
         || task_ids.len() != fixture.task_graph.len()
     {
-        errors.push("fixture resource, task, and evidence IDs must be present and unique".to_string());
+        errors.push(
+            "fixture resource, task, and evidence IDs must be present and unique".to_string(),
+        );
     }
 
     let mut seen = std::collections::BTreeSet::new();
