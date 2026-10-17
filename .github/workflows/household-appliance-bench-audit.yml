@@ -11,6 +11,7 @@ on:
       - "docs/tech/WASHER_ACQUISITION_AND_PARTS_RESILIENCE_V0_1.md"
       - "docs/tech/REPAIRABILITY_ARCHITECTURE_DECISION_ENGINE_V0_1.md"
       - "docs/tech/STAKEHOLDER_CONSTRAINED_REPAIRABILITY_FRONTIERS_V0_1.md"
+      - "docs/tech/WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -29,6 +30,7 @@ on:
       - "docs/tech/WASHER_ACQUISITION_AND_PARTS_RESILIENCE_V0_1.md"
       - "docs/tech/REPAIRABILITY_ARCHITECTURE_DECISION_ENGINE_V0_1.md"
       - "docs/tech/STAKEHOLDER_CONSTRAINED_REPAIRABILITY_FRONTIERS_V0_1.md"
+      - "docs/tech/WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -68,3 +70,5 @@ jobs:
           --sourcing-snapshot fixtures/appliances/washer_parts_resilience_snapshot_v0_1.json
           --decision-schema schemas/appliances/repairability_architecture_decision_v0_1.schema.json
           --decision-profile fixtures/appliances/repairability_architecture_decision_v0_1.json
+          --faults-schema schemas/appliances/washer_fault_to_repair_curriculum_v0_1.schema.json
+          --faults-curriculum fixtures/appliances/washer_fault_to_repair_curriculum_v0_1.json
