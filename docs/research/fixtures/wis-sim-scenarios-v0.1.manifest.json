@@ -55,16 +55,16 @@
     "unknown_to_verified_promotions_allowed": 0,
     "consciousness_or_wisdom_scalar_emission_allowed": 0
   },
-  "status": "typed assertions and run-report contract authored; Rust tests and simulation not executed",
+  "status": "typed scenario assertions and independent run-report evaluator authored; tests and simulation not executed",
   "claim_ceiling": "Defines inputs and invariants for future deterministic simulation runs; does not validate model assumptions, human behaviour, consciousness, wisdom, spiritual interventions or real-world outcomes.",
   "no_human_data": true,
   "no_real_world_forecast": true,
   "schema_validation_status": "STRICT_SCHEMA_PINNED; NOT_VALIDATED_WITH_JSON_SCHEMA_ENGINE",
   "verifier": {
     "path": "tools/wis-sim-fixture-verifier",
-    "authored_test_count": 29,
+    "authored_test_count": 35,
     "execution_status": "NOT_EXECUTED",
-    "scope": "hash-first validation of fixture, scenario schema and run-report schema; selected top-level contract; variant coverage; unique seeds; typed assertion specification validity and consistency across variants. The verify-run path independently checks report identity and evaluates typed assertions. Not full JSON Schema validation or simulation."
+    "scope": "hash-first validation of fixture, scenario schema and run-report schema; pinned field sets; variant coverage; unique seeds; policy/family/assertion binding; typed assertion validation; independent run-report identity and assertion evaluation. It is not full JSON Schema validation and is not a simulation engine."
   },
   "run_report_schema_path": "docs/research/fixtures/wis-sim-run-report-v0.1.schema.json",
   "run_report_schema_sha256": "cc3e80c4c140062c0ad76b318693c1a5feb13e5686bcd86c8be9ee10a45e47b8"
