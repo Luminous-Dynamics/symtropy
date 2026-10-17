@@ -1,0 +1,117 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+# Visual Optics Qualification Contract
+
+**Status date:** 2026-10-17  
+**Tracking issue:** [VIS-OPTICS-001 #1807](https://github.com/Luminous-Dynamics/symtropy/issues/1807)  
+**Upstream program:** [Symthaea VIS-TECH-001 #7820](https://github.com/Luminous-Dynamics/symthaea/issues/7820)  
+**Status:** Initial design contract; not an implemented simulator or physical qualification.
+
+## Purpose
+
+Define the smallest credible simulation/known-answer slice for display and optics research. Symtropy should own deterministic scenario execution and model-specific calculations where appropriate, while reusing its existing scenario/replay and SYM-EVAL-CORE experiment/evidence infrastructure.
+
+This does **not** authorize a second generic experiment planner, receipt format, blinding framework, validity system, or vision-object model. Existing visual object-permanence work answers different questions and remains the owner of its semantics.
+
+## Claim levels
+
+Every output must identify its evidence class:
+
+1. `ANALYTIC_REFERENCE`: value derived by an independently inspectable equation under declared assumptions.
+2. `SYNTHETIC_MODEL`: deterministic output from a simplified model or generated fixture.
+3. `NUMERICAL_SIMULATION`: output from a named numerical method/version and declared convergence/precision envelope.
+4. `BENCH_MEASURED`: output from a physical device/instrument with calibration and retained raw data.
+5. `INDEPENDENTLY_REPLICATED`: a separate reproduction record whose method and artifacts are inspectable.
+6. `NOT_EVALUATED`: the claim requires missing inputs, hardware, calibration, rights, human evidence or specialist review.
+
+A computed status is not physical authority. A simulated or analytically correct fixture cannot certify an actual display.
+
+## Minimal model boundary
+
+### A. Geometry first
+
+Start with pinhole/rectified projection and rigid transforms because these are deterministic, tractable and sufficient to expose unit/frame errors. Each case declares:
+- world/camera/projector coordinate frames, handedness and axis conventions;
+- units, intrinsics, extrinsics, image origin and pixel-center convention;
+- geometry and valid parameter bounds;
+- expected projection/transform, tolerance and derivation;
+- evidence class and model applicability.
+
+Reject malformed transforms, unknown frames, non-finite values, zero/negative depth and unit mismatches. Keep lens distortion, non-planar surfaces, photometric response and wave effects as separately versioned extensions.
+
+### B. Conventional display response
+
+Represent a declared transfer function/tone curve and its assumptions. Verify domain/range, monotonicity where required, bounded numeric behavior and exact reference points. SDR/HDR compliance, real luminance, local-dimming behavior and panel temporal behavior cannot be established by a transfer-function fixture alone.
+
+### C. Bounded optical forward models
+
+Add optical equations one at a time: paraxial/thin-lens cases, then free-space scalar propagation where its assumptions apply, then quantization/sampling. Record whether polarization, coherence, vector diffraction, aberrations, partial coherence, temperature drift or measured component imperfections are excluded. The correct result for an input outside the declared validity envelope is abstention/rejection—not a plausible-looking image.
+
+### D. Light-field and CGH fixture
+
+A holography case must pin wavelength, grid size, pixel pitch, propagation distance, phase/amplitude encoding, phase quantization, boundary condition, numerical method and the output comparison metric. Report reconstruction error, speckle metric, calculation time and all declared limitations separately. Never label a simulated intensity map as a physical hologram.
+
+## Fixture format
+
+Each frozen case should bind:
+
+- `case_id`, `schema_version`, owner and status;
+- model name/version and applicability envelope;
+- canonical inputs, units and coordinate convention;
+- expected outputs and declared tolerance/rounding policy;
+- independently derived reference or provenance link;
+- evidence class and negative-control role;
+- exact corpus digest once a corpus manifest exists.
+
+The expected-output oracle and its tests must be independent of candidate model-selection, optimizer and scoring code. For learned approximations, compare first with analytic/exhaustive small cases and publish an error envelope instead of using agreement with another learned model as ground truth.
+
+## First known-answer cases
+
+Start with 12–20 fixtures, then contribute to the 40+ cross-domain corpus defined in Symthaea #7820.
+
+1. Identity rigid transform and inverse.
+2. Known 90-degree axis rotation with handedness negative control.
+3. Rectified pinhole projection of the optical axis.
+4. Known off-axis projection at fixed positive depth.
+5. Zero/negative depth rejection.
+6. Invalid units and mismatched frame rejection.
+7. Transfer-function domain/range and monotonicity.
+8. Thin-lens relation within a declared paraxial regime.
+9. Simple scalar propagation against a separately calculated reference.
+10. Sampling/Nyquist boundary and undersampling negative controls.
+11. Phase quantization bound for a declared phase-level count.
+12. Missing wavelength/pixel-pitch/calibration rejection.
+13. Stale calibration and changed-device-profile rejection.
+14. Tampered expected-value/corpus-digest detection.
+15. Missing raw output or provenance artifact blocks complete evidence status.
+
+Each fixture must have explicit units and expected values; this numbered list is a work plan, not evidence that the cases already exist or pass.
+
+## Initial acceptance gates
+
+- 100% agreement with frozen analytic references within predeclared numerical tolerances.
+- Zero false accepts for invalid frames/units, NaN/Inf, impossible bounds, stale required calibration or out-of-envelope physics.
+- Deterministic canonical output for pinned inputs where deterministic behavior is promised.
+- All results bind exact model/configuration, scenario/corpus digest and artifact references.
+- The independent verifier must reject mutated inputs, swapped artifact roles and producer-declared PASS without required outputs.
+- Report per-output error, solver runtime and known limitations. No universal aggregate quality score.
+- CI queue status is not test evidence. Record exact commit/run and distinguish queued, failed, canceled, and passed.
+
+## Integration plan
+
+1. Audit existing `symtropy-sim`, scenario/replay and SYM-EVAL-CORE types; map required fields before creating code.
+2. Commit fixture manifest and an independently written checker with adversarial tests.
+3. Add only the minimal geometry/transfer-function implementation needed to execute the first fixtures.
+4. Add wave optics behind an explicit feature/package boundary only after numerical references, dependency/license review and a bounded resource budget exist.
+5. Connect measured artifacts only after a physical device, instrumentation and calibration workflow is available.
+
+## Research references
+
+- [VESA DisplayHDR criteria](https://displayhdr.org/performance-criteria/)
+- [OpenXR registry/specification](https://registry.khronos.org/OpenXR/)
+- [Propagation-adaptive 4K computer-generated holography](https://www.nature.com/articles/s41467-025-62997-z)
+- [Real-Time Rendering Framework for Holography](https://doi.org/10.1111/cgf.70058)
+- [Spatial/angular resolution measurement for light-field displays](https://trepo.tuni.fi/bitstream/handle/10024/213976/LFResolutionMeasurement_JSTSP_final.pdf?sequence=-1)
+
+## Exclusions
+
+No eye-safety, medical, comfort, field-of-view, wavefront, manufacturing, energy-saving or production-readiness claim is established by these fixtures. Physical optical systems require calibrated measurements and specialist review.
