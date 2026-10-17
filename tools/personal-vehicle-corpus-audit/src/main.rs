@@ -56,6 +56,24 @@ const REQUIRED_SOURCE_IDS: [&str; 10] = [
     "SRC_UN_R156",
 ];
 
+const REQUIRED_EVIDENCE_FIXTURE_IDS: [&str; 15] = [
+    "EV01_VALID_DESIGN_HYPOTHESIS",
+    "EV02_VALID_SIMULATION",
+    "EV03_VALID_BENCH_MEASUREMENT",
+    "EV04_VALID_INDEPENDENT_REVIEW",
+    "EV05_VALID_REGULATORY_RECEIPT",
+    "EV06_SIMULATION_PROMOTED_TO_PHYSICAL",
+    "EV07_REVIEW_PROMOTED_TO_REGULATORY",
+    "EV08_MISSING_LIMITATIONS",
+    "EV09_MISSING_SOURCE",
+    "EV10_INVALID_OUTPUT_DIGEST",
+    "EV11_UNSCHEMATIZED_SENSITIVE_FIELD",
+    "EV12_VEHICLE_CONFIG_WITHOUT_DIGEST",
+    "EV13_UNKNOWN_EVIDENCE_CLASS",
+    "EV14_WRONG_REVISION_SHAPE",
+    "EV15_UNKNOWN_SOURCE_RIGHTS",
+];
+
 type AuditResult<T> = Result<T, Vec<String>>;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,6 +90,9 @@ struct AuditSummary {
     sha256: String,
     source_registry_count: usize,
     source_registry_sha256: String,
+    evidence_fixture_count: usize,
+    evidence_schema_sha256: String,
+    evidence_fixtures_sha256: String,
 }
 
 fn string_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
@@ -496,6 +517,195 @@ fn validate_source_registry(document: &Value, raw_bytes: &[u8]) -> AuditResult<(
     }
 }
 
+
+#[derive(Debug, PartialEq, Eq)]
+struct EvidenceEnvelopeSummary {
+    fixture_count: usize,
+    schema_sha256: String,
+    fixtures_sha256: String,
+}
+
+fn evidence_class_matches(artifact_kind: &str, evidence_class: &str) -> bool {
+    match artifact_kind {
+        "design_candidate" => evidence_class == "hypothesis",
+        "simulation_run" => evidence_class == "simulation",
+        "calibration_dataset" => {
+            ["bench_measurement", "instrumented_vehicle_test", "external_source"]
+                .contains(&evidence_class)
+        }
+        "physical_measurement" => {
+            ["bench_measurement", "instrumented_vehicle_test"].contains(&evidence_class)
+        }
+        "independent_review" => evidence_class == "independent_review",
+        "regulatory_receipt" => evidence_class == "regulatory_receipt",
+        "maintenance_event" => evidence_class == "maintenance_assertion",
+        "source_record" => evidence_class == "external_source",
+        _ => false,
+    }
+}
+
+fn validate_evidence_envelope_fixtures(
+    schema: &Value,
+    fixtures_document: &Value,
+    schema_raw: &[u8],
+    fixtures_raw: &[u8],
+) -> AuditResult<EvidenceEnvelopeSummary> {
+    let mut errors = Vec::new();
+    if string_at(schema, "$schema") != Some("https://json-schema.org/draft/2020-12/schema") {
+        errors.push("evidence_schema.$schema: expected Draft 2020-12".to_owned());
+    }
+    if string_at(schema, "$id")
+        != Some("urn:luminous-dynamics:mobility:engineering-evidence-envelope:0.1")
+    {
+        errors.push("evidence_schema.$id: unexpected schema identity".to_owned());
+    }
+    if !jsonschema::draft202012::meta::is_valid(schema) {
+        errors.push("evidence_schema: failed Draft 2020-12 meta-schema validation".to_owned());
+    }
+    let validator = match jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(schema)
+    {
+        Ok(validator) => Some(validator),
+        Err(error) => {
+            errors.push(format!("evidence_schema: could not build validator: {error}"));
+            None
+        }
+    };
+
+    check_exact_keys(
+        fixtures_document,
+        &[
+            "corpus_version",
+            "status",
+            "schema_ref",
+            "fixtures",
+            "claim_ceiling",
+        ],
+        "evidence_fixtures",
+        &mut errors,
+    );
+    if string_at(fixtures_document, "corpus_version")
+        != Some("mobility-engineering-evidence-envelope-fixtures/0.1")
+    {
+        errors.push("evidence_fixtures.corpus_version: unexpected version".to_owned());
+    }
+    if string_at(fixtures_document, "status")
+        != Some("synthetic-contract-fixtures-not-qualification")
+    {
+        errors.push("evidence_fixtures.status: claim ceiling status must remain explicit".to_owned());
+    }
+
+    let Some(fixtures) = fixtures_document.get("fixtures").and_then(Value::as_array) else {
+        return Err(vec!["evidence_fixtures.fixtures: expected array".to_owned()]);
+    };
+    if fixtures.len() != REQUIRED_EVIDENCE_FIXTURE_IDS.len() {
+        errors.push(format!(
+            "evidence_fixtures.fixtures: expected {} fixtures, found {}",
+            REQUIRED_EVIDENCE_FIXTURE_IDS.len(),
+            fixtures.len()
+        ));
+    }
+
+    let mut seen = BTreeSet::new();
+    for (index, fixture) in fixtures.iter().enumerate() {
+        let at = format!("evidence_fixtures.fixtures[{index}]");
+        check_exact_keys(fixture, &["id", "expectation", "input", "reason"], &at, &mut errors);
+        let Some(id) = require_string(fixture, "id", &at, &mut errors) else {
+            continue;
+        };
+        if !seen.insert(id.clone()) {
+            errors.push(format!("{at}: duplicate fixture id {id}"));
+        }
+        if !REQUIRED_EVIDENCE_FIXTURE_IDS.contains(&id.as_str()) {
+            errors.push(format!("{at}: unregistered fixture id {id}"));
+        }
+        let expectation = string_at(fixture, "expectation").unwrap_or("");
+        if !["accept", "reject_schema", "reject_semantics"].contains(&expectation) {
+            errors.push(format!("{at}: unknown expectation {expectation}"));
+        }
+        if require_string(fixture, "reason", &at, &mut errors).is_none() {
+            continue;
+        }
+        let Some(envelope) = fixture.get("input") else {
+            errors.push(format!("{at}.input: missing envelope"));
+            continue;
+        };
+        let Some(validator) = validator.as_ref() else {
+            continue;
+        };
+        let schema_errors: Vec<String> = validator
+            .iter_errors(envelope)
+            .map(|error| error.to_string())
+            .collect();
+        match expectation {
+            "accept" => {
+                if !schema_errors.is_empty() {
+                    errors.push(format!(
+                        "{at}: valid envelope rejected by schema: {}",
+                        schema_errors.join("; ")
+                    ));
+                }
+                let kind = string_at(envelope, "artifact_kind").unwrap_or("");
+                let class = string_at(envelope, "evidence_class").unwrap_or("");
+                if !evidence_class_matches(kind, class) {
+                    errors.push(format!(
+                        "{at}: artifact kind {kind} cannot assert evidence class {class}"
+                    ));
+                }
+            }
+            "reject_schema" => {
+                if schema_errors.is_empty() {
+                    errors.push(format!("{at}: malformed envelope unexpectedly passed the schema"));
+                }
+            }
+            "reject_semantics" => {
+                if !schema_errors.is_empty() {
+                    errors.push(format!(
+                        "{at}: semantic negative control is also schema-invalid: {}",
+                        schema_errors.join("; ")
+                    ));
+                } else {
+                    let kind = string_at(envelope, "artifact_kind").unwrap_or("");
+                    let class = string_at(envelope, "evidence_class").unwrap_or("");
+                    if evidence_class_matches(kind, class) {
+                        errors.push(format!(
+                            "{at}: incompatible artifact/evidence pair {kind}/{class} was accepted"
+                        ));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    for id in REQUIRED_EVIDENCE_FIXTURE_IDS {
+        if !seen.contains(id) {
+            errors.push(format!("evidence_fixtures: missing required fixture {id}"));
+        }
+    }
+
+    let claims = fixtures_document.get("claim_ceiling").and_then(Value::as_array);
+    if !claims.is_some_and(|items| {
+        items.iter().filter_map(Value::as_str).any(|text| {
+            text.contains("No fixture establishes truth, physical performance")
+        }) && items.iter().filter_map(Value::as_str).any(|text| {
+            text.contains("Fixtures test schema shape and evidence-class compatibility only")
+        })
+    }) {
+        errors.push("evidence_fixtures.claim_ceiling: evidence limits must remain explicit".to_owned());
+    }
+
+    if errors.is_empty() {
+        Ok(EvidenceEnvelopeSummary {
+            fixture_count: fixtures.len(),
+            schema_sha256: format!("{:x}", Sha256::digest(schema_raw)),
+            fixtures_sha256: format!("{:x}", Sha256::digest(fixtures_raw)),
+        })
+    } else {
+        Err(errors)
+    }
+}
+
 fn default_corpus_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/personal_vehicle/scenario_corpus_v0_1.json")
@@ -506,14 +716,26 @@ fn default_registry_path() -> PathBuf {
         .join("../../fixtures/personal_vehicle/benchmark_source_registry_v0_1.json")
 }
 
-fn read_cli() -> Result<(PathBuf, PathBuf), String> {
+fn default_evidence_schema_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json")
+}
+
+fn default_evidence_fixtures_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json")
+}
+
+fn read_cli() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
     let mut args = env::args_os().skip(1);
     let mut corpus_path = None;
     let mut registry_path = None;
+    let mut evidence_schema_path = None;
+    let mut evidence_fixtures_path = None;
     while let Some(arg) = args.next() {
         if arg == "--help" || arg == "-h" {
-            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH]");
-            println!("Checks the synthetic scenario corpus and source-registry contract only; it does not run vehicle physics.");
+            println!("Usage: personal-vehicle-corpus-audit [--corpus PATH] [--registry PATH] [--envelope-schema PATH] [--envelope-fixtures PATH]");
+            println!("Checks synthetic scenario/source/evidence-envelope contracts only; it does not run vehicle physics.");
             std::process::exit(0);
         } else if arg == "--corpus" {
             let Some(value) = args.next() else {
@@ -525,6 +747,16 @@ fn read_cli() -> Result<(PathBuf, PathBuf), String> {
                 return Err("--registry requires a path".to_owned());
             };
             registry_path = Some(PathBuf::from(value));
+        } else if arg == "--envelope-schema" {
+            let Some(value) = args.next() else {
+                return Err("--envelope-schema requires a path".to_owned());
+            };
+            evidence_schema_path = Some(PathBuf::from(value));
+        } else if arg == "--envelope-fixtures" {
+            let Some(value) = args.next() else {
+                return Err("--envelope-fixtures requires a path".to_owned());
+            };
+            evidence_fixtures_path = Some(PathBuf::from(value));
         } else {
             return Err(format!("unknown argument: {}", arg.to_string_lossy()));
         }
@@ -532,48 +764,58 @@ fn read_cli() -> Result<(PathBuf, PathBuf), String> {
     Ok((
         corpus_path.unwrap_or_else(default_corpus_path),
         registry_path.unwrap_or_else(default_registry_path),
+        evidence_schema_path.unwrap_or_else(default_evidence_schema_path),
+        evidence_fixtures_path.unwrap_or_else(default_evidence_fixtures_path),
     ))
 }
 
 fn main() -> ExitCode {
-    let (corpus_path, registry_path) = match read_cli() {
+    let (corpus_path, registry_path, evidence_schema_path, evidence_fixtures_path) = match read_cli() {
         Ok(paths) => paths,
         Err(error) => {
             eprintln!("CORPUS_AUDIT_FAIL: {error}");
             return ExitCode::from(2);
         }
     };
-    let raw = match fs::read(&corpus_path) {
-        Ok(raw) => raw,
+    let load_json = |path: &PathBuf, label: &str| -> Result<(Vec<u8>, Value), String> {
+        let raw = fs::read(path)
+            .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+        let value = serde_json::from_slice(&raw)
+            .map_err(|error| format!("malformed {label} JSON: {error}"))?;
+        Ok((raw, value))
+    };
+
+    let (corpus_raw, corpus) = match load_json(&corpus_path, "scenario corpus") {
+        Ok(value) => value,
         Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: cannot read {}: {error}", corpus_path.display());
+            eprintln!("CORPUS_AUDIT_FAIL: {error}");
             return ExitCode::from(2);
         }
     };
-    let document: Value = match serde_json::from_slice(&raw) {
-        Ok(document) => document,
+    let (registry_raw, registry) = match load_json(&registry_path, "source registry") {
+        Ok(value) => value,
         Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: malformed scenario JSON: {error}");
+            eprintln!("CORPUS_AUDIT_FAIL: {error}");
             return ExitCode::from(2);
         }
     };
-    let registry_raw = match fs::read(&registry_path) {
-        Ok(raw) => raw,
+    let (evidence_schema_raw, evidence_schema) = match load_json(&evidence_schema_path, "engineering evidence schema") {
+        Ok(value) => value,
         Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: cannot read {}: {error}", registry_path.display());
+            eprintln!("CORPUS_AUDIT_FAIL: {error}");
             return ExitCode::from(2);
         }
     };
-    let registry: Value = match serde_json::from_slice(&registry_raw) {
-        Ok(registry) => registry,
+    let (evidence_fixtures_raw, evidence_fixtures) = match load_json(&evidence_fixtures_path, "engineering evidence fixtures") {
+        Ok(value) => value,
         Err(error) => {
-            eprintln!("CORPUS_AUDIT_FAIL: malformed source registry JSON: {error}");
+            eprintln!("CORPUS_AUDIT_FAIL: {error}");
             return ExitCode::from(2);
         }
     };
 
     let mut errors = Vec::new();
-    let summary = match validate_corpus(&document, &raw) {
+    let summary = match validate_corpus(&corpus, &corpus_raw) {
         Ok(summary) => Some(summary),
         Err(corpus_errors) => {
             errors.extend(corpus_errors);
@@ -587,24 +829,46 @@ fn main() -> ExitCode {
             None
         }
     };
+    let evidence_result = match validate_evidence_envelope_fixtures(
+        &evidence_schema,
+        &evidence_fixtures,
+        &evidence_schema_raw,
+        &evidence_fixtures_raw,
+    ) {
+        Ok(result) => Some(result),
+        Err(evidence_errors) => {
+            errors.extend(evidence_errors);
+            None
+        }
+    };
 
     if errors.is_empty() {
-        let summary = summary.expect("summary exists when validation has no errors");
+        let summary = summary.expect("scenario summary exists after successful validation");
         let (source_registry_count, source_registry_sha256) =
-            registry_result.expect("registry result exists when validation has no errors");
+            registry_result.expect("source registry result exists after successful validation");
+        let evidence = evidence_result.expect("evidence envelope result exists after successful validation");
         let report = AuditSummary {
             case_count: summary.case_count,
             negative_control_count: summary.negative_control_count,
             sha256: summary.sha256,
             source_registry_count,
             source_registry_sha256,
+            evidence_fixture_count: evidence.fixture_count,
+            evidence_schema_sha256: evidence.schema_sha256,
+            evidence_fixtures_sha256: evidence.fixtures_sha256,
         };
         println!(
-            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={}",
-            report.case_count, report.negative_control_count, report.sha256,
-            report.source_registry_count, report.source_registry_sha256
+            "CORPUS_AUDIT_PASS cases={} negative_controls={} corpus_sha256={} source_registry_entries={} source_registry_sha256={} evidence_fixtures={} envelope_schema_sha256={} envelope_fixtures_sha256={}",
+            report.case_count,
+            report.negative_control_count,
+            report.sha256,
+            report.source_registry_count,
+            report.source_registry_sha256,
+            report.evidence_fixture_count,
+            report.evidence_schema_sha256,
+            report.evidence_fixtures_sha256
         );
-        println!("CLAIM_CEILING synthetic scenario/registry structure only; no physics, licensing or safety result");
+        println!("CLAIM_CEILING synthetic corpus/registry/evidence-envelope contracts only; no physics, signature, licensing or safety result");
         ExitCode::SUCCESS
     } else {
         eprintln!("CORPUS_AUDIT_FAIL errors={}", errors.len());
@@ -627,6 +891,64 @@ mod tests {
     fn validate_fixture(document: &Value) -> Result<ScenarioSummary, Vec<String>> {
         let bytes = serde_json::to_vec(document).expect("fixture serialization should succeed");
         validate_corpus(document, &bytes)
+    }
+
+    fn evidence_schema() -> Value {
+        serde_json::from_str(include_str!("../../../schemas/transport/engineering_evidence_envelope_v0_1.schema.json"))
+            .expect("evidence envelope schema should parse as JSON")
+    }
+
+    fn evidence_fixtures() -> Value {
+        serde_json::from_str(include_str!("../../../fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json"))
+            .expect("evidence envelope fixtures should parse as JSON")
+    }
+
+    fn evidence_fixture_errors(schema: &Value, fixtures: &Value) -> Vec<String> {
+        let schema_bytes = serde_json::to_vec(schema).expect("schema serialization");
+        let fixtures_bytes = serde_json::to_vec(fixtures).expect("fixtures serialization");
+        validate_evidence_envelope_fixtures(schema, fixtures, &schema_bytes, &fixtures_bytes)
+            .err()
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn evidence_envelope_schema_and_frozen_fixtures_validate() {
+        let schema = evidence_schema();
+        let fixtures = evidence_fixtures();
+        let schema_bytes = serde_json::to_vec(&schema).expect("schema bytes");
+        let fixtures_bytes = serde_json::to_vec(&fixtures).expect("fixture bytes");
+        let result = validate_evidence_envelope_fixtures(&schema, &fixtures, &schema_bytes, &fixtures_bytes)
+            .expect("evidence contract should pass");
+        assert_eq!(result.fixture_count, 15);
+        assert_eq!(result.schema_sha256.len(), 64);
+        assert_eq!(result.fixtures_sha256.len(), 64);
+    }
+
+    #[test]
+    fn simulation_cannot_be_promoted_to_instrumented_vehicle_evidence() {
+        let mut fixtures = evidence_fixtures();
+        let items = fixtures["fixtures"].as_array_mut().expect("fixture array");
+        let promoted = items.iter_mut().find(|item| item["id"] == "EV06_SIMULATION_PROMOTED_TO_PHYSICAL").expect("promotion fixture");
+        promoted["expectation"] = Value::String("accept".to_owned());
+        assert!(!evidence_fixture_errors(&evidence_schema(), &fixtures).is_empty());
+    }
+
+    #[test]
+    fn independent_review_cannot_be_promoted_to_regulatory_receipt() {
+        let mut fixtures = evidence_fixtures();
+        let items = fixtures["fixtures"].as_array_mut().expect("fixture array");
+        let promoted = items.iter_mut().find(|item| item["id"] == "EV07_REVIEW_PROMOTED_TO_REGULATORY").expect("promotion fixture");
+        promoted["expectation"] = Value::String("accept".to_owned());
+        assert!(!evidence_fixture_errors(&evidence_schema(), &fixtures).is_empty());
+    }
+
+    #[test]
+    fn envelope_schema_rejects_extra_sensitive_top_level_fields() {
+        let mut fixtures = evidence_fixtures();
+        let items = fixtures["fixtures"].as_array_mut().expect("fixture array");
+        let leak = items.iter_mut().find(|item| item["id"] == "EV02_VALID_SIMULATION").expect("simulation fixture");
+        leak["input"]["raw_vin"] = Value::String("SYNTHETICVIN0000001".to_owned());
+        assert!(!evidence_fixture_errors(&evidence_schema(), &fixtures).is_empty());
     }
 
     fn source_registry() -> Value {
