@@ -364,11 +364,17 @@ fn validate_corpus(c: &Corpus) -> Check<()> {
         if binding.planner_scenario_id.trim().is_empty() || !ids.insert(binding.planner_scenario_id.as_str()) {
             return Err("empty or duplicate planner_scenario_id".into());
         }
+        if binding.energy_budget_steps <= binding.return_reserve_steps || binding.max_viewpoints == 0 || binding.max_viewpoints > 4 {
+            return Err(format!("{}: invalid energy, reserve, or viewpoint limit", binding.planner_scenario_id));
+        }
     }
     Ok(())
 }
 fn validate_planner_receipt<'a>(receipt: &'a PlannerReceipt, c: &Corpus, source_commit: &str) -> Check<BTreeMap<String, &'a PlannerScenario>> {
     if receipt.source_commit != source_commit { return Err("planner receipt source_commit does not match exact checked-out head".into()); }
+    if receipt.corpus_sha256.len() != 64 || !receipt.corpus_sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err("planner corpus SHA-256 is malformed".into());
+    }
     let mut scenarios = BTreeMap::new();
     for scenario in &receipt.scenarios {
         if scenario.scenario_id.trim().is_empty() || scenarios.insert(scenario.scenario_id.clone(), scenario).is_some() {
@@ -521,8 +527,9 @@ mod tests {
         let a = generate_targets(&map, c.held_out_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
         let b = generate_targets(&map, c.held_out_seeds[0], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
         let different = generate_targets(&map, c.held_out_seeds[1], &binding.planner_scenario_id, c.target_count_per_case).unwrap();
+        let shape = |targets: &[Target]| targets.iter().map(|t| (t.kind, t.center_cell, t.required_feature_cells.clone())).collect::<Vec<_>>();
         assert_eq!(a, b);
-        assert_ne!(a, different);
+        assert_ne!(shape(&a), shape(&different));
     }
     #[test]
     fn seeded_target_generation_works_for_every_scene_and_seed() {
