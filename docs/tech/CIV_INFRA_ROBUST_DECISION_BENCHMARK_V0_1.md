@@ -174,7 +174,7 @@ The test oracle must be a separate, straightforward exhaustive enumerator for th
 
 Before using a speed target, freeze a baseline and measure state count, input size, runtime and peak memory on documented hardware. Report scale curves and worst-case behavior; do not select a speedup number after seeing the result.
 
-A minimum first acceptance corpus should include at least **100 deterministic bounded fixtures and 10,000 total finite state evaluations**, with each scenario/action identity and oracle result retained as a machine-readable artifact. Those counts are test-volume targets, not evidence of real-world representativeness.
+A minimum first acceptance corpus should include at least **100 deterministic bounded fixtures and 10,000 total finite state evaluations**, with each scenario/action identity and oracle result retained as a machine-readable artifact. Those counts are test-volume targets, not evidence of real-world representativeness. The R0 test now generates 625 deterministic fixture variants / 12,500 candidate-state evaluations and the dedicated CI workflow exports per-case input digests, oracle/evaluated classifications and Pareto sets as a 14-day artifact. This is an in-memory generated corpus with replay metadata, not yet 625 checked-in source fixtures.
 
 ### Scorecard outputs
 
