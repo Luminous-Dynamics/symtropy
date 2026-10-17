@@ -183,7 +183,7 @@ fn main() {
     );
     for metrics in &report.per_agent {
         println!(
-            "agent={} demand={} allocated={} unmet={} horizon_ratio={} eligible_demand_ticks={} starved_ticks={} max_starvation_streak={}",
+            "agent={} demand={} allocated={} unmet={} horizon_ratio={} eligible_demand_ticks={} starved_ticks={} max_starvation_streak={} eligible_demand={} eligible_allocated={} eligible_unmet={}",
             metrics.agent_id,
             metrics.total_demand,
             metrics.total_allocated,
@@ -191,7 +191,10 @@ fn main() {
             format_optional_fraction(metrics.horizon_service_ratio.as_ref()),
             metrics.eligible_demand_ticks,
             metrics.starved_ticks,
-            metrics.maximum_consecutive_starvation_ticks
+            metrics.maximum_consecutive_starvation_ticks,
+            metrics.total_eligible_demand,
+            metrics.total_eligible_allocated,
+            metrics.total_eligible_unmet_demand
         );
     }
     for issue in &report.violations {
