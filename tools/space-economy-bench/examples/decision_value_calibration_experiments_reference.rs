@@ -567,6 +567,10 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         "calibration_test_set_sha256": format!("{:x}", Sha256::digest(spec_bytes)),
         "result": "pass",
         "evidence_class": "synthetic_exact_finite_calibration_decision_tree",
+        "probability_basis_points": BASIS_POINTS,
+        "global_probability_mass": GLOBAL_MASS,
+        "expected_value_denominator": EXPECTED_VALUE_DENOMINATOR,
+        "model_prior_weight_sum": PRIOR_MODEL_WEIGHTS.iter().sum::<i128>(),
         "model_uncertainty_set": model_spec,
         "calibration_tests": spec,
         "model_outcome_values_synthetic_units": {
@@ -580,6 +584,13 @@ fn execute(source_commit: &str) -> Result<Value, String> {
             "calibration_a": rational_json(CALIBRATION_A.cost_centi, CENTI),
             "calibration_b": rational_json(CALIBRATION_B.cost_centi, CENTI),
             "uninformative_test": rational_json(REDUNDANT_TEST.cost_centi, CENTI)
+        },
+        "value_of_information": {
+            "calibration_a_evsi_before_cost": rational_json(55_000_000_000_i128, EXPECTED_VALUE_DENOMINATOR),
+            "calibration_b_evsi_before_cost": rational_json(15_000_000_000_i128, EXPECTED_VALUE_DENOMINATOR),
+            "adaptive_tree_evsi_before_cost": rational_json(76_500_000_000_i128, EXPECTED_VALUE_DENOMINATOR),
+            "uninformative_test_evsi": rational_json(0_i128, EXPECTED_VALUE_DENOMINATOR),
+            "model_uncertainty_evpi": rational_json(150_000_000_000_i128, EXPECTED_VALUE_DENOMINATOR)
         },
         "budget": {
             "max_calibration_tests": BUDGET.max_calibration_tests,
@@ -616,7 +627,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
             },
             "shared_calibration_standard": {
                 "test_a_domain": CALIBRATION_A.calibration_domain,
-                "test_b_domain": "independent_reference_a",
+                "counterfactual_test_b_domain_if_shared_standard": "independent_reference_a",
                 "claimed_independence_accepted": false,
                 "credited_evsi": rational_json(0, CENTI),
                 "rejection_reason": "SHARED_CALIBRATION_DOMAIN_REQUIRES_JOINT_LIKELIHOOD"
