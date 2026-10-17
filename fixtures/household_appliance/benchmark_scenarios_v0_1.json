@@ -1,0 +1,594 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "HAP-BENCH-001",
+  "status": "synthetic-contract-only",
+  "intended_use": "Exercise appliance design and repair evidence boundaries before physical tests. Fixtures assert what a contract should accept, reject, or leave indeterminate; they do not describe real devices, repairs, or measured performance.",
+  "provenance": {
+    "fixture_policy": "synthetic-only-no-real-repair-records",
+    "dataset_note": "The Open Repair Alliance's October 2026 release includes 416,284 EEE records and 203,591 non-EEE records under ORDS v0.3 / CC BY-SA 4.0. Its reported 64% event repair success is a community-event sample, not a population repair probability. No third-party row-level records are embedded here.",
+    "source_urls": [
+      "https://openrepair.org/announcements/over-half-a-million-records-of-open-data-on-repair/",
+      "https://openrepair.org/open-data/open-standard/",
+      "https://oshwa.org/definition/",
+      "https://eur-lex.europa.eu/eli/dir/2024/1799/oj/eng"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "HAP-001",
+      "kind": "positive_control",
+      "domain": "openness",
+      "scenario": "Editable source files and manufacturing outputs are published with a clear custom/third-party licence manifest.",
+      "input": {
+        "native_cad": true,
+        "manufacturing_exports": true,
+        "source_firmware": true,
+        "licence_manifest": true,
+        "custom_artifacts_complete": true
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Every required custom artifact has an editable source or explicit not_applicable status.",
+        "The licence manifest distinguishes original and third-party files."
+      ],
+      "rationale": "Openness requires modifiable design sources and declared scope, not merely a downloadable manufacturing export."
+    },
+    {
+      "case_id": "HAP-002",
+      "kind": "negative_control",
+      "domain": "openness",
+      "scenario": "A design release contains only STL exports and a parts shopping list, while required editable CAD and firmware sources are missing.",
+      "input": {
+        "native_cad": false,
+        "manufacturing_exports": true,
+        "bom_complete": false,
+        "firmware_source": false,
+        "missing_artifacts_status": "implicit"
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "A source-complete open-design claim is rejected when required editable sources are missing.",
+        "Missing source artifacts cannot be represented as complete."
+      ],
+      "rationale": "Manufacturing outputs alone do not preserve the ability to inspect or modify the preferred source design."
+    },
+    {
+      "case_id": "HAP-003",
+      "kind": "positive_control",
+      "domain": "sourcing",
+      "scenario": "Every BOM line has a stable part identifier and a specification, or is explicitly marked unknown with a follow-up need.",
+      "input": {
+        "bom_entries_have_identity_or_unknown": true,
+        "unknowns_visible": true,
+        "second_source_qualified": false
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Unknown BOM data remains visible.",
+        "Candidate alternate suppliers are not automatically marked qualified."
+      ],
+      "rationale": "Explicit unknowns are safer than fabricated completeness and enable targeted supplier research."
+    },
+    {
+      "case_id": "HAP-004",
+      "kind": "indeterminate_control",
+      "domain": "sourcing",
+      "scenario": "A replacement motor has the same mounting pattern as the original, but thermal and electrical ratings are unavailable.",
+      "input": {
+        "mounting_compatible": true,
+        "electrical_rating": "unknown",
+        "thermal_rating": "unknown",
+        "post_installation_test": false
+      },
+      "expected_disposition": "remain_indeterminate",
+      "assertions": [
+        "Shape/fit compatibility does not qualify electrical or thermal compatibility.",
+        "The part cannot be treated as qualified until required ratings and tests are available."
+      ],
+      "rationale": "The correct state is unresolved, not compatible or safe, while critical part properties are unknown."
+    },
+    {
+      "case_id": "HAP-005",
+      "kind": "negative_control",
+      "domain": "repairability",
+      "scenario": "A work order is marked complete but no post-repair functional test or actual part-consumption record exists.",
+      "input": {
+        "work_order_status": "completed",
+        "post_repair_test": "missing",
+        "parts_planned": [
+          "motor"
+        ],
+        "parts_consumed": [],
+        "restored_capability_claim": true
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Work-order completion cannot establish restored capability.",
+        "Planned parts cannot be treated as consumed or replaced parts."
+      ],
+      "rationale": "Repair is a verified state transition involving actual intervention and a function-specific post-check."
+    },
+    {
+      "case_id": "HAP-006",
+      "kind": "positive_control",
+      "domain": "repairability",
+      "scenario": "An unsuccessful repair attempt is retained and linked to a later successful intervention with a separate post-check.",
+      "input": {
+        "failed_attempt_retained": true,
+        "later_attempt_distinct": true,
+        "post_repair_test": "pass",
+        "recurrence_window": "not_started",
+        "history_mutated": false
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Failed attempts remain in the history.",
+        "A later success does not rewrite previous failure evidence.",
+        "Recurrence status remains unresolved until the declared follow-up window is observed."
+      ],
+      "rationale": "Learning from repair attempts requires the denominator and correction history to remain visible."
+    },
+    {
+      "case_id": "HAP-007",
+      "kind": "negative_control",
+      "domain": "repairability",
+      "scenario": "One nominal functional sample after repair is used to claim the fault cannot recur.",
+      "input": {
+        "post_repair_samples": 1,
+        "recurrence_window": "missing",
+        "claim_recurrence_free": true
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "A single nominal sample does not prove recurrence-free operation.",
+        "The declared recurrence observation window is mandatory for recurrence claims."
+      ],
+      "rationale": "Immediate function restoration and longer-term reliability are different claims."
+    },
+    {
+      "case_id": "HAP-008",
+      "kind": "positive_control",
+      "domain": "repairability",
+      "scenario": "A repair binds the exact unit, replaced component, test profile, measured airflow/power, residual limitations and a distinct follow-up window.",
+      "input": {
+        "unit_id": "synthetic-unit-01",
+        "part_revision": "motor-r2",
+        "test_profile": "fan-functional-v1",
+        "measured_airflow": true,
+        "measured_power": true,
+        "residual_limitations": [],
+        "recurrence_window": "30-day-profile-not-yet-observed",
+        "history_mutated": false
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Repair identity and post-repair evidence bind to one exact unit and profile.",
+        "A pending recurrence window is not counted as complete evidence."
+      ],
+      "rationale": "The fixture checks the required evidence composition, not whether a real physical repair happened."
+    },
+    {
+      "case_id": "HAP-009",
+      "kind": "negative_control",
+      "domain": "performance",
+      "scenario": "The candidate's energy use is compared with a baseline at a different airflow and a different acoustic test condition.",
+      "input": {
+        "candidate_airflow_m3_h": 100,
+        "baseline_airflow_m3_h": 150,
+        "candidate_sound_dba": 35,
+        "baseline_sound_dba": 45,
+        "efficiency_superiority_claim": true
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Energy superiority is not accepted without comparable delivered function.",
+        "Test-condition changes after result inspection are prohibited."
+      ],
+      "rationale": "A lower watt reading may reflect reduced output rather than higher efficiency."
+    },
+    {
+      "case_id": "HAP-010",
+      "kind": "indeterminate_control",
+      "domain": "performance",
+      "scenario": "Power readings appear better than baseline but the instrument calibration status and environmental conditions are missing.",
+      "input": {
+        "power_readings_present": true,
+        "instrument_calibration_status": "unknown",
+        "ambient_conditions": "missing",
+        "superiority_claim": true
+      },
+      "expected_disposition": "remain_indeterminate",
+      "assertions": [
+        "Missing measurement provenance blocks the superiority claim.",
+        "Unknown calibration or environment cannot be silently treated as acceptable."
+      ],
+      "rationale": "Measurements are interpretable only within a defined protocol and uncertainty boundary."
+    },
+    {
+      "case_id": "HAP-011",
+      "kind": "negative_control",
+      "domain": "sourcing",
+      "scenario": "Time waiting for an unavailable spare part is replaced with zero in the lifetime-cost calculation.",
+      "input": {
+        "parts_wait_days": "unknown",
+        "cost_model_substituted_days": 0,
+        "source_supporting_zero": false
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Unknown parts waiting cannot be coerced to zero.",
+        "Cost and downtime outputs retain missingness and sensitivity bounds."
+      ],
+      "rationale": "The absence of a duration record is not evidence of no delay."
+    },
+    {
+      "case_id": "HAP-012",
+      "kind": "positive_control",
+      "domain": "sourcing",
+      "scenario": "A substitute controller is qualified for one exact design revision with electrical, thermal, connector and post-installation test evidence.",
+      "input": {
+        "substitute_id": "candidate-controller-c",
+        "exact_design_revision": "fan-r1",
+        "electrical_rating_verified": true,
+        "thermal_rating_verified": true,
+        "connector_verified": true,
+        "post_installation_test": "pass",
+        "qualification_scope": "this design revision only"
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Substitution evidence is bound to a specific revision and scope.",
+        "Qualification does not automatically transfer to other revisions or product families."
+      ],
+      "rationale": "Supplier resilience depends on evidence-bounded substitutions rather than universal compatibility assumptions."
+    },
+    {
+      "case_id": "HAP-013",
+      "kind": "negative_control",
+      "domain": "diagnostics",
+      "scenario": "A model hypothesizes bearing wear and the report stores that hypothesis as an observed root cause without inspection evidence.",
+      "input": {
+        "model_hypothesis": "bearing wear",
+        "inspection_evidence": false,
+        "source_class": "observed_cause",
+        "human_review": false
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "A diagnostic hypothesis cannot be relabelled as physical observation.",
+        "Source class and uncertainty must survive export."
+      ],
+      "rationale": "Predictive explanations should guide measurements without rewriting sensor or technician observations."
+    },
+    {
+      "case_id": "HAP-014",
+      "kind": "negative_control",
+      "domain": "diagnostics",
+      "scenario": "The model assigns high confidence to normal operation while an independent critical-overtemperature interlock has triggered.",
+      "input": {
+        "model_confidence": 0.99,
+        "critical_interlock_triggered": true,
+        "model_output": "safe_to_operate",
+        "autonomous_control": false
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Model confidence cannot override hardware protection.",
+        "No safety assertion may be derived from model confidence alone."
+      ],
+      "rationale": "An advisory model must not mask a critical physical protection event."
+    },
+    {
+      "case_id": "HAP-015",
+      "kind": "positive_control",
+      "domain": "diagnostics",
+      "scenario": "The local diagnostic flow receives a stale airflow sensor and returns unknown while suggesting a safe, non-actuating follow-up measurement.",
+      "input": {
+        "airflow_sample_state": "stale",
+        "diagnosis": "unknown",
+        "next_step": "inspect_and_remeasure",
+        "hardware_actuation": false,
+        "authority": "none"
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Stale input remains stale and does not become zero/current.",
+        "Recommendations do not grant hardware actuation authority."
+      ],
+      "rationale": "Graceful abstention protects users when evidence is incomplete."
+    },
+    {
+      "case_id": "HAP-016",
+      "kind": "negative_control",
+      "domain": "provenance",
+      "scenario": "One prototype unit completes a test and the release summary claims the complete production batch is qualified.",
+      "input": {
+        "qualified_units": 1,
+        "claimed_batch_size": 500,
+        "production_sampling_plan": "missing",
+        "batch_qualification_claim": true
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "One unit does not establish batch-wide qualification.",
+        "Any production claim needs a declared sampling and acceptance plan."
+      ],
+      "rationale": "Evidence scope must never broaden from one specimen to an untested population."
+    },
+    {
+      "case_id": "HAP-017",
+      "kind": "positive_control",
+      "domain": "provenance",
+      "scenario": "A qualification record binds the exact design revision, BOM digest, manufactured unit, protocol, instrument identity and raw evidence digests.",
+      "input": {
+        "design_revision": true,
+        "bom_digest": true,
+        "unit_identity": true,
+        "protocol_revision": true,
+        "instrument_identity": true,
+        "raw_evidence_digests": true,
+        "physical_conformance_claim": false
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Design revision, physical unit and qualification evidence stay distinct identities.",
+        "A complete record does not itself assert that the unit passed."
+      ],
+      "rationale": "Provenance makes claims auditable without implying that a record is proof of safety."
+    },
+    {
+      "case_id": "HAP-018",
+      "kind": "negative_control",
+      "domain": "durability",
+      "scenario": "A 1,000-hour operating screen is described as proof that the appliance will operate for ten years.",
+      "input": {
+        "stress_screen_hours": 1000,
+        "claimed_service_life_years": 10,
+        "validated_acceleration_model": false,
+        "longitudinal_field_data": false
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "A limited stress screen cannot be promoted to a ten-year life guarantee.",
+        "A life projection needs a justified model or longitudinal evidence."
+      ],
+      "rationale": "Stress screening can reveal problems but does not automatically predict service life."
+    },
+    {
+      "case_id": "HAP-019",
+      "kind": "negative_control",
+      "domain": "lifecycle",
+      "scenario": "Missing supplier material data is recorded as zero material mass and zero embodied impact.",
+      "input": {
+        "material_mass": "unknown",
+        "embodied_impact": "unknown",
+        "modelled_material_mass": 0,
+        "modelled_embodied_impact": 0,
+        "source_for_zero": false
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Unknown mass/impact remains unknown or bounded.",
+        "Unknown environmental burden cannot be converted to zero."
+      ],
+      "rationale": "The tool must expose missing lifecycle inputs instead of manufacturing optimistic totals."
+    },
+    {
+      "case_id": "HAP-020",
+      "kind": "positive_control",
+      "domain": "lifecycle",
+      "scenario": "The comparison reports energy, repair cost, downtime, material use and serviceability separately, preserving Pareto trade-offs and unknown bounds.",
+      "input": {
+        "metrics": [
+          "energy",
+          "repair_cost",
+          "downtime",
+          "material_mass",
+          "serviceability"
+        ],
+        "weighted_single_score": false,
+        "unknowns_explicit": true,
+        "sensitivity_analysis": true
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Trade-off dimensions remain independently inspectable.",
+        "Missing inputs stay explicit through sensitivity analysis."
+      ],
+      "rationale": "An unexplained global score can conceal regressions in important dimensions."
+    },
+    {
+      "case_id": "HAP-021",
+      "kind": "negative_control",
+      "domain": "security",
+      "scenario": "A network service becomes mandatory for the fan's essential local function.",
+      "input": {
+        "essential_function_requires_network": true,
+        "local_manual_control": false,
+        "offline_function_test": "fail"
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Essential function must remain available without account, network or cloud.",
+        "Connected features remain optional."
+      ],
+      "rationale": "Remote service dependence creates avoidable lock-in and failure modes."
+    },
+    {
+      "case_id": "HAP-022",
+      "kind": "positive_control",
+      "domain": "security",
+      "scenario": "The appliance performs its essential function offline and deterministic local protections remain independent of optional diagnostics.",
+      "input": {
+        "offline_function_test": "pass",
+        "local_manual_control": true,
+        "protection_path": "independent",
+        "remote_actuation": false,
+        "account_required": false
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Essential function is locally available.",
+        "Advisory diagnostics cannot override independent protection."
+      ],
+      "rationale": "Sovereignty and safety require local operability and clear authority separation."
+    },
+    {
+      "case_id": "HAP-023",
+      "kind": "negative_control",
+      "domain": "research_data",
+      "scenario": "The Open Repair Alliance event dataset's 64% overall repair rate is cited as the population-wide probability that a household appliance can be repaired.",
+      "input": {
+        "source_dataset": "Open Repair Alliance",
+        "reported_event_success_rate": 0.64,
+        "claim_scope": "general_population_probability",
+        "selection_bias_discussed": false
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Community-event success rates are not population-wide repair probabilities.",
+        "Sampling, repair-event selection and missingness limitations must be discussed."
+      ],
+      "rationale": "The sample is useful for repair-barrier discovery, but its denominator and selection process limit inference."
+    },
+    {
+      "case_id": "HAP-024",
+      "kind": "positive_control",
+      "domain": "research_data",
+      "scenario": "An analysis records ORDS v0.3, CC BY-SA 4.0 attribution, release date and limitations, and uses synthetic fixtures rather than embedding the full third-party dataset.",
+      "input": {
+        "standard_version": "ORDS v0.3",
+        "licence": "CC BY-SA 4.0",
+        "attribution": true,
+        "release_date": true,
+        "selection_limits": true,
+        "full_dataset_embedded": false
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Dataset licence and attribution requirements are retained.",
+        "Synthetic fixtures are kept separate from real repair observations."
+      ],
+      "rationale": "Traceable data use reduces provenance debt and prevents fabricated test fixtures from becoming field evidence."
+    },
+    {
+      "case_id": "HAP-025",
+      "kind": "negative_control",
+      "domain": "repairability",
+      "scenario": "A design is declared more repairable solely because it has more replaceable modules, without measuring task time, repair outcome or new failure points.",
+      "input": {
+        "module_count_increased": true,
+        "repair_time_measured": false,
+        "new_failure_modes_assessed": false,
+        "repairability_superiority_claim": true
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Module count alone is not a repairability measure.",
+        "Added interfaces and new failure points must be included in the comparison."
+      ],
+      "rationale": "Modularity should earn its complexity through measured lifecycle benefit."
+    },
+    {
+      "case_id": "HAP-026",
+      "kind": "negative_control",
+      "domain": "provenance",
+      "scenario": "A report claims three independent replicas although only one prototype unit built by the design author was tested.",
+      "input": {
+        "physical_units_tested": 1,
+        "independent_builders": 1,
+        "claimed_replicas": 3,
+        "claimed_independent_replication": true
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Independent replication claims require unit and builder identity evidence.",
+        "A single build cannot stand in for multiple independently assembled units."
+      ],
+      "rationale": "Replication is an observable process, not a label in a report."
+    },
+    {
+      "case_id": "HAP-027",
+      "kind": "negative_control",
+      "domain": "provenance",
+      "scenario": "A simulated sensor trace triggers the expected diagnostic, and that result is reported as a physical repair or field detection result.",
+      "input": {
+        "evidence_class": "synthetic_simulation",
+        "claimed_evidence_class": "physical_field",
+        "physical_trace_ref": null,
+        "diagnostic_result": "correct"
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Synthetic and physical evidence classes remain distinct.",
+        "A correct result on simulation cannot be promoted to a field performance claim."
+      ],
+      "rationale": "Simulation can validate evaluator logic, not an appliance's physical behavior."
+    },
+    {
+      "case_id": "HAP-028",
+      "kind": "negative_control",
+      "domain": "repairability",
+      "scenario": "A three-repairer pilot with few repetitions is used to claim a confirmatory P90 improvement without a preregistered plan.",
+      "input": {
+        "repairers": 3,
+        "repetitions_per_task": 3,
+        "analysis_plan_preregistered": false,
+        "claim": "confirmatory P90 reduction"
+      },
+      "expected_disposition": "reject_claim",
+      "assertions": [
+        "Pilot results are labelled exploratory.",
+        "Confirmatory quantile claims require adequate sample planning, exclusions and uncertainty."
+      ],
+      "rationale": "Small-sample pilot data are useful for calibrating methods, not definitive tail-performance estimates."
+    },
+    {
+      "case_id": "HAP-029",
+      "kind": "indeterminate_control",
+      "domain": "sourcing",
+      "scenario": "A local replacement module fits physically, but its operating limits and under-load post-installation tests have not been checked.",
+      "input": {
+        "physical_fit": true,
+        "operating_limits": "unknown",
+        "under_load_test": "missing",
+        "qualified_substitute_claim": true
+      },
+      "expected_disposition": "remain_indeterminate",
+      "assertions": [
+        "Physical fit is insufficient for substitute qualification.",
+        "Required rating and post-installation evidence must be obtained before qualification."
+      ],
+      "rationale": "Local repair should be enabled while maintaining explicit compatibility and verification boundaries."
+    },
+    {
+      "case_id": "HAP-030",
+      "kind": "positive_control",
+      "domain": "lifecycle",
+      "scenario": "Repair-versus-replace cost includes parts, labour, tools, test/calibration, shipping, waiting, rework, disposal and disclosed assumptions.",
+      "input": {
+        "cost_terms": [
+          "parts",
+          "labour",
+          "tools",
+          "test_calibration",
+          "shipping",
+          "waiting",
+          "rework",
+          "disposal"
+        ],
+        "missing_costs_marked_unknown": true,
+        "price_date": true,
+        "location": true,
+        "use_profile": true,
+        "sensitivity_analysis": true
+      },
+      "expected_disposition": "accept_synthetic_contract",
+      "assertions": [
+        "Cost terms and assumptions are explicit.",
+        "Unknown costs and uncertain use profiles remain visible."
+      ],
+      "rationale": "A life-cycle decision is only comparable when its system boundary and assumptions are reproducible."
+    }
+  ]
+}
