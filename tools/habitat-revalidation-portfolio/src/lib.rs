@@ -513,19 +513,23 @@ mod tests {
     fn report() -> Report {
         verify_fixture_bytes(FIXTURE_BYTES).expect("frozen portfolio fixture should verify")
     }
-    fn plan_key(plan: &Plan) -> String {
-        plan.task_ids.join(">")
-    }
     fn oracle(fixture: &Fixture) -> Vec<Plan> {
         let mut output = Vec::new();
         let count = 1usize << fixture.tasks.len();
-        let initial: BTreeSet<String> = fixture.artifacts.iter()
+        let initial: BTreeSet<String> = fixture
+            .artifacts
+            .iter()
             .filter(|artifact| artifact.status == "valid_for_claim")
-            .map(|artifact| artifact.id.clone()).collect();
+            .map(|artifact| artifact.id.clone())
+            .collect();
         for mask in 0..count {
-            let mut selected: Vec<RepairTask> = fixture.tasks.iter().enumerate()
+            let mut selected: Vec<RepairTask> = fixture
+                .tasks
+                .iter()
+                .enumerate()
                 .filter(|(index, _)| mask & (1usize << *index) != 0)
-                .map(|(_, task)| task.clone()).collect();
+                .map(|(_, task)| task.clone())
+                .collect();
             selected.sort_by(|a, b| a.id.cmp(&b.id));
             let mut pending = selected;
             let mut valid = initial.clone();
@@ -537,7 +541,9 @@ mod tests {
                 if fixture.target_artifact_ids.iter().all(|id| valid.contains(id)) {
                     break;
                 }
-                if pending.is_empty() { break; }
+                if pending.is_empty() {
+                    break;
+                }
                 let Some(index) = pending.iter().position(|task| {
                     !valid.contains(&task.produces_artifact_id)
                         && task.required_artifact_ids.iter().all(|id| valid.contains(id))
@@ -558,15 +564,35 @@ mod tests {
             if !failed && pending.is_empty()
                 && fixture.target_artifact_ids.iter().all(|id| valid.contains(id))
             {
-                let ids: Vec<String> = sequence.iter().map(|task| task.id.clone()).collect();
+                let ids: Vec<String> = sequence
+                    .iter()
+                    .map(|task| task.id.clone())
+                    .collect();
                 let p = make_plan(fixture, &ids, cost, duration);
                 if !output.iter().any(|prior: &Plan| prior.task_ids == p.task_ids) {
                     output.push(p);
                 }
             }
         }
-        output.sort_by(compare_plans);
-        pareto_frontier(&output)
+        let mut nondominated: Vec<Plan> = output
+            .iter()
+            .filter(|candidate| {
+                !output.iter().any(|other| {
+                    other.cost_units <= candidate.cost_units
+                        && other.duration_units <= candidate.duration_units
+                        && (other.cost_units < candidate.cost_units
+                            || other.duration_units < candidate.duration_units)
+                })
+            })
+            .cloned()
+            .collect();
+        nondominated.sort_by(|left, right| {
+            left.cost_units
+                .cmp(&right.cost_units)
+                .then_with(|| left.duration_units.cmp(&right.duration_units))
+                .then_with(|| left.task_ids.cmp(&right.task_ids))
+        });
+        nondominated
     }
 
     #[test]
@@ -617,9 +643,13 @@ mod tests {
         let base = fixture();
         for mask in 0..(1usize << base.declared_gate_ids.len()) {
             let mut candidate = base.clone();
-            candidate.available_gate_ids = base.declared_gate_ids.iter().enumerate()
+            candidate.available_gate_ids = base
+                .declared_gate_ids
+                .iter()
+                .enumerate()
                 .filter(|(index, _)| mask & (1usize << *index) != 0)
-                .map(|(_, gate)| gate.clone()).collect();
+                .map(|(_, gate)| gate.clone())
+                .collect();
             let digest = sha256_hex(&serde_json::to_vec(&candidate).unwrap());
             let actual = evaluate_fixture(&candidate, digest).unwrap();
             let expected = oracle(&candidate);
