@@ -53,6 +53,8 @@ pub struct ActionImpact {
     pub newly_robust_feasible_candidate_ids: Vec<String>,
     pub estimated_cost_units: u64,
     pub estimated_duration_ticks: u64,
+    pub cost_basis_id: String,
+    pub duration_basis_id: String,
     pub outcomes: Vec<OutcomeImpact>,
 }
 
@@ -134,6 +136,8 @@ struct MeasurementAction {
     source_revision: String,
     cost_units: u64,
     duration_ticks: u64,
+    cost_basis_id: String,
+    duration_basis_id: String,
     resolves_unknown_ids: Vec<String>,
     outcomes: Vec<ObservationOutcome>,
 }
@@ -395,6 +399,12 @@ fn parse_scenario(
         let Some(duration_ticks) = u64_field(action_object, "estimated_duration_ticks") else {
             return None;
         };
+        let Some(cost_basis_id) = string_field(action_object, "cost_basis_id") else {
+            return None;
+        };
+        let Some(duration_basis_id) = string_field(action_object, "duration_basis_id") else {
+            return None;
+        };
         let Some(resolves_unknown_ids) = strings(action_object, "resolves_unknown_ids") else {
             return None;
         };
@@ -448,6 +458,8 @@ fn parse_scenario(
             source_revision: source_revision.to_owned(),
             cost_units,
             duration_ticks,
+            cost_basis_id: cost_basis_id.to_owned(),
+            duration_basis_id: duration_basis_id.to_owned(),
             resolves_unknown_ids,
             outcomes,
         });
@@ -706,6 +718,8 @@ fn evaluate_action(
             newly_robust_feasible_candidate_ids: Vec::new(),
             estimated_cost_units: action.cost_units,
             estimated_duration_ticks: action.duration_ticks,
+            cost_basis_id: action.cost_basis_id.clone(),
+            duration_basis_id: action.duration_basis_id.clone(),
             outcomes: Vec::new(),
         };
     }
@@ -764,6 +778,8 @@ fn evaluate_action(
         newly_robust_feasible_candidate_ids: newly_robust,
         estimated_cost_units: action.cost_units,
         estimated_duration_ticks: action.duration_ticks,
+        cost_basis_id: action.cost_basis_id.clone(),
+        duration_basis_id: action.duration_basis_id.clone(),
         outcomes: outcome_results,
     }
 }
@@ -813,6 +829,35 @@ fn compare_action_expected(
     check_bool!("decision_relevant", actual.decision_relevant);
     check_bool!("changes_hard_feasible_set", actual.changes_hard_feasible_set);
     check_bool!("changes_pareto_set", actual.changes_pareto_set);
+
+    if string_field(object, "cost_basis_id") != Some(actual.cost_basis_id.as_str()) {
+        summary.fail(
+            "DECISION_EXPECTATION_MISMATCH",
+            format!("{path}.cost_basis_id"),
+            "Measurement cost basis differs from the frozen corpus.",
+        );
+    }
+    if string_field(object, "duration_basis_id") != Some(actual.duration_basis_id.as_str()) {
+        summary.fail(
+            "DECISION_EXPECTATION_MISMATCH",
+            format!("{path}.duration_basis_id"),
+            "Measurement duration basis differs from the frozen corpus.",
+        );
+    }
+    if u64_field(object, "estimated_cost_units") != Some(actual.estimated_cost_units) {
+        summary.fail(
+            "DECISION_EXPECTATION_MISMATCH",
+            format!("{path}.estimated_cost_units"),
+            "Measurement cost differs from the frozen corpus.",
+        );
+    }
+    if u64_field(object, "estimated_duration_ticks") != Some(actual.estimated_duration_ticks) {
+        summary.fail(
+            "DECISION_EXPECTATION_MISMATCH",
+            format!("{path}.estimated_duration_ticks"),
+            "Measurement duration differs from the frozen corpus.",
+        );
+    }
 
     let expected_worst = match object.get("worst_case_remaining_state_count") {
         Some(Value::Null) => None,
@@ -1272,6 +1317,18 @@ mod tests {
                 .rejection_codes
                 .contains(&"ACTION_UNKNOWN_NOT_DECLARED".to_owned())
         );
+    }
+
+    #[test]
+    fn mutation_of_measurement_cost_or_basis_is_detected() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["actions"][0]["estimated_cost_units"] = Value::from(0);
+        corpus["cases"][0]["actions"][0]["cost_basis_id"] =
+            Value::String("unreviewed-cost-source-v1".to_owned());
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary = validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        assert!(has_code(&summary, "DECISION_EXPECTATION_MISMATCH"));
     }
 
     #[test]
