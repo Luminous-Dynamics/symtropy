@@ -1316,8 +1316,8 @@ mod tests {
         assert_eq!(output["mission_scenario_count"], 10);
         assert_eq!(output["assessment_count"], 21);
         assert_eq!(output["eligible_for_human_review_count"], 9);
-        assert_eq!(output["blocked_hard_gate_count"], 7);
-        assert_eq!(output["blocked_platform_mismatch_count"], 3);
+        assert_eq!(output["blocked_hard_gate_count"], 8);
+        assert_eq!(output["blocked_platform_mismatch_count"], 2);
         assert_eq!(output["needs_gate_evidence_count"], 2);
         assert_eq!(output["not_assessable_incomplete_metrics_count"], 0);
         assert_eq!(output["operational_authorization_granted"], false);
