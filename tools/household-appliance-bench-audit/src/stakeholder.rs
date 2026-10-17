@@ -25,6 +25,12 @@ fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
+fn criterion_by_id<'a>(criteria: &'a [Value], id: &str) -> Option<&'a Value> {
+    criteria
+        .iter()
+        .find(|criterion| text_at(criterion, "id") == Some(id))
+}
+
 fn schema_validator(schema: &Value) -> Result<Validator, String> {
     if text_at(schema, "$schema") != Some("https://json-schema.org/draft/2020-12/schema") {
         return Err("decision schema must declare JSON Schema Draft 2020-12".to_owned());
@@ -73,11 +79,6 @@ fn audit_values(
     let Some(criteria) = decision.get("criteria").and_then(Value::as_array) else {
         return Err(vec!["decision criteria must be an array".to_owned()]);
     };
-    let criterion_by_id = |id: &str| {
-        criteria
-            .iter()
-            .find(|criterion| text_at(criterion, "id") == Some(id))
-    };
     let Some(profiles) = decision.get("stakeholder_profiles").and_then(Value::as_array) else {
         return Err(vec!["stakeholder_profiles must be an array".to_owned()]);
     };
@@ -119,7 +120,7 @@ fn audit_values(
             errors.push(format!("{profile_id}: at least one mapped criterion is required"));
         }
         for criterion_id in &profile_criteria {
-            if criterion_by_id(criterion_id).is_none() {
+            if criterion_by_id(criteria, criterion_id).is_none() {
                 errors.push(format!("{profile_id}: unknown criterion mapping {criterion_id}"));
             }
         }
@@ -239,7 +240,9 @@ fn audit_values(
         }
     }
     if total_requirements != 18 {
-        errors.push(format!("reviewed stakeholder requirement census must remain 18; got {total_requirements}"));
+        errors.push(format!(
+            "reviewed stakeholder requirement census must remain 18; got {total_requirements}"
+        ));
     }
 
     if !errors.is_empty() {
@@ -327,7 +330,9 @@ mod tests {
         let mut decision = canonical_decision();
         decision["stakeholder_profiles"][0]["requirements"][0]["threshold"] = json!(0.0);
         let errors = audit_mutation(&decision).expect_err("unfrozen value must remain null");
-        assert!(errors.iter().any(|error| error.contains("threshold value, status and preregistration flag disagree")));
+        assert!(errors.iter().any(|error| {
+            error.contains("threshold value, status and preregistration flag disagree")
+        }));
     }
 
     #[test]
@@ -344,7 +349,9 @@ mod tests {
         let mut decision = canonical_decision();
         decision["stakeholder_profiles"][0]["requirements"][0]["unit"] = json!("invented_units");
         let errors = audit_mutation(&decision).expect_err("profile units must be canonical");
-        assert!(errors.iter().any(|error| error.contains("direction and unit must match")));
+        assert!(errors.iter().any(|error| {
+            error.contains("direction and unit must match")
+        }));
     }
 
     #[test]
