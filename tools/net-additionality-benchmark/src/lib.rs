@@ -190,10 +190,11 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
             })
             .min_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(right.0)))
             .ok_or_else(|| format!("no eligible outcome for scenario {}", scenario.id))?;
+        let oracle_id = oracle_id.to_owned();
 
         scenario_oracles.push(ScenarioOracle {
             scenario_id: scenario.id.clone(),
-            option_id: oracle_id.to_owned(),
+            option_id: oracle_id.clone(),
             total_ghg_gco2e: oracle_ghg,
         });
 
@@ -203,7 +204,7 @@ pub fn evaluate(input: &[u8], source_revision: &str) -> Result<Report, String> {
                 .iter_mut()
                 .find(|outcome| outcome.scenario_id == scenario.id)
                 .ok_or_else(|| format!("missing outcome for {} / {}", result.id, scenario.id))?;
-            outcome.scenario_oracle_option_id = Some(oracle_id.to_owned());
+            outcome.scenario_oracle_option_id = Some(oracle_id.clone());
             outcome.regret_gco2e = Some(
                 outcome
                     .total_ghg_gco2e
