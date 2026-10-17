@@ -77,7 +77,7 @@ Start with 12–20 fixtures, then contribute to the 40+ cross-domain corpus defi
 - `docs/visual-technology/fixtures/pinhole-fov-centered-1280x720-001.json`
 - `docs/visual-technology/fixtures/pinhole-ray-roundtrip-001.json`
 
-All these files currently carry `PROPOSED_NOT_EXECUTED`; they are not yet loaded by an independent fixture runner.
+All these files carry `UNQUALIFIED`; the new Rust integration test parses them and checks the initial equations against the reference functions, but this does not make them physical evidence or a qualified optical model.
 
 1. Identity rigid transform and inverse.
 2. Known 90-degree axis rotation with handedness negative control.
