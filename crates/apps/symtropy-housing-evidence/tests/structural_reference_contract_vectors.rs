@@ -5,6 +5,7 @@
 //! vectors also intended to anchor the candidate Lean mathematical contracts.
 //! This is a finite conformance corpus, not a Rust/Lean refinement proof.
 
+use jsonschema::draft202012;
 use serde_json::Value;
 use std::collections::BTreeSet;
 
@@ -16,6 +17,9 @@ use symtropy_housing_evidence::structural_reference::{
 
 const CORPUS: &str = include_str!(
     "../../../../docs/built-environment/benchmarks/structural-reference-contract-vectors-v1.json"
+);
+const SCHEMA: &str = include_str!(
+    "../../../../docs/built-environment/benchmarks/structural-reference-contract-vectors.schema.json"
 );
 
 fn number(object: &Value, name: &str) -> f64 {
@@ -63,6 +67,21 @@ fn assert_vector_value(vector_id: &str, expected: &Value, key: &str, actual: f64
 fn shared_contract_vector_corpus_matches_typed_rust_reference_api() {
     let corpus: Value =
         serde_json::from_str(CORPUS).expect("contract vector corpus must be valid JSON");
+    let schema: Value =
+        serde_json::from_str(SCHEMA).expect("contract vector schema must be valid JSON");
+    draft202012::meta::validate(&schema).expect("contract vector schema must be Draft 2020-12");
+    let validator = draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
+        .expect("contract vector schema must compile");
+    let schema_errors: Vec<String> = validator
+        .iter_errors(&corpus)
+        .map(|error| error.to_string())
+        .collect();
+    assert!(
+        schema_errors.is_empty(),
+        "contract vector corpus violates its schema: {schema_errors:#?}"
+    );
     assert_eq!(
         corpus["corpus_id"].as_str(),
         Some("symtropy.structural-reference-contract-vectors.v1")
