@@ -26,6 +26,8 @@ jobs:
         run: cargo fmt --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all -- --check
       - name: Independently verify frozen cost-case manifest
         run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-robot-cost-manifest
+      - name: Run garden-simulation and cost-sensitivity tests
+        run: cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
       - name: Run garden-simulation and field-robot cost tests
         run: cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
       - name: Run Clippy without warnings
