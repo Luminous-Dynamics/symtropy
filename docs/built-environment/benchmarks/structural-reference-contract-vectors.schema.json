@@ -150,17 +150,45 @@
                     "const": "geometry.rectangular_section.second_moment.v1"
                   },
                   "inputs": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "width_m",
                       "depth_m"
-                    ]
+                    ],
+                    "properties": {
+                      "width_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "depth_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   },
                   "expected": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "area_m2",
                       "second_moment_area_m4",
                       "extreme_fiber_distance_m"
-                    ]
+                    ],
+                    "properties": {
+                      "area_m2": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "second_moment_area_m4": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "extreme_fiber_distance_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   }
                 },
                 "not": {
@@ -175,21 +203,65 @@
                     "const": "mechanics.axial_bar.extension.v1"
                   },
                   "inputs": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "load_N",
                       "length_m",
                       "elastic_modulus_Pa",
                       "width_m",
                       "depth_m"
-                    ]
+                    ],
+                    "properties": {
+                      "load_N": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "length_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "elastic_modulus_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "width_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "depth_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   },
                   "expected": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "area_m2",
                       "axial_stress_Pa",
                       "free_end_extension_m",
                       "support_reaction_magnitude_N"
-                    ]
+                    ],
+                    "properties": {
+                      "area_m2": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "axial_stress_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "free_end_extension_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "support_reaction_magnitude_N": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   }
                 },
                 "not": {
@@ -204,15 +276,41 @@
                     "const": "mechanics.cantilever.tip_deflection.v1"
                   },
                   "inputs": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "load_N",
                       "span_m",
                       "elastic_modulus_Pa",
                       "width_m",
                       "depth_m"
-                    ]
+                    ],
+                    "properties": {
+                      "load_N": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "span_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "elastic_modulus_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "width_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "depth_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   },
                   "expected": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "area_m2",
                       "second_moment_area_m4",
@@ -221,7 +319,37 @@
                       "maximum_bending_moment_Nm",
                       "maximum_bending_stress_Pa",
                       "support_reaction_magnitude_N"
-                    ]
+                    ],
+                    "properties": {
+                      "area_m2": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "second_moment_area_m4": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "extreme_fiber_distance_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_deflection_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_bending_moment_Nm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_bending_stress_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "support_reaction_magnitude_N": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   }
                 },
                 "not": {
@@ -236,14 +364,40 @@
                     "const": "mechanics.simply_supported.midpoint_point_load.v1"
                   },
                   "inputs": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "span_m",
                       "elastic_modulus_Pa",
                       "width_m",
                       "depth_m"
-                    ]
+                    ],
+                    "properties": {
+                      "span_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "elastic_modulus_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "width_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "depth_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   },
                   "load_case": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "force_N"
+                    ],
                     "properties": {
                       "kind": {
                         "const": "midpoint_point_load"
@@ -252,12 +406,11 @@
                         "type": "number",
                         "exclusiveMinimum": 0
                       }
-                    },
-                    "required": [
-                      "force_N"
-                    ]
+                    }
                   },
                   "expected": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "area_m2",
                       "second_moment_area_m4",
@@ -266,7 +419,37 @@
                       "maximum_bending_moment_Nm",
                       "maximum_bending_stress_Pa",
                       "support_reaction_magnitude_N"
-                    ]
+                    ],
+                    "properties": {
+                      "area_m2": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "second_moment_area_m4": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "extreme_fiber_distance_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_deflection_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_bending_moment_Nm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_bending_stress_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "support_reaction_magnitude_N": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   }
                 },
                 "required": [
@@ -279,14 +462,40 @@
                     "const": "mechanics.simply_supported.uniform_load.v1"
                   },
                   "inputs": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "span_m",
                       "elastic_modulus_Pa",
                       "width_m",
                       "depth_m"
-                    ]
+                    ],
+                    "properties": {
+                      "span_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "elastic_modulus_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "width_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "depth_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   },
                   "load_case": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "load_N_per_m"
+                    ],
                     "properties": {
                       "kind": {
                         "const": "uniform_distributed_load"
@@ -295,12 +504,11 @@
                         "type": "number",
                         "exclusiveMinimum": 0
                       }
-                    },
-                    "required": [
-                      "load_N_per_m"
-                    ]
+                    }
                   },
                   "expected": {
+                    "type": "object",
+                    "additionalProperties": false,
                     "required": [
                       "area_m2",
                       "second_moment_area_m4",
@@ -309,7 +517,37 @@
                       "maximum_bending_moment_Nm",
                       "maximum_bending_stress_Pa",
                       "support_reaction_magnitude_N"
-                    ]
+                    ],
+                    "properties": {
+                      "area_m2": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "second_moment_area_m4": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "extreme_fiber_distance_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_deflection_m": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_bending_moment_Nm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "maximum_bending_stress_Pa": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "support_reaction_magnitude_N": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
                   }
                 },
                 "required": [
