@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Isolated solar-capture and sensible-thermal-storage research kernel.
 //! This is a bounded fixture model, not a validated plant model.
 //! Units: energy J, power W, time s, absolute temperature K, mass kg,
