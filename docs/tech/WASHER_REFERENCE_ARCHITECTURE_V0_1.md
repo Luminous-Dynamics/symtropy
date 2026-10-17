@@ -127,6 +127,8 @@ User experience goals must be measured only against U0 and specifically qualifie
 
 Start with controlled non-hazardous or simulated traces to qualify the contract; physical fault introduction is a separately risk-reviewed lab activity. Never run an energised machine with guards removed, intentionally introduce unsafe leakage/mains exposure, bypass a door lock, or create a dangerous imbalance for a casual test.
 
+The versioned [WASHER-FAULT-CURRICULUM-001](WASHER_FAULT_TO_REPAIR_BENCHMARK_CURRICULUM_V0_1.md) makes eight core families machine-readable: filter/foreign object; door/lock/seal; drain/pump; inlet/water-level; suspension/vibration; heater/temperature sensing; drive/electronics; bearing/tub/drum. It requires competing hypotheses, safe discriminating checks, alternative repair scopes, role/hazard boundaries, post-repair proof and recurrence handling. The external ~11,000-diagnosis study supports coverage planning only; it is not a calibrated South African prevalence prior.
+
 Candidate fault families:
 - inlet restriction / inlet valve fault / no-fill symptom;
 - drain filter blockage / drain path restriction / pump fault;
