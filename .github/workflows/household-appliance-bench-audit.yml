@@ -7,17 +7,22 @@ on:
       - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
       - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
       - "docs/tech/LARGE_APPLIANCE_REPAIRABLE_ARCHITECTURE_V0_1.md"
+      - "docs/tech/WASHER_REFERENCE_ARCHITECTURE_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
       - "tools/household-appliance-bench-audit/**"
       - ".github/workflows/household-appliance-bench-audit.yml"
   push:
-    branches: ["main", "research/household-appliance-engineering-substrate-v0-1", "research/large-appliance-repairable-architecture-v0-1"]
+    branches:
+      - main
+      - research/household-appliance-engineering-substrate-v0-1
+      - research/large-appliance-repairable-architecture-v0-1
     paths:
       - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
       - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
       - "docs/tech/LARGE_APPLIANCE_REPAIRABLE_ARCHITECTURE_V0_1.md"
+      - "docs/tech/WASHER_REFERENCE_ARCHITECTURE_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -46,5 +51,10 @@ jobs:
         run: cargo fmt --manifest-path tools/household-appliance-bench-audit/Cargo.toml -- --check
       - name: Run schema, semantic and mutation tests
         run: cargo test --manifest-path tools/household-appliance-bench-audit/Cargo.toml --all-targets
-      - name: Audit frozen corpus and emit digest-bound report
-        run: cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml -- --schema schemas/appliances/benchmark_scenario_corpus_v0_1.schema.json --corpus fixtures/household_appliance/benchmark_scenarios_v0_1.json --portfolio-schema schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json --portfolio fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json
+      - name: Audit frozen contract corpus and portfolio; emit digest-bound report
+        run: >-
+          cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml --
+          --schema schemas/appliances/benchmark_scenario_corpus_v0_1.schema.json
+          --corpus fixtures/household_appliance/benchmark_scenarios_v0_1.json
+          --portfolio-schema schemas/appliances/large_appliance_repairable_portfolio_v0_1.schema.json
+          --portfolio fixtures/appliances/large_appliance_repairable_portfolio_v0_1.json
