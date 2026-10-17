@@ -344,7 +344,8 @@
           "id",
           "anti_pattern",
           "must_reject",
-          "evidence_class"
+          "evidence_class",
+          "adversarial_input"
         ],
         "properties": {
           "id": {
@@ -370,6 +371,89 @@
           },
           "evidence_class": {
             "const": "negative_control"
+          },
+          "adversarial_input": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "active_safety_hold",
+              "dispatch_allowed",
+              "lifecycle_cost_status",
+              "reported_lifecycle_cost_r",
+              "input_evidence_class",
+              "claimed_output_evidence_class",
+              "fallback_available",
+              "trips_demanded",
+              "trips_counted_served",
+              "price_basis",
+              "claimed_as_lifecycle_cost"
+            ],
+            "properties": {
+              "active_safety_hold": {
+                "type": "boolean"
+              },
+              "dispatch_allowed": {
+                "type": "boolean"
+              },
+              "lifecycle_cost_status": {
+                "enum": [
+                  "unknown",
+                  "quoted",
+                  "measured",
+                  "modeled"
+                ]
+              },
+              "reported_lifecycle_cost_r": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "input_evidence_class": {
+                "enum": [
+                  "synthetic_scenario_input",
+                  "synthetic_scenario_output",
+                  "workshop_measurement",
+                  "observed_field_measurement",
+                  "independent_inspection",
+                  "regulatory_receipt"
+                ]
+              },
+              "claimed_output_evidence_class": {
+                "enum": [
+                  "synthetic_scenario_input",
+                  "synthetic_scenario_output",
+                  "workshop_measurement",
+                  "observed_field_measurement",
+                  "independent_inspection",
+                  "regulatory_receipt"
+                ]
+              },
+              "fallback_available": {
+                "type": "boolean"
+              },
+              "trips_demanded": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "trips_counted_served": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "price_basis": {
+                "enum": [
+                  "unknown",
+                  "advertised_from",
+                  "written_dealer_quote",
+                  "landed_quote",
+                  "measured_cost_model"
+                ]
+              },
+              "claimed_as_lifecycle_cost": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }
