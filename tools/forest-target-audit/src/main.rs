@@ -277,12 +277,14 @@ fn verify_plan_contract(map: &GridMap, plan: &PlannerPlan, config: &PlannerConfi
         return Err(format!("{label}: viewpoint count exceeds configured limit"));
     }
     let mut outbound = 0u16;
+    let mut visited_views = BTreeSet::new();
     let (mut at, mut heading) = (config.start_cell, Heading::North);
     if !clear(map, at) { return Err(format!("{label}: start is not traversable")); }
     for view in &plan.viewpoints {
         if view.x >= W || view.y >= W { return Err(format!("{label}: viewpoint outside map")); }
         let cell = idx(view.x, view.y);
         if !clear(map, cell) { return Err(format!("{label}: viewpoint on obstacle/unknown cell")); }
+        if !visited_views.insert((view.x, view.y, view.heading)) { return Err(format!("{label}: repeated viewpoint candidate")); }
         let travel = distances(map, at)[cell].ok_or_else(|| format!("{label}: viewpoint unreachable"))?;
         let turn = if heading == view.heading { 0 } else { config.turn_cost_steps };
         outbound = outbound.saturating_add(travel).saturating_add(turn);
@@ -640,7 +642,7 @@ fn validate_corpus(c: &Corpus) -> Check<()> {
         if binding.planner_scenario_id.trim().is_empty() || !ids.insert(binding.planner_scenario_id.as_str()) {
             return Err("empty or duplicate planner_scenario_id".into());
         }
-        if binding.energy_budget_steps <= binding.return_reserve_steps || binding.max_viewpoints == 0 || binding.max_viewpoints > 4 {
+        if binding.energy_budget_steps <= binding.return_reserve_steps || binding.max_viewpoints == 0 || binding.max_viewpoints > 3 {
             return Err(format!("{}: invalid energy, reserve, or viewpoint limit", binding.planner_scenario_id));
         }
     }
