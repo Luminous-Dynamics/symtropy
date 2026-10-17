@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const REPORT_SCHEMA: &str = "luminous.habitat_decision_benchmark.report.v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_decision_impact_only_not_real_site_safety";
-const FIXTURE_SHA256: &str = "78281907000372d715353e729c951198d1793d64d959709fa9bdc3baf9cc0673";
+const FIXTURE_SHA256: &str = "4c30be2c0e10c5a292a2dd2016860807a40caee2970253fda498b4022f87b8a9";
 const RANKING_POLICY: &str =
     "maximize_minimax_regret_reduction_per_cost_unit_then_minimize_post_regret_then_cost_then_duration_then_id";
 
@@ -286,11 +286,16 @@ fn validate_fixture(fixture: &DecisionFixture) -> Vec<String> {
         }
     }
 
-    // A single-state decision must always have at least one feasible alternative.
+    // Every state needs a feasible alternative and the initial uncertainty set needs
+    // one robust-feasible baseline. Reject rather than panic if either is absent.
     for state in &fixture.state_space {
         if fixture.candidates.iter().all(|candidate| !candidate_is_feasible(candidate, state)) {
             errors.push(format!("no candidate is feasible in declared state {:?}", state.id));
         }
+    }
+    let all_state_ids: Vec<String> = fixture.state_space.iter().map(|state| state.id.clone()).collect();
+    if !all_state_ids.is_empty() && choose_robust_candidate(fixture, &all_state_ids).is_none() {
+        errors.push("no robust-feasible baseline candidate spans the full state space".to_owned());
     }
     errors
 }
@@ -329,11 +334,14 @@ fn worst_regret_for_selected_candidate(
     candidate: &SiteCandidate,
     possible_state_ids: &[String],
 ) -> Option<u64> {
-    possible_state_ids.iter().filter_map(|state_id| {
+    let mut worst: Option<u64> = None;
+    for state_id in possible_state_ids {
         let state = state_by_id(fixture, state_id)?;
         let state_best = best_candidate_cost_for_state(fixture, state)?;
-        Some(candidate.cost_units.saturating_sub(state_best))
-    }).max()
+        let regret = candidate.cost_units.checked_sub(state_best)?;
+        worst = Some(worst.unwrap_or(0).max(regret));
+    }
+    worst
 }
 
 fn evaluate_action(
