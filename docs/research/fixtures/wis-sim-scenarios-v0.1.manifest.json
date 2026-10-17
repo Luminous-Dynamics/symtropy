@@ -1,0 +1,62 @@
+{
+  "manifest_version": "wis-sim-scenario-manifest/0.1",
+  "corpus_id": "WIS-SIM-001",
+  "corpus_version": "0.1",
+  "fixture_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.jsonl",
+  "fixture_sha256": "76cb8d008653caa77f0a50fe64bd7770ce3c63b367f5545afed38a16bddb5f0f",
+  "hash_algorithm": "SHA-256",
+  "record_format": "JSON Lines; UTF-8; newline-terminated",
+  "record_count": 28,
+  "unique_scenario_count": 7,
+  "variant_count_per_scenario": 4,
+  "variant_distribution": {
+    "baseline": 7,
+    "adversarial": 21
+  },
+  "schema_path": "docs/research/fixtures/wis-sim-scenarios-v0.1.schema.json",
+  "schema_sha256": "ab9765e6a10c9215a23aa2f3d4e0dc326f4e88dddeaf4cb9e47c37cca5c7ce46",
+  "seed_policy": "Fixed deterministic_seed per case; no ambient randomness permitted for fixture qualification.",
+  "policy_comparison_set": [
+    "no_intervention_v0",
+    "individual_greedy_v0",
+    "majority_vote_v0",
+    "cooperative_deliberation_v0"
+  ],
+  "baseline_policy": "no_intervention_v0",
+  "execution_profile": "symtropy-discrete-synthetic-v1",
+  "required_run_identity": [
+    "scenario_id",
+    "scenario_version",
+    "variant_id",
+    "fixture_sha256",
+    "policy_version",
+    "engine_revision",
+    "toolchain_profile",
+    "deterministic_seed"
+  ],
+  "metrics": [
+    "task outcome per predeclared invariant",
+    "resource efficiency",
+    "distribution by agent/group",
+    "unknowns retained or wrongly promoted",
+    "objection persistence/resolution",
+    "revision after qualified evidence change",
+    "reversibility and recovery cost",
+    "false-claim acceptance under status pressure",
+    "worst-group regression",
+    "replay identity"
+  ],
+  "acceptance": {
+    "scenario_count_min": 7,
+    "adversarial_variants_min_per_scenario": 3,
+    "deterministic_replay_match": 1,
+    "subgroup_harm_hidden_by_aggregate_allowed": 0,
+    "unresolved_objection_erasure_allowed": 0,
+    "unknown_to_verified_promotions_allowed": 0,
+    "consciousness_or_wisdom_scalar_emission_allowed": 0
+  },
+  "status": "synthetic contract authored; no simulator run is claimed",
+  "claim_ceiling": "Defines inputs and invariants for future deterministic simulation runs; does not validate model assumptions, human behaviour, consciousness, wisdom, spiritual interventions or real-world outcomes.",
+  "no_human_data": true,
+  "no_real_world_forecast": true
+}
