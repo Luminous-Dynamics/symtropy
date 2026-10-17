@@ -18,10 +18,14 @@ From the repository root:
 cargo test --manifest-path tools/spatial-resilience-qualifier/Cargo.toml
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --check
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --check --json
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --oracle-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --validate path/to/manifest.json path/to/schema.json --json
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --oracle-validate path/to/timeline-corpus.json path/to/timeline-schema.json --json
 ```
 
 The JSON receipt includes exact SHA-256 hashes of the manifest and schema, case and invariant counts, a pass/fail bit, stable failure codes and JSON instance paths. Exit codes are 0 for a passing validation, 1 for invalid inputs/contracts and 2 for CLI or file-read failures.
+
+The separate machine-readable timeline oracle corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_TIMELINE_ORACLE_V0_1.json` contains eight expected event-sequence outcomes and its own Draft 2020-12 schema. `--oracle-check` executes these fixtures through the finite-state oracle and emits a second content-hashed JSON receipt; `--oracle-validate` applies the same process to an external corpus.
 
 ## Negative controls in the authored test suite
 
@@ -36,7 +40,7 @@ The JSON receipt includes exact SHA-256 hashes of the manifest and schema, case 
 - a recovery window that extends past the horizon;
 - zero-length stability window and event beyond the declared horizon.
 
-15 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
+19 unit and negative-control tests are authored but have not been compiled or executed in the editing environment. CI results must be interpreted at the exact commit: queued is not pass.
 
 ## Versioning and trust boundaries
 
