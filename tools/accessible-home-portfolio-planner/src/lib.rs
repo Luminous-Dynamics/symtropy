@@ -57,6 +57,13 @@ pub struct Preference {
     pub note: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PreferenceConflictResolution {
+    pub preference_id: String,
+    pub conflicting_intervention_id: String,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CostBasis {
@@ -134,6 +141,7 @@ pub struct Intervention {
     pub addresses_hard_constraint_ids: Vec<String>,
     pub supports_preference_ids: Vec<String>,
     pub conflicts_with_preference_ids: Vec<String>,
+    pub resolves_preference_conflicts: Vec<PreferenceConflictResolution>,
     pub cost: CostEvidence,
     pub lead_time_days: DayRange,
     /// Relative scale 0..=5, defined within this synthetic scenario, not a universal scale.
@@ -168,6 +176,8 @@ pub struct CandidatePlan {
     pub stages: Vec<PlanStage>,
     pub one_time_cost: CostRangeReceipt,
     pub annual_maintenance_cost: CostRangeReceipt,
+    /// Capital plus linearly prorated annual maintenance across the declared horizon.
+    pub lifecycle_cost_over_horizon: CostRangeReceipt,
     /// Critical-path upper bound, with independent interventions in a stage assumed parallel.
     pub lead_time_days_upper: u64,
     pub resident_disruption_points: u64,
@@ -194,6 +204,7 @@ pub struct PortfolioReport {
     pub portfolio_id: String,
     pub fixture_kind: String,
     pub currency: String,
+    pub planning_horizon_months: u16,
     pub input_sha256: String,
     pub intervention_count: usize,
     pub evaluated_subset_count: u64,
@@ -296,6 +307,9 @@ fn validate(input: &PortfolioInput) -> Vec<String> {
         }
     }
     let preference_ids: BTreeSet<&str> = input.preferences.iter().map(|item| item.id.as_str()).collect();
+    let intervention_by_id: BTreeMap<&str, &Intervention> = input.interventions.iter()
+        .map(|intervention| (intervention.id.as_str(), intervention))
+        .collect();
 
     let mut intervention_ids = BTreeSet::new();
     let mut addresses: BTreeMap<&str, usize> = BTreeMap::new();
@@ -334,6 +348,28 @@ fn validate(input: &PortfolioInput) -> Vec<String> {
         for id in intervention.supports_preference_ids.iter().chain(&intervention.conflicts_with_preference_ids) {
             if !preference_ids.contains(id.as_str()) {
                 errors.push(format!("intervention {:?} references unknown preference {:?}", intervention.id, id));
+            }
+        }
+        for resolution in &intervention.resolves_preference_conflicts {
+            if !preference_ids.contains(resolution.preference_id.as_str()) {
+                errors.push(format!("intervention {:?} resolves unknown preference {:?}", intervention.id, resolution.preference_id));
+            }
+            if !intervention.supports_preference_ids.contains(&resolution.preference_id) {
+                errors.push(format!(
+                    "intervention {:?} declares conflict resolution for {:?} without supporting that preference",
+                    intervention.id, resolution.preference_id
+                ));
+            }
+            match intervention_by_id.get(resolution.conflicting_intervention_id.as_str()) {
+                Some(target) if target.conflicts_with_preference_ids.contains(&resolution.preference_id) => {}
+                Some(_) => errors.push(format!(
+                    "intervention {:?} resolution target {:?} does not declare a conflict with preference {:?}",
+                    intervention.id, resolution.conflicting_intervention_id, resolution.preference_id
+                )),
+                None => errors.push(format!(
+                    "intervention {:?} resolves conflict with unknown intervention {:?}",
+                    intervention.id, resolution.conflicting_intervention_id
+                )),
             }
         }
         for id in &intervention.supports_preference_ids {
@@ -511,6 +547,21 @@ fn build_plan(
     selected_indices.sort_by_key(|index| topo_rank[index]);
     let selected_intervention_ids = selected_ids(input, selected, order);
     let (one_time_cost, annual_maintenance_cost) = sum_cost(input, selected)?;
+    let horizon_months = u64::from(input.planning_horizon_months);
+    let maintenance_horizon_low = annual_maintenance_cost.low_minor_units
+        .checked_mul(horizon_months)
+        .ok_or_else(|| vec!["lifecycle maintenance cost overflow".into()])? / 12;
+    let maintenance_horizon_high_numerator = annual_maintenance_cost.high_minor_units
+        .checked_mul(horizon_months)
+        .and_then(|value| value.checked_add(11))
+        .ok_or_else(|| vec!["lifecycle maintenance cost overflow".into()])?;
+    let maintenance_horizon_high = maintenance_horizon_high_numerator / 12;
+    let lifecycle_cost_over_horizon = CostRangeReceipt {
+        low_minor_units: one_time_cost.low_minor_units.checked_add(maintenance_horizon_low)
+            .ok_or_else(|| vec!["lifecycle lower-cost sum overflow".into()])?,
+        high_minor_units: one_time_cost.high_minor_units.checked_add(maintenance_horizon_high)
+            .ok_or_else(|| vec!["lifecycle upper-cost sum overflow".into()])?,
+    };
 
     let mut stage_of: BTreeMap<usize, usize> = BTreeMap::new();
     let mut end_days: BTreeMap<usize, u64> = BTreeMap::new();
@@ -556,10 +607,22 @@ fn build_plan(
         if preference.baseline_status == BaselineStatus::SatisfiedForFixture {
             continue;
         }
-        let conflicted = selected.iter().any(|index| {
-            input.interventions[*index].conflicts_with_preference_ids.contains(&preference.id)
+        let conflicting_intervention_ids: Vec<&str> = selected.iter()
+            .filter_map(|index| {
+                let intervention = &input.interventions[*index];
+                intervention.conflicts_with_preference_ids.contains(&preference.id)
+                    .then_some(intervention.id.as_str())
+            })
+            .collect();
+        let unresolved_conflict = conflicting_intervention_ids.iter().any(|conflicting_id| {
+            !selected.iter().any(|index| {
+                input.interventions[*index].resolves_preference_conflicts.iter().any(|resolution| {
+                    resolution.preference_id == preference.id
+                        && resolution.conflicting_intervention_id == *conflicting_id
+                })
+            })
         });
-        if conflicted {
+        if unresolved_conflict {
             conflicted_preference_ids.push(preference.id.clone());
             continue;
         }
@@ -598,6 +661,7 @@ fn build_plan(
         stages,
         one_time_cost,
         annual_maintenance_cost,
+        lifecycle_cost_over_horizon,
         lead_time_days_upper,
         resident_disruption_points,
         unmet_preference_ids,
@@ -612,14 +676,14 @@ fn build_plan(
 fn dominates(a: &CandidatePlan, b: &CandidatePlan) -> bool {
     let av = (
         a.one_time_cost.high_minor_units,
-        a.annual_maintenance_cost.high_minor_units,
+        a.lifecycle_cost_over_horizon.high_minor_units,
         a.lead_time_days_upper,
         a.resident_disruption_points,
         a.preference_penalty_count,
     );
     let bv = (
         b.one_time_cost.high_minor_units,
-        b.annual_maintenance_cost.high_minor_units,
+        b.lifecycle_cost_over_horizon.high_minor_units,
         b.lead_time_days_upper,
         b.resident_disruption_points,
         b.preference_penalty_count,
@@ -734,6 +798,7 @@ pub fn evaluate_bytes(bytes: &[u8]) -> Result<PortfolioReport, Vec<String>> {
         portfolio_id: input.portfolio_id,
         fixture_kind: input.fixture_kind,
         currency: input.currency,
+        planning_horizon_months: input.planning_horizon_months,
         input_sha256: digest,
         intervention_count,
         evaluated_subset_count,
