@@ -599,8 +599,8 @@ mod tests {
     #[test]
     fn produces_one_output_per_frozen_scenario() {
         let report = report_fixture();
-        assert_eq!(report["scenario_count"].as_u64(), Some(15));
-        assert_eq!(report["results"].as_array().expect("results").len(), 15);
+        assert_eq!(report["scenario_count"].as_u64(), Some(24));
+        assert_eq!(report["results"].as_array().expect("results").len(), 24);
         assert_eq!(report["evidence_class"], "synthetic_simulated_output");
     }
 
@@ -625,6 +625,25 @@ mod tests {
                 "not_evaluated_missing_capital_financing_insurance_maintenance_parts_and_depreciation_inputs"
             );
         }
+    }
+
+    #[test]
+    fn combined_shock_is_more_severe_than_nominal_for_baseline() {
+        let report = report_fixture();
+        let nominal = result_for(&report, "single_vehicle_baseline", "nominal");
+        let combined = result_for(
+            &report,
+            "single_vehicle_baseline",
+            "combined_supply_fuel_cashflow_shock"
+        );
+        assert!(
+            combined["essential_trips_fulfilled"].as_u64().unwrap()
+                < nominal["essential_trips_fulfilled"].as_u64().unwrap()
+        );
+        assert!(
+            combined["time_to_safe_recovery_p90_hours"].as_f64().unwrap()
+                > nominal["time_to_safe_recovery_p90_hours"].as_f64().unwrap()
+        );
     }
 
     #[test]
