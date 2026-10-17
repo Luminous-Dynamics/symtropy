@@ -742,7 +742,8 @@
         "payload_securement",
         "condition_control",
         "privacy_and_data_minimization",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 20,
@@ -768,7 +769,8 @@
         "occupant_restraints_and_egress",
         "accessible_transfer",
         "privacy_and_data_minimization",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 20,
@@ -793,7 +795,8 @@
         "payload_securement",
         "condition_control",
         "privacy_and_data_minimization",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 18,
@@ -816,7 +819,8 @@
         "recovery_plan",
         "payload_securement",
         "occupant_restraints_and_egress",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 18,
@@ -841,7 +845,8 @@
         "payload_securement",
         "condition_control",
         "privacy_and_data_minimization",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": -48,
@@ -867,7 +872,8 @@
         "occupant_restraints_and_egress",
         "patient_care_access",
         "privacy_and_data_minimization",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": -48,
@@ -892,7 +898,8 @@
         "payload_securement",
         "condition_control",
         "privacy_and_data_minimization",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 32,
@@ -916,7 +923,8 @@
         "payload_securement",
         "condition_control",
         "occupant_restraints_and_egress",
-        "human_supervision_and_stop"
+        "human_supervision_and_stop",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": 32,
@@ -942,7 +950,8 @@
         "condition_control",
         "privacy_and_data_minimization",
         "human_supervision_and_stop",
-        "explosive_hazard_route_evidence"
+        "explosive_hazard_route_evidence",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": -12,
@@ -969,7 +978,8 @@
         "patient_care_access",
         "privacy_and_data_minimization",
         "human_supervision_and_stop",
-        "explosive_hazard_route_evidence"
+        "explosive_hazard_route_evidence",
+        "payload_layout_and_load_distribution"
       ],
       "route_envelope": {
         "min_ambient_temp_c": -12,
@@ -1034,6 +1044,11 @@
     {
       "gate_id": "explosive_hazard_route_evidence",
       "meaning": "Route has passed the authorized humanitarian hazard assessment process.",
+      "hard_gate": true
+    },
+    {
+      "gate_id": "payload_layout_and_load_distribution",
+      "meaning": "All payloads fit together in a declared loading plan with verified restraints and center-of-mass bounds.",
       "hard_gate": true
     }
   ],
@@ -1101,6 +1116,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -1173,6 +1192,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -1250,6 +1273,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1325,6 +1352,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -1402,6 +1433,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1473,6 +1508,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -1546,6 +1585,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1614,6 +1657,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1681,6 +1728,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -1754,6 +1805,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1825,6 +1880,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -1906,6 +1965,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -1986,6 +2049,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2057,6 +2124,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -2130,6 +2201,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2202,6 +2277,10 @@
         {
           "gate_id": "human_supervision_and_stop",
           "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2273,6 +2352,10 @@
         },
         {
           "gate_id": "human_supervision_and_stop",
+          "status": "pass"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
           "status": "pass"
         }
       ],
@@ -2350,6 +2433,10 @@
         {
           "gate_id": "explosive_hazard_route_evidence",
           "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2426,6 +2513,10 @@
         {
           "gate_id": "explosive_hazard_route_evidence",
           "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2510,6 +2601,10 @@
         {
           "gate_id": "explosive_hazard_route_evidence",
           "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
@@ -2594,6 +2689,10 @@
         {
           "gate_id": "explosive_hazard_route_evidence",
           "status": "unknown"
+        },
+        {
+          "gate_id": "payload_layout_and_load_distribution",
+          "status": "pass"
         }
       ],
       "metric_intervals": [
