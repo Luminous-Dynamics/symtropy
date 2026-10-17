@@ -161,6 +161,8 @@ pub struct CandidateMetrics {
     pub derived_cut_volume_m3: f64,
     pub derived_fill_volume_m3: f64,
     pub derived_total_earthworks_m3: f64,
+    /// Minimum declared drainage capacity minus demand across every fixture scenario.
+    pub minimum_drainage_reserve_lps: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -221,6 +223,7 @@ fn candidate_metrics(
     max_grade_percent: f64,
     cut_volume_m3: f64,
     fill_volume_m3: f64,
+    minimum_drainage_reserve_lps: f64,
 ) -> CandidateMetrics {
     CandidateMetrics {
         route_length_m: normalize_metric(route_length_m),
@@ -228,7 +231,23 @@ fn candidate_metrics(
         derived_cut_volume_m3: normalize_metric(cut_volume_m3),
         derived_fill_volume_m3: normalize_metric(fill_volume_m3),
         derived_total_earthworks_m3: normalize_metric(cut_volume_m3 + fill_volume_m3),
+        minimum_drainage_reserve_lps: normalize_metric(minimum_drainage_reserve_lps),
     }
+}
+
+fn minimum_drainage_reserve_lps(scenarios: &[DrainageCase]) -> Option<f64> {
+    if scenarios.is_empty() {
+        return None;
+    }
+    let mut minimum = f64::INFINITY;
+    for scenario in scenarios {
+        let reserve = scenario.capacity_lps - scenario.required_flow_lps;
+        if !reserve.is_finite() {
+            return None;
+        }
+        minimum = minimum.min(reserve);
+    }
+    Some(minimum)
 }
 
 fn maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
@@ -801,6 +820,8 @@ fn evaluate_candidate(
             derived_grade,
             cut_volume_m3,
             fill_volume_m3,
+            minimum_drainage_reserve_lps(&candidate.drainage_scenarios)
+                .unwrap_or(f64::NEG_INFINITY),
         ),
         findings,
     }
@@ -810,11 +831,15 @@ fn candidate_dominates(left: &CandidateResult, right: &CandidateResult) -> bool 
     let no_worse = left.metrics.route_length_m <= right.metrics.route_length_m
         && left.metrics.derived_max_grade_percent <= right.metrics.derived_max_grade_percent
         && left.metrics.derived_total_earthworks_m3
-            <= right.metrics.derived_total_earthworks_m3;
+            <= right.metrics.derived_total_earthworks_m3
+        && left.metrics.minimum_drainage_reserve_lps
+            >= right.metrics.minimum_drainage_reserve_lps;
     let strictly_better = left.metrics.route_length_m < right.metrics.route_length_m
         || left.metrics.derived_max_grade_percent < right.metrics.derived_max_grade_percent
         || left.metrics.derived_total_earthworks_m3
-            < right.metrics.derived_total_earthworks_m3;
+            < right.metrics.derived_total_earthworks_m3
+        || left.metrics.minimum_drainage_reserve_lps
+            > right.metrics.minimum_drainage_reserve_lps;
     no_worse && strictly_better
 }
 
@@ -1003,6 +1028,21 @@ fn reference_utility_status(
     }
 }
 
+fn reference_minimum_drainage_reserve_lps(
+    scenarios: &[DrainageCase],
+) -> Option<f64> {
+    scenarios.iter().try_fold(None, |minimum, scenario| {
+        let reserve = scenario.capacity_lps - scenario.required_flow_lps;
+        if !reserve.is_finite() {
+            return None;
+        }
+        Some(Some(match minimum {
+            Some(previous) => previous.min(reserve),
+            None => reserve,
+        }))
+    })?
+}
+
 fn reference_maximum_grade_percent(points: &[ProfilePoint]) -> Option<f64> {
     if points.len() < 2 {
         return None;
@@ -1150,6 +1190,8 @@ fn reference_candidate_result(
             derived_grade,
             cut_volume_m3,
             fill_volume_m3,
+            reference_minimum_drainage_reserve_lps(&candidate.drainage_scenarios)
+                .unwrap_or(f64::NEG_INFINITY),
         ),
         findings,
     }
@@ -1222,6 +1264,10 @@ fn metrics_match(actual: &CandidateMetrics, expected: &CandidateMetrics) -> bool
         && close(
             actual.derived_total_earthworks_m3,
             expected.derived_total_earthworks_m3,
+        )
+        && close(
+            actual.minimum_drainage_reserve_lps,
+            expected.minimum_drainage_reserve_lps,
         )
 }
 
