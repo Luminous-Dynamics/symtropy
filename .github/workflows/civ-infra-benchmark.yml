@@ -1,0 +1,57 @@
+name: CIV-INFRA Synthetic Corridor Benchmark
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-benchmark/**"
+      - ".github/workflows/civ-infra-benchmark.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/civ-infra-benchmark/**"
+      - ".github/workflows/civ-infra-benchmark.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Synthetic corridor checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/civ-infra-benchmark/Cargo.toml -- --check
+
+      - name: Run reference and adversarial tests
+        run: cargo test --manifest-path tools/civ-infra-benchmark/Cargo.toml
+
+      - name: Emit and check frozen benchmark report
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/civ-infra-report.json"
+          cargo run --manifest-path tools/civ-infra-benchmark/Cargo.toml -- tools/civ-infra-benchmark/fixtures/corridor-v0.1.json > "$report"
+          jq -e '
+            .schema_version == "luminous.civ_infra.corridor_report.v0.1" and
+            .claim_ceiling == "synthetic_case_only_not_real_world_qualified" and
+            ([.candidates[] | select(.candidate_id == "A-shortest" and .disposition == "infeasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "B-low-earthworks" and .disposition == "infeasible")] | length) == 1 and
+            ([.candidates[] | select(.candidate_id == "C-reference" and .disposition == "feasible_for_synthetic_case")] | length) == 1 and
+            (.resource_schedule_feasible == false) and
+            (.schedule_conflicts | length) == 1 and
+            .schedule_conflicts[0].resource_id == "excavator" and
+            .schedule_conflicts[0].start_tick == 2 and
+            .schedule_conflicts[0].end_tick == 3
+          ' "$report"
