@@ -24,9 +24,10 @@ The draft now contains:
 - a five-model South African advertised-price screening shortlist (`fixtures/personal_vehicle/south_africa_baseline_shortlist_v0_1.json`);
 - common cross-project engineering evidence envelope schema plus 15 fixtures (`schemas/transport/engineering_evidence_envelope_v0_1.schema.json`, `fixtures/personal_vehicle/engineering_evidence_envelope_fixtures_v0_1.json`);
 - repairability task-graph schema plus 16 fixtures (`schemas/transport/repair_task_graph_v0_1.schema.json`, `fixtures/personal_vehicle/repair_task_graph_fixtures_v0_1.json`);
-- a preregistered workshop study protocol (`docs/tech/REPAIRABILITY_BENCHMARK_PROTOCOL_V0_1.md`).
+- a preregistered workshop study protocol (`docs/tech/REPAIRABILITY_BENCHMARK_PROTOCOL_V0_1.md`);
+- an 18-case South African localization/supply matrix across 3 production-route hypotheses × 3 volume tiers × 2 supply/FX conditions, plus 5 negative controls (`fixtures/personal_vehicle/localization_scenario_matrix_v0_1.json`, `schemas/transport/localization_scenario_matrix_v0_1.schema.json`).
 
-The standalone Rust contract tool at `tools/personal-vehicle-corpus-audit/` validates the vehicle-scenario corpus, source inventory, dated baseline shortlist, engineering-evidence envelope and repairability task graphs. A focused companion crate at `tools/repair-task-graph-audit/` validates the graph schema and its positive/negative fixtures separately. The report includes corpus/source/evidence/baseline digests and graph-fixture census. The path-scoped workflow `.github/workflows/personal-vehicle-corpus-audit.yml` uses Rust 1.96.0 and includes the schemas, fixtures and both validator paths in its triggers. The code is committed on the draft branch but **has not been compiled or executed in this environment**; exact-head hosted runs remain pending. Queued, skipped, cancelled, absent or failed-before-test workflow results are not PASS.
+The standalone Rust contract tool at `tools/personal-vehicle-corpus-audit/` validates the vehicle-scenario corpus, source inventory, dated baseline shortlist, engineering-evidence envelope and repairability task graphs. The localization scenario package at `tools/vehicle-localization-scenario-audit/` separately validates the 18-case route/volume/supply matrix, source bindings, fail-closed policy route, null cost fields and five negative controls. A focused companion crate at `tools/repair-task-graph-audit/` validates the graph schema and its positive/negative fixtures separately. The report includes corpus/source/evidence/baseline digests and graph-fixture census. The path-scoped workflow `.github/workflows/personal-vehicle-corpus-audit.yml` uses Rust 1.96.0 and includes the schemas, fixtures and all three validator paths (corpus/evidence, repair graph, and localization matrix) in its triggers and test steps. The code is committed on the draft branch but **has not been compiled or executed in this environment**; exact-head hosted runs remain pending. Queued, skipped, cancelled, absent or failed-before-test workflow results are not PASS.
 
 The evidence envelope binds artifact and subject/configuration identity, producer repository/revision/tool version, input/output digests, evidence class, conditions/scope, uncertainty, source/rights status, privacy class, limitations and claim ceiling. Semantic checks reject promotions such as a simulation run asserted as an instrumented-vehicle test or an independent review asserted as a regulatory receipt. It remains distinct from Mycelix's signed lifecycle-event/consent record; signature or cross-reference alone does not promote evidence.
 
@@ -92,6 +93,19 @@ The new [MOBILITY-LOCALIZATION-001 #1780](https://github.com/Luminous-Dynamics/s
 - localization capex, skills, supplier qualification, homologation and warranty costs.
 
 The objective is not “maximize local content regardless of cost.” It is to find robust designs that remain serviceable and economically plausible when policy, supplier access or foreign-exchange conditions change. Each manufacturing scenario must include dated primary sources, uncertainty and explicit non-eligibility assumptions; the public source inventory is not legal advice or an incentive approval.
+
+
+## South African localization and supply-resilience matrix
+
+The branch now includes a Draft 2020-12 schema and frozen scenario matrix at `fixtures/personal_vehicle/localization_scenario_matrix_v0_1.json`. Its 18 cases form a complete (3 × 3 × 2) grid:
+
+- **Routes:** import complete vehicles as a market baseline; import qualified safety-critical modules while developing a local service-parts/network strategy; local value-add/CKD-style manufacture only after the applicable route is confirmed in writing.
+- **Volume sensitivities:** 250, 2,500 and 25,000 vehicles/year, all labeled synthetic tiers rather than forecasts.
+- **Supply conditions:** stable reference and stress inputs (FX multiplier 1.2, imported-part lead-time multiplier 2.0, assumed supplier availability 0.85, demand multiplier 0.7), expressly labeled sensitivity assumptions rather than observations.
+
+All route cost fields remain `null`: no BOM, landed quote, local labor/training, capex, homologation, warranty/rework, parts inventory, incentive or 10-year TCO has been invented. The validator fails closed if a cost is filled before the model's evidence inputs exist, if a policy source is missing, if a route/volume/condition cell is missing, if a route gate is weakened, or if any of the five negative controls is relabeled.
+
+This design avoids two common optimization failures: **missing data silently becoming free**, and **policy uncertainty silently becoming a manufacturing assumption**. The matrix is prepared for later priced/qualified inputs, but is not a factory-cost estimate, an incentive calculation, legal advice, or proof that any manufacturing route qualifies. The policy references are the [dtic SKD announcement dated 15 October 2026](https://www.thedtic.gov.za/minister-tau-announces-end-of-semi-knock-down-operations-in-sas-automotive-sector/) and the [SARS APDP2 programme page](https://www.sars.gov.za/customs-and-excise/registration-licensing-and-accreditation/automotive-production-and-development-programme-apdp/); each has a different evidentiary role, and direct project-specific confirmation remains necessary.
 
 ## Core paradigm shift: design a vehicle and its maintenance ecosystem jointly
 
