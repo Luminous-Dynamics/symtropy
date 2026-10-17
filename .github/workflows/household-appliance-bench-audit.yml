@@ -13,7 +13,7 @@ on:
       - "tools/household-appliance-bench-audit/**"
       - ".github/workflows/household-appliance-bench-audit.yml"
   push:
-    branches: ["main", "research/household-appliance-engineering-substrate-v0-1"]
+    branches: ["main", "research/household-appliance-engineering-substrate-v0-1", "research/large-appliance-repairable-architecture-v0-1"]
     paths:
       - "docs/tech/HOUSEHOLD_APPLIANCE_ENGINEERING_SUBSTRATE_V0_1.md"
       - "docs/tech/LOW_VOLTAGE_FAN_REFERENCE_ARTICLE_V0_1.md"
