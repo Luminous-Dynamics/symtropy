@@ -278,6 +278,26 @@ fn percentile(sorted_values: &[usize], percentile_bps: usize) -> Option<usize> {
     sorted_values.get(rank_one_based.saturating_sub(1)).copied()
 }
 
+fn wilson_interval_bps(events: usize, episodes: usize) -> [f64; 2] {
+    if episodes == 0 {
+        return [0.0, BASIS_POINTS as f64];
+    }
+    // Two-sided 95% Wilson score interval; keep finite-sample uncertainty
+    // visible instead of treating a seeded count as the population rate.
+    let n = episodes as f64;
+    let p = (events as f64 / n).clamp(0.0, 1.0);
+    let z = 1.959_963_984_540_054_f64;
+    let z2 = z * z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width = z
+        * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt())
+        / denominator;
+    let lower_bps = ((center - half_width).max(0.0) * BASIS_POINTS as f64 * 100.0).round() / 100.0;
+    let upper_bps = ((center + half_width).min(1.0) * BASIS_POINTS as f64 * 100.0).round() / 100.0;
+    [lower_bps, upper_bps]
+}
+
 fn condition_json(
     detector: TunedDetector,
     condition: ShiftCondition,
@@ -293,11 +313,15 @@ fn condition_json(
         "episodes": metrics.episodes,
         "detected_after_shift": metrics.detected_after_shift,
         "detection_probability_bps": (metrics.detected_after_shift as i64) * BASIS_POINTS / metrics.episodes as i64,
+        "detection_probability_wilson_95_bps": wilson_interval_bps(metrics.detected_after_shift, metrics.episodes),
         "detected_within_5_samples": metrics.detected_within_target_delay,
         "detection_within_5_samples_probability_bps": (metrics.detected_within_target_delay as i64) * BASIS_POINTS / metrics.episodes as i64,
+        "detection_within_5_samples_wilson_95_bps": wilson_interval_bps(metrics.detected_within_target_delay, metrics.episodes),
         "missed": metrics.missed,
         "miss_rate_bps": (metrics.missed as i64) * BASIS_POINTS / metrics.episodes as i64,
+        "miss_rate_wilson_95_bps": wilson_interval_bps(metrics.missed, metrics.episodes),
         "pre_shift_false_alarm_count": metrics.pre_shift_false_alarm,
+        "pre_shift_false_alarm_wilson_95_bps": wilson_interval_bps(metrics.pre_shift_false_alarm, metrics.episodes),
         "detection_delay_samples": {
             "median": percentile(&delays, 5_000),
             "p90": percentile(&delays, 9_000),
@@ -346,6 +370,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
             "episodes": HELD_OUT_NULL_EPISODES,
             "false_alarm_episodes": alarms,
             "false_alarm_rate_bps": alarms as i64 * BASIS_POINTS / HELD_OUT_NULL_EPISODES as i64,
+            "false_alarm_rate_wilson_95_bps": wilson_interval_bps(alarms, HELD_OUT_NULL_EPISODES),
             "target_false_alarm_rate_bps": FALSE_ALARM_BUDGET_BPS,
             "held_out_from_threshold_selection": true
         })
@@ -376,6 +401,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
                 "length": EPISODE_LENGTH,
                 "false_alarm_episodes": detector.training_false_alarm_episodes,
                 "false_alarm_rate_bps": detector.training_false_alarm_rate_bps,
+                "false_alarm_rate_wilson_95_bps": wilson_interval_bps(detector.training_false_alarm_episodes, TRAINING_EPISODES),
                 "maximum_rate_bps": FALSE_ALARM_BUDGET_BPS,
                 "threshold_frozen_before_held_out_scoring": true
             },
@@ -551,6 +577,12 @@ mod tests {
         assert_eq!(percentile(&values, 9_000), Some(9));
         assert_eq!(percentile(&values, 9_500), Some(10));
         assert_eq!(percentile(&[], 9_000), None);
+        let zero_events = wilson_interval_bps(0, 256);
+        let observed_events = wilson_interval_bps(4, 256);
+        assert_eq!(zero_events[0], 0.0);
+        assert!(zero_events[1] > 0.0);
+        assert!(observed_events[0] < 4.0 * 10_000.0 / 256.0);
+        assert!(observed_events[1] > 4.0 * 10_000.0 / 256.0);
     }
 
     #[test]
