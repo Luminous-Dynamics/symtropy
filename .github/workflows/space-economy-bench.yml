@@ -546,6 +546,14 @@ jobs:
             and all(.detector_comparisons[]; .threshold_selection.false_alarm_rate_bps <= 100 and .threshold_selection.threshold_frozen_before_held_out_scoring == true and (.conditions | length == 9))
             and all(.detector_comparisons[].conditions[]; .episodes == 64 and .detection_probability_bps >= 0 and .detection_probability_bps <= 10000 and .miss_rate_bps >= 0 and .miss_rate_bps <= 10000 and .pre_shift_false_alarm_count >= 0 and .total_post_shift_observations_exposed_before_detection >= 0)
             and (.held_out_null_results | length == 3)
+            and ([.detector_comparisons[].frozen_threshold_milli] == [4000, 10000, 1500])
+            and ([.held_out_null_results[].false_alarm_episodes] == [0, 0, 4])
+            and .detector_comparisons[0].conditions[4].detected_after_shift == 4
+            and .detector_comparisons[0].conditions[4].missed == 60
+            and .detector_comparisons[1].conditions[4].detected_after_shift == 64
+            and .detector_comparisons[1].conditions[8].detected_after_shift == 64
+            and .detector_comparisons[2].conditions[4].detected_after_shift == 60
+            and .detector_comparisons[2].conditions[6].detected_within_5_samples == 39
             and all(.held_out_null_results[]; .episodes == 256 and .false_alarm_rate_bps >= 0 and .false_alarm_rate_bps <= 10000 and .held_out_from_threshold_selection == true)
             and .partition_integrity.seed_ranges_disjoint == true
             and .partition_integrity.held_out_streams_used_for_threshold_tuning == false
