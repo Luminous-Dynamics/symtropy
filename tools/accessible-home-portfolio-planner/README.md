@@ -42,3 +42,21 @@ The current exhaustive search cap of 20 interventions means at most 1,048,576 su
 ## Limits
 
 All numbers in the committed fixture are fabricated scenario values, not quotes, market prices or recommendations. "Covers a constraint" means the intervention was mapped to that constraint by the synthetic input, not that it resolves it in reality. This prototype does not certify building safety, code compliance, physical accessibility, affordability, funding, resident suitability or clinical efficacy. Real use requires resident direction, current attributable prices, site measurement, tenancy/permission verification and qualified local professional review.
+
+
+## Reproducible search benchmark
+
+Build and time exact search at each comparable size (5, 10, 15, 20 interventions; respectively 32, 1,024, 32,768 and 1,048,576 subsets):
+
+```sh
+cargo build --release --manifest-path tools/accessible-home-portfolio-planner/Cargo.toml --bin accessible-home-portfolio-benchmark
+rustc --version --verbose > /tmp/portfolio-rustc-version.txt
+for n in 5 10 15 20; do
+  /usr/bin/time -v tools/accessible-home-portfolio-planner/target/release/accessible-home-portfolio-benchmark \
+    --interventions "$n" --warmup 3 --iterations 30 \
+    > "/tmp/portfolio-benchmark-$n.json" \
+    2> "/tmp/portfolio-time-$n.txt"
+done
+```
+
+Each benchmark generates a synthetic five-constraint workload and times only the evaluator call. It reports median/p95, exact input and receipt SHA-256 digests, subset count and frontier cardinality. External process peak RSS also includes input generation and report serialization; record that measurement boundary. Record CPU model, OS, Rust compiler, release command and exact commit beside each report. Do not infer that a 10-intervention CI smoke run establishes the 20-intervention performance target.
