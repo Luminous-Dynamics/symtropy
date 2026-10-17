@@ -737,7 +737,7 @@ fn validate_contract(root: &Value) -> Result<(), Vec<String>> {
             }
 
             let required_payloads: BTreeSet<String> = mission_id.as_ref()
-                .and_then(|id| root["mission_scenarios"].as_array().and_then(|ms| ms.iter().find(|m| m["mission_id"].as_str() == Some(id))))
+                .and_then(|id| root["mission_scenarios"].as_array().and_then(|ms| ms.iter().find(|m| m["mission_id"].as_str() == Some(id.as_str()))))
                 .map(|m| read_string_set(&m["payload_ids"], &format!("{path}.mission.payload_ids"), &mut Vec::new(), 1))
                 .unwrap_or_default();
             let mut placed = BTreeSet::new();
