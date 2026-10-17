@@ -1,0 +1,88 @@
+name: CIV-INFRA Decision Impact Planner
+
+on:
+  pull_request:
+    paths:
+      - "tools/civ-infra-decision-impact-planner/**"
+      - "docs/tech/CIV_INFRA_DECISION_IMPACT_PLANNER_V0_1.md"
+      - ".github/workflows/civ-infra-decision-impact-planner.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/civ-infra-decision-impact-planner/**"
+      - "docs/tech/CIV_INFRA_DECISION_IMPACT_PLANNER_V0_1.md"
+      - ".github/workflows/civ-infra-decision-impact-planner.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+
+      - name: Record toolchain identity
+        run: |
+          rustc --version
+          cargo --version
+          git rev-parse HEAD
+
+      - name: Run locked Rust tests and emit generated corpus receipt
+        env:
+          CIV_INFRA_DECISION_CORPUS_OUT: ${{ runner.temp }}/civ-infra-decision-impact-corpus.json
+        run: |
+          cargo test --locked \
+            --manifest-path tools/civ-infra-decision-impact-planner/Cargo.toml \
+            -- --nocapture
+          test -s "$CIV_INFRA_DECISION_CORPUS_OUT"
+          jq -e '
+            .corpus_version == "civ-infra-decision-impact-generated/v0.1" and
+            .world_count == 100 and
+            .states_per_world == 20 and
+            .actions_per_world == 5 and
+            .state_action_evaluations == 10000 and
+            (.cases | length) == 100
+          ' "$CIV_INFRA_DECISION_CORPUS_OUT"
+
+      - name: Run frozen fixture through CLI
+        run: |
+          cargo run --locked \
+            --manifest-path tools/civ-infra-decision-impact-planner/Cargo.toml -- \
+            tools/civ-infra-decision-impact-planner/fixtures/decision-impact-v0.1.json \
+            "$RUNNER_TEMP/civ-infra-decision-impact-report.json"
+          jq -e '
+            .state_count == 4 and
+            .candidate_count == 3 and
+            .actions_ranked[0].action_id == "targeted-survey" and
+            .actions_ranked[0].impact.worst_case_remaining_states == 1 and
+            (.claim_ceiling | contains("no_probability_or_physical_validity_claim"))
+          ' "$RUNNER_TEMP/civ-infra-decision-impact-report.json"
+
+      - name: Hash evidence artifacts
+        run: |
+          sha256sum \
+            "$RUNNER_TEMP/civ-infra-decision-impact-corpus.json" \
+            "$RUNNER_TEMP/civ-infra-decision-impact-report.json" \
+            > "$RUNNER_TEMP/civ-infra-decision-impact-SHA256SUMS"
+          cat "$RUNNER_TEMP/civ-infra-decision-impact-SHA256SUMS"
+
+      - name: Upload replayable test evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civ-infra-decision-impact-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/civ-infra-decision-impact-corpus.json
+            ${{ runner.temp }}/civ-infra-decision-impact-report.json
+            ${{ runner.temp }}/civ-infra-decision-impact-SHA256SUMS
+          retention-days: 14
