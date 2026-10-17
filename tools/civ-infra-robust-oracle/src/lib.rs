@@ -347,7 +347,7 @@ fn global_review_gates(fixture: &RobustFixture) -> Vec<String> {
         if uncertainty.evidence_state == EvidenceState::Unknown {
             gates.push(format!("uncertainty_evidence_unknown:{}", uncertainty.id));
         }
-        match uncertainty.support {
+        match &uncertainty.support {
             Support::FiniteValues { .. } => {}
             Support::BoundedInterval { .. } => gates.push(format!(
                 "interval_not_soundly_evaluated_by_r0:{}",
@@ -613,7 +613,7 @@ mod tests {
         let unsupported = !fixture.exhaustive_joint_state_set
             || fixture.uncertainties.iter().any(|uncertainty| {
                 uncertainty.evidence_state != EvidenceState::SyntheticFixture
-                    || !matches!(uncertainty.support, Support::FiniteValues { .. })
+                    || !matches!(&uncertainty.support, Support::FiniteValues { .. })
             });
         let mut expected = BTreeMap::new();
         for candidate in &fixture.candidates {
