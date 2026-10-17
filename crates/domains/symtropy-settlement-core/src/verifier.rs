@@ -102,6 +102,12 @@ pub fn verify_timeline_report(
                 tick.tick
             )));
         }
+        if tick.snapshot.payload.scenario_id != payload.scenario_id {
+            return Err(SettlementError(format!(
+                "snapshot scenario identity mismatches timeline at tick {}",
+                tick.tick
+            )));
+        }
         if stable_scenario_id.is_none() {
             stable_scenario_id = Some(tick.snapshot.payload.scenario_id.clone());
         }
@@ -427,6 +433,11 @@ pub fn verify_timeline_report(
 }
 
 fn verify_snapshot(snapshot: &SettlementReport) -> Result<(), SettlementError> {
+    if snapshot.payload.schema_version != crate::SETTLEMENT_SCHEMA_VERSION {
+        return Err(SettlementError(
+            "snapshot has unsupported settlement schema version".into(),
+        ));
+    }
     if snapshot.payload.claim_ceiling != CLAIM_CEILING {
         return Err(SettlementError(
             "snapshot claim ceiling is missing or widened".into(),
