@@ -42,5 +42,8 @@ jobs:
             --output /tmp/accessible-home-portfolio-report.json
           grep -q '"intervention_count": 5' /tmp/accessible-home-portfolio-report.json
           grep -q '"evaluated_subset_count": 32' /tmp/accessible-home-portfolio-report.json
+          grep -q '"planning_horizon_months": 12' /tmp/accessible-home-portfolio-report.json
+          grep -q '"lifecycle_cost_over_horizon":' /tmp/accessible-home-portfolio-report.json
+          grep -q '"pareto_frontier":' /tmp/accessible-home-portfolio-report.json
           grep -Eq '"input_sha256": "[0-9a-f]{64}"' /tmp/accessible-home-portfolio-report.json
           grep -q '"claim_limit":' /tmp/accessible-home-portfolio-report.json
