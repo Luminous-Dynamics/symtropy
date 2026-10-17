@@ -55,6 +55,37 @@ Expected total synthetic GHG burden: high-loop 40,776 gCO₂e; verified-reuse 41
 
 A scenario mutation that removes all substitution credit from the weak-displacement state should reverse the expected-impact selection from high-loop to verified-reuse. This is a falsifiable ranking-sensitivity test.
 
+## Benchmark ladder and proposed quantitative targets
+
+These are engineering targets to adopt as the benchmark matures, not ISO requirements and not results already demonstrated by this synthetic fixture.
+
+### Phase A — deterministic contract
+
+- **100% independent parity** for every eligible candidate × scenario outcome.
+- **0 unearned benefit credits:** invalid/unknown/partial/out-of-scope evidence cannot receive a decision score; displacement cannot exceed yield-adjusted recovery or the functional unit's virgin-material requirement.
+- **100% probability reconciliation** to exactly 10,000 bp; no silent overflow/wraparound.
+- **100% deterministic receipts** for an identical manifest and source revision; option/scenario input ordering must not affect policy decisions.
+- Expected-impact selection must be the exact minimum of declared expected burden; minimax regret must be the exact minimum over the same declared option set. Both must be no worse than any candidate under their own objective.
+
+### Phase B — adversarial model validation
+
+- Run at least **10,000 seeded generated manifests** across boundary rates (0/10,000 bp), changing scenario probabilities, hostile/missing evidence, reordered records, and near-overflow values.
+- **Zero crashes, wrapped arithmetic, eligibility leaks, or oracle/objective invariant violations** across accepted and rejected inputs.
+- On every accepted generated case, cross-check against a separately implemented integer reference or exhaustive finite oracle.
+- Report normalized regret alongside absolute units when scenarios use different scale; publish the full scenario set and seed rather than just a leaderboard.
+
+### Phase C — measured-data promotion
+
+- Keep synthetic, measured, estimated, and externally sourced inputs distinguishable, each with scope, timestamp, provenance, and uncertainty.
+- For any future declared **90% predictive interval**, target at least **90% empirical coverage** on held-out assets/sites, with absolute calibration gap no greater than **5 percentage points** across materially different asset classes. These criteria require an interval model and are not yet implemented in v0.1.
+- Do not claim net environmental benefit unless the measured, system-boundary-consistent counterfactual indicates an improvement and uncertainty does not obscure the direction. Publish cases where circular actions are worse as well as better.
+- Evaluate at least **1,000 held-out scenario draws** before representing a policy as robust beyond the declared finite fixture; report median and 95th-percentile normalized regret.
+
+### Phase D — performance and independent reproduction
+
+- Proposed throughput target: process **4,096 candidate × scenario cells in under 250 ms median and 1 s p95** on a pinned, documented reference runner. This is a target to measure, not a claim about current performance.
+- Require an independent reproducer to verify source digests, rerun the exact manifest, reproduce the receipt, and confirm the interpretation limits before any public real-world claim.
+
 ## Qualification and promotion gates
 
 - Recomputed source digests, strict JSON schema, unique identifiers, valid bounds, and exact scenario-probability reconciliation.
