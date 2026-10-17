@@ -56,7 +56,10 @@ jobs:
             and (.results | length == 15)
             and all(.results[];
               .evidence_class == "synthetic_simulated_output"
+              and .cost_per_fulfilled_essential_trip_r == null
               and .whole_life_cost_per_fulfilled_trip_r == null
+              and .fallback_accessibility_fraction == null
+              and .uncertainty_interval_coverage == null
             )
           ' "$RUNNER_TEMP/mobility-continuity-report.json"
           sha256sum "$RUNNER_TEMP/mobility-continuity-report.json"
