@@ -6,8 +6,8 @@ use std::process::ExitCode;
 const SCHEMA_VERSION: &str = "0.1.0";
 const BASIS_POINTS: i64 = 10_000;
 const FALSE_ALARM_BUDGET_BPS: i64 = 100;
-const TRAINING_EPISODES: usize = 128;
-const HELD_OUT_NULL_EPISODES: usize = 256;
+const TRAINING_EPISODES: usize = 512;
+const HELD_OUT_NULL_EPISODES: usize = 512;
 const EPISODE_LENGTH: usize = 128;
 const SHIFTED_EPISODES_PER_CONDITION: usize = 64;
 const SHIFT_ONSET: usize = 32;
@@ -185,8 +185,8 @@ fn tune_detector(kind: DetectorKind) -> Result<TunedDetector, String> {
             (threshold, alarms)
         })
         .find(|(_, alarms)| {
-            (*alarms as i64) * BASIS_POINTS
-                <= FALSE_ALARM_BUDGET_BPS * TRAINING_EPISODES as i64
+            wilson_interval_bps(*alarms, TRAINING_EPISODES)[1]
+                <= FALSE_ALARM_BUDGET_BPS as f64
         });
     let Some((threshold_milli, alarms)) = candidate else {
         return Err(format!("{} has no threshold in the registered grid under the false-alarm budget", kind.id()));
@@ -403,7 +403,8 @@ fn execute(source_commit: &str) -> Result<Value, String> {
                 "false_alarm_rate_bps": detector.training_false_alarm_rate_bps,
                 "false_alarm_rate_wilson_95_bps": wilson_interval_bps(detector.training_false_alarm_episodes, TRAINING_EPISODES),
                 "maximum_rate_bps": FALSE_ALARM_BUDGET_BPS,
-                "threshold_frozen_before_held_out_scoring": true
+                "threshold_frozen_before_held_out_scoring": true,
+                "upper_95_percent_wilson_false_alarm_bps": wilson_interval_bps(detector.training_false_alarm_episodes, TRAINING_EPISODES)[1]
             },
             "shift_condition_count": conditions.len(),
             "total_shift_episodes": total_shift_episodes,
@@ -422,6 +423,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
         "held_out_null_seed_range": [200_000, 200_000 + HELD_OUT_NULL_EPISODES as u64],
         "held_out_shift_seed_start": 500_000,
         "training_episodes": TRAINING_EPISODES,
+        "threshold_constraint": "upper_95_percent_wilson_false_alarm_bound_at_most_100_basis_points",
         "held_out_null_episodes": HELD_OUT_NULL_EPISODES,
         "episode_length": EPISODE_LENGTH,
         "shifted_episode_length": SHIFTED_EPISODE_LENGTH,
@@ -595,18 +597,18 @@ mod tests {
         assert_eq!(receipt["partition_integrity"]["seed_ranges_disjoint"], true);
         assert_eq!(receipt["partition_integrity"]["held_out_streams_used_for_threshold_tuning"], false);
         assert_eq!(receipt["summary"]["all_training_thresholds_within_false_alarm_budget"], true);
-        assert_eq!(receipt["detector_comparisons"][0]["frozen_threshold_milli"], 4_000);
+        assert_eq!(receipt["detector_comparisons"][0]["frozen_threshold_milli"], 4_250);
         assert_eq!(receipt["detector_comparisons"][1]["frozen_threshold_milli"], 10_000);
-        assert_eq!(receipt["detector_comparisons"][2]["frozen_threshold_milli"], 1_500);
+        assert_eq!(receipt["detector_comparisons"][2]["frozen_threshold_milli"], 1_750);
         assert_eq!(receipt["held_out_null_results"][0]["false_alarm_episodes"], 0);
         assert_eq!(receipt["held_out_null_results"][1]["false_alarm_episodes"], 0);
-        assert_eq!(receipt["held_out_null_results"][2]["false_alarm_episodes"], 4);
-        assert_eq!(receipt["detector_comparisons"][0]["conditions"][4]["detected_after_shift"], 4);
-        assert_eq!(receipt["detector_comparisons"][0]["conditions"][4]["missed"], 60);
+        assert_eq!(receipt["held_out_null_results"][2]["false_alarm_episodes"], 0);
+        assert_eq!(receipt["detector_comparisons"][0]["conditions"][4]["detected_after_shift"], 1);
+        assert_eq!(receipt["detector_comparisons"][0]["conditions"][4]["missed"], 63);
         assert_eq!(receipt["detector_comparisons"][1]["conditions"][4]["detected_after_shift"], 64);
         assert_eq!(receipt["detector_comparisons"][1]["conditions"][8]["detected_after_shift"], 64);
-        assert_eq!(receipt["detector_comparisons"][2]["conditions"][4]["detected_after_shift"], 60);
-        assert_eq!(receipt["detector_comparisons"][2]["conditions"][6]["detected_within_5_samples"], 39);
+        assert_eq!(receipt["detector_comparisons"][2]["conditions"][4]["detected_after_shift"], 35);
+        assert_eq!(receipt["detector_comparisons"][2]["conditions"][6]["detected_within_5_samples"], 22);
         assert_eq!(receipt["model_specification_sha256"].as_str().unwrap().len(), 64);
     }
 
