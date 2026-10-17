@@ -409,9 +409,7 @@ impl ThermodynamicLedger {
     /// How much energy does it cost to maintain consciousness?
     /// Returns None if no Phi change this tick.
     pub fn joules_per_phi(&self) -> Option<f64> {
-        if self.invalid_flow_count > 0
-            || !self.flow_fields_valid()
-            || self.phi_change_total < 1e-15
+        if self.invalid_flow_count > 0 || !self.flow_fields_valid() || self.phi_change_total < 1e-15
         {
             return None;
         }

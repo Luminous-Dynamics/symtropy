@@ -100,15 +100,19 @@ impl EnergyBudget {
     }
 
     /// Add energy (from regeneration sources). Capped at max_energy.
+    /// Returns the amount of energy actually accepted into the reservoir.
     #[inline]
-    pub fn regenerate(&mut self, amount: f64) {
+    pub fn regenerate(&mut self, amount: f64) -> f64 {
+        let prev = self.available;
         self.available = (self.available + amount).min(self.max_energy);
+        let accepted = self.available - prev;
         self.regenerated_this_tick += amount;
 
         // Recover from collapse if energy is restored
         if self.collapsed && self.available > 0.0 {
             self.collapsed = false;
         }
+        accepted
     }
 
     /// Whether any energy is available.
