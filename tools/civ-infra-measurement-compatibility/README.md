@@ -12,6 +12,8 @@ cargo run --locked --manifest-path tools/civ-infra-measurement-compatibility/Car
   /tmp/civ-infra-compatibility-report.json
 \`\`\`
 
+The public byte API hashes the exact raw JSON bytes itself, parses those same bytes, and binds their digest to the report; callers cannot provide a replacement digest. Inputs above 4 MiB are rejected before parsing.
+
 ## Core semantics
 
 - Input ranges and observation values are typed as meters, millimeters or dimensionless quantities. Values are integer fixed-point ticks: 1 tick unit = 1e-6 of the declared unit.
