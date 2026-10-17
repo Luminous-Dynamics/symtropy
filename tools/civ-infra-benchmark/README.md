@@ -10,7 +10,7 @@ From the repository root:
     cargo test --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml
     cargo run --locked --manifest-path tools/civ-infra-benchmark/Cargo.toml -- tools/civ-infra-benchmark/fixtures/corridor-v0.1.json
 
-The CLI reads the exact fixture bytes, validates the schema and declared metric coordinate frame, calculates SHA-256 over the bytes, evaluates all candidates, recomputes schedule findings through a separate reference-check path, and emits a deterministic JSON report. Invalid input or verifier disagreement returns a non-zero exit code.
+The CLI reads the exact fixture bytes, validates the schema and declared metric coordinate frame, calculates SHA-256 over the bytes, derives maximum longitudinal grade from station/elevation points, integrates declared cut/fill cross-section areas using the trapezoidal rule, evaluates candidates, independently recomputes the principal findings and schedule through separate reference helpers, and emits a deterministic JSON report. Invalid input or verifier disagreement returns a non-zero exit code.
 
 ## Current synthetic fixture
 
@@ -27,7 +27,9 @@ It also includes one deliberately overcommitted excavator schedule. The referenc
 - All geometry and quantities are invented synthetic test values, not a real site or design recommendation.
 - V0 supports only an explicitly declared local metric coordinate frame; it rejects other units instead of attempting an implicit transform.
 - The utility envelope is an axis-aligned coarse proxy. It is not a CAD solid-intersection engine or a substitute for a qualified utility survey.
-- Grade, earthworks and drainage values are declared fixture attributes: the harness checks them against declared limits but does not derive grade from a terrain/alignment profile, earthworks from cross-sections, or flow capacity from a hydraulic solver.
+- Maximum longitudinal grade is derived from the candidate's piecewise-linear station/elevation profile and checked against the declared grade. The declaration is retained as a consistency check, not trusted as the result.
+- Cut and fill volumes are derived by trapezoidal integration of the supplied cross-section cut/fill areas. Those areas themselves are synthetic inputs; they are not derived from a terrain mesh, surveyed ground surface or designed corridor solids.
+- Drainage demand/capacity values are declared fixture attributes and compared directly; V0 does not derive flow capacity from a hydraulic solver.
 - The drainage check compares declared synthetic demand/capacity values. It does not run EPANET, SWMM or a calibrated hydraulic model.
 - The reference checker is a separate recomputation path in the same codebase, not an independently maintained implementation or third-party audit.
 - This package does not generate road geometry, solve an alignment, qualify pavement/structures/geotechnical design, produce IFC/InfraGML, or authorize procurement/construction.
