@@ -381,7 +381,9 @@ impl std::fmt::Display for OracleError {
         match self {
             Self::EmptyEventId => write!(formatter, "event ID must not be empty"),
             Self::EventPastHorizon => write!(formatter, "event occurs after the declared horizon"),
-            Self::ZeroStabilityWindow => write!(formatter, "stability window must be greater than zero"),
+            Self::ZeroStabilityWindow => {
+                write!(formatter, "stability window must be greater than zero")
+            }
             Self::ConflictingDuplicate { id, generation } => {
                 write!(formatter, "conflicting duplicate event {id:?}, generation {generation}")
             }
