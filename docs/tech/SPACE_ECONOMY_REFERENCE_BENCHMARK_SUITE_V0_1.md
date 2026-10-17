@@ -224,4 +224,4 @@ Prevention credits and active-removal credits are represented separately. A clai
 
 SOBU means *synthetic orbital burden unit* only. It is not a physical quantity, collision probability, validated debris-risk proxy, ESA Space Environment Health Index, ISO threshold, or proof of compliance. The example is not an orbital-dynamics simulation. It must not be used to assert real Earth-orbit economics, nor transferred to cislunar orbit or surface operations without a separate system boundary and validated physical basis. The benchmark verifies a decision contract; it does not certify a mission or policy.
 
-Follow-on calibration and data research is tracked in [BENCH-SPACE-005](https://github.com/Luminous-Dynamics/symtropy/issues/1751) (issue number is assigned by GitHub when created; replace this placeholder with the actual issue URL before considering this document finalized).
+Follow-on calibration and data research is tracked in [BENCH-SPACE-005](https://github.com/Luminous-Dynamics/symtropy/issues/1759).
