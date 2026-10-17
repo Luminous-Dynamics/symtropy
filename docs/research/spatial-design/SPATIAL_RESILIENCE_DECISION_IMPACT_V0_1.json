@@ -162,7 +162,7 @@
               "pareto_candidate_ids": [
                 "adaptable-layout"
               ],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "clearance-pass",
@@ -175,7 +175,7 @@
                 "adaptable-layout",
                 "standard-layout"
               ],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         },
@@ -199,7 +199,7 @@
               "pareto_candidate_ids": [
                 "adaptable-layout"
               ],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "clearance-pass",
@@ -212,7 +212,7 @@
                 "adaptable-layout",
                 "standard-layout"
               ],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         }
@@ -367,7 +367,7 @@
                 "design-a",
                 "design-b"
               ],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "mild-readout",
@@ -380,7 +380,7 @@
                 "design-a",
                 "design-b"
               ],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         },
@@ -404,7 +404,7 @@
                 "design-a",
                 "design-b"
               ],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "mild-readout",
@@ -417,7 +417,7 @@
                 "design-a",
                 "design-b"
               ],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         }
@@ -757,7 +757,7 @@
               ],
               "robust_feasible_candidate_ids": [],
               "pareto_candidate_ids": [],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "obstructed",
@@ -766,7 +766,7 @@
               ],
               "robust_feasible_candidate_ids": [],
               "pareto_candidate_ids": [],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         },
@@ -793,7 +793,7 @@
                 "adaptable-wall-layout",
                 "standard-wall-layout"
               ],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "obstructed",
@@ -804,7 +804,7 @@
               "pareto_candidate_ids": [
                 "adaptable-wall-layout"
               ],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         }
@@ -1022,7 +1022,7 @@
               "pareto_candidate_ids": [
                 "design-b"
               ],
-              "n": 1
+              "compatible_state_count": 1
             },
             {
               "outcome_id": "mild",
@@ -1035,7 +1035,7 @@
                 "design-a",
                 "design-b"
               ],
-              "n": 1
+              "compatible_state_count": 1
             }
           ]
         }
