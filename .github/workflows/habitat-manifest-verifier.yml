@@ -55,7 +55,7 @@ jobs:
           jq -e '
             .schema_version == "luminous.habitat_manifest_verifier.report.v0.1" and
             .manifest_version == "whole-property-habitat-scenarios-v0.1" and
-            .input_sha256 == "a5d63bb59af770a50982501e63a99c7873a543e063e9cc546705029838641380" and
+            .input_sha256 == "68dd4c244b29e840319fb898706fa1a4aca411a7a99655ebe3bb8c646801eb94" and
             .verification_status == "STRUCTURAL_PASS_NOT_SEMANTIC_PASS" and
             .claim_ceiling == "structural_conformance_only_not_semantic_or_physical_validation" and
             .scenario_count == 19 and .negative_control_count == 17 and
