@@ -1,0 +1,909 @@
+#![forbid(unsafe_code)]
+
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+
+pub const FIXTURE_SCHEMA_V1: &str = "luminous.civ_infra.corridor_fixture.v0.1";
+pub const REPORT_SCHEMA_V1: &str = "luminous.civ_infra.corridor_report.v0.1";
+const CLAIM_CEILING: &str = "synthetic_case_only_not_real_world_qualified";
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CorridorFixture {
+    pub schema_version: String,
+    pub fixture_id: String,
+    pub coordinate_frame: CoordinateFrame,
+    pub requirements: Requirements,
+    pub utilities: Vec<UtilityAsset>,
+    pub candidates: Vec<CorridorCandidate>,
+    pub resources: Vec<ResourceCapacity>,
+    pub work_packages: Vec<WorkPackage>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CoordinateFrame {
+    pub id: String,
+    pub horizontal_unit: String,
+    pub vertical_unit: String,
+    pub vertical_datum: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Requirements {
+    pub max_grade_percent: f64,
+    pub max_earthworks_m3: f64,
+    pub min_vertical_clearance_m: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct AxisEnvelope {
+    pub station_start_m: f64,
+    pub station_end_m: f64,
+    pub lateral_min_m: f64,
+    pub lateral_max_m: f64,
+    pub elevation_min_m: Option<f64>,
+    pub elevation_max_m: Option<f64>,
+    pub uncertainty_m: f64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceState {
+    KnownSynthetic,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct UtilityAsset {
+    pub id: String,
+    pub coordinate_frame_id: String,
+    pub evidence: EvidenceState,
+    pub occupancy: Option<AxisEnvelope>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct DrainageCase {
+    pub scenario_id: String,
+    pub required_flow_lps: f64,
+    pub capacity_lps: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CorridorCandidate {
+    pub id: String,
+    pub length_m: f64,
+    pub max_grade_percent: f64,
+    pub estimated_earthworks_m3: f64,
+    pub road_envelopes: Vec<AxisEnvelope>,
+    pub drainage: DrainageCase,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceCapacity {
+    pub id: String,
+    pub capacity_units: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct WorkPackage {
+    pub id: String,
+    pub resource_uses: Vec<ResourceUse>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceUse {
+    pub resource_id: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub units: u32,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CheckStatus {
+    Pass,
+    Violation,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CandidateDisposition {
+    FeasibleForSyntheticCase,
+    Infeasible,
+    UnknownReviewRequired,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Finding {
+    pub code: String,
+    pub status: CheckStatus,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct CandidateResult {
+    pub candidate_id: String,
+    pub disposition: CandidateDisposition,
+    pub findings: Vec<Finding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ScheduleConflict {
+    pub resource_id: String,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub observed_demand_units: u32,
+    pub capacity_units: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct BenchmarkReport {
+    pub schema_version: String,
+    pub fixture_id: String,
+    pub input_sha256: String,
+    pub claim_ceiling: String,
+    pub candidates: Vec<CandidateResult>,
+    pub schedule_conflicts: Vec<ScheduleConflict>,
+    pub resource_schedule_feasible: bool,
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    format!("{digest:x}")
+}
+
+fn finite_nonnegative(value: f64) -> bool {
+    value.is_finite() && value >= 0.0
+}
+
+fn validate_envelope(
+    envelope: &AxisEnvelope,
+    require_elevation: bool,
+    context: &str,
+    errors: &mut Vec<String>,
+) {
+    if !envelope.station_start_m.is_finite()
+        || !envelope.station_end_m.is_finite()
+        || envelope.station_start_m >= envelope.station_end_m
+    {
+        errors.push(format!("{context}: invalid station interval"));
+    }
+    if !envelope.lateral_min_m.is_finite()
+        || !envelope.lateral_max_m.is_finite()
+        || envelope.lateral_min_m >= envelope.lateral_max_m
+    {
+        errors.push(format!("{context}: invalid lateral interval"));
+    }
+    if !finite_nonnegative(envelope.uncertainty_m) {
+        errors.push(format!("{context}: uncertainty must be finite and non-negative"));
+    }
+
+    match (envelope.elevation_min_m, envelope.elevation_max_m) {
+        (Some(minimum), Some(maximum))
+            if minimum.is_finite() && maximum.is_finite() && minimum < maximum => {}
+        (None, None) if !require_elevation => {}
+        _ => errors.push(format!("{context}: invalid or unsupported elevation interval")),
+    }
+}
+
+pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+
+    if fixture.schema_version != FIXTURE_SCHEMA_V1 {
+        errors.push(format!(
+            "unsupported schema_version: {}",
+            fixture.schema_version
+        ));
+    }
+    if fixture.fixture_id.trim().is_empty() {
+        errors.push("fixture_id must not be empty".to_string());
+    }
+    if fixture.coordinate_frame.id.trim().is_empty()
+        || fixture.coordinate_frame.vertical_datum.trim().is_empty()
+    {
+        errors.push("coordinate frame id and vertical datum must be explicit".to_string());
+    }
+    // V0 intentionally supports one declared local metric frame only. It does
+    // not silently transform other units, CRSs, or vertical datums.
+    if fixture.coordinate_frame.horizontal_unit != "metre"
+        || fixture.coordinate_frame.vertical_unit != "metre"
+    {
+        errors.push("V0 requires explicit metre units for horizontal and vertical coordinates".to_string());
+    }
+    if !finite_nonnegative(fixture.requirements.max_grade_percent)
+        || !finite_nonnegative(fixture.requirements.max_earthworks_m3)
+        || !finite_nonnegative(fixture.requirements.min_vertical_clearance_m)
+    {
+        errors.push("requirements must be finite and non-negative".to_string());
+    }
+
+    let mut candidate_ids = BTreeSet::new();
+    if fixture.candidates.is_empty() {
+        errors.push("fixture must contain at least one candidate".to_string());
+    }
+    for candidate in &fixture.candidates {
+        if candidate.id.trim().is_empty() || !candidate_ids.insert(candidate.id.clone()) {
+            errors.push(format!("empty or duplicate candidate id: {}", candidate.id));
+        }
+        if !finite_nonnegative(candidate.length_m)
+            || candidate.length_m <= 0.0
+            || !finite_nonnegative(candidate.max_grade_percent)
+            || !finite_nonnegative(candidate.estimated_earthworks_m3)
+            || !finite_nonnegative(candidate.drainage.required_flow_lps)
+            || !finite_nonnegative(candidate.drainage.capacity_lps)
+        {
+            errors.push(format!("candidate {} contains invalid numeric input", candidate.id));
+        }
+        if candidate.drainage.scenario_id.trim().is_empty() {
+            errors.push(format!("candidate {} has no drainage scenario id", candidate.id));
+        }
+        if candidate.road_envelopes.is_empty() {
+            errors.push(format!("candidate {} has no road envelopes", candidate.id));
+        }
+        for (index, envelope) in candidate.road_envelopes.iter().enumerate() {
+            validate_envelope(
+                envelope,
+                true,
+                &format!("candidate {} road envelope {index}", candidate.id),
+                &mut errors,
+            );
+        }
+    }
+
+    let mut utility_ids = BTreeSet::new();
+    for utility in &fixture.utilities {
+        if utility.id.trim().is_empty() || !utility_ids.insert(utility.id.clone()) {
+            errors.push(format!("empty or duplicate utility id: {}", utility.id));
+        }
+        if utility.coordinate_frame_id != fixture.coordinate_frame.id {
+            errors.push(format!(
+                "utility {} uses undeclared coordinate frame {}",
+                utility.id, utility.coordinate_frame_id
+            ));
+        }
+        if let Some(envelope) = &utility.occupancy {
+            validate_envelope(
+                envelope,
+                utility.evidence == EvidenceState::KnownSynthetic,
+                &format!("utility {}", utility.id),
+                &mut errors,
+            );
+        } else if utility.evidence == EvidenceState::KnownSynthetic {
+            errors.push(format!(
+                "utility {} claims known geometry but has no occupancy envelope",
+                utility.id
+            ));
+        }
+    }
+
+    let mut resource_capacities = BTreeMap::new();
+    for resource in &fixture.resources {
+        if resource.id.trim().is_empty()
+            || resource.capacity_units == 0
+            || resource_capacities
+                .insert(resource.id.clone(), resource.capacity_units)
+                .is_some()
+        {
+            errors.push(format!("empty, duplicate, or zero-capacity resource: {}", resource.id));
+        }
+    }
+
+    let mut work_package_ids = BTreeSet::new();
+    for package in &fixture.work_packages {
+        if package.id.trim().is_empty() || !work_package_ids.insert(package.id.clone()) {
+            errors.push(format!("empty or duplicate work-package id: {}", package.id));
+        }
+        for usage in &package.resource_uses {
+            if !resource_capacities.contains_key(&usage.resource_id) {
+                errors.push(format!(
+                    "work package {} references unknown resource {}",
+                    package.id, usage.resource_id
+                ));
+            }
+            if usage.start_tick >= usage.end_tick || usage.units == 0 {
+                errors.push(format!(
+                    "work package {} has invalid resource interval or demand",
+                    package.id
+                ));
+            }
+        }
+    }
+
+    errors.sort();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn planar_ranges_overlap(
+    a_start: f64,
+    a_end: f64,
+    b_start: f64,
+    b_end: f64,
+    padding: f64,
+) -> bool {
+    a_start <= b_end + padding && b_start <= a_end + padding
+}
+
+fn utility_check(
+    candidate: &CorridorCandidate,
+    utility: &UtilityAsset,
+    required_clearance_m: f64,
+) -> CheckStatus {
+    let Some(utility_envelope) = utility.occupancy.as_ref() else {
+        return CheckStatus::Unknown;
+    };
+
+    let mut unknown_seen = false;
+    for road in &candidate.road_envelopes {
+        let padding = road.uncertainty_m + utility_envelope.uncertainty_m;
+        let station_overlap = planar_ranges_overlap(
+            road.station_start_m,
+            road.station_end_m,
+            utility_envelope.station_start_m,
+            utility_envelope.station_end_m,
+            padding,
+        );
+        let lateral_overlap = planar_ranges_overlap(
+            road.lateral_min_m,
+            road.lateral_max_m,
+            utility_envelope.lateral_min_m,
+            utility_envelope.lateral_max_m,
+            padding,
+        );
+        if !station_overlap || !lateral_overlap {
+            continue;
+        }
+
+        if utility.evidence == EvidenceState::Unknown {
+            unknown_seen = true;
+            continue;
+        }
+
+        let (Some(road_min), Some(road_max), Some(utility_min), Some(utility_max)) = (
+            road.elevation_min_m,
+            road.elevation_max_m,
+            utility_envelope.elevation_min_m,
+            utility_envelope.elevation_max_m,
+        ) else {
+            unknown_seen = true;
+            continue;
+        };
+
+        let vertical_gap = if road_max < utility_min {
+            utility_min - road_max
+        } else if utility_max < road_min {
+            road_min - utility_max
+        } else {
+            0.0
+        };
+        let conservative_gap = vertical_gap - padding;
+        if conservative_gap < required_clearance_m {
+            return CheckStatus::Violation;
+        }
+    }
+
+    if unknown_seen {
+        CheckStatus::Unknown
+    } else {
+        CheckStatus::Pass
+    }
+}
+
+fn disposition_from_findings(findings: &[Finding]) -> CandidateDisposition {
+    if findings.iter().any(|finding| finding.status == CheckStatus::Violation) {
+        CandidateDisposition::Infeasible
+    } else if findings.iter().any(|finding| finding.status == CheckStatus::Unknown) {
+        CandidateDisposition::UnknownReviewRequired
+    } else {
+        CandidateDisposition::FeasibleForSyntheticCase
+    }
+}
+
+fn evaluate_candidate(
+    fixture: &CorridorFixture,
+    candidate: &CorridorCandidate,
+) -> CandidateResult {
+    let mut findings = vec![
+        Finding {
+            code: "grade_limit".to_string(),
+            status: if candidate.max_grade_percent <= fixture.requirements.max_grade_percent {
+                CheckStatus::Pass
+            } else {
+                CheckStatus::Violation
+            },
+        },
+        Finding {
+            code: "earthworks_budget".to_string(),
+            status: if candidate.estimated_earthworks_m3 <= fixture.requirements.max_earthworks_m3 {
+                CheckStatus::Pass
+            } else {
+                CheckStatus::Violation
+            },
+        },
+        Finding {
+            code: format!("drainage_capacity:{}", candidate.drainage.scenario_id),
+            status: if candidate.drainage.required_flow_lps <= candidate.drainage.capacity_lps {
+                CheckStatus::Pass
+            } else {
+                CheckStatus::Violation
+            },
+        },
+    ];
+
+    let mut utilities: Vec<&UtilityAsset> = fixture.utilities.iter().collect();
+    utilities.sort_by(|left, right| left.id.cmp(&right.id));
+    for utility in utilities {
+        findings.push(Finding {
+            code: format!("utility_clearance:{}", utility.id),
+            status: utility_check(
+                candidate,
+                utility,
+                fixture.requirements.min_vertical_clearance_m,
+            ),
+        });
+    }
+    findings.sort_by(|left, right| left.code.cmp(&right.code));
+
+    CandidateResult {
+        candidate_id: candidate.id.clone(),
+        disposition: disposition_from_findings(&findings),
+        findings,
+    }
+}
+
+fn schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConflict> {
+    let capacities: BTreeMap<&str, u32> = fixture
+        .resources
+        .iter()
+        .map(|resource| (resource.id.as_str(), resource.capacity_units))
+        .collect();
+    let mut conflicts = Vec::new();
+
+    for resource in &fixture.resources {
+        let uses: Vec<&ResourceUse> = fixture
+            .work_packages
+            .iter()
+            .flat_map(|package| package.resource_uses.iter())
+            .filter(|usage| usage.resource_id == resource.id)
+            .collect();
+        let mut boundaries = BTreeSet::new();
+        for usage in &uses {
+            boundaries.insert(usage.start_tick);
+            boundaries.insert(usage.end_tick);
+        }
+        let ticks: Vec<u64> = boundaries.into_iter().collect();
+
+        for window in ticks.windows(2) {
+            let start_tick = window[0];
+            let end_tick = window[1];
+            if start_tick == end_tick {
+                continue;
+            }
+            // All work windows are half-open [start, end), so adjacent jobs
+            // that meet at a tick do not overlap.
+            let observed_demand_units: u32 = uses
+                .iter()
+                .filter(|usage| usage.start_tick <= start_tick && usage.end_tick >= end_tick)
+                .map(|usage| usage.units)
+                .sum();
+            let capacity_units = capacities[resource.id.as_str()];
+            if observed_demand_units > capacity_units {
+                conflicts.push(ScheduleConflict {
+                    resource_id: resource.id.clone(),
+                    start_tick,
+                    end_tick,
+                    observed_demand_units,
+                    capacity_units,
+                });
+            }
+        }
+    }
+
+    conflicts.sort_by(|left, right| {
+        (&left.resource_id, left.start_tick, left.end_tick).cmp(&(
+            &right.resource_id,
+            right.start_tick,
+            right.end_tick,
+        ))
+    });
+    conflicts
+}
+
+pub fn evaluate_json(bytes: &[u8]) -> Result<BenchmarkReport, Vec<String>> {
+    let fixture: CorridorFixture = serde_json::from_slice(bytes)
+        .map_err(|error| vec![format!("invalid fixture JSON: {error}")])?;
+    validate_fixture(&fixture)?;
+
+    let mut candidates: Vec<CandidateResult> = fixture
+        .candidates
+        .iter()
+        .map(|candidate| evaluate_candidate(&fixture, candidate))
+        .collect();
+    candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
+    let schedule_conflicts = schedule_conflicts(&fixture);
+    Ok(BenchmarkReport {
+        schema_version: REPORT_SCHEMA_V1.to_string(),
+        fixture_id: fixture.fixture_id,
+        input_sha256: sha256_hex(bytes),
+        claim_ceiling: CLAIM_CEILING.to_string(),
+        candidates,
+        resource_schedule_feasible: schedule_conflicts.is_empty(),
+        schedule_conflicts,
+    })
+}
+
+// Separate reference-check path. This intentionally derives expected results
+// from the fixture again instead of trusting the evaluator's findings, report
+// digest, candidate order, or schedule summary. It is diverse within the same
+// crate, not an independently maintained implementation or third-party audit.
+fn reference_ranges_overlap(
+    first_min: f64,
+    first_max: f64,
+    second_min: f64,
+    second_max: f64,
+    uncertainty: f64,
+) -> bool {
+    !(first_max + uncertainty < second_min || second_max + uncertainty < first_min)
+}
+
+fn reference_utility_status(
+    candidate: &CorridorCandidate,
+    utility: &UtilityAsset,
+    required_clearance_m: f64,
+) -> CheckStatus {
+    let Some(asset) = utility.occupancy.as_ref() else {
+        return CheckStatus::Unknown;
+    };
+
+    let mut unresolved = false;
+    for corridor in &candidate.road_envelopes {
+        let uncertainty = corridor.uncertainty_m + asset.uncertainty_m;
+        let same_station_region = reference_ranges_overlap(
+            corridor.station_start_m,
+            corridor.station_end_m,
+            asset.station_start_m,
+            asset.station_end_m,
+            uncertainty,
+        );
+        let same_lateral_region = reference_ranges_overlap(
+            corridor.lateral_min_m,
+            corridor.lateral_max_m,
+            asset.lateral_min_m,
+            asset.lateral_max_m,
+            uncertainty,
+        );
+        if !(same_station_region && same_lateral_region) {
+            continue;
+        }
+
+        if utility.evidence != EvidenceState::KnownSynthetic {
+            unresolved = true;
+            continue;
+        }
+        let (Some(corridor_low), Some(corridor_high), Some(asset_low), Some(asset_high)) = (
+            corridor.elevation_min_m,
+            corridor.elevation_max_m,
+            asset.elevation_min_m,
+            asset.elevation_max_m,
+        ) else {
+            unresolved = true;
+            continue;
+        };
+
+        let nominal_separation = if corridor_low > asset_high {
+            corridor_low - asset_high
+        } else if asset_low > corridor_high {
+            asset_low - corridor_high
+        } else {
+            0.0
+        };
+        if nominal_separation - uncertainty < required_clearance_m {
+            return CheckStatus::Violation;
+        }
+    }
+
+    if unresolved {
+        CheckStatus::Unknown
+    } else {
+        CheckStatus::Pass
+    }
+}
+
+fn reference_candidate_result(
+    fixture: &CorridorFixture,
+    candidate: &CorridorCandidate,
+) -> CandidateResult {
+    let mut findings = Vec::new();
+
+    findings.push(Finding {
+        code: "grade_limit".to_string(),
+        status: if candidate.max_grade_percent > fixture.requirements.max_grade_percent {
+            CheckStatus::Violation
+        } else {
+            CheckStatus::Pass
+        },
+    });
+    findings.push(Finding {
+        code: "earthworks_budget".to_string(),
+        status: if candidate.estimated_earthworks_m3 > fixture.requirements.max_earthworks_m3 {
+            CheckStatus::Violation
+        } else {
+            CheckStatus::Pass
+        },
+    });
+    findings.push(Finding {
+        code: format!("drainage_capacity:{}", candidate.drainage.scenario_id),
+        status: if candidate.drainage.required_flow_lps > candidate.drainage.capacity_lps {
+            CheckStatus::Violation
+        } else {
+            CheckStatus::Pass
+        },
+    });
+
+    for asset in &fixture.utilities {
+        findings.push(Finding {
+            code: format!("utility_clearance:{}", asset.id),
+            status: reference_utility_status(
+                candidate,
+                asset,
+                fixture.requirements.min_vertical_clearance_m,
+            ),
+        });
+    }
+    findings.sort_by(|left, right| left.code.cmp(&right.code));
+
+    let disposition = if findings.iter().any(|finding| finding.status == CheckStatus::Violation) {
+        CandidateDisposition::Infeasible
+    } else if findings.iter().any(|finding| finding.status == CheckStatus::Unknown) {
+        CandidateDisposition::UnknownReviewRequired
+    } else {
+        CandidateDisposition::FeasibleForSyntheticCase
+    };
+
+    CandidateResult {
+        candidate_id: candidate.id.clone(),
+        disposition,
+        findings,
+    }
+}
+
+fn reference_schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConflict> {
+    let mut expected = Vec::new();
+
+    for resource in &fixture.resources {
+        let assigned: Vec<&ResourceUse> = fixture
+            .work_packages
+            .iter()
+            .flat_map(|package| package.resource_uses.iter())
+            .filter(|usage| usage.resource_id == resource.id)
+            .collect();
+        let mut edges = BTreeSet::new();
+        for usage in &assigned {
+            edges.insert(usage.start_tick);
+            edges.insert(usage.end_tick);
+        }
+        let edges: Vec<u64> = edges.into_iter().collect();
+        for index in 0..edges.len().saturating_sub(1) {
+            let start = edges[index];
+            let end = edges[index + 1];
+            let demand = assigned
+                .iter()
+                .filter(|usage| usage.start_tick < end && usage.end_tick > start)
+                .fold(0_u32, |sum, usage| sum.saturating_add(usage.units));
+            if demand > resource.capacity_units {
+                expected.push(ScheduleConflict {
+                    resource_id: resource.id.clone(),
+                    start_tick: start,
+                    end_tick: end,
+                    observed_demand_units: demand,
+                    capacity_units: resource.capacity_units,
+                });
+            }
+        }
+    }
+    expected.sort_by(|left, right| {
+        (&left.resource_id, left.start_tick, left.end_tick).cmp(&(
+            &right.resource_id,
+            right.start_tick,
+            right.end_tick,
+        ))
+    });
+    expected
+}
+
+pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(), Vec<String>> {
+    let fixture: CorridorFixture = serde_json::from_slice(input_bytes)
+        .map_err(|error| vec![format!("invalid fixture JSON during reference check: {error}")])?;
+    validate_fixture(&fixture)?;
+    let mut errors = Vec::new();
+
+    if report.schema_version != REPORT_SCHEMA_V1 {
+        errors.push("report schema version mismatch".to_string());
+    }
+    if report.fixture_id != fixture.fixture_id {
+        errors.push("report fixture_id does not match input".to_string());
+    }
+    if report.input_sha256 != sha256_hex(input_bytes) {
+        errors.push("report input SHA-256 does not match exact input bytes".to_string());
+    }
+    if report.claim_ceiling != CLAIM_CEILING {
+        errors.push("report claim ceiling was altered".to_string());
+    }
+
+    let mut expected_candidates: Vec<CandidateResult> = fixture
+        .candidates
+        .iter()
+        .map(|candidate| reference_candidate_result(&fixture, candidate))
+        .collect();
+    expected_candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+    if report.candidates != expected_candidates {
+        errors.push("candidate findings/dispositions disagree with reference recomputation".to_string());
+    }
+
+    let expected_schedule = reference_schedule_conflicts(&fixture);
+    if report.schedule_conflicts != expected_schedule {
+        errors.push("resource schedule conflicts disagree with reference recomputation".to_string());
+    }
+    if report.resource_schedule_feasible != expected_schedule.is_empty() {
+        errors.push("resource_schedule_feasible disagrees with reference recomputation".to_string());
+    }
+
+    errors.sort();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture_bytes() -> Vec<u8> {
+        include_bytes!("../fixtures/corridor-v0.1.json").to_vec()
+    }
+
+    fn parse_fixture(bytes: &[u8]) -> CorridorFixture {
+        serde_json::from_slice(bytes).expect("frozen fixture must parse")
+    }
+
+    #[test]
+    fn frozen_fixture_has_expected_candidate_and_schedule_dispositions() {
+        let bytes = fixture_bytes();
+        let report = evaluate_json(&bytes).expect("fixture should evaluate");
+        let dispositions: BTreeMap<&str, CandidateDisposition> = report
+            .candidates
+            .iter()
+            .map(|result| (result.candidate_id.as_str(), result.disposition))
+            .collect();
+
+        assert_eq!(
+            dispositions.get("A-shortest"),
+            Some(&CandidateDisposition::Infeasible)
+        );
+        assert_eq!(
+            dispositions.get("B-low-earthworks"),
+            Some(&CandidateDisposition::Infeasible)
+        );
+        assert_eq!(
+            dispositions.get("C-reference"),
+            Some(&CandidateDisposition::FeasibleForSyntheticCase)
+        );
+        assert!(!report.resource_schedule_feasible);
+        assert_eq!(report.schedule_conflicts.len(), 1);
+        assert_eq!(report.schedule_conflicts[0].resource_id, "excavator");
+        assert_eq!(report.schedule_conflicts[0].start_tick, 2);
+        assert_eq!(report.schedule_conflicts[0].end_tick, 3);
+        verify_report(&bytes, &report).expect("reference checker should agree");
+    }
+
+    #[test]
+    fn overlapping_unknown_utility_blocks_positive_feasibility_claim() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let unknown = fixture
+            .utilities
+            .iter_mut()
+            .find(|utility| utility.id == "legacy-comms-unknown")
+            .expect("unknown utility fixture exists");
+        let occupancy = unknown.occupancy.as_mut().expect("horizontal envelope exists");
+        occupancy.station_start_m = 300.0;
+        occupancy.station_end_m = 450.0;
+        occupancy.lateral_min_m = 25.0;
+        occupancy.lateral_max_m = 26.0;
+
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let report = evaluate_json(&modified).expect("modified synthetic input remains valid");
+        let reference = report
+            .candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate exists");
+        assert_eq!(
+            reference.disposition,
+            CandidateDisposition::UnknownReviewRequired
+        );
+        assert!(reference.findings.iter().any(|finding| {
+            finding.code == "utility_clearance:legacy-comms-unknown"
+                && finding.status == CheckStatus::Unknown
+        }));
+        verify_report(&modified, &report).expect("reference checker should recompute unknown");
+    }
+
+    #[test]
+    fn old_report_cannot_be_reused_after_exact_input_bytes_change() {
+        let bytes = fixture_bytes();
+        let report = evaluate_json(&bytes).expect("fixture should evaluate");
+        let mut changed_bytes = bytes;
+        changed_bytes.push(b' ');
+        let errors = verify_report(&changed_bytes, &report).expect_err("old digest must fail");
+        assert!(errors.iter().any(|error| error.contains("SHA-256")));
+    }
+
+    #[test]
+    fn altered_candidate_disposition_is_rejected_by_reference_checker() {
+        let bytes = fixture_bytes();
+        let mut report = evaluate_json(&bytes).expect("fixture should evaluate");
+        report
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.candidate_id == "C-reference")
+            .expect("reference candidate exists")
+            .disposition = CandidateDisposition::Infeasible;
+        let errors = verify_report(&bytes, &report).expect_err("tampering must fail");
+        assert!(errors.iter().any(|error| error.contains("reference recomputation")));
+    }
+
+    #[test]
+    fn coordinate_frame_mismatch_fails_closed() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        fixture.utilities[0].coordinate_frame_id = "UNDECLARED_FRAME".to_string();
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors = evaluate_json(&modified).expect_err("frame mismatch must be rejected");
+        assert!(errors.iter().any(|error| error.contains("coordinate frame")));
+    }
+
+    #[test]
+    fn adjacent_half_open_work_windows_do_not_overcommit_capacity() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let second = fixture
+            .work_packages
+            .iter_mut()
+            .find(|package| package.id == "drainage-crossing")
+            .expect("second work package exists");
+        second.resource_uses[0].start_tick = 4;
+        second.resource_uses[0].end_tick = 6;
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let report = evaluate_json(&modified).expect("adjacent windows are valid");
+        assert!(report.resource_schedule_feasible);
+        assert!(report.schedule_conflicts.is_empty());
+        verify_report(&modified, &report).expect("reference checker should agree");
+    }
+
+    #[test]
+    fn duplicate_candidate_ids_are_rejected() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        fixture.candidates[1].id = fixture.candidates[0].id.clone();
+        let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
+        let errors = evaluate_json(&modified).expect_err("duplicate IDs must fail");
+        assert!(errors.iter().any(|error| error.contains("duplicate candidate id")));
+    }
+}
