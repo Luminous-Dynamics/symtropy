@@ -28,7 +28,7 @@ No probabilities are assigned. An outcome partition says which declared states a
 ## Deterministic evidence
 
 - Frozen 4-state, 3-candidate synthetic fixture.
-- 15 Rust tests including fail-closed partition mutations and an independently implemented pairwise oracle.
+- 16 Rust tests including fail-closed partition mutations and an independently implemented pairwise oracle.
 - A seeded/index-driven generated suite: 100 worlds × 20 states × 5 actions = 10,000 state-action evaluations.
 - CI can emit full generated inputs, input digests, reference summaries, and planner receipts through CIV_INFRA_DECISION_CORPUS_OUT.
 - Permuting state/action/outcome order cannot change impact metrics or action ranking.
