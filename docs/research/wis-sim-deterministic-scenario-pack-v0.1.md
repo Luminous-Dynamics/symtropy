@@ -41,3 +41,11 @@ The simulation can tell us how a specified synthetic system behaves under specif
 ## Limits and next work
 
 This PR only authors and pins scenario input contracts. It does not add a second simulator, validate the policy model, or run an experiment. The next code step is to adapt the existing Symtropy deterministic replay substrate, add a fixture loader and per-invariant checker, and emit a machine-readable report bound to fixture hash, policy version, seed, engine revision and toolchain. After that, compare the four declared policies on the same scenarios and adversarial variants; keep scenario assumptions, simulator correctness, and external validity as separate claims.
+
+
+## Frozen integrity values
+
+- JSONL fixture SHA-256: `4eea722417dc14e361fe4786a09f1857980ea92268fda1d5caaaafc35fae3d59`
+- Strict schema file SHA-256: `ab9765e6a10c9215a23aa2f3d4e0dc326f4e88dddeaf4cb9e47c37cca5c7ce46`
+- Fetched-back structural audit: 28 records, 7 scenario families, 4 variants per family, 7 baseline / 21 adversarial, 28 unique case+variant IDs, 28 unique deterministic seeds, no missing top-level required fields, no undeclared top-level fields, and no missing invariant/observable lists.
+- Hashes were recomputed over the fetched-back bytes and match the manifest. No full JSON Schema engine or Symtropy simulation has been run; this is not a simulation pass.
