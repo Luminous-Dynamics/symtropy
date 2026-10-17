@@ -67,7 +67,8 @@ pub struct PlanStep {
 pub struct Plan {
     pub task_ids: Vec<String>,
     pub task_steps: Vec<PlanStep>,
-    pub restored_target_artifact_id: String,
+    pub target_artifact_id_to_restore: String,
+    pub execution_status: String,
     pub cost_units: u64,
     pub duration_units: u64,
     pub task_count: usize,
@@ -136,7 +137,8 @@ fn make_plan(
     Plan {
         task_ids: task_ids.to_vec(),
         task_steps,
-        restored_target_artifact_id: target.to_owned(),
+        target_artifact_id_to_restore: target.to_owned(),
+        execution_status: "PROPOSED_NOT_EXECUTED".to_owned(),
         cost_units,
         duration_units,
         task_count: task_ids.len(),
@@ -152,7 +154,8 @@ fn evaluate_fixture(fixture: &Fixture, input_sha256: String) -> Result<Report, V
         .map(|artifact| artifact.id.clone())
         .collect();
     if initially_valid.contains(&fixture.target_artifact_id) {
-        let plan = make_plan(fixture, &fixture.target_artifact_id, &[], 0, 0);
+        let mut plan = make_plan(fixture, &fixture.target_artifact_id, &[], 0, 0);
+        plan.execution_status = "TARGET_ALREADY_VALID".to_owned();
         return Ok(Report {
             schema_version: REPORT_SCHEMA.to_owned(),
             fixture_id: fixture.fixture_id.clone(),
@@ -534,7 +537,10 @@ mod tests {
             "T-ASBUILT-REINSPECTION".to_owned(), "T-RECOMMISSION".to_owned()
         ]);
         assert!(report.pareto_plans.iter().all(|plan| {
-            plan.task_steps.len() == 3 && plan.task_steps.iter().all(|step| step.task_version == 1)
+            plan.task_steps.len() == 3
+                && plan.task_steps.iter().all(|step| step.task_version == 1)
+                && plan.execution_status == "PROPOSED_NOT_EXECUTED"
+                && plan.target_artifact_id_to_restore == "D-COMMISSIONING-RECEIPT"
         }));
         assert!(report.blocking_reasons.is_empty());
     }
@@ -601,6 +607,7 @@ mod tests {
         let report = evaluate_fixture(&fixture, FIXTURE_SHA256.to_owned()).unwrap();
         assert_eq!(report.planning_status, "TARGET_ALREADY_VALID");
         assert_eq!(report.pareto_plans[0].task_count, 0);
+        assert_eq!(report.pareto_plans[0].execution_status, "TARGET_ALREADY_VALID");
     }
 
     #[test]
