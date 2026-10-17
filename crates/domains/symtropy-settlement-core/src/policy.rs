@@ -55,7 +55,7 @@ pub struct PolicyDefinition {
 }
 
 impl PolicyDefinition {
-    fn canonicalized(&self) -> Self {
+    pub(crate) fn canonicalized(&self) -> Self {
         let mut canonical = self.clone();
         canonical.repair_rules.sort_by(|a, b| {
             b.priority
@@ -97,6 +97,13 @@ pub enum DecisionDisposition {
     },
     RepairRequested {
         request: RepairRequest,
+    },
+    /// A duplicate request is suppressed while an earlier request for the same
+    /// component generation remains unresolved. This is still not actuation.
+    RepairSuppressedPending {
+        target_component: ComponentId,
+        target_generation: u64,
+        pending_action_id: String,
     },
 }
 
@@ -471,6 +478,19 @@ pub fn verify_policy_decision(decision: &PolicyDecision) -> Result<(), Settlemen
             if payload.strategy != BaselineStrategy::ReactiveRepair {
                 return Err(SettlementError(
                     "non-repair policy emitted a repair request".into(),
+                ));
+            }
+        }
+        DecisionDisposition::RepairSuppressedPending {
+            target_component,
+            target_generation,
+            pending_action_id,
+        } => {
+            valid_identifier(target_component.as_str(), "suppressed repair component ID")?;
+            valid_identifier(pending_action_id, "pending repair action ID")?;
+            if *target_generation == 0 || payload.strategy != BaselineStrategy::ReactiveRepair {
+                return Err(SettlementError(
+                    "invalid pending repair suppression disposition".into(),
                 ));
             }
         }
