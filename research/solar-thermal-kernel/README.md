@@ -10,8 +10,9 @@ and the [solar–thermal benchmark contract](https://github.com/Luminous-Dynamic
 - A sensible store with a piecewise-linear specific-heat curve and trapezoidal enthalpy integration.
 - Sensible thermal exergy relative to a declared reference temperature, integrated from the same cp(T) curve; specific exergy (J/kg) and total exergy (J) have distinct types.
 - Power-bounded charge/discharge, explicit-Euler standing loss, and a minimum heat-exchanger approach-temperature gate.
-- Separate verifier functions that recompute reports from inputs and check energy closure.
-- A standalone, dependency-free receipt auditor that consumes the emitted JSON and independently recomputes the solar, charge, standing-loss, discharge, temperature, and sensible-exergy ledgers without calling the model verifier.
+- A two-store sensible-heat cascade primitive that respects source temperature grade, exchanger approach, source discharge power, receiving-store capacity, and heat-exchanger effectiveness.
+- Separate recomputation verifiers for collector, charging, standing loss, discharge, and cascade transfers.
+- A standalone, dependency-free receipt auditor that consumes the emitted JSON and independently recomputes the solar, charge, standing-loss, discharge, temperature, sensible-exergy, and hand-computable two-store cascade ledgers without calling the model verifier.
 - Hand-calculable cases and tampered-report negative controls for both the kernel and the artifact auditor.
 
 ## Model limitations
@@ -30,7 +31,7 @@ cargo run --manifest-path research/solar-thermal-kernel/Cargo.toml --example sol
 cargo clippy --manifest-path research/solar-thermal-kernel/Cargo.toml --all-targets -- -D warnings
 ```
 
-The demo report includes its assumptions—including a separate ambient temperature for standing-loss recomputation and a reference temperature for exergy—but explicitly declares `source_binding: not-source-hash-bound`; it is not a provenance-secure experimental receipt. The auditor is intentionally limited to the versioned flat scalar report; it is not a general JSON parser or a calibrated plant validator. The exact-head targeted workflow is `.github/workflows/solar-thermal-kernel.yml`. The authoring environment has no Rust/Cargo toolchain, so no local compile or test pass is claimed; check the exact-head workflow rather than relying on the root workspace CI, which intentionally does not include this nested research workspace. The tests are authored and must run on the exact PR head before compiler-verified status is claimed.
+The demo report includes its assumptions—including a separate ambient temperature for standing-loss recomputation, a reference temperature for exergy, and an analytic two-store cascade fixture—but explicitly declares `source_binding: not-source-hash-bound`; it is not a provenance-secure experimental receipt. The auditor is intentionally limited to the versioned flat scalar report; it is not a general JSON parser or a calibrated plant validator. The exact-head targeted workflow is `.github/workflows/solar-thermal-kernel.yml`. The authoring environment has no Rust/Cargo toolchain, so no local compile or test pass is claimed; check the exact-head workflow rather than relying on the root workspace CI, which intentionally does not include this nested research workspace. The tests are authored and must run on the exact PR head before compiler-verified status is claimed.
 
 ## Not included
 
