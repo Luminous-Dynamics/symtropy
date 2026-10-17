@@ -90,17 +90,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -224,17 +224,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -356,17 +356,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -489,17 +489,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -622,17 +622,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -755,17 +755,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -888,17 +888,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -1022,17 +1022,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -1154,17 +1154,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -1290,17 +1290,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -1424,17 +1424,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -1558,17 +1558,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
@@ -1693,17 +1693,17 @@
         "observed_data_included": false
       },
       "digital_access": {
-        "basic_operation_without_cloud": true,
-        "offline_safe_degraded_behavior": true,
-        "owner_data_control": true,
         "cloud_required_for_basic_function": false,
-        "privacy_by_default": true
+        "basic_operation_without_cloud_required": true,
+        "offline_safe_degraded_behavior_required": true,
+        "owner_data_control_required": true,
+        "privacy_by_default_required": true
       },
       "language_access": {
         "manual_language_status": "not_assessed",
-        "local_units_supported": true,
         "offline_manuals_required": true,
-        "language_list": []
+        "language_list": [],
+        "local_units_support_required": true
       },
       "lifecycle": {
         "end_of_life_status": "not_assessed",
