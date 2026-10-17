@@ -203,7 +203,12 @@ fn finite_nonnegative(value: f64) -> bool {
 // independently ordered floating-point calculations compare deterministically.
 fn normalize_metric(value: f64) -> f64 {
     if value.is_finite() {
-        (value * 1.0e9).round() / 1.0e9
+        let scaled = value * 1.0e9;
+        if scaled.is_finite() {
+            scaled.round() / 1.0e9
+        } else {
+            value
+        }
     } else {
         value
     }
@@ -395,6 +400,12 @@ pub fn validate_fixture(fixture: &CorridorFixture) -> Result<(), Vec<String>> {
                     candidate.id
                 ));
             }
+        }
+        if maximum_grade_percent(&candidate.profile_points).is_none() {
+            errors.push(format!(
+                "candidate {} longitudinal profile cannot produce a finite grade",
+                candidate.id
+            ));
         }
         if candidate.cross_sections.len() < 2 {
             errors.push(format!(
@@ -1595,6 +1606,24 @@ mod tests {
         }));
         verify_report(&modified, &report)
             .expect("reference checker must not convert unbounded unknown to clear");
+    }
+
+    #[test]
+    fn nonfinite_derived_grade_is_rejected_before_reporting_metrics() {
+        let bytes = fixture_bytes();
+        let mut fixture = parse_fixture(&bytes);
+        let candidate = fixture
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.id == "C-reference")
+            .expect("reference candidate exists");
+        candidate.profile_points[1].station_m = 1.0e-300;
+        candidate.profile_points[1].elevation_m = 1.0e308;
+        let modified = serde_json::to_vec(&fixture).expect("finite input values serialize");
+        let errors = evaluate_json(&modified).expect_err("overflowing grade must fail closed");
+        assert!(errors.iter().any(|error| {
+            error.contains("longitudinal profile cannot produce a finite grade")
+        }));
     }
 
 }
