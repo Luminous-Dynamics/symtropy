@@ -6,7 +6,7 @@ on:
     paths:
       - "schemas/transport/extreme_environment_platform_readiness_v0_1.schema.json"
       - "fixtures/extreme_environment/**"
-      - "docs/tech/EXTREME_ENVIRONMENT_PLATFORM_READINESS_V0_1.md"
+      - "docs/tech/EXTREME_ENVIRONMENT_*.md"
       - "tools/extreme-environment-audit/**"
       - ".github/workflows/extreme-environment-audit.yml"
   push:
@@ -14,7 +14,7 @@ on:
     paths:
       - "schemas/transport/extreme_environment_platform_readiness_v0_1.schema.json"
       - "fixtures/extreme_environment/**"
-      - "docs/tech/EXTREME_ENVIRONMENT_PLATFORM_READINESS_V0_1.md"
+      - "docs/tech/EXTREME_ENVIRONMENT_*.md"
       - "tools/extreme-environment-audit/**"
       - ".github/workflows/extreme-environment-audit.yml"
   workflow_dispatch:
