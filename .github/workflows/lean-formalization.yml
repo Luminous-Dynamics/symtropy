@@ -178,6 +178,15 @@ jobs:
             (.nonclaims | length >= 5)
           ' formalization/lean/tick-transactions.json >/dev/null
 
+      - name: Build pinned Lean project and audit theorem namespace
+        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
+        with:
+          lake-package-directory: formalization/lean
+          use-mathlib-cache: true
+          build: true
+          axiom-audit: true
+          axiom-audit-root: SymtropyFormal
+          axiom-audit-allow: propext,Classical.choice,Quot.sound
       - name: Typecheck every tick-transaction theorem binding
         shell: bash
         run: |
@@ -190,15 +199,6 @@ jobs:
           trap 'rm -f TickTransactionManifestCheck.lean' EXIT
           lake env lean TickTransactionManifestCheck.lean
 
-      - name: Build pinned Lean project and audit theorem namespace
-        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1.6.2
-        with:
-          lake-package-directory: formalization/lean
-          use-mathlib-cache: true
-          build: true
-          axiom-audit: true
-          axiom-audit-root: SymtropyFormal
-          axiom-audit-allow: propext,Classical.choice,Quot.sound
       - name: Typecheck all theorem names in the formal contract manifest
         shell: bash
         run: |
