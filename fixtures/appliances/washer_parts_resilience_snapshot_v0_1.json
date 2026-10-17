@@ -120,7 +120,7 @@
       "manufacturer": "Midea",
       "exact_model": "MF110W80B-T",
       "capacity_kg": 8,
-      "max_spin_rpm": 1400,
+      "max_spin_rpm": null,
       "price_observations": [
         {
           "currency": "ZAR",
@@ -139,7 +139,7 @@
       },
       "purchase_state": "not_purchased",
       "control_state": "not_selected",
-      "selection_note": "Price observation is a single listing discovery, not a quote. Reconfirm current seller/model/revision and the maximum-spin specification from the exact rating sheet before matching."
+      "selection_note": "Price observation is a single listing discovery, not a quote. Reconfirm current seller/model/revision and the maximum-spin specification from the exact rating sheet before matching; the spin value is intentionally unknown in this snapshot."
     }
   ],
   "parts_catalogue_probes": [
