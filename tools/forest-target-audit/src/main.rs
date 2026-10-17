@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, env, fs, process::ExitCode};
+use std::{collections::{BTreeMap, BTreeSet, VecDeque}, env, fs, process::ExitCode};
 
 const W: usize = 5;
 const N: usize = W * W;
@@ -57,6 +57,10 @@ struct PlannerScenario {
 #[derive(Debug, Deserialize)]
 struct PlannerPlan {
     budget_feasible: bool,
+    outbound_cost_steps: u16,
+    return_distance_steps: u16,
+    reserved_steps: u16,
+    total_budgeted_steps: u16,
     viewpoints: Vec<Viewpoint>,
 }
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
@@ -201,6 +205,61 @@ impl Rng {
             values.swap(i, j);
         }
     }
+}
+fn adjacent(map: &GridMap, cell: usize) -> Vec<usize> {
+    let p = xy(cell);
+    let mut out = Vec::with_capacity(4);
+    if p.y > 0 { out.push(idx(p.x, p.y - 1)); }
+    if p.x > 0 { out.push(idx(p.x - 1, p.y)); }
+    if p.x + 1 < W { out.push(idx(p.x + 1, p.y)); }
+    if p.y + 1 < W { out.push(idx(p.x, p.y + 1)); }
+    out
+}
+fn distances(map: &GridMap, start: usize) -> Vec<Option<u16>> {
+    let mut dist = vec![None; N];
+    if !clear(map, start) { return dist; }
+    let mut queue = VecDeque::new();
+    dist[start] = Some(0);
+    queue.push_back(start);
+    while let Some(current) = queue.pop_front() {
+        let next_distance = dist[current].unwrap_or(0).saturating_add(1);
+        for next in adjacent(map, current) {
+            if clear(map, next) && dist[next].is_none() {
+                dist[next] = Some(next_distance);
+                queue.push_back(next);
+            }
+        }
+    }
+    dist
+}
+fn verify_plan_contract(map: &GridMap, plan: &PlannerPlan, config: &PlannerConfig, label: &str) -> Check<()> {
+    if !plan.budget_feasible { return Err(format!("{label}: planner says plan is budget-infeasible")); }
+    if plan.viewpoints.len() > usize::from(config.max_viewpoints) {
+        return Err(format!("{label}: viewpoint count exceeds configured limit"));
+    }
+    let mut outbound = 0u16;
+    let (mut at, mut heading) = (config.start_cell, Heading::North);
+    if !clear(map, at) { return Err(format!("{label}: start is not traversable")); }
+    for view in &plan.viewpoints {
+        if view.x >= W || view.y >= W { return Err(format!("{label}: viewpoint outside map")); }
+        let cell = idx(view.x, view.y);
+        if !clear(map, cell) { return Err(format!("{label}: viewpoint on obstacle/unknown cell")); }
+        let travel = distances(map, at)[cell].ok_or_else(|| format!("{label}: viewpoint unreachable"))?;
+        let turn = if heading == view.heading { 0 } else { config.turn_cost_steps };
+        outbound = outbound.saturating_add(travel).saturating_add(turn);
+        at = cell;
+        heading = view.heading;
+    }
+    let back = distances(map, at)[config.start_cell].ok_or_else(|| format!("{label}: no feasible return path"))?;
+    let total = outbound.saturating_add(back).saturating_add(config.return_reserve_steps);
+    if plan.outbound_cost_steps != outbound
+        || plan.return_distance_steps != back
+        || plan.reserved_steps != config.return_reserve_steps
+        || plan.total_budgeted_steps != total
+        || total > config.energy_budget_steps {
+        return Err(format!("{label}: receipt cost fields do not match independently recomputed route/turn/return/reserve costs"));
+    }
+    Ok(())
 }
 fn neighbors_for_target(map: &GridMap, center: usize) -> Vec<usize> {
     let c = xy(center);
@@ -464,8 +523,12 @@ fn validate_and_score(c: &Corpus, planner_receipt: &PlannerReceipt, source_commi
     for binding in &c.scenario_bindings {
         let scenario = by_id.get(binding.planner_scenario_id.as_str()).ok_or_else(|| format!("missing plan {}", binding.planner_scenario_id))?;
         let map = map_for(binding.scene);
+        let config = config_for(binding);
         if digest_json(&map)? != scenario.map_sha256 { return Err(format!("{}: planner map digest does not match target-audit geometry", binding.planner_scenario_id)); }
-        if digest_json(&config_for(binding))? != scenario.config_sha256 { return Err(format!("{}: planner config digest does not match target-audit binding", binding.planner_scenario_id)); }
+        if digest_json(&config)? != scenario.config_sha256 { return Err(format!("{}: planner config digest does not match target-audit binding", binding.planner_scenario_id)); }
+        verify_plan_contract(&map, &scenario.greedy, &config, "greedy")?;
+        verify_plan_contract(&map, &scenario.two_step_lookahead, &config, "lookahead")?;
+        verify_plan_contract(&map, &scenario.exhaustive_oracle, &config, "coverage oracle")?;
         let seeds: Vec<(&str, u64)> = c.training_seeds.iter().map(|s| ("training", *s))
             .chain(c.held_out_seeds.iter().map(|s| ("held_out", *s))).collect();
         for (split, seed) in seeds {
@@ -570,7 +633,7 @@ mod tests {
     #[test]
     fn incomplete_target_cannot_be_marked_complete() {
         let map = map_for(Scene::OpenGrid);
-        let plan = PlannerPlan { budget_feasible: true, viewpoints: vec![Viewpoint { x: 0, y: 2, heading: Heading::East }] };
+        let plan = PlannerPlan { budget_feasible: true, outbound_cost_steps: 0, return_distance_steps: 0, reserved_steps: 0, total_budgeted_steps: 0, viewpoints: vec![Viewpoint { x: 0, y: 2, heading: Heading::East }] };
         let target = Target {
             target_id: "two-edge-negative-control".into(), kind: TargetKind::TrunkDiameterEdges,
             center_cell: idx(2, 2), required_feature_cells: vec![idx(1, 2), idx(4, 2)],
@@ -583,7 +646,7 @@ mod tests {
     #[test]
     fn serialized_scores_are_bounded_and_deterministic() {
         let map = map_for(Scene::OpenGrid);
-        let plan = PlannerPlan { budget_feasible: true, viewpoints: vec![Viewpoint { x: 0, y: 2, heading: Heading::East }] };
+        let plan = PlannerPlan { budget_feasible: true, outbound_cost_steps: 0, return_distance_steps: 0, reserved_steps: 0, total_budgeted_steps: 0, viewpoints: vec![Viewpoint { x: 0, y: 2, heading: Heading::East }] };
         let target = Target {
             target_id: "range-control".into(), kind: TargetKind::TrunkDiameterEdges,
             center_cell: idx(2, 2), required_feature_cells: vec![idx(1, 2), idx(4, 2)],
