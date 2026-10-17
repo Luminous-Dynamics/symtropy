@@ -376,10 +376,10 @@ fn validate_matrix(
         }
         if let Some((fx, lead, availability, demand)) = condition {
             let inputs = scenario.get("shock_inputs").unwrap_or(&Value::Null);
-            if !close_to(inputs.get("foreign_exchange_cost_multiplier").and_then(Value::as_f64), fx)
-                || !close_to(inputs.get("imported_part_lead_time_multiplier").and_then(Value::as_f64), lead)
-                || !close_to(inputs.get("assumed_supplier_availability_fraction").and_then(Value::as_f64), availability)
-                || !close_to(inputs.get("annual_demand_multiplier").and_then(Value::as_f64), demand)
+            if !close_to(inputs.get("foreign_exchange_cost_multiplier").and_then(Value::as_f64), *fx)
+                || !close_to(inputs.get("imported_part_lead_time_multiplier").and_then(Value::as_f64), *lead)
+                || !close_to(inputs.get("assumed_supplier_availability_fraction").and_then(Value::as_f64), *availability)
+                || !close_to(inputs.get("annual_demand_multiplier").and_then(Value::as_f64), *demand)
                 || text_at(inputs, "input_class") != Some("illustrative_sensitivity_input_not_observation")
             {
                 errors.push(format!("{at}: shock input does not match its declared supply condition"));
@@ -658,7 +658,8 @@ mod tests {
     #[test]
     fn duplicate_policy_source_reference_is_rejected() {
         let mut document = matrix();
-        document["provenance"]["policy_source_ids"][1] = document["provenance"]["policy_source_ids"][0].clone();
+        let first = document["provenance"]["policy_source_ids"][0].clone();
+        document["provenance"]["policy_source_ids"][1] = first;
         assert!(validate_fixture(&document).is_err());
     }
 
