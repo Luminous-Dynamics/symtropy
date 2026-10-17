@@ -1005,8 +1005,10 @@ mod tests {
         let base_seed = 0xC1F1_1A5E_2026_u64;
         let scenario_count = 1_000_usize;
 
+        let mut scenarios_checked = 0_usize;
         for scenario_index in 0..scenario_count {
             let events = generated_property_events(base_seed, scenario_index);
+            scenarios_checked += 1;
             let evaluator_queue = EvaluatorEventQueue::from_events(&events);
             let observation_queue = PolicyObservationQueue::from_events(&events);
             let mut reversed_events = events.clone();
@@ -1062,7 +1064,7 @@ mod tests {
             }
         }
 
-        assert_eq!(scenario_count, 1_000);
+        assert_eq!(scenarios_checked, 1_000);
     }
 
     #[test]
