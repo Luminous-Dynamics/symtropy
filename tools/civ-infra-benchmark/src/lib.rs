@@ -1081,6 +1081,45 @@ fn reference_schedule_conflicts(fixture: &CorridorFixture) -> Vec<ScheduleConfli
     expected
 }
 
+fn metrics_match(actual: &CandidateMetrics, expected: &CandidateMetrics) -> bool {
+    fn close(left: f64, right: f64) -> bool {
+        left.is_finite()
+            && right.is_finite()
+            && (left - right).abs() <= 1.0e-8 * left.abs().max(right.abs()).max(1.0)
+    }
+
+    close(actual.route_length_m, expected.route_length_m)
+        && close(
+            actual.derived_max_grade_percent,
+            expected.derived_max_grade_percent,
+        )
+        && close(
+            actual.derived_cut_volume_m3,
+            expected.derived_cut_volume_m3,
+        )
+        && close(
+            actual.derived_fill_volume_m3,
+            expected.derived_fill_volume_m3,
+        )
+        && close(
+            actual.derived_total_earthworks_m3,
+            expected.derived_total_earthworks_m3,
+        )
+}
+
+fn candidate_results_match(
+    actual: &[CandidateResult],
+    expected: &[CandidateResult],
+) -> bool {
+    actual.len() == expected.len()
+        && actual.iter().zip(expected).all(|(actual, expected)| {
+            actual.candidate_id == expected.candidate_id
+                && actual.disposition == expected.disposition
+                && actual.findings == expected.findings
+                && metrics_match(&actual.metrics, &expected.metrics)
+        })
+}
+
 pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(), Vec<String>> {
     let fixture: CorridorFixture = serde_json::from_slice(input_bytes)
         .map_err(|error| vec![format!("invalid fixture JSON during reference check: {error}")])?;
@@ -1106,7 +1145,7 @@ pub fn verify_report(input_bytes: &[u8], report: &BenchmarkReport) -> Result<(),
         .map(|candidate| reference_candidate_result(&fixture, candidate))
         .collect();
     expected_candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
-    if report.candidates != expected_candidates {
+    if !candidate_results_match(&report.candidates, &expected_candidates) {
         errors.push(
             "candidate metrics/findings/dispositions disagree with reference recomputation"
                 .to_string(),
