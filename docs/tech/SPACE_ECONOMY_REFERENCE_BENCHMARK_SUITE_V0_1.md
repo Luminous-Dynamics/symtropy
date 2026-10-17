@@ -176,3 +176,12 @@ The standalone reference suite now has a follow-up deterministic fault-set compa
 The executable example `tools/space-economy-bench/examples/common_cause_reference.rs` makes this distinction explicit. It compares a 65-SCU synthetic shared-bus option with an 85-SCU synthetic separate-controller option under demand 60 and two 70-capacity relays. The first topology passes either provider outage but fails its shared-bus outage; the second survives each individual provider/controller fault represented in its own topology.
 
 This is a separate extension and does **not** alter or silently add a seventh scenario to the frozen v0.1 corpus. The example verifies named, deterministic component-dependency cases. It does not assign failure probabilities, claim statistical independence, or qualify actual cislunar infrastructure. A future probability model requires FMEA/hazard evidence and calibration.
+
+ 
+## Active reference extension — supplier concentration
+
+The standalone example `tools/space-economy-bench/examples/supplier_concentration_reference.rs` and [BENCH-SPACE-004](https://github.com/Luminous-Dynamics/symtropy/issues/1750) add a deterministic supplier-portfolio comparison inspired by the OECD's 2026 findings on launch-supply concentration and critical-input dependencies. The fixture is synthetic and is not an estimate of real supplier market shares.
+
+For capacity shares 50/20/15/15, HHI is 3,350 and the loss of the 50-unit supplier leaves 50 units against demand 70. For shares 25/25/25/25, HHI is 2,500 and any single provider loss leaves 75 units. The second portfolio costs 18% more in this synthetic fixture, but it is the only one that passes the mandatory N-1 service gate.
+
+This supplements, rather than changes, the frozen six-scenario v0.1 corpus. HHI is reported as a descriptive concentration metric for the stated portfolio—not proof of market power or an outage probability. Deterministic fault coverage is not a probability model.

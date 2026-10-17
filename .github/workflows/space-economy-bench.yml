@@ -46,6 +46,9 @@ jobs:
 
       - name: Run common-cause resilience reference tests
         run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example common_cause_reference
+
+      - name: Run supplier-concentration reference tests
+        run: cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference
       - name: Execute corpus validator and emit receipt
         shell: bash
         run: |
@@ -96,6 +99,25 @@ jobs:
             and .summary.diverse_cost_premium_scu == 20
           ' space-economy-common-cause-receipt.json
 
+      - name: Execute supplier-concentration reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference -- \
+            --source-commit "$source_commit" > space-economy-supplier-concentration-receipt.json
+          jq -e '
+            .result == "pass"
+            and .demand_units == 70
+            and .portfolios[0].hhi == 3350
+            and .portfolios[0].n_minus_one_supplier_gate_pass == false
+            and .portfolios[0].minimum_remaining_capacity_under_any_single_supplier_loss == 50
+            and .portfolios[1].hhi == 2500
+            and .portfolios[1].n_minus_one_supplier_gate_pass == true
+            and .portfolios[1].minimum_remaining_capacity_under_any_single_supplier_loss == 75
+            and .diversification_cost_premium_percent_integer == 18
+          ' space-economy-supplier-concentration-receipt.json
+
       - name: Upload deterministic benchmark receipts
         uses: actions/upload-artifact@v4
         with:
@@ -104,5 +126,6 @@ jobs:
             space-economy-reference-receipt.json
             space-economy-voi-reference-receipt.json
             space-economy-common-cause-receipt.json
+            space-economy-supplier-concentration-receipt.json
           if-no-files-found: error
           retention-days: 90

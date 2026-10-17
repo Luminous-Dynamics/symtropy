@@ -55,3 +55,19 @@ cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example
 The fixture uses demand 60, two 70-capacity relays, listed synthetic cost 65 for the shared-bus option and 85 for the separated-controller option. The point is not to estimate actual relay costs; it is to show why node count is not sufficient evidence of resilience. See [BENCH-SPACE-003](https://github.com/Luminous-Dynamics/symtropy/issues/1749).
 
 The receipt reports named fault applicability, remaining service capacity and unmet demand. A fault not present in a topology is labelled `not_applicable`, never silently counted as a pass.
+
+## Supplier concentration and resilience reference (active research slice)
+
+The standalone file tools/space-economy-bench/examples/supplier_concentration_reference.rs computes the capacity-share Herfindahl-Hirschman Index (HHI) with exact integer arithmetic and compares supplier portfolios under each named single-provider failure.
+
+The synthetic concentrated portfolio has shares 50/20/15/15, HHI 3,350, lifecycle cost 100 SCU, and minimum post-outage capacity 50. The balanced portfolio has shares 25/25/25/25, HHI 2,500, lifecycle cost 118 SCU, and minimum post-outage capacity 75. Demand is 70. Therefore, if N-1 service is a hard gate, the higher-cost balanced portfolio is the only feasible option in this fixture.
+
+Run:
+
+```sh
+cargo test --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference
+cargo run --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example supplier_concentration_reference -- \
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+These are synthetic capacities and costs, not actual market shares or launch procurement forecasts. The benchmark assigns no outage probabilities. See [BENCH-SPACE-004](https://github.com/Luminous-Dynamics/symtropy/issues/1750).

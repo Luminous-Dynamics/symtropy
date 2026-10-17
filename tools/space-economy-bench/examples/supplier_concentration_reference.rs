@@ -213,7 +213,9 @@ mod tests {
         let report = evaluate(&PORTFOLIOS[1], DEMAND_UNITS).unwrap();
         assert_eq!(report["n_minus_one_supplier_gate_pass"], true);
         assert_eq!(report["minimum_remaining_capacity_under_any_single_supplier_loss"], 75);
-        assert_eq!(report["fault_domain_coverage_ppm"], Value::Null);
+        let faults = report["fault_results"].as_array().unwrap();
+        assert_eq!(faults.len(), 4);
+        assert!(faults.iter().all(|fault| fault["status"] == "pass"));
     }
 
     #[test]
