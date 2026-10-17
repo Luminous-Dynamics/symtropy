@@ -122,6 +122,10 @@ fn scenarios() -> Vec<Scenario> {
     context.site_id = Some("crater-03");
     values.push(Scenario { context, expected_reason: Some("SITE_OUT_OF_ENVELOPE") });
 
+    let mut context = in_domain_context("instrument_identity_change");
+    context.instrument_id = Some("spectrometer-02");
+    values.push(Scenario { context, expected_reason: Some("INSTRUMENT_ID_MISMATCH") });
+
     let mut context = in_domain_context("instrument_revision_change");
     context.instrument_revision = Some("rev-d");
     values.push(Scenario { context, expected_reason: Some("INSTRUMENT_REVISION_MISMATCH") });
@@ -145,6 +149,10 @@ fn scenarios() -> Vec<Scenario> {
     let mut context = in_domain_context("sample_preparation_changed");
     context.sample_prep = Some("wet-washed-v2");
     values.push(Scenario { context, expected_reason: Some("SAMPLE_PREPARATION_MISMATCH") });
+
+    let mut context = in_domain_context("reference_standard_hash_mismatch");
+    context.standard_sha256 = Some("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+    values.push(Scenario { context, expected_reason: Some("REFERENCE_STANDARD_MISMATCH") });
 
     let mut context = in_domain_context("reference_standard_lineage_changed");
     context.standard_id = Some("reference-standard-99");
@@ -404,7 +412,7 @@ fn execute(source_commit: &str) -> Result<Value, String> {
 
     let partitions = partition_integrity();
     let expected_negative_count = fixture_scenarios.len() as i64 - 1;
-    if fixture_scenarios.len() != 14
+    if fixture_scenarios.len() != 16
         || out_of_domain_count != expected_negative_count
         || naive_false_valid_count != expected_negative_count
         || gate_false_valid_count != 0
@@ -602,9 +610,9 @@ mod tests {
     fn receipt_proves_zero_false_valids_and_binds_envelope_and_model() {
         let receipt = execute(&"a".repeat(40)).unwrap();
         assert_eq!(receipt["result"], "pass");
-        assert_eq!(receipt["summary"]["scenario_count"], 14);
-        assert_eq!(receipt["summary"]["out_of_domain_negative_control_count"], 13);
-        assert_eq!(receipt["summary"]["naive_false_valid_claim_count"], 13);
+        assert_eq!(receipt["summary"]["scenario_count"], 16);
+        assert_eq!(receipt["summary"]["out_of_domain_negative_control_count"], 15);
+        assert_eq!(receipt["summary"]["naive_false_valid_claim_count"], 15);
         assert_eq!(receipt["summary"]["envelope_gate_false_valid_claim_count"], 0);
         assert_eq!(receipt["summary"]["envelope_gate_false_rejection_count"], 0);
         assert_eq!(receipt["drift_monitor"]["detection_delay_samples"], 1);
