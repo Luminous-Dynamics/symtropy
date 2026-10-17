@@ -227,3 +227,11 @@ The result vocabulary explicitly distinguishes `OPTIMAL_EXACT`, `NO_VALID_PLAN_P
 
 
 The planner test suite now also extends the portfolio in memory with a third target sharing the same as-built evidence and a sixth abstract gate. It exhaustively checks all 64 gate subsets against the subset oracle; the full-gate frontier becomes (16,12) and (19,9), again in invented cost/duration units. This is an expanded micro-corpus, not yet a large-graph performance benchmark.
+
+## 17. Revalidation scale benchmark contract
+
+The new [Habitat Revalidation Scale Benchmark v0.1](HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.md) and frozen profile matrix [HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json](fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json) define seven workload families: exhaustive micro-oracle, deep dependency chain, shared multi-target work, wide fanout, large mostly irrelevant evidence universe, Pareto-dominance stress, and budget exhaustion.
+
+The contract requires exact-workload SHA-256 receipts, disclosed hardware/toolchain, per-phase latency, peak RSS, state/frontier counters, p50/p95/p99, independent plan-feasibility checks, and truthful incomplete statuses. The 10,000-artifact / 64-task, ≤100,000-state, ≤512 MiB and latency values are **provisional proposed targets only**; no scale measurements are claimed. The fixture profiles must be materialized and measured by a future deterministic generator/runner before any performance claim is made.
+
+This adds a distinction important to whole-property engineering: the existing portfolio's additive duration units are not a schedule makespan. A follow-up should model precedence, resource capacity, crew/equipment availability, calendars, procurement lead times, and uncertainty explicitly rather than treating an ordered task list as a construction schedule.
