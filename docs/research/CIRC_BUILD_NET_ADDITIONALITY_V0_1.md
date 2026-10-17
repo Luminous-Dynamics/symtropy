@@ -20,7 +20,7 @@ All material quantities are integer grams; costs are integer cents; rates are ba
 
 For option a and scenario s:
 
-1. **Yield-adjusted recovery** = floor(gross recovered mass × recovery yield / 10,000).
+1. **Yield-adjusted recovery** = floor(gross recovered mass × recovery yield / 10,000). The displayed gross-circularity score is capped at the virgin-material requirement per service unit, so excess recovered mass cannot inflate the ranking.
 2. **Effective substitution** = min(option claim, scenario substitution cap).
 3. **Virgin material displaced per service unit** = min(virgin requirement, floor(yield-adjusted recovery × effective substitution / 10,000)).
 4. **Remaining virgin burden** = remaining virgin grams × embodied GHG per gram × scenario virgin multiplier, rounded upward.
