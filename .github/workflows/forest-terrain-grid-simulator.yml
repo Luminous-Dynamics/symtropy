@@ -2,15 +2,17 @@ name: Forest Terrain Grid Simulator
 
 on:
   push:
-    branches: ["feat/forest-terrain-grid-simulator-v0-1"]
+    branches: ["feat/forest-terrain-grid-simulator-v0-1", "feat/forest-sensor-visibility-coverage-v0-1"]
     paths:
       - "docs/tech/forest-terrain-grid-corpus-v0.1.json"
+      - "docs/tech/FOREST_SENSOR_FOOTPRINT_COVERAGE_V0_1.md"
       - "tools/forest-terrain-sim/**"
       - ".github/workflows/forest-terrain-grid-simulator.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "docs/tech/forest-terrain-grid-corpus-v0.1.json"
+      - "docs/tech/FOREST_SENSOR_FOOTPRINT_COVERAGE_V0_1.md"
       - "tools/forest-terrain-sim/**"
       - ".github/workflows/forest-terrain-grid-simulator.yml"
   workflow_dispatch:
@@ -56,7 +58,15 @@ jobs:
             and .fault_deadline_pass_count == 10
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
             and (.source_commit | test("^[0-9a-f]{40}$"))
-            and all(.scenarios[]; (.map_sha256 | test("^[0-9a-f]{64}$")) and (.config_sha256 | test("^[0-9a-f]{64}$")))
+            and all(.scenarios[];
+              .planned_area_cells == 81
+              and .observed_area_cells >= 0
+              and .unobserved_area_cells >= 0
+              and (.observed_area_cells + .unobserved_area_cells == .planned_area_cells)
+              and .observed_coverage_basis_points <= 10000
+              and (.map_sha256 | test("^[0-9a-f]{64}$"))
+              and (.config_sha256 | test("^[0-9a-f]{64}$"))
+            )
           ' forest-terrain-grid-receipt.json
       - name: Upload deterministic terrain receipt
         uses: actions/upload-artifact@v4
