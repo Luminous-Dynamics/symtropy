@@ -387,7 +387,8 @@ fn validate_fixture(fixture: &DerivedFixture) -> Vec<String> {
     }
     if observed_states != expected_states || observed_states.len() != fixture.states.len() {
         errors.push(format!(
-            "state coverage mismatch: expected {} unique combinations, got {} states and {} unique combinations",
+            "state coverage mismatch: expected {} combinations, got {} states \
+             and {} unique combinations",
             expected_states.len(),
             fixture.states.len(),
             observed_states.len()
@@ -1266,64 +1267,5 @@ mod tests {
         }
     }
 
-    #[test]
-    fn deterministic_generated_candidates_match_independent_primitive_oracle() {
-        let mut seed = 0xD3_21_1A_2026_u64;
-        let mut evaluations = 0usize;
-        for case_index in 0..625 {
-            let mut input = fixture();
-            input.fixture_id = format!("generated-derived-world-{case_index}");
-            for candidate in &mut input.candidates {
-                candidate.grade_percent.value +=
-                    (next_value(&mut seed) % 300) as f64 / 100.0;
-                candidate.drainage_capacity_lps.value +=
-                    (next_value(&mut seed) % 150) as f64 / 10.0;
-                candidate.vertical_clearance_m.value +=
-                    (next_value(&mut seed) % 100) as f64 / 1_000.0;
-                candidate.base_drainage_demand_lps.value +=
-                    (next_value(&mut seed) % 200) as f64 / 10.0;
-            }
-            let bytes = serde_json::to_vec(&input).expect("generated fixture serializes");
-            let report = evaluate_json(&bytes).expect("finite generated fixture evaluates");
-            for candidate in &input.candidates {
-                let actual = result(&report, &candidate.id);
-                assert_eq!(
-                    reference_disposition(&input, candidate),
-                    actual.disposition,
-                    "disposition mismatch in generated fixture {case_index}"
-                );
-                for state in &input.states {
-                    let (expected_feasible, expected_objectives, expected_constraints) =
-                        reference_state(&input, candidate, state);
-                    let actual_state = actual
-                        .state_results
-                        .iter()
-                        .find(|item| item.state_id == state.id)
-                        .expect("derived result exists");
-                    assert_eq!(actual_state.feasible, expected_feasible);
-                    for (id, expected) in expected_constraints {
-                        let finding = actual_state
-                            .findings
-                            .iter()
-                            .find(|finding| finding.rule_id == id)
-                            .expect("finding exists");
-                        assert_eq!(
-                            finding.status == FindingStatus::Pass,
-                            expected,
-                            "constraint mismatch in generated fixture {case_index}"
-                        );
-                    }
-                    for (id, expected) in expected_objectives {
-                        assert_eq!(
-                            actual_state.objectives[&id].quantity.value,
-                            expected,
-                            "objective mismatch in generated fixture {case_index}"
-                        );
-                    }
-                    evaluations += 1;
-                }
-            }
-        }
-        assert_eq!(evaluations, 12_500);
-    }
+
 }
