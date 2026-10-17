@@ -218,7 +218,9 @@ fn main() {
 
 fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<ValidationReport, Vec<String>> {
     let fixture: Fixture = serde_json::from_slice(input_bytes).map_err(|error| {
-        vec![format!("fixture JSON does not match the strict v0.1 schema: {error}")]
+        vec![format!(
+            "fixture JSON does not match the strict v0.1 schema: {error}"
+        )]
     })?;
 
     let mut errors = validate_fixture(&fixture);
@@ -339,7 +341,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         &mut errors,
     );
     check_unique(
-        fixture.resources.iter().map(|item| item.resource_id.as_str()),
+        fixture
+            .resources
+            .iter()
+            .map(|item| item.resource_id.as_str()),
         "resource_id",
         &mut errors,
     );
@@ -436,7 +441,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             &mut errors,
         );
         for evidence in &task.acceptance_evidence {
-            if !fixture.evidence_vocabulary.iter().any(|known| known == evidence) {
+            if !fixture
+                .evidence_vocabulary
+                .iter()
+                .any(|known| known == evidence)
+            {
                 errors.push(format!(
                     "task {} references unknown acceptance evidence {}",
                     task.task_id, evidence
@@ -555,7 +564,10 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     }
 
     check_unique(
-        fixture.tiny_schedule_cases.iter().map(|case| case.case_id.as_str()),
+        fixture
+            .tiny_schedule_cases
+            .iter()
+            .map(|case| case.case_id.as_str()),
         "tiny schedule case id",
         &mut errors,
     );
@@ -594,8 +606,11 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             &format!("task id in oracle case {}", case.case_id),
             &mut errors,
         );
-        let oracle_task_ids: BTreeSet<&str> =
-            case.tasks.iter().map(|task| task.task_id.as_str()).collect();
+        let oracle_task_ids: BTreeSet<&str> = case
+            .tasks
+            .iter()
+            .map(|task| task.task_id.as_str())
+            .collect();
         let mut dependencies = BTreeMap::new();
 
         for task in &case.tasks {
@@ -713,7 +728,6 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
 
     errors
 }
-
 
 fn solve_tiny_schedule_case(
     case: &TinyScheduleCase,
@@ -1044,7 +1058,11 @@ mod tests {
             results["O-003-horizon-infeasible"].minimum_makespan_ticks,
             None
         );
-        assert!(results.values().all(|result| result.placements_examined > 0));
+        assert!(
+            results
+                .values()
+                .all(|result| result.placements_examined > 0)
+        );
     }
 
     #[test]
@@ -1127,7 +1145,11 @@ mod tests {
         let mut candidate = fixture();
         candidate.disturbance_cases[1].case_id = candidate.disturbance_cases[0].case_id.clone();
         let errors = validate_fixture(&candidate);
-        assert!(errors.iter().any(|error| error.contains("duplicate case_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate case_id"))
+        );
     }
 
     #[test]
@@ -1135,7 +1157,11 @@ mod tests {
         let mut candidate = fixture();
         candidate.disturbance_cases[0].observable_tick = 1;
         let errors = validate_fixture(&candidate);
-        assert!(errors.iter().any(|error| error.contains("observable before")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("observable before"))
+        );
     }
 
     #[test]
@@ -1145,7 +1171,11 @@ mod tests {
             .recovery_evidence
             .push("not-in-the-evidence-vocabulary".to_string());
         let errors = validate_fixture(&candidate);
-        assert!(errors.iter().any(|error| error.contains("unknown recovery evidence")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown recovery evidence"))
+        );
     }
 
     #[test]
@@ -1163,7 +1193,11 @@ mod tests {
             .affected_resources
             .push("robot-that-does-not-exist".to_string());
         let errors = validate_fixture(&candidate);
-        assert!(errors.iter().any(|error| error.contains("missing resource")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("missing resource"))
+        );
     }
 
     #[test]
@@ -1173,7 +1207,11 @@ mod tests {
             .requires
             .push("inspect-water-pipe-01".to_string());
         let errors = validate_fixture(&candidate);
-        assert!(errors.iter().any(|error| error.contains("dependency cycle")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("dependency cycle"))
+        );
     }
 
     #[test]
@@ -1183,7 +1221,11 @@ mod tests {
         value["unexpected_authority"] = serde_json::json!(true);
         let bytes = serde_json::to_vec(&value).expect("serialize mutated JSON");
         let errors = verify_fixture_bytes(&bytes).expect_err("unknown field must fail closed");
-        assert!(errors.iter().any(|error| error.contains("unexpected_authority")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unexpected_authority"))
+        );
     }
 
     #[test]
@@ -1193,7 +1235,11 @@ mod tests {
             .disturbance_cases
             .retain(|case| case.case_id != "R-013");
         let errors = validate_fixture(&candidate);
-        assert!(errors.iter().any(|error| error.contains("exactly 13 cases")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("exactly 13 cases"))
+        );
         assert!(errors.iter().any(|error| error.contains("R-013 is absent")));
     }
 }
