@@ -63,6 +63,8 @@ pub struct PublicObservationFixture {
     pub fixture_id: FixtureId,
     pub parameter_ids: [&'static str; 2],
     pub observation_ids: [&'static str; 2],
+    /// Declared acquisition cost for each observation channel in normalized cost units.
+    pub observation_costs: [f64; 2],
     /// Observation matrix H, with observations in rows and state coordinates in columns.
     pub observation_operator: [[f64; 2]; 2],
     /// Full measurement-error covariance. Off-diagonal terms are intentional.
@@ -88,6 +90,7 @@ pub enum FixtureValidationError {
     CovarianceNotPositiveDefinite,
     InvalidTimeAxis,
     NonFiniteState,
+    InvalidObservationCost,
     InvalidTolerance,
     NonFiniteIntermediate,
 }
@@ -133,6 +136,13 @@ impl PublicObservationFixture {
     pub fn validate(&self) -> Result<(), FixtureValidationError> {
         if self.parameter_ids[0] == self.parameter_ids[1] {
             return Err(FixtureValidationError::DuplicateParameterId);
+        }
+        if self
+            .observation_costs
+            .iter()
+            .any(|cost| !cost.is_finite() || *cost <= 0.0)
+        {
+            return Err(FixtureValidationError::InvalidObservationCost);
         }
         if self.observation_ids[0] == self.observation_ids[1] {
             return Err(FixtureValidationError::DuplicateObservationId);
@@ -351,6 +361,22 @@ impl PublicObservationFixture {
         }
     }
 
+    /// Expected information gain divided by total declared acquisition cost.
+    pub fn expected_information_gain_per_cost(&self) -> Result<f64, FixtureValidationError> {
+        self.validate()?;
+        let total_cost: f64 = self.observation_costs.iter().sum();
+        if !total_cost.is_finite() || total_cost <= 0.0 {
+            return Err(FixtureValidationError::InvalidObservationCost);
+        }
+        let utility = self.expected_information_gain_nats()?;
+        let value = utility / total_cost;
+        if value.is_finite() {
+            Ok(value)
+        } else {
+            Err(FixtureValidationError::NonFiniteIntermediate)
+        }
+    }
+
     /// Forward-project a candidate state through H. This method never reveals fixture truth.
     pub fn predict(&self, state: [f64; 2]) -> Result<[f64; 2], FixtureValidationError> {
         if state.iter().any(|value| !value.is_finite()) {
@@ -386,6 +412,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             fixture_id,
             parameter_ids: ["low_degree_field_proxy", "flow_mode_proxy"],
             observation_ids: ["sensor_low_degree", "sensor_flow_mode"],
+            observation_costs: [1.0, 1.0],
             observation_operator: [[1.0, 0.0], [0.0, 1.0]],
             observation_covariance: [[0.25, 0.0], [0.0, 0.25]],
             prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
@@ -398,6 +425,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             fixture_id,
             parameter_ids: ["low_degree_field_proxy", "high_degree_flow_proxy"],
             observation_ids: ["sensor_low_degree", "sensor_high_degree"],
+            observation_costs: [1.0, 1.0],
             observation_operator: [[1.0, 0.0], [0.0, 0.1]],
             observation_covariance: [[0.25, 0.0], [0.0, 1.0]],
             prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
@@ -410,6 +438,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             fixture_id,
             parameter_ids: ["low_degree_field_proxy", "unobservable_mode_proxy"],
             observation_ids: ["sensor_a", "sensor_b"],
+            observation_costs: [1.0, 1.0],
             observation_operator: [[1.0, 0.0], [1.0, 0.0]],
             observation_covariance: [[1.0, 0.0], [0.0, 1.0]],
             prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
@@ -422,6 +451,7 @@ pub fn public_fixture(fixture_id: FixtureId) -> PublicObservationFixture {
             fixture_id,
             parameter_ids: ["low_degree_field_proxy", "unobservable_mode_proxy"],
             observation_ids: ["sensor_a", "sensor_a_repeat"],
+            observation_costs: [1.0, 1.0],
             observation_operator: [[1.0, 0.0], [1.0, 0.0]],
             observation_covariance: [[0.25, 0.2475], [0.2475, 0.25]],
             prior_covariance: [[1.0, 0.0], [0.0, 1.0]],
@@ -477,6 +507,10 @@ mod tests {
                 serde_json::to_value(fixture.observation_ids).unwrap()
             );
             assert_eq!(
+                record["observation_costs"],
+                serde_json::to_value(fixture.observation_costs).unwrap()
+            );
+            assert_eq!(
                 record["observation_operator"],
                 serde_json::to_value(fixture.observation_operator).unwrap()
             );
@@ -500,6 +534,10 @@ mod tests {
             close(
                 fixture.expected_information_gain_nats().unwrap(),
                 record["expected_information_gain_nats"].as_f64().unwrap(),
+            );
+            close(
+                fixture.expected_information_gain_per_cost().unwrap(),
+                record["expected_information_gain_per_cost"].as_f64().unwrap(),
             );
             let expected = &record["expected_observability"];
             let report = fixture.analyze_observability(1e-12, 1e-12).unwrap();
@@ -662,18 +700,34 @@ mod tests {
     }
 
     #[test]
-    fn complementary_observations_beat_a_correlated_duplicate_at_equal_channel_count() {
-        let complementary =
-            public_fixture(FixtureId::ComplementarySensors)
-                .expected_information_gain_nats()
-                .unwrap();
-        let duplicate =
-            public_fixture(FixtureId::CorrelatedDuplicate)
-                .expected_information_gain_nats()
-                .unwrap();
-        close(complementary, 1.6094379124341003);
-        close(duplicate, 0.8067249769620305);
-        assert!(complementary > duplicate);
+    fn complementary_observations_beat_a_correlated_duplicate_at_equal_cost() {
+        let complementary = public_fixture(FixtureId::ComplementarySensors);
+        let duplicate = public_fixture(FixtureId::CorrelatedDuplicate);
+        assert_eq!(
+            complementary.observation_costs.iter().sum::<f64>(),
+            duplicate.observation_costs.iter().sum::<f64>()
+        );
+        let complementary_eig = complementary.expected_information_gain_nats().unwrap();
+        let duplicate_eig = duplicate.expected_information_gain_nats().unwrap();
+        let complementary_per_cost = complementary.expected_information_gain_per_cost().unwrap();
+        let duplicate_per_cost = duplicate.expected_information_gain_per_cost().unwrap();
+        close(complementary_eig, 1.6094379124341003);
+        close(duplicate_eig, 0.8067249769620305);
+        close(complementary_per_cost, 0.8047189562170501);
+        close(duplicate_per_cost, 0.40336248848101525);
+        assert!(complementary_per_cost > duplicate_per_cost);
+    }
+
+    #[test]
+    fn non_positive_or_non_finite_observation_cost_fails_closed() {
+        let mut fixture = public_fixture(FixtureId.ComplementarySensors);
+        fixture.observation_costs[0] = 0.0;
+        assert_eq!(fixture.validate(), Err(FixtureValidationError::InvalidObservationCost));
+        fixture.observation_costs = [1.0, f64::INFINITY];
+        assert_eq!(
+            fixture.expected_information_gain_per_cost(),
+            Err(FixtureValidationError::InvalidObservationCost)
+        );
     }
 
     #[test]
