@@ -557,6 +557,7 @@ mod tests {
                 };
             }
         }
+        let criteria = decision["criteria"].as_array().expect("criteria").clone();
         for (candidate_index, candidate) in decision["candidates"]
             .as_array_mut()
             .expect("candidates")
@@ -568,12 +569,7 @@ mod tests {
                 gate["evidence_id"] = json!(format!("LAB-RECEIPT-W{candidate_index}"));
             }
             let mut observations = Vec::new();
-            for (criterion_index, criterion) in decision["criteria"]
-                .as_array()
-                .expect("criteria")
-                .iter()
-                .enumerate()
-            {
+            for (criterion_index, criterion) in criteria.iter().enumerate() {
                 let id = text_at(criterion, "id").unwrap_or("unknown");
                 let direction = text_at(criterion, "direction").unwrap_or("minimize");
                 let value = if direction == "minimize" {
