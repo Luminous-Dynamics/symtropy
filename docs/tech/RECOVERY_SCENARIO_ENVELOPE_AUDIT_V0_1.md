@@ -36,7 +36,7 @@ The evaluator may request scope reassessment, hold for evidence, or mark a case 
 
 ### 5. Acknowledge the boundary of finite scenario families
 
-A finite registry cannot detect a novel hazard that was never surfaced to the evaluator. The classification-completeness assertion is therefore itself part of the contract: INCOMPLETE or UNKNOWN classification forces reassessment. In real deployments, the assertion requires a documented classification process and accountable sign-off; this synthetic checker cannot prove the assertion is true.
+A finite registry cannot detect a novel hazard that was never surfaced to the evaluator. The classification-completeness assertion is therefore itself part of the contract: INCOMPLETE or UNKNOWN classification forces reassessment. It is now bound to a named taxonomy version, a REVIEWED status, and a classification-record reference. Missing/unreviewed records or taxonomy mismatch force reassessment even when family labels appear familiar. In real deployments, the reference must resolve to an authenticated, independently auditable record; this synthetic checker cannot verify the authenticity of the referenced record.
 
 ## Contract and precedence
 
@@ -47,7 +47,7 @@ For every case, report these fields independently:
 - Hard-gate status: PASS, BLOCK or UNKNOWN, retained from the input.
 - Review disposition: one of the following, evaluated in the listed order.
 
-1. REASSESS_SCOPE if the profile is unknown or the domain, profile version, criteria regime, family classification, or observed failure-family set falls outside that profile.
+1. REASSESS_SCOPE if the profile is unknown or the domain, profile version, criteria regime, family taxonomy version, classification review status, classification-record reference, family classification, or observed failure-family set falls outside that profile.
 2. BLOCKED_HARD_GATE if scope is in-bounds and any hard gate is BLOCK.
 3. HOLD_EVIDENCE if scope is in-bounds but the hard gate is UNKNOWN, evidence age is absent/outside the profile freshness limit, or required evidence tags are missing.
 4. REVIEW_ONLY_CANDIDATE only when scope is in-bounds, evidence is sufficient, and the hard gate is PASS.
@@ -60,19 +60,19 @@ Evidence freshness limits in the fixture are only synthetic contract parameters.
 
 The v0.1 corpus has 3 declared synthetic profiles and 17 cases:
 
-| Profile | Declared failure families | Required evidence groups | Synthetic max age |
-|---|---|---|---:|
-| Forestry recovery | access, habitat, timber condition, weather, route capacity | authority, material identity, condition inspection, habitat assessment | 30 days |
-| PV second-life | insulation, mechanical damage, thermal event, provenance gap | provenance, electrical safety test, visual damage assessment | 14 days |
-| Infrastructure recovery | structural crack, water ingress, capacity overload, utility outage | structural inspection, capacity record, service state | 7 days |
+| Profile | Taxonomy version | Declared failure families | Required evidence groups | Synthetic max age |
+|---|---|---|---|---:|
+| Forestry recovery | forest-hazard-taxonomy-v1 | access, habitat, timber condition, weather, route capacity | authority, material identity, condition inspection, habitat assessment, classification review | 30 days |
+| PV second-life | pv-failure-taxonomy-v1 | insulation, mechanical damage, thermal event, provenance gap | provenance, electrical safety test, visual damage assessment, classification review | 14 days |
+| Infrastructure recovery | infrastructure-failure-taxonomy-v1 | structural crack, water ingress, capacity overload, utility outage | structural inspection, capacity record, service state, classification review | 7 days |
 
-The challenge cases include known families, mixed known-plus-novel families, an unclassified family set, a changed criteria regime, a profile-version mismatch, an unregistered profile, stale evidence, missing evidence, BLOCK and UNKNOWN gates. The exact expected dispositions are frozen in the JSON fixture and checked by the independent Rust implementation.
+The challenge cases include known families, mixed known-plus-novel families, an unclassified family set, a changed criteria regime, a profile-version mismatch, a taxonomy-version mismatch, unreviewed or missing classification records, an unregistered profile, stale evidence, missing evidence, BLOCK and UNKNOWN gates. All 17 classification references are synthetic fixture references, not live evidence. The exact expected dispositions are frozen in the JSON fixture and checked by the independent Rust implementation.
 
 Current synthetic expected disposition totals: 3 REVIEW_ONLY_CANDIDATE, 7 REASSESS_SCOPE, 5 HOLD_EVIDENCE and 2 BLOCKED_HARD_GATE. These are test-case counts, not estimated real-world prevalence.
 
 ## Independent audit and receipt
 
-The standalone Rust tool validates corpus identity and required fields, profile and case uniqueness, non-empty family sets, allowed enum values, profile freshness policy, expected-vs-actual outcomes, and the no-actuation ceiling. It emits a deterministic JSON receipt with:
+The standalone Rust tool validates corpus identity and required fields, profile and case uniqueness, non-empty family sets, allowed classification-review and hard-gate enums, taxonomy-version binding, classification-review reference presence, profile freshness policy, expected-vs-actual outcomes, and the no-actuation ceiling. It includes a 1,728-combination cross-product over profile, family novelty, classification completeness, criteria/taxonomy match, review state, classification-record presence, evidence state and gate state. It emits a deterministic JSON receipt with:
 
 - schema and algorithm identifiers;
 - canonical corpus digest (profile and case records are sorted so input row order is immaterial);
