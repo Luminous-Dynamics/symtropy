@@ -292,14 +292,7 @@ fn days_from_civil(year: u32, month: u32, day: u32) -> i128 {
 mod tests {
     use super::*;
 
-    const EXCERPT: &str = concat!(
-        "2017-02-02T16:37:08.9062500Z|Block_Number|0\n",
-        "2017-02-02T18:06:38.8437500Z|Block_Number|9\n",
-        "2017-02-02T18:06:38.9531250Z|Program_Status|ACTIVE\n",
-        "2017-02-02T18:06:38.9531250Z|Program_Runtime_Seconds|1500\n",
-        "2017-02-02T18:06:38.9843750Z|Program_Runtime_Seconds|0\n",
-        "2017-02-02T18:06:39.0000000Z|Spindle_Speed|248.880040\n",
-    );
+    const EXCERPT: &str = include_str!("../fixtures/nist_mtc_operation_excerpt.txt");
 
     #[test]
     fn parses_pinned_source_excerpt_without_losing_fractional_precision() {
