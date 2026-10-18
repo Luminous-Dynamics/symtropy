@@ -21,7 +21,7 @@ The runner requires explicit caller-declared graphics adapter, driver, and backe
 export SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER="NVIDIA GeForce RTX 2070"
 export SYMTROPY_DEMO_CAPTURE_GPU_DRIVER="exact driver version"
 export SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND="Vulkan"
-scripts/run-render-benchmark.sh
+bash scripts/run-render-benchmark.sh
 ```
 
 The runner requires a clean Git worktree, reads the exact source commit and Bevy version, hashes the frozen fixture JSON, creates a canonical render-settings JSON sidecar and digest, binds output resolution/profile/object count/shadow mode into capture metadata, then launches the app in release mode. It sets the default capture schedule to 1.5, 4.0, and 7.0 seconds. Use the final settled frame for a reference comparison; the scene itself is static after startup.
