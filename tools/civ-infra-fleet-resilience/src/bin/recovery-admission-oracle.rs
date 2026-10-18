@@ -150,14 +150,10 @@ fn string_array(value: &Value, key: &str, context: &str) -> Result<Vec<String>, 
         .collect()
 }
 
-fn find_by_id<'a>(
-    items: &'a [Value],
-    field: &str,
-    requested: &str,
-) -> Option<&'a Value> {
-    items.iter().find(|item| {
-        item.get(field).and_then(Value::as_str) == Some(requested)
-    })
+fn find_by_id<'a>(items: &'a [Value], field: &str, requested: &str) -> Option<&'a Value> {
+    items
+        .iter()
+        .find(|item| item.get(field).and_then(Value::as_str) == Some(requested))
 }
 
 fn task_items(fixture: &Value) -> Result<&[Value], String> {
@@ -180,7 +176,11 @@ fn observation_by_id<'a>(
     fixture: &'a Value,
     observation_id: &str,
 ) -> Result<Option<&'a Value>, String> {
-    Ok(find_by_id(observation_items(fixture)?, "case_id", observation_id))
+    Ok(find_by_id(
+        observation_items(fixture)?,
+        "case_id",
+        observation_id,
+    ))
 }
 
 fn ancestor_closure(fixture: &Value, task_id: &str) -> Result<BTreeSet<String>, String> {
@@ -216,13 +216,8 @@ fn expected_transition(state: &str, action: &str) -> Option<&'static str> {
         ("awaiting_evidence", "reject_inspection") => Some("rejected"),
         ("rejected", "begin_rework") => Some("rework_required"),
         (
-            "pending"
-                | "ready"
-                | "running"
-                | "interrupted"
-                | "awaiting_evidence"
-                | "rework_required"
-                | "rejected",
+            "pending" | "ready" | "running" | "interrupted" | "awaiting_evidence"
+            | "rework_required" | "rejected",
             "abort",
         ) => Some("aborted"),
         _ => None,
@@ -278,7 +273,11 @@ fn required_evidence_tick(active: &[&Value], evidence_kind: &str) -> Result<u64,
     Ok(minimum)
 }
 
-fn recovery_receipts_required(state: &str, action: &str, observation: &Value) -> Result<bool, String> {
+fn recovery_receipts_required(
+    state: &str,
+    action: &str,
+    observation: &Value,
+) -> Result<bool, String> {
     let case_id = field_string(observation, "case_id", "disturbance")?;
     if action == "accept" {
         return Ok(true);
@@ -291,10 +290,7 @@ fn recovery_receipts_required(state: &str, action: &str, observation: &Value) ->
         && matches!(action, "resume" | "reassign")))
 }
 
-fn evaluate_candidate(
-    fixture: &Value,
-    proposal: &Value,
-) -> Result<OracleDecision, String> {
+fn evaluate_candidate(fixture: &Value, proposal: &Value) -> Result<OracleDecision, String> {
     let task_id = field_string(proposal, "task_id", "proposal")?;
     let state = field_string(proposal, "state", "proposal")?;
     let action = field_string(proposal, "action", "proposal")?;
@@ -331,7 +327,11 @@ fn evaluate_candidate(
     let mut active: Vec<&Value> = Vec::new();
     let mut ref_set = BTreeSet::new();
     let use_observations = uses_observations(&action);
-    let contextual_resource = if uses_resource(&action) { resource_id } else { None };
+    let contextual_resource = if uses_resource(&action) {
+        resource_id
+    } else {
+        None
+    };
 
     if use_observations {
         for id in &refs {
@@ -395,13 +395,18 @@ fn evaluate_candidate(
         }
     }
 
-    if matches!(action.as_str(), "start" | "resume" | "reassign" | "submit_for_acceptance" | "accept") {
+    if matches!(
+        action.as_str(),
+        "start" | "resume" | "reassign" | "submit_for_acceptance" | "accept"
+    ) {
         let receipts = array_field(proposal, "predecessor_receipts", "proposal")?;
         let required = string_array(task, "requires", "task")?;
         for predecessor_id in &required {
             let matched: Vec<&Value> = receipts
                 .iter()
-                .filter(|receipt| receipt.get("task_id").and_then(Value::as_str) == Some(predecessor_id))
+                .filter(|receipt| {
+                    receipt.get("task_id").and_then(Value::as_str) == Some(predecessor_id)
+                })
                 .collect();
             if matched.is_empty() {
                 reasons.insert(format!("predecessor_receipt_missing:{predecessor_id}"));
@@ -459,7 +464,10 @@ fn evaluate_candidate(
             ("calibration_current", "calibration_stale"),
             ("localization_admissible", "localization_out_of_profile"),
             ("communication_current", "communication_state_stale"),
-            ("energy_reserve_feasible", "energy_return_reserve_infeasible"),
+            (
+                "energy_reserve_feasible",
+                "energy_return_reserve_infeasible",
+            ),
         ] {
             if !field_bool(gates, field, "proposal.gates")? {
                 reasons.insert(code.to_string());
@@ -478,7 +486,9 @@ fn evaluate_candidate(
             let previous = match proposal.get("previous_resource_id") {
                 Some(Value::String(value)) => Some(value.as_str()),
                 Some(Value::Null) | None => None,
-                _ => return Err("proposal.previous_resource_id must be a string or null".to_string()),
+                _ => {
+                    return Err("proposal.previous_resource_id must be a string or null".to_string());
+                }
             };
             match previous {
                 None => {
@@ -500,13 +510,17 @@ fn evaluate_candidate(
         Some("running" | "awaiting_evidence" | "accepted" | "rework_required")
     );
     if target_advances
-        && active.iter().any(|item| item.get("case_id").and_then(Value::as_str) == Some("R-012"))
+        && active
+            .iter()
+            .any(|item| item.get("case_id").and_then(Value::as_str) == Some("R-012"))
         && field_string(gates, "authorization", "proposal.gates")? != "granted"
     {
         reasons.insert("visible_approval_gate_requires_granted_authorization:R-012".to_string());
     }
     if target_advances
-        && active.iter().any(|item| item.get("case_id").and_then(Value::as_str) == Some("R-011"))
+        && active
+            .iter()
+            .any(|item| item.get("case_id").and_then(Value::as_str) == Some("R-011"))
         && field_string(gates, "utility_envelope", "proposal.gates")? == "unknown_or_unsafe"
     {
         reasons.insert("visible_utility_gate_must_be_resolved:R-011".to_string());
@@ -529,14 +543,19 @@ fn evaluate_candidate(
             }
         }
     }
-    if action == "reject_inspection" && field_string(gates, "inspection", "proposal.gates")? != "failed" {
+    if action == "reject_inspection"
+        && field_string(gates, "inspection", "proposal.gates")? != "failed"
+    {
         reasons.insert("rejection_requires_failed_inspection".to_string());
     }
     if action == "begin_rework" {
         if field_string(gates, "inspection", "proposal.gates")? != "failed" {
             reasons.insert("rework_requires_preserved_failed_inspection".to_string());
         }
-        if !active.iter().any(|item| item.get("case_id").and_then(Value::as_str) == Some("R-007")) {
+        if !active
+            .iter()
+            .any(|item| item.get("case_id").and_then(Value::as_str) == Some("R-007"))
+        {
             reasons.insert("rework_requires_visible_rejection_observation:R-007".to_string());
         }
     }
@@ -548,7 +567,9 @@ fn evaluate_candidate(
         let case_id = field_string(observation, "case_id", "disturbance")?;
         for kind in string_array(observation, "recovery_evidence", "disturbance")? {
             if !valid_evidence(evidence, &kind, tick, minimum)? {
-                reasons.insert(format!("recovery_evidence_missing_or_stale:{case_id}:{kind}"));
+                reasons.insert(format!(
+                    "recovery_evidence_missing_or_stale:{case_id}:{kind}"
+                ));
             }
         }
     }
@@ -560,19 +581,37 @@ fn evaluate_candidate(
     let admitted = reason_codes.is_empty();
     Ok(OracleDecision {
         admitted,
-        next_state: if admitted { transition.map(str::to_owned) } else { None },
+        next_state: if admitted {
+            transition.map(str::to_owned)
+        } else {
+            None
+        },
         reason_codes,
     })
 }
 
 fn all_state_action_pairs() -> (usize, usize) {
     let states = [
-        "pending", "ready", "running", "interrupted", "awaiting_evidence",
-        "rework_required", "accepted", "rejected", "aborted",
+        "pending",
+        "ready",
+        "running",
+        "interrupted",
+        "awaiting_evidence",
+        "rework_required",
+        "accepted",
+        "rejected",
+        "aborted",
     ];
     let actions = [
-        "start", "protective_stop", "resume", "reassign", "submit_for_acceptance",
-        "accept", "reject_inspection", "begin_rework", "abort",
+        "start",
+        "protective_stop",
+        "resume",
+        "reassign",
+        "submit_for_acceptance",
+        "accept",
+        "reject_inspection",
+        "begin_rework",
+        "abort",
     ];
     let legal = states
         .iter()
@@ -600,14 +639,23 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
     }
     let fixture_digest = sha256_hex(fixture_bytes);
     if field_string(&candidate_report, "fixture_sha256", "candidate_report")? != fixture_digest {
-        return Err("candidate report fixture digest does not match exact fixture bytes".to_string());
+        return Err(
+            "candidate report fixture digest does not match exact fixture bytes".to_string(),
+        );
     }
     if field_string(&candidate_report, "classification", "candidate_report")? != "synthetic_only" {
         return Err("candidate report exceeds synthetic-only scope".to_string());
     }
-    if field_bool(&candidate_report, "physical_control_executed", "candidate_report")?
-        || field_bool(&candidate_report, "dispatch_authorized", "candidate_report")?
-        || field_bool(&candidate_report, "input_receipts_cryptographically_verified", "candidate_report")?
+    if field_bool(
+        &candidate_report,
+        "physical_control_executed",
+        "candidate_report",
+    )? || field_bool(&candidate_report, "dispatch_authorized", "candidate_report")?
+        || field_bool(
+            &candidate_report,
+            "input_receipts_cryptographically_verified",
+            "candidate_report",
+        )?
     {
         return Err("candidate report exceeds its declared claim ceiling".to_string());
     }
@@ -636,7 +684,8 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
             _ => return Err(format!("{context}.next_state must be a string or null")),
         };
         let candidate_reason_codes = string_array(item, "reason_codes", &context)?;
-        let proposal = item.get("proposal")
+        let proposal = item
+            .get("proposal")
             .ok_or_else(|| format!("{context}.proposal is missing"))?;
         let oracle = evaluate_candidate(&fixture, proposal)?;
 
