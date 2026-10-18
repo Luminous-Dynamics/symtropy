@@ -1,0 +1,42 @@
+name: Organ Transport Q0
+
+on:
+  push:
+    branches:
+      - main
+      - research/organ-engineering-perfusion-benchmarks-v0
+    paths:
+      - "research/organ-transport-q0/**"
+      - ".github/workflows/organ-transport-q0.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/organ-transport-q0/**"
+      - ".github/workflows/organ-transport-q0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: organ-transport-q0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  q0-reference:
+    name: Analytic tube and network corpus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+
+      - name: Check isolated crate formatting
+        run: cargo fmt --manifest-path research/organ-transport-q0/Cargo.toml -- --check
+
+      - name: Execute Q0 unit and fixture-corpus tests
+        run: cargo test --manifest-path research/organ-transport-q0/Cargo.toml
