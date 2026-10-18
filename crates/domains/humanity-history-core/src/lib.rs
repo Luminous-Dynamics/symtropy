@@ -25,6 +25,15 @@ pub struct Dataset {
     pub relations: Vec<KnowledgeRelation>,
     #[serde(default)]
     pub assets: Vec<AssetRecord>,
+    /// Reported numeric observations, estimates, and reconstruction parameters with assumptions.
+    #[serde(default)]
+    pub estimates: Vec<QuantitativeEstimate>,
+    /// Published interpretations or candidate designs, kept separate rather than averaged together.
+    #[serde(default)]
+    pub reconstruction_models: Vec<ReconstructionModel>,
+    /// Explicit comparison sets; no single winner is inferred by the validator.
+    #[serde(default)]
+    pub model_comparisons: Vec<ModelComparison>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -182,6 +191,92 @@ pub struct AssetRecord {
     pub content_sha256: String,
 }
 
+/// A numerical result reported by a source or specified by a reconstruction.
+///
+/// Decimal values are strings to avoid silently rounding source-reported precision in JSON.
+/// The validator checks numeric syntax and interval ordering; it does not recalculate the
+/// source's statistical model or infer that a reported estimate is historically correct.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QuantitativeEstimate {
+    pub id: String,
+    pub claim_id: String,
+    pub quantity: String,
+    pub value_decimal: String,
+    pub unit: String,
+    pub kind: EstimateKind,
+    pub method: String,
+    #[serde(default)]
+    pub assumptions: Vec<String>,
+    #[serde(default)]
+    pub interval: Option<UncertaintyInterval>,
+    #[serde(default)]
+    pub evidence: Vec<EvidenceLink>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EstimateKind {
+    ReportedPoint,
+    ReportedIntervalEstimate,
+    ObservedMeasurement,
+    ReconstructionParameter,
+    DerivedResult,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UncertaintyInterval {
+    pub lower_decimal: String,
+    pub upper_decimal: String,
+    pub kind: IntervalKind,
+    /// Coverage percentage such as "68" for a 68% credible interval; interpretation is method-specific.
+    #[serde(default)]
+    pub coverage_percent: Option<String>,
+    /// Must record the condition when estimates depend on exclusions or alternative preprocessing.
+    pub conditioning_note: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntervalKind {
+    Credible,
+    Confidence,
+    Measurement,
+    PlausibleRange,
+    SensitivityRange,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReconstructionModel {
+    pub id: String,
+    pub title: String,
+    pub summary: String,
+    pub status: ReconstructionModelStatus,
+    pub method: String,
+    pub target_claim_ids: Vec<String>,
+    pub estimate_ids: Vec<String>,
+    pub assumptions: Vec<String>,
+    pub evidence: Vec<EvidenceLink>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReconstructionModelStatus {
+    PublishedInterpretation,
+    PublishedCandidateDesign,
+    Hypothesis,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ModelComparison {
+    pub id: String,
+    pub question: String,
+    pub model_ids: Vec<String>,
+    pub evaluation_axes: Vec<String>,
+    /// Declares whether the comparison avoids a single aggregate winner or uses a defined rule.
+    pub decision_rule: String,
+    pub caveats: Vec<String>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ValidationCode {
@@ -202,6 +297,12 @@ pub enum ValidationCode {
     SelfRelation,
     TemporalContradiction,
     UnsupportedSchemaVersion,
+    InvalidNumericEstimate,
+    InvalidUncertaintyInterval,
+    MissingEstimateEvidence,
+    MissingModelReference,
+    MissingEstimateReference,
+    InvalidModelComparison,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -630,6 +731,9 @@ mod tests {
                 distributable: true,
                 content_sha256: "0".repeat(64),
             }],
+            estimates: vec![],
+            reconstruction_models: vec![],
+            model_comparisons: vec![],
         }
     }
 
