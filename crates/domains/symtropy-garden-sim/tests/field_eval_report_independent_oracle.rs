@@ -6,7 +6,7 @@
 use serde_json::from_str;
 use symtropy_garden_sim::field_eval_report::{
     FieldEvalPreflightStatusV1, FieldStudyManifestV1, OutcomeEvidenceKindV1,
-    preflight_field_study_v1,
+    build_field_eval_receipt_v1, preflight_field_study_v1,
 };
 
 const FIXTURE: &str = include_str!("../fixtures/field_eval_report.v1.json");
@@ -22,6 +22,15 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
     assert_eq!(report.eligible_denominator, 6);
     assert_eq!(report.excluded_count, 2);
     assert!(report.blockers.is_empty());
+
+    let receipt = build_field_eval_receipt_v1(FIXTURE.as_bytes(), report.clone());
+    assert_eq!(receipt.receipt_version, 1);
+    assert_eq!(receipt.report, report);
+    assert_eq!(receipt.source_manifest_sha256.len(), 64);
+    assert!(receipt
+        .source_manifest_sha256
+        .bytes()
+        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
 
     let in_window = manifest
         .outcome_records
