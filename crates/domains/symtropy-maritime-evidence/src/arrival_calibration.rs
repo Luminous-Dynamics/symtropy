@@ -26,8 +26,10 @@ pub struct ArrivalResidualSample {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArrivalEvaluationCase {
     pub case_id: String,
+    pub forecast_issued_at_utc_nanos: i128,
     pub predicted_arrival_utc_nanos: i128,
     pub actual_arrival_utc_nanos: i128,
+    pub actual_observed_at_utc_nanos: i128,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -44,6 +46,8 @@ pub enum CalibrationError {
     EmptyEvaluationSet,
     EmptyEvaluationId,
     DuplicateEvaluationId,
+    EvaluationForecastNotAfterCutoff,
+    EvaluationTruthNotAfterCutoff,
     ArithmeticOverflow,
     IntervalOverflow,
 }
@@ -306,12 +310,15 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(index, error)| {
-                let predicted = base() + index as i128 * 10 * NANOS_PER_SECOND;
+                let predicted =
+                    CUTOFF + 3_600 * NANOS_PER_SECOND + index as i128 * 10 * NANOS_PER_SECOND;
+                let actual = predicted + i128::from(*error) * NANOS_PER_SECOND;
                 ArrivalEvaluationCase {
                     case_id: format!("EVAL-{index:03}"),
+                    forecast_issued_at_utc_nanos: predicted - 600 * NANOS_PER_SECOND,
                     predicted_arrival_utc_nanos: predicted,
-                    actual_arrival_utc_nanos: predicted
-                        + i128::from(*error) * NANOS_PER_SECOND,
+                    actual_arrival_utc_nanos: actual,
+                    actual_observed_at_utc_nanos: actual + NANOS_PER_SECOND,
                 }
             })
             .collect()
