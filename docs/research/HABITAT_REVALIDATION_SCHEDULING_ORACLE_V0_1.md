@@ -24,7 +24,7 @@ A scheduler must produce a timeline that can be independently validated against 
 
 The fixture covers parallel work with distinct crews, parallel work competing for one exclusive crew, a precedence chain, a feasible inspection window, an impossible inspection window, a missing hard approval gate, over-capacity demand, upper-duration uncertainty against a deadline, a precedence cycle, and a deliberately adversarial case where five heuristic priority rules miss a feasible schedule.
 
-The executable Rust reference uses exhaustive integer start-time enumeration, bounded to 12 tasks and a Cartesian candidate-start space no larger than 2,000,000 assignments. Larger instances fail with an explicit oracle-budget rejection rather than an unbounded search. This is intentionally a micro-oracle, not the large-instance solver. The tenth case is a key adversarial check: exact search finds a feasible schedule of makespan 19, while the five current heuristic priority rules fail to find any candidate; the correct heuristic status is not proof of infeasibility. The following hand-calculated witnesses provide the first independent oracle for a future Rust scheduler:
+The executable Rust reference uses exhaustive integer start-time enumeration, bounded to 12 tasks and a Cartesian candidate-start space no larger than 2,000,000 assignments. Larger instances fail with an explicit oracle-budget rejection rather than an unbounded search. This is intentionally a micro-oracle, not the large-instance solver. The tenth case is a key adversarial check: exact search finds a feasible schedule of makespan 19, while the five current heuristic priority rules fail to find any candidate; the correct heuristic status is not proof of infeasibility. The following hand-calculated witnesses anchor the executable micro-oracle and provide independent tests for future exact/anytime schedulers:
 
 | Case | Expected result | Purpose |
 |---|---|---|
@@ -37,6 +37,7 @@ The executable Rust reference uses exhaustive integer start-time enumeration, bo
 | Demand 2 from capacity 1 | Infeasible | Resource violation is rejected |
 | Nominal durations 4 and 3, upper durations 8 and 7, deadline 6 | Nominal makespan 4; upper scenario 8; not robust | Preserve uncertainty |
 | Two-node precedence cycle | Infeasible | Cycles cannot yield a schedule |
+| Five exclusive-crew tasks with tight start windows | Exact makespan 19; five heuristic rules find no candidate | Separate valid-feasibility evidence from heuristic search coverage |
 
 Every exact-instance solver should agree with the fixture's expected feasibility and objective. Every emitted schedule should pass a separately implemented validator that recomputes finish times, precedence, windows, resource occupancy, gate satisfaction, and makespan from the materialized schedule—not from the solver's summary fields.
 
@@ -69,6 +70,12 @@ Do not claim all-instance exact optimality where the selected algorithms or know
 - No performance claim until raw trials, exact workload digests, environment metadata, and incomplete-search counts are published.
 
 The intended novelty is not simply a faster schedule optimizer. It is a connected decision system where a proposed timeline, its assumptions, gates, relevant evidence, uncertainty, and later evidence invalidation remain auditable as one chain—while established scheduling datasets ensure it does not benchmark only against its own invented examples.
+
+## Exact-vs-heuristic scorecard
+
+The [standalone scorecard tool](https://github.com/Luminous-Dynamics/symtropy/tree/research/whole-property-habitat-benchmark-v0-1/tools/habitat-scheduling-benchmark) runs the exhaustive oracle and the five-rule planner separately on the same ten-case fixture. It reports feasible-case coverage, the count of feasible instances where no heuristic candidate was found, false infeasibility claims, conflicts with the exact reference, and objective gaps conditional on a candidate being found. The current synthetic micro-suite is expected to report 6 oracle-feasible cases, 5 heuristic candidates, 1 missed feasible candidate, 0 false-infeasibility claims, 0 conflicts, and 0 ppm conditional relative makespan gap for the 5 returned candidates. These are fixture outcomes, not generalized performance claims.
+
+The [scorecard workflow](https://github.com/Luminous-Dynamics/symtropy/blob/research/whole-property-habitat-benchmark-v0-1/.github/workflows/habitat-scheduling-benchmark.yml) checks the exact-vs-heuristic comparison. This benchmark is a functional quality gate, not a runtime benchmark; it intentionally preserves the coverage miss instead of treating the heuristic as infallible.
 
 ## Heuristic scheduling baseline
 
