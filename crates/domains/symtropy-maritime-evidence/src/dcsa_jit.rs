@@ -599,6 +599,20 @@ mod tests {
             parsed.event_datetime.offset_semantics(),
             &TimestampOffsetSemantics::UnknownLocalOffset
         );
+        let zulu_payload = payload.replace(
+            "2026-10-18T12:10:00-00:00",
+            "2026-10-18T12:10:00Z",
+        );
+        let zulu =
+            parse_timestamp_message(&zulu_payload, context("DCSA-Z-UNKNOWN-OFFSET")).unwrap();
+        assert_eq!(
+            zulu.event_datetime.offset_semantics(),
+            &TimestampOffsetSemantics::UnknownLocalOffset
+        );
+        assert_eq!(
+            parsed.event_datetime.utc_unix_nanos(),
+            zulu.event_datetime.utc_unix_nanos()
+        );
         let invalid = payload.replace("2026-10-18T12:10:00-00:00", "2026-10-18T12:10:00");
         assert!(matches!(
             parse_timestamp_message(&invalid, context("DCSA-NO-ZONE")),
