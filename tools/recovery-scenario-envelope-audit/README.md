@@ -8,7 +8,7 @@ Run the unit and mutation tests with Cargo against this crate's manifest. Run th
 
 ## Contract
 
-- Family coverage is exact-profile and version-bound. One unrecognized family or an incomplete/unknown classification forces scope reassessment.
+- Family coverage is exact-profile and version-bound. The taxonomy version must match, classification must be REVIEWED, and its reference must use the frozen synthetic review namespace. One unrecognized family or an incomplete/unknown classification forces scope reassessment.
 - Profile/criteria regime mismatch is out of scope.
 - Missing or stale required evidence holds an in-scope case.
 - BLOCK is a non-compensatory gate; UNKNOWN never passes.
