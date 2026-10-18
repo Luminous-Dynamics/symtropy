@@ -1790,9 +1790,11 @@ mod tests {
             .iter()
             .map(|item| item.evidence_kind.as_str())
             .collect();
-        assert!(evidence_kinds
-            .iter()
-            .all(|kind| contract.evidence_vocabulary.contains(*kind)));
+        assert!(
+            evidence_kinds
+                .iter()
+                .all(|kind| contract.evidence_vocabulary.contains(*kind))
+        );
         assert!(!evidence_kinds.contains("assignment"));
         assert!(!evidence_kinds.contains("positive-clearance-claim"));
     }
