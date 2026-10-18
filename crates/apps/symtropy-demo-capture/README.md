@@ -65,6 +65,9 @@ optional environment variables in the caller / benchmark harness:
 | SYMTROPY_DEMO_CAPTURE_SIMULATION_SEED | Declared deterministic seed |
 | SYMTROPY_DEMO_CAPTURE_SIMULATION_TICK | Simulation tick / replay point represented |
 | SYMTROPY_DEMO_CAPTURE_QUALITY_PROFILE | Named rendering profile |
+| SYMTROPY_DEMO_CAPTURE_CAMERA_ID | Stable camera/view identifier and path profile |
+| SYMTROPY_DEMO_CAPTURE_RENDERER_VERSION | Explicit engine/renderer version (for example, Bevy version) |
+| SYMTROPY_DEMO_CAPTURE_RENDER_SETTINGS_SHA256 | SHA-256 of canonical render-settings bytes |
 | SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER | Explicit GPU adapter identity |
 | SYMTROPY_DEMO_CAPTURE_GPU_DRIVER | Explicit driver/version string |
 | SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND | For example, Vulkan or DX12 |
