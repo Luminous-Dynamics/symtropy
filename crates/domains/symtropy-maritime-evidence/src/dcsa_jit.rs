@@ -535,15 +535,14 @@ mod tests {
             })
         );
 
-        let port_conflict = vessel_conflict
-            .replace(
-                "\"vesselIMONumber\": \"9990002\"",
-                "\"vesselIMONumber\": \"9990001\"",
-            )
-            .replace(
-                "\"UNLocationCode\": \"ZZSYN\"",
-                "\"UNLocationCode\": \"ZZOTHER\"",
-            );
+        let mut port_conflict_value: serde_json::Value =
+            serde_json::from_str(&vessel_conflict).unwrap();
+        port_conflict_value["vessel"]["vesselIMONumber"] =
+            serde_json::Value::String("9990001".to_owned());
+        port_conflict_value["UNLocationCode"] =
+            serde_json::Value::String("ZZOTHER".to_owned());
+        let port_conflict = port_conflict_value.to_string();
+
         assert!(matches!(
             parse_timestamp_message(&port_conflict, context("DCSA-DUP-PORT")),
             Err(DcsaJitParseError::ConflictingDuplicate {
