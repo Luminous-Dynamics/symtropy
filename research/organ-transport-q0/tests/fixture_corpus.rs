@@ -12,6 +12,21 @@ use symtropy_organ_transport_q0::{
 
 const TUBE_CORPUS: &str = include_str!("../tube-reference-cases.v0.json");
 const NETWORK_CORPUS: &str = include_str!("../network-reference-cases.v0.json");
+const TUBE_CASE_IDS: &[&str] = &[
+    "q0-tube-baseline",
+    "q0-tube-reverse-pressure",
+    "q0-tube-zero-pressure",
+    "q0-tube-nonpositive-radius",
+    "q0-tube-nonfinite-pressure",
+];
+const NETWORK_CASE_IDS: &[&str] = &[
+    "q0-network-series-equal-resistance",
+    "q0-network-bifurcation-two-equal-outlets",
+    "q0-network-merge-two-inlets",
+    "q0-network-bifurcation-three-to-one-flow-split",
+    "q0-network-two-level-branching",
+    "q0-network-reversed-edge-orientation",
+];
 const CORPUS_MANIFEST: &str = include_str!("../corpus-manifest.v0.json");
 
 fn field<'a>(value: &'a Value, key: &str) -> &'a Value {
@@ -160,11 +175,12 @@ fn pinned_tube_fixture_corpus_executes_against_the_reference_kernel() {
     let cases = field(&root, "cases")
         .as_array()
         .expect("cases must be an array");
-    assert_eq!(cases.len(), 5, "the pinned tube corpus changed unexpectedly");
+    assert_eq!(cases.len(), TUBE_CASE_IDS.len(), "the pinned tube corpus changed unexpectedly");
 
     let mut case_ids = HashSet::new();
-    for case in cases {
+    for (index, case) in cases.iter().enumerate() {
         let id = string_field(case, "id");
+        assert_eq!(id, TUBE_CASE_IDS[index], "tube fixture order/identity changed at index {index}");
         assert!(case_ids.insert(id.to_owned()), "duplicate tube fixture ID {id}");
         let expected = field(case, "expected");
         let expected_status = string_field(expected, "status");
@@ -205,7 +221,7 @@ fn pinned_tube_fixture_corpus_executes_against_the_reference_kernel() {
             other => panic!("{id}: unsupported expected status {other:?}"),
         }
     }
-    assert_eq!(case_ids.len(), 5);
+    assert_eq!(case_ids.len(), TUBE_CASE_IDS.len());
 }
 
 #[test]
@@ -214,15 +230,19 @@ fn pinned_small_network_corpus_checks_edge_flows_and_junction_conservation() {
     let cases = field(&root, "cases")
         .as_array()
         .expect("cases must be an array");
-    assert_eq!(cases.len(), 3, "the pinned network corpus changed unexpectedly");
+    assert_eq!(cases.len(), NETWORK_CASE_IDS.len(), "the pinned network corpus changed unexpectedly");
 
     let tolerance = field(&root, "tolerance");
     let relative = number_field(tolerance, "relative");
     let absolute = number_field(tolerance, "absolute");
     let mut case_ids = HashSet::new();
 
-    for case in cases {
+    for (case_index, case) in cases.iter().enumerate() {
         let case_id = string_field(case, "id");
+        assert_eq!(
+            case_id, NETWORK_CASE_IDS[case_index],
+            "network fixture order/identity changed at index {case_index}"
+        );
         assert!(
             case_ids.insert(case_id.to_owned()),
             "duplicate network fixture ID {case_id}"
@@ -318,6 +338,10 @@ fn pinned_small_network_corpus_checks_edge_flows_and_junction_conservation() {
             .filter_map(|(node_id, kind)| (kind == "junction").then_some(node_id.clone()))
             .collect();
         assert_eq!(
+            junctions.len(), declared_junctions.len(),
+            "{case_id}: duplicate junction declaration"
+        );
+        assert_eq!(
             declared_junctions, actual_junctions,
             "{case_id}: every internal junction must be checked exactly once"
         );
@@ -340,7 +364,7 @@ fn pinned_small_network_corpus_checks_edge_flows_and_junction_conservation() {
         }
     }
 
-    assert_eq!(case_ids.len(), 3);
+    assert_eq!(case_ids.len(), NETWORK_CASE_IDS.len());
 }
 
 #[test]
