@@ -6,7 +6,7 @@
 //! writes a real schedule.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::Write as FmtWrite;
+use std::fmt::Write as _;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Operation {
@@ -424,19 +424,13 @@ fn find_resource_conflicts(
 
     let mut conflicts = Vec::new();
     for (resource_id, mut items) in intervals {
-        items.sort_by(|left, right| {
-            left.0
-                .cmp(&right.0)
-                .then(left.1.cmp(&right.1))
-                .then(left.2.cmp(&right.2))
-        });
+        items.sort_by_key(|item| (item.0, item.1, item.2.clone()));
 
         // Enumerate actual overlaps. Non-overlapping resources scan in O(n log n);
         // if all intervals overlap, output size itself is quadratic.
-        for left_index in 0..items.len() {
-            let (left_start, left_end, left_id) = &items[left_index];
+        for (left_index, (left_start, left_end, left_id)) in items.iter().enumerate() {
             for (right_start, right_end, right_id) in items.iter().skip(left_index + 1) {
-                if right_start >= left_end {
+                if *right_start >= *left_end {
                     break;
                 }
                 let overlap_start_minute = (*left_start).max(*right_start);
@@ -460,7 +454,13 @@ fn find_resource_conflicts(
         }
     }
 
-    conflicts.sort();
+    conflicts.sort_by_key(|conflict| (
+        conflict.resource_id.clone(),
+        conflict.overlap_start_minute,
+        conflict.operation_a_id.clone(),
+        conflict.operation_b_id.clone(),
+        conflict.overlap_end_minute,
+    ));
     conflicts
 }
 
