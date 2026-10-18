@@ -24,7 +24,6 @@ pub enum TimestampOffsetSemantics {
     UnknownLocalOffset,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PcoField {
     TerminalIdentifier,
@@ -483,8 +482,7 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
         fraction_nanos = i128::from(fraction_value) * 10_i128.pow(u32::from(9 - fractional_digits));
     }
 
-    let (offset_minutes, offset_semantics, consumed) =
-        match bytes.get(index).copied() {
+    let (offset_minutes, offset_semantics, consumed) = match bytes.get(index).copied() {
             Some(b'Z' | b'z') if index + 1 == bytes.len() => {
                 (0i16, TimestampOffsetSemantics::UtcDesignator, index + 1)
             }
