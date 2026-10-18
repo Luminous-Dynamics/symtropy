@@ -203,7 +203,6 @@ pub enum FieldEvalBlockerCodeV1 {
     ExclusionRuleNotPreregistered,
     MissingExclusionEvidenceReference,
     InvalidExclusionEvidenceReference,
-    MissingOutcomeEvidenceReference,
     InvalidOutcomeEvidenceReference,
     InvalidUsefulWindowEvidenceReference,
     OutcomeRequestNotEligible,
@@ -1360,6 +1359,8 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.eligible_request_refs.clear();
         manifest.outcome_records.clear();
+        manifest.preregistered_exclusion_rule_refs =
+            vec!["rule-outside-scope".to_owned()];
         manifest.exclusions = manifest
             .screened_request_refs
             .iter()
@@ -1367,7 +1368,10 @@ mod tests {
                 request_ref: request_ref.clone(),
                 reason_code: StudyExclusionReasonV1::OutsideDeclaredScope,
                 preregistered_rule_ref: "rule-outside-scope".to_owned(),
-                exclusion_evidence_ref: format!("evt-{}-exclusion", request_ref.strip_prefix("req-").expect("request reference")).to_owned(),
+                exclusion_evidence_ref: format!(
+                    "evt-{}-exclusion",
+                    request_ref.strip_prefix("req-").expect("request reference")
+                ),
             })
             .collect();
         let report = preflight_field_study_v1(&manifest);
