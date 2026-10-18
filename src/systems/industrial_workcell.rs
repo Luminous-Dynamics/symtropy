@@ -397,31 +397,31 @@ pub fn validate_schedule_with_resource_capacities(
                 .then_with(|| left.index.cmp(&right.index))
         });
 
-        let mut active: Vec<(usize, &ScheduledOperation)> = Vec::new();
+        // Track only the active operation set. End events remove in expected O(1)
+        // time; violations name the deterministic operation that pushes occupancy
+        // over the limit, avoiding repeated copies of every active ID on hot pools.
+        let mut active: HashMap<usize, &ScheduledOperation> = HashMap::new();
         for event in events {
             if !event.starts {
-                active.retain(|(index, _)| *index != event.index);
+                active.remove(&event.index);
                 continue;
             }
             if active.len() >= capacity {
-                let mut operation_ids: Vec<String> = active
-                    .iter()
-                    .map(|(_, operation)| operation.id.clone())
-                    .chain(std::iter::once(event.operation.id.clone()))
-                    .collect();
-                operation_ids.sort();
-                operation_ids.dedup();
                 push_violation(
                     &mut report.violations,
                     ScheduleViolationCode::ResourceCapacityExceeded,
-                    operation_ids,
+                    vec![event.operation.id.clone()],
                     &format!(
-                        "resource '{}' capacity {} is exceeded by concurrent operations",
-                        resource_id, capacity
+                        "operation '{}' starts at {} while resource '{}' already has {} active operations (capacity {})",
+                        event.operation.id,
+                        event.time,
+                        resource_id,
+                        active.len(),
+                        capacity
                     ),
                 );
             }
-            active.push((event.index, event.operation));
+            active.insert(event.index, event.operation);
         }
     }
 
@@ -622,7 +622,15 @@ mod tests {
                 .find(|v| v.code == ScheduleViolationCode::ResourceCapacityExceeded)
                 .unwrap()
                 .operation_ids,
-            vec!["inspect-a", "inspect-b", "inspect-c"]
+            vec!["inspect-c"]
+        );
+        assert!(
+            report.violations
+                .iter()
+                .find(|v| v.code == ScheduleViolationCode::ResourceCapacityExceeded)
+                .unwrap()
+                .detail
+                .contains("already has 2 active operations")
         );
     }
 
