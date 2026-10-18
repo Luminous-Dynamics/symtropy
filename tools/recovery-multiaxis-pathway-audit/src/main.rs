@@ -680,8 +680,177 @@ fn evaluate_temporal(corpus: &Corpus, errors: &mut Vec<String>) -> TemporalSumma
     }
 }
 
+fn evaluate_criteria_sensitivity(
+    corpus: &Corpus,
+    errors: &mut Vec<String>,
+) -> (BTreeMap<String, Vec<String>>, bool, bool) {
+    let control = &corpus.criteria_sensitivity_control;
+    let error_start = errors.len();
+
+    if !is_nonempty(&control.control_id) {
+        errors.push("CRITERIA_SENSITIVITY_CONTROL_ID_EMPTY".to_string());
+    }
+    if control.strategies.len() < 2 {
+        errors.push("CRITERIA_SENSITIVITY_NEEDS_TWO_STRATEGIES".to_string());
+    }
+    if control.regimes.len() != 2 {
+        errors.push("CRITERIA_SENSITIVITY_NEEDS_TWO_REGIMES".to_string());
+    }
+
+    let mut strategy_ids = BTreeSet::new();
+    for strategy in &control.strategies {
+        if !is_nonempty(&strategy.strategy_id) {
+            errors.push("CRITERIA_STRATEGY_ID_EMPTY".to_string());
+        }
+        if !strategy_ids.insert(&strategy.strategy_id) {
+            errors.push(format!("CRITERIA_STRATEGY_ID_DUPLICATE:{}", strategy.strategy_id));
+        }
+        if strategy.metric_values.is_empty() {
+            errors.push(format!("CRITERIA_STRATEGY_METRICS_EMPTY:{}", strategy.strategy_id));
+        }
+    }
+
+    let mut regime_ids = BTreeSet::new();
+    let mut criteria_regime_ids = BTreeSet::new();
+    let mut rankings = BTreeMap::new();
+
+    for regime in &control.regimes {
+        if !is_nonempty(&regime.regime_id) || !is_nonempty(&regime.criteria_regime) {
+            errors.push("CRITERIA_REGIME_IDENTITY_EMPTY".to_string());
+        }
+        if !regime_ids.insert(&regime.regime_id) {
+            errors.push(format!("CRITERIA_REGIME_ID_DUPLICATE:{}", regime.regime_id));
+        }
+        if !criteria_regime_ids.insert(&regime.criteria_regime) {
+            errors.push(format!("CRITERIA_REGIME_NAME_DUPLICATE:{}", regime.criteria_regime));
+        }
+
+        let profile_binding_matches = regime.profile_version == corpus.decision_profile.profile_id
+            && regime.criteria_regime == corpus.decision_profile.allowed_criteria_regime;
+        if regime.adopted_by_current_profile && !profile_binding_matches {
+            errors.push(format!("CRITERIA_REGIME_CLAIMS_UNADOPTED_PROFILE:{}", regime.regime_id));
+        }
+        if !regime.adopted_by_current_profile && profile_binding_matches {
+            errors.push(format!("CRITERIA_REGIME_CURRENT_PROFILE_MARKED_UNADOPTED:{}", regime.regime_id));
+        }
+
+        if regime.priority_order.is_empty() {
+            errors.push(format!("CRITERIA_PRIORITY_ORDER_EMPTY:{}", regime.regime_id));
+        }
+        if regime.admissibility_constraints.is_empty() {
+            errors.push(format!("CRITERIA_ADMISSIBILITY_CONSTRAINTS_EMPTY:{}", regime.regime_id));
+        }
+
+        let mut priority_metrics = BTreeSet::new();
+        for priority in &regime.priority_order {
+            if !matches!(priority.direction.as_str(), "MAXIMIZE" | "MINIMIZE") {
+                errors.push(format!("CRITERIA_PRIORITY_DIRECTION_INVALID:{}:{}", regime.regime_id, priority.metric));
+            }
+            if !priority_metrics.insert(&priority.metric) {
+                errors.push(format!("CRITERIA_PRIORITY_METRIC_DUPLICATE:{}:{}", regime.regime_id, priority.metric));
+            }
+        }
+
+        for constraint in &regime.admissibility_constraints {
+            if !matches!(constraint.operator.as_str(), "LTE" | "GTE") {
+                errors.push(format!("CRITERIA_CONSTRAINT_OPERATOR_INVALID:{}:{}", regime.regime_id, constraint.metric));
+            }
+        }
+
+        for strategy in &control.strategies {
+            for metric in regime
+                .priority_order
+                .iter()
+                .map(|priority| priority.metric.as_str())
+                .chain(
+                    regime
+                        .admissibility_constraints
+                        .iter()
+                        .map(|constraint| constraint.metric.as_str()),
+                )
+            {
+                if !strategy.metric_values.contains_key(metric) {
+                    errors.push(format!(
+                        "CRITERIA_STRATEGY_METRIC_MISSING:{}:{}:{}",
+                        regime.regime_id, strategy.strategy_id, metric
+                    ));
+                }
+            }
+        }
+
+        let mut eligible: Vec<&RankedStrategy> = control
+            .strategies
+            .iter()
+            .filter(|strategy| {
+                regime.admissibility_constraints.iter().all(|constraint| {
+                    strategy.metric_values.get(&constraint.metric).map(|value| {
+                        match constraint.operator.as_str() {
+                            "LTE" => *value <= constraint.threshold,
+                            "GTE" => *value >= constraint.threshold,
+                            _ => false,
+                        }
+                    }).unwrap_or(false)
+                })
+            })
+            .collect();
+
+        eligible.sort_by(|left, right| {
+            for priority in &regime.priority_order {
+                let left_value = left.metric_values.get(&priority.metric).copied().unwrap_or(0);
+                let right_value = right.metric_values.get(&priority.metric).copied().unwrap_or(0);
+                let ordering = match priority.direction.as_str() {
+                    "MAXIMIZE" => right_value.cmp(&left_value),
+                    "MINIMIZE" => left_value.cmp(&right_value),
+                    _ => std::cmp::Ordering::Equal,
+                };
+                if ordering != std::cmp::Ordering::Equal {
+                    return ordering;
+                }
+            }
+            left.strategy_id.cmp(&right.strategy_id)
+        });
+
+        let actual_ranked_ids: Vec<String> =
+            eligible.iter().map(|strategy| strategy.strategy_id.clone()).collect();
+        if actual_ranked_ids != regime.expected_ranked_strategy_ids {
+            errors.push(format!("CRITERIA_RANKING_MISMATCH:{}", regime.regime_id));
+        }
+        rankings.insert(regime.criteria_regime.clone(), actual_ranked_ids);
+    }
+
+    let first_ids: Vec<String> = control
+        .regimes
+        .first()
+        .and_then(|regime| rankings.get(&regime.criteria_regime))
+        .cloned()
+        .unwrap_or_default();
+    let second_ids: Vec<String> = control
+        .regimes
+        .get(1)
+        .and_then(|regime| rankings.get(&regime.criteria_regime))
+        .cloned()
+        .unwrap_or_default();
+    let top_strategy_reversal = first_ids.first().is_some()
+        && second_ids.first().is_some()
+        && first_ids.first() != second_ids.first();
+
+    if control.expected_top_strategy_reversal != top_strategy_reversal {
+        errors.push("CRITERIA_TOP_STRATEGY_REVERSAL_MISMATCH".to_string());
+    }
+
+    let matches = errors.len() == error_start
+        && control.expected_top_strategy_reversal
+        && top_strategy_reversal;
+    (rankings, top_strategy_reversal, matches)
+}
+
 fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>) -> AuditReceipt {
     validate_corpus(corpus, source_commit.as_deref(), &mut errors);
+    let (criteria_regime_rankings, criteria_regime_top_strategy_reversal, criteria_sensitivity_control_matches) =
+        evaluate_criteria_sensitivity(corpus, &mut errors);
+    if !criteria_sensitivity_control_matches {
+        errors.push("CRITERIA_SENSITIVITY_CONTROL_MISMATCH".to_string());
+    }
     let temporal = evaluate_temporal(corpus, &mut errors);
     let expected_temporal_counts_match =
         temporal.evidence_record_count == corpus.expected_temporal_counts.evidence_record_count
@@ -764,6 +933,8 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         && aggregate_counts_match
         && all_synthetic
         && all_actuation_disabled
+        && criteria_regime_top_strategy_reversal
+        && criteria_sensitivity_control_matches
         && expected_temporal_counts_match
         && temporal.nonanticipativity_violation_count == 0
         && temporal.future_evidence_violation_count == 0
@@ -786,6 +957,9 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         missing_evidence_reference_count: temporal.missing_evidence_reference_count,
         temporal_actuation_authorized_count: temporal.actuation_authorized_count,
         expected_temporal_counts_match,
+        criteria_regime_rankings,
+        criteria_regime_top_strategy_reversal,
+        criteria_sensitivity_control_matches,
         scope_counts,
         evidence_counts,
         hard_gate_counts,
