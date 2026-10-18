@@ -806,19 +806,19 @@ mod tests {
                 .unwrap()["expected"]["feasible"]
                 .as_bool()
                 .unwrap();
-            if case_feasible {
+            if case_feasible
+                && result.case_id == "priority_rules_miss_feasible_schedule"
+            {
                 assert_eq!(
                     result.nominal.status,
-                    "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL",
-                    "{}",
-                    result.case_id
+                    "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY"
                 );
-                assert!(result.nominal.makespan.is_some());
+                assert!(result.nominal.makespan.is_none());
                 assert_eq!(
                     result.nominal.validation_status,
-                    "INDEPENDENT_VALIDATOR_PASSED"
+                    "NOT_APPLICABLE_NO_CANDIDATE"
                 );
-            } else {
+            } else if case_feasible {
                 assert_ne!(
                     result.nominal.status,
                     "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL",
@@ -828,6 +828,22 @@ mod tests {
             }
             assert_eq!(result.optimality_claim, "NOT_PROVEN");
         }
+    }
+
+    #[test]
+    fn failure_to_find_a_candidate_is_not_reported_as_infeasibility() {
+        let report = plan_fixture_bytes(FIXTURE).unwrap();
+        let result = report
+            .case_results
+            .iter()
+            .find(|case| case.case_id == "priority_rules_miss_feasible_schedule")
+            .unwrap();
+        assert_eq!(
+            result.nominal.status,
+            "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY"
+        );
+        assert_eq!(result.nominal.makespan, None);
+        assert_eq!(result.optimality_claim, "NOT_PROVEN");
     }
 
     #[test]
