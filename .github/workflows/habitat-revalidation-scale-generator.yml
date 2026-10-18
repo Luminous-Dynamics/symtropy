@@ -19,6 +19,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   materialize-profiles:
@@ -53,15 +54,15 @@ jobs:
             receipt_second="$output_dir/$profile.second.receipt.json"
 
             cargo run --locked --manifest-path tools/habitat-revalidation-scale/Cargo.toml -- \
-              "$matrix" "$profile" "$first" "$receipt_first" "$GITHUB_SHA"
+              "$matrix" "$profile" "$first" "$receipt_first" "$SOURCE_COMMIT"
             cargo run --locked --manifest-path tools/habitat-revalidation-scale/Cargo.toml -- \
-              "$matrix" "$profile" "$second" "$receipt_second" "$GITHUB_SHA"
+              "$matrix" "$profile" "$second" "$receipt_second" "$SOURCE_COMMIT"
 
             cmp "$first" "$second"
             cmp "$receipt_first" "$receipt_second"
             digest="$(sha256sum "$first" | cut -d ' ' -f 1)"
 
-            jq -e --arg profile "$profile" --arg sha "$digest" --arg commit "$GITHUB_SHA" '
+            jq -e --arg profile "$profile" --arg sha "$digest" --arg commit "$SOURCE_COMMIT" '
               .schema_version == "luminous.habitat_revalidation_scale_receipt.v0.1" and
               .profile_id == $profile and
               .generator_source_commit == $commit and
