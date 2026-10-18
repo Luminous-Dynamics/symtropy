@@ -263,7 +263,8 @@ fn pinned_small_network_corpus_checks_edge_flows_and_junction_conservation() {
             let allowed = absolute + relative * flow_scale.max(expected_residual.abs());
             assert!(
                 (actual_residual - expected_residual).abs() <= allowed,
-                "{case_id}/{node_id}: mass-balance residual {actual_residual:.16e}, expected {expected_residual:.16e}, allowed {allowed:.3e}"
+                "{case_id}/{node_id}: mass-balance residual {actual_residual:.16e}, \
+                 expected {expected_residual:.16e}, allowed {allowed:.3e}"
             );
         }
     }
