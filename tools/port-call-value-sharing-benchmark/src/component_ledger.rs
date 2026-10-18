@@ -620,7 +620,7 @@ mod tests {
             evaluate_cost_ledger(&contract, &ledgers),
             Err(CostLedgerError::MissingCostComponent {
                 participant_id: "A".to_owned(),
-                category_id: "fuel".to_owned(),
+                category_id: "delay".to_owned(),
             })
         );
     }
@@ -678,7 +678,12 @@ mod tests {
 
     #[test]
     fn permutations_are_canonical_and_explicit_zero_rows_are_preserved() {
-        let (contract, ledgers) = input();
+        let mut contract = contract();
+        contract.required_categories.push("other".to_owned());
+        let (_, mut ledgers) = input();
+        for ledger in &mut ledgers {
+            ledger.components.push(component("other", 0, 0));
+        }
         let first = evaluate_cost_ledger(&contract, &ledgers).unwrap();
         let mut permuted = ledgers.clone();
         permuted.reverse();
@@ -691,7 +696,7 @@ mod tests {
             second.participants[0]
                 .components
                 .iter()
-                .any(|c| c.category_id == "delay" && c.baseline_cost_minor == 2 && c.treatment_cost_minor == 1)
+                .any(|c| c.category_id == "other" && c.baseline_cost_minor == 0 && c.treatment_cost_minor == 0)
         );
     }
 
