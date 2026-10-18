@@ -13,14 +13,19 @@ const HEADER: &str = "case_id\texpected_result\trationale";
 const DISPOSITIONS: [&str; 2] = ["CALCULATED", "BLOCKED"];
 
 fn verify() -> Result<(), String> {
-    let records: Vec<&str> = MANIFEST.lines()
-        .filter(|line| !line.trim().is_empty() && !line.starts_with('#')).collect();
+    let records: Vec<&str> = MANIFEST
+        .lines()
+        .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
+        .collect();
     if records.first().copied() != Some(HEADER) {
         return Err("repair-recovery manifest header missing or drifted".into());
     }
     let rows = &records[1..];
     if rows.len() != EXPECTED_CASE_COUNT {
-        return Err(format!("expected {EXPECTED_CASE_COUNT} repair-recovery cases, found {}", rows.len()));
+        return Err(format!(
+            "expected {EXPECTED_CASE_COUNT} repair-recovery cases, found {}",
+            rows.len()
+        ));
     }
     let mut ids = BTreeSet::new();
     for (index, row) in rows.iter().enumerate() {
@@ -39,7 +44,9 @@ fn verify() -> Result<(), String> {
             return Err(format!("row {} has no rationale", index + 2));
         }
         if !TEST_SOURCE.contains(&format!("fn {id}(")) {
-            return Err(format!("manifest case {id} has no matching independent test function"));
+            return Err(format!(
+                "manifest case {id} has no matching independent test function"
+            ));
         }
     }
     println!("STRUCTURE_VALID_ONLY cases={}", rows.len());
