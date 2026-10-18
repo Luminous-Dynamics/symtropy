@@ -29,7 +29,8 @@ pub enum DispatchTravelMetricV1 {
     GeodesicDistance,
     /// A duration produced by a versioned route graph or friction-surface model.
     ModeledRouteTime,
-    /// A duration observed on a recorded trip for the declared route scope.
+    /// A duration observed on a recorded historical trip. This is evidence,
+    /// not a forecast for a future dispatch.
     ObservedTripTime,
     /// Explicitly unknown metric.
     Unknown,
@@ -184,8 +185,6 @@ pub struct SharedFleetDispatchReportV1 {
     pub capacity_unavailable_count: usize,
     /// Never combines modeled-route and observed-trip minutes.
     pub total_modeled_route_minutes: u64,
-    /// Never combines observed-trip and modeled-route minutes.
-    pub total_observed_trip_minutes: u64,
     /// Results are sorted by request_id, independent of input row order.
     pub assignments: Vec<SharedFleetDispatchAssignmentV1>,
 }
@@ -329,7 +328,6 @@ pub fn plan_shared_fleet_dispatch_v1(
 
     let mut assignments = Vec::with_capacity(input.requests.len());
     let mut total_modeled_route_minutes = 0_u64;
-    let mut total_observed_trip_minutes = 0_u64;
 
     for request in schedule_order {
         let compatible_ids: Vec<String> = robot_states
@@ -483,17 +481,9 @@ pub fn plan_shared_fleet_dispatch_v1(
                         )]
                     })?;
             }
-            DispatchTravelMetricV1::ObservedTripTime => {
-                total_observed_trip_minutes = total_observed_trip_minutes
-                    .checked_add(candidate.travel_minutes)
-                    .ok_or_else(|| {
-                        vec![blocker(
-                            SharedFleetDispatchBlockerCodeV1::ArithmeticOverflow,
-                            &request.request_id,
-                        )]
-                    })?;
-            }
-            DispatchTravelMetricV1::GeodesicDistance | DispatchTravelMetricV1::Unknown => {
+            DispatchTravelMetricV1::ObservedTripTime
+            | DispatchTravelMetricV1::GeodesicDistance
+            | DispatchTravelMetricV1::Unknown => {
                 // schedulable_travel_minutes excludes these metrics.
                 return Err(vec![blocker(
                     SharedFleetDispatchBlockerCodeV1::InvalidTravelMetricMode,
@@ -564,7 +554,6 @@ pub fn plan_shared_fleet_dispatch_v1(
             SharedFleetDispatchDispositionV1::CapacityUnavailable,
         ),
         total_modeled_route_minutes,
-        total_observed_trip_minutes,
         assignments,
     })
 }
@@ -598,8 +587,7 @@ fn schedulable_travel_minutes(
     }
 
     match (leg.metric, leg.travel_minutes) {
-        (DispatchTravelMetricV1::ModeledRouteTime, Some(minutes))
-        | (DispatchTravelMetricV1::ObservedTripTime, Some(minutes)) => {
+        (DispatchTravelMetricV1::ModeledRouteTime, Some(minutes)) => {
             Some((minutes, leg.metric))
         }
         _ => None,
