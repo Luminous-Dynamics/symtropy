@@ -21,7 +21,7 @@ cargo run --manifest-path tools/circ-mfg-001/Cargo.toml -- \
 
 The CLI outputs a deterministic JSON report and returns nonzero if input is invalid or a fixture does not match its independent expected disposition. The report distinguishes:
 - `raw_input_sha256`: exact source bytes;
-- `canonical_input_sha256`: case/evidence/gate row order normalized before hashing;
+- `canonical_input_sha256`: case/evidence/gate/external-reference row order normalized before hashing;
 - `result_sha256`: semantic result payload digest excluding the raw-byte hash, so row reordering does not change the decision digest.
 
 The current manifest accepts `evidence_class: Synthetic` only. Measured or modeled inputs are rejected by v0.1; support for such evidence requires its own provenance, applicability and validation contract.
