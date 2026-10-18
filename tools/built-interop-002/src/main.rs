@@ -614,12 +614,12 @@ mod tests {
     fn duplicate_global_id_blocks_and_step_ids_remain_distinguishable() {
         let (ifc, ids) = fixtures();
         let second_wall =
-            "#2=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\\n";
+            "#2=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n";
         let duplicate = String::from_utf8(ifc)
             .expect("fixture is UTF-8")
             .replace(
-                "ENDSEC;\\nEND-ISO-10303-21;",
-                &format!("{second_wall}ENDSEC;\\nEND-ISO-10303-21;"),
+                "ENDSEC;\nEND-ISO-10303-21;",
+                &format!("{second_wall}ENDSEC;\nEND-ISO-10303-21;"),
             );
         let report = evaluate(duplicate.as_bytes(), &ids).expect("duplicate-identity IFC parses");
         assert_eq!(report.decision, Decision::Blocked);
