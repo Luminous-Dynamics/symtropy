@@ -165,7 +165,10 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), String> {
     {
         return Err("fixture scheduling conventions are unsupported or ambiguous".to_owned());
     }
-    if c.resources.trim().is_empty() || c.uncertainty.trim().is_empty() || c.gates.trim().is_empty() {
+    if c.resources.trim().is_empty()
+        || c.uncertainty.trim().is_empty()
+        || c.gates.trim().is_empty()
+    {
         return Err("resource, uncertainty, and gate conventions must be explicit".to_owned());
     }
     if fixture.cases.is_empty() || fixture.cases.len() > MAX_CASES {
@@ -223,7 +226,10 @@ fn validate_case(case: &ScheduleCase) -> Result<(), String> {
         if task.latest_start.is_some_and(|latest| latest < task.earliest_start) {
             // A contradictory window is valid input only for an infeasibility test case.
             if case.expected.feasible {
-                return Err(format!("{}: feasible case contains a contradictory task window", case.case_id));
+                return Err(format!(
+                    "{}: feasible case contains a contradictory task window",
+                    case.case_id
+                ));
             }
         }
         for required_gate in &task.required_gates {
@@ -233,7 +239,10 @@ fn validate_case(case: &ScheduleCase) -> Result<(), String> {
         }
         for (resource_id, demand) in &task.resource_demands {
             if !resource_ids.contains(resource_id.as_str()) || *demand == 0 {
-                return Err(format!("{}: task has an unknown resource or zero demand", case.case_id));
+                return Err(format!(
+                    "{}: task has an unknown resource or zero demand",
+                    case.case_id
+                ));
             }
         }
     }
@@ -601,13 +610,16 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<OracleReport, String> {
             expected_outcome_match: expected_match,
         });
     }
-    let all_expected_outcomes_match = case_results.iter().all(|result| result.expected_outcome_match);
+    let all_expected_outcomes_match = case_results
+        .iter()
+        .all(|result| result.expected_outcome_match);
     Ok(OracleReport {
         schema_version: REPORT_SCHEMA.to_owned(),
         suite_id: fixture.suite_id,
         input_sha256: sha256_hex(bytes),
         input_bytes: bytes.len(),
-        algorithm: "exhaustive_integer_start_time_enumeration_with_pairwise_feasibility_checks".to_owned(),
+        algorithm: "exhaustive_integer_start_time_enumeration_with_pairwise_feasibility_checks"
+            .to_owned(),
         case_count: case_results.len(),
         all_expected_outcomes_match,
         claim_ceiling: CLAIM_CEILING.to_owned(),
