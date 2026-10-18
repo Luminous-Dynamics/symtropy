@@ -82,6 +82,7 @@ enum GateStatus {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct ExternalRefRequirement {
+    authority: ExternalAuthority,
     reference_id: String,
     role: ExternalRefRole,
 }
@@ -89,8 +90,17 @@ struct ExternalRefRequirement {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct ExternalReference {
+    authority: ExternalAuthority,
     reference_id: String,
     role: ExternalRefRole,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+enum ExternalAuthority {
+    Mycelix,
+    Symthaea,
+    Symtropy,
+    SolAtlas,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -187,13 +197,15 @@ fn normalize_manifest(manifest: &mut Manifest) {
                 .then_with(|| a.status.cmp(&b.status))
         });
         case.required_external_refs.sort_by(|a, b| {
-            a.reference_id
-                .cmp(&b.reference_id)
+            a.authority
+                .cmp(&b.authority)
+                .then_with(|| a.reference_id.cmp(&b.reference_id))
                 .then_with(|| a.role.cmp(&b.role))
         });
         case.external_refs.sort_by(|a, b| {
-            a.reference_id
-                .cmp(&b.reference_id)
+            a.authority
+                .cmp(&b.authority)
+                .then_with(|| a.reference_id.cmp(&b.reference_id))
                 .then_with(|| a.role.cmp(&b.role))
         });
     }
@@ -436,36 +448,38 @@ fn evaluate_case(case: &Case) -> CaseResult {
         );
     }
 
-    let mut required_ref_ids = BTreeSet::new();
+    let mut required_ref_keys = BTreeSet::new();
     for requirement in &case.required_external_refs {
-        if requirement.reference_id.trim().is_empty()
-            || !required_ref_ids.insert(requirement.reference_id.clone())
-        {
+        let key = (requirement.authority, requirement.reference_id.clone());
+        if requirement.reference_id.trim().is_empty() || !required_ref_keys.insert(key) {
             add_issue(
                 &mut issues,
                 &mut blocked,
                 &mut unresolved,
                 Severity::Blocked,
                 format!(
-                    "empty_or_duplicate_external_ref_requirement:{}",
-                    requirement.reference_id
+                    "empty_or_duplicate_external_ref_requirement:{:?}:{}",
+                    requirement.authority, requirement.reference_id
                 ),
             );
         }
     }
 
-    let mut external_ref_counts = std::collections::BTreeMap::<String, usize>::new();
+    let mut external_ref_counts =
+        std::collections::BTreeMap::<(ExternalAuthority, String), usize>::new();
     for reference in &case.external_refs {
-        *external_ref_counts
-            .entry(reference.reference_id.clone())
-            .or_insert(0) += 1;
-        if !required_ref_ids.contains(&reference.reference_id) {
+        let key = (reference.authority, reference.reference_id.clone());
+        *external_ref_counts.entry(key.clone()).or_insert(0) += 1;
+        if !required_ref_keys.contains(&key) {
             add_issue(
                 &mut issues,
                 &mut blocked,
                 &mut unresolved,
                 Severity::Blocked,
-                format!("unreferenced_external_ref:{}", reference.reference_id),
+                format!(
+                    "unreferenced_external_ref:{:?}:{}",
+                    reference.authority, reference.reference_id
+                ),
             );
         }
     }
@@ -474,7 +488,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         let matches: Vec<&ExternalReference> = case
             .external_refs
             .iter()
-            .filter(|reference| reference.reference_id == requirement.reference_id)
+            .filter(|reference| {
+                reference.authority == requirement.authority
+                    && reference.reference_id == requirement.reference_id
+            })
             .collect();
         match matches.as_slice() {
             [] => add_issue(
@@ -482,7 +499,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 &mut blocked,
                 &mut unresolved,
                 Severity::Unresolved,
-                format!("missing_external_ref:{}", requirement.reference_id),
+                format!(
+                    "missing_external_ref:{:?}:{}",
+                    requirement.authority, requirement.reference_id
+                ),
             ),
             [reference] if reference.role != requirement.role => add_issue(
                 &mut issues,
@@ -490,8 +510,11 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 &mut unresolved,
                 Severity::Blocked,
                 format!(
-                    "external_ref_role_mismatch:{}:expected={:?}:actual={:?}",
-                    requirement.reference_id, requirement.role, reference.role
+                    "external_ref_role_mismatch:{:?}:{}:expected={:?}:actual={:?}",
+                    requirement.authority,
+                    requirement.reference_id,
+                    requirement.role,
+                    reference.role
                 ),
             ),
             [_] => {}
@@ -500,19 +523,22 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 &mut blocked,
                 &mut unresolved,
                 Severity::Blocked,
-                format!("duplicate_external_ref:{}", requirement.reference_id),
+                format!(
+                    "duplicate_external_ref:{:?}:{}",
+                    requirement.authority, requirement.reference_id
+                ),
             ),
         }
     }
 
-    for (reference_id, count) in external_ref_counts {
-        if count > 1 && !required_ref_ids.contains(&reference_id) {
+    for ((authority, reference_id), count) in external_ref_counts {
+        if count > 1 && !required_ref_keys.contains(&(authority, reference_id.clone())) {
             add_issue(
                 &mut issues,
                 &mut blocked,
                 &mut unresolved,
                 Severity::Blocked,
-                format!("duplicate_unreferenced_external_ref:{reference_id}"),
+                format!("duplicate_unreferenced_external_ref:{authority:?}:{reference_id}"),
             );
         }
     }
@@ -678,6 +704,7 @@ mod tests {
             ("11-unreferenced-evidence-record", Decision::Blocked),
             ("12-custody-reference-role-mismatch", Decision::Blocked),
             ("13-duplicate-custody-reference", Decision::Blocked),
+            ("14-external-reference-authority-mismatch", Decision::Blocked),
         ];
 
         let (manifest, raw) = fixture();
