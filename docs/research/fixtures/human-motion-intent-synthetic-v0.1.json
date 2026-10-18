@@ -18,5 +18,11 @@
     "source": "synthetic_test_fixture",
     "policy_id": "deterministic-fixture",
     "policy_version": "1.0"
+  },
+  "coordinate_frame": {
+    "length_unit": "metre",
+    "up_axis": "+Y",
+    "forward_axis": "-Z",
+    "position_space": "world"
   }
 }
