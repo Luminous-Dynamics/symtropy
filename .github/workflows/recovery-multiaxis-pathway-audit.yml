@@ -55,7 +55,7 @@ jobs:
             and .schema_version == "recovery-multiaxis-pathway-corpus-v0.1"
             and .algorithm_id == "multi-axis-recovery-pathway-audit-v0.1"
             and .source_commit == $head
-            and .case_count == 864
+            and .case_count == 868
             and .temporal_evidence_record_count == 3
             and .temporal_decision_count == 4
             and .visible_history_group_count == 3
@@ -68,23 +68,23 @@ jobs:
             and .aggregate_counts_match == true
             and .all_synthetic == true
             and .all_actuation_disabled == true
-            and .scope_counts.IN_SCOPE == 108
+            and .scope_counts.IN_SCOPE == 112
             and .scope_counts.OUT_OF_SCOPE == 756
-            and .evidence_counts.SUFFICIENT == 288
+            and .evidence_counts.SUFFICIENT == 292
             and .evidence_counts.INSUFFICIENT == 576
-            and .hard_gate_counts.PASS == 216
-            and .hard_gate_counts.UNKNOWN == 540
+            and .hard_gate_counts.PASS == 218
+            and .hard_gate_counts.UNKNOWN == 542
             and .hard_gate_counts.BLOCK == 108
-            and .timing_counts.ADEQUATE == 432
+            and .timing_counts.ADEQUATE == 436
             and .timing_counts.TOO_LATE == 432
-            and .disposition_counts.REVIEW_ONLY_CANDIDATE == 6
-            and .disposition_counts.HOLD_EVIDENCE == 78
+            and .disposition_counts.REVIEW_ONLY_CANDIDATE == 8
+            and .disposition_counts.HOLD_EVIDENCE == 80
             and .disposition_counts.REASSESS_SCOPE == 756
             and .disposition_counts.BLOCKED_HARD_GATE == 18
             and .disposition_counts.REPLAN_TOO_LATE == 6
             and .lock_in_warning_counts["true"] == 432
-            and .lock_in_warning_counts["false"] == 432
-            and (.case_results | length) == 864
+            and .lock_in_warning_counts["false"] == 436
+            and (.case_results | length) == 868
             and (.errors | length) == 0
           ' recovery-multiaxis-pathway-receipt.json
       - name: Upload deterministic pathway receipt
