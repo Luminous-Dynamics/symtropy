@@ -174,10 +174,21 @@ pub fn validate_review_annotations_for_revision(
                         annotation_id: annotation.annotation_id.clone(),
                     });
                 }
-                if annotation.kind == ReviewAnnotationKind::RequiredEvidence
-                    && annotation.state != ReviewAnnotationState::Unknown
-                    && annotation.state != ReviewAnnotationState::NotApplicable
-                {
+                let invalid_state = match annotation.kind {
+                    ReviewAnnotationKind::BindingRequirement => matches!(
+                        annotation.state,
+                        ReviewAnnotationState::Conflict
+                            | ReviewAnnotationState::UnfulfilledPreference
+                            | ReviewAnnotationState::Informational
+                    ),
+                    // Absence of required evidence is epistemically unknown,
+                    // not a pass and not an implicit NotApplicable decision.
+                    ReviewAnnotationKind::RequiredEvidence => {
+                        annotation.state != ReviewAnnotationState::Unknown
+                    }
+                    _ => unreachable!("matched only the two binding kinds"),
+                };
+                if invalid_state {
                     issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
                         annotation_id: annotation.annotation_id.clone(),
                     });
@@ -219,7 +230,16 @@ pub fn validate_review_annotations_for_revision(
                     });
                 }
             }
-            ReviewAnnotationKind::EngineeringEvidence => {}
+            ReviewAnnotationKind::EngineeringEvidence => {
+                if matches!(
+                    annotation.state,
+                    ReviewAnnotationState::Conflict | ReviewAnnotationState::UnfulfilledPreference
+                ) {
+                    issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
         }
 
         match (
@@ -642,6 +662,38 @@ mod tests {
             .unwrap_err()
             .contains(&ReviewAnnotationIssue::MissingBindingProvenance {
                 annotation_id: "rule:egress".into(),
+            }));
+    }
+
+    #[test]
+    fn missing_required_evidence_cannot_be_marked_not_applicable() {
+        let mut missing = annotation(
+            "evidence:fire-review",
+            "house:r1",
+            ReviewAnnotationKind::RequiredEvidence,
+            ReviewAnnotationState::NotApplicable,
+        );
+        missing.source_ref = Some("rule:fire-review".into());
+        missing.module_id = Some("jurisdiction:pilot".into());
+        assert!(validate_review_annotations_for_revision(&[missing], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                annotation_id: "evidence:fire-review".into(),
+            }));
+    }
+
+    #[test]
+    fn an_unresolved_binding_dispute_must_use_conflict_annotation_kind() {
+        let conflict = annotation(
+            "rule:ventilation",
+            "house:r1",
+            ReviewAnnotationKind::BindingRequirement,
+            ReviewAnnotationState::Conflict,
+        );
+        assert!(validate_review_annotations_for_revision(&[conflict], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                annotation_id: "rule:ventilation".into(),
             }));
     }
 
