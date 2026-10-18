@@ -1587,6 +1587,8 @@ mod tests {
             estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
             estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
         ];
+        data.estimates[0].interval = None;
+        data.estimates[0].kind = EstimateKind::ReportedPoint;
         data.estimates[1].unit = "seconds".to_owned();
         data.estimate_contrasts.push(EstimateContrast {
             id: "fixture:contrast".to_owned(),
@@ -1612,6 +1614,8 @@ mod tests {
             estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
             estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
         ];
+        data.estimates[0].interval = None;
+        data.estimates[0].kind = EstimateKind::ReportedPoint;
         data.estimates[1].interval = None;
         data.estimates[1].kind = EstimateKind::ReportedPoint;
         data.estimate_contrasts.push(EstimateContrast {
