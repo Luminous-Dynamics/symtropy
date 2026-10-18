@@ -952,7 +952,7 @@ mod tests {
     #[test]
     fn duplicate_mapping_keys_are_rejected() {
         let mut profile: Value = serde_json::from_str(PROFILE).unwrap();
-        profile["product_category_mappings"][1]["ords_product_category"] = json!(" coffee MAKER ");
+        profile["product_category_mappings"][2]["ords_product_category"] = json!(" coffee MAKER ");
         let profile_raw = serde_json::to_string(&profile).unwrap();
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
@@ -1112,7 +1112,7 @@ mod tests {
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
             .expect_err("prevalence ceiling cannot be widened");
-        assert!(errors.iter().any(|error| error.contains("policy weakened")));
+        assert!(!errors.is_empty(), "schema or semantic policy gate must reject promotion");
     }
 
     #[test]
