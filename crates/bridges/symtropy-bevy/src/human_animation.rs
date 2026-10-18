@@ -220,11 +220,7 @@ fn derive_human_motion_from_intent(
 ) {
     let now_sec = time.elapsed_secs_f64();
     for (mut intent, mut controller) in &mut query {
-        if !intent.desired_planar_velocity_mps.is_finite()
-            || intent
-                .observed_planar_velocity_mps
-                .is_some_and(|velocity| !velocity.is_finite())
-        {
+        if has_invalid_locomotion_velocity(&intent) {
             intent.desired_planar_velocity_mps = Vec2::ZERO;
             intent.observed_planar_velocity_mps = None;
             intent.motion_override = Some(HumanMotion::Idle);
@@ -241,6 +237,14 @@ fn derive_human_motion_from_intent(
         }
         controller.motion = motion_for_locomotion_intent(&intent, controller.motion, *config);
     }
+}
+
+fn has_invalid_locomotion_velocity(intent: &HumanLocomotionIntent) -> bool {
+    !intent.desired_planar_velocity_mps.is_finite()
+        || !intent.desired_planar_velocity_mps.length().is_finite()
+        || intent.observed_planar_velocity_mps.is_some_and(|velocity| {
+            !velocity.is_finite() || !velocity.length().is_finite()
+        })
 }
 
 /// Consume an expired intent exactly once, zeroing requested movement. If measured velocity
@@ -496,6 +500,18 @@ mod tests {
             ),
             HumanMotion::Idle
         );
+    }
+
+    #[test]
+    fn non_finite_or_overflowing_velocity_is_rejected() {
+        let mut intent = HumanLocomotionIntent::default();
+        intent.desired_planar_velocity_mps = Vec2::new(f32::MAX, f32::MAX);
+        assert!(has_invalid_locomotion_velocity(&intent));
+        intent.desired_planar_velocity_mps = Vec2::ZERO;
+        intent.observed_planar_velocity_mps = Some(Vec2::new(f32::NAN, 0.0));
+        assert!(has_invalid_locomotion_velocity(&intent));
+        intent.observed_planar_velocity_mps = Some(Vec2::new(f32::MAX, f32::MAX));
+        assert!(has_invalid_locomotion_velocity(&intent));
     }
 
     #[test]
