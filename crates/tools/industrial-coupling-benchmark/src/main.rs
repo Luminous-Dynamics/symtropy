@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
-use industrial_coupling_benchmark::{evaluate, verify_optimal_plan, Scenario};
+use industrial_coupling_benchmark::{
+    evaluate, evaluate_robust, verify_optimal_plan, verify_robust_plan, Scenario,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cases = [
@@ -73,5 +75,56 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             plan.sink_surplus_allocation_milli
         );
     }
+
+    // A single transfer quantity must remain acceptable under both scenarios.
+    // The objective maximizes the worst-case surplus, not the average.
+    let mut conservative = Scenario {
+        scenario_id: "IC-001-CONSERVATIVE-SYNTHETIC".to_owned(),
+        source_surplus_kwh: 60,
+        sink_heat_demand_kwh: 35,
+        link_capacity_kwh: 60,
+        transfer_efficiency_bps: 8_500,
+        source_supply_temp_c: 180,
+        sink_required_temp_c: 120,
+        minimum_approach_c: 20,
+        avoided_utility_cost_milli_per_kwh: 1_800,
+        source_opportunity_cost_milli_per_kwh: 150,
+        transfer_variable_cost_milli_per_input_kwh: 250,
+        coordination_fixed_cost_milli: 2_000,
+        source_surplus_share_bps: 5_000,
+        source_minimum_participation_surplus_milli: 10_000,
+        sink_minimum_participation_surplus_milli: 20_000,
+    };
+    conservative.source_supply_temp_c = 180;
+    let robust_scenarios = vec![
+        Scenario {
+            scenario_id: "IC-001-POSITIVE-SYNTHETIC".to_owned(),
+            source_surplus_kwh: 60,
+            sink_heat_demand_kwh: 40,
+            link_capacity_kwh: 60,
+            transfer_efficiency_bps: 9_000,
+            source_supply_temp_c: 180,
+            sink_required_temp_c: 120,
+            minimum_approach_c: 20,
+            avoided_utility_cost_milli_per_kwh: 2_500,
+            source_opportunity_cost_milli_per_kwh: 100,
+            transfer_variable_cost_milli_per_input_kwh: 200,
+            coordination_fixed_cost_milli: 1_000,
+            source_surplus_share_bps: 5_000,
+            source_minimum_participation_surplus_milli: 10_000,
+            sink_minimum_participation_surplus_milli: 20_000,
+        },
+        conservative,
+    ];
+    let robust = evaluate_robust(&robust_scenarios)?;
+    verify_robust_plan(&robust_scenarios, &robust)?;
+    println!(
+        "robust_set={} scenarios={} verified=pass common_input_kwh={} worst_case_surplus_milli={} total_surplus_milli={}",
+        "IC-001-TWO-SCENARIO-SYNTHETIC",
+        robust.scenario_plans.len(),
+        robust.transfer_input_kwh,
+        robust.worst_case_surplus_milli,
+        robust.total_surplus_milli
+    );
     Ok(())
 }
