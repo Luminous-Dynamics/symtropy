@@ -1,0 +1,16 @@
+[package]
+name = "habitat-scheduling-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Compare checked heuristic schedules against an independent tiny exact oracle"
+
+[workspace]
+
+[dependencies]
+habitat-scheduling-oracle = { path = "../habitat-scheduling-oracle" }
+habitat-scheduling-planner = { path = "../habitat-scheduling-planner" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
