@@ -520,7 +520,7 @@ fn build_observed_update(
 
     let matching_bin_ids: BTreeSet<&str> = matching_bins.iter().map(|bin| bin.outcome_id.as_str()).collect();
     let mut compatible_states = Vec::new();
-    let mut signature_counts = BTreeMap::<String, u64>::new();
+    let mut compatible_signature_counts = BTreeMap::<String, u64>::new();
     for state in states {
         let compatible = if state.domain_status != DomainStatus::WithinModelDomain {
             true
@@ -536,7 +536,7 @@ fn build_observed_update(
         };
         if compatible {
             compatible_states.push(state.state_id.clone());
-            *signature_counts.entry(state.signature_id.clone()).or_insert(0) += 1;
+            *compatible_signature_counts.entry(state.signature_id.clone()).or_insert(0) += 1;
         }
     }
     compatible_states.sort();
@@ -564,8 +564,8 @@ fn build_observed_update(
         observed_value: Some(observation),
         matching_outcome_ids: matching_bins.iter().map(|bin| bin.outcome_id.clone()).collect(),
         prior_state_count,
-        decision_signature_class_count: signature_counts.len(),
-        decision_discordant_pairs_remaining: discordant_pairs(&signature_counts),
+        decision_signature_class_count: compatible_signature_counts.len(),
+        decision_discordant_pairs_remaining: discordant_pairs(&compatible_signature_counts),
         compatible_state_ids: compatible_states,
         update_note: concat!(
             "only states whose declared output envelope contains the observation remain; ",
