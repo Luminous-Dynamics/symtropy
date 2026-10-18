@@ -467,6 +467,23 @@ mod tests {
     }
 
     #[test]
+    fn fixed_calibration_exposes_coverage_decay_under_regime_shift() {
+        let samples = (1_i64..=20)
+            .map(|error| sample(usize::try_from(error).unwrap(), error))
+            .collect::<Vec<_>>();
+        let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
+        assert_eq!(fitted.radius_nanos, Some(19 * NANOS_PER_SECOND as u128));
+
+        let baseline_errors = (1_i64..=20).collect::<Vec<_>>();
+        let baseline = evaluate_coverage(&fitted, &cases(&baseline_errors)).unwrap();
+        assert_eq!(baseline.conditional_coverage_bps, Some(9_500));
+
+        let shifted_errors = (40_i64..=59).collect::<Vec<_>>();
+        let shifted = evaluate_coverage(&fitted, &cases(&shifted_errors)).unwrap();
+        assert_eq!(shifted.conditional_coverage_bps, Some(0));
+        assert_eq!(shifted.interval_issuance_rate_bps, 10_000);
+    }
+    #[test]
     fn calibration_is_permutation_invariant_and_preserves_cutoff() {
         let first = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
         let mut second = first.clone();
