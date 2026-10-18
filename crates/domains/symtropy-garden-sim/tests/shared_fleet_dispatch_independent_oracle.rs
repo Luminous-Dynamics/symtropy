@@ -134,8 +134,7 @@ fn deadline_first_schedule_counts_on_time_and_late_separately() {
     assert_eq!(report.scheduled_count, 2);
     assert_eq!(report.scheduled_within_window_count, 1);
     assert_eq!(report.scheduled_late_count, 1);
-    assert_eq!(report.total_modeled_route_minutes, 6);
-    assert_eq!(report.total_observed_trip_minutes, 0);
+    assert_eq!(report.total_scheduled_modeled_route_minutes, 6);
 
     let earliest_deadline = assignment(&report, "request-b");
     assert_eq!(
@@ -357,7 +356,7 @@ fn observed_trip_time_is_not_used_as_future_forecast() {
     .unwrap();
 
     assert_eq!(report.scheduled_count, 1);
-    assert_eq!(report.total_modeled_route_minutes, 3);
+    assert_eq!(report.total_scheduled_modeled_route_minutes, 3);
     assert_eq!(
         assignment(&report, "request-a").travel_metric,
         Some(DispatchTravelMetricV1::ModeledRouteTime)
