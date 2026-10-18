@@ -12,6 +12,7 @@ pub const MAX_MANIFEST_BYTES: usize = 4 * 1024 * 1024;
 pub const MAX_ARTIFACTS: usize = 10_000;
 pub const MAX_ARTIFACT_BYTES: u64 = 64 * 1024 * 1024;
 pub const MAX_TOTAL_DECLARED_BYTES: u64 = 512 * 1024 * 1024;
+pub const MAX_TOTAL_BYTES_READ: u64 = 512 * 1024 * 1024;
 const CLAIM_CEILING: &str =
     "integrity_verified_against_manifest_only_not_authenticity_or_physical_validity";
 
@@ -59,6 +60,8 @@ pub enum ArtifactIssue {
     NotRegularFile,
     TooLarge,
     ReadError,
+    ChangedDuringRead,
+    AggregateByteLimitExceeded,
     ByteLengthMismatch,
     DigestMismatch,
 }
@@ -117,10 +120,13 @@ pub fn verify_bundle(root: &Path, manifest_bytes: &[u8]) -> Result<EvidenceBundl
         return Err("bundle root must be a directory".to_owned());
     }
 
+    let mut total_bytes_reserved_for_reads = 0u64;
     let mut artifacts = manifest
         .artifacts
         .iter()
-        .map(|artifact| verify_artifact(&canonical_root, artifact))
+        .map(|artifact| {
+            verify_artifact(&canonical_root, artifact, &mut total_bytes_reserved_for_reads)
+        })
         .collect::<Vec<_>>();
     artifacts.sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
 
@@ -143,7 +149,32 @@ pub fn verify_bundle(root: &Path, manifest_bytes: &[u8]) -> Result<EvidenceBundl
     })
 }
 
-fn verify_artifact(root: &Path, artifact: &EvidenceArtifact) -> ArtifactVerification {
+fn bounded_read_length(
+    file_byte_len: u64,
+    total_reserved: u64,
+    per_file_limit: u64,
+    total_limit: u64,
+) -> Result<u64, ArtifactIssue> {
+    if file_byte_len > per_file_limit {
+        return Err(ArtifactIssue::TooLarge);
+    }
+    let reserve = file_byte_len
+        .checked_add(1)
+        .ok_or(ArtifactIssue::AggregateByteLimitExceeded)?;
+    let total = total_reserved
+        .checked_add(reserve)
+        .ok_or(ArtifactIssue::AggregateByteLimitExceeded)?;
+    if total > total_limit {
+        return Err(ArtifactIssue::AggregateByteLimitExceeded);
+    }
+    Ok(reserve)
+}
+
+fn verify_artifact(
+    root: &Path,
+    artifact: &EvidenceArtifact,
+    total_bytes_reserved_for_reads: &mut u64,
+) -> ArtifactVerification {
     let mut result = ArtifactVerification {
         artifact_id: artifact.artifact_id.clone(),
         role: artifact.role,
@@ -216,11 +247,19 @@ fn verify_artifact(root: &Path, artifact: &EvidenceArtifact) -> ArtifactVerifica
             return result;
         }
     };
-    if metadata.len() > MAX_ARTIFACT_BYTES {
-        result.actual_byte_len = Some(metadata.len());
-        result.issues.push(ArtifactIssue::TooLarge);
-        return result;
-    }
+    let read_limit = match bounded_read_length(
+        metadata.len(),
+        *total_bytes_reserved_for_reads,
+        MAX_ARTIFACT_BYTES,
+        MAX_TOTAL_BYTES_READ,
+    ) {
+        Ok(limit) => limit,
+        Err(issue) => {
+            result.actual_byte_len = Some(metadata.len());
+            result.issues.push(issue);
+            return result;
+        }
+    };
 
     let file = match File::open(&resolved) {
         Ok(file) => file,
@@ -229,8 +268,16 @@ fn verify_artifact(root: &Path, artifact: &EvidenceArtifact) -> ArtifactVerifica
             return result;
         }
     };
+    *total_bytes_reserved_for_reads = match total_bytes_reserved_for_reads.checked_add(read_limit) {
+        Some(total) => total,
+        None => {
+            result.issues.push(ArtifactIssue::AggregateByteLimitExceeded);
+            return result;
+        }
+    };
+
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
-    let mut bounded_reader = file.take(MAX_ARTIFACT_BYTES + 1);
+    let mut bounded_reader = file.take(read_limit);
     if bounded_reader.read_to_end(&mut bytes).is_err() {
         result.issues.push(ArtifactIssue::ReadError);
         return result;
@@ -238,6 +285,11 @@ fn verify_artifact(root: &Path, artifact: &EvidenceArtifact) -> ArtifactVerifica
     if bytes.len() as u64 > MAX_ARTIFACT_BYTES {
         result.actual_byte_len = Some(bytes.len() as u64);
         result.issues.push(ArtifactIssue::TooLarge);
+        return result;
+    }
+    if bytes.len() as u64 != metadata.len() {
+        result.actual_byte_len = Some(bytes.len() as u64);
+        result.issues.push(ArtifactIssue::ChangedDuringRead);
         return result;
     }
 
@@ -372,6 +424,22 @@ mod tests {
     fn verify_mutated(manifest: &EvidenceBundleManifest) -> Result<EvidenceBundleReport, String> {
         let bytes = serde_json::to_vec(manifest).expect("manifest serializes");
         verify_bundle(Path::new(ROOT), &bytes)
+    }
+
+    #[test]
+    fn aggregate_read_budget_includes_the_size_change_probe() {
+        assert_eq!(
+            bounded_read_length(10, 0, 20, 30),
+            Ok(11)
+        );
+        assert_eq!(
+            bounded_read_length(10, 20, 20, 30),
+            Err(ArtifactIssue::AggregateByteLimitExceeded)
+        );
+        assert_eq!(
+            bounded_read_length(21, 0, 20, 30),
+            Err(ArtifactIssue::TooLarge)
+        );
     }
 
     #[test]
