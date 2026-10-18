@@ -364,7 +364,7 @@ fn rutherford_scattering_angle(coulomb_parameter: f64, kinetic_energy: f64, impa
 /// use scientific notation and stable field order for byte-for-byte replay.
 pub fn json_report(checks: &[ExperimentCheck]) -> String {
     let passed = checks.iter().filter(|entry| entry.passed).count();
-    let all_passed = passed == checks.len();
+    let all_passed = !checks.is_empty() && passed == checks.len();
     let mut output = String::from(
         "{\"suite_id\":\"physics-experiment-atlas-v0.1\",\"claim_ceiling\":\"analytic and synthetic model checks only; no historical raw-data reproduction or apparatus validation\",\"passed\":",
     );
@@ -376,12 +376,12 @@ pub fn json_report(checks: &[ExperimentCheck]) -> String {
             output.push(',');
         }
         output.push_str(&format!(
-            "{{\"experiment_id\":\"{}\",\"metric\":\"{}\",\"value\":{:.17e},\"reference\":{:.17e},\"absolute_tolerance\":{:.17e},\"passed\":{},\"evidence_class\":\"{}\",\"details\":\"{}\"}}",
+            "{{\"experiment_id\":\"{}\",\"metric\":\"{}\",\"value\":{},\"reference\":{},\"absolute_tolerance\":{},\"passed\":{},\"evidence_class\":\"{}\",\"details\":\"{}\"}}",
             json_escape(entry.experiment_id),
             json_escape(entry.metric),
-            entry.value,
-            entry.reference,
-            entry.absolute_tolerance,
+            finite_json_number(entry.value),
+            finite_json_number(entry.reference),
+            finite_json_number(entry.absolute_tolerance),
             entry.passed,
             json_escape(entry.evidence_class),
             json_escape(entry.details),
@@ -389,6 +389,14 @@ pub fn json_report(checks: &[ExperimentCheck]) -> String {
     }
     output.push_str("]}");
     output
+}
+
+fn finite_json_number(value: f64) -> String {
+    if value.is_finite() {
+        format!("{value:.17e}")
+    } else {
+        "null".to_owned()
+    }
 }
 
 fn json_escape(input: &str) -> String {
@@ -461,6 +469,24 @@ mod tests {
             let recovered = impact_parameter * (angle / 2.0).tan();
             assert!((recovered - k / (2.0 * energy)).abs() < 1.0e-12);
         }
+    }
+
+    #[test]
+    fn json_report_maps_non_finite_values_to_null_and_fails_closed() {
+        let invalid = ExperimentCheck {
+            experiment_id: "invalid_fixture",
+            metric: "non_finite_value",
+            value: f64::NAN,
+            reference: 0.0,
+            absolute_tolerance: 1.0,
+            passed: false,
+            evidence_class: "negative_control",
+            details: "A non-finite result must not corrupt JSON output.",
+        };
+        let output = json_report(&[invalid]);
+        assert!(output.contains("\\"passed\\":false"));
+        assert!(output.contains("\\"value\\":null"));
+        assert!(output.contains("\\"passed\\":false"));
     }
 
     #[test]
