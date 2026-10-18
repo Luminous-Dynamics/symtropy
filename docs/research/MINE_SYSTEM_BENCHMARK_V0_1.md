@@ -112,6 +112,26 @@ The SMR candidate is **not a reactor design and not a reactor installed on a mov
 
 Compare architectures against the same load trace and accepted-output requirement. Count auxiliary and common services, include peak-power/transient needs, distribution losses, energy buffers, unavailability and common-mode failures. Low energy price alone does not establish the cheapest lifecycle architecture.
 
+### 5.1 Thermal symbiosis and heat-grade matching
+
+The campaign should distinguish unwanted heat that must be rejected to maintain safe working conditions from heat that can be recovered, stored or delivered as a useful service. The initial benchmark may declare these quantities and test accounting; it must not assume a generic recoverable heat fraction.
+
+Compose the existing [process-stream heat integration work](https://github.com/Luminous-Dynamics/symtropy/issues/1899), [multi-period thermal integration work](https://github.com/Luminous-Dynamics/symtropy/issues/1916), Symthaea's [mine geothermal evidence program](https://github.com/Luminous-Dynamics/symthaea/issues/6147), and general [symbiotic campus profile](https://github.com/Luminous-Dynamics/symthaea/issues/6146), rather than creating another thermal solver.
+
+Candidate sources/sinks include rock and mine-water heat, equipment/process waste heat, cooling loads, ventilation air, surface buildings, water treatment, and seasonal thermal storage. Each source/sink needs temperature grade, flow/capacity, availability schedule, transfer loss, parasitic load, measurement/evidence status and a declared delivery boundary. A thermodynamic quantity is not useful service unless its temperature and timing satisfy a real demand.
+
+Compare:
+- safe heat rejection / conventional refrigeration baseline;
+- heat-pump recovery where source/sink temperature and flow evidence supports it;
+- heat recovery to facility or process loads with explicit exchanger approach and parasitic power;
+- bounded thermal storage for mismatched supply/demand times;
+- candidate deep-mine geothermal extraction/storage designs, classified as modelled until separately supported by long-duration field data.
+
+Report useful thermal service delivered by temperature band, parasitic electrical energy, heat actually rejected, thermal-storage loss, cooling service quality, and lifecycle cost. No credit for the same heat both being delivered to a useful sink and being counted as rejected or stored. Electrical output from low-grade heat recovery must be independently accounted and may not be assumed useful merely because a numerical multiphysics model predicts it.
+
+**Evidence caution:** 2026 research includes numerical concepts for geothermal power/storage tunnels in deep mines, while a recent evidence-grading review distinguishes more mature mine-water/abandoned-mine heat-pump applications from active deep-mine heat recovery that still needs stronger long-term monitoring. These are research leads, not permission to size a real cooling or geothermal system from headline results.
+
+
 ## 6. Fixed baseline comparisons
 
 Run the identical frozen scenario realization through:
