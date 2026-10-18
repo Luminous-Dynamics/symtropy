@@ -64,17 +64,28 @@ impl Dimensions {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum Axis { X, Y, Z }
+enum Axis {
+    X,
+    Y,
+    Z,
+}
 
 impl Axis {
     fn index(self) -> usize {
-        match self { Axis::X => 0, Axis::Y => 1, Axis::Z => 2 }
+        match self {
+            Axis::X => 0,
+            Axis::Y => 1,
+            Axis::Z => 2,
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum CrossingPolicy { Forbidden, Permitted }
+enum CrossingPolicy {
+    Forbidden,
+    Permitted,
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -87,19 +98,35 @@ struct Discontinuity {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Origin { x_mm: u64, y_mm: u64, z_mm: u64 }
+struct Origin {
+    x_mm: u64,
+    y_mm: u64,
+    z_mm: u64,
+}
 
 impl Origin {
-    fn axes(&self) -> [u64; 3] { [self.x_mm, self.y_mm, self.z_mm] }
+    fn axes(&self) -> [u64; 3] {
+        [self.x_mm, self.y_mm, self.z_mm]
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum IntendedUse { Decorative, NonStructural, LoadBearing }
+enum IntendedUse {
+    Decorative,
+    NonStructural,
+    LoadBearing,
+}
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum QualityEvidence { Qualified, Observed, Estimated, Unknown, Synthetic }
+enum QualityEvidence {
+    Qualified,
+    Observed,
+    Estimated,
+    Unknown,
+    Synthetic,
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -121,7 +148,10 @@ struct MaterialStreams {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum Disposition { Pass, Reject }
+enum Disposition {
+    Pass,
+    Reject,
+}
 
 #[derive(Debug, Serialize)]
 struct Receipt {
@@ -169,14 +199,20 @@ fn product_bounds(block: &ProductBlock) -> Option<([u64; 3], [u64; 3])> {
 fn boxes_overlap(a: &ProductBlock, b: &ProductBlock) -> bool {
     let (Some((a_start, a_end)), Some((b_start, b_end))) =
         (product_bounds(a), product_bounds(b))
-    else { return false; };
+    else {
+        return false;
+    };
+
     (0..3).all(|axis| a_start[axis] < b_end[axis] && b_start[axis] < a_end[axis])
 }
 
 fn add_product_volume(total: &mut u128, block: &ProductBlock) -> Check<()> {
-    let volume = block.dimensions.volume_mm3()
+    let volume = block
+        .dimensions
+        .volume_mm3()
         .ok_or_else(|| format!("{}: product volume overflow", block.block_id))?;
-    *total = total.checked_add(volume)
+    *total = total
+        .checked_add(volume)
         .ok_or_else(|| "product volume accumulator overflow".to_owned())?;
     Ok(())
 }
@@ -194,13 +230,17 @@ fn evaluate_scenario(scenario: &Scenario, tolerance_ppm: u32) -> ScenarioReceipt
     if scenario.rock_mass.evidence_class != "synthetic" {
         reasons.insert("ROCK_EVIDENCE_CLASS_UNSUPPORTED".to_owned());
     }
-    if !rock_dims_valid { reasons.insert("ROCK_DIMENSION_INVALID".to_owned()); }
+    if !rock_dims_valid {
+        reasons.insert("ROCK_DIMENSION_INVALID".to_owned());
+    }
     if scenario.rock_mass.mass_id.trim().is_empty() {
         reasons.insert("MASS_ID_MISSING".to_owned());
     }
 
     let rock_volume = scenario.rock_mass.dimensions.volume_mm3();
-    if rock_volume.is_none() { reasons.insert("VOLUME_OVERFLOW".to_owned()); }
+    if rock_volume.is_none() {
+        reasons.insert("VOLUME_OVERFLOW".to_owned());
+    }
 
     let mut discontinuity_ids = BTreeSet::new();
     for plane in &scenario.discontinuities {
@@ -229,7 +269,9 @@ fn evaluate_scenario(scenario: &Scenario, tolerance_ppm: u32) -> ScenarioReceipt
         }
 
         match product_bounds(block) {
-            None => { reasons.insert("PRODUCT_BOUNDS_OVERFLOW".to_owned()); }
+            None => {
+                reasons.insert("PRODUCT_BOUNDS_OVERFLOW".to_owned());
+            }
             Some((start, end)) => {
                 if (0..3).any(|axis| end[axis] > dims[axis]) {
                     reasons.insert("PRODUCT_OUT_OF_BOUNDS".to_owned());
@@ -240,7 +282,9 @@ fn evaluate_scenario(scenario: &Scenario, tolerance_ppm: u32) -> ScenarioReceipt
                     reasons.insert("PRODUCT_QUALIFICATION_UNRESOLVED".to_owned());
                 }
                 for plane in &scenario.discontinuities {
-                    if plane.crossing_policy != CrossingPolicy::Forbidden { continue; }
+                    if plane.crossing_policy != CrossingPolicy::Forbidden {
+                        continue;
+                    }
                     let axis = plane.axis.index();
                     if start[axis] < plane.offset_mm && end[axis] > plane.offset_mm {
                         reasons.insert("PROHIBITED_FRACTURE_CROSSING".to_owned());
@@ -267,7 +311,9 @@ fn evaluate_scenario(scenario: &Scenario, tolerance_ppm: u32) -> ScenarioReceipt
             let difference = source.abs_diff(output);
             let tolerance = (source / 1_000_000_u128) * tolerance_ppm as u128
                 + ((source % 1_000_000_u128) * tolerance_ppm as u128) / 1_000_000_u128;
-            if difference > tolerance { reasons.insert("MATERIAL_BALANCE_MISMATCH".to_owned()); }
+            if difference > tolerance {
+                reasons.insert("MATERIAL_BALANCE_MISMATCH".to_owned());
+            }
             Some(difference)
         }
         _ => None,
@@ -276,7 +322,9 @@ fn evaluate_scenario(scenario: &Scenario, tolerance_ppm: u32) -> ScenarioReceipt
     let actual_reason_codes: Vec<String> = reasons.into_iter().collect();
     let actual_disposition = if actual_reason_codes.is_empty() {
         Disposition::Pass
-    } else { Disposition::Reject };
+    } else {
+        Disposition::Reject
+    };
 
     let mut expected_reasons = scenario.expected_reason_codes.clone();
     sort_dedup(&mut expected_reasons);
@@ -310,11 +358,16 @@ fn validate_corpus(corpus: &Corpus, corpus_sha256: String, source_commit: String
         if scenario.scenario_id.trim().is_empty() || !ids.insert(scenario.scenario_id.clone()) {
             duplicate_id = true;
         }
-        scenarios.push(evaluate_scenario(scenario, corpus.accounting_tolerance_ppm));
+        scenarios.push(evaluate_scenario(
+            scenario,
+            corpus.accounting_tolerance_ppm,
+        ));
     }
 
-    let expected_controls_matched = scenarios.iter()
-        .filter(|scenario| scenario.expected_control_matched).count();
+    let expected_controls_matched = scenarios
+        .iter()
+        .filter(|scenario| scenario.expected_control_matched)
+        .count();
     let all_controls_matched = !duplicate_id
         && !scenarios.is_empty()
         && expected_controls_matched == scenarios.len()
@@ -325,7 +378,11 @@ fn validate_corpus(corpus: &Corpus, corpus_sha256: String, source_commit: String
         && !corpus.claim_ceiling.trim().is_empty();
 
     Receipt {
-        result: if all_controls_matched { "validated" } else { "contract_mismatch" },
+        result: if all_controls_matched {
+            "validated"
+        } else {
+            "contract_mismatch"
+        },
         validator_version: VERSION,
         suite_id: corpus.suite_id.clone(),
         suite_version: corpus.suite_version.clone(),
@@ -342,11 +399,15 @@ fn validate_corpus(corpus: &Corpus, corpus_sha256: String, source_commit: String
 fn run() -> Check<()> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 3 || args[1] != "--source-commit" {
-        return Err("usage: stone-recovery-bench <corpus.json> --source-commit <40-hex-commit>".to_owned());
+        return Err(
+            "usage: stone-recovery-bench <corpus.json> --source-commit <40-hex-commit>".to_owned(),
+        );
     }
     let source_commit = args[2].to_ascii_lowercase();
     if source_commit.len() != 40
-        || !source_commit.chars().all(|character| character.is_ascii_hexdigit())
+        || !source_commit
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
     {
         return Err("--source-commit must be exactly 40 hexadecimal characters".to_owned());
     }
@@ -356,8 +417,11 @@ fn run() -> Check<()> {
     let corpus: Corpus = serde_json::from_slice(&bytes)
         .map_err(|error| format!("invalid corpus JSON: {error}"))?;
     let receipt = validate_corpus(&corpus, digest, source_commit);
-    println!("{}", serde_json::to_string_pretty(&receipt)
-        .map_err(|error| format!("cannot serialize receipt: {error}"))?);
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt)
+            .map_err(|error| format!("cannot serialize receipt: {error}"))?
+    );
 
     if receipt.result != "validated" {
         return Err("one or more frozen benchmark controls did not match".to_owned());
@@ -380,8 +444,10 @@ mod tests {
     use super::*;
 
     fn corpus() -> Corpus {
-        serde_json::from_str(include_str!("../../../docs/tech/stone-recovery-benchmark-corpus-v0.1.json"))
-            .expect("frozen synthetic corpus must parse")
+        serde_json::from_str(include_str!(
+            "../../../docs/tech/stone-recovery-benchmark-corpus-v0.1.json"
+        ))
+        .expect("frozen synthetic corpus must parse")
     }
 
     #[test]
@@ -392,7 +458,10 @@ mod tests {
         assert_eq!(receipt.scenario_count, 4);
         assert_eq!(receipt.expected_controls_matched, 4);
         assert_eq!(receipt.scenarios[0].actual_disposition, Disposition::Pass);
-        assert_eq!(receipt.scenarios[1].actual_reason_codes, vec!["PROHIBITED_FRACTURE_CROSSING"]);
+        assert_eq!(
+            receipt.scenarios[1].actual_reason_codes,
+            vec!["PROHIBITED_FRACTURE_CROSSING".to_owned()]
+        );
     }
 
     #[test]
@@ -417,6 +486,8 @@ mod tests {
         let scenario = &mut corpus.scenarios[0];
         scenario.product_blocks[1].origin.x_mm = 400;
         let report = evaluate_scenario(scenario, tolerance_ppm);
-        assert!(report.actual_reason_codes.contains(&"PRODUCT_OVERLAP".to_owned()));
+        assert!(report
+            .actual_reason_codes
+            .contains(&"PRODUCT_OVERLAP".to_owned()));
     }
 }
