@@ -304,6 +304,16 @@ fn validate_rights(
                 "permission-granted status requires a recorded permission basis",
             );
         }
+        RightsStatus::PublicDomain
+            if rights.basis_note.as_deref().unwrap_or("").trim().is_empty() =>
+        {
+            issue(
+                issues,
+                record_id,
+                ValidationCode::InvalidRightsDeclaration,
+                "public-domain status requires a documented determination basis",
+            );
+        }
         _ => {}
     }
 }
@@ -369,12 +379,17 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
         register_id(&claim.id, &mut all_ids, &claim.id, &mut issues);
         require_nonempty(&claim.proposition, &claim.id, "claim proposition", &mut issues);
 
-        if claim.mode.requires_evidence() && claim.evidence.is_empty() {
+        if claim.mode.requires_evidence()
+            && !claim
+                .evidence
+                .iter()
+                .any(|link| link.relation == EvidenceRelation::Supports)
+        {
             issue(
                 &mut issues,
                 &claim.id,
                 ValidationCode::MissingEvidenceForClaim,
-                "attested claims and evidence-based reconstructions require at least one evidence link",
+                "attested claims and evidence-based reconstructions require at least one evidence link marked supports; challenging-only evidence is not positive support",
             );
         }
         if claim.mode.requires_interpretation_note()
@@ -471,12 +486,17 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
             }
         }
 
-        if relation.status == RelationStatus::Documented && relation.evidence.is_empty() {
+        if relation.status == RelationStatus::Documented
+            && !relation
+                .evidence
+                .iter()
+                .any(|link| link.relation == EvidenceRelation::Supports)
+        {
             issue(
                 &mut issues,
                 &relation.id,
                 ValidationCode::MissingEvidenceForRelation,
-                "documented relationships require at least one evidence link",
+                "documented relationships require at least one evidence link marked supports; challenging-only evidence cannot document the edge",
             );
         }
         if matches!(
@@ -627,6 +647,44 @@ mod tests {
         assert!(report.issues.iter().any(|item| {
             item.record_id == "fixture:claim-a"
                 && item.code == ValidationCode::MissingEvidenceForClaim
+        }));
+    }
+
+    #[test]
+    fn challenging_only_evidence_does_not_support_an_attested_claim() {
+        let mut data = fixture();
+        data.claims[0].evidence[0].relation = EvidenceRelation::Challenges;
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:claim-a"
+                && item.code == ValidationCode::MissingEvidenceForClaim
+        }));
+    }
+
+    #[test]
+    fn challenging_evidence_is_preserved_alongside_support() {
+        let mut data = fixture();
+        let mut challenge = evidence("fixture:source-1");
+        challenge.relation = EvidenceRelation::Challenges;
+        challenge.locator = "fixture:paragraph-2".to_owned();
+        data.claims[0].evidence.push(challenge);
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+        assert_eq!(data.claims[0].evidence.len(), 2);
+        assert!(data.claims[0]
+            .evidence
+            .iter()
+            .any(|link| link.relation == EvidenceRelation::Challenges));
+    }
+
+    #[test]
+    fn documented_relation_with_challenging_only_evidence_fails() {
+        let mut data = fixture();
+        data.relations[0].evidence[0].relation = EvidenceRelation::Challenges;
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:relation-1"
+                && item.code == ValidationCode::MissingEvidenceForRelation
         }));
     }
 
