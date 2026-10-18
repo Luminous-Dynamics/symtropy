@@ -782,7 +782,10 @@ mod tests {
             .first()
             .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
-        assert_eq!(property.diagnostic_codes, vec![DiagnosticCode::MissingTargetProperty]);
+        assert_eq!(
+            property.diagnostic_codes,
+            vec![DiagnosticCode::MissingTargetProperty]
+        );
         let value = serde_json::to_value(&result).expect("scenario result serializes");
         assert_eq!(
             value["requirement_results"][0]["diagnostic_codes"][0],
@@ -808,7 +811,10 @@ mod tests {
             .first()
             .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
-        assert_eq!(property.diagnostic_codes, vec![DiagnosticCode::NoTargetObservation]);
+        assert_eq!(
+            property.diagnostic_codes,
+            vec![DiagnosticCode::NoTargetObservation]
+        );
         assert!(property.disposition.is_none());
         assert!(property.observed_object_id.is_none());
         assert!(property.observed_value.is_none());
