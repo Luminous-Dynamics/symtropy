@@ -54,7 +54,10 @@ jobs:
             .claim_ceiling == "synthetic_heuristic_schedule_candidates_not_optimality_construction_or_safety_authority" and
             all(.case_results[];
               .optimality_claim == "NOT_PROVEN" and
-              (.nominal.schedule | length == 0 or (. | length > 0))
+              all([.nominal, .upper_duration_unconstrained, .upper_duration_with_deadline][];
+                (.schedule | length) == 0 or
+                .validation_status == "INDEPENDENT_VALIDATOR_PASSED"
+              )
             ) and
             ((.case_results[] | select(.case_id == "independent_tasks_distinct_crews") | .nominal.makespan) == 6) and
             ((.case_results[] | select(.case_id == "independent_tasks_shared_exclusive_crew") | .nominal.makespan) == 10) and
