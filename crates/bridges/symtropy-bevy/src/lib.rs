@@ -47,7 +47,7 @@ pub mod toolbus;
 
 pub use animation::{AnimationState, RoboticAnimationPlugin};
 pub use human_motion_intent::{
-    ConfidenceSemantics, IntentProvenance, IntentSource, IntentValidationError,
+    ConfidenceSemantics, IntentProvenance, IntentSource, IntentValidationError, MotionIntentCoordinateFrame,
     InterruptionPolicy, MotionIntentKind, MotionIntentTarget, SemanticMotionIntent,
     HUMAN_MOTION_INTENT_SCHEMA_VERSION,
 };
