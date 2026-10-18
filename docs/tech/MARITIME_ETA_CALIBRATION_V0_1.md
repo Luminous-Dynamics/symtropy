@@ -44,7 +44,7 @@ Twelve Rust tests cover:
 1. exact finite-sample rank for nine synthetic residuals at 10% nominal miscoverage;
 2. insufficient sample size producing an infinite/unavailable radius;
 3. invalid target levels and empty calibration;
-4. cutoff leakage and invalid forecast/actual chronology;
+4. cutoff leakage and invalid forecast/actual chronology, including forecasts issued after their observed actual event;
 5. duplicate IDs and temporal ordering;
 6. symmetric interval bounds and overflow rejection;
 7. held-out coverage, mean interval width, and issuance rate as separate metrics;
