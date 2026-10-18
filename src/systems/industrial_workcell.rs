@@ -269,7 +269,6 @@ fn validate_schedule_internal(
     ScheduleValidationReport { violations }
 }
 
-
 /// Declared concurrent capacity for an interchangeable resource pool.
 ///
 /// Unlike a one-resource-per-machine schedule, this allows a shared pool such as
@@ -384,8 +383,18 @@ pub fn validate_schedule_with_resource_capacities(
             let (Some(start), Some(end)) = (valid_start(operation), operation.end_seconds()) else {
                 continue;
             };
-            events.push(CapacityEvent { time: start, starts: true, index, operation });
-            events.push(CapacityEvent { time: end, starts: false, index, operation });
+            events.push(CapacityEvent {
+                time: start,
+                starts: true,
+                index,
+                operation,
+            });
+            events.push(CapacityEvent {
+                time: end,
+                starts: false,
+                index,
+                operation,
+            });
         }
         events.sort_by(|left, right| {
             left.time
@@ -616,7 +625,8 @@ mod tests {
             1
         );
         assert_eq!(
-            report.violations
+            report
+                .violations
                 .iter()
                 .find(|v| v.code == ScheduleViolationCode::ResourceCapacityExceeded)
                 .unwrap()
@@ -624,7 +634,8 @@ mod tests {
             vec!["inspect-c"]
         );
         assert!(
-            report.violations
+            report
+                .violations
                 .iter()
                 .find(|v| v.code == ScheduleViolationCode::ResourceCapacityExceeded)
                 .unwrap()
@@ -751,8 +762,14 @@ mod tests {
     fn ambiguous_and_zero_capacity_declarations_are_rejected() {
         let operations = vec![operation("cut", "cnc-pool", 0.0, 2.0, &[])];
         let duplicate = vec![
-            ResourceCapacity { resource_id: "cnc-pool".into(), capacity: 1 },
-            ResourceCapacity { resource_id: "cnc-pool".into(), capacity: 2 },
+            ResourceCapacity {
+                resource_id: "cnc-pool".into(),
+                capacity: 1,
+            },
+            ResourceCapacity {
+                resource_id: "cnc-pool".into(),
+                capacity: 2,
+            },
         ];
         let report = validate_schedule_with_resource_capacities(&operations, &duplicate);
         assert_eq!(
@@ -764,7 +781,10 @@ mod tests {
             0
         );
 
-        let zero = vec![ResourceCapacity { resource_id: "cnc-pool".into(), capacity: 0 }];
+        let zero = vec![ResourceCapacity {
+            resource_id: "cnc-pool".into(),
+            capacity: 0,
+        }];
         let report = validate_schedule_with_resource_capacities(&operations, &zero);
         assert_eq!(
             report.violation_count(ScheduleViolationCode::ZeroResourceCapacity),
