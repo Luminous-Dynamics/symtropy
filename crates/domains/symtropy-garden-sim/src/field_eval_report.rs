@@ -51,10 +51,71 @@ pub enum StudyExclusionReasonV1 {
     TestOrAdministrativeRecord,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AcceptanceDecisionModeV1 {
+    FarmerDirect,
+    AuthorizedIntermediaryRecorded,
+}
+
+fn serialize_u64_decimal_string<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
+
+fn deserialize_u64_decimal_string<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    String::deserialize(deserializer)?
+        .parse::<u64>()
+        .map_err(serde::de::Error::custom)
+}
+
+mod optional_u64_decimal_string {
+    use super::*;
+
+    pub fn serialize<S>(value: &Option<u64>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match value {
+            Some(value) => serializer.serialize_some(&value.to_string()),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Option::<String>::deserialize(deserializer)?
+            .map(|raw| raw.parse::<u64>().map_err(serde::de::Error::custom))
+            .transpose()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RequestOutcomeRecordV1 {
     pub request_ref: String,
+    /// Minute value from the same declared period origin used by service_access.
+    #[serde(
+        serialize_with = "serialize_u64_decimal_string",
+        deserialize_with = "deserialize_u64_decimal_string"
+    )]
+    pub useful_window_deadline_minute: u64,
+    /// Present only when authoritative evidence supports a farmer acceptance.
+    #[serde(
+        serialize_with = "optional_u64_decimal_string::serialize",
+        deserialize_with = "optional_u64_decimal_string::deserialize"
+    )]
+    pub acceptance_at_minute: Option<u64>,
+    pub acceptance_evidence_ref: Option<String>,
+    pub acceptance_decision_mode: Option<AcceptanceDecisionModeV1>,
+    pub acceptance_authority_ref: Option<String>,
     pub outcome: RequestOutcomeClassV1,
 }
 
@@ -138,6 +199,12 @@ pub enum FieldEvalBlockerCodeV1 {
     DuplicateOutcomeRecord,
     MissingOutcomeRecord,
     InvalidOutcomeShape,
+    AcceptanceEvidenceIncomplete,
+    UnexpectedAcceptanceEvidence,
+    InvalidAcceptanceEventReference,
+    AcceptanceTimeContradictsWindow,
+    IntermediaryAcceptanceAuthorityMissing,
+    DirectAcceptanceUnexpectedAuthority,
     CountOverflow,
 }
 
@@ -278,6 +345,109 @@ fn outcome_class_valid(outcome: &RequestOutcomeClassV1) -> bool {
                 | DisputeResolutionV1::ResolvedWithoutInWindowAcceptance
                 | DisputeResolutionV1::Unresolved
         ),
+    }
+}
+
+fn expected_in_window_acceptance(outcome: &RequestOutcomeClassV1) -> Option<bool> {
+    match outcome {
+        RequestOutcomeClassV1::AcceptedWithinUsefulWindow => Some(true),
+        RequestOutcomeClassV1::AcceptedLate => Some(false),
+        RequestOutcomeClassV1::DisputedOrRework { resolution } => match resolution {
+            DisputeResolutionV1::AcceptedWithinUsefulWindow => Some(true),
+            DisputeResolutionV1::AcceptedLate => Some(false),
+            DisputeResolutionV1::ResolvedWithoutInWindowAcceptance
+            | DisputeResolutionV1::Unresolved => None,
+        },
+        RequestOutcomeClassV1::KnownNotAccepted { .. }
+        | RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision { .. }
+        | RequestOutcomeClassV1::OutcomeUnknown
+        | RequestOutcomeClassV1::FollowUpMissingOrInaccessible => None,
+    }
+}
+
+fn validate_acceptance_evidence(
+    record: &RequestOutcomeRecordV1,
+    blockers: &mut Vec<FieldEvalBlockerV1>,
+) {
+    let expected_in_window = expected_in_window_acceptance(&record.outcome);
+    let has_any_acceptance_evidence = record.acceptance_at_minute.is_some()
+        || record.acceptance_evidence_ref.is_some()
+        || record.acceptance_decision_mode.is_some()
+        || record.acceptance_authority_ref.is_some();
+
+    let Some(expected_in_window) = expected_in_window else {
+        if has_any_acceptance_evidence {
+            push_blocker(
+                blockers,
+                FieldEvalBlockerCodeV1::UnexpectedAcceptanceEvidence,
+                Some(&record.request_ref),
+                "non-acceptance or unresolved outcome carries an acceptance event/time/mode",
+            );
+        }
+        return;
+    };
+
+    let complete = record.acceptance_at_minute.is_some()
+        && record.acceptance_evidence_ref.is_some()
+        && record.acceptance_decision_mode.is_some();
+    if !complete {
+        push_blocker(
+            blockers,
+            FieldEvalBlockerCodeV1::AcceptanceEvidenceIncomplete,
+            Some(&record.request_ref),
+            "accepted outcomes require event reference, acceptance time and decision mode",
+        );
+    }
+
+    if let Some(event_ref) = &record.acceptance_evidence_ref {
+        if !valid_opaque_reference(event_ref, "evt-", 3, 64) {
+            push_blocker(
+                blockers,
+                FieldEvalBlockerCodeV1::InvalidAcceptanceEventReference,
+                Some(&record.request_ref),
+                "acceptance evidence must use an opaque evt-* event reference",
+            );
+        }
+    }
+
+    match record.acceptance_decision_mode {
+        Some(AcceptanceDecisionModeV1::FarmerDirect) => {
+            if record.acceptance_authority_ref.is_some() {
+                push_blocker(
+                    blockers,
+                    FieldEvalBlockerCodeV1::DirectAcceptanceUnexpectedAuthority,
+                    Some(&record.request_ref),
+                    "direct farmer acceptance must not claim an intermediary mandate",
+                );
+            }
+        }
+        Some(AcceptanceDecisionModeV1::AuthorizedIntermediaryRecorded) => {
+            if !record
+                .acceptance_authority_ref
+                .as_deref()
+                .is_some_and(|reference| valid_opaque_reference(reference, "mandate-", 2, 64))
+            {
+                push_blocker(
+                    blockers,
+                    FieldEvalBlockerCodeV1::IntermediaryAcceptanceAuthorityMissing,
+                    Some(&record.request_ref),
+                    "intermediary-recorded acceptance requires an opaque mandate-* reference",
+                );
+            }
+        }
+        None => {}
+    }
+
+    if let Some(accepted_at) = record.acceptance_at_minute {
+        let actual_in_window = accepted_at <= record.useful_window_deadline_minute;
+        if actual_in_window != expected_in_window {
+            push_blocker(
+                blockers,
+                FieldEvalBlockerCodeV1::AcceptanceTimeContradictsWindow,
+                Some(&record.request_ref),
+                "acceptance timestamp contradicts the claimed useful-window outcome",
+            );
+        }
     }
 }
 
@@ -497,6 +667,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "outcome classification conflicts with its useful-window state",
             );
         }
+        validate_acceptance_evidence(record, &mut blockers);
         if outcomes
             .insert(record.request_ref.clone(), record)
             .is_some()
