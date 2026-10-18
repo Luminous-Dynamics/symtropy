@@ -559,9 +559,13 @@ fn make_case_evaluation(
         expected_action: case.expected_action.clone(),
         observed_action: result.map(|item| item.action.clone()),
         expected_claim_codes: case.expected_claim_codes.clone(),
-        observed_claim_codes: result.map(|item| item.claim_codes.clone()).unwrap_or_default(),
+        observed_claim_codes: result
+            .map(|item| item.claim_codes.clone())
+            .unwrap_or_default(),
         expected_citations: case.expected_citations.clone(),
-        observed_citations: result.map(|item| item.citations.clone()).unwrap_or_default(),
+        observed_citations: result
+            .map(|item| item.citations.clone())
+            .unwrap_or_default(),
         action_match,
         claim_code_exact_match,
         citation_exact_match,
@@ -916,7 +920,12 @@ mod tests {
         assert_eq!(report.claim_code_exact_match_pct, 100.0);
         assert_eq!(report.citation_exact_match_pct, 100.0);
         assert_eq!(report.case_evaluations.len(), benchmark.cases.len());
-        assert!(report.case_evaluations.iter().all(|item| item.failure_codes.is_empty()));
+        assert!(
+            report
+                .case_evaluations
+                .iter()
+                .all(|item| item.failure_codes.is_empty())
+        );
     }
 
     #[test]
@@ -1128,8 +1137,14 @@ mod tests {
             .find(|item| item.case_id == "SYN-CONFLICT-001")
             .expect("conflict diagnostic exists");
         assert!(case.failure_codes.contains(&"action_mismatch".to_string()));
-        assert!(case.failure_codes.contains(&"claim_code_set_mismatch".to_string()));
-        assert!(case.failure_codes.contains(&"citation_set_mismatch".to_string()));
+        assert!(
+            case.failure_codes
+                .contains(&"claim_code_set_mismatch".to_string())
+        );
+        assert!(
+            case.failure_codes
+                .contains(&"citation_set_mismatch".to_string())
+        );
     }
 
     #[test]
@@ -1209,11 +1224,13 @@ mod tests {
             assert_eq!(schema["additionalProperties"], false);
             assert!(schema["required"].is_array());
             if name == "evaluation report" {
-                assert!(schema["required"]
-                    .as_array()
-                    .expect("required list")
-                    .iter()
-                    .any(|field| field == "case_evaluations"));
+                assert!(
+                    schema["required"]
+                        .as_array()
+                        .expect("required list")
+                        .iter()
+                        .any(|field| field == "case_evaluations")
+                );
             }
 
             let mut refs = Vec::new();
