@@ -915,6 +915,36 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
 mod tests {
     use super::*;
 
+    fn outcome_record(
+        request_ref: &str,
+        outcome: RequestOutcomeClassV1,
+    ) -> RequestOutcomeRecordV1 {
+        let acceptance_at_minute = match &outcome {
+            RequestOutcomeClassV1::AcceptedWithinUsefulWindow
+            | RequestOutcomeClassV1::DisputedOrRework {
+                resolution: DisputeResolutionV1::AcceptedWithinUsefulWindow,
+            } => Some(80),
+            RequestOutcomeClassV1::AcceptedLate
+            | RequestOutcomeClassV1::DisputedOrRework {
+                resolution: DisputeResolutionV1::AcceptedLate,
+            } => Some(120),
+            _ => None,
+        };
+        let suffix = request_ref.strip_prefix("req-").expect("opaque request ref");
+        let acceptance_evidence_ref =
+            acceptance_at_minute.map(|_| format!("evt-{suffix}-acceptance"));
+        RequestOutcomeRecordV1 {
+            request_ref: request_ref.to_owned(),
+            useful_window_deadline_minute: 100,
+            acceptance_at_minute,
+            acceptance_evidence_ref,
+            acceptance_decision_mode: acceptance_at_minute
+                .map(|_| AcceptanceDecisionModeV1::FarmerDirect),
+            acceptance_authority_ref: None,
+            outcome,
+        }
+    }
+
     fn valid_manifest() -> FieldStudyManifestV1 {
         let screened_request_refs = (1..=8)
             .map(|number| format!("req-study-{number:03}"))
@@ -933,36 +963,30 @@ mod tests {
             },
         ];
         let outcome_records = vec![
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-001".to_owned(),
-                outcome: RequestOutcomeClassV1::AcceptedWithinUsefulWindow,
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-002".to_owned(),
-                outcome: RequestOutcomeClassV1::AcceptedLate,
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-003".to_owned(),
-                outcome: RequestOutcomeClassV1::KnownNotAccepted {
+            outcome_record(
+                "req-study-001",
+                RequestOutcomeClassV1::AcceptedWithinUsefulWindow,
+            ),
+            outcome_record("req-study-002", RequestOutcomeClassV1::AcceptedLate),
+            outcome_record(
+                "req-study-003",
+                RequestOutcomeClassV1::KnownNotAccepted {
                     reason_code: KnownNonAcceptanceReasonV1::NoProviderAvailable,
                 },
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-004".to_owned(),
-                outcome: RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision {
+            ),
+            outcome_record(
+                "req-study-004",
+                RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision {
                     useful_window_status: UsefulWindowStatusV1::Open,
                 },
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-005".to_owned(),
-                outcome: RequestOutcomeClassV1::DisputedOrRework {
+            ),
+            outcome_record(
+                "req-study-005",
+                RequestOutcomeClassV1::DisputedOrRework {
                     resolution: DisputeResolutionV1::Unresolved,
                 },
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-006".to_owned(),
-                outcome: RequestOutcomeClassV1::OutcomeUnknown,
-            },
+            ),
+            outcome_record("req-study-006", RequestOutcomeClassV1::OutcomeUnknown),
         ];
         FieldStudyManifestV1 {
             schema_version: FIELD_EVAL_REPORT_SCHEMA_VERSION_V1,
@@ -1035,22 +1059,19 @@ mod tests {
             )
         });
         manifest.outcome_records.extend([
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-004".to_owned(),
-                outcome: RequestOutcomeClassV1::KnownNotAccepted {
+            outcome_record(
+                "req-study-004",
+                RequestOutcomeClassV1::KnownNotAccepted {
                     reason_code: KnownNonAcceptanceReasonV1::ProviderCancelled,
                 },
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-005".to_owned(),
-                outcome: RequestOutcomeClassV1::DisputedOrRework {
+            ),
+            outcome_record(
+                "req-study-005",
+                RequestOutcomeClassV1::DisputedOrRework {
                     resolution: DisputeResolutionV1::ResolvedWithoutInWindowAcceptance,
                 },
-            },
-            RequestOutcomeRecordV1 {
-                request_ref: "req-study-006".to_owned(),
-                outcome: RequestOutcomeClassV1::AcceptedLate,
-            },
+            ),
+            outcome_record("req-study-006", RequestOutcomeClassV1::AcceptedLate),
         ]);
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Calculated);
@@ -1134,6 +1155,43 @@ mod tests {
     }
 
     #[test]
+    fn claimed_in_window_acceptance_must_match_the_timestamp() {
+        let mut manifest = valid_manifest();
+        manifest.outcome_records[0].acceptance_at_minute = Some(120);
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::AcceptanceTimeContradictsWindow
+        }));
+    }
+
+    #[test]
+    fn accepted_outcome_without_event_reference_is_blocked() {
+        let mut manifest = valid_manifest();
+        manifest.outcome_records[0].acceptance_evidence_ref = None;
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::AcceptanceEvidenceIncomplete
+        }));
+    }
+
+    #[test]
+    fn intermediary_recorded_acceptance_requires_mandate_reference() {
+        let mut manifest = valid_manifest();
+        manifest.outcome_records[0].acceptance_decision_mode =
+            Some(AcceptanceDecisionModeV1::AuthorizedIntermediaryRecorded);
+        manifest.outcome_records[0].acceptance_authority_ref = None;
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::IntermediaryAcceptanceAuthorityMissing
+        }));
+    }
+
+    #[test]
     fn exclusion_must_reference_a_listed_preregistered_rule() {
         let mut manifest = valid_manifest();
         manifest
@@ -1192,9 +1250,12 @@ mod tests {
             .iter_mut()
             .find(|record| record.request_ref == "req-study-005")
             .expect("dispute record");
-        record.outcome = RequestOutcomeClassV1::DisputedOrRework {
-            resolution: DisputeResolutionV1::AcceptedWithinUsefulWindow,
-        };
+        *record = outcome_record(
+            "req-study-005",
+            RequestOutcomeClassV1::DisputedOrRework {
+                resolution: DisputeResolutionV1::AcceptedWithinUsefulWindow,
+            },
+        );
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Calculated);
         assert_eq!(
