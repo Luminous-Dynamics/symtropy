@@ -28,14 +28,24 @@ caller-declared metadata.
 
 ## Enable a capture
 
-At minimum:
+Set the output directory in the environment:
 
 ```sh
 export SYMTROPY_DEMO_CAPTURE_DIR=target/render-captures
-# In the chosen demo app, register the plugin:
-# .add_plugins(symtropy_demo_capture::CapturePlugin::new("scene-light-01"))
-# Then launch that demo with its normal cargo run command.
 ```
+
+Then register the plugin in the selected demo app:
+
+```rust
+App::new()
+    .add_plugins(DefaultPlugins)
+    .add_plugins(MyDemoPlugin)
+    .add_plugins(symtropy_demo_capture::CapturePlugin::new("scene-light-01"))
+    .run();
+```
+
+Launch that demo through its normal Cargo command. The capture plugin does not
+create a window or scene by itself; it observes the host application's primary window.
 
 The schedule defaults to 1.5, 4.0, and 7.0 seconds of real time. Override it with
 comma-separated seconds in SYMTROPY_DEMO_CAPTURE_TIMES. SYMTROPY_DEMO_CAPTURE_EXIT_AT
