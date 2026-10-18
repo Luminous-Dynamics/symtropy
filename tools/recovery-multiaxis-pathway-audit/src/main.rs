@@ -22,6 +22,9 @@ struct Corpus {
     expected_case_count: usize,
     expected_counts: ExpectedCounts,
     cases: Vec<PathwayCase>,
+    temporal_evidence_records: Vec<TemporalEvidenceRecord>,
+    temporal_policy_decisions: Vec<TemporalPolicyDecision>,
+    expected_temporal_counts: ExpectedTemporalCounts,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -112,6 +115,41 @@ struct PathwayCase {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TemporalEvidenceRecord {
+    evidence_id: String,
+    observed_day: u64,
+    available_day: u64,
+    source_authenticity_status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct TemporalPolicyDecision {
+    decision_id: String,
+    policy_id: String,
+    scenario_id: String,
+    stage_id: String,
+    decision_day: u64,
+    visible_history_id: String,
+    action_id: String,
+    evidence_refs: Vec<String>,
+    expected_actuation: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct ExpectedTemporalCounts {
+    evidence_record_count: usize,
+    decision_count: usize,
+    visible_history_group_count: usize,
+    nonanticipativity_violation_count: usize,
+    future_evidence_violation_count: usize,
+    missing_evidence_reference_count: usize,
+    actuation_authorized_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct CaseResult {
     case_id: String,
     scope_status: String,
@@ -132,6 +170,14 @@ struct AuditReceipt {
     canonical_corpus_sha256: String,
     source_commit: Option<String>,
     case_count: usize,
+    temporal_evidence_record_count: usize,
+    temporal_decision_count: usize,
+    visible_history_group_count: usize,
+    nonanticipativity_violation_count: usize,
+    future_evidence_violation_count: usize,
+    missing_evidence_reference_count: usize,
+    temporal_actuation_authorized_count: usize,
+    expected_temporal_counts_match: bool,
     scope_counts: BTreeMap<String, usize>,
     evidence_counts: BTreeMap<String, usize>,
     hard_gate_counts: BTreeMap<String, usize>,
@@ -185,6 +231,11 @@ fn canonical_corpus_sha256(corpus: &Corpus) -> String {
     for case in &mut canonical.cases {
         case.observed_failure_families.sort();
         case.observed_evidence_tags.sort();
+    }
+    canonical.temporal_evidence_records.sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
+    canonical.temporal_policy_decisions.sort_by(|a, b| a.decision_id.cmp(&b.decision_id));
+    for decision in &mut canonical.temporal_policy_decisions {
+        decision.evidence_refs.sort();
     }
     serde_json::to_vec(&canonical)
         .map(|bytes| sha256_hex(&bytes))
@@ -304,6 +355,12 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
     }
     if corpus.cases.is_empty() {
         errors.push("CASES_MISSING_OR_EMPTY".to_string());
+    }
+    if corpus.temporal_evidence_records.is_empty() {
+        errors.push("TEMPORAL_EVIDENCE_RECORDS_EMPTY".to_string());
+    }
+    if corpus.temporal_policy_decisions.is_empty() {
+        errors.push("TEMPORAL_POLICY_DECISIONS_EMPTY".to_string());
     }
     let mut case_ids = BTreeSet::new();
     for case in &corpus.cases {
