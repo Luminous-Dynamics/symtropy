@@ -6,7 +6,9 @@ on:
     paths:
       - "tools/habitat-calendar-oracle/**"
       - "docs/research/HABITAT_CALENDAR_DISRUPTION_V0_1.md"
+      - "docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md"
       - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+      - "docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
       - ".github/workflows/habitat-calendar-oracle.yml"
   pull_request:
     branches: ["main"]
