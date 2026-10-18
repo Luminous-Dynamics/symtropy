@@ -198,3 +198,86 @@ Queued, skipped, missing, stale, or non-executed checks are not PASS. A syntheti
 ## Decision
 
 Proceed with Q0 as the first executable work item. Keep the initial result deliberately small: a verified transport contract is more valuable than an unvalidated whole-organ simulator.
+
+
+## Vascular function benchmark extension: context-of-use and barrier behavior
+
+Recent evidence shows why a generic "perfusion PASS" is too weak:
+
+- The 2026 review *Vascularizing organoids-on-chip for perfused and personalized models* reports that commonly used perfusability readouts are not standardized across tracer size/molecular weight, observation-window duration, and data processing; permeability coefficients can be overestimated if convective transport is neglected. [RSC Publishing](https://pubs.rsc.org/en/content/articlehtml/2026/lc/d5lc00890e)
+- A July 2026 review argues that vascular-model validation should be matched to disease etiology and the relevant microenvironmental disturbance, rather than assuming that generic physiological resemblance establishes model suitability. [Nature, Microsystems & Nanoengineering](https://www.nature.com/articles/s41378-026-01397-9)
+- ISO/CD 25693 is a 2026 draft under development for context-of-use-specific development of organ-on-chip systems; it is not yet a final published international standard. [ISO project page](https://www.iso.org/standard/91185.html)
+
+These motivate the following changes to the research contract. They are not claims of regulatory compliance.
+
+### A. Every benchmark must name its context of use
+
+A result must identify the intended context, such as:
+- passive transport reference only;
+- healthy-vessel barrier research;
+- tissue-specific nutrient delivery;
+- a named disease mechanism or stressor;
+- compound transport/exposure;
+- multi-tissue systemic interaction.
+
+A benchmark result transfers only to contexts whose assumptions and intended use it has separately qualified. A flow-only pass cannot be reused as evidence that a barrier is intact, that cells are viable, or that a disease model is predictive.
+
+### B. Separate five different vascular properties
+
+Do not collapse these into one "vascular quality" scalar:
+
+1. **Connectivity / lumen continuity:** does a connected lumen exist along the declared path?
+2. **Perfusability:** can fluid traverse the network under specified boundary conditions and observation time?
+3. **Barrier selectivity / permeability:** how do specified tracers or solutes cross the vessel boundary under defined assay conditions?
+4. **Hemodynamic exposure:** what pressure, wall shear, and temporal variability are predicted/measured under the declared geometric/material model?
+5. **Biological response:** does the selected endothelial/support-cell/tissue system exhibit its required function under those conditions?
+
+These are related but not interchangeable. For example, a leaky network can be readily perfused; a lumen can carry fluid while delivering an inappropriate shear profile; a low-leakiness network does not prove organ-specific transport is adequate.
+
+### C. Barrier/permeability assays need their own evidence manifest
+
+When a benchmark uses a tracer assay, its result must bind to:
+- tracer identity, molecular weight/size, concentration, and source;
+- observation duration and sampling cadence;
+- imaging/segmentation method and software version;
+- exposed area/geometry and concentration-gradient assumptions;
+- whether flux is interpreted as diffusive, convective, or combined;
+- the permeability equation and units;
+- background, adsorption, photobleaching, leakage, and instrument controls where applicable;
+- replicate/batch identity and uncertainty;
+- excluded observations and reasons;
+- calibration cases kept separate from held-out validation.
+
+If these fields are not available, classify the outcome as incomplete/non-comparable rather than treating different assays as a common numeric leaderboard. TEER or other barrier measurements may be appropriate in selected models but are not universal substitutes for tracer transport.
+
+### D. Add vascular challenge cases after Q0, without changing Q0's claim ceiling
+
+The synthetic/physical progression should later cover:
+- connected versus disconnected lumens;
+- a bottleneck or partial occlusion;
+- an intentionally leaky boundary;
+- uniform versus heterogeneous branch flow;
+- steady versus time-varying pressure/flow;
+- perturbation of viscosity, geometry, or boundary conditions;
+- imaging/segmentation perturbations that must not change the canonical physical state;
+- where tissue-specific evidence exists, a named stressor tied to the intended biological mechanism.
+
+These are distinct scenarios and should not share one pass criterion. Challenge magnitudes and expected responses need to be declared from the analytic model or admitted domain evidence before evaluation.
+
+### E. Use function-first gates for biological models
+
+For a selected vascular/tissue model, preregister a compact assay panel tied to the context of use. Potential readouts include network perfusability, tracer-specific effective permeability, flow-induced shear, endothelial barrier markers, leakage, spatial oxygen/nutrient availability, viability, and tissue-specific function. Choose only those measurements relevant to the selected model and justify each threshold from a qualified reference or a stated discovery hypothesis.
+
+Do not use visual similarity, a large cell count, or one successful perfusion movie as a proxy for the whole panel. The model should be judged by whether it reproduces its declared target observations, including its expected failure response under the declared challenge.
+
+### F. New benchmark quality criteria
+
+- **Repeatability:** same sample/operator/instrument conditions; report within-run variation.
+- **Reproducibility:** independent batch/operator/site where feasible; report between-run and between-site variation.
+- **Comparability:** assays share a documented method/profile or are explicitly marked non-comparable.
+- **Sensitivity:** a known, declared perturbation changes the appropriate measurement in the expected direction.
+- **Specificity:** irrelevant changes (camera, visualization LOD, display units) do not mutate or "improve" canonical results.
+- **Robustness:** predictions include a declared domain of applicability and uncertainty; out-of-domain cases are flagged, not confidently extrapolated.
+- **Context transfer:** any claimed reuse for a new tissue, disease mechanism, or evaluation purpose gets a separate qualification.
+
+The next software tranche should encode these distinctions in benchmark metadata and hostile fixtures before adding complex biological simulation.
