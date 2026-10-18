@@ -232,9 +232,10 @@ jobs:
           toolchain="$(rustup show active-toolchain 2>&1 || true)"
           source_sha="$(git rev-parse HEAD)"
           source_tree_sha="$(git rev-parse 'HEAD^{tree}')"
+          checkout_parent_shas="$(git rev-list --parents -n 1 HEAD | cut -d' ' -f2-)"
           event_sha="$GITHUB_SHA"
           pull_request_head_sha="${{ github.event.pull_request.head.sha || '' }}"
-          pull_request_base_sha="${{ github.event.pull_request.base.sha || '' }}"
+          pull_request_base_event_sha="${{ github.event.pull_request.base.sha || '' }}"
           is_pull_request="${{ github.event_name == 'pull_request' }}"
           fixture_sha="$(sha256sum "$fixture" | awk '{print $1}')"
           lock_sha="$(sha256sum "$lock" | awk '{print $1}')"
@@ -256,8 +257,9 @@ jobs:
             --arg source_sha "$source_sha" \
             --arg source_tree_sha "$source_tree_sha" \
             --arg event_sha "$event_sha" \
+            --arg checkout_parent_shas "$checkout_parent_shas" \
             --arg pull_request_head_sha "$pull_request_head_sha" \
-            --arg pull_request_base_sha "$pull_request_base_sha" \
+            --arg pull_request_base_event_sha "$pull_request_base_event_sha" \
             --argjson is_pull_request "$is_pull_request" \
             --arg workflow "$GITHUB_WORKFLOW" \
             --arg workflow_ref "$GITHUB_WORKFLOW_REF" \
@@ -281,9 +283,11 @@ jobs:
               source_commit: $source_sha,
               source_tree: $source_tree_sha,
               event_sha: $event_sha,
+              checked_out_parent_shas: ($checkout_parent_shas | split(" ") | map(select(length > 0))),
               is_pull_request: $is_pull_request,
               pull_request_head_sha: (if $is_pull_request then $pull_request_head_sha else null end),
-              pull_request_base_sha: (if $is_pull_request then $pull_request_base_sha else null end),
+              pull_request_base_event_sha: (if $is_pull_request then $pull_request_base_event_sha else null end),
+              integration_base_sha: (if $is_pull_request then (($checkout_parent_shas | split(" ") | map(select(length > 0)))[0]) else null end),
               workflow: $workflow,
               workflow_ref: $workflow_ref,
               workflow_definition_commit: $workflow_sha,
@@ -307,11 +311,17 @@ jobs:
             (.source_commit | test("^[0-9a-f]{40}$")) and
             (.source_tree | test("^[0-9a-f]{40}$")) and
             .event_sha == .source_commit and
+            (.checked_out_parent_shas | type == "array") and
             (if .is_pull_request then
               (.pull_request_head_sha | test("^[0-9a-f]{40}$")) and
-              (.pull_request_base_sha | test("^[0-9a-f]{40}$"))
+              (.pull_request_base_event_sha | test("^[0-9a-f]{40}$")) and
+              (.checked_out_parent_shas | length) == 2 and
+              .pull_request_head_sha == .checked_out_parent_shas[1] and
+              .integration_base_sha == .checked_out_parent_shas[0]
              else
-              .pull_request_head_sha == null and .pull_request_base_sha == null
+              .pull_request_head_sha == null and
+              .pull_request_base_event_sha == null and
+              .integration_base_sha == null
              end) and
             (.fixture_sha256 | test("^[0-9a-f]{64}$")) and
             (.cargo_lock_sha256 | test("^[0-9a-f]{64}$"))
