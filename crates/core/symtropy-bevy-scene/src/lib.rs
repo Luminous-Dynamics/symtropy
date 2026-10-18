@@ -66,7 +66,7 @@ pub struct SymtropySceneConfig {
     pub sun_color: Color,
     /// Sun rotation as Euler angles (XYZ radians). Default upper-front-right.
     pub sun_euler: Vec3,
-    /// Whether the default sun casts shadow maps. Disable for low-power or headless profiles.
+    /// Whether the default sun casts shadow maps. Disable for low-power profiles or profiles that do not use real-time shadows.
     pub sun_shadow_maps_enabled: bool,
 }
 
