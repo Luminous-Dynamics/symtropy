@@ -27,6 +27,9 @@ schedule or a benchmark score.
 - This is a classic fixed-route JSP only. It does not parse FJSP alternative
   machines, setup times, releases, due dates, calendars, failures, or online jobs.
 - The exact oracle is a small-instance reference, not a production scheduler.
+- Dispatch baselines construct feasible schedules but are not optimal solvers. Their
+  output is marked `optimality=not_proven`; `lower_bound_gap` is makespan minus a
+  workload lower bound, not an optimality gap.
 - Workload lower bounds are not schedules and are not presented as best-known
   solutions for external instances.
 - No plant execution, throughput gain, energy saving, or economic value is
