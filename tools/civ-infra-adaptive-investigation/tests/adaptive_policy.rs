@@ -1,6 +1,6 @@
 use civ_infra_adaptive_investigation::{
-    ActionInput, CandidatePolicy, LeafTerminal, ModelSupport, OutcomeInput, PolicyBranch, PolicyInput,
-    SupportFailureTerminal, evaluate_bytes,
+    ActionInput, CandidatePolicy, LeafTerminal, ModelSupport, OutcomeInput, PolicyBranch,
+    PolicyInput, SupportFailureTerminal, evaluate_bytes,
 };
 use std::collections::BTreeSet;
 
