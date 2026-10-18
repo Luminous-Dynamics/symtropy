@@ -1,0 +1,54 @@
+name: Industrial coupling benchmark
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/industrial-coupling-benchmark.yml"
+      - "crates/tools/industrial-coupling-benchmark/**"
+      - "docs/INDUSTRIAL_SYSTEMS_COUPLING_BENCHMARK_V0_1.md"
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/industrial-coupling-benchmark.yml"
+      - "crates/tools/industrial-coupling-benchmark/**"
+      - "docs/INDUSTRIAL_SYSTEMS_COUPLING_BENCHMARK_V0_1.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: industrial-coupling-benchmark-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Standalone industrial coupling benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/industrial-coupling-benchmark/Cargo.toml -- --check
+
+      - name: Run offline unit tests
+        run: cargo test --locked --offline --manifest-path crates/tools/industrial-coupling-benchmark/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path crates/tools/industrial-coupling-benchmark/Cargo.toml --all-targets -- -D warnings
+
+      - name: Smoke-test exact and robust demo
+        shell: bash
+        run: |
+          output="$(cargo run --locked --offline --manifest-path crates/tools/industrial-coupling-benchmark/Cargo.toml)"
+          printf '%s\n' "$output"
+          grep -Fq 'IC-001-POSITIVE-SYNTHETIC' <<< "$output"
+          grep -Fq 'IC-001-NEGATIVE-GRADE-SYNTHETIC' <<< "$output"
+          grep -Fq 'IC-001-NEGATIVE-ECONOMICS-SYNTHETIC' <<< "$output"
+          grep -Fq 'robust_set=IC-001-TWO-SCENARIO-SYNTHETIC scenarios=2 verified=pass common_input_kwh=42 worst_case_surplus_milli=44200 total_surplus_milli=123100' <<< "$output"
