@@ -1,0 +1,24 @@
+{
+  "suite_id": "MINE-REFERENCE-PARSER-001",
+  "suite_version": "0.1.0",
+  "evidence_class": "authored_synthetic_fixture",
+  "claim_ceiling": "Known-answer parser semantics on synthetic fixtures only. This is not a complete MineLib parser, an optimization solver, or evidence of mine performance.",
+  "format_specification": "https://minelib.org/v1/minelib_format.pdf",
+  "format_version": "1.0",
+  "block_file": "minelib-parser-fixtures-v0.1.synthetic.block",
+  "precedence_file": "minelib-parser-fixtures-v0.1.synthetic.prec",
+  "attribute_columns": [
+    {"name": "tonnage_tonnes", "kind": "unsigned_integer", "scale": null},
+    {"name": "grade_gpt", "kind": "fixed_decimal", "scale": 3},
+    {"name": "block_value_usd", "kind": "fixed_decimal", "scale": 2}
+  ],
+  "benchmark_objective_attribute": "block_value_usd",
+  "benchmark_objective_scale": 2,
+  "expected": {
+    "block_count": 5,
+    "precedence_rows": 5,
+    "precedence_edges": 3,
+    "objective_sum_scaled": 25000050,
+    "expected_block_ids": [0, 1, 2, 3, 4]
+  }
+}
