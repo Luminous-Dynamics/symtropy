@@ -114,7 +114,10 @@ fn validate_mapping_profile(
         errors.push("ORDS source license/lineage must remain CC BY-SA 4.0".to_owned());
     }
     let policy = profile.get("policy").unwrap_or(&Value::Null);
-    if policy.get("raw_values_must_be_preserved").and_then(Value::as_bool) != Some(true)
+    if policy
+        .get("raw_values_must_be_preserved")
+        .and_then(Value::as_bool)
+        != Some(true)
         || policy
             .get("barrier_only_when_end_of_life")
             .and_then(Value::as_bool)
@@ -136,7 +139,8 @@ fn validate_mapping_profile(
             .and_then(Value::as_bool)
             != Some(false)
     {
-        errors.push("ORDS policy weakened a raw-data, barrier, or evidence claim ceiling".to_owned());
+        errors
+            .push("ORDS policy weakened a raw-data, barrier, or evidence claim ceiling".to_owned());
     }
 
     let Some(categories) = profile
@@ -144,7 +148,9 @@ fn validate_mapping_profile(
         .and_then(Value::as_array)
         .cloned()
     else {
-        return Err(vec!["product_category_mappings must be an array".to_owned()]);
+        return Err(vec![
+            "product_category_mappings must be an array".to_owned(),
+        ]);
     };
     let Some(statuses) = profile
         .get("repair_status_mappings")
@@ -207,7 +213,9 @@ fn validate_mapping_profile(
         }
     }
     if status_ids.len() != EXPECTED_STATUSES.len()
-        || EXPECTED_STATUSES.iter().any(|status| !status_ids.contains(*status))
+        || EXPECTED_STATUSES
+            .iter()
+            .any(|status| !status_ids.contains(*status))
     {
         errors.push(
             "ORDS repair-status mapping must cover unknown/fixed/repairable/end_of_life exactly"
@@ -223,9 +231,13 @@ fn validate_mapping_profile(
         }
     }
     if barrier_ids.len() != EXPECTED_BARRIERS.len()
-        || EXPECTED_BARRIERS.iter().any(|barrier| !barrier_ids.contains(*barrier))
+        || EXPECTED_BARRIERS
+            .iter()
+            .any(|barrier| !barrier_ids.contains(*barrier))
     {
-        errors.push("ORDS repair-barrier mapping must cover all six v0.3 barriers exactly".to_owned());
+        errors.push(
+            "ORDS repair-barrier mapping must cover all six v0.3 barriers exactly".to_owned(),
+        );
     }
 
     if !errors.is_empty() {
@@ -253,7 +265,9 @@ fn mapping_for_raw<'a>(
 }
 
 fn read_headers(csv_raw: &[u8]) -> Result<Vec<String>, Errors> {
-    let mut reader = csv::ReaderBuilder::new().flexible(false).from_reader(csv_raw);
+    let mut reader = csv::ReaderBuilder::new()
+        .flexible(false)
+        .from_reader(csv_raw);
     let headers = reader
         .headers()
         .map_err(|error| vec![format!("cannot read ORDS CSV headers: {error}")])?;
@@ -264,7 +278,9 @@ fn read_headers(csv_raw: &[u8]) -> Result<Vec<String>, Errors> {
     let mut unique = BTreeSet::new();
     for header in &normalized {
         if header.is_empty() || !unique.insert(header.clone()) {
-            return Err(vec![format!("empty or duplicate ORDS CSV header: {header:?}")]);
+            return Err(vec![format!(
+                "empty or duplicate ORDS CSV header: {header:?}"
+            )]);
         }
     }
     let header_set: BTreeSet<&str> = normalized.iter().map(String::as_str).collect();
@@ -342,9 +358,12 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
     let mut identity_counts: BTreeMap<String, usize> = BTreeMap::new();
     let mut row_count = 0usize;
     {
-        let mut reader = csv::ReaderBuilder::new().flexible(false).from_reader(csv_raw);
+        let mut reader = csv::ReaderBuilder::new()
+            .flexible(false)
+            .from_reader(csv_raw);
         for result in reader.records() {
-            let record = result.map_err(|error| vec![format!("malformed ORDS CSV row: {error}")])?;
+            let record =
+                result.map_err(|error| vec![format!("malformed ORDS CSV row: {error}")])?;
             row_count += 1;
             if let Some(identity) = source_identity(&record, &indexes) {
                 *identity_counts.entry(identity).or_default() += 1;
@@ -396,7 +415,9 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
         profile_status: profile_status.to_owned(),
     };
 
-    let mut reader = csv::ReaderBuilder::new().flexible(false).from_reader(csv_raw);
+    let mut reader = csv::ReaderBuilder::new()
+        .flexible(false)
+        .from_reader(csv_raw);
     for (row_index, result) in reader.records().enumerate() {
         let record = result.map_err(|error| vec![format!("malformed ORDS CSV row: {error}")])?;
         let mut raw_fields = Map::new();
@@ -469,7 +490,8 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
                 "end_of_life" => summary.end_of_life_row_count += 1,
                 _ => summary.unknown_status_row_count += 1,
             }
-            match text_at(category.unwrap_or(&Value::Null), "mapping_status").unwrap_or("unmapped") {
+            match text_at(category.unwrap_or(&Value::Null), "mapping_status").unwrap_or("unmapped")
+            {
                 "candidate" => summary.category_candidate_row_count += 1,
                 "ambiguous" => summary.category_ambiguous_row_count += 1,
                 _ => summary.category_unmapped_row_count += 1,
@@ -477,8 +499,8 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
         }
         summary.row_count += 1;
 
-        let category_status = text_at(category.unwrap_or(&Value::Null), "mapping_status")
-            .unwrap_or("unmapped");
+        let category_status =
+            text_at(category.unwrap_or(&Value::Null), "mapping_status").unwrap_or("unmapped");
         let category_family = category
             .and_then(|item| item.get("target_family_id"))
             .cloned()
@@ -598,7 +620,10 @@ mod tests {
         let mut output = Vec::new();
         let summary = audit_csv_to_writer(schema_raw, profile_raw, csv_raw, &mut output)
             .expect("synthetic fixture must audit");
-        (summary, String::from_utf8(output).expect("JSONL output is UTF-8"))
+        (
+            summary,
+            String::from_utf8(output).expect("JSONL output is UTF-8"),
+        )
     }
 
     #[test]
@@ -607,7 +632,10 @@ mod tests {
         assert_eq!(summary.row_count, 10);
         assert_eq!(summary.accepted_row_count, 5);
         assert_eq!(summary.quarantined_row_count, 5);
-        assert_eq!(summary.accepted_row_count + summary.quarantined_row_count, 10);
+        assert_eq!(
+            summary.accepted_row_count + summary.quarantined_row_count,
+            10
+        );
         assert_eq!(output.lines().count(), 10);
         assert_eq!(summary.input_sha256.len(), 64);
         assert_eq!(summary.schema_sha256.len(), 64);
@@ -619,17 +647,35 @@ mod tests {
         let (_, output) = run_fixture(SCHEMA, PROFILE, CSV);
         let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
         assert_eq!(record["repair_status"]["normalized_value"], "fixed");
-        assert_eq!(record["claim_ceiling"]["verified_restoration_receipt_generated"], false);
-        assert_eq!(record["claim_ceiling"]["physical_safety_claim_generated"], false);
-        assert_eq!(record["claim_ceiling"]["exact_part_fit_claim_generated"], false);
-        assert_eq!(record["claim_ceiling"]["non_recurrence_claim_generated"], false);
+        assert_eq!(
+            record["claim_ceiling"]["verified_restoration_receipt_generated"],
+            false
+        );
+        assert_eq!(
+            record["claim_ceiling"]["physical_safety_claim_generated"],
+            false
+        );
+        assert_eq!(
+            record["claim_ceiling"]["exact_part_fit_claim_generated"],
+            false
+        );
+        assert_eq!(
+            record["claim_ceiling"]["non_recurrence_claim_generated"],
+            false
+        );
     }
 
     #[test]
     fn empty_or_zero_status_is_unknown_not_failure() {
         let (summary, output) = run_fixture(SCHEMA, PROFILE, CSV);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-        let unknown = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-003").unwrap();
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let unknown = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-003")
+            .unwrap();
         assert_eq!(unknown["repair_status"]["normalized_value"], "unknown");
         assert_eq!(unknown["quarantine"]["disposition"], "accepted");
         assert_eq!(summary.unknown_status_row_count, 1);
@@ -638,37 +684,81 @@ mod tests {
     #[test]
     fn raw_partner_category_and_brand_typo_are_retained() {
         let (_, output) = run_fixture(SCHEMA, PROFILE, CSV);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-        let washing_machine = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-003").unwrap();
-        assert_eq!(washing_machine["product_category_mapping"]["raw_partner_product_category"], "Washing machine / front loader");
-        assert_eq!(washing_machine["product_category_mapping"]["mapping_status"], "unmapped");
-        let typo = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-006").unwrap();
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let washing_machine = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-003")
+            .unwrap();
+        assert_eq!(
+            washing_machine["product_category_mapping"]["raw_partner_product_category"],
+            "Washing machine / front loader"
+        );
+        assert_eq!(
+            washing_machine["product_category_mapping"]["mapping_status"],
+            "unmapped"
+        );
+        let typo = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-006")
+            .unwrap();
         assert_eq!(typo["brand_normalization"]["raw_brand"], "acmee");
-        assert_eq!(typo["brand_normalization"]["entity_resolution_performed"], false);
+        assert_eq!(
+            typo["brand_normalization"]["entity_resolution_performed"],
+            false
+        );
     }
 
     #[test]
     fn duplicate_source_identity_quarantines_all_colliding_rows() {
         let (summary, output) = run_fixture(SCHEMA, PROFILE, CSV);
         assert_eq!(summary.duplicate_identity_row_count, 2);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-        let duplicates: Vec<&Value> = records.iter()
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let duplicates: Vec<&Value> = records
+            .iter()
             .filter(|record| record["source_provenance"]["source_record_id_raw"] == "r-001")
             .collect();
         assert_eq!(duplicates.len(), 2);
-        assert!(duplicates.iter().all(|record| record["quarantine"]["disposition"] == "quarantined"));
+        assert!(
+            duplicates
+                .iter()
+                .all(|record| record["quarantine"]["disposition"] == "quarantined")
+        );
     }
 
     #[test]
     fn barrier_is_valid_only_for_end_of_life() {
         let (_, output) = run_fixture(SCHEMA, PROFILE, CSV);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-        let end_of_life = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-004").unwrap();
-        assert_eq!(end_of_life["repair_barrier"]["normalized_value"], "spare_parts_unavailable");
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let end_of_life = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-004")
+            .unwrap();
+        assert_eq!(
+            end_of_life["repair_barrier"]["normalized_value"],
+            "spare_parts_unavailable"
+        );
         assert_eq!(end_of_life["repair_barrier"]["status_gate_passed"], true);
-        let fixed_with_barrier = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-008").unwrap();
-        assert_eq!(fixed_with_barrier["repair_barrier"]["normalized_value"], Value::Null);
-        assert_eq!(fixed_with_barrier["quarantine"]["disposition"], "quarantined");
+        let fixed_with_barrier = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-008")
+            .unwrap();
+        assert_eq!(
+            fixed_with_barrier["repair_barrier"]["normalized_value"],
+            Value::Null
+        );
+        assert_eq!(
+            fixed_with_barrier["quarantine"]["disposition"],
+            "quarantined"
+        );
     }
 
     #[test]
@@ -676,10 +766,19 @@ mod tests {
         let (summary, output) = run_fixture(SCHEMA, PROFILE, CSV);
         assert_eq!(summary.invalid_status_row_count, 1);
         assert_eq!(summary.invalid_end_of_life_barrier_count, 1);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-        let invalid_status = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-006").unwrap();
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let invalid_status = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-006")
+            .unwrap();
         assert_eq!(invalid_status["quarantine"]["disposition"], "quarantined");
-        let invalid_barrier = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-005").unwrap();
+        let invalid_barrier = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-005")
+            .unwrap();
         assert_eq!(invalid_barrier["quarantine"]["disposition"], "quarantined");
     }
 
@@ -689,11 +788,26 @@ mod tests {
         assert_eq!(summary.category_candidate_row_count, 2);
         assert_eq!(summary.category_ambiguous_row_count, 1);
         assert_eq!(summary.category_unmapped_row_count, 2);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-        let toaster = records.iter().find(|record| record["source_provenance"]["source_record_id_raw"] == "r-004").unwrap();
-        assert_eq!(toaster["product_category_mapping"]["target_family_id_candidate"], "F8-COOKING-APPLIANCES");
-        assert_eq!(toaster["product_category_mapping"]["mapping_status"], "candidate");
-        assert_eq!(toaster["claim_ceiling"]["population_prevalence_claim_permitted"], false);
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let toaster = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-004")
+            .unwrap();
+        assert_eq!(
+            toaster["product_category_mapping"]["target_family_id_candidate"],
+            "F8-COOKING-APPLIANCES"
+        );
+        assert_eq!(
+            toaster["product_category_mapping"]["mapping_status"],
+            "candidate"
+        );
+        assert_eq!(
+            toaster["claim_ceiling"]["population_prevalence_claim_permitted"],
+            false
+        );
     }
 
     #[test]
@@ -712,7 +826,11 @@ mod tests {
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
             .expect_err("duplicate normalized mapping must fail closed");
-        assert!(errors.iter().any(|error| error.contains("duplicate normalized ORDS category")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate normalized ORDS category"))
+        );
     }
 
     #[test]
@@ -721,7 +839,11 @@ mod tests {
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, PROFILE, csv, &mut output)
             .expect_err("missing ORDS headers must fail");
-        assert!(errors.iter().any(|error| error.contains("missing required v0.3 columns")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("missing required v0.3 columns"))
+        );
     }
 
     #[test]
@@ -739,8 +861,17 @@ mod tests {
     fn mapping_version_and_source_license_are_preserved() {
         let (_, output) = run_fixture(SCHEMA, PROFILE, CSV);
         let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
-        assert_eq!(record["source_provenance"]["dataset_release_id"], "ORA-2026-10");
-        assert_eq!(record["source_provenance"]["source_license"], "CC BY-SA 4.0");
-        assert_eq!(record["product_category_mapping"]["mapping_version"], "symtropy-ords-appliance-taxonomy/0.1.0");
+        assert_eq!(
+            record["source_provenance"]["dataset_release_id"],
+            "ORA-2026-10"
+        );
+        assert_eq!(
+            record["source_provenance"]["source_license"],
+            "CC BY-SA 4.0"
+        );
+        assert_eq!(
+            record["product_category_mapping"]["mapping_version"],
+            "symtropy-ords-appliance-taxonomy/0.1.0"
+        );
     }
 }
