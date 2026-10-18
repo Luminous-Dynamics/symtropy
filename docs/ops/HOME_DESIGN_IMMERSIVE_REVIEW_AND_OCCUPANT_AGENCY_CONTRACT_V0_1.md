@@ -1,6 +1,6 @@
 # Home Design Immersive Review and Occupant Agency Contract v0.1
 
-**Status:** design contract plus a route-data prototype in symtropy-bevy-scene. This is not an implemented VR product, a validated building simulation, or a permit/compliance service.
+**Status:** design contract plus a validated route player and synthetic-room floating-camera example in symtropy-bevy-scene. This is not an implemented VR product, a validated building simulation, or a permit/compliance service.
 
 ## Purpose
 
@@ -17,7 +17,7 @@ The design system's goal is not to normalize architecture into one approved styl
 - **Accessible teleport:** user selects and confirms each stop. A timer must never silently teleport the person.
 - **Head-tracked VR:** optional XR runtime applies headset pose to an explicit review origin. The route-data enum in this prototype does not implement OpenXR/WebXR, headset I/O, stereoscopic rendering, motion safety, or device support.
 
-The new architectural_review module provides validated route metadata, deterministic pose sampling, and waypoint pose extraction. It is a camera-path primitive, not an architectural authoring tool or end-to-end walkthrough. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
+The architectural_review module provides validated route metadata, deterministic pose sampling, a Bevy playback component/system, and waypoint pose extraction. The example demonstrates a small synthetic room with pause/resume. This is an initial local walkthrough primitive, not a full architectural authoring tool or production model viewer. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
 
 ## Occupant agency and comfort
 
@@ -85,8 +85,8 @@ These are targets, not measured results.
 
 ## Work sequence
 
-1. Route metadata and deterministic sampling (this branch).
-2. A Bevy demo that loads a small synthetic room, shows static / floating / guided modes, and makes route stops/assumptions visible.
+1. Route metadata, deterministic sampling, Bevy playback, and an illustrative synthetic-room floating-camera example (this branch).
+2. Load a versioned real design exchange model and expose static / floating / guided modes with visible assumptions and annotations.
 3. Geometry collision and clearance adapter pinned to the same design revision.
 4. Accessible teleport input with explicit confirmation and safe fallback.
 5. One optional XR backend, kept separate from the permissive scene core.
