@@ -164,6 +164,7 @@ Each case binds scenario_id, semantic version, fixed seed, initial state and evi
 | MS-011 Brownfield reuse vs new build | Avoid assuming new excavation is the default | Compare reuse-as-is, rehabilitation, partial reuse plus targeted new excavation, new build and no-build on equivalent qualified service; unqualified site evidence blocks use-specific capacity |
 | MS-012 Rock-breakage + spoil-removal tournament | Avoid optimizing cutting in isolation | Compare compatible mechanical / hybrid / research technology profiles on equivalent specimen/geometry and full-cycle boundaries; keep cutting-only and full-cycle denominators separate; out-of-domain models cannot claim physical outputs |
 | MS-013 Coupled fleet + ventilation | Avoid siloed vehicle/ventilation optimization | Compare diesel + fixed ventilation, battery-electric + fixed ventilation, battery-electric + VOD, and coupled fleet/charging/ventilation/cooling scheduling under identical task traces; stale sensors, airway restriction, fan/power failures and emergency override must preserve hard service constraints |
+| MS-014 Communications degradation | Test whether critical information remains deliverable after common-cause failures | Compare fixed route and deterministic/adaptive failover on identical mine topology; inject backbone severance, relay/power loss, stale link evidence, alarm storm and one-way-only path; record sent/received/authenticated/acknowledged states separately and never assert a healthy route from stale evidence |
 
 These cases are synthetic definitions, not a model of any actual mine or a claim that one source/architecture is suitable for a particular site.
 
@@ -178,6 +179,7 @@ Every run emits a canonical result/receipt with:
 - wear, downtime, failures, repairs, rework, reserves and recovery outcome;
 - cost/emissions/water estimates with included/excluded items, calculation basis and evidence class;
 - all hard-constraint outcomes, unresolved requirements, faults, stop/fallback actions and out-of-domain reasons;
+- life-safety communication receipt IDs, message class/priority, link-evidence age, first-receipt/acknowledgement time, outage duration, and any independent-failure-domain assumptions; no payload content or person identity is required for the benchmark;
 - exact software revision and execution environment.
 
 Canonical results must be independent of irrelevant input ordering and runtime scheduling. Missing required evidence, invalid units, non-finite quantities, stale result bindings, unsupported profiles or contradictory output must produce a typed non-success disposition.
@@ -257,6 +259,20 @@ Use [ISO 17757:2019](https://www.iso.org/standard/76126.html) as one standards i
 Track [ROCK-BREAKAGE-TOURNAMENT-001 issue #1952](https://github.com/Luminous-Dynamics/symtropy/issues/1952) for normalized, evidence-stratified comparison of mechanical cutting, integrated spoil extraction, and separately typed hybrid/non-mechanical rock-breaking candidates. In particular, keep the cutting-only versus full-cycle denominator explicit: a method that fragments rock faster can still lower campaign output if conveyance, oversize/fines handling, cooling, tool change, support, or recovery becomes limiting.
 
 The specialized tournament reuses Symtropy material/tool response contracts and Symthaea's deep-geothermal access technology evidence program; it does not add an unqualified response model to the executable evaluator. Its external case registry should preserve the measured scope of the recent South African in-stope cutter/vacuum trial and treat the reported laboratory plasma-assisted granite specific-energy reduction as a separate evidence class, not transferable mine-wide savings.
+
+## 10.5 Underground communication degradation
+
+Compose with [Symthaea MINE-COMMS-001 #8010](https://github.com/Luminous-Dynamics/symthaea/issues/8010) and its [routing/receipt harness PR #8011](https://github.com/Luminous-Dynamics/symthaea/pull/8011), plus [FLOOD-EGRESS-001 #1963](https://github.com/Luminous-Dynamics/symtropy/issues/1963). This extension checks the mine campaign's dependence on communication services without duplicating Symthaea's route policy or inventing a physical propagation model.
+
+Include the following end-to-end questions:
+- Can an inrush/flood, power loss or backbone severance still deliver a distress or evacuation alert over an independently qualified remaining path?
+- Does an expired or stale location remain explicitly stale?
+- Under alarm storm, does bounded queue planning preserve distress/evacuation priority over bulk traffic?
+- Is a message merely queued/transmitted, actually received, authenticated, and acknowledged? These are distinct events.
+- Do two purportedly redundant channels share a common cable, power feed, tunnel, relay or water exposure that invalidates independence?
+- When all paths fail, does the benchmark report no route/unacknowledged delivery instead of a healthy or successful state?
+
+Report per-message-class delivery outcome, event timestamps, time to first receiver acknowledgement, outage duration, energy and evidence age. The current Symthaea Rust slice is synthetic and does not model packet loss statistics, network queues/airtime, or RF/TTE propagation; those capabilities must be added and calibrated before making communications-performance claims.
 
 ## 11. Implementation sequence
 

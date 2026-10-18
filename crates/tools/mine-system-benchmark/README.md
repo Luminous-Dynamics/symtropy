@@ -40,6 +40,10 @@ The campaign extension for reuse-first comparisons is tracked in [BROWNFIELD-UND
 
 The [VENT-FLEET-001 workstream](https://github.com/Luminous-Dynamics/symtropy/issues/1961) compares diesel and battery-electric fleet/ventilation baselines, VOD, and a coupled schedule. It treats airflow, contaminant clearance, thermal limits, emergency ventilation and critical evidence as hard gates. Published efficiency results are scenario-specific research anchors, not portable mine-wide savings. This reference evaluator does not actuate equipment or certify mine safety.
 
+## Communication degradation and emergency messages
+
+The MINE-SYSTEM-001 spec now includes [MS-014 Communications degradation](../../../docs/research/MINE_SYSTEM_BENCHMARK_V0_1.md), composed with [Symthaea MINE-COMMS-001 #8010](https://github.com/Luminous-Dynamics/symthaea/issues/8010) and [FLOOD-EGRESS-001 #1963](https://github.com/Luminous-Dynamics/symtropy/issues/1963). This is a synthetic systems benchmark; it makes no mine-radio or safety certification claim.
+
 ## Rock-breakage research
 
 The specialized [ROCK-BREAKAGE-TOURNAMENT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1952) work compares mechanical, hybrid and non-mechanical approaches using explicit evidence tiers and full-cycle output boundaries.
