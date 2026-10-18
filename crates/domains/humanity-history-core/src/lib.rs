@@ -1310,6 +1310,10 @@ mod tests {
         assert_eq!(data.reconstruction_models.len(), 3);
         assert_eq!(data.model_comparisons.len(), 1);
         assert!(data.model_comparisons[0].model_ids.len() >= 2);
+        assert_eq!(data.model_comparisons[0].assessments.len(), 4);
+        assert!(data.model_comparisons[0].assessments.iter().any(|assessment| {
+            assessment.status == AssessmentStatus::NotEvaluated
+        }));
     }
 
     #[test]
@@ -1387,6 +1391,80 @@ mod tests {
         assert!(report.issues.iter().any(|item| {
             item.record_id == "fixture:estimate-a"
                 && item.code == ValidationCode::MissingEstimateEvidence
+        }));
+    }
+
+    #[test]
+    fn independently_reproduced_assessment_requires_versioned_artifact() {
+        let mut data = fixture();
+        data.estimates = vec![
+            estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
+            estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
+        ];
+        data.reconstruction_models = vec![
+            model_for_fixture("fixture:model-a", "fixture:claim-a", "fixture:estimate-a"),
+            model_for_fixture("fixture:model-b", "fixture:claim-b", "fixture:estimate-b"),
+        ];
+        data.model_comparisons = vec![ModelComparison {
+            id: "fixture:comparison".to_owned(),
+            question: "Compare two synthetic models".to_owned(),
+            model_ids: vec!["fixture:model-a".to_owned(), "fixture:model-b".to_owned()],
+            evaluation_axes: vec!["residual".to_owned()],
+            decision_rule: "Report per axis".to_owned(),
+            caveats: vec![],
+            assessments: vec![ModelAssessment {
+                model_id: "fixture:model-a".to_owned(),
+                axis: "residual".to_owned(),
+                status: AssessmentStatus::IndependentlyReproduced,
+                summary: "Synthetic reproduced result".to_owned(),
+                estimate_ids: vec!["fixture:estimate-a".to_owned()],
+                evidence: vec![evidence("fixture:source-1")],
+                interpretation_note: None,
+                validation_artifact: None,
+            }],
+        }];
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:comparison"
+                && item.code == ValidationCode::InvalidModelAssessment
+                && item.message.contains("versioned validation artifact")
+        }));
+    }
+
+    #[test]
+    fn assessment_must_use_declared_axis_and_model() {
+        let mut data = fixture();
+        data.estimates = vec![
+            estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
+            estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
+        ];
+        data.reconstruction_models = vec![
+            model_for_fixture("fixture:model-a", "fixture:claim-a", "fixture:estimate-a"),
+            model_for_fixture("fixture:model-b", "fixture:claim-b", "fixture:estimate-b"),
+        ];
+        data.model_comparisons = vec![ModelComparison {
+            id: "fixture:comparison".to_owned(),
+            question: "Compare two synthetic models".to_owned(),
+            model_ids: vec!["fixture:model-a".to_owned(), "fixture:model-b".to_owned()],
+            evaluation_axes: vec!["residual".to_owned()],
+            decision_rule: "Report per axis".to_owned(),
+            caveats: vec![],
+            assessments: vec![ModelAssessment {
+                model_id: "fixture:model-a".to_owned(),
+                axis: "invented axis".to_owned(),
+                status: AssessmentStatus::NotEvaluated,
+                summary: "Not evaluated".to_owned(),
+                estimate_ids: vec![],
+                evidence: vec![],
+                interpretation_note: None,
+                validation_artifact: None,
+            }],
+        }];
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:comparison"
+                && item.code == ValidationCode::InvalidModelAssessment
+                && item.message.contains("undeclared evaluation axis")
         }));
     }
 
