@@ -497,10 +497,37 @@ mod tests {
 
     fn generated_world(world: usize) -> CalibrationInput {
         let r = world as i64;
-        let calibration_residuals = [-4 - r % 3, -1 + r % 2, 2 + r % 3, 5 + r % 2];
+        let mode = world % 5;
+        let calibration_residuals: [i64; 4] = match mode {
+            0 => [0, 0, 0, 0],
+            1 => [4, 5, 6, 7],
+            2 => [-4, -1, 2, 5],
+            3 => [-2, -1, 0, 7],
+            _ => [-4, -1, 2, 5],
+        };
+        let holdout_residuals: [i64; 3] = match mode {
+            0 => [0, 0, 0],
+            1 => [5, 6, 7],
+            2 => [-2, 0, 4],
+            3 => [-1, 2, 6],
+            _ => [-2, 0, 12],
+        };
+        let holdout_predictions = if mode == 4 {
+            [80_i64, 100, 70]
+        } else {
+            [80_i64, 100, 120]
+        };
+
         let mut records = Vec::new();
         for (index, residual) in calibration_residuals.into_iter().enumerate() {
             let prediction = 100 + (index as i64 * 20) + r % 7;
+            let reference_uncertainty = if mode == 2 {
+                (index + 1) as u64
+            } else if mode == 3 && index == 3 {
+                2
+            } else {
+                1
+            };
             records.push(PairedRecord {
                 case_id: format!("w{world:03}-cal-{index:02}"),
                 split: DataSplit::Calibration,
@@ -512,15 +539,13 @@ mod tests {
                 model_prediction_ticks: prediction,
                 model_numerical_uncertainty_ticks: 1,
                 reference_value_ticks: prediction + residual,
-                reference_uncertainty_ticks: 1,
+                reference_uncertainty_ticks: reference_uncertainty,
                 synthetic_ground_truth_ticks: prediction + residual,
                 case_input_sha256: digest(world * 100 + index + 1),
                 model_artifact_sha256: digest(world * 100 + index + 11),
                 reference_artifact_sha256: digest(world * 100 + index + 21),
             });
         }
-        let holdout_residuals = [-2_i64, 0, 4];
-        let holdout_predictions = [80_i64, 100, 120];
         for index in 0..holdout_residuals.len() {
             let prediction = holdout_predictions[index] + r % 5;
             let residual = holdout_residuals[index];
@@ -668,8 +693,9 @@ mod tests {
             assert_eq!(report.envelope.lower_residual_ticks, oracle_lower);
             assert_eq!(report.envelope.upper_residual_ticks, oracle_upper);
             assert_eq!(report.qualified_holdout_count, 3);
-            assert_eq!(report.heldout_residual_covered_count, 3);
-            assert_eq!(report.heldout_residual_miss_count, 0);
+            let expected_misses = if world % 5 == 4 { 1 } else { 0 };
+            assert_eq!(report.heldout_residual_covered_count, 3 - expected_misses);
+            assert_eq!(report.heldout_residual_miss_count, expected_misses);
             assert_eq!(report.false_robust_feasible_count, 0);
             assert_eq!(report.heldout_coverage_denominator, 3);
         }
