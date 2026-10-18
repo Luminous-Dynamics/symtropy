@@ -45,8 +45,8 @@ fn setup_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let path = std::env::var("SYMTROPY_HUMAN_AVATAR")
-        .unwrap_or_else(|_| "humans/person.glb".to_owned());
+    let path =
+        std::env::var("SYMTROPY_HUMAN_AVATAR").unwrap_or_else(|_| "humans/person.glb".to_owned());
     info!(
         "Human avatar asset: assets/{path}. Put a rigged GLB there or set SYMTROPY_HUMAN_AVATAR."
     );
@@ -164,7 +164,10 @@ fn load_human_when_ready(
     info!("Human GLB animation clips: {names:?}");
     info!(
         "Mapped idle={}, walk={}, run={}, talk={:?}",
-        names[idle], names[walk], names[run], talk.map(|i| names[i].as_str())
+        names[idle],
+        names[walk],
+        names[run],
+        talk.map(|i| names[i].as_str())
     );
 
     let clips = HumanAnimationClips {
