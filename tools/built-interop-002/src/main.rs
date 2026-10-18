@@ -22,7 +22,7 @@ const SUPPORTED_PROFILE: &str = "IFC4/IDS1.0/IFCWALL.Name/simpleValue-v0.1";
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 enum Decision {
-    Conformant,
+    SubsetConformant,
     Blocked,
     Unresolved,
 }
@@ -328,7 +328,7 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
 
     let mut observations = Vec::new();
     let mut diagnostics = Vec::new();
-    let mut decision = Decision::Conformant;
+    let mut decision = Decision::SubsetConformant;
     let mut seen_global_ids = BTreeSet::new();
     let requirement_id = format!("{}::attribute::{attribute_name}", specification.name);
 
@@ -509,7 +509,7 @@ fn main() {
         process::exit(2);
     }
     println!("{}", String::from_utf8_lossy(&json));
-    if report.decision != Decision::Conformant {
+    if report.decision != Decision::SubsetConformant {
         process::exit(1);
     }
 }
@@ -529,7 +529,7 @@ mod tests {
     fn exact_ifc4_wall_name_requirement_is_conformant() {
         let (ifc, ids) = fixtures();
         let report = evaluate(&ifc, &ids).expect("fixtures parse");
-        assert_eq!(report.decision, Decision::Conformant);
+        assert_eq!(report.decision, Decision::SubsetConformant);
         assert_eq!(report.ifc_schema_token.as_deref(), Some("IFC4"));
         assert_eq!(report.ids_version_evidence, "Declared:IDS1.0");
         assert_eq!(report.applicable_wall_count, Some(1));
