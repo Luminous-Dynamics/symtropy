@@ -21,6 +21,7 @@ Missing artifacts and digest/length mismatches appear in the report; the CLI wri
 - Maximum declared artifacts: 10,000.
 - Maximum artifact size: 64 MiB.
 - Maximum total declared size: 512 MiB.
+- Maximum aggregate reserved read volume: 512 MiB, including one-byte growth probes; files whose size changes during reading are unqualified.
 - Paths reject absolute form, dot/parent components, backslashes, colons and symlink components.
 - Each artifact is read through a bounded reader; it must be a regular file beneath the canonical bundle root.
 
