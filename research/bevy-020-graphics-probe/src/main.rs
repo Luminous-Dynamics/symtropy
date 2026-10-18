@@ -195,6 +195,7 @@ mod tests {
         assert_eq!(grid_dimensions(13), (4, 4));
         assert_eq!(grid_dimensions(64), (8, 8));
         assert_eq!(grid_dimensions(256), (16, 16));
+        assert_eq!(grid_dimensions(MAX_OBJECTS), (100, 100));
     }
 
     #[test]
