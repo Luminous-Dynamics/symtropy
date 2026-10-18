@@ -4,6 +4,7 @@
 //! It does not validate physical devices, tissue models, or biological outcomes.
 
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use symtropy_organ_transport_q0::{
     evaluate_tube, junction_residual_m3_per_s, FlowError, TubeSpec,
@@ -11,6 +12,7 @@ use symtropy_organ_transport_q0::{
 
 const TUBE_CORPUS: &str = include_str!("../tube-reference-cases.v0.json");
 const NETWORK_CORPUS: &str = include_str!("../network-reference-cases.v0.json");
+const CORPUS_MANIFEST: &str = include_str!("../corpus-manifest.v0.json");
 
 fn field<'a>(value: &'a Value, key: &str) -> &'a Value {
     value
@@ -81,6 +83,75 @@ fn parse_json_corpus(source: &str, expected_id: &str) -> Value {
         "fixture corpus must declare a purpose"
     );
     root
+}
+
+#[test]
+fn fixture_bytes_match_the_pinned_sha256_manifest() {
+    let manifest: Value =
+        serde_json::from_str(CORPUS_MANIFEST).expect("corpus manifest must be valid JSON");
+    assert_eq!(string_field(&manifest, "schema_version"), "0.1.0");
+    assert_eq!(
+        string_field(&manifest, "manifest_id"),
+        "ORGAN-TRANSPORT-Q0-CORPUS-MANIFEST"
+    );
+    assert_eq!(
+        string_field(&manifest, "status"),
+        "PINNED_INPUTS_NOT_EXECUTION_RECEIPT"
+    );
+
+    let fixtures = field(&manifest, "fixtures")
+        .as_array()
+        .expect("manifest fixtures must be an array");
+    assert_eq!(fixtures.len(), 2);
+    let mut paths = HashSet::new();
+
+    for fixture in fixtures {
+        let path = string_field(fixture, "path");
+        assert!(paths.insert(path.to_owned()), "duplicate manifest path {path}");
+        let (source, expected_id, expected_cases) = match path {
+            "tube-reference-cases.v0.json" => {
+                (TUBE_CORPUS, "ORGAN-TRANSPORT-Q0-TUBE", 5usize)
+            }
+            "network-reference-cases.v0.json" => {
+                (NETWORK_CORPUS, "ORGAN-TRANSPORT-Q0-NETWORK", 3usize)
+            }
+            other => panic!("unrecognized corpus path in manifest: {other}"),
+        };
+
+        assert_eq!(string_field(fixture, "corpus_id"), expected_id);
+        assert_eq!(string_field(fixture, "schema_version"), "0.1.0");
+        assert_eq!(
+            field(fixture, "byte_length").as_u64().expect("byte_length must be u64") as usize,
+            source.len(),
+            "{path}: byte length changed"
+        );
+        let digest = Sha256::digest(source.as_bytes());
+        let digest_hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+        assert_eq!(
+            digest_hex,
+            string_field(fixture, "sha256"),
+            "{path}: input digest changed; review and intentionally repin the corpus"
+        );
+
+        let parsed = parse_json_corpus(source, expected_id);
+        assert_eq!(
+            field(&parsed, "cases").as_array().expect("cases must be an array").len(),
+            expected_cases,
+            "{path}: case count changed"
+        );
+        assert_eq!(
+            field(fixture, "case_count").as_u64().expect("case_count must be u64") as usize,
+            expected_cases
+        );
+    }
+
+    assert_eq!(
+        paths,
+        HashSet::from([
+            "tube-reference-cases.v0.json".to_owned(),
+            "network-reference-cases.v0.json".to_owned()
+        ])
+    );
 }
 
 #[test]
