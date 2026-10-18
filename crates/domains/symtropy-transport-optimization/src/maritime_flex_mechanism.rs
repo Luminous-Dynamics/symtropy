@@ -559,7 +559,9 @@ fn prepare_input(input: &FlexMechanismInput) -> Result<PreparedInput, FlexMechan
                 Some(FlexOfferExclusionReason::AcceptanceReceiptMissing)
             }
             FlexOfferState::AcceptedConditional
-                if offer.accepted_at_minute.is_some_and(|accepted_at| accepted_at > input.decision_time_minute) =>
+                if offer
+                    .accepted_at_minute
+                    .is_some_and(|accepted_at| accepted_at > input.decision_time_minute) =>
             {
                 Some(FlexOfferExclusionReason::AcceptanceAfterDecision)
             }
@@ -895,7 +897,9 @@ mod tests {
             .filter(|offer| {
                 Some(offer.id.as_str()) != excluded_offer_id
                     && offer.state == FlexOfferState::AcceptedConditional
-                    && offer.accepted_at_minute.is_some_and(|accepted_at| accepted_at <= input.decision_time_minute)
+                    && offer
+                        .accepted_at_minute
+                        .is_some_and(|accepted_at| accepted_at <= input.decision_time_minute)
                     && offer.expires_at_minute > input.decision_time_minute
                     && !offer.benefit_evidence_id.trim().is_empty()
                     && offers_match_oracle(input, offer, &slots, &demands)
@@ -948,7 +952,7 @@ mod tests {
                     demand.quantity;
             }
             for (slot_id, quantity) in &final_quantities {
-                if *quantity > slots[slot_id].capacity {
+                if *quantity > slots[*slot_id].capacity {
                     valid = false;
                 }
             }
@@ -994,7 +998,9 @@ mod tests {
                 .abs_diff(target.start_minute)
                 <= offer.max_deviation_minutes
             && target.start_minute <= demand.hard_latest_start_minute
-            && offer.accepted_at_minute.is_some_and(|accepted_at| accepted_at <= input.decision_time_minute)
+            && offer
+                .accepted_at_minute
+                .is_some_and(|accepted_at| accepted_at <= input.decision_time_minute)
             && input.decision_time_minute < offer.expires_at_minute
     }
 
@@ -1025,7 +1031,15 @@ mod tests {
         assert_eq!(report.payments[0].payment_minor_units, 4);
         assert_eq!(report.payments[0].counterfactual_welfare_minor_units, 6);
         assert_eq!(report.buyer_budget_shortfall_minor_units, Some(1));
-        assert_eq!(report.slot_usage.iter().find(|slot| slot.slot_id == "LATE").unwrap().final_quantity, 1);
+        assert_eq!(
+            report
+                .slot_usage
+                .iter()
+                .find(|slot| slot.slot_id == "LATE")
+                .unwrap()
+                .final_quantity,
+            1
+        );
     }
 
     #[test]
@@ -1142,7 +1156,7 @@ mod tests {
                         utility_for(&deviated_report, "OFFER-A", true_cost_a);
                     assert!(
                         truthful_utility >= deviated_utility,
-                        "A profitable misreport: true A={true_cost_a}, true B={true_cost_b}, report A={reported_cost_a}, truthful utility={truthful_utility}, deviated utility={deviated_utility}"
+                        "A misreport improved utility for costs {true_cost_a}/{true_cost_b}/{reported_cost_a}"
                     );
                 }
 
@@ -1158,7 +1172,7 @@ mod tests {
                         utility_for(&truthful_report, "OFFER-B", true_cost_b);
                     assert!(
                         truthful_b_utility >= deviated_utility,
-                        "B profitable misreport: true A={true_cost_a}, true B={true_cost_b}, report B={reported_cost_b}, truthful utility={truthful_b_utility}, deviated utility={deviated_utility}"
+                        "B misreport improved utility for costs {true_cost_a}/{true_cost_b}/{reported_cost_b}"
                     );
                 }
             }
