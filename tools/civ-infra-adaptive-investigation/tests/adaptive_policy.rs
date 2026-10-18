@@ -1,4 +1,7 @@
-use civ_infra_adaptive_investigation::{LeafTerminal, PolicyInput, evaluate_bytes};
+use civ_infra_adaptive_investigation::{
+    ActionInput, CandidatePolicy, LeafTerminal, ModelSupport, OutcomeInput, PolicyBranch, PolicyInput,
+    SupportFailureTerminal, evaluate_bytes,
+};
 use std::collections::BTreeSet;
 
 const FIXTURE: &[u8] = include_bytes!("../fixtures/adaptive-investigation-v0.1.json");
@@ -289,4 +292,64 @@ fn semantic_report_is_invariant_to_record_order_while_digest_tracks_exact_bytes(
     // Semantic equivalence does not erase provenance: only normalize the digest for comparison.
     permuted_report.input_sha256 = baseline.input_sha256.clone();
     assert_eq!(baseline, permuted_report);
+}
+
+
+#[test]
+fn exponential_policy_expansion_fails_closed_at_the_work_budget() {
+    const LAYERS: usize = 6;
+    const WIDTH: usize = 12;
+
+    let mut input = input_from(FIXTURE);
+    let mut actions = Vec::new();
+    let mut branches = Vec::new();
+    for layer in 0..LAYERS {
+        for index in 0..WIDTH {
+            let action_id = format!("layer-{layer:02}-action-{index:02}");
+            let outcomes = (0..WIDTH)
+                .map(|outcome_index| OutcomeInput {
+                    outcome_id: format!("outcome-{outcome_index:02}"),
+                    compatible_state_ids: vec!["stable-dry-ground".to_owned()],
+                })
+                .collect();
+
+            if layer + 1 < LAYERS {
+                for outcome_index in 0..WIDTH {
+                    branches.push(PolicyBranch {
+                        at_action_id: action_id.clone(),
+                        outcome_id: format!("outcome-{outcome_index:02}"),
+                        next_action_id: format!(
+                            "layer-{:02}-action-{:02}",
+                            layer + 1,
+                            outcome_index
+                        ),
+                    });
+                }
+            }
+
+            actions.push(ActionInput {
+                action_id: action_id.clone(),
+                description: format!("Synthetic branching action {action_id}"),
+                compatibility_report_ref: format!("synthetic:policy-budget#{action_id}"),
+                compatibility_report_sha256: None,
+                model_support: ModelSupport::Open,
+                outcomes,
+            });
+        }
+    }
+    input.actions = actions;
+    input.candidate_policy = CandidatePolicy {
+        root_action_id: "layer-00-action-00".to_owned(),
+        branches,
+        support_failure_terminal: SupportFailureTerminal::ReviewRequired,
+        max_supported_action_depth: LAYERS,
+    };
+
+    let bytes = serde_json::to_vec(&input).expect("branching policy serializes");
+    let error = evaluate_bytes(&bytes).expect_err("exponential expansion must stop at a budget");
+    assert!(
+        error.contains("policy expansion exceeds leaf budget")
+            || error.contains("policy evaluation exceeds operation budget"),
+        "{error}"
+    );
 }
