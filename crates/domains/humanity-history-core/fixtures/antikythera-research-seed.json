@@ -66,6 +66,17 @@
         "attribution": "Jian Liang Lin, Results in Engineering (2025), DOI 10.1016/j.rineng.2025.108632.",
         "basis_note": "The landing page indicates open access under a Creative Commons license, but the exact license identifier has not been normalized here. Citation only; no article content is redistributed."
       }
+    },
+    {
+      "id": "antikythera:src-dataverse-2019",
+      "title": "Replication Data for: Antikythera Mechanism Shows Evidence of Lunar Calendar",
+      "source_uri": "https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VJGLVS",
+      "rights": {
+        "status": "unknown",
+        "license_id": null,
+        "attribution": "Andrew T. Thoeni, Chris Budiselic, Andrew Ramsey (2019), Harvard Dataverse, DOI 10.7910/DVN/VJGLVS.",
+        "basis_note": "Repository and dataset DOI are recorded as a candidate input source. Dataset files were not downloaded in this execution, and the exact data license, file inventory, and content digests have not yet been verified. Do not redistribute these data until the license is confirmed."
+      }
     }
   ],
   "claims": [
@@ -208,6 +219,27 @@
           "locator": "Table 2, Prob(N | all) and Prob(N | trim); sections 3.3–3.4",
           "relation": "supports",
           "note": "The paper reports posterior probabilities for integer N under its full and reduced data variants and explains which holes are excluded in the trimmed analysis."
+        }
+      ],
+      "interpretation_note": "The posterior values are source-reported conditional results, not recalculated here. The source article states that its underlying observations came from the registered 2019 replication dataset; this project has not yet downloaded or hashed the data files."
+    },
+    {
+      "id": "antikythera:measurement-data-provenance",
+      "proposition": "The 2024 calendar-ring analysis uses the hole-position measurements released with the 2020 lunar-calendar study as its underlying input data.",
+      "mode": "attested",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Introduction, source data description",
+          "relation": "supports",
+          "note": "The authors state that the analysis is based entirely on the measurements supplied by Budiselic et al."
+        },
+        {
+          "source_id": "antikythera:src-dataverse-2019",
+          "locator": "Dataset landing record and DOI",
+          "relation": "supports",
+          "note": "The registered replication dataset is linked as the input data source; file-level contents and reuse rights still require verification."
         }
       ],
       "interpretation_note": null
@@ -358,11 +390,13 @@
       "value_decimal": "0.1917",
       "unit": "probability",
       "kind": "reported_point",
-      "method": "Source-reported discrete posterior probability for N=354, all measured data",
+      "method": "Source-reported discrete posterior probability from the Gaussian fit to the marginal posterior; the paper reports nested-sampling discrete-model comparisons as a cross-check for N=354, all measured data",
       "assumptions": [
         "Probability is as reported in Table 2 for the full measured dataset.",
         "Conditional on the source's Bayesian model, its assumptions, and its discrete-integer N analysis.",
-        "Rounded to four decimal places as displayed in the source; not recalculated in this project."
+        "Rounded to four decimal places as displayed in the source; not recalculated in this project.",
+        "The paper computes Table 2 probabilities by evaluating a Gaussian fit to the continuous marginal posterior at integer N values, and reports nested-sampling comparisons of integer-N models as a cross-check.",
+        "The raw measurement dataset has not yet been ingested or independently verified by this project."
       ],
       "interval": null,
       "evidence": [
@@ -381,11 +415,13 @@
       "value_decimal": "0.2823",
       "unit": "probability",
       "kind": "reported_point",
-      "method": "Source-reported discrete posterior probability for N=355, all measured data",
+      "method": "Source-reported discrete posterior probability from the Gaussian fit to the marginal posterior; the paper reports nested-sampling discrete-model comparisons as a cross-check for N=355, all measured data",
       "assumptions": [
         "Probability is as reported in Table 2 for the full measured dataset.",
         "Conditional on the source's Bayesian model, its assumptions, and its discrete-integer N analysis.",
-        "Rounded to four decimal places as displayed in the source; not recalculated in this project."
+        "Rounded to four decimal places as displayed in the source; not recalculated in this project.",
+        "The paper computes Table 2 probabilities by evaluating a Gaussian fit to the continuous marginal posterior at integer N values, and reports nested-sampling comparisons of integer-N models as a cross-check.",
+        "The raw measurement dataset has not yet been ingested or independently verified by this project."
       ],
       "interval": null,
       "evidence": [
@@ -404,11 +440,13 @@
       "value_decimal": "0.2479",
       "unit": "probability",
       "kind": "reported_point",
-      "method": "Source-reported discrete posterior probability for N=356, all measured data",
+      "method": "Source-reported discrete posterior probability from the Gaussian fit to the marginal posterior; the paper reports nested-sampling discrete-model comparisons as a cross-check for N=356, all measured data",
       "assumptions": [
         "Probability is as reported in Table 2 for the full measured dataset.",
         "Conditional on the source's Bayesian model, its assumptions, and its discrete-integer N analysis.",
-        "Rounded to four decimal places as displayed in the source; not recalculated in this project."
+        "Rounded to four decimal places as displayed in the source; not recalculated in this project.",
+        "The paper computes Table 2 probabilities by evaluating a Gaussian fit to the continuous marginal posterior at integer N values, and reports nested-sampling comparisons of integer-N models as a cross-check.",
+        "The raw measurement dataset has not yet been ingested or independently verified by this project."
       ],
       "interval": null,
       "evidence": [
@@ -427,12 +465,14 @@
       "value_decimal": "0.2714",
       "unit": "probability",
       "kind": "reported_point",
-      "method": "Source-reported discrete posterior probability for N=354, trimmed data",
+      "method": "Source-reported discrete posterior probability from the Gaussian fit to the marginal posterior; the paper reports nested-sampling discrete-model comparisons as a cross-check for N=354, trimmed data",
       "assumptions": [
         "Probability is as reported in Table 2 for the source's trimmed dataset.",
         "The source excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76 and 81).",
         "Conditional on the source's Bayesian model and assumptions; not recalculated in this project.",
-        "Rounded to four decimal places as displayed in the source."
+        "Rounded to four decimal places as displayed in the source.",
+        "The paper computes Table 2 probabilities by evaluating a Gaussian fit to the continuous marginal posterior at integer N values, and reports nested-sampling comparisons of integer-N models as a cross-check.",
+        "The raw measurement dataset has not yet been ingested or independently verified by this project."
       ],
       "interval": null,
       "evidence": [
@@ -451,12 +491,14 @@
       "value_decimal": "0.2251",
       "unit": "probability",
       "kind": "reported_point",
-      "method": "Source-reported discrete posterior probability for N=355, trimmed data",
+      "method": "Source-reported discrete posterior probability from the Gaussian fit to the marginal posterior; the paper reports nested-sampling discrete-model comparisons as a cross-check for N=355, trimmed data",
       "assumptions": [
         "Probability is as reported in Table 2 for the source's trimmed dataset.",
         "The source excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76 and 81).",
         "Conditional on the source's Bayesian model and assumptions; not recalculated in this project.",
-        "Rounded to four decimal places as displayed in the source."
+        "Rounded to four decimal places as displayed in the source.",
+        "The paper computes Table 2 probabilities by evaluating a Gaussian fit to the continuous marginal posterior at integer N values, and reports nested-sampling comparisons of integer-N models as a cross-check.",
+        "The raw measurement dataset has not yet been ingested or independently verified by this project."
       ],
       "interval": null,
       "evidence": [
@@ -475,12 +517,14 @@
       "value_decimal": "0.1173",
       "unit": "probability",
       "kind": "reported_point",
-      "method": "Source-reported discrete posterior probability for N=356, trimmed data",
+      "method": "Source-reported discrete posterior probability from the Gaussian fit to the marginal posterior; the paper reports nested-sampling discrete-model comparisons as a cross-check for N=356, trimmed data",
       "assumptions": [
         "Probability is as reported in Table 2 for the source's trimmed dataset.",
         "The source excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76 and 81).",
         "Conditional on the source's Bayesian model and assumptions; not recalculated in this project.",
-        "Rounded to four decimal places as displayed in the source."
+        "Rounded to four decimal places as displayed in the source.",
+        "The paper computes Table 2 probabilities by evaluating a Gaussian fit to the continuous marginal posterior at integer N values, and reports nested-sampling comparisons of integer-N models as a cross-check.",
+        "The raw measurement dataset has not yet been ingested or independently verified by this project."
       ],
       "interval": null,
       "evidence": [
