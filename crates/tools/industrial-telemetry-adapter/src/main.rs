@@ -61,7 +61,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    match verify_nist_profile(content.as_bytes().len(), &summary) {
+    match verify_nist_profile(content.len(), &summary) {
         Ok(()) => {
             println!("reference_profile_match=true");
             println!("warning=profile match is not a cryptographic source identity check");
