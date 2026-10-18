@@ -173,10 +173,22 @@ fn draw_contact_overlays(
 
         if config.show_points && extent > 0.0 {
             let point_color = Color::srgb(1.0, 0.2, 0.2);
-            gizmos.line(point - Vec3::X * extent, point + Vec3::X * extent, point_color);
-            gizmos.line(point - Vec3::Y * extent, point + Vec3::Y * extent, point_color);
+            gizmos.line(
+                point - Vec3::X * extent,
+                point + Vec3::X * extent,
+                point_color,
+            );
+            gizmos.line(
+                point - Vec3::Y * extent,
+                point + Vec3::Y * extent,
+                point_color,
+            );
             if glyph.normal[2] != 0.0 || glyph.position[2] != 0.0 {
-                gizmos.line(point - Vec3::Z * extent, point + Vec3::Z * extent, point_color);
+                gizmos.line(
+                    point - Vec3::Z * extent,
+                    point + Vec3::Z * extent,
+                    point_color,
+                );
             }
         }
 
@@ -232,12 +244,14 @@ mod tests {
             SVector::from([0.0, 0.0, 0.0]),
             0.1,
         );
-        contact.points.push(symtropy_physics::contact::ContactPoint {
-            position: SVector::from([1.0, 0.0, 0.0]),
-            depth: 0.2,
-            lambda: 0.0,
-            restitution_bias: 0.0,
-        });
+        contact
+            .points
+            .push(symtropy_physics::contact::ContactPoint {
+                position: SVector::from([1.0, 0.0, 0.0]),
+                depth: 0.2,
+                lambda: 0.0,
+                restitution_bias: 0.0,
+            });
         assert!(extract_contact_glyphs(&[contact.clone()], 0).is_empty());
         assert_eq!(extract_contact_glyphs(&[contact], 1).len(), 1);
     }
