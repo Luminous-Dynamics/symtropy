@@ -39,12 +39,18 @@ pub mod biometrics;
 pub mod debug;
 pub mod macro_bridge;
 pub mod human_motion_metrics;
+pub mod human_motion_intent;
 pub mod plugin;
 pub mod robot;
 pub mod scripting;
 pub mod toolbus;
 
 pub use animation::{AnimationState, RoboticAnimationPlugin};
+pub use human_motion_intent::{
+    ConfidenceSemantics, IntentProvenance, IntentSource, IntentValidationError,
+    InterruptionPolicy, MotionIntentKind, MotionIntentTarget, SemanticMotionIntent,
+    HUMAN_MOTION_INTENT_SCHEMA_VERSION,
+};
 #[cfg(feature = "human-animation")]
 pub use human_animation::{
     HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanLocomotionConfig,
