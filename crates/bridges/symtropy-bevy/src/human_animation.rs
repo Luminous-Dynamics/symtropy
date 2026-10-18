@@ -104,6 +104,8 @@ pub struct HumanLocomotionIntent {
     /// Explicit semantic state such as Idle or Talk. This takes precedence over velocity.
     /// Set to None to let locomotion hysteresis select Idle/Walk/Run.
     pub motion_override: Option<HumanMotion>,
+    /// Simulation-clock expiry copied from the semantic intent. The runtime enforces it.
+    pub valid_until_sec: Option<f64>,
 }
 
 /// Error from translating a high-level semantic intent to this controller's
@@ -163,6 +165,7 @@ pub fn adapt_semantic_intent_to_locomotion_at(
         desired_planar_velocity_mps,
         observed_planar_velocity_mps: None,
         motion_override,
+        valid_until_sec: intent.valid_until_sec,
     })
 }
 
@@ -211,12 +214,61 @@ impl Plugin for HumanAnimationPlugin {
 }
 
 fn derive_human_motion_from_intent(
+    time: Res<Time>,
     config: Res<HumanLocomotionConfig>,
-    mut query: Query<(&HumanLocomotionIntent, &mut HumanAnimationController)>,
+    mut query: Query<(&mut HumanLocomotionIntent, &mut HumanAnimationController)>,
 ) {
-    for (intent, mut controller) in &mut query {
-        controller.motion = motion_for_locomotion_intent(intent, controller.motion, *config);
+    let now_sec = time.elapsed_secs_f64();
+    for (mut intent, mut controller) in &mut query {
+        if !intent.desired_planar_velocity_mps.is_finite()
+            || intent
+                .observed_planar_velocity_mps
+                .is_some_and(|velocity| !velocity.is_finite())
+        {
+            intent.desired_planar_velocity_mps = Vec2::ZERO;
+            intent.observed_planar_velocity_mps = None;
+            intent.motion_override = Some(HumanMotion::Idle);
+            intent.valid_until_sec = None;
+            controller.motion = HumanMotion::Idle;
+            continue;
+        }
+
+        if expire_locomotion_intent(&mut intent, now_sec, config.stop_exit_speed_mps) {
+            if intent.motion_override == Some(HumanMotion::Idle) {
+                controller.motion = HumanMotion::Idle;
+                continue;
+            }
+        }
+        controller.motion = motion_for_locomotion_intent(&intent, controller.motion, *config);
     }
+}
+
+/// Consume an expired intent exactly once, zeroing requested movement. If measured velocity
+/// says the body is still coasting, defer clip choice to that measurement instead of forcing Idle.
+fn expire_locomotion_intent(
+    intent: &mut HumanLocomotionIntent,
+    now_sec: f64,
+    stop_exit_speed_mps: f32,
+) -> bool {
+    let expired = intent
+        .valid_until_sec
+        .is_some_and(|end| !end.is_finite() || !now_sec.is_finite() || now_sec >= end);
+    if !expired {
+        return false;
+    }
+
+    intent.desired_planar_velocity_mps = Vec2::ZERO;
+    intent.valid_until_sec = None;
+    let observed_speed = intent
+        .observed_planar_velocity_mps
+        .unwrap_or(Vec2::ZERO)
+        .length();
+    if !observed_speed.is_finite() || observed_speed <= stop_exit_speed_mps {
+        intent.motion_override = Some(HumanMotion::Idle);
+    } else {
+        intent.motion_override = None;
+    }
+    true
 }
 
 /// Prefer an explicit semantic-state override, then realized velocity feedback, then requested
@@ -429,6 +481,7 @@ mod tests {
         let adapted = adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap();
         assert_eq!(adapted.desired_planar_velocity_mps, Vec2::ZERO);
         assert_eq!(adapted.motion_override, Some(HumanMotion::Idle));
+        assert_eq!(adapted.valid_until_sec, Some(2.0));
         assert_eq!(
             motion_for_locomotion_intent(
                 &adapted,
@@ -437,6 +490,43 @@ mod tests {
             ),
             HumanMotion::Idle
         );
+    }
+
+    #[test]
+    fn expired_intent_zeros_requested_velocity_and_returns_to_idle_without_feedback() {
+        let mut intent = adapt_semantic_intent_to_locomotion_at(
+            &semantic_intent_for_test(MotionIntentKind::Locomote, Some([1.0, 0.0]), None),
+            0.1,
+        )
+        .unwrap();
+        intent.valid_until_sec = Some(0.5);
+        assert!(expire_locomotion_intent(
+            &mut intent,
+            0.5,
+            HumanLocomotionConfig::default().stop_exit_speed_mps
+        ));
+        assert_eq!(intent.desired_planar_velocity_mps, Vec2::ZERO);
+        assert_eq!(intent.valid_until_sec, None);
+        assert_eq!(intent.motion_override, Some(HumanMotion::Idle));
+    }
+
+    #[test]
+    fn expired_intent_allows_measured_coasting_motion_to_finish() {
+        let mut intent = adapt_semantic_intent_to_locomotion_at(
+            &semantic_intent_for_test(MotionIntentKind::Locomote, Some([1.0, 0.0]), None),
+            0.1,
+        )
+        .unwrap();
+        intent.valid_until_sec = Some(0.5);
+        intent.observed_planar_velocity_mps = Some(Vec2::new(0.6, 0.0));
+        assert!(expire_locomotion_intent(
+            &mut intent,
+            0.5,
+            HumanLocomotionConfig::default().stop_exit_speed_mps
+        ));
+        assert_eq!(intent.desired_planar_velocity_mps, Vec2::ZERO);
+        assert_eq!(intent.motion_override, None);
+        assert_eq!(intent.observed_planar_velocity_mps, Some(Vec2::new(0.6, 0.0)));
     }
 
     #[test]
