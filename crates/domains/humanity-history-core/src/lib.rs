@@ -182,7 +182,8 @@ pub struct AssetRecord {
     pub content_sha256: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ValidationCode {
     EmptySchemaVersion,
     EmptyId,
@@ -199,9 +200,10 @@ pub enum ValidationCode {
     UndistributableRights,
     InvalidSha256,
     SelfRelation,
+    UnsupportedSchemaVersion,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ValidationIssue {
     pub record_id: String,
     pub code: ValidationCode,
@@ -333,18 +335,22 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
     let mut issues = Vec::new();
     let mut all_ids = BTreeSet::new();
 
-    require_nonempty(
-        &dataset.schema_version,
-        "dataset",
-        "schema_version",
-        &mut issues,
-    );
     if dataset.schema_version.trim().is_empty() {
         issue(
             &mut issues,
             "dataset",
             ValidationCode::EmptySchemaVersion,
             "dataset schema version is required",
+        );
+    } else if dataset.schema_version != SCHEMA_VERSION {
+        issue(
+            &mut issues,
+            "dataset",
+            ValidationCode::UnsupportedSchemaVersion,
+            format!(
+                "schema version '{}' is not supported; expected '{}'",
+                dataset.schema_version, SCHEMA_VERSION
+            ),
         );
     }
 
@@ -389,6 +395,15 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
                     &claim.id,
                     ValidationCode::InvalidTimeInterval,
                     "time interval start_year must not exceed end_year in the declared calendar",
+                );
+            } else if time.precision == DatePrecision::ExactYear
+                && time.start_year != time.end_year
+            {
+                issue(
+                    &mut issues,
+                    &claim.id,
+                    ValidationCode::InvalidTimeInterval,
+                    "exact_year precision requires identical start_year and end_year",
                 );
             }
         }
