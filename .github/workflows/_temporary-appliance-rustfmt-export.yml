@@ -29,3 +29,5 @@ jobs:
           }
           emit MAIN tools/household-appliance-bench-audit/src/main.rs
           emit ORDS tools/household-appliance-bench-audit/src/ords.rs
+
+# Re-run export on stable-ID and optional-field controls

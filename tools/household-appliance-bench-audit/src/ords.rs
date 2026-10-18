@@ -962,6 +962,32 @@ mod tests {
     }
 
     #[test]
+    fn category_label_fallback_is_used_only_when_id_is_absent() {
+        let csv = b"id,partner_product_category,product_category,brand,repair_status,problem,event_date,country,data_provider\nr-label,Coffee maker,Coffee maker,Acme,0,Unknown,2026-06-01,ZAF,provider-label\n";
+        let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
+        assert_eq!(summary.accepted_row_count, 1);
+        let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
+        assert_eq!(record["product_category_mapping"]["mapping_status"], "candidate");
+        assert_eq!(
+            record["product_category_mapping"]["mapping_match_method"],
+            "normalized_label_fallback"
+        );
+    }
+
+    #[test]
+    fn unknown_present_category_id_does_not_fall_back_to_label() {
+        let csv = b"id,partner_product_category,product_category,product_category_id,repair_status,problem,event_date,country,data_provider\nr-unknown,Coffee maker,Coffee maker,999,0,Unknown,2026-06-01,ZAF,provider-unknown\n";
+        let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
+        assert_eq!(summary.accepted_row_count, 1);
+        let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
+        assert_eq!(record["product_category_mapping"]["mapping_status"], "unmapped");
+        assert_eq!(
+            record["product_category_mapping"]["mapping_match_method"],
+            "unmapped_product_category_id"
+        );
+    }
+
+    #[test]
     fn category_id_label_disagreement_is_quarantined() {
         let source = String::from_utf8(CSV.to_vec()).unwrap();
         let changed = source.replace("r-004,Kitchen toaster,Toaster,31,HeatHaus", "r-004,Kitchen toaster,Coffee maker,31,HeatHaus");
