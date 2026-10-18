@@ -1735,6 +1735,56 @@ mod tests {
         }
     }
 
+    fn run_for_fixture(status: AnalysisRunStatus) -> AnalysisRun {
+        let executed = matches!(
+            status,
+            AnalysisRunStatus::Executed | AnalysisRunStatus::Reproduced | AnalysisRunStatus::Failed
+        );
+        let uses_inputs = matches!(
+            status,
+            AnalysisRunStatus::InputsVerified
+                | AnalysisRunStatus::Executed
+                | AnalysisRunStatus::Reproduced
+                | AnalysisRunStatus::Failed
+        );
+        AnalysisRun {
+            id: "fixture:run-1".to_owned(),
+            purpose: "Synthetic run for validation tests only".to_owned(),
+            status,
+            model_spec_version: "synthetic-model-v1".to_owned(),
+            code_revision: executed.then(|| "0123456789abcdef0123456789abcdef01234567".to_owned()),
+            command: executed.then(|| "synthetic-test-command".to_owned()),
+            environment_fingerprint: executed.then(|| "nix-lock:synthetic-fixture".to_owned()),
+            input_manifest_sha256: uses_inputs.then(|| "a".repeat(64)),
+            input_artifacts: if uses_inputs {
+                vec![RunArtifactDigest {
+                    name: "synthetic-input.json".to_owned(),
+                    sha256: "b".repeat(64),
+                }]
+            } else {
+                vec![]
+            },
+            output_artifacts: if matches!(status, AnalysisRunStatus::Executed | AnalysisRunStatus::Reproduced) {
+                vec![RunArtifactDigest {
+                    name: "synthetic-output.json".to_owned(),
+                    sha256: "c".repeat(64),
+                }]
+            } else {
+                vec![]
+            },
+            random_seed: Some("seed-42".to_owned()),
+            target_estimate_ids: if status == AnalysisRunStatus::Reproduced {
+                vec!["fixture:estimate-a".to_owned()]
+            } else {
+                vec![]
+            },
+            comparison_source_id: (status == AnalysisRunStatus::Reproduced)
+                .then(|| "fixture:source-1".to_owned()),
+            result_summary: executed.then(|| "Synthetic run result only".to_owned()),
+            limitations: vec!["Synthetic fixture; not a scientific result".to_owned()],
+        }
+    }
+
     fn fixture() -> Dataset {
         Dataset {
             schema_version: SCHEMA_VERSION.to_owned(),
@@ -2023,6 +2073,72 @@ mod tests {
         assert_eq!(data.model_comparisons[0].assessments.len(), 4);
         assert!(data.model_comparisons[0].assessments.iter().any(|assessment| {
             assessment.status == AssessmentStatus::NotEvaluated
+        }));
+    }
+
+    #[test]
+    fn planned_analysis_run_does_not_claim_execution() {
+        let mut data = fixture();
+        data.analysis_runs.push(run_for_fixture(AnalysisRunStatus::Planned));
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+    }
+
+    #[test]
+    fn executed_analysis_run_requires_inputs_environment_and_output_digest() {
+        let mut data = fixture();
+        let mut run = run_for_fixture(AnalysisRunStatus::Executed);
+        run.input_manifest_sha256 = None;
+        run.environment_fingerprint = None;
+        run.output_artifacts.clear();
+        data.analysis_runs.push(run);
+        let report = validate(&data);
+        assert!(report.issues.iter().filter(|item| {
+            item.record_id == "fixture:run-1"
+                && item.code == ValidationCode::InvalidAnalysisRun
+        }).count() >= 3);
+    }
+
+    #[test]
+    fn reproduction_run_requires_existing_source_and_estimate_targets() {
+        let mut data = fixture();
+        data.estimates = vec![estimate_for_fixture("fixture:estimate-a", "fixture:claim-a")];
+        let mut run = run_for_fixture(AnalysisRunStatus::Reproduced);
+        run.comparison_source_id = Some("missing:source".to_owned());
+        run.target_estimate_ids = vec!["missing:estimate".to_owned()];
+        data.analysis_runs.push(run);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:run-1"
+                && item.code == ValidationCode::InvalidAnalysisRun
+                && item.message.contains("comparison_source_id")
+        }));
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:run-1"
+                && item.code == ValidationCode::MissingEstimateReference
+        }));
+    }
+
+    #[test]
+    fn valid_reproduced_run_is_linked_to_source_inputs_outputs_and_targets() {
+        let mut data = fixture();
+        data.estimates = vec![estimate_for_fixture("fixture:estimate-a", "fixture:claim-a")];
+        data.analysis_runs.push(run_for_fixture(AnalysisRunStatus::Reproduced));
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+    }
+
+    #[test]
+    fn analysis_run_rejects_malformed_content_digests() {
+        let mut data = fixture();
+        let mut run = run_for_fixture(AnalysisRunStatus::InputsVerified);
+        run.input_artifacts[0].sha256 = "not-a-digest".to_owned();
+        data.analysis_runs.push(run);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:run-1"
+                && item.code == ValidationCode::InvalidAnalysisRun
+                && item.message.contains("SHA-256")
         }));
     }
 
