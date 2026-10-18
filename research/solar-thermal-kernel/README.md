@@ -7,6 +7,7 @@ and the [solar–thermal benchmark contract](https://github.com/Luminous-Dynamic
 ## Included
 
 - A typed direct-beam input adapter converts declared DNI, aperture area, incidence cosine, unshaded fraction, and interval duration into aperture-plane power and interval energy; an independent verifier rejects tampered values.
+- A scenario-weighted service-risk evaluator computes expected and worst unmet useful heat, normalized service-shortfall mean, weighted P95 and CVaR95, and probability of violating a declared service floor. It rejects invalid scenario probability mass, duplicate IDs and over-delivery, and has an independent recomputation path for tail metrics. This summarizes supplied scenario outcomes; it does not generate scenarios or optimize dispatch.
 - Interval-integrated solar energy split into optical loss, receiver loss, and useful heat.
 - A sensible store with a piecewise-linear specific-heat curve and trapezoidal enthalpy integration.
 - An alternative analytic standing-loss integrator that solves the constant-ambient lumped-store loss equation across piecewise-linear cp(T) segments; its independent verifier checks elapsed time, floor events, state bounds, and energy closure. The existing explicit-Euler primitive remains unchanged for backwards-comparable fixtures.
