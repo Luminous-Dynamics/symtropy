@@ -429,7 +429,7 @@ pub fn evaluate_counterfactual_sensitivity(
     }
 
     let reference = &inputs[0];
-    let reference_report = &reports[0];
+    let reference_participants = reports[0].participants.clone();
     let mut baseline_receipts = BTreeSet::new();
     for input in inputs {
         if !baseline_receipts.insert(input.basis.baseline_receipt_sha256.clone()) {
@@ -523,8 +523,8 @@ pub fn evaluate_counterfactual_sensitivity(
         })
         .collect::<Vec<_>>();
 
-    let mut participants = Vec::with_capacity(reference_report.participants.len());
-    for reference_participant in &reference_report.participants {
+    let mut participants = Vec::with_capacity(reference_participants.len());
+    for reference_participant in &reference_participants {
         let outcomes = reports
             .iter()
             .map(|report| {
