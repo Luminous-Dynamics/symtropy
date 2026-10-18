@@ -8,9 +8,7 @@
 use ifc_model::{Codec, Model};
 use ifc_step::StepCodec;
 use openbim_core::Detected;
-use openbim_ids::{
-    Facet, IfcVersion, IdsVersion, Occurrence, Value,
-};
+use openbim_ids::{Facet, IdsVersion, IfcVersion, Occurrence, Value};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::env;
@@ -86,22 +84,15 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn classify_ids_version(version: &Detected<IdsVersion>) -> (String, Option<Decision>) {
     match version {
         Detected::Declared(IdsVersion::Ids1_0) => ("Declared:IDS1.0".to_string(), None),
-        Detected::Inferred(IdsVersion::Ids1_0) => (
-            "Inferred:IDS1.0".to_string(),
-            Some(Decision::Unresolved),
-        ),
+        Detected::Inferred(IdsVersion::Ids1_0) => {
+            ("Inferred:IDS1.0".to_string(), Some(Decision::Unresolved))
+        }
         Detected::Conflict { declared, observed } => (
             format!("Conflict:declared={declared:?}:observed={observed:?}"),
             Some(Decision::Blocked),
         ),
-        Detected::Declared(other) => (
-            format!("Declared:{other:?}"),
-            Some(Decision::Blocked),
-        ),
-        Detected::Inferred(other) => (
-            format!("Inferred:{other:?}"),
-            Some(Decision::Unresolved),
-        ),
+        Detected::Declared(other) => (format!("Declared:{other:?}"), Some(Decision::Blocked)),
+        Detected::Inferred(other) => (format!("Inferred:{other:?}"), Some(Decision::Unresolved)),
     }
 }
 
@@ -148,8 +139,8 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let model: Model = StepCodec
         .read_bytes(ifc_bytes)
         .map_err(|error| format!("IFC_STEP_PARSE_FAILED:{error}"))?;
-    let ids = openbim_ids::from_slice(ids_bytes)
-        .map_err(|error| format!("IDS_PARSE_FAILED:{error}"))?;
+    let ids =
+        openbim_ids::from_slice(ids_bytes).map_err(|error| format!("IDS_PARSE_FAILED:{error}"))?;
 
     let schema_token = model.header().schema_token().map(str::to_string);
     let (ids_version_evidence, version_decision) = classify_ids_version(&ids.version);
@@ -351,14 +342,20 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
                     diagnostics.push(format!(
                         "MISSING_TARGET_PROPERTY:{requirement_id}:{stable_id}"
                     ));
-                    (PropertyOutcome::Missing, Some("MISSING_TARGET_PROPERTY".to_string()))
+                    (
+                        PropertyOutcome::Missing,
+                        Some("MISSING_TARGET_PROPERTY".to_string()),
+                    )
                 }
                 Some(value) if value != expected_value => {
                     decision = Decision::Blocked;
                     diagnostics.push(format!(
                         "CHANGED_TARGET_PROPERTY:{requirement_id}:{stable_id}"
                     ));
-                    (PropertyOutcome::Changed, Some("CHANGED_TARGET_PROPERTY".to_string()))
+                    (
+                        PropertyOutcome::Changed,
+                        Some("CHANGED_TARGET_PROPERTY".to_string()),
+                    )
                 }
                 Some(_) => (PropertyOutcome::Preserved, None),
             };
@@ -464,8 +461,7 @@ fn main() {
         eprintln!("{error}");
         process::exit(2);
     });
-    let json = serde_json::to_vec_pretty(&report)
-        .expect("report serialization should not fail");
+    let json = serde_json::to_vec_pretty(&report).expect("report serialization should not fail");
     if let Some(path) = output_path
         && let Err(error) = fs::write(&path, &json)
     {
@@ -499,7 +495,10 @@ mod tests {
         assert_eq!(report.applicable_wall_count, Some(1));
         assert_eq!(report.observations.len(), 1);
         assert_eq!(report.observations[0].expected_value, "Panel 001");
-        assert_eq!(report.observations[0].observed_value.as_deref(), Some("Panel 001"));
+        assert_eq!(
+            report.observations[0].observed_value.as_deref(),
+            Some("Panel 001")
+        );
         assert_eq!(report.observations[0].outcome, PropertyOutcome::Preserved);
     }
 
@@ -548,7 +547,10 @@ mod tests {
             report.observations[0].diagnostic_code.as_deref(),
             Some("IFCWALL_ATTRIBUTE_ARITY_MISMATCH")
         );
-        assert_eq!(report.observations[0].outcome, PropertyOutcome::NotEvaluated);
+        assert_eq!(
+            report.observations[0].outcome,
+            PropertyOutcome::NotEvaluated
+        );
     }
 
     #[test]
@@ -589,7 +591,8 @@ mod tests {
         let no_wall = String::from_utf8(ifc)
             .expect("fixture is UTF-8")
             .replace("IFCWALL", "IFCBEAM");
-        let report = evaluate(no_wall.as_bytes(), &ids).expect("modified STEP is syntactically valid");
+        let report =
+            evaluate(no_wall.as_bytes(), &ids).expect("modified STEP is syntactically valid");
         assert_eq!(report.decision, Decision::Blocked);
         assert!(report.diagnostics[0].starts_with("NO_APPLICABLE_WALL"));
     }
@@ -606,10 +609,14 @@ mod tests {
     #[test]
     fn row_order_only_changes_raw_hash_not_semantic_result() {
         let (ifc, ids) = fixtures();
-        let second_wall = "#2=IFCWALL('1111111111111111111111',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n";
+        let second_wall =
+            "#2=IFCWALL('1111111111111111111111',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n";
         let with_two = String::from_utf8(ifc.clone())
             .expect("fixture is UTF-8")
-            .replace("ENDSEC;\nEND-ISO-10303-21;", &format!("{second_wall}ENDSEC;\nEND-ISO-10303-21;"));
+            .replace(
+                "ENDSEC;\nEND-ISO-10303-21;",
+                &format!("{second_wall}ENDSEC;\nEND-ISO-10303-21;"),
+            );
         let reversed = with_two.replace(
             "#1=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n#2=IFCWALL('1111111111111111111111',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);",
             "#2=IFCWALL('1111111111111111111111',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);\n#1=IFCWALL('0000000000000000000000',$,'Panel 001',$,$,$,$,$,.NOTDEFINED.);"
