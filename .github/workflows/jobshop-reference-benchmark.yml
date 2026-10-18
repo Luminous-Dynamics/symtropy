@@ -57,6 +57,8 @@ jobs:
           printf '%s\n' "$tiny"
           grep -Fq 'optimality=proved makespan=3 lower_bound=3' <<< "$tiny"
           grep -Fq 'scheduled_operations=4' <<< "$tiny"
+          grep -Fq 'operation job=0 index=0 machine=0 start=0 finish=2' <<< "$tiny"
+          grep -Fq 'operation job=1 index=0 machine=1 start=0 finish=2' <<< "$tiny"
           if cargo run --quiet --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- solve-exact crates/tools/jobshop-reference-benchmark/fixtures/ta01.txt; then
             echo "large-instance exact solve unexpectedly succeeded" >&2
             exit 1
