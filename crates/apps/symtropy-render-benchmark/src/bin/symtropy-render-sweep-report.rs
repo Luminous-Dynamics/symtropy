@@ -362,7 +362,7 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
             ));
         }
     }
-    let mean = required_number(
+    required_number(
         report.mean_frame_interval_ms,
         &report.object_count,
         "mean_frame_interval_ms",
