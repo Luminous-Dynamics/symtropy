@@ -1,7 +1,7 @@
 # MARITIME-CAL-CONTINGENCY-001: minimax service-window selection from calibrated ETA intervals
 
 **Status:** executable synthetic adapter and six authored Rust tests; exact-head CI pending.  
-**Tracking:** https://github.com/Luminous-Dynamics/symtropy/issues/1977  
+**Tracking:** [MARITIME-CAL-CONTINGENCY-001 #1977](https://github.com/Luminous-Dynamics/symtropy/issues/1977)  
 **Composes:** split-conformal ETA calibration and the evidence-aware decision benchmark.
 
 ## Paradigm shift
@@ -29,7 +29,7 @@ It does not select if:
 
 ## Tests authored
 
-Six synthetic Rust tests cover:
+Seven synthetic Rust tests cover:
 1. a finite interval choosing a window with lower worst-case cost than the point-nearest alternative;
 2. an unbounded calibration interval forcing explicit abstention;
 3. abstention when best worst-case cost equals the declared abstention cost;
