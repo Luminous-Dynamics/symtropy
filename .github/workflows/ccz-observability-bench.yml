@@ -39,12 +39,12 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt
       - name: Run unit tests
-        run: cargo test --manifest-path tools/ccz-observability-bench/Cargo.toml
+        run: cargo test -p ccz-observability-bench --locked
       - name: Verify frozen corpus and emit receipt
         env:
           CCZ_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          cargo run --quiet --manifest-path tools/ccz-observability-bench/Cargo.toml -- \
+          cargo run --quiet -p ccz-observability-bench --locked -- \
             --corpus docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json \
             --receipt "${RUNNER_TEMP}/ccz-observability-receipt.json"
           test -s "${RUNNER_TEMP}/ccz-observability-receipt.json"
