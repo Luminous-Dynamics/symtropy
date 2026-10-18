@@ -60,6 +60,7 @@ struct FrameTimeReport {
 #[derive(Clone, Debug, Serialize)]
 struct SweepPoint {
     input_path: String,
+    input_report_sha256: String,
     object_count: usize,
     sample_count: usize,
     mean_frame_interval_ms: f64,
@@ -93,6 +94,13 @@ struct SweepContext {
     sampling_method: String,
     sample_window_start_secs: f32,
     sample_window_end_secs: f32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct LoadedReport {
+    path: PathBuf,
+    sha256: String,
+    report: FrameTimeReport,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -135,21 +143,21 @@ fn run() -> Result<(), String> {
     ensure_output_is_distinct(&output_path, &input_paths)?;
     let mut reports = input_paths
         .iter()
-        .map(|path| read_report(path).map(|report| (path.clone(), report)))
+        .map(|path| read_report(path))
         .collect::<Result<Vec<_>, _>>()?;
-    for (path, report) in &reports {
-        validate_report(report, path)?;
+    for loaded in &reports {
+        validate_report(&loaded.report, &loaded.path)?;
     }
-    reports.sort_by_key(|(_, report)| report.object_count);
+    reports.sort_by_key(|loaded| loaded.report.object_count);
     let comparable_reports: Vec<FrameTimeReport> = reports
         .iter()
-        .map(|(_, report)| report.clone())
+        .map(|loaded| loaded.report.clone())
         .collect();
     validate_comparable_context(&comparable_reports)?;
 
     let object_counts: BTreeSet<usize> = reports
         .iter()
-        .map(|(_, report)| report.object_count)
+        .map(|loaded| loaded.report.object_count)
         .collect();
     if object_counts.len() != reports.len() {
         return Err("duplicate object_count reports are not allowed in one sweep".to_owned());
@@ -157,7 +165,7 @@ fn run() -> Result<(), String> {
 
     let smallest = reports
         .first()
-        .map(|(_, report)| report)
+        .map(|loaded| &loaded.report)
         .ok_or_else(|| "no reports after validation".to_owned())?;
     let baseline_p95 = required_number(
         smallest.p95_frame_interval_ms,
@@ -167,14 +175,16 @@ fn run() -> Result<(), String> {
     let context = make_context(smallest)?;
 
     let mut points = Vec::with_capacity(reports.len());
-    for (path, report) in &reports {
+    for loaded in &reports {
+        let report = &loaded.report;
         let p95 = required_number(
             report.p95_frame_interval_ms,
             &report.object_count,
             "p95_frame_interval_ms",
         )?;
         points.push(SweepPoint {
-            input_path: path.display().to_string(),
+            input_path: loaded.path.display().to_string(),
+            input_report_sha256: loaded.sha256.clone(),
             object_count: report.object_count,
             sample_count: report.sample_count,
             mean_frame_interval_ms: required_number(
@@ -240,7 +250,7 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn read_report(path: &Path) -> Result<FrameTimeReport, String> {
+fn read_report(path: &Path) -> Result<LoadedReport, String> {
     let mut file = File::open(path)
         .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
     let length = file
@@ -257,8 +267,14 @@ fn read_report(path: &Path) -> Result<FrameTimeReport, String> {
     if bytes.len() as u64 > MAX_REPORT_BYTES {
         return Err(format!("{} grew beyond the size limit", path.display()));
     }
-    serde_json::from_slice(&bytes)
-        .map_err(|error| format!("invalid JSON report {}: {error}", path.display()))
+    let sha256 = format!("{:x}", Sha256::digest(&bytes));
+    let report = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("invalid JSON report {}: {error}", path.display()))?;
+    Ok(LoadedReport {
+        path: path.to_path_buf(),
+        sha256,
+        report,
+    })
 }
 
 fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> {
