@@ -31,16 +31,8 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: rustfmt, clippy
-      # Bootstrap only: commit the generated lock after the first run, then
-      # replace this step with a checksum assertion and keep --locked below.
-      - name: Generate candidate lockfile (bootstrap)
-        run: |
-          cargo generate-lockfile --manifest-path tools/built-interop-005/Cargo.toml
-          sha256sum tools/built-interop-005/Cargo.lock
-          echo "LOCKFILE_BASE64_BEGIN"
-          base64 -w0 tools/built-interop-005/Cargo.lock
-          echo
-          echo "LOCKFILE_BASE64_END"
+      - name: Verify committed dependency lock
+        run: echo "cdf5e081cacba012ed1e52246b399f1062934b0e71eeeb5f6743f4f81a279c7c  tools/built-interop-005/Cargo.lock" | sha256sum -c -
       - name: Check formatting
         run: cargo fmt --manifest-path tools/built-interop-005/Cargo.toml -- --check
       - name: Run synthetic schema gate tests
