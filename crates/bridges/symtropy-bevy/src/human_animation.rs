@@ -430,7 +430,11 @@ mod tests {
         assert_eq!(adapted.desired_planar_velocity_mps, Vec2::ZERO);
         assert_eq!(adapted.motion_override, Some(HumanMotion::Idle));
         assert_eq!(
-            motion_for_locomotion_intent(&adapted, HumanMotion::Talk, HumanLocomotionConfig::default()),
+            motion_for_locomotion_intent(
+                &adapted,
+                HumanMotion::Talk,
+                HumanLocomotionConfig::default()
+            ),
             HumanMotion::Idle
         );
     }
@@ -475,7 +479,8 @@ mod tests {
 
     #[test]
     fn expired_semantic_intents_are_rejected_before_adaptation() {
-        let mut intent = semantic_intent_for_test(MotionIntentKind::Locomote, Some([1.0, 0.0]), None);
+        let mut intent =
+            semantic_intent_for_test(MotionIntentKind::Locomote, Some([1.0, 0.0]), None);
         intent.valid_until_sec = Some(0.5);
         assert_eq!(
             adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap_err(),
