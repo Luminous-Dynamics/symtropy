@@ -35,6 +35,7 @@ pub struct DecisionSet {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct OutcomeImpact {
     pub outcome_id: String,
+    pub compatible_state_ids: Vec<String>,
     pub compatible_state_count: usize,
     pub remaining_critical_unknown_ids: Vec<String>,
     pub robust_feasible_candidate_ids: Vec<String>,
@@ -44,6 +45,9 @@ pub struct OutcomeImpact {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct ActionImpact {
     pub action_id: String,
+    pub action_type: String,
+    pub evidence_state: String,
+    pub source_revision: String,
     pub status: String,
     pub rejection_codes: Vec<String>,
     pub decision_relevant: bool,
@@ -132,6 +136,7 @@ struct ObservationOutcome {
 #[derive(Debug, Clone)]
 struct MeasurementAction {
     id: String,
+    action_type: String,
     evidence_state: String,
     source_revision: String,
     cost_units: u64,
@@ -392,6 +397,9 @@ fn parse_scenario(
             );
         }
 
+        let Some(action_type) = string_field(action_object, "action_type") else {
+            return None;
+        };
         let Some(evidence_state) = string_field(action_object, "evidence_state") else {
             return None;
         };
@@ -459,6 +467,7 @@ fn parse_scenario(
 
         actions.push(MeasurementAction {
             id: action_id.to_owned(),
+            action_type: action_type.to_owned(),
             evidence_state: evidence_state.to_owned(),
             source_revision: source_revision.to_owned(),
             cost_units,
@@ -725,6 +734,9 @@ fn evaluate_action(
     if !rejection_codes.is_empty() {
         return ActionImpact {
             action_id: action.id.clone(),
+            action_type: action.action_type.clone(),
+            evidence_state: action.evidence_state.clone(),
+            source_revision: action.source_revision.clone(),
             status: "reject_action".to_owned(),
             rejection_codes,
             decision_relevant: false,
@@ -771,6 +783,7 @@ fn evaluate_action(
         }
         outcome_results.push(OutcomeImpact {
             outcome_id: outcome.id,
+            compatible_state_ids: states.clone(),
             compatible_state_count: states.len(),
             remaining_critical_unknown_ids: set.remaining_critical_unknown_ids,
             robust_feasible_candidate_ids: set.robust_feasible_candidate_ids,
@@ -785,6 +798,9 @@ fn evaluate_action(
 
     ActionImpact {
         action_id: action.id.clone(),
+        action_type: action.action_type.clone(),
+        evidence_state: action.evidence_state.clone(),
+        source_revision: action.source_revision.clone(),
         status: "evaluated".to_owned(),
         rejection_codes: Vec::new(),
         decision_relevant: changes_hard || changes_pareto,
@@ -833,6 +849,19 @@ fn compare_action_expected(
             format!("{path}.action_id"),
             "Action identity differs.",
         );
+    }
+    for (field, actual_value) in [
+        ("action_type", actual.action_type.as_str()),
+        ("evidence_state", actual.evidence_state.as_str()),
+        ("source_revision", actual.source_revision.as_str()),
+    ] {
+        if string_field(object, field) != Some(actual_value) {
+            summary.fail(
+                "DECISION_EXPECTATION_MISMATCH",
+                format!("{path}.{field}"),
+                format!("Action provenance field {field:?} differs."),
+            );
+        }
     }
     if string_field(object, "status") != Some(actual.status.as_str()) {
         summary.fail(
@@ -948,6 +977,13 @@ fn compare_action_expected(
             );
             continue;
         };
+        compare_id_field(
+            expected_outcome,
+            "compatible_state_ids",
+            &outcome.compatible_state_ids,
+            &format!("{path}.outcomes[{}]", outcome.outcome_id),
+            summary,
+        );
         if expected_outcome
             .get("compatible_state_count")
             .and_then(Value::as_u64)
@@ -1401,6 +1437,35 @@ mod tests {
         let summary =
             validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
         assert!(has_code(&summary, "DECISION_EXPECTATION_MISMATCH"));
+    }
+
+    #[test]
+    fn outcome_with_same_count_but_wrong_state_membership_is_rejected() {
+        let mut corpus: Value =
+            serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS).expect("valid corpus");
+        corpus["cases"][0]["expected_actions"][0]["outcomes"][0]["compatible_state_ids"] =
+            serde_json::json!(["width-ok"]);
+        let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
+        let summary =
+            validate_decision_impact_bytes(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        assert!(has_code(&summary, "DECISION_EXPECTATION_MISMATCH"));
+    }
+
+    #[test]
+    fn action_receipt_preserves_type_evidence_revision_and_state_membership() {
+        let summary = validate_decision_impact_bytes(
+            EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
+            EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
+        );
+        let case = summary.results.iter().find(|result| result.case_id == "SPR-V-001").unwrap();
+        let action = case.actions.iter().find(|item| item.action_id == "targeted-clearance-survey").unwrap();
+        assert_eq!(action.action_type, "survey");
+        assert_eq!(action.evidence_state, "valid");
+        assert_eq!(action.source_revision, "access-survey-v1");
+        assert_eq!(action.cost_basis_id, "synthetic-cost-basis-v1");
+        assert_eq!(action.duration_basis_id, "synthetic-duration-basis-v1");
+        let fail_outcome = action.outcomes.iter().find(|item| item.outcome_id == "clearance-fail").unwrap();
+        assert_eq!(fail_outcome.compatible_state_ids, vec!["width-fail"]);
     }
 
     #[test]
