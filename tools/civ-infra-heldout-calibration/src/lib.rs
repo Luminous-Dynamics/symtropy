@@ -712,6 +712,23 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_case_ids_and_unrecognized_probability_fields_are_rejected() {
+        let mut input = parse_fixture();
+        input.records[3].case_id = input.records[0].case_id.clone();
+        assert!(report_for_error(&input).contains("duplicate case_id"));
+
+        let mut value: serde_json::Value =
+            serde_json::from_slice(FIXTURE).expect("fixture JSON parses");
+        value
+            .as_object_mut()
+            .expect("top-level object")
+            .insert("magic_probability".to_owned(), serde_json::json!(0.99));
+        let bytes = serde_json::to_vec(&value).expect("mutated JSON serializes");
+        let error = evaluate_bytes(&bytes).expect_err("unknown probabilistic field must fail closed");
+        assert!(error.contains("unknown field"), "{error}");
+    }
+
+    #[test]
     fn higher_is_better_threshold_has_symmetric_boundary_semantics() {
         let mut input = parse_fixture();
         input.lower_is_better = false;
