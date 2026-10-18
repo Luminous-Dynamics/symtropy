@@ -762,8 +762,8 @@ mod tests {
     #[test]
     fn invalid_evidence_references_are_rejected() {
         let invalid = EMBEDDED_FIXTURE.replace(
-            "\"prepared-panel-candidate\"",
-            "\"undeclared-evidence-token\"",
+            "\"acceptance_evidence\": [\"prepared-panel-candidate\"]",
+            "\"acceptance_evidence\": [\"undeclared-evidence-token\"]",
         );
         assert!(verify_fixture_bytes(invalid.as_bytes()).is_err());
     }
