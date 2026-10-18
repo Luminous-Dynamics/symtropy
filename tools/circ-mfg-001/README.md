@@ -6,7 +6,9 @@ Tracking issue: https://github.com/Luminous-Dynamics/symtropy/issues/1984
 
 This first software slice is a **synthetic contract evaluator**, not a product design optimizer and not an engineering approval system. It verifies required evidence dispositions, non-compensable gates, and exact external reference authority/identifier/role bindings. Mycelix remains authoritative for lifecycle events, custody semantics, and material-flow accounts; this harness does not duplicate quantities or those domain records.
 
-`Eligible` means only “eligible to proceed to the next controlled benchmark stage.” It does **not** mean that a manufactured unit is qualified, a building meets code, an environmental claim is substantiated, or a safety-critical design is approved.
+The positive result is named `Conformant`, not `Eligible`: it means only that the synthetic record matches this harness's narrow contract. It never authorizes manufacturing, installation, site selection or structural use.
+
+`Conformant` means only that the synthetic record matches this harness's narrow contract. It does **not** authorize manufacturing or installation, qualify a unit, establish code compliance, substantiate an environmental claim, or approve safety-critical use.
 
 ## Run
 
@@ -40,7 +42,7 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 
 | Fixture | Expected disposition | Control |
 |---|---|---|
-| `01-complete-evidence-and-external-bindings` | Eligible | complete hashes, gates pass and required external authority/identifier/role bindings match |
+| `01-complete-evidence-and-external-bindings` | Conformant | complete hashes, gates pass and required external authority/identifier/role bindings match |
 | `02-verified-payload-digest-mismatch` | Blocked | digest mismatch must not be accepted |
 | `03-required-material-lot-missing` | Unresolved | unknown provenance is not assumed nominal |
 | `04-mandatory-quality-gate-fails` | Blocked | failed hard gate dominates other metrics |
