@@ -126,22 +126,45 @@ fn setup(
         rig: ReviewRig::FloatingCamera,
         max_translation_speed_mps: 1.8,
         waypoints: vec![
-            waypoint("entry", "Entry overview", [0.0, 1.6, 3.0], [0.0, 1.4, 0.0], 0.0, 2.0),
-            waypoint("kitchen", "Kitchen work zone", [0.0, 1.6, 0.0], [2.0, 1.1, -0.3], 4.0, 1.5),
-            waypoint("living", "Living area", [-1.1, 1.6, -1.0], [-1.4, 1.2, -2.4], 7.5, 2.0),
+            waypoint(
+                "entry",
+                "Entry overview",
+                [0.0, 1.6, 3.0],
+                [0.0, 1.4, 0.0],
+                0.0,
+                2.0,
+            ),
+            waypoint(
+                "kitchen",
+                "Kitchen work zone",
+                [0.0, 1.6, 0.0],
+                [2.0, 1.1, -0.3],
+                4.0,
+                1.5,
+            ),
+            waypoint(
+                "living",
+                "Living area",
+                [-1.1, 1.6, -1.0],
+                [-1.4, 1.2, -2.4],
+                7.5,
+                2.0,
+            ),
         ],
     };
 
-    let camera_pose = Transform::from_xyz(0.0, 1.6, 3.0)
-        .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
-    let playback = ReviewRoutePlayback::new(route)
-        .expect("the example route must satisfy route validation");
+    let camera_pose =
+        Transform::from_xyz(0.0, 1.6, 3.0).looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
+    let playback =
+        ReviewRoutePlayback::new(route).expect("the example route must satisfy route validation");
     let free_camera = ReviewFreeCameraController::from_transform(&camera_pose);
     commands.spawn((Camera3d::default(), camera_pose, playback, free_camera));
 
     info!("Synthetic architectural review scene; not a real plan or compliance model.");
     info!("Space: pause/resume route. R: restart route. F: toggle free camera.");
-    info!("Free camera: hold right mouse to look, WASD to move, E/Q to rise/descend, Shift to move faster.");
+    info!(
+        "Free camera: hold right mouse to look, WASD to move, E/Q to rise/descend, Shift to move faster."
+    );
 }
 
 fn waypoint(
