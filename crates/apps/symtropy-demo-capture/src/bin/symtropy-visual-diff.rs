@@ -30,6 +30,7 @@ struct Options {
     candidate: PathBuf,
     candidate_receipt: PathBuf,
     output: PathBuf,
+    diff_image: Option<PathBuf>,
     pixel_threshold: u8,
     max_mean_channel_delta: f64,
     max_changed_pixel_fraction: f64,
@@ -124,6 +125,16 @@ struct DifferenceMetrics {
 }
 
 #[derive(Clone, Debug, Serialize)]
+struct DiffImageSummary {
+    path: String,
+    sha256: String,
+    width_px: u32,
+    height_px: u32,
+    encoding: &'static str,
+    legend: &'static str,
+}
+
+#[derive(Clone, Debug, Serialize)]
 struct RegressionBudget {
     max_mean_absolute_channel_delta: f64,
     max_changed_pixel_fraction: f64,
@@ -139,6 +150,7 @@ struct VisualDiffReport {
     candidate: ArtifactSummary,
     matched_context: MatchedContext,
     metrics: DifferenceMetrics,
+    diff_image: Option<DiffImageSummary>,
     budget: RegressionBudget,
     claim_ceiling: &'static str,
 }
@@ -158,8 +170,9 @@ fn run() -> Result<ExitCode, String> {
         Some(options) => options,
         None => return Ok(ExitCode::SUCCESS),
     };
-    ensure_output_is_distinct(
+    ensure_outputs_are_distinct(
         &options.output,
+        options.diff_image.as_deref(),
         &[
             &options.baseline,
             &options.baseline_receipt,
@@ -188,6 +201,15 @@ fn run() -> Result<ExitCode, String> {
     }
 
     let metrics = calculate_metrics(&baseline.pixels, &candidate.pixels, options.pixel_threshold)?;
+    let diff_image = match options.diff_image.as_deref() {
+        Some(path) => Some(write_diff_heatmap(
+            path,
+            &baseline.pixels,
+            &candidate.pixels,
+            options.pixel_threshold,
+        )?),
+        None => None,
+    };
     let budget = RegressionBudget {
         max_mean_absolute_channel_delta: options.max_mean_channel_delta,
         max_changed_pixel_fraction: options.max_changed_pixel_fraction,
@@ -240,6 +262,7 @@ fn run() -> Result<ExitCode, String> {
         },
         matched_context,
         metrics,
+        diff_image,
         budget,
         claim_ceiling: CLAIM_CEILING,
     };
@@ -313,6 +336,7 @@ fn parse_options(args: Vec<String>) -> Result<Option<Options>, String> {
         required_option(&mut values, "--max-p95-pixel-delta")?,
         "--max-p95-pixel-delta",
     )?;
+    let diff_image = values.remove("--diff-image").map(PathBuf::from);
 
     if !values.is_empty() {
         return Err(format!(
@@ -334,6 +358,7 @@ fn parse_options(args: Vec<String>) -> Result<Option<Options>, String> {
         candidate: PathBuf::from(candidate),
         candidate_receipt: PathBuf::from(candidate_receipt),
         output: PathBuf::from(output),
+        diff_image,
         pixel_threshold,
         max_mean_channel_delta,
         max_changed_pixel_fraction,
@@ -356,9 +381,11 @@ Usage: symtropy-visual-diff
   --max-mean-channel-delta 1.0
   --max-changed-pixel-fraction 0.01
   --max-p95-pixel-delta 8
+  [--diff-image diff-heatmap.png]
   [--allow-renderer-version-change]
 
 Exit codes: 0 within budget; 1 exceeds visual-difference budget; 2 invalid or incomparable input.
+The optional heatmap visualizes raw per-pixel channel deltas and is not a perceptual-quality score.
 The renderer-version-change flag is for explicit migration comparisons; all other declared context must still match."#
     );
 }
