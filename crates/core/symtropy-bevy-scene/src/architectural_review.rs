@@ -55,6 +55,203 @@ pub struct ArchitecturalReviewRoute {
     pub waypoints: Vec<ReviewWaypoint>,
 }
 
+/// Information category displayed over a design. The category is supplied by a
+/// separately reviewed rule/evidence pipeline; the viewer does not decide legal
+/// applicability or the truth of engineering claims by drawing an overlay.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReviewAnnotationKind {
+    /// Requirement identified as binding by the selected jurisdiction adapter.
+    BindingRequirement,
+    /// Competing binding assertions whose precedence has not been resolved.
+    BindingConflict,
+    /// Evidence needed to assess a declared binding requirement is absent.
+    RequiredEvidence,
+    /// Engineering calculation or test result; validity remains tool/scope-bound.
+    EngineeringEvidence,
+    /// Advisory information that is not itself a binding requirement.
+    NonBindingGuidance,
+    /// Site or survey fact not yet verified.
+    SiteUnknown,
+    /// A person's preference or intended experience, not legislation.
+    OwnerPreference,
+    /// Proposed code change awaiting legal adoption.
+    CodeReformProposal,
+}
+
+/// A display disposition with semantics that prevent taste from becoming a
+/// pretend code violation. The viewer must retain the kind and source when
+/// filtering, sorting, or styling annotations.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReviewAnnotationState {
+    Satisfied,
+    Failed,
+    Unknown,
+    NotApplicable,
+    Conflict,
+    UnfulfilledPreference,
+    Informational,
+}
+
+/// Revision-pinned annotation for a plan, room, component, or camera stop.
+/// Evidence hashes are metadata until an artifact verifier checks actual bytes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReviewAnnotation {
+    pub annotation_id: String,
+    pub design_revision_id: String,
+    pub kind: ReviewAnnotationKind,
+    pub state: ReviewAnnotationState,
+    pub title: String,
+    pub explanation: String,
+    pub source_ref: Option<String>,
+    pub module_id: Option<String>,
+    pub evidence_artifact_id: Option<String>,
+    pub evidence_sha256: Option<String>,
+    pub uncertainty_note: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReviewAnnotationIssue {
+    EmptyAnnotationId,
+    DuplicateAnnotationId(String),
+    EmptyDesignRevisionId,
+    RevisionMismatch { annotation_id: String },
+    EmptyTitle { annotation_id: String },
+    EmptyExplanation { annotation_id: String },
+    MissingBindingProvenance { annotation_id: String },
+    InvalidKindStateCombination { annotation_id: String },
+    EvidenceIdWithoutDigest { annotation_id: String },
+    DigestWithoutEvidenceId { annotation_id: String },
+    InvalidEvidenceDigest { annotation_id: String },
+}
+
+/// Validate annotations against the exact model revision being inspected.
+///
+/// This is a presentation/provenance contract, not a jurisdiction evaluator or
+/// cryptographic verifier. A binding annotation must identify its rule module
+/// and source. Owner preferences can be unfulfilled, but cannot be labelled a
+/// legal/engineering failure. Reform proposals and general guidance remain
+/// informational so they do not masquerade as active rules.
+pub fn validate_review_annotations_for_revision(
+    annotations: &[ReviewAnnotation],
+    design_revision_id: &str,
+) -> Result<(), Vec<ReviewAnnotationIssue>> {
+    let mut issues = Vec::new();
+    if design_revision_id.trim().is_empty() {
+        issues.push(ReviewAnnotationIssue::EmptyDesignRevisionId);
+    }
+    let mut annotation_ids = std::collections::HashSet::new();
+
+    for annotation in annotations {
+        if annotation.annotation_id.trim().is_empty() {
+            issues.push(ReviewAnnotationIssue::EmptyAnnotationId);
+        } else if !annotation_ids.insert(annotation.annotation_id.as_str()) {
+            issues.push(ReviewAnnotationIssue::DuplicateAnnotationId(
+                annotation.annotation_id.clone(),
+            ));
+        }
+        if annotation.design_revision_id != design_revision_id {
+            issues.push(ReviewAnnotationIssue::RevisionMismatch {
+                annotation_id: annotation.annotation_id.clone(),
+            });
+        }
+        if annotation.title.trim().is_empty() {
+            issues.push(ReviewAnnotationIssue::EmptyTitle {
+                annotation_id: annotation.annotation_id.clone(),
+            });
+        }
+        if annotation.explanation.trim().is_empty() {
+            issues.push(ReviewAnnotationIssue::EmptyExplanation {
+                annotation_id: annotation.annotation_id.clone(),
+            });
+        }
+
+        match annotation.kind {
+            ReviewAnnotationKind::BindingRequirement | ReviewAnnotationKind::RequiredEvidence => {
+                if !annotation.source_ref.as_deref().is_some_and(|value| !value.trim().is_empty())
+                    || !annotation.module_id.as_deref().is_some_and(|value| !value.trim().is_empty())
+                {
+                    issues.push(ReviewAnnotationIssue::MissingBindingProvenance {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+                if annotation.kind == ReviewAnnotationKind::RequiredEvidence
+                    && annotation.state != ReviewAnnotationState::Unknown
+                    && annotation.state != ReviewAnnotationState::NotApplicable
+                {
+                    issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
+            ReviewAnnotationKind::BindingConflict => {
+                if annotation.state != ReviewAnnotationState::Conflict
+                    || !annotation.source_ref.as_deref().is_some_and(|value| !value.trim().is_empty())
+                {
+                    issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
+            ReviewAnnotationKind::NonBindingGuidance | ReviewAnnotationKind::CodeReformProposal => {
+                if annotation.state != ReviewAnnotationState::Informational {
+                    issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
+            ReviewAnnotationKind::SiteUnknown => {
+                if annotation.state != ReviewAnnotationState::Unknown {
+                    issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
+            ReviewAnnotationKind::OwnerPreference => {
+                if !matches!(
+                    annotation.state,
+                    ReviewAnnotationState::Satisfied
+                        | ReviewAnnotationState::Unknown
+                        | ReviewAnnotationState::UnfulfilledPreference
+                        | ReviewAnnotationState::Informational
+                ) {
+                    issues.push(ReviewAnnotationIssue::InvalidKindStateCombination {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
+            ReviewAnnotationKind::EngineeringEvidence => {}
+        }
+
+        match (
+            annotation.evidence_artifact_id.as_deref(),
+            annotation.evidence_sha256.as_deref(),
+        ) {
+            (Some(id), Some(digest)) => {
+                if id.trim().is_empty() || digest.len() != 64
+                    || !digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+                {
+                    issues.push(ReviewAnnotationIssue::InvalidEvidenceDigest {
+                        annotation_id: annotation.annotation_id.clone(),
+                    });
+                }
+            }
+            (Some(_), None) => issues.push(ReviewAnnotationIssue::EvidenceIdWithoutDigest {
+                annotation_id: annotation.annotation_id.clone(),
+            }),
+            (None, Some(_)) => issues.push(ReviewAnnotationIssue::DigestWithoutEvidenceId {
+                annotation_id: annotation.annotation_id.clone(),
+            }),
+            (None, None) => {}
+        }
+    }
+
+    if issues.is_empty() {
+        Ok(())
+    } else {
+        Err(issues)
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReviewRouteIssue {
     EmptyRouteId,
@@ -381,6 +578,106 @@ mod tests {
                 waypoint("garden", [3.0, 1.6, 0.0], [3.0, 1.4, -2.0], 7.0, 1.5),
             ],
         }
+    }
+
+    fn annotation(
+        id: &str,
+        revision: &str,
+        kind: ReviewAnnotationKind,
+        state: ReviewAnnotationState,
+    ) -> ReviewAnnotation {
+        ReviewAnnotation {
+            annotation_id: id.into(),
+            design_revision_id: revision.into(),
+            kind,
+            state,
+            title: id.into(),
+            explanation: "Synthetic review annotation".into(),
+            source_ref: None,
+            module_id: None,
+            evidence_artifact_id: None,
+            evidence_sha256: None,
+            uncertainty_note: None,
+        }
+    }
+
+    #[test]
+    fn owner_preference_is_not_treated_as_a_code_violation() {
+        let preference = annotation(
+            "owner:arched-window",
+            "house:r1",
+            ReviewAnnotationKind::OwnerPreference,
+            ReviewAnnotationState::UnfulfilledPreference,
+        );
+        assert_eq!(
+            validate_review_annotations_for_revision(&[preference], "house:r1"),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn owner_preference_cannot_be_mislabeled_as_a_binding_failure() {
+        let preference = annotation(
+            "owner:arched-window",
+            "house:r1",
+            ReviewAnnotationKind::OwnerPreference,
+            ReviewAnnotationState::Failed,
+        );
+        assert!(validate_review_annotations_for_revision(&[preference], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::InvalidKindStateCombination {
+                annotation_id: "owner:arched-window".into(),
+            }));
+    }
+
+    #[test]
+    fn binding_overlay_requires_module_and_source_provenance() {
+        let binding = annotation(
+            "rule:egress",
+            "house:r1",
+            ReviewAnnotationKind::BindingRequirement,
+            ReviewAnnotationState::Unknown,
+        );
+        assert!(validate_review_annotations_for_revision(&[binding], "house:r1")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::MissingBindingProvenance {
+                annotation_id: "rule:egress".into(),
+            }));
+    }
+
+    #[test]
+    fn proposals_and_guidance_remain_informational_in_the_viewer() {
+        let guidance = annotation(
+            "guidance:ventilation",
+            "house:r1",
+            ReviewAnnotationKind::NonBindingGuidance,
+            ReviewAnnotationState::Informational,
+        );
+        let reform = annotation(
+            "reform:window-alternative",
+            "house:r1",
+            ReviewAnnotationKind::CodeReformProposal,
+            ReviewAnnotationState::Informational,
+        );
+        assert_eq!(
+            validate_review_annotations_for_revision(&[guidance, reform], "house:r1"),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn stale_revision_annotations_are_rejected() {
+        let stale = annotation(
+            "evidence:energy",
+            "house:r1",
+            ReviewAnnotationKind::EngineeringEvidence,
+            ReviewAnnotationState::Unknown,
+        );
+        assert!(validate_review_annotations_for_revision(&[stale], "house:r2")
+            .unwrap_err()
+            .contains(&ReviewAnnotationIssue::RevisionMismatch {
+                annotation_id: "evidence:energy".into(),
+            }));
     }
 
     #[test]
