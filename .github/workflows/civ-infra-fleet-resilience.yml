@@ -208,7 +208,13 @@ jobs:
             .false_admission_count == 0 and
             .false_block_count == 0 and
             .full_decision_mismatch_count == 0 and
-            .fixture_label_mismatch_count == 0
+            .fixture_label_mismatch_count == 0 and
+            (.fail_closed_mutations_checked > 0) and
+            .fail_closed_mutation_violation_count == 0 and
+            (.fail_closed_mutation_digest_sha256 | test("^[0-9a-f]{64}$")) and
+            .all_fail_closed_mutations_rejected == true and
+            (.protective_stop_override_checks >= 2) and
+            .protective_stop_override_violations == 0
           ' "$oracle_report"
           test "$oracle_status" -eq 0
 
