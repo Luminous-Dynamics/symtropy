@@ -694,6 +694,43 @@
           "sensor_calibration_unknown"
         ]
       }
+    },
+    {
+      "scenario_id": "blank-sample-identity",
+      "description": "A non-empty sample array contains a blank sample identity",
+      "evidence": {
+        "source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "expected_source_snapshot_id": "SYNTH-CCZ-SOURCE-v1",
+        "sample_ids": [
+          ""
+        ],
+        "baseline": "available",
+        "reference_control": "comparable",
+        "sampling_methods": "comparable",
+        "detection_limits": "declared",
+        "sensor_calibration": "current",
+        "spatial_coverage": "adequate_for_declared_question",
+        "plume_at_monitoring_boundary": false,
+        "impact_signal": "not_detected",
+        "scope": "direct_track",
+        "recovery_claimed": false,
+        "recovery_followup": null,
+        "cumulative_exposure_claimed": false,
+        "cumulative_sound": "not_assessed",
+        "cumulative_light": "not_assessed",
+        "cumulative_sediment": "not_assessed"
+      },
+      "expected": {
+        "scope": "direct_track",
+        "evidence_integrity": "invalid_evidence",
+        "comparability": "indeterminate",
+        "impact": "indeterminate",
+        "recovery": "not_claimed",
+        "cumulative_exposure": "not_claimed",
+        "reason_codes": [
+          "missing_sample_identity"
+        ]
+      }
     }
   ]
 }
