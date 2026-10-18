@@ -185,6 +185,33 @@ jobs:
             ([.scenario_results[] | select(.scenario_id == "global-protective-stop-before-observation" and .admitted == true and .next_state == "interrupted")] | length) == 1
           ' "$report"
 
+      - name: Differentially verify recovery-admission decisions
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/recovery-admission-oracle.rs') != '' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          candidate_report="$RUNNER_TEMP/civ-infra-recovery-admission-report.json"
+          oracle_report="$RUNNER_TEMP/civ-infra-recovery-admission-oracle-report.json"
+          echo "CIV_INFRA_ORACLE_REPORT=$oracle_report" >> "$GITHUB_ENV"
+          set +e
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-oracle -- "$fixture" "$candidate_report" > "$oracle_report"
+          oracle_status=$?
+          set -e
+          jq -e '
+            .schema_version == "luminous.civ_infra.recovery_admission_oracle.v0.1" and
+            .classification == "synthetic_only" and
+            .scenarios_checked >= 40 and
+            .state_action_pairs_enumerated == 81 and
+            .all_candidate_decisions_match == true and
+            .all_candidate_admissions_are_oracle_admissible == true and
+            .false_admission_count == 0 and
+            .false_block_count == 0 and
+            .full_decision_mismatch_count == 0 and
+            .fixture_label_mismatch_count == 0
+          ' "$oracle_report"
+          test "$oracle_status" -eq 0
+
       - name: Emit exact-checkout reproducibility receipt
         if: always()
         shell: bash
@@ -193,6 +220,7 @@ jobs:
           fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
           lock="tools/civ-infra-fleet-resilience/Cargo.lock"
           report="${CIV_INFRA_ADMISSION_REPORT:-}"
+          oracle_report="${CIV_INFRA_ORACLE_REPORT:-}"
           rustc_version="$(rustc -Vv 2>&1 || true)"
           cargo_version="$(cargo -V 2>&1 || true)"
           toolchain="$(rustup show active-toolchain 2>&1 || true)"
@@ -205,6 +233,12 @@ jobs:
           if [[ -n "$report" && -f "$report" ]]; then
             report_present=true
             report_sha="$(sha256sum "$report" | awk '{print $1}')"
+          fi
+          oracle_report_present=false
+          oracle_report_sha=""
+          if [[ -n "$oracle_report" && -f "$oracle_report" ]]; then
+            oracle_report_present=true
+            oracle_report_sha="$(sha256sum "$oracle_report" | awk '{print $1}')"
           fi
           jq -n \
             --arg schema "luminous.civ_infra.run_provenance.v0.1" \
@@ -224,6 +258,8 @@ jobs:
             --arg fixture_sha256 "$fixture_sha" \
             --arg cargo_lock_sha256 "$lock_sha" \
             --arg decision_report_sha256 "$report_sha" \
+            --arg oracle_report_sha256 "$oracle_report_sha" \
+            --argjson oracle_report_present "$oracle_report_present" \
             --argjson decision_report_present "$report_present" \
             '{
               schema_version: $schema,
@@ -244,6 +280,8 @@ jobs:
               cargo_lock_sha256: $cargo_lock_sha256,
               decision_report_present: $decision_report_present,
               decision_report_sha256: (if $decision_report_present then $decision_report_sha256 else null end),
+              independent_oracle_report_present: $oracle_report_present,
+              independent_oracle_report_sha256: (if $oracle_report_present then $oracle_report_sha256 else null end),
               evidence_scope: "run provenance only; does not authenticate observations, signatures, physical state, or dispatch authority"
             }' > "$RUNNER_TEMP/civ-infra-recovery-run-receipt.json"
           jq -e '.schema_version == "luminous.civ_infra.run_provenance.v0.1" and (.source_commit | test("^[0-9a-f]{40}$")) and (.source_tree | test("^[0-9a-f]{40}$")) and (.fixture_sha256 | test("^[0-9a-f]{64}$")) and (.cargo_lock_sha256 | test("^[0-9a-f]{64}$"))' "$RUNNER_TEMP/civ-infra-recovery-run-receipt.json"
@@ -255,6 +293,7 @@ jobs:
           name: civ-infra-recovery-admission-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/civ-infra-recovery-admission-report.json
+            ${{ runner.temp }}/civ-infra-recovery-admission-oracle-report.json
             ${{ runner.temp }}/civ-infra-recovery-run-receipt.json
           if-no-files-found: warn
           retention-days: 90
