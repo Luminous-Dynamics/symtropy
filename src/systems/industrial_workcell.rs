@@ -103,6 +103,13 @@ impl ScheduleValidationReport {
 /// have capacity greater than one, model them as distinct resource IDs or extend
 /// this contract with an explicit, separately tested capacity constraint.
 pub fn validate_schedule(operations: &[ScheduledOperation]) -> ScheduleValidationReport {
+    validate_schedule_internal(operations, true)
+}
+
+fn validate_schedule_internal(
+    operations: &[ScheduledOperation],
+    check_exclusive_overlaps: bool,
+) -> ScheduleValidationReport {
     let mut violations = Vec::new();
     let mut by_id: HashMap<&str, &ScheduledOperation> = HashMap::with_capacity(operations.len());
 
@@ -214,6 +221,7 @@ pub fn validate_schedule(operations: &[ScheduledOperation]) -> ScheduleValidatio
         }
     }
 
+    if check_exclusive_overlaps {
     for left_index in 0..operations.len() {
         let left = &operations[left_index];
         let Some(left_start) = valid_start(left) else {
@@ -243,6 +251,8 @@ pub fn validate_schedule(operations: &[ScheduledOperation]) -> ScheduleValidatio
                 );
             }
         }
+    }
+
     }
 
     for violation in &mut violations {
@@ -288,10 +298,7 @@ pub fn validate_schedule_with_resource_capacities(
     operations: &[ScheduledOperation],
     resource_capacities: &[ResourceCapacity],
 ) -> ScheduleValidationReport {
-    let mut report = validate_schedule(operations);
-    report
-        .violations
-        .retain(|violation| violation.code != ScheduleViolationCode::ExclusiveResourceOverlap);
+    let mut report = validate_schedule_internal(operations, false);
 
     let mut declarations: HashMap<&str, Vec<usize>> = HashMap::new();
     for declaration in resource_capacities {
