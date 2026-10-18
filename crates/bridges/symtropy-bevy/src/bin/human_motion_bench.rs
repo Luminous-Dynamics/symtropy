@@ -27,6 +27,7 @@ use symtropy_bevy::human_motion_metrics::{
 
 const MAX_GRID_SAMPLES: usize = 1_000_000;
 const GRID_EPSILON_RATIO: f64 = 1.0e-8;
+const DEFAULT_CONTACT_EVENT_TOLERANCE_SEC: f64 = 0.05;
 
 #[derive(Debug)]
 struct BenchError(String);
@@ -599,6 +600,228 @@ fn contact_agreement(
     })
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContactEventKind {
+    Touchdown,
+    Liftoff,
+}
+
+impl ContactEventKind {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Touchdown => "touchdown",
+            Self::Liftoff => "liftoff",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ContactEvent {
+    time_sec: f64,
+    kind: ContactEventKind,
+}
+
+#[derive(Debug, Serialize)]
+struct ContactEventClassReport {
+    event_type: &'static str,
+    tolerance_sec: f64,
+    reference_events: usize,
+    prediction_events: usize,
+    matched_events: usize,
+    missed_reference_events: usize,
+    unmatched_prediction_events: usize,
+    precision: Option<f64>,
+    recall: Option<f64>,
+    f1: Option<f64>,
+    mean_signed_timing_error_sec: Option<f64>,
+    median_absolute_timing_error_sec: Option<f64>,
+    p95_absolute_timing_error_sec: Option<f64>,
+    max_absolute_timing_error_sec: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
+struct FootContactEventReport {
+    touchdown: ContactEventClassReport,
+    liftoff: ContactEventClassReport,
+}
+
+fn extract_contact_events(
+    timestamps: &[f64],
+    contacts: &[bool],
+    overlap_start_sec: f64,
+    overlap_end_sec: f64,
+) -> Vec<ContactEvent> {
+    let mut events = Vec::new();
+    // The first sample's contact state is left-censored: without a prior sample,
+    // we cannot claim that touchdown or liftoff occurred at the start timestamp.
+    for index in 1..contacts.len() {
+        let kind = match (contacts[index - 1], contacts[index]) {
+            (false, true) => Some(ContactEventKind::Touchdown),
+            (true, false) => Some(ContactEventKind::Liftoff),
+            _ => None,
+        };
+        if let Some(kind) = kind {
+            let time_sec = timestamps[index];
+            if (overlap_start_sec..=overlap_end_sec).contains(&time_sec) {
+                events.push(ContactEvent { time_sec, kind });
+            }
+        }
+    }
+    events
+}
+
+fn percentile_nearest_rank(sorted_values: &[f64], percentile: f64) -> Option<f64> {
+    if sorted_values.is_empty() || !percentile.is_finite() || !(0.0..=1.0).contains(&percentile) {
+        return None;
+    }
+    let index = ((percentile * sorted_values.len() as f64).ceil() as usize)
+        .saturating_sub(1)
+        .min(sorted_values.len() - 1);
+    Some(sorted_values[index])
+}
+
+fn score_contact_event_class(
+    event_type: ContactEventKind,
+    reference_events: &[ContactEvent],
+    prediction_events: &[ContactEvent],
+    tolerance_sec: f64,
+) -> ContactEventClassReport {
+    let reference: Vec<f64> = reference_events
+        .iter()
+        .filter(|event| event.kind == event_type)
+        .map(|event| event.time_sec)
+        .collect();
+    let prediction: Vec<f64> = prediction_events
+        .iter()
+        .filter(|event| event.kind == event_type)
+        .map(|event| event.time_sec)
+        .collect();
+
+    // Inputs are timestamp-ordered. Pair each earliest eligible event at most once.
+    // This deterministic chronological matcher is O(n + m), bounded for long recordings.
+    let mut reference_index = 0usize;
+    let mut prediction_index = 0usize;
+    let mut signed_errors_sec = Vec::new();
+    let mut missed_reference_events = 0usize;
+    let mut unmatched_prediction_events = 0usize;
+    while reference_index < reference.len() && prediction_index < prediction.len() {
+        let delta = prediction[prediction_index] - reference[reference_index];
+        if delta.abs() <= tolerance_sec {
+            signed_errors_sec.push(delta);
+            reference_index += 1;
+            prediction_index += 1;
+        } else if delta < -tolerance_sec {
+            unmatched_prediction_events += 1;
+            prediction_index += 1;
+        } else {
+            missed_reference_events += 1;
+            reference_index += 1;
+        }
+    }
+    missed_reference_events += reference.len() - reference_index;
+    unmatched_prediction_events += prediction.len() - prediction_index;
+
+    let matched_events = signed_errors_sec.len();
+    let precision = if !prediction.is_empty() {
+        Some(matched_events as f64 / prediction.len() as f64)
+    } else {
+        None
+    };
+    let recall = if !reference.is_empty() {
+        Some(matched_events as f64 / reference.len() as f64)
+    } else {
+        None
+    };
+    let f1_denominator = 2 * matched_events + missed_reference_events + unmatched_prediction_events;
+    let f1 = if f1_denominator > 0 {
+        Some(2.0 * matched_events as f64 / f1_denominator as f64)
+    } else {
+        None
+    };
+    let mean_signed_timing_error_sec = if matched_events > 0 {
+        Some(signed_errors_sec.iter().sum::<f64>() / matched_events as f64)
+    } else {
+        None
+    };
+    let mut absolute_errors_sec: Vec<f64> =
+        signed_errors_sec.iter().map(|error| error.abs()).collect();
+    absolute_errors_sec.sort_by(f64::total_cmp);
+    let median_absolute_timing_error_sec = if absolute_errors_sec.is_empty() {
+        None
+    } else {
+        let middle = absolute_errors_sec.len() / 2;
+        Some(if absolute_errors_sec.len() % 2 == 0 {
+            absolute_errors_sec[middle - 1]
+                + (absolute_errors_sec[middle] - absolute_errors_sec[middle - 1]) / 2.0
+        } else {
+            absolute_errors_sec[middle]
+        })
+    };
+
+    ContactEventClassReport {
+        event_type: event_type.label(),
+        tolerance_sec,
+        reference_events: reference.len(),
+        prediction_events: prediction.len(),
+        matched_events,
+        missed_reference_events,
+        unmatched_prediction_events,
+        precision,
+        recall,
+        f1,
+        mean_signed_timing_error_sec,
+        median_absolute_timing_error_sec,
+        p95_absolute_timing_error_sec: percentile_nearest_rank(&absolute_errors_sec, 0.95),
+        max_absolute_timing_error_sec: absolute_errors_sec.last().copied(),
+    }
+}
+
+fn contact_event_report(
+    reference_times: &[f64],
+    reference_contacts: &[bool],
+    prediction_times: &[f64],
+    prediction_contacts: &[bool],
+    overlap_start_sec: f64,
+    overlap_end_sec: f64,
+    tolerance_sec: f64,
+) -> Result<FootContactEventReport, BenchError> {
+    if !tolerance_sec.is_finite() || tolerance_sec <= 0.0 {
+        return fail("contact-event tolerance must be finite and greater than zero");
+    }
+    if reference_times.len() != reference_contacts.len()
+        || prediction_times.len() != prediction_contacts.len()
+    {
+        return fail("contact-event timestamps and labels must have equal lengths");
+    }
+    let reference_events = extract_contact_events(
+        reference_times,
+        reference_contacts,
+        overlap_start_sec,
+        overlap_end_sec,
+    );
+    let prediction_events = extract_contact_events(
+        prediction_times,
+        prediction_contacts,
+        overlap_start_sec,
+        overlap_end_sec,
+    );
+
+    Ok(FootContactEventReport {
+        touchdown: score_contact_event_class(
+            ContactEventKind::Touchdown,
+            &reference_events,
+            &prediction_events,
+            tolerance_sec,
+        ),
+        liftoff: score_contact_event_class(
+            ContactEventKind::Liftoff,
+            &reference_events,
+            &prediction_events,
+            tolerance_sec,
+        ),
+    })
+}
+
 #[derive(Debug, Serialize)]
 struct RootTrajectoryReport {
     samples: usize,
@@ -695,6 +918,8 @@ struct BenchmarkReport {
     right_stance_foot_drift: FootDriftReport,
     left_foot_contact_agreement: ContactAgreementReport,
     right_foot_contact_agreement: ContactAgreementReport,
+    left_foot_contact_events: FootContactEventReport,
+    right_foot_contact_events: FootContactEventReport,
     prediction_root_mean_squared_jerk_m2_s6: f64,
     elapsed_metric_computation_ms: f64,
     caveats: Vec<&'static str>,
@@ -858,6 +1083,26 @@ fn evaluate(
     let right_drift = stance_foot_drift(&right_foot, &right_contact)
         .map_err(|error| BenchError(format!("right stance-foot metric failed: {error}")))?;
 
+    // Event timing is measured at native source timestamps before grid resampling.
+    let left_contact_events = contact_event_report(
+        &reference.timestamps_sec,
+        &reference.left_foot_contact,
+        &prediction.timestamps_sec,
+        &prediction.left_foot_contact,
+        grid.overlap_start_sec,
+        grid.overlap_end_sec,
+        DEFAULT_CONTACT_EVENT_TOLERANCE_SEC,
+    )?;
+    let right_contact_events = contact_event_report(
+        &reference.timestamps_sec,
+        &reference.right_foot_contact,
+        &prediction.timestamps_sec,
+        &prediction.right_foot_contact,
+        grid.overlap_start_sec,
+        grid.overlap_end_sec,
+        DEFAULT_CONTACT_EVENT_TOLERANCE_SEC,
+    )?;
+
     let jerk = mean_squared_jerk(&prediction_root, &grid.timestamps_sec)
         .map_err(|error| BenchError(format!("prediction jerk metric failed: {error}")))?;
     let elapsed_metric_computation_ms = timer.elapsed().as_secs_f64() * 1000.0;
@@ -867,6 +1112,7 @@ fn evaluate(
     let mut caveats = vec![
         "Low-level trajectory and stance-foot metrics do not prove visual, biomechanical, or behavioral realism.",
         "Foot drift is measured only over predicted contact intervals; inspect contact precision, recall and F1 because incorrect labels can make drift look deceptively good.",
+        "Touchdown/liftoff errors are extracted at native source timestamps before grid resampling; the first contact sample is left-censored because no preceding state is available.",
         "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
         "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
         "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
@@ -927,6 +1173,8 @@ fn evaluate(
         },
         left_foot_contact_agreement: left_contact_agreement,
         right_foot_contact_agreement: right_contact_agreement,
+        left_foot_contact_events: left_contact_events,
+        right_foot_contact_events: right_contact_events,
         prediction_root_mean_squared_jerk_m2_s6: jerk,
         elapsed_metric_computation_ms,
         caveats,
@@ -1008,6 +1256,7 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
             "macro joint ADE={}, max joint FDE={}, ",
             "left-foot drift RMS={:.4} m (contact F1={}), ",
             "right-foot drift RMS={:.4} m (contact F1={}), ",
+            "event median abs L touchdown/liftoff={}/{}, R touchdown/liftoff={}/{}, ",
             "root jerk={:.4} m²/s⁶"
         ),
         report.validity,
@@ -1026,6 +1275,22 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
         report.right_foot_contact_agreement
             .f1
             .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}")),
+        report.left_foot_contact_events
+            .touchdown
+            .median_absolute_timing_error_sec
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
+        report.left_foot_contact_events
+            .liftoff
+            .median_absolute_timing_error_sec
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
+        report.right_foot_contact_events
+            .touchdown
+            .median_absolute_timing_error_sec
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
+        report.right_foot_contact_events
+            .liftoff
+            .median_absolute_timing_error_sec
+            .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.3}s")),
         report.prediction_root_mean_squared_jerk_m2_s6
     );
 
@@ -1116,6 +1381,76 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("equal aligned sample counts")
+        );
+    }
+
+    #[test]
+    fn contact_event_timing_recovers_a_fifty_millisecond_shift() {
+        let reference_times = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5];
+        let prediction_times = [0.0, 0.1, 0.25, 0.35, 0.45, 0.5];
+        let contacts = [false, false, true, true, false, false];
+        let report = contact_event_report(
+            &reference_times,
+            &contacts,
+            &prediction_times,
+            &contacts,
+            0.0,
+            0.5,
+            0.06,
+        )
+        .expect("valid event sequences should compare");
+
+        assert_eq!(report.touchdown.matched_events, 1);
+        assert_eq!(report.liftoff.matched_events, 1);
+        assert!((report.touchdown.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
+        assert!((report.liftoff.mean_signed_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
+        assert!((report.touchdown.median_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
+        assert!((report.liftoff.p95_absolute_timing_error_sec.unwrap() - 0.05).abs() < 1e-9);
+    }
+
+    #[test]
+    fn contact_event_matching_is_one_to_one_and_counts_duplicate_detections() {
+        let reference = vec![ContactEvent { time_sec: 0.1, kind: ContactEventKind::Touchdown }];
+        let prediction = vec![
+            ContactEvent { time_sec: 0.08, kind: ContactEventKind::Touchdown },
+            ContactEvent { time_sec: 0.11, kind: ContactEventKind::Touchdown },
+        ];
+        let report = score_contact_event_class(
+            ContactEventKind::Touchdown,
+            &reference,
+            &prediction,
+            0.05,
+        );
+        assert_eq!(report.matched_events, 1);
+        assert_eq!(report.unmatched_prediction_events, 1);
+        assert_eq!(report.missed_reference_events, 0);
+        assert_eq!(report.precision, Some(0.5));
+        assert_eq!(report.recall, Some(1.0));
+    }
+
+    #[test]
+    fn contact_event_extraction_uses_native_times_and_clips_to_overlap() {
+        let times = [0.0, 0.1, 0.2, 0.3, 0.4];
+        let contacts = [false, false, true, true, false];
+        let events = extract_contact_events(&times, &contacts, 0.15, 0.3);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, ContactEventKind::Touchdown);
+        assert_eq!(events[0].time_sec, 0.2);
+    }
+
+    #[test]
+    fn contact_event_metrics_fail_closed_on_invalid_tolerance_or_lengths() {
+        assert!(
+            contact_event_report(&[0.0], &[false], &[0.0], &[false], 0.0, 0.0, 0.0)
+                .unwrap_err()
+                .to_string()
+                .contains("tolerance")
+        );
+        assert!(
+            contact_event_report(&[0.0, 0.1], &[false], &[0.0], &[false], 0.0, 0.1, 0.05)
+                .unwrap_err()
+                .to_string()
+                .contains("equal lengths")
         );
     }
 
