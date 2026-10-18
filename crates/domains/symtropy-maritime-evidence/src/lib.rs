@@ -998,13 +998,13 @@ mod tests {
             "OBS-PLANNED",
             "SOURCE-A",
             TimeMeaning::Planned,
-            "2026-10-18T12:00:00Z",
+            "2026-10-18T08:00:00Z",
         );
         let actual = arrival(
             "OBS-ACTUAL",
             "SOURCE-B",
             TimeMeaning::Actual,
-            "2026-10-18T12:15:00Z",
+            "2026-10-18T08:01:00Z",
         );
         let report = resolve_observations(&[actual, planned], &policy());
         assert_eq!(report.rejected.len(), 0);
