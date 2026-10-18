@@ -249,7 +249,10 @@ pub fn parse_utc_timestamp_ns(value: &str) -> Result<i128, &'static str> {
     let fractional_ns = match fraction {
         None => 0_i128,
         Some(digits) => {
-            if digits.is_empty() || digits.len() > 9 || !digits.bytes().all(|b| b.is_ascii_digit()) {
+            if digits.is_empty()
+                || digits.len() > 9
+                || !digits.bytes().all(|b| b.is_ascii_digit())
+            {
                 return Err("fraction must contain 1..=9 decimal digits");
             }
             let raw = digits.parse::<u32>().map_err(|_| "fraction is invalid")?;
@@ -387,7 +390,10 @@ mod tests {
 
     #[test]
     fn one_unique_timestamp_has_no_defined_inter_event_gap() {
-        let trace = "2017-02-02T03:00:00Z|Program_Status|ACTIVE\\n2017-02-02T03:00:00Z|Spindle_Speed|0\\n";
+        let trace = concat!(
+            "2017-02-02T03:00:00Z|Program_Status|ACTIVE\\n",
+            "2017-02-02T03:00:00Z|Spindle_Speed|0\\n",
+        );
         let summary = parse_and_summarize(trace).expect("trace parses");
         assert_eq!(summary.unique_timestamp_count, 1);
         assert_eq!(summary.maximum_gap_ns, None);
