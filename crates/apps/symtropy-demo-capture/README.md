@@ -7,6 +7,10 @@ schedules PNG screenshots and writes a sibling versioned receipt:
 - <stem>_t1.5.png, <stem>_t4.0.png, ... — captured screenshots
 - <stem>.capture-receipt.json — byte hashes, PNG decode checks, dimensions, and declared run provenance
 
+Each image is capped at 512 MiB for integrity verification; larger files are
+marked as a size-limit failure rather than partially hashed. Hashing and decoding
+operate on the same bounded byte buffer.
+
 The receipt distinguishes two separate results:
 
 - capture_status: complete only if every expected path exists, has a PNG signature,
@@ -28,7 +32,9 @@ At minimum:
 
 ```sh
 export SYMTROPY_DEMO_CAPTURE_DIR=target/render-captures
-cargo run --release -p symtropy-bevy-validation-scene
+# In the chosen demo app, register the plugin:
+# .add_plugins(symtropy_demo_capture::CapturePlugin::new("scene-light-01"))
+# Then launch that demo with its normal cargo run command.
 ```
 
 The schedule defaults to 1.5, 4.0, and 7.0 seconds of real time. Override it with
