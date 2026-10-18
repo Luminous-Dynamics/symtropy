@@ -17,13 +17,13 @@ The design system's goal is not to normalize architecture into one approved styl
 - **Accessible teleport:** user selects and confirms each stop. A timer must never silently teleport the person.
 - **Head-tracked VR:** optional XR runtime applies headset pose to an explicit review origin. The route-data enum in this prototype does not implement OpenXR/WebXR, headset I/O, stereoscopic rendering, motion safety, or device support.
 
-The architectural_review module provides validated route metadata, deterministic pose sampling, a Bevy playback component/system, and waypoint pose extraction. The example demonstrates a small synthetic room with pause/resume. This is an initial local walkthrough primitive, not a full architectural authoring tool or production model viewer. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
+The architectural_review module provides validated route metadata, deterministic pose sampling, a Bevy playback component/system, waypoint pose extraction, a user-controlled floating-camera controller, and typed revision-pinned review annotations. In the example, Space pauses/resumes the route, R restarts it, F toggles the free camera, right mouse looks, WASD moves, E/Q moves vertically, and Shift increases speed. The direct camera pauses route playback. This is an initial local walkthrough primitive, not a full architectural authoring tool or production model viewer. It does not import IFC or glTF, test collisions, simulate daylight/energy/acoustics, or certify clearance.
 
 ## Occupant agency and comfort
 
 Every experience must leave the user in control:
 
-1. Pause, restart, exit, recenter, return to a static view, and lower or disable camera motion at any point.
+1. Pause, restart, exit, recenter, return to a static view, and lower or disable camera motion at any point. Direct free-camera movement and authored route playback must not move the camera concurrently; enabling free camera pauses the route.
 2. Offer adjustable movement speeds and dwell times; a single global motion speed is not suitable for every user.
 3. Do not force continuous locomotion. Keep teleport as an explicit user action.
 4. Separate authored camera route from a tracked headset pose; never overwrite the user's head tracking with the authored gaze direction.
