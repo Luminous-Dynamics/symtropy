@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-const REQUIRED_SCENARIOS: [&str; 9] = [
+const REQUIRED_SCENARIOS: [&str; 10] = [
     "pirb-r2-minimum-service-floor-01",
     "pirb-r1-required-acceptance-01",
     "pirb-r0-stale-capacity-01",
@@ -15,6 +15,7 @@ const REQUIRED_SCENARIOS: [&str; 9] = [
     "pirb-r1-refused-participation-01",
     "pirb-r3-worst-case-frontier-01",
     "pirb-r5-displacement-not-net-impact-01",
+    "pirb-r5-warning-response-chain-01",
 ];
 
 const ALLOWED_TRACKS: [&str; 6] = ["PIRB-0", "PIRB-1", "PIRB-2", "PIRB-3", "PIRB-4", "PIRB-5"];
@@ -174,7 +175,8 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r0-stale-capacity-01" | "pirb-r0-conflicting-reports-01" => "PIRB-0",
             "pirb-r4-personal-data-boundary-01" => "PIRB-4",
             "pirb-r3-no-lookahead-01" | "pirb-r3-worst-case-frontier-01" => "PIRB-3",
-            "pirb-r5-displacement-not-net-impact-01" => "PIRB-5",
+            "pirb-r5-displacement-not-net-impact-01"
+            | "pirb-r5-warning-response-chain-01" => "PIRB-5",
             _ => "UNKNOWN",
         };
         if track != Some(expected_track) {
@@ -968,6 +970,170 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
     }
 }
 
+fn audit_warning_response_chain(
+    scenario: &Value,
+    path: &str,
+    findings: &mut Vec<Finding>,
+) {
+    let Some(alerts) = scenario.get("alerts").and_then(Value::as_array) else {
+        findings.push(finding(
+            "PIRB_ALERTS_MISSING",
+            path,
+            "Warning-response cases must contain an alerts array.",
+        ));
+        return;
+    };
+
+    let mut seen_ids = BTreeSet::new();
+    let mut actionable_ids = Vec::new();
+    let mut non_actionable_ids = Vec::new();
+    let mut verified_ids = Vec::new();
+    let mut unverified_ids = Vec::new();
+
+    for (index, alert) in alerts.iter().enumerate() {
+        let alert_path = format!("{path}.alerts[{index}]");
+        let Some(id) = alert.get("alert_id").and_then(Value::as_str) else {
+            findings.push(finding(
+                "PIRB_ALERT_ID_MISSING",
+                &alert_path,
+                "Every alert requires a string identifier.",
+            ));
+            continue;
+        };
+        if !seen_ids.insert(id.to_owned()) {
+            findings.push(finding(
+                "PIRB_ALERT_ID_DUPLICATE",
+                &alert_path,
+                "Alert identifiers must be unique.",
+            ));
+        }
+
+        let lead = alert.get("remaining_lead_minutes").and_then(Value::as_i64);
+        let latency = alert
+            .get("estimated_response_minutes")
+            .and_then(Value::as_i64);
+        let owner = alert
+            .get("accountable_owner_authorized")
+            .and_then(Value::as_bool);
+        let resource = alert
+            .get("response_resource_available")
+            .and_then(Value::as_bool);
+        let state = alert.get("response_state").and_then(Value::as_str);
+        let response_evidence = alert
+            .get("response_outcome_independently_verified")
+            .and_then(Value::as_bool);
+
+        if !lead.is_some_and(|value| value >= 0)
+            || !latency.is_some_and(|value| value >= 0)
+        {
+            findings.push(finding(
+                "PIRB_ALERT_TIMING_INVALID",
+                &alert_path,
+                "Lead time and response latency must be non-negative integers.",
+            ));
+        }
+        if owner.is_none() || resource.is_none() {
+            findings.push(finding(
+                "PIRB_ALERT_CAPABILITY_UNKNOWN",
+                &alert_path,
+                "Authority and response-resource availability must be explicit.",
+            ));
+        }
+        if !matches!(
+            state,
+            Some("unassigned") | Some("ready") | Some("dispatched") | Some("verified")
+        ) {
+            findings.push(finding(
+                "PIRB_RESPONSE_STATE_INVALID",
+                &format!("{alert_path}.response_state"),
+                "Response state must be unassigned, ready, dispatched, or verified.",
+            ));
+        }
+        if response_evidence.is_none() {
+            findings.push(finding(
+                "PIRB_RESPONSE_EVIDENCE_UNKNOWN",
+                &format!("{alert_path}.response_outcome_independently_verified"),
+                "Independent response evidence must be explicit.",
+            ));
+        }
+
+        let actionable = matches!((owner, resource, lead, latency), (Some(true), Some(true), Some(lead), Some(latency)) if lead > latency);
+        if actionable {
+            actionable_ids.push(id.to_owned());
+        } else {
+            non_actionable_ids.push(id.to_owned());
+        }
+
+        let independently_verified = state == Some("verified")
+            && actionable
+            && response_evidence == Some(true);
+        if independently_verified {
+            verified_ids.push(id.to_owned());
+        } else {
+            unverified_ids.push(id.to_owned());
+        }
+
+        if state == Some("verified") && !independently_verified {
+            findings.push(finding(
+                "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED",
+                &alert_path,
+                "A verified response requires authority, resources, sufficient lead time, and independent outcome evidence.",
+            ));
+        }
+        if response_evidence == Some(true) && state != Some("verified") {
+            findings.push(finding(
+                "PIRB_RESPONSE_STATE_EVIDENCE_MISMATCH",
+                &alert_path,
+                "Independent response evidence requires the verified response state.",
+            ));
+        }
+    }
+
+    actionable_ids.sort();
+    non_actionable_ids.sort();
+    verified_ids.sort();
+    unverified_ids.sort();
+
+    let mut expected_actionable =
+        string_list(scenario.pointer("/expected/actionable_alert_ids"));
+    let mut expected_non_actionable =
+        string_list(scenario.pointer("/expected/non_actionable_alert_ids"));
+    let mut expected_verified =
+        string_list(scenario.pointer("/expected/verified_response_ids"));
+    let mut expected_unverified =
+        string_list(scenario.pointer("/expected/unverified_response_ids"));
+    expected_actionable.sort();
+    expected_non_actionable.sort();
+    expected_verified.sort();
+    expected_unverified.sort();
+
+    if actionable_ids != expected_actionable
+        || non_actionable_ids != expected_non_actionable
+    {
+        findings.push(finding(
+            "PIRB_ACTIONABILITY_MISMATCH",
+            &format!("{path}.expected"),
+            "Expected actionable alerts must require authorized ownership, available resources, and lead time greater than response latency.",
+        ));
+    }
+    if verified_ids != expected_verified || unverified_ids != expected_unverified {
+        findings.push(finding(
+            "PIRB_VERIFIED_RESPONSE_MISMATCH",
+            &format!("{path}.expected"),
+            "Response verification must agree with response state, timely feasibility, and independent outcome evidence.",
+        ));
+    }
+    if scenario.pointer("/expected/prevention_claim").and_then(Value::as_str)
+        != Some("not_established_without_impact_design")
+    {
+        findings.push(finding(
+            "PIRB_PREVENTION_CLAIM_UNSUPPORTED",
+            &format!("{path}.expected.prevention_claim"),
+            "An actionable or verified response is not proof that harm was prevented; causal impact needs a suitable evaluation design.",
+        ));
+    }
+}
+
 fn string_list(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
@@ -1016,10 +1182,52 @@ mod tests {
     }
 
     #[test]
+    fn warning_response_chain_requires_authority_resources_and_lead_time() {
+        let report = audit_corpus_json(FIXTURE);
+        assert!(report.passed, "{:#?}", report.findings);
+        assert_eq!(report.scenario_count, 10);
+        let value = corpus();
+        assert_eq!(
+            value["scenarios"][9]["expected"]["actionable_alert_ids"],
+            json!([
+                "actionable-verified",
+                "ready-not-executed",
+                "dispatched-not-verified"
+            ])
+        );
+    }
+
+    #[test]
+    fn warning_without_authorized_owner_is_not_actionable() {
+        let mut value = corpus();
+        value["scenarios"][9]["alerts"][1]["accountable_owner_authorized"] = json!(true);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_ACTIONABILITY_MISMATCH"));
+    }
+
+    #[test]
+    fn verified_response_requires_independent_outcome_evidence() {
+        let mut value = corpus();
+        value["scenarios"][9]["alerts"][0]["response_outcome_independently_verified"] =
+            json!(false);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
+    }
+
+    #[test]
+    fn actionable_warning_does_not_prove_prevention() {
+        let mut value = corpus();
+        value["scenarios"][9]["expected"]["prevention_claim"] =
+            json!("prevention_proven");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_PREVENTION_CLAIM_UNSUPPORTED"));
+    }
+
+    #[test]
     fn reference_corpus_passes_all_semantic_checks() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
-        assert_eq!(report.scenario_count, 9);
+        assert_eq!(report.scenario_count, 10);
     }
 
     #[test]
