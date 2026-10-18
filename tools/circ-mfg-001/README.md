@@ -46,6 +46,12 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 | `04-mandatory-quality-gate-fails` | Blocked | failed hard gate dominates other metrics |
 | `05-mass-balance-out-of-tolerance` | Blocked | unaccounted mass outside the declared tolerance |
 | `06-required-evidence-stale` | Unresolved | stale evidence/currentness does not silently pass |
+| `07-critical-evidence-wrong-unit` | Blocked | unit-invalid evidence cannot satisfy a requirement |
+| `08-critical-evidence-contradictory` | Blocked | conflicting critical evidence blocks eligibility |
+| `09-critical-evidence-scope-invalid` | Blocked | evidence for another scope cannot be substituted |
+| `10-duplicate-evidence-record` | Blocked | repeated identities do not silently collapse |
+| `11-unreferenced-evidence-record` | Blocked | undeclared evidence does not silently enter a decision |
+| `12-mass-ledger-quantity-unknown` | Unresolved | unknown mass is not treated as zero |
 
 All cases are synthetic. They are not evidence of the frequency of real production defects or material loss.
 
