@@ -272,7 +272,7 @@ fn inspect_image(
             scheduled_time_secs,
             path: Some(path.to_owned()),
             status: "size_limit_exceeded".to_owned(),
-            byte_len: Some(byte_len),
+            byte_len: None,
             sha256: None,
             width_px: None,
             height_px: None,
