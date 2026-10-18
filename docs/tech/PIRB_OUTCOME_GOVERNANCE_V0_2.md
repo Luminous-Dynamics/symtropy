@@ -86,6 +86,7 @@ These are software-conformance targets, not field impact thresholds:
 - **Review/stop behavior:** zero continuation in cases that require `BLOCKED` or `REVIEW_REQUIRED`; all transitions carry a reason code and evidence references.
 - **Claim discipline:** zero causal claims from schema conformance, synthetic tests or before/after-only observations.
 - **Reproducibility:** receipts bind schema/version, metric-definition digest, governance-event digest, source code, evaluator and toolchain; sensitive source data may be referenced by protected identifiers rather than publicly published.
+- **Governance-event integrity:** duplicate event IDs, backward timestamps, future-version events, or an active metric without an approval-before-activation trace are rejected.
 - **Independent tests:** each state transition has a nominal case, a violating mutation, and a missing/unknown-evidence mutation; bounded state-space checks use an independently structured oracle.
 
 ## Implementation sequence

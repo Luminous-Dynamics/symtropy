@@ -9,5 +9,6 @@ description = "Draft 2020-12 schema conformance tests for PIRB v0.2 outcome gove
 [dependencies]
 serde_json = "1"
 jsonschema = { version = "0.59", default-features = false }
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 
 [workspace]
