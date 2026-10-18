@@ -81,6 +81,9 @@ pub struct PcoObservation {
     /// Raw PCO source value from shipIMONumber; not normalized here.
     pub ship_imo_number: String,
     pub field: PcoField,
+    /// For time events: source location text such as pilotBoardingPlaceName or
+    /// berthName. It remains display/context data, not a canonical location ID.
+    pub location_context: Option<String>,
     /// Standard code or source-system field name; retained verbatim.
     pub source_field_code: String,
     pub value: ObservedValue,
@@ -116,6 +119,162 @@ impl ValidationPolicy {
     }
 }
 
+
+/// Metadata supplied by the ingest adapter; it is not inferred from the PCO
+/// event time. This keeps source update time distinct from planned arrival or
+/// departure time.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IngestContext {
+    pub observation_id: String,
+    pub source_id: String,
+    pub source_event_time_utc_nanos: i128,
+    pub ingested_at_utc_nanos: i128,
+    pub valid_until_utc_nanos: Option<i128>,
+    pub schema_version: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PcoPayloadParseError {
+    InvalidJson,
+    MissingField(&'static str),
+    WrongType(&'static str),
+    EmptyLocationContext,
+    InvalidTimestamp(TimestampParseError),
+}
+
+fn required_json_string<'a>(
+    root: &'a serde_json::Value,
+    path: &[&'static str],
+    label: &'static str,
+) -> Result<&'a str, PcoPayloadParseError> {
+    let mut value = root;
+    for key in path {
+        value = value
+            .get(*key)
+            .ok_or(PcoPayloadParseError::MissingField(label))?;
+    }
+    value
+        .as_str()
+        .ok_or(PcoPayloadParseError::WrongType(label))
+}
+
+/// Translate the PCO Guide's planned-arrival API response shape into a typed
+/// observation. Caller-owned ingest metadata remains separate from event time.
+pub fn parse_pco_arrival_response(
+    payload: &str,
+    context: IngestContext,
+) -> Result<PcoObservation, PcoPayloadParseError> {
+    let root: serde_json::Value =
+        serde_json::from_str(payload).map_err(|_| PcoPayloadParseError::InvalidJson)?;
+    let ship_imo_number =
+        required_json_string(&root, &["shipIMONumber"], "shipIMONumber")?.to_owned();
+    let port_call_id = required_json_string(
+        &root,
+        &["shipStayReferenceNumber"],
+        "shipStayReferenceNumber",
+    )?
+    .to_owned();
+    let port_id = required_json_string(
+        &root,
+        &["shipReportingSystemEntryPortCode"],
+        "shipReportingSystemEntryPortCode",
+    )?
+    .to_owned();
+    let location = required_json_string(
+        &root,
+        &["dateTimeArrivalPlanned", "pilotBoardingPlaceName"],
+        "dateTimeArrivalPlanned.pilotBoardingPlaceName",
+    )?
+    .to_owned();
+    if location.trim().is_empty() {
+        return Err(PcoPayloadParseError::EmptyLocationContext);
+    }
+    let timestamp = required_json_string(
+        &root,
+        &["dateTimeArrivalPlanned", "plannedTimeOfArrival"],
+        "dateTimeArrivalPlanned.plannedTimeOfArrival",
+    )?;
+    let value = parse_rfc3339_timestamp(timestamp)
+        .map_err(PcoPayloadParseError::InvalidTimestamp)?;
+
+    Ok(PcoObservation {
+        observation_id: context.observation_id,
+        port_id,
+        port_call_id,
+        ship_imo_number,
+        field: PcoField::ArrivalAtPilotBoardingPlace,
+        location_context: Some(location),
+        source_field_code: "dateTimeArrivalPlanned.plannedTimeOfArrival".to_owned(),
+        value: ObservedValue::Timestamp {
+            meaning: TimeMeaning::Planned,
+            value,
+        },
+        source_id: context.source_id,
+        source_event_time_utc_nanos: context.source_event_time_utc_nanos,
+        ingested_at_utc_nanos: context.ingested_at_utc_nanos,
+        valid_until_utc_nanos: context.valid_until_utc_nanos,
+        schema_version: context.schema_version,
+    })
+}
+
+/// Translate the PCO Guide's planned-departure API response shape.
+pub fn parse_pco_departure_response(
+    payload: &str,
+    context: IngestContext,
+) -> Result<PcoObservation, PcoPayloadParseError> {
+    let root: serde_json::Value =
+        serde_json::from_str(payload).map_err(|_| PcoPayloadParseError::InvalidJson)?;
+    let ship_imo_number =
+        required_json_string(&root, &["shipIMONumber"], "shipIMONumber")?.to_owned();
+    let port_call_id = required_json_string(
+        &root,
+        &["shipStayReferenceNumber"],
+        "shipStayReferenceNumber",
+    )?
+    .to_owned();
+    let port_id = required_json_string(
+        &root,
+        &["shipReportingSystemEntryPortCode"],
+        "shipReportingSystemEntryPortCode",
+    )?
+    .to_owned();
+    let location = required_json_string(
+        &root,
+        &["dateTimeDeparturePlanned", "berthName"],
+        "dateTimeDeparturePlanned.berthName",
+    )?
+    .to_owned();
+    if location.trim().is_empty() {
+        return Err(PcoPayloadParseError::EmptyLocationContext);
+    }
+    let timestamp = required_json_string(
+        &root,
+        &["dateTimeDeparturePlanned", "plannedTimeOfDeparture"],
+        "dateTimeDeparturePlanned.plannedTimeOfDeparture",
+    )?;
+    let value = parse_rfc3339_timestamp(timestamp)
+        .map_err(PcoPayloadParseError::InvalidTimestamp)?;
+
+    Ok(PcoObservation {
+        observation_id: context.observation_id,
+        port_id,
+        port_call_id,
+        ship_imo_number,
+        field: PcoField::DepartureFromBerth,
+        location_context: Some(location),
+        source_field_code: "dateTimeDeparturePlanned.plannedTimeOfDeparture".to_owned(),
+        value: ObservedValue::Timestamp {
+            meaning: TimeMeaning::Planned,
+            value,
+        },
+        source_id: context.source_id,
+        source_event_time_utc_nanos: context.source_event_time_utc_nanos,
+        ingested_at_utc_nanos: context.ingested_at_utc_nanos,
+        valid_until_utc_nanos: context.valid_until_utc_nanos,
+        schema_version: context.schema_version,
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimestampParseError {
     NonAscii,
@@ -138,6 +297,7 @@ pub enum RejectionReason {
     MissingPortId,
     MissingPortCallId,
     MissingShipImoNumber,
+    MissingLocationContext,
     PortCallVesselIdentityConflict,
     MissingSourceFieldCode,
     MissingSourceId,
@@ -426,9 +586,21 @@ pub fn validate_observation(
             }
         }
         (
+            PcoField::ArrivalAtPilotBoardingPlace,
+            ObservedValue::Timestamp { .. },
+        )
+        | (
+            PcoField::DepartureFromBerth,
+            ObservedValue::Timestamp { .. },
+        ) if observation
+            .location_context
+            .as_ref()
+            .is_some_and(|location| !location.trim().is_empty()) =>
+        {}
+        (
             PcoField::ArrivalAtPilotBoardingPlace | PcoField::DepartureFromBerth,
             ObservedValue::Timestamp { .. },
-        ) => {}
+        ) => return Err(RejectionReason::MissingLocationContext),
         _ => return Err(RejectionReason::InvalidValueForField),
     }
 
@@ -643,6 +815,7 @@ mod tests {
             port_call_id: "CALL-SYNTHETIC-1".to_owned(),
             ship_imo_number: "IMO-SYNTHETIC-1".to_owned(),
             field,
+            location_context: Some("LOCATION-SYNTHETIC-1".to_owned()),
             source_field_code: "synthetic-field-v1".to_owned(),
             value,
             source_id: source.to_owned(),
@@ -663,6 +836,117 @@ mod tests {
                 value: utc(timestamp),
             },
         )
+    }
+
+    fn ingest_context(id: &str, source: &str) -> IngestContext {
+        let now = policy().now_utc_nanos;
+        IngestContext {
+            observation_id: id.to_owned(),
+            source_id: source.to_owned(),
+            source_event_time_utc_nanos: now - 60 * NANOS_PER_SECOND,
+            ingested_at_utc_nanos: now - 30 * NANOS_PER_SECOND,
+            valid_until_utc_nanos: Some(now + 3600 * NANOS_PER_SECOND),
+            schema_version: PCO_GUIDE_VERSION.to_owned(),
+        }
+    }
+
+    #[test]
+    fn maps_pco_planned_arrival_payload_without_collapsing_identity_or_time() {
+        let json = r#"{
+            "shipIMONumber": "9123456",
+            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
+            "shipReportingSystemEntryPortCode": "NLRTM",
+            "dateTimeArrivalPlanned": {
+                "pilotBoardingPlaceName": "MC",
+                "plannedTimeOfArrival": "2026-10-18T12:00:00.52Z"
+            }
+        }"#;
+        let item = parse_pco_arrival_response(
+            json,
+            ingest_context("OBS-PCO-ARRIVAL", "PCO-TESTBED"),
+        )
+        .unwrap();
+        assert_eq!(item.ship_imo_number, "9123456");
+        assert_eq!(item.port_id, "NLRTM");
+        assert_eq!(item.port_call_id, "CALL-EXAMPLE-A");
+        assert_eq!(item.location_context.as_deref(), Some("MC"));
+        assert_eq!(
+            item.source_field_code,
+            "dateTimeArrivalPlanned.plannedTimeOfArrival"
+        );
+        assert!(matches!(
+            item.value,
+            ObservedValue::Timestamp {
+                meaning: TimeMeaning::Planned,
+                ..
+            }
+        ));
+        assert!(validate_observation(&item, &policy()).is_ok());
+    }
+
+    #[test]
+    fn maps_pco_planned_departure_payload_and_preserves_berth_name() {
+        let json = r#"{
+            "shipIMONumber": "9123456",
+            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
+            "shipReportingSystemEntryPortCode": "NLRTM",
+            "dateTimeDeparturePlanned": {
+                "berthName": "DS QUAY",
+                "plannedTimeOfDeparture": "2026-10-19T17:20:50.52Z"
+            }
+        }"#;
+        let item = parse_pco_departure_response(
+            json,
+            ingest_context("OBS-PCO-DEPARTURE", "PCO-TESTBED"),
+        )
+        .unwrap();
+        assert_eq!(item.location_context.as_deref(), Some("DS QUAY"));
+        assert_eq!(
+            item.source_field_code,
+            "dateTimeDeparturePlanned.plannedTimeOfDeparture"
+        );
+        assert_eq!(item.port_call_id, "CALL-EXAMPLE-A");
+        assert!(validate_observation(&item, &policy()).is_ok());
+    }
+
+    #[test]
+    fn pco_adapter_rejects_missing_location_and_malformed_time() {
+        let missing_location = r#"{
+            "shipIMONumber": "9123456",
+            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
+            "shipReportingSystemEntryPortCode": "NLRTM",
+            "dateTimeArrivalPlanned": {
+                "plannedTimeOfArrival": "2026-10-18T12:00:00Z"
+            }
+        }"#;
+        assert!(matches!(
+            parse_pco_arrival_response(
+                missing_location,
+                ingest_context("OBS-PCO-MISSING", "PCO-TESTBED")
+            ),
+            Err(PcoPayloadParseError::MissingField(
+                "dateTimeArrivalPlanned.pilotBoardingPlaceName"
+            ))
+        ));
+
+        let malformed_time = r#"{
+            "shipIMONumber": "9123456",
+            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
+            "shipReportingSystemEntryPortCode": "NLRTM",
+            "dateTimeArrivalPlanned": {
+                "pilotBoardingPlaceName": "MC",
+                "plannedTimeOfArrival": "2026-10-18T12:00:00"
+            }
+        }"#;
+        assert!(matches!(
+            parse_pco_arrival_response(
+                malformed_time,
+                ingest_context("OBS-PCO-BAD-TIME", "PCO-TESTBED")
+            ),
+            Err(PcoPayloadParseError::InvalidTimestamp(
+                TimestampParseError::InvalidTimezone
+            ))
+        ));
     }
 
     #[test]
