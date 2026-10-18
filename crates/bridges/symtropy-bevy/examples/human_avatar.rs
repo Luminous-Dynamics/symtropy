@@ -143,21 +143,22 @@ fn load_human_when_ready(
     let (graph, node_indices) = AnimationGraph::from_clips(clip_handles);
     let graph_handle = graphs.add(graph);
 
-    let idle =
-        find_clip_index(&names, &["idle", "stand", "survey", "rest"]).unwrap_or_else(|| {
-            warn!("No idle/stand/survey clip found; using first available clip as idle.");
-            0
-        });
-    let walk =
-        find_clip_index(&names, &["relaxedwalk", "walkcycle", "walk"]).unwrap_or_else(|| {
-            warn!("No walk clip found; walk requests will use the idle clip.");
-            idle
-        });
-    let run = find_clip_index(&names, &["run", "jog", "sprint"]).unwrap_or_else(|| {
-        warn!("No run/jog/sprint clip found; run requests will use the walk clip.");
-        walk
-    });
+    let Some(idle) = find_clip_index(&names, &["idle", "stand", "survey", "rest"]) else {
+        error!("No idle/standing clip found. Name one clip idle, stand, survey, or rest.");
+        return;
+    };
+    let Some(walk) = find_clip_index(&names, &["relaxedwalk", "walkcycle", "walk"]) else {
+        error!("No walk clip found. Name one clip relaxedwalk, walkcycle, or walk.");
+        return;
+    };
+    let Some(run) = find_clip_index(&names, &["run", "jog", "sprint"]) else {
+        error!("No run/jog/sprint clip found. Name one clip run, jog, or sprint.");
+        return;
+    };
     let talk = find_clip_index(&names, &["talk", "gesture", "conversation"]);
+    if talk.is_none() {
+        warn!("No talk/gesture clip found; talk requests will display the idle clip.");
+    }
 
     info!("Human GLB animation clips: {names:?}");
     info!(
