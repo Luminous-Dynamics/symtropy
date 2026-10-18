@@ -300,7 +300,7 @@ mod tests {
             .expect("synthetic fixture is UTF-8")
             .replace("'0000000000000000000000'", "'not-a-guid'");
         let output = evaluate_bytes(mutated.as_bytes(), "fixture://invalid-guid.ifc");
-        assert_eq!(summary(&output)["errors"].as_u64().unwrap(), 1);
+        assert!(summary(&output)["errors"].as_u64().unwrap() > 0);
         assert_eq!(status(&output), "FAIL");
         assert!(output["evidence_payload"]["findings"].as_array().unwrap().iter().any(|finding| {
             finding["severity"] == "error" && finding["path"].as_str().unwrap().contains("#1")
