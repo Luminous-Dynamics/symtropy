@@ -25,12 +25,22 @@ jobs:
       - name: Check Rust formatting
         run: cargo fmt --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all -- --check
       - name: Independently verify frozen cost-case manifest
-        run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-robot-cost-manifest
+        run: cargo run --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-robot-cost-manifest
       - name: Independently verify frozen provider-coverage manifest
-        run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-provider-coverage-manifest
+        run: cargo run --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-provider-coverage-manifest
       - name: Independently verify frozen service-access manifest
-        run: cargo run --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-service-access-manifest
+        run: cargo run --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-service-access-manifest
+      - name: Verify synthetic field-study report accounting and bounds
+        shell: bash
+        run: |
+          manifest="crates/domains/symtropy-garden-sim/fixtures/field_eval_report.v1.json"
+          receipt="$RUNNER_TEMP/field-eval-receipt.json"
+          cargo run --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-eval-report -- "$manifest" > "$receipt"
+          expected="$(sha256sum "$manifest" | cut -d ' ' -f 1)"
+          actual="$(jq -r '.source_manifest_sha256' "$receipt")"
+          test "$expected" = "$actual"
+          cat "$receipt"
       - name: Run garden-simulation and field-robot cost tests
-        run: cargo test --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
+        run: cargo test --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
       - name: Run Clippy without warnings
-        run: cargo clippy --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets -- -D warnings

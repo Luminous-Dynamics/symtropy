@@ -6,10 +6,9 @@ license = "Apache-2.0 OR MIT"
 description = "Bounded accounting contract for garden infrastructure scenarios"
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-
-[dev-dependencies]
-serde_json = "1.0"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
 
 [[bin]]
 name = "verify-field-robot-cost-manifest"
@@ -22,6 +21,10 @@ path = "src/bin/verify_provider_coverage_manifest.rs"
 [[bin]]
 name = "verify-service-access-manifest"
 path = "src/bin/verify_service_access_manifest.rs"
+
+[[bin]]
+name = "verify-field-eval-report"
+path = "src/bin/verify_field_eval_report.rs"
 
 [[bench]]
 name = "portfolio_frontier"

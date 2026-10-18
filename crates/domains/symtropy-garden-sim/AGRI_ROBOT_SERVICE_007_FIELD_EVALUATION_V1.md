@@ -159,6 +159,21 @@ If comparing non-random channel use, state that self-selection, farmer need, tas
 ### Field-effect gates
 Do not set an arbitrary percentage improvement, adoption/retention target or affordability cutoff before local baseline, season, task, provider availability, sampling and cost basis are declared. Stage 2 should first establish denominator completeness, follow-up feasibility, outcome provenance, workload and harm guardrails. Only then preregister a comparative target that is justified by the local baseline and uncertainty/precision needs.
 
-## 10. Claim ceiling
+## 10. Machine-checkable report preflight
+
+The Rust report preflight in `src/field_eval_report.rs`, runnable as `verify-field-eval-report`, validates the screened cohort, fixed eligible denominator, preregistered exclusions and one outcome row per eligible request before outputting identification bounds. It is deliberately downstream of the canonical service evaluator: it does not generate, repair or infer service lifecycle events.
+
+Run from the repository root:
+
+```sh
+cargo run --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --bin verify-field-eval-report -- crates/domains/symtropy-garden-sim/fixtures/field_eval_report.v1.json
+cargo test --locked --manifest-path crates/domains/symtropy-garden-sim/Cargo.toml --all-targets
+```
+
+The frozen example is synthetic. Its six eligible requests include one confirmed in-window acceptance, one late acceptance, a typed no-provider outcome, a provider-completion record awaiting a farmer decision while the useful window is open, unresolved dispute/rework, and an unknown outcome. Two screened candidates are explicitly excluded using preregistered rule references. The expected evidence-confirmed lower bound is (1/6), the missingness upper identification bound is (4/6), and ascertainment coverage is (3/6). These are worked fixture values, not service-performance measurements.
+
+The preflight blocks all computed rates if any screened candidate is unaccounted for, an eligible request is missing/duplicated in the outcome records, an outcome is assigned to an ineligible reference, an exclusion is duplicated/undocumented, or the useful-window/outcome classification is inconsistent. Every outcome must cite a source-event reference for the window deadline and its classified result; every exclusion must cite its supporting event and a rule from the declared rule-ID inventory. Accepted outcomes must also cite a distinct acceptance event, a decision mode (farmer-direct or authorized intermediary-recorded), and an acceptance time. The preflight compares that time with the declared deadline; intermediary-recorded acceptance requires a mandate reference. It blocks an in-window label whose time is after the deadline, and a late label whose time is at/before it. These references are cross-checked for shape/consistency only—the tool does not authenticate the cited events, verify real consent, or prove the rule inventory was frozen before outcome inspection. The study operator must archive and version the actual analysis plan before outcome review, and cite its immutable commit/digest in the report. The CLI receipt emits `receipt_version` plus `source_manifest_sha256` over the exact manifest bytes; the workflow independently recomputes that digest with `sha256sum` and rejects a mismatch. The digest binds a report to a specific byte sequence but does not authenticate source or truth. A nested `Cargo.lock` plus `--locked` commands freezes dependency resolution so builds cannot silently re-resolve dependencies. Rates use exact integer numerator/denominator pairs rather than rounded floating-point percentages. Known late, typed non-acceptance, and resolved no-acceptance states do not inflate the upper bound; only explicitly unascertainable outcomes do. A rework acceptance inside the useful window contributes to the primary numerator while remaining in the dispute/rework breakdown.
+
+## 11. Claim ceiling
 
 Stage 0 supports only claims about synthetic model and fixture behavior. Stage 1 supports only formative comprehension/usability observations under the exact declared script, language, prototype and participants. Stage 2 supports descriptive feasibility and scoped service-outcome estimates for the declared cohort. Stage 3 supports causal claims only if its predeclared design and assumptions justify them. None alone proves broad South African adoption, causal yield/income/water benefits, universal channel superiority or agricultural safety.

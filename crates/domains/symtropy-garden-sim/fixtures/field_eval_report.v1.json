@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "report_ref": "study-sa-irrigation-feasibility-v1",
+  "protocol_ref": "protocol-agri-service-007-v1",
+  "analysis_plan_ref": "analysis-sa-irrigation-v1",
+  "preregistered_exclusion_rule_refs": [
+    "rule-scope-eligibility",
+    "rule-task-eligibility"
+  ],
+  "screened_request_refs": [
+    "req-study-001",
+    "req-study-002",
+    "req-study-003",
+    "req-study-004",
+    "req-study-005",
+    "req-study-006",
+    "req-study-007",
+    "req-study-008"
+  ],
+  "eligible_request_refs": [
+    "req-study-001",
+    "req-study-002",
+    "req-study-003",
+    "req-study-004",
+    "req-study-005",
+    "req-study-006"
+  ],
+  "exclusions": [
+    {
+      "request_ref": "req-study-007",
+      "reason_code": "outside_declared_scope",
+      "preregistered_rule_ref": "rule-scope-eligibility",
+      "exclusion_evidence_ref": "evt-study-007-exclusion"
+    },
+    {
+      "request_ref": "req-study-008",
+      "reason_code": "ineligible_service_task",
+      "preregistered_rule_ref": "rule-task-eligibility",
+      "exclusion_evidence_ref": "evt-study-008-exclusion"
+    }
+  ],
+  "outcome_records": [
+    {
+      "request_ref": "req-study-001",
+      "outcome": {
+        "class": "accepted_within_useful_window"
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": "80",
+      "acceptance_evidence_ref": "evt-study-001-acceptance",
+      "acceptance_decision_mode": "farmer_direct",
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-001-window",
+      "outcome_evidence_ref": "evt-study-001-outcome",
+      "outcome_evidence_kind": "farmer_decision_event"
+    },
+    {
+      "request_ref": "req-study-002",
+      "outcome": {
+        "class": "accepted_late"
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": "120",
+      "acceptance_evidence_ref": "evt-study-002-acceptance",
+      "acceptance_decision_mode": "farmer_direct",
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-002-window",
+      "outcome_evidence_ref": "evt-study-002-outcome",
+      "outcome_evidence_kind": "farmer_decision_event"
+    },
+    {
+      "request_ref": "req-study-003",
+      "outcome": {
+        "class": "known_not_accepted",
+        "reason_code": "no_provider_available"
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-003-window",
+      "outcome_evidence_ref": "evt-study-003-outcome",
+      "outcome_evidence_kind": "provider_availability_check"
+    },
+    {
+      "request_ref": "req-study-004",
+      "outcome": {
+        "class": "provider_completion_awaiting_farmer_decision",
+        "useful_window_status": "open"
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-004-window",
+      "outcome_evidence_ref": "evt-study-004-outcome",
+      "outcome_evidence_kind": "provider_completion_event"
+    },
+    {
+      "request_ref": "req-study-005",
+      "outcome": {
+        "class": "disputed_or_rework",
+        "resolution": "unresolved"
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-005-window",
+      "outcome_evidence_ref": "evt-study-005-outcome",
+      "outcome_evidence_kind": "dispute_or_rework_event"
+    },
+    {
+      "request_ref": "req-study-006",
+      "outcome": {
+        "class": "outcome_unknown"
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-006-window",
+      "outcome_evidence_ref": "evt-study-006-outcome",
+      "outcome_evidence_kind": "reconciliation_attempt"
+    }
+  ]
+}
