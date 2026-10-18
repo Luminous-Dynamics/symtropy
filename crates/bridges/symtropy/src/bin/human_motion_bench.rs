@@ -1,0 +1,1152 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+//! Reproducible, renderer-free human-motion trace comparison.
+//!
+//! Usage:
+//!   cargo run -p symtropy-bevy --bin human-motion-bench -- reference.json prediction.json
+//!   cargo run -p symtropy-bevy --bin human-motion-bench -- reference.json prediction.json --step-sec 0.033333 --output report.json
+//!
+//! Output is JSON on stdout unless --output is supplied. A short human-readable summary
+//! goes to stderr. Traces are interpolated onto one uniform grid over their shared time
+//! interval; they are never silently compared by sample index alone.
+
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::BTreeMap,
+    env,
+    error::Error,
+    fmt, fs,
+    path::{Path, PathBuf},
+    process,
+    time::Instant,
+};
+use symtropy_bevy::human_motion_metrics::{
+    mean_squared_jerk, stance_foot_drift, trajectory_errors,
+};
+
+const MAX_GRID_SAMPLES: usize = 1_000_000;
+const GRID_EPSILON_RATIO: f64 = 1.0e-8;
+
+#[derive(Debug)]
+struct BenchError(String);
+
+impl fmt::Display for BenchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl Error for BenchError {}
+
+fn fail<T>(message: impl Into<String>) -> Result<T, BenchError> {
+    Err(BenchError(message.into()))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum SourceKind {
+    SyntheticTestFixture,
+    LicensedAsset,
+    OriginalConsentCapture,
+    ExternalModel,
+}
+
+impl SourceKind {
+    fn is_synthetic(self) -> bool {
+        self == Self::SyntheticTestFixture
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RunMetadata {
+    source_kind: SourceKind,
+    git_commit: String,
+    configuration_sha256: String,
+    #[serde(default)]
+    model_sha256: Option<String>,
+    #[serde(default)]
+    asset_id: Option<String>,
+    #[serde(default)]
+    asset_sha256: Option<String>,
+    #[serde(default)]
+    asset_license: Option<String>,
+    #[serde(default)]
+    dataset_id: Option<String>,
+    #[serde(default)]
+    dataset_version: Option<String>,
+    #[serde(default)]
+    split: Option<String>,
+    #[serde(default)]
+    actor_pseudonym: Option<String>,
+    #[serde(default)]
+    recording_id: Option<String>,
+    #[serde(default)]
+    seed: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CoordinateFrame {
+    length_unit: String,
+    up_axis: String,
+    forward_axis: String,
+    position_space: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
+struct NullableDigest(Option<String>);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConstraintTarget {
+    time_sec: f64,
+    target: String,
+    position_world_m: [f64; 3],
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Trace {
+    schema_version: u32,
+    trace_id: String,
+    run: RunMetadata,
+    coordinate_frame: CoordinateFrame,
+    skeleton_signature_sha256: String,
+    // Wrapper type makes this JSON key mandatory while permitting null for synthetic fixtures.
+    retarget_map_sha256: NullableDigest,
+    timestamps_sec: Vec<f64>,
+    root_world_m: Vec<[f64; 3]>,
+    left_foot_world_m: Vec<[f64; 3]>,
+    left_foot_contact: Vec<bool>,
+    right_foot_world_m: Vec<[f64; 3]>,
+    right_foot_contact: Vec<bool>,
+    #[serde(default)]
+    joint_world_m: BTreeMap<String, Vec<[f64; 3]>>,
+    #[serde(default)]
+    constraint_targets: Vec<ConstraintTarget>,
+    #[serde(default)]
+    notes: Option<String>,
+}
+
+impl Trace {
+    fn validate(&self, path: &Path) -> Result<(), BenchError> {
+        let source = path.display();
+        if self.schema_version != 1 {
+            return fail(format!(
+                "{source}: unsupported schema_version {}; expected 1",
+                self.schema_version
+            ));
+        }
+        if self.trace_id.trim().is_empty() {
+            return fail(format!("{source}: trace_id must not be empty"));
+        }
+
+        let frame = &self.coordinate_frame;
+        if frame.length_unit != "metre"
+            || frame.up_axis != "+Y"
+            || !matches!(frame.forward_axis.as_str(), "+Z" | "-Z")
+            || frame.position_space != "world"
+        {
+            return fail(format!(
+                "{source}: unsupported coordinate frame; expected metres, +Y up, +Z or -Z forward, and world positions"
+            ));
+        }
+
+        if !is_hex_digest(&self.run.configuration_sha256, 64) {
+            return fail(format!(
+                "{source}: run.configuration_sha256 must be 64 hexadecimal characters"
+            ));
+        }
+        if !is_hex_digest(&self.skeleton_signature_sha256, 64) {
+            return fail(format!(
+                "{source}: skeleton_signature_sha256 must be 64 hexadecimal characters"
+            ));
+        }
+        if self
+            .retarget_map_sha256
+            .0
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
+            return fail(format!(
+                "{source}: retarget_map_sha256 must be null or 64 hexadecimal characters"
+            ));
+        }
+
+        if self
+            .run
+            .model_sha256
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
+            return fail(format!(
+                "{source}: run.model_sha256 must be null or 64 hexadecimal characters"
+            ));
+        }
+        if self
+            .run
+            .asset_sha256
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
+            return fail(format!(
+                "{source}: run.asset_sha256 must be null or 64 hexadecimal characters"
+            ));
+        }
+        if self
+            .run
+            .split
+            .as_deref()
+            .is_some_and(|split| !matches!(split, "train" | "validation" | "test" | "synthetic"))
+        {
+            return fail(format!("{source}: unknown run.split value"));
+        }
+
+        if !self.run.source_kind.is_synthetic() {
+            if !is_hex_digest(&self.run.git_commit, 40) {
+                return fail(format!(
+                    "{source}: non-synthetic traces require a 40-character hexadecimal git commit"
+                ));
+            }
+            if !self
+                .run
+                .asset_sha256
+                .as_deref()
+                .is_some_and(|hash| is_hex_digest(hash, 64))
+            {
+                return fail(format!(
+                    "{source}: non-synthetic traces require run.asset_sha256"
+                ));
+            }
+            if !self
+                .run
+                .asset_license
+                .as_deref()
+                .is_some_and(|license| !license.trim().is_empty())
+            {
+                return fail(format!(
+                    "{source}: non-synthetic traces require run.asset_license"
+                ));
+            }
+            if self.retarget_map_sha256.0.is_none() {
+                return fail(format!(
+                    "{source}: non-synthetic traces require retarget_map_sha256; use a canonical identity-map digest if no retargeting was applied"
+                ));
+            }
+            if self.run.source_kind == SourceKind::ExternalModel
+                && !self
+                    .run
+                    .model_sha256
+                    .as_deref()
+                    .is_some_and(|hash| is_hex_digest(hash, 64))
+            {
+                return fail(format!(
+                    "{source}: external_model traces require run.model_sha256"
+                ));
+            }
+        }
+
+        if self.timestamps_sec.is_empty() {
+            return fail(format!(
+                "{source}: timestamps_sec must contain at least one sample"
+            ));
+        }
+        for (index, time) in self.timestamps_sec.iter().copied().enumerate() {
+            if !time.is_finite() {
+                return fail(format!("{source}: timestamps_sec[{index}] is not finite"));
+            }
+            if index > 0 && time <= self.timestamps_sec[index - 1] {
+                return fail(format!(
+                    "{source}: timestamps_sec must be strictly increasing (index {index})"
+                ));
+            }
+        }
+        if self
+            .timestamps_sec
+            .windows(2)
+            .any(|pair| !(pair[1] - pair[0]).is_finite())
+        {
+            return fail(format!("{source}: timestamp difference overflowed"));
+        }
+
+        validate_positions(
+            &self.timestamps_sec,
+            &self.root_world_m,
+            "root_world_m",
+            path,
+        )?;
+        validate_positions(
+            &self.timestamps_sec,
+            &self.left_foot_world_m,
+            "left_foot_world_m",
+            path,
+        )?;
+        validate_positions(
+            &self.timestamps_sec,
+            &self.right_foot_world_m,
+            "right_foot_world_m",
+            path,
+        )?;
+        validate_length(
+            self.timestamps_sec.len(),
+            self.left_foot_contact.len(),
+            "left_foot_contact",
+            path,
+        )?;
+        validate_length(
+            self.timestamps_sec.len(),
+            self.right_foot_contact.len(),
+            "right_foot_contact",
+            path,
+        )?;
+
+        for (joint, positions) in &self.joint_world_m {
+            if joint.trim().is_empty() {
+                return fail(format!(
+                    "{source}: joint_world_m contains an empty joint name"
+                ));
+            }
+            validate_positions(
+                &self.timestamps_sec,
+                positions,
+                &format!("joint_world_m[{joint:?}]"),
+                path,
+            )?;
+        }
+        for (index, constraint) in self.constraint_targets.iter().enumerate() {
+            if !constraint.time_sec.is_finite()
+                || constraint.target.trim().is_empty()
+                || constraint
+                    .position_world_m
+                    .iter()
+                    .any(|value| !value.is_finite())
+            {
+                return fail(format!(
+                    "{source}: constraint_targets[{index}] contains invalid values"
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn validate_length(
+    expected: usize,
+    actual: usize,
+    field: &str,
+    path: &Path,
+) -> Result<(), BenchError> {
+    if expected != actual {
+        return fail(format!(
+            "{}: {field} has {actual} samples but timestamps_sec has {expected}",
+            path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn validate_positions(
+    timestamps: &[f64],
+    positions: &[[f64; 3]],
+    field: &str,
+    path: &Path,
+) -> Result<(), BenchError> {
+    validate_length(timestamps.len(), positions.len(), field, path)?;
+    for (index, position) in positions.iter().enumerate() {
+        if position.iter().any(|value| !value.is_finite()) {
+            return fail(format!(
+                "{}: {field}[{index}] contains a non-finite coordinate",
+                path.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn is_hex_digest(value: &str, expected_len: usize) -> bool {
+    value.len() == expected_len && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn read_trace(path: &Path) -> Result<Trace, Box<dyn Error>> {
+    let text = fs::read_to_string(path)?;
+    let trace: Trace = serde_json::from_str(&text)?;
+    trace.validate(path)?;
+    Ok(trace)
+}
+
+fn median_sample_interval(timestamps: &[f64]) -> Result<f64, BenchError> {
+    if timestamps.len() < 2 {
+        return fail("each input trace requires at least two timestamped samples");
+    }
+    let mut differences: Vec<f64> = timestamps
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .collect();
+    differences.sort_by(f64::total_cmp);
+    let middle = differences.len() / 2;
+    let median = if differences.len() % 2 == 0 {
+        differences[middle - 1] + (differences[middle] - differences[middle - 1]) / 2.0
+    } else {
+        differences[middle]
+    };
+    if !median.is_finite() || median <= 0.0 {
+        return fail("could not determine a finite positive median sample interval");
+    }
+    Ok(median)
+}
+
+#[derive(Debug)]
+struct TimeGrid {
+    timestamps_sec: Vec<f64>,
+    step_sec: f64,
+    overlap_start_sec: f64,
+    overlap_end_sec: f64,
+}
+
+fn build_time_grid(
+    reference: &[f64],
+    prediction: &[f64],
+    requested_step: Option<f64>,
+) -> Result<TimeGrid, BenchError> {
+    let start = reference[0].max(prediction[0]);
+    let end = reference[reference.len() - 1].min(prediction[prediction.len() - 1]);
+    let duration = end - start;
+    if !duration.is_finite() || duration <= 0.0 {
+        return fail("reference and prediction traces have no positive-duration time overlap");
+    }
+
+    let step = if let Some(step) = requested_step {
+        if !step.is_finite() || step <= 0.0 {
+            return fail("--step-sec must be finite and greater than zero");
+        }
+        step
+    } else {
+        // The coarser median avoids inventing high-frequency detail from the lower-rate trace.
+        median_sample_interval(reference)?.max(median_sample_interval(prediction)?)
+    };
+
+    let ratio = duration / step;
+    if !ratio.is_finite() || ratio < 0.0 || ratio > MAX_GRID_SAMPLES as f64 {
+        return fail(format!(
+            "time grid would exceed {MAX_GRID_SAMPLES} samples; choose a larger --step-sec"
+        ));
+    }
+    let intervals = (ratio + 1.0e-9).floor() as usize;
+    let sample_count = intervals.saturating_add(1);
+    if sample_count > MAX_GRID_SAMPLES {
+        return fail(format!("time grid exceeds {MAX_GRID_SAMPLES} samples"));
+    }
+    if sample_count < 4 {
+        return fail(format!(
+            "common time grid has {sample_count} samples; at least 4 are required for jerk estimation"
+        ));
+    }
+
+    let mut grid = Vec::with_capacity(sample_count);
+    for index in 0..sample_count {
+        let mut timestamp = start + index as f64 * step;
+        if (end - timestamp).abs() <= step * GRID_EPSILON_RATIO {
+            timestamp = end;
+        }
+        if timestamp > end {
+            break;
+        }
+        grid.push(timestamp);
+    }
+    if grid.len() < 4 {
+        return fail("common time grid contains fewer than 4 usable samples");
+    }
+
+    Ok(TimeGrid {
+        timestamps_sec: grid,
+        step_sec: step,
+        overlap_start_sec: start,
+        overlap_end_sec: end,
+    })
+}
+
+fn interpolate_positions(
+    source_times: &[f64],
+    source_positions: &[[f64; 3]],
+    target_times: &[f64],
+) -> Vec<[f64; 3]> {
+    target_times
+        .iter()
+        .map(|target| interpolate_position(source_times, source_positions, *target))
+        .collect()
+}
+
+fn interpolate_position(
+    source_times: &[f64],
+    source_positions: &[[f64; 3]],
+    target: f64,
+) -> [f64; 3] {
+    let upper = source_times.partition_point(|time| *time < target);
+    if upper == 0 {
+        return source_positions[0];
+    }
+    if upper >= source_times.len() {
+        return source_positions[source_positions.len() - 1];
+    }
+
+    let lower = upper - 1;
+    let span = source_times[upper] - source_times[lower];
+    let fraction = ((target - source_times[lower]) / span).clamp(0.0, 1.0);
+    let a = source_positions[lower];
+    let b = source_positions[upper];
+    [
+        a[0] + (b[0] - a[0]) * fraction,
+        a[1] + (b[1] - a[1]) * fraction,
+        a[2] + (b[2] - a[2]) * fraction,
+    ]
+}
+
+fn euclidean_position_error_m(a: [f64; 3], b: [f64; 3]) -> Result<f64, BenchError> {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    let error = (dx * dx + dy * dy + dz * dz).sqrt();
+    if error.is_finite() {
+        Ok(error)
+    } else {
+        fail("endpoint displacement error overflowed")
+    }
+}
+
+fn sample_contact_nearest(
+    source_times: &[f64],
+    contacts: &[bool],
+    target_times: &[f64],
+) -> Vec<bool> {
+    target_times
+        .iter()
+        .map(|target| {
+            let upper = source_times.partition_point(|time| *time < target);
+            if upper == 0 {
+                return contacts[0];
+            }
+            if upper >= source_times.len() {
+                return contacts[contacts.len() - 1];
+            }
+            let lower = upper - 1;
+            if (*target - source_times[lower]) <= (source_times[upper] - *target) {
+                contacts[lower]
+            } else {
+                contacts[upper]
+            }
+        })
+        .collect()
+}
+
+#[derive(Debug, Serialize)]
+struct RootTrajectoryReport {
+    samples: usize,
+    mean_displacement_error_m: f64,
+    final_displacement_error_m: f64,
+    max_displacement_error_m: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct JointTrajectoryMetric {
+    joint_name: String,
+    samples: usize,
+    mean_displacement_error_m: f64,
+    final_displacement_error_m: f64,
+    max_displacement_error_m: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct JointTrajectoryReport {
+    joints_scored: usize,
+    macro_mean_ade_m: Option<f64>,
+    max_joint_fde_m: Option<f64>,
+    max_joint_error_m: Option<f64>,
+    per_joint: Vec<JointTrajectoryMetric>,
+}
+
+#[derive(Debug, Serialize)]
+struct FootDriftReport {
+    samples_in_contact: usize,
+    rms_drift_m: f64,
+    max_drift_m: f64,
+}
+
+#[derive(Debug, Serialize)]
+struct AlignmentReport {
+    method: &'static str,
+    overlap_start_sec: f64,
+    overlap_end_sec: f64,
+    overlap_duration_sec: f64,
+    grid_step_sec: f64,
+    samples: usize,
+    invalid_samples: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct TraceIdentityReport {
+    trace_id: String,
+    run: RunMetadata,
+    skeleton_signature_sha256: String,
+    retarget_map_sha256: Option<String>,
+}
+
+impl From<&Trace> for TraceIdentityReport {
+    fn from(trace: &Trace) -> Self {
+        Self {
+            trace_id: trace.trace_id.clone(),
+            run: trace.run.clone(),
+            skeleton_signature_sha256: trace.skeleton_signature_sha256.clone(),
+            retarget_map_sha256: trace.retarget_map_sha256.0.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct ProvenanceReport {
+    reference: TraceIdentityReport,
+    prediction: TraceIdentityReport,
+    configuration_hashes_match: bool,
+    asset_hashes_match: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct BenchmarkReport {
+    schema_version: u32,
+    validity: &'static str,
+    alignment: AlignmentReport,
+    provenance: ProvenanceReport,
+    root_trajectory_error: RootTrajectoryReport,
+    joint_trajectory_error: JointTrajectoryReport,
+    left_stance_foot_drift: FootDriftReport,
+    right_stance_foot_drift: FootDriftReport,
+    prediction_root_mean_squared_jerk_m2_s6: f64,
+    elapsed_metric_computation_ms: f64,
+    caveats: Vec<&'static str>,
+}
+
+fn evaluate(
+    reference: &Trace,
+    prediction: &Trace,
+    requested_step: Option<f64>,
+) -> Result<BenchmarkReport, BenchError> {
+    if reference.coordinate_frame != prediction.coordinate_frame {
+        return fail("coordinate frames differ; convert both traces to the same declared frame");
+    }
+    if reference.skeleton_signature_sha256 != prediction.skeleton_signature_sha256 {
+        return fail(
+            "skeleton signature hashes differ; retarget both traces to the same canonical rig",
+        );
+    }
+    if reference.joint_world_m.keys().collect::<Vec<_>>()
+        != prediction.joint_world_m.keys().collect::<Vec<_>>()
+    {
+        return fail(
+            "joint trajectory names differ; compare both traces on the same canonical joint set",
+        );
+    }
+    if reference.retarget_map_sha256.0 != prediction.retarget_map_sha256.0 {
+        return fail(
+            "retarget-map hashes differ; do not compare traces built with incompatible retargeting",
+        );
+    }
+
+    let timer = Instant::now();
+    let grid = build_time_grid(
+        &reference.timestamps_sec,
+        &prediction.timestamps_sec,
+        requested_step,
+    )?;
+
+    let reference_root = interpolate_positions(
+        &reference.timestamps_sec,
+        &reference.root_world_m,
+        &grid.timestamps_sec,
+    );
+    let prediction_root = interpolate_positions(
+        &prediction.timestamps_sec,
+        &prediction.root_world_m,
+        &grid.timestamps_sec,
+    );
+    let root = trajectory_errors(&prediction_root, &reference_root)
+        .map_err(|error| BenchError(format!("root trajectory metric failed: {error}")))?;
+
+    // ADE/max error use the uniform common grid; FDE is interpolated at the exact end
+    // of the shared time interval even when the requested grid step does not divide it.
+    let reference_endpoint = interpolate_position(
+        &reference.timestamps_sec,
+        &reference.root_world_m,
+        grid.overlap_end_sec,
+    );
+    let prediction_endpoint = interpolate_position(
+        &prediction.timestamps_sec,
+        &prediction.root_world_m,
+        grid.overlap_end_sec,
+    );
+    let endpoint_error_m =
+        euclidean_position_error_m(prediction_endpoint, reference_endpoint)?;
+
+    let mut joint_metrics = Vec::with_capacity(reference.joint_world_m.len());
+    let mut joint_ade_sum_m = 0.0;
+    let mut max_joint_fde_m: f64 = 0.0;
+    let mut max_joint_error_m: f64 = 0.0;
+    for (joint_name, reference_positions) in &reference.joint_world_m {
+        let prediction_positions = prediction
+            .joint_world_m
+            .get(joint_name)
+            .expect("joint-name sets were checked before scoring");
+        let reference_aligned = interpolate_positions(
+            &reference.timestamps_sec,
+            reference_positions,
+            &grid.timestamps_sec,
+        );
+        let prediction_aligned = interpolate_positions(
+            &prediction.timestamps_sec,
+            prediction_positions,
+            &grid.timestamps_sec,
+        );
+        let metric = trajectory_errors(&prediction_aligned, &reference_aligned)
+            .map_err(|error| {
+                BenchError(format!("joint {joint_name:?} trajectory metric failed: {error}"))
+            })?;
+        let reference_joint_endpoint = interpolate_position(
+            &reference.timestamps_sec,
+            reference_positions,
+            grid.overlap_end_sec,
+        );
+        let prediction_joint_endpoint = interpolate_position(
+            &prediction.timestamps_sec,
+            prediction_positions,
+            grid.overlap_end_sec,
+        );
+        let joint_fde_m =
+            euclidean_position_error_m(prediction_joint_endpoint, reference_joint_endpoint)?;
+        joint_ade_sum_m += metric.mean_displacement_error_m;
+        if !joint_ade_sum_m.is_finite() {
+            return fail("joint ADE aggregation overflowed");
+        }
+        max_joint_fde_m = max_joint_fde_m.max(joint_fde_m);
+        max_joint_error_m = max_joint_error_m.max(metric.max_displacement_error_m);
+        joint_metrics.push(JointTrajectoryMetric {
+            joint_name: joint_name.clone(),
+            samples: metric.samples,
+            mean_displacement_error_m: metric.mean_displacement_error_m,
+            final_displacement_error_m: joint_fde_m,
+            max_displacement_error_m: metric.max_displacement_error_m,
+        });
+    }
+    let joints_scored = joint_metrics.len();
+    let joint_trajectory_error = JointTrajectoryReport {
+        joints_scored,
+        macro_mean_ade_m: (joints_scored > 0)
+            .then_some(joint_ade_sum_m / joints_scored as f64),
+        max_joint_fde_m: (joints_scored > 0).then_some(max_joint_fde_m),
+        max_joint_error_m: (joints_scored > 0).then_some(max_joint_error_m),
+        per_joint: joint_metrics,
+    };
+
+    let left_foot = interpolate_positions(
+        &prediction.timestamps_sec,
+        &prediction.left_foot_world_m,
+        &grid.timestamps_sec,
+    );
+    let left_contact = sample_contact_nearest(
+        &prediction.timestamps_sec,
+        &prediction.left_foot_contact,
+        &grid.timestamps_sec,
+    );
+    let left_drift = stance_foot_drift(&left_foot, &left_contact)
+        .map_err(|error| BenchError(format!("left stance-foot metric failed: {error}")))?;
+
+    let right_foot = interpolate_positions(
+        &prediction.timestamps_sec,
+        &prediction.right_foot_world_m,
+        &grid.timestamps_sec,
+    );
+    let right_contact = sample_contact_nearest(
+        &prediction.timestamps_sec,
+        &prediction.right_foot_contact,
+        &grid.timestamps_sec,
+    );
+    let right_drift = stance_foot_drift(&right_foot, &right_contact)
+        .map_err(|error| BenchError(format!("right stance-foot metric failed: {error}")))?;
+
+    let jerk = mean_squared_jerk(&prediction_root, &grid.timestamps_sec)
+        .map_err(|error| BenchError(format!("prediction jerk metric failed: {error}")))?;
+    let elapsed_metric_computation_ms = timer.elapsed().as_secs_f64() * 1000.0;
+
+    let synthetic =
+        reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic();
+    let mut caveats = vec![
+        "Low-level trajectory and stance-foot metrics do not prove visual, biomechanical, or behavioral realism.",
+        "Foot drift is measured only over predicted contact intervals; false contact labels can make this metric misleading.",
+        "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
+        "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
+        "Root-path error alone is not a full-body fidelity score; inspect named-joint trajectory metrics when the trace includes them.",
+        "Configuration hashes may differ between methods by design; both are recorded so the comparison is auditable.",
+    ];
+    let validity = if synthetic {
+        caveats.push("At least one trace is a synthetic fixture; this report is a software test, not evidence about human motion.");
+        "synthetic_fixture_only"
+    } else if joints_scored == 0 {
+        caveats.push("Neither trace contains named joint trajectories; this is a root/contact-only comparison, not a whole-body pose evaluation.");
+        "provenance_complete_root_only"
+    } else {
+        "provenance_complete_comparison"
+    };
+
+    Ok(BenchmarkReport {
+        schema_version: 1,
+        validity,
+        alignment: AlignmentReport {
+            method: "linear_position_interpolation_and_nearest_neighbor_contact_on_uniform_overlap_grid",
+            overlap_start_sec: grid.overlap_start_sec,
+            overlap_end_sec: grid.overlap_end_sec,
+            overlap_duration_sec: grid.overlap_end_sec - grid.overlap_start_sec,
+            grid_step_sec: grid.step_sec,
+            samples: grid.timestamps_sec.len(),
+            // Invalid samples are rejected before this stage; they are never silently dropped.
+            invalid_samples: 0,
+        },
+        provenance: ProvenanceReport {
+            reference: TraceIdentityReport::from(reference),
+            prediction: TraceIdentityReport::from(prediction),
+            configuration_hashes_match: reference.run.configuration_sha256
+                == prediction.run.configuration_sha256,
+            // Two absent hashes are not evidence that assets match.
+            asset_hashes_match: reference
+                .run
+                .asset_sha256
+                .as_ref()
+                .zip(prediction.run.asset_sha256.as_ref())
+                .is_some_and(|(left, right)| left == right),
+        },
+        root_trajectory_error: RootTrajectoryReport {
+            samples: root.samples,
+            mean_displacement_error_m: root.mean_displacement_error_m,
+            final_displacement_error_m: endpoint_error_m,
+            max_displacement_error_m: root.max_displacement_error_m,
+        },
+        joint_trajectory_error,
+        left_stance_foot_drift: FootDriftReport {
+            samples_in_contact: left_drift.samples_in_contact,
+            rms_drift_m: left_drift.rms_drift_m,
+            max_drift_m: left_drift.max_drift_m,
+        },
+        right_stance_foot_drift: FootDriftReport {
+            samples_in_contact: right_drift.samples_in_contact,
+            rms_drift_m: right_drift.rms_drift_m,
+            max_drift_m: right_drift.max_drift_m,
+        },
+        prediction_root_mean_squared_jerk_m2_s6: jerk,
+        elapsed_metric_computation_ms,
+        caveats,
+    })
+}
+
+fn print_usage() {
+    eprintln!(
+        "Usage: human-motion-bench <reference.json> <prediction.json> [--step-sec SECONDS] [--output report.json]\n\
+         \n\
+         Trace contract: docs/research/human-motion-trace-v0.1.schema.json\n\
+         Metrics: root ADE/FDE/max error, predicted left/right stance-foot drift, root jerk.\n\
+         Without --step-sec the coarser of the two median input sample intervals is used.\n\
+         Synthetic traces are accepted for software tests, but reports are labelled synthetic_fixture_only."
+    );
+}
+
+fn run_cli() -> Result<(), Box<dyn Error>> {
+    let mut positional: Vec<PathBuf> = Vec::new();
+    let mut requested_step: Option<f64> = None;
+    let mut output_path: Option<PathBuf> = None;
+
+    let mut args = env::args().skip(1);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--help" | "-h" => {
+                print_usage();
+                return Ok(());
+            }
+            "--step-sec" => {
+                let value = args.next().ok_or_else(|| {
+                    BenchError("--step-sec requires a positive numeric value".to_owned())
+                })?;
+                requested_step = Some(
+                    value
+                        .parse::<f64>()
+                        .map_err(|_| BenchError(format!("invalid --step-sec value {value:?}")))?,
+                );
+            }
+            "--output" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| BenchError("--output requires a path".to_owned()))?;
+                output_path = Some(PathBuf::from(value));
+            }
+            _ if arg.starts_with('-') => {
+                return Err(Box::new(BenchError(format!(
+                    "unknown option {arg:?}; use --help for usage"
+                ))));
+            }
+            _ => positional.push(PathBuf::from(arg)),
+        }
+    }
+
+    if positional.len() != 2 {
+        print_usage();
+        return Err(Box::new(BenchError(
+            "expected a reference and a prediction trace path".to_owned(),
+        )));
+    }
+
+    let reference = read_trace(&positional[0])?;
+    let prediction = read_trace(&positional[1])?;
+    let report = evaluate(&reference, &prediction, requested_step)?;
+    let json = serde_json::to_string_pretty(&report)?;
+
+    eprintln!(
+        "Motion benchmark: validity={}, samples={}, root ADE={:.4} m, FDE={:.4} m, max={:.4} m, left-foot drift RMS={:.4} m, right-foot drift RMS={:.4} m, root jerk={:.4} m²/s⁶",
+        report.validity,
+        report.alignment.samples,
+        report.root_trajectory_error.mean_displacement_error_m,
+        report.root_trajectory_error.final_displacement_error_m,
+        report.root_trajectory_error.max_displacement_error_m,
+        report.left_stance_foot_drift.rms_drift_m,
+        report.right_stance_foot_drift.rms_drift_m,
+        report.prediction_root_mean_squared_jerk_m2_s6
+    );
+
+    if let Some(path) = output_path {
+        fs::write(&path, json)?;
+        eprintln!("JSON report written to {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
+}
+
+fn main() {
+    if let Err(error) = run_cli() {
+        eprintln!("human-motion-bench: {error}");
+        process::exit(2);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture() -> Trace {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../docs/research/fixtures/human-motion-trace-synthetic-v0.1.json");
+        read_trace(&path).expect("the committed synthetic trace fixture should validate")
+    }
+
+    #[test]
+    fn committed_synthetic_fixture_validates_and_is_labelled_non_evidence() {
+        let trace = fixture();
+        assert_eq!(trace.trace_id, "synthetic-straight-line-smoke-001");
+        let report = evaluate(&trace, &trace, None).expect("identical fixtures should compare");
+        assert_eq!(report.validity, "synthetic_fixture_only");
+        assert_eq!(report.alignment.samples, 4);
+        assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
+        assert_eq!(report.root_trajectory_error.final_displacement_error_m, 0.0);
+        assert_eq!(report.left_stance_foot_drift.max_drift_m, 0.0);
+        assert_eq!(report.right_stance_foot_drift.max_drift_m, 0.0);
+        assert!(!report.provenance.asset_hashes_match);
+        assert!(
+            report
+                .caveats
+                .iter()
+                .any(|value| value.contains("not evidence"))
+        );
+    }
+
+    #[test]
+    fn negative_control_detects_a_five_centimetre_root_offset() {
+        let reference = fixture();
+        let mut prediction = fixture();
+        for position in &mut prediction.root_world_m {
+            position[0] += 0.05;
+        }
+        let report = evaluate(&reference, &prediction, None).expect("valid traces should compare");
+        assert!((report.root_trajectory_error.mean_displacement_error_m - 0.05).abs() < 1e-9);
+        assert!((report.root_trajectory_error.final_displacement_error_m - 0.05).abs() < 1e-9);
+        assert!((report.root_trajectory_error.max_displacement_error_m - 0.05).abs() < 1e-9);
+    }
+
+    #[test]
+    fn final_displacement_error_uses_exact_overlap_endpoint() {
+        let mut reference = fixture();
+        let mut prediction = fixture();
+        let times = vec![0.0, 0.1, 0.2, 0.3, 0.35];
+
+        reference.timestamps_sec = times.clone();
+        prediction.timestamps_sec = times.clone();
+        reference.root_world_m = times.iter().map(|time| [*time, 0.0, 0.0]).collect();
+        prediction.root_world_m = reference.root_world_m.clone();
+        prediction.root_world_m[4][0] += 0.05;
+
+        for trace in [&mut reference, &mut prediction] {
+            trace.left_foot_world_m = vec![[0.0, 0.0, 0.0]; 5];
+            trace.right_foot_world_m = vec![[0.0, 0.0, 0.0]; 5];
+            trace.left_foot_contact = vec![true; 5];
+            trace.right_foot_contact = vec![true; 5];
+        }
+
+        let report = evaluate(&reference, &prediction, None)
+            .expect("valid traces with a 350 ms interval should compare");
+        assert_eq!(report.alignment.samples, 4);
+        assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
+        assert_eq!(report.root_trajectory_error.max_displacement_error_m, 0.0);
+        assert!((report.root_trajectory_error.final_displacement_error_m - 0.05).abs() < 1e-9);
+    }
+
+    #[test]
+    fn scores_named_joint_trajectories_separately_from_root() {
+        let mut reference = fixture();
+        let mut prediction = fixture();
+        let positions = vec![[0.0, 1.0, 0.0]; 4];
+        reference
+            .joint_world_m
+            .insert("head".to_owned(), positions.clone());
+        prediction.joint_world_m.insert(
+            "head".to_owned(),
+            positions
+                .iter()
+                .map(|position| [position[0] + 0.03, position[1], position[2]])
+                .collect(),
+        );
+
+        let report = evaluate(&reference, &prediction, None)
+            .expect("matching named joints should be scored");
+        assert_eq!(report.joint_trajectory_error.joints_scored, 1);
+        assert!(
+            (report
+                .joint_trajectory_error
+                .per_joint[0]
+                .mean_displacement_error_m
+                - 0.03)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (report
+                .joint_trajectory_error
+                .per_joint[0]
+                .final_displacement_error_m
+                - 0.03)
+                .abs()
+                < 1e-9
+        );
+        assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
+    }
+
+    #[test]
+    fn rejects_different_joint_sets_instead_of_scoring_only_the_overlap() {
+        let reference = fixture();
+        let mut prediction = fixture();
+        prediction
+            .joint_world_m
+            .insert("head".to_owned(), vec![[0.0, 1.0, 0.0]; 4]);
+        assert!(
+            evaluate(&reference, &prediction, None)
+                .unwrap_err()
+                .to_string()
+                .contains("joint trajectory names differ")
+        );
+    }
+
+    #[test]
+    fn rejects_mismatched_sample_lengths() {
+        let mut trace = fixture();
+        trace.left_foot_world_m.pop();
+        let path = Path::new("negative-control.json");
+        assert!(
+            trace
+                .validate(path)
+                .unwrap_err()
+                .to_string()
+                .contains("left_foot_world_m")
+        );
+    }
+
+    #[test]
+    fn rejects_trace_missing_required_nullable_retarget_field() {
+        let mut value = serde_json::to_value(fixture()).unwrap();
+        value.as_object_mut().unwrap().remove("retarget_map_sha256");
+        assert!(serde_json::from_value::<Trace>(value).is_err());
+    }
+
+    #[test]
+    fn rejects_non_synthetic_trace_without_rights_or_provenance() {
+        let mut trace = fixture();
+        trace.run.source_kind = SourceKind::LicensedAsset;
+        assert!(
+            trace
+                .validate(Path::new("missing-provenance.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("40-character hexadecimal git commit")
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_json_instead_of_skipping_it() {
+        assert!(serde_json::from_str::<Trace>("{not-json").is_err());
+    }
+
+    #[test]
+    fn rejects_non_monotonic_time() {
+        let mut trace = fixture();
+        trace.timestamps_sec[2] = trace.timestamps_sec[1];
+        assert!(
+            trace
+                .validate(Path::new("negative-control.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("strictly increasing")
+        );
+    }
+
+    #[test]
+    fn refuses_incompatible_skeleton_or_retarget_map_hashes() {
+        let reference = fixture();
+        let mut prediction = fixture();
+        prediction.skeleton_signature_sha256 = "1".repeat(64);
+        assert!(
+            evaluate(&reference, &prediction, None)
+                .unwrap_err()
+                .to_string()
+                .contains("skeleton signature")
+        );
+        let mut prediction = fixture();
+        prediction.retarget_map_sha256 = NullableDigest(Some("1".repeat(64)));
+        assert!(
+            evaluate(&reference, &prediction, None)
+                .unwrap_err()
+                .to_string()
+                .contains("retarget-map hashes")
+        );
+    }
+
+    #[test]
+    fn common_grid_interpolates_different_sample_rates() {
+        let reference = vec![0.0, 0.1, 0.2, 0.3, 0.4];
+        let prediction = vec![0.0, 0.2, 0.4];
+        let grid = build_time_grid(&reference, &prediction, Some(0.1)).unwrap();
+        assert_eq!(grid.timestamps_sec.len(), 5);
+        let positions = vec![[0.0, 0.0, 0.0], [0.2, 0.0, 0.0], [0.4, 0.0, 0.0]];
+        let resampled = interpolate_positions(&prediction, &positions, &grid.timestamps_sec);
+        assert!((resampled[1][0] - 0.1).abs() < 1e-9);
+        assert!((resampled[3][0] - 0.3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn rejects_non_overlapping_or_too_short_grids() {
+        assert!(build_time_grid(&[0.0, 0.1, 0.2, 0.3], &[1.0, 1.1, 1.2, 1.3], None).is_err());
+        assert!(build_time_grid(&[0.0, 0.1, 0.2, 0.3], &[0.0, 0.1, 0.2, 0.3], Some(0.2)).is_err());
+    }
+}
