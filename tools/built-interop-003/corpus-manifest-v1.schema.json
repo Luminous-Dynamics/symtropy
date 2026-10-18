@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/built-interop-003/corpus-manifest-v1.schema.json",
+  "title": "BUILT-INTEROP-003 External IDS Corpus Inventory",
+  "description": "Metadata-only index; it contains no upstream fixture bytes and assigns no inferred outcomes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "inventory_id",
+    "created_at",
+    "purpose",
+    "upstream",
+    "case_count",
+    "file_count",
+    "case_classification_policy",
+    "cases"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "1.0.0"
+    },
+    "inventory_id": {
+      "const": "BUILT-INTEROP-003-buildingSMART-IDS-testcase-index"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "upstream": {
+      "$ref": "#/$defs/upstream"
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "file_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "case_classification_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "objectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "git_blob_oid",
+        "size_bytes"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^Documentation/ImplementersDocumentation/TestCases/.+\\.(ids|ifc)$"
+        },
+        "git_blob_oid": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spdx_id",
+        "copyright_holder",
+        "path",
+        "git_blob_oid",
+        "size_bytes",
+        "distribution_policy"
+      ],
+      "properties": {
+        "spdx_id": {
+          "const": "CC-BY-ND-4.0"
+        },
+        "copyright_holder": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "const": "LICENSE"
+        },
+        "git_blob_oid": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distribution_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit_sha",
+        "commit_date",
+        "tree_sha",
+        "corpus_root",
+        "license",
+        "retrieval_policy"
+      ],
+      "properties": {
+        "repository": {
+          "const": "buildingSMART/IDS"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "commit_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tree_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "corpus_root": {
+          "const": "Documentation/ImplementersDocumentation/TestCases/"
+        },
+        "license": {
+          "$ref": "#/$defs/license"
+        },
+        "retrieval_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "category",
+        "ids",
+        "ifc",
+        "expected_outcome",
+        "execution_status"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "enum": [
+            "attribute",
+            "classification",
+            "entity",
+            "ids",
+            "material",
+            "partof",
+            "property",
+            "restriction",
+            "tolerance"
+          ]
+        },
+        "ids": {
+          "$ref": "#/$defs/objectRef"
+        },
+        "ifc": {
+          "$ref": "#/$defs/objectRef"
+        },
+        "expected_outcome": {
+          "const": "UNVERIFIED"
+        },
+        "execution_status": {
+          "const": "NOT_RUN_EXTERNAL_CORPUS"
+        }
+      }
+    }
+  }
+}
