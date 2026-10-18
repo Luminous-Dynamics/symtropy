@@ -56,6 +56,7 @@ jobs:
           jq -e --arg expected_sha "$expected_sha" '
             .schema_version == "civ-infra-heldout-calibration/v0.1" and
             .input_sha256 == $expected_sha and
+            (.split_manifest_sha256 | test("^[0-9a-f]{64}$")) and
             .calibration_record_count == 3 and
             .holdout_record_count == 3 and
             .qualified_holdout_count == 3 and
