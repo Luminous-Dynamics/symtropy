@@ -1081,6 +1081,54 @@ mod tests {
     }
 
     #[test]
+    fn ranking_reverses_when_the_declared_criteria_priority_changes() {
+        let receipt = run(&corpus());
+        assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
+        assert!(receipt.criteria_sensitivity_control_matches);
+        assert!(receipt.criteria_regime_top_strategy_reversal);
+        assert_eq!(
+            receipt
+                .criteria_regime_rankings
+                .get("protect-habitat-and-recover-material-v1")
+                .unwrap(),
+            &vec![
+                "rapid_material_recovery".to_string(),
+                "retain_inspect_replan".to_string()
+            ]
+        );
+        assert_eq!(
+            receipt
+                .criteria_regime_rankings
+                .get("biosecurity-priority-v2")
+                .unwrap(),
+            &vec![
+                "retain_inspect_replan".to_string(),
+                "rapid_material_recovery".to_string()
+            ]
+        );
+        assert!(!corpus().criteria_sensitivity_control.regimes[1].adopted_by_current_profile);
+    }
+
+    #[test]
+    fn incorrect_expected_ranking_fails_even_when_case_matrix_passes() {
+        let mut value = corpus();
+        value.criteria_sensitivity_control.regimes[0].expected_ranked_strategy_ids.reverse();
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert!(!receipt.criteria_sensitivity_control_matches);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("CRITERIA_RANKING_MISMATCH")));
+    }
+
+    #[test]
+    fn proposed_new_regime_cannot_claim_current_profile_adoption() {
+        let mut value = corpus();
+        value.criteria_sensitivity_control.regimes[1].adopted_by_current_profile = true;
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert!(receipt.errors.iter().any(|error| error.starts_with("CRITERIA_REGIME_CLAIMS_UNADOPTED_PROFILE")));
+    }
+
+    #[test]
     fn temporal_baseline_has_no_anticipativity_or_information_cutoff_violations() {
         let receipt = run(&corpus());
         assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
@@ -1326,6 +1374,11 @@ mod tests {
         permuted.temporal_policy_decisions.reverse();
         for decision in &mut permuted.temporal_policy_decisions {
             decision.evidence_refs.reverse();
+        }
+        permuted.criteria_sensitivity_control.strategies.reverse();
+        permuted.criteria_sensitivity_control.regimes.reverse();
+        for regime in &mut permuted.criteria_sensitivity_control.regimes {
+            regime.admissibility_constraints.reverse();
         }
         permuted.decision_profile.covered_failure_families.reverse();
         permuted.decision_profile.required_evidence_tags.reverse();
