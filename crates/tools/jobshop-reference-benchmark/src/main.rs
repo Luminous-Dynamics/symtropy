@@ -45,6 +45,20 @@ fn run() -> Result<(), Box<dyn Error>> {
                 result.expanded_nodes,
                 result.schedule.len()
             );
+            let mut schedule = result.schedule;
+            schedule.sort_unstable_by_key(|operation| {
+                (operation.job_index, operation.operation_index)
+            });
+            for operation in schedule {
+                println!(
+                    "operation job={} index={} machine={} start={} finish={}",
+                    operation.job_index,
+                    operation.operation_index,
+                    operation.machine,
+                    operation.start_time,
+                    operation.finish_time
+                );
+            }
         }
         _ => {
             return Err("unknown mode; use summarize or solve-exact".into());
