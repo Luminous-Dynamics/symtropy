@@ -50,7 +50,7 @@ At each node:
 
 The evaluator must reject cycles, duplicate action/outcome IDs, unknown state references, policy edges naming a result incompatible with their action, and paths beyond the declared depth.
 
-The implementation must also bound **total expansion**, not just depth. The reference evaluator uses memoized longest-path analysis for graph validation, caps recursive operation accounting at 100,000 operations and output at 10,000 leaves, and returns an error without a partial policy report when either limit is exceeded. Caps are versioned implementation constraints, not promises about maximum useful project size. Any future limit increase must include adversarial time/memory measurements and preserve fail-closed semantics.
+The implementation must also bound **total expansion**, not just depth. The reference evaluator uses memoized longest-path analysis for graph validation, caps recursive operation accounting at 100,000 operations, output at 10,000 leaves, and aggregate state memberships across leaves at 100,000. It returns an error without a partial policy report when any limit is exceeded. Caps are versioned implementation constraints, not promises about maximum useful project size. Any future limit increase must include adversarial time/memory measurements and preserve fail-closed semantics.
 
 ## 5. Objective and reporting
 
