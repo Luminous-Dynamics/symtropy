@@ -370,7 +370,8 @@
                 "duration_basis_id",
                 "action_type",
                 "evidence_state",
-                "source_revision"
+                "source_revision",
+                "changes_critical_unknown_set"
               ],
               "properties": {
                 "action_id": {
@@ -519,6 +520,9 @@
                 "source_revision": {
                   "type": "string",
                   "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "changes_critical_unknown_set": {
+                  "type": "boolean"
                 }
               }
             }
