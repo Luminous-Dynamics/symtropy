@@ -666,12 +666,27 @@ mod tests {
     #[test]
     fn all_frozen_cases_match_the_exhaustive_reference_expectations() {
         let report = evaluate_fixture_bytes(FIXTURE).unwrap();
-        assert_eq!(report.case_count, 9);
+        assert_eq!(report.case_count, 10);
         assert!(report.all_expected_outcomes_match);
         assert!(report
             .case_results
             .iter()
             .all(|result| result.expected_outcome_match));
+    }
+
+    #[test]
+    fn exact_oracle_finds_schedule_that_priority_baseline_misses() {
+        let report = evaluate_fixture_bytes(FIXTURE).unwrap();
+        let adversarial = report
+            .case_results
+            .iter()
+            .find(|result| result.case_id == "priority_rules_miss_feasible_schedule")
+            .unwrap();
+        assert!(adversarial.feasible);
+        assert_eq!(adversarial.nominal_optimal_makespan, Some(19));
+        assert_eq!(adversarial.upper_scenario_optimal_makespan, Some(19));
+        assert!(adversarial.robust_feasible);
+        assert!(adversarial.expected_outcome_match);
     }
 
     #[test]
