@@ -949,7 +949,7 @@ mod tests {
 
     #[test]
     fn optional_product_category_and_brand_fields_are_not_required() {
-        let csv = b"id,partner_product_category,repair_status,problem,event_date,country,data_provider\\nr-opt,Small home electrical,0,unknown,2026-06-01,ZAF,provider-opt\\n";
+        let csv = b"id,partner_product_category,repair_status,problem,event_date,country,data_provider\nr-opt,Small home electrical,0,unknown,2026-06-01,ZAF,provider-opt\n";
         let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
         assert_eq!(summary.row_count, 1);
         assert_eq!(summary.accepted_row_count, 1);

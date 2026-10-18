@@ -903,6 +903,7 @@ fn run() -> Result<(), String> {
             "category_candidate_row_count": ords_summary.category_candidate_row_count,
             "category_ambiguous_row_count": ords_summary.category_ambiguous_row_count,
             "category_unmapped_row_count": ords_summary.category_unmapped_row_count,
+            "category_id_label_mismatch_row_count": ords_summary.category_id_label_mismatch_row_count,
             "duplicate_identity_row_count": ords_summary.duplicate_identity_row_count,
             "missing_identity_row_count": ords_summary.missing_identity_row_count,
             "invalid_status_row_count": ords_summary.invalid_status_row_count,

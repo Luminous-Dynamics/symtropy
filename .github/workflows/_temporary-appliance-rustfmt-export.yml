@@ -1,0 +1,31 @@
+name: Temporary Appliance Rustfmt Export
+on:
+  push:
+    branches:
+      - research/large-appliance-repairable-architecture-v0-1
+    paths:
+      - ".github/workflows/_temporary-appliance-rustfmt-export.yml"
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Export formatted Rust source
+        shell: bash
+        run: |
+          set -euo pipefail
+          emit() {
+            label="$1"
+            path="$2"
+            echo "BEGIN_${label}"
+            rustfmt --edition 2024 --config skip_children=true --emit stdout "$path" | base64 -w0 | fold -w 1800
+            echo "END_${label}"
+          }
+          emit MAIN tools/household-appliance-bench-audit/src/main.rs
+          emit ORDS tools/household-appliance-bench-audit/src/ords.rs
