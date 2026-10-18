@@ -1,0 +1,348 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "BUILT-INTEROP-001-semantic-loss-v0.1",
+  "evidence_class": "Synthetic",
+  "exchange_profile": "IFC4.3.2.0+IDS1.0/synthetic-panel-v0.1",
+  "cases": [
+    {
+      "case_id": "01-exact-property-preservation",
+      "expected_decision": "Conformant",
+      "requirements": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "property_key": "GlobalId",
+          "expected_value": "panel-001",
+          "unit": null,
+          "criticality": "Hard"
+        },
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "property_key": "PanelThickness",
+          "expected_value": "18.0",
+          "unit": "mm",
+          "criticality": "Hard"
+        },
+        {
+          "requirement_id": "req-bom-ref",
+          "object_id": "panel-001",
+          "property_key": "BOMReference",
+          "expected_value": "bom-rev-a",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "panel-001",
+          "unit": null,
+          "transform_id": null
+        },
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "18.0",
+          "unit": "mm",
+          "transform_id": null
+        },
+        {
+          "requirement_id": "req-bom-ref",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "bom-rev-a",
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "02-hard-property-explicitly-missing",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-fire-class",
+          "object_id": "panel-001",
+          "property_key": "RequiredFireClass",
+          "expected_value": "EI30",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-fire-class",
+          "object_id": "panel-001",
+          "disposition": "Missing",
+          "observed_value": null,
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "03-unit-changed_without_transform",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "property_key": "PanelThickness",
+          "expected_value": "18.0",
+          "unit": "mm",
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "0.018",
+          "unit": "m",
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "04-source-object-identity-swapped",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "property_key": "GlobalId",
+          "expected_value": "panel-001",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-002",
+          "disposition": "Preserved",
+          "observed_value": "panel-001",
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "05-declared-unit-transform-correct",
+      "expected_decision": "Conformant",
+      "requirements": [
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "property_key": "PanelThickness",
+          "expected_value": "18.0",
+          "unit": "mm",
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "disposition": "TransformedWithDeclaredRule",
+          "observed_value": "0.018",
+          "unit": "m",
+          "transform_id": "mm-to-m-v1"
+        }
+      ],
+      "transforms": [
+        {
+          "transform_id": "mm-to-m-v1",
+          "from_unit": "mm",
+          "to_unit": "m",
+          "scale": 0.001,
+          "offset": 0,
+          "absolute_tolerance": 1e-9
+        }
+      ]
+    },
+    {
+      "case_id": "06-declared-transform-rule-missing",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "property_key": "PanelThickness",
+          "expected_value": "18.0",
+          "unit": "mm",
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-thickness",
+          "object_id": "panel-001",
+          "disposition": "TransformedWithDeclaredRule",
+          "observed_value": "0.018",
+          "unit": "m",
+          "transform_id": "missing-transform-rule"
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "07-unknown-promoted-to-numeric-default",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-qual-state",
+          "object_id": "panel-001",
+          "property_key": "QualificationState",
+          "expected_value": "UNKNOWN",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-qual-state",
+          "object_id": "panel-001",
+          "disposition": "Changed",
+          "observed_value": "Pass",
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "08-hard-property-unsupported",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-qualification-ref",
+          "object_id": "panel-001",
+          "property_key": "QualificationReference",
+          "expected_value": "qualification-rev-7",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-qualification-ref",
+          "object_id": "panel-001",
+          "disposition": "Unsupported",
+          "observed_value": null,
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "09-advisory-property-not-evaluated",
+      "expected_decision": "Unresolved",
+      "requirements": [
+        {
+          "requirement_id": "req-finish-color",
+          "object_id": "panel-001",
+          "property_key": "FinishColor",
+          "expected_value": "resin-blue",
+          "unit": null,
+          "criticality": "Advisory"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-finish-color",
+          "object_id": "panel-001",
+          "disposition": "NotEvaluated",
+          "observed_value": null,
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "10-duplicate-imported-observation",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "property_key": "GlobalId",
+          "expected_value": "panel-001",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "panel-001",
+          "unit": null,
+          "transform_id": null
+        },
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "panel-001",
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    },
+    {
+      "case_id": "11-no-observation-record",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-bom-ref",
+          "object_id": "panel-001",
+          "property_key": "BOMReference",
+          "expected_value": "bom-rev-a",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [],
+      "transforms": []
+    },
+    {
+      "case_id": "12-unreferenced-target-observation",
+      "expected_decision": "Blocked",
+      "requirements": [
+        {
+          "requirement_id": "req-panel-id",
+          "object_id": "panel-001",
+          "property_key": "GlobalId",
+          "expected_value": "panel-001",
+          "unit": null,
+          "criticality": "Hard"
+        }
+      ],
+      "observations": [
+        {
+          "requirement_id": "invented-target-requirement",
+          "object_id": "panel-001",
+          "disposition": "Preserved",
+          "observed_value": "invented",
+          "unit": null,
+          "transform_id": null
+        }
+      ],
+      "transforms": []
+    }
+  ]
+}
