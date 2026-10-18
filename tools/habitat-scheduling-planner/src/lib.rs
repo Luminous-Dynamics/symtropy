@@ -26,8 +26,23 @@ struct Fixture {
     status: String,
     synthetic_only: bool,
     claim_ceiling: String,
-    conventions: Value,
+    conventions: Conventions,
     cases: Vec<Case>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Conventions {
+    time_origin: u32,
+    time_unit: String,
+    intervals: String,
+    tasks: String,
+    precedence: String,
+    objective: String,
+    resources: String,
+    uncertainty: String,
+    gates: String,
+    schedule_is_executed_work: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -677,7 +692,16 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         || fixture.status.trim().is_empty()
         || !fixture.synthetic_only
         || fixture.claim_ceiling.trim().is_empty()
-        || fixture.conventions.is_null()
+        || fixture.conventions.time_origin != 0
+        || fixture.conventions.time_unit != "abstract integer time units"
+        || fixture.conventions.intervals != "half_open_start_inclusive_finish_exclusive"
+        || fixture.conventions.tasks != "nonpreemptive"
+        || fixture.conventions.precedence != "finish(before) <= start(after)"
+        || fixture.conventions.objective != "minimize makespan = maximum task finish"
+        || fixture.conventions.resources.trim().is_empty()
+        || fixture.conventions.uncertainty.trim().is_empty()
+        || fixture.conventions.gates.trim().is_empty()
+        || fixture.conventions.schedule_is_executed_work
         || fixture.cases.is_empty()
         || fixture.cases.len() > MAX_CASES
     {
@@ -704,8 +728,12 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         ]
         .iter()
         .all(|result| {
-            result.schedule.is_empty()
-                || result.validation_status == "INDEPENDENT_VALIDATOR_PASSED"
+            if result.schedule.is_empty() {
+                result.status != "INTERNAL_VALIDATOR_DISAGREEMENT"
+                    && result.validation_status == "NOT_APPLICABLE_NO_CANDIDATE"
+            } else {
+                result.validation_status == "INDEPENDENT_VALIDATOR_PASSED"
+            }
         });
         let robust_status = match upper_with_deadline.status.as_str() {
             "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL" => "ROBUST_FEASIBLE_CANDIDATE",
