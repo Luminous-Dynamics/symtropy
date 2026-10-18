@@ -108,5 +108,7 @@
   ],
   "joint_world_m": {},
   "constraint_targets": [],
-  "notes": "Synthetic shape-only fixture; it represents no person and is not motion-capture ground truth."
+  "notes": "Synthetic shape-only fixture; it represents no person and is not motion-capture ground truth.",
+  "skeleton_signature_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "retarget_map_sha256": null
 }
