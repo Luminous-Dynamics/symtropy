@@ -577,7 +577,9 @@ pub fn extract_spectrum_plot_points(
         });
     }
     if points.len() < 2 {
-        return Err("fewer than two spectrum bins fall inside the configured wavelength band".to_owned());
+        return Err(
+            "fewer than two spectrum bins fall inside the configured wavelength band".to_owned(),
+        );
     }
     Ok(points)
 }
@@ -1218,8 +1220,10 @@ fn draw_spectrum_plots(gizmos: &mut Gizmos, layers: &FieldLayerSet) {
         total_bins += points.len();
 
         let axis_start = Vec3::from_array([
-            points[0].position[0] - points[0].normalized_wavelength * settings.plot_width_world_units,
-            points[0].position[1] - points[0].normalized_radiance * settings.plot_height_world_units,
+            points[0].position[0]
+                - points[0].normalized_wavelength * settings.plot_width_world_units,
+            points[0].position[1]
+                - points[0].normalized_radiance * settings.plot_height_world_units,
             points[0].position[2],
         ]);
         let axis_end_x = axis_start + Vec3::X * settings.plot_width_world_units;
