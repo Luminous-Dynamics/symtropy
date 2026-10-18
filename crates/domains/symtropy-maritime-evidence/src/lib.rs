@@ -35,13 +35,31 @@ pub enum TimeMeaning {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParsedTimestamp {
     /// Verbatim source representation. Never overwritten by normalization.
-    pub source_text: String,
+    source_text: String,
     /// Nanoseconds since Unix epoch, normalized to UTC.
-    pub utc_unix_nanos: i128,
+    utc_unix_nanos: i128,
     /// Offset parsed from the source text, in minutes east of UTC.
-    pub source_offset_minutes: i16,
+    source_offset_minutes: i16,
     /// Number of fractional-second digits present in the source (0..=9).
-    pub fractional_digits: u8,
+    fractional_digits: u8,
+}
+
+impl ParsedTimestamp {
+    pub fn source_text(&self) -> &str {
+        &self.source_text
+    }
+
+    pub fn utc_unix_nanos(&self) -> i128 {
+        self.utc_unix_nanos
+    }
+
+    pub fn source_offset_minutes(&self) -> i16 {
+        self.source_offset_minutes
+    }
+
+    pub fn fractional_digits(&self) -> u8 {
+        self.fractional_digits
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -126,6 +144,7 @@ pub enum RejectionReason {
     IngestionTooFarInFuture,
     SourceEventAfterIngestion,
     SourceRecordTooOld,
+    ActualTimeTooFarInFuture,
     InvalidValidityWindow,
     ObservationExpired,
 }
@@ -408,6 +427,15 @@ pub fn validate_observation(
     let skew = i128::from(policy.allowed_future_clock_skew_seconds.max(0))
         * NANOS_PER_SECOND;
     let latest_acceptable = policy.now_utc_nanos.saturating_add(skew);
+    if let ObservedValue::Timestamp {
+        meaning: TimeMeaning::Actual,
+        value,
+    } = &observation.value
+    {
+        if value.utc_unix_nanos > latest_acceptable {
+            return Err(RejectionReason::ActualTimeTooFarInFuture);
+        }
+    }
     if observation.source_event_time_utc_nanos > latest_acceptable {
         return Err(RejectionReason::SourceEventTooFarInFuture);
     }
@@ -636,6 +664,27 @@ mod tests {
             "2026-10-18T14:00:00+02:00",
         );
         assert!(validate_observation(&item, &policy()).is_ok());
+    }
+
+    #[test]
+    fn future_actual_event_is_rejected_while_future_plan_is_allowed() {
+        let planned = arrival(
+            "OBS-FUTURE-PLAN",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T14:00:00Z",
+        );
+        let actual = arrival(
+            "OBS-FUTURE-ACTUAL",
+            "SOURCE-B",
+            TimeMeaning::Actual,
+            "2026-10-18T14:00:00Z",
+        );
+        assert!(validate_observation(&planned, &policy()).is_ok());
+        assert_eq!(
+            validate_observation(&actual, &policy()),
+            Err(RejectionReason::ActualTimeTooFarInFuture)
+        );
     }
 
     #[test]
