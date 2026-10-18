@@ -10,6 +10,7 @@
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 const SPEED_OF_LIGHT_M_PER_S: f64 = 299_792_458.0;
@@ -532,6 +533,16 @@ impl FieldFrame {
             return Err("serialized field frame exceeds the 256 MiB interchange limit".to_owned());
         }
         Ok(json)
+    }
+
+    /// SHA-256 of the exact pretty-printed JSON bytes returned by to_json().
+    ///
+    /// This binds this serialized frame representation; it is not the digest of
+    /// the original sensor/solver artifact and may change if serialization rules
+    /// change in a future crate version.
+    pub fn serialized_sha256(&self) -> Result<String, String> {
+        let json = self.to_json()?;
+        Ok(format!("{:x}", Sha256::digest(json.as_bytes())))
     }
 
     /// Parse a bounded JSON frame and validate the complete dataset before use.
@@ -1353,6 +1364,26 @@ mod tests {
         assert_eq!(visual_layers.scalar_layers.len(), 1);
         assert_eq!(visual_layers.vector_layers.len(), 1);
         assert_eq!(decoded.spectra.len(), 1);
+    }
+
+    #[test]
+    fn serialized_frame_digest_is_stable_and_content_sensitive() {
+        let frame = test_frame();
+        let first = frame
+            .serialized_sha256()
+            .expect("valid frame has a serialized digest");
+        let second = frame
+            .serialized_sha256()
+            .expect("same valid frame has same serialized digest");
+        assert_eq!(first, second);
+        assert!(is_sha256_digest(&first));
+
+        let mut changed = frame.clone();
+        changed.scalar_layers[0].samples[0].value += 0.01;
+        let changed_digest = changed
+            .serialized_sha256()
+            .expect("changed frame still validates");
+        assert_ne!(first, changed_digest);
     }
 
     #[test]
