@@ -9,10 +9,8 @@
 //! create an XR session, or assert that a design is safe or code-compliant.
 //! Callers retain control of input, pausing, and comfort settings.
 
-use bevy::input::mouse::AccumulatedMouseMotion;
-use bevy::prelude::{
-    ButtonInput, Component, KeyCode, MouseButton, Quat, Res, Time, Transform, Vec3,
-};
+use bevy::input::mouse::{AccumulatedMouseMotion, MouseButton};
+use bevy::prelude::{ButtonInput, Component, KeyCode, Quat, Res, Time, Transform, Vec3};
 
 const POSE_EPSILON: f32 = 1.0e-4;
 
