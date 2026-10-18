@@ -17,6 +17,8 @@
 
 use core::fmt;
 
+pub mod dmtf;
+
 /// Intrinsic parameters for an ideal rectified pinhole camera/projector.
 ///
 /// fx and fy are focal lengths expressed in pixels. cx and cy are the principal
