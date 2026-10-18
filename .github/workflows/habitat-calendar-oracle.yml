@@ -9,6 +9,7 @@ on:
       - "docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md"
       - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
       - "docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
+      - "docs/research/external/ca-rcpsp-v1.0/**"
       - ".github/workflows/habitat-calendar-oracle.yml"
   pull_request:
     branches: ["main"]
@@ -18,6 +19,7 @@ on:
       - "docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md"
       - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
       - "docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
+      - "docs/research/external/ca-rcpsp-v1.0/**"
       - ".github/workflows/habitat-calendar-oracle.yml"
 
 permissions:
@@ -87,4 +89,29 @@ jobs:
             .all_expected_statuses_match == true and
             ([.cases[] | select(.status == "METADATA_PROVENANCE_PASS_NOT_TZDB_CONFORMANCE")] | length) == 2 and
             ([.cases[] | select(.status == "REJECTED")] | length) == 8
+          ' "$report"
+
+      - name: Build and verify the external CA-RCPSP source audit report
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/ca-rcpsp-source-audit.json"
+          cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- \
+            --external-audit > "$report"
+          jq -e '
+            .schema_version == "luminous.ca_rcpsp_external_audit_report.v0.1" and
+            .audit_status == "COMPLETE_PUBLISHED_METRIC_LOWER_BOUND_DISCREPANCIES_FOUND" and
+            .source_artifacts_match_pinned_sha256 == true and
+            .source_results_csv_sha256 == "b9244c2f08ee0ca013b15478ecd12c35facf45b7ca79a63d777246040c740c38" and
+            .instance_count == 12 and
+            .solver_result_row_count == 36 and
+            .successful_solver_row_count == 30 and
+            .timeout_or_failed_row_count == 6 and
+            .successful_rows_below_longest_task_bound == 30 and
+            .expected_performance_makespan_below_longest_task_bound_count == 0 and
+            .successful_rows_with_calendar_compliance_below_one == 18 and
+            .all_scenario_ids_joined_exactly_once_per_solver == true and
+            .all_successful_rows_have_makespan == true and
+            .all_timeout_rows_have_empty_makespan == true and
+            .metric_semantics_require_source_reconciliation == true
           ' "$report"
