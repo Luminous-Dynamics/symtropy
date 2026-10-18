@@ -235,14 +235,18 @@ pub fn summarize_scenario_service_risk(
 /// Independently recompute a tail-risk report without calling the summarizer.
 pub fn verify_scenario_service_risk_report(
     outcomes: &[ScenarioServiceOutcome],
+    minimum_service_fraction: Fraction,
     claimed: &ScenarioTailRiskReport,
 ) -> Result<(), ScenarioRiskError> {
     let total_probability = validate_scenarios(outcomes)?;
+    if !close(claimed.minimum_service_fraction.value(), minimum_service_fraction.value()) {
+        return Err(ScenarioRiskError::ReportMismatch("minimum_service_fraction"));
+    }
     if claimed.scenario_count != outcomes.len() {
         return Err(ScenarioRiskError::ReportMismatch("scenario_count"));
     }
 
-    let floor = claimed.minimum_service_fraction.value();
+    let floor = minimum_service_fraction.value();
     let mut weighted_unmet = 0.0;
     let mut weighted_shortfall = 0.0;
     let mut floor_violation_mass = 0.0;
@@ -377,7 +381,7 @@ mod tests {
         assert!(close(report.worst_shortfall_fraction, 0.8));
         assert!(close(report.probability_below_service_floor, 0.03));
         assert_eq!(report.worst_case_scenario_id, 30);
-        verify_scenario_service_risk_report(&outcomes(), &report).unwrap();
+        verify_scenario_service_risk_report(&outcomes(), Fraction::new(0.8).unwrap(), &report).unwrap();
     }
 
     #[test]
@@ -432,7 +436,7 @@ mod tests {
             ..report.clone()
         };
         assert_eq!(
-            verify_scenario_service_risk_report(&outcomes(), &bad_cvar),
+            verify_scenario_service_risk_report(&outcomes(), Fraction::new(0.8).unwrap(), &bad_cvar),
             Err(ScenarioRiskError::ReportMismatch("cvar95_shortfall"))
         );
         let bad_floor = ScenarioTailRiskReport {
@@ -440,8 +444,21 @@ mod tests {
             ..report
         };
         assert_eq!(
-            verify_scenario_service_risk_report(&outcomes(), &bad_floor),
+            verify_scenario_service_risk_report(&outcomes(), Fraction::new(0.8).unwrap(), &bad_floor),
             Err(ScenarioRiskError::ReportMismatch("service_floor_probability"))
+        );
+        let tampered_threshold = ScenarioTailRiskReport {
+            minimum_service_fraction: Fraction::new(0.0).unwrap(),
+            probability_below_service_floor: 0.0,
+            ..summarize_scenario_service_risk(
+                &outcomes(), Fraction::new(0.0).unwrap(),
+            ).unwrap()
+        };
+        assert_eq!(
+            verify_scenario_service_risk_report(
+                &outcomes(), Fraction::new(0.8).unwrap(), &tampered_threshold,
+            ),
+            Err(ScenarioRiskError::ReportMismatch("minimum_service_fraction"))
         );
     }
 
@@ -458,6 +475,6 @@ mod tests {
         assert_eq!(report.p95_shortfall_fraction, 0.0);
         assert_eq!(report.cvar95_shortfall_fraction, 0.0);
         assert_eq!(report.probability_below_service_floor, 0.0);
-        verify_scenario_service_risk_report(&outcomes, &report).unwrap();
+        verify_scenario_service_risk_report(&outcomes, Fraction::new(1.0).unwrap(), &report).unwrap();
     }
 }
