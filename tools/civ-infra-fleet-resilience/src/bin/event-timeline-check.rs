@@ -502,9 +502,7 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
                 case.case_id
             ));
         }
-        if case.injection_tick > MAX_TIMELINE_TICK
-            || case.observable_tick > MAX_TIMELINE_TICK
-        {
+        if case.injection_tick > MAX_TIMELINE_TICK || case.observable_tick > MAX_TIMELINE_TICK {
             errors.push(format!(
                 "case {} exceeds the bounded audit horizon",
                 case.case_id
@@ -632,7 +630,11 @@ mod tests {
         let mutated_fixture = serde_json::to_vec(&fixture).expect("mutated fixture serializes");
         let errors = verify_report_bytes(&mutated_fixture, &original_report)
             .expect_err("out-of-horizon fixture must be rejected before timeline allocation");
-        assert!(errors.iter().any(|error| error.contains("bounded audit horizon")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("bounded audit horizon"))
+        );
     }
 
     #[test]
