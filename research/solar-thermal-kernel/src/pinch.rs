@@ -327,7 +327,7 @@ pub fn verify_pinch_targets(
     if claimed.intervals.len() != recomputed_intervals.len() {
         return Err(ModelError::ReportMismatch("pinch.interval_count"));
     }
-    for (interval, expected) in claimed.intervals.iter().zip(recomputed_intervals) {
+    for (interval, expected) in claimed.intervals.iter().zip(recomputed_intervals.iter().copied()) {
         check("pinch.interval_high", interval.shifted_high_temperature.value(), expected.0)?;
         check("pinch.interval_low", interval.shifted_low_temperature.value(), expected.1)?;
         check("pinch.interval_net", interval.net_hot_surplus.value(), expected.2)?;
