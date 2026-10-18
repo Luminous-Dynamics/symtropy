@@ -1,0 +1,274 @@
+{
+  "schema_version": "recovery-classification-record-packet-v0.1",
+  "algorithm_id": "content-bound-classification-record-audit-v0.1",
+  "status": "synthetic-integrity-and-binding-fixtures",
+  "decision_day": 20000,
+  "claim_ceiling": {
+    "all_records_synthetic": true,
+    "authenticity_verified": false,
+    "professional_authority_verified": false,
+    "expected_actuation": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "records": [
+    {
+      "record_id": "synthetic://classification-review/forest-known-family-complete-evidence",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-known-family-complete-evidence\",\"case_id\":\"forest-known-family-complete-evidence\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"access_constraint\",\"timber_condition\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "21a7a561ae4c262ccd377f1d7f3940ab11ff7ff1a64d5c7a97e8c835ac011be6"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-mixed-known-and-held-out-contamination",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-mixed-known-and-held-out-contamination\",\"case_id\":\"forest-mixed-known-and-held-out-contamination\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"chemical_residue_contamination\",\"timber_condition\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "ec43e42dd962fcfb2a5f65d0fc6e56f70253a93df7e1fd09d09f0e33527f01cf"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-family-classification-incomplete",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-family-classification-incomplete\",\"case_id\":\"forest-family-classification-incomplete\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"INCOMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"timber_condition\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "9fa43186a9469a779fa758b38db87760ab4aa2db1e211388562defb6245f7474"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-criteria-regime-changed",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-criteria-regime-changed\",\"case_id\":\"forest-criteria-regime-changed\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"biosecurity-and-containment-priority-v2\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"timber_condition\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "d69c5db9144fcf6dc6db8fc65f7c50a930a22ce51bd88313ba525075ac4d14dd"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-stale-evidence",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-stale-evidence\",\"case_id\":\"forest-stale-evidence\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"weather_window\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "701f1bec8fbe2a1399781013ad455b1eaf03c33a524f4f7a9d4c6d4a1484c78b"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-required-legal-evidence-missing",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-required-legal-evidence-missing\",\"case_id\":\"forest-required-legal-evidence-missing\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"access_constraint\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "08c8bbf7c632360cfa5331e5329cf23e95ffece500201f250a8ee4eb02aa4856"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-habitat-hard-gate-block",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-habitat-hard-gate-block\",\"case_id\":\"forest-habitat-hard-gate-block\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"habitat_conflict\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "94b252e57265143c81fb0e6dbef3fe3744818baf0d5fb5ee0efe5e065a3343d5"
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-hard-gate-unknown",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/forest-hard-gate-unknown\",\"case_id\":\"forest-hard-gate-unknown\",\"profile_id\":\"forest-recovery-v1\",\"domain\":\"forestry_recovery\",\"profile_version\":\"forest-recovery-v1\",\"criteria_regime\":\"protect-habitat-and-recover-material-v1\",\"taxonomy_version\":\"forest-hazard-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"route_capacity\"],\"evidence_tags\":[\"condition_inspection\",\"habitat_assessment\",\"hazard_classification_review\",\"legal_authority\",\"species_material_id\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "78e0ba454ecdcb2c9d26f915339ece78fbec4d85e36b08774bf0a23c089e1180"
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-known-family-complete-evidence",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/pv-known-family-complete-evidence\",\"case_id\":\"pv-known-family-complete-evidence\",\"profile_id\":\"pv-second-life-v1\",\"domain\":\"pv_second_life\",\"profile_version\":\"pv-second-life-v1\",\"criteria_regime\":\"electrical-safety-and-reuse-v1\",\"taxonomy_version\":\"pv-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"insulation_failure\"],\"evidence_tags\":[\"electrical_safety_test\",\"hazard_classification_review\",\"provenance\",\"visual_damage_assessment\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "649c0bdbc8d866446021c61f55bc1ee8d38af99d9886776680079d0c76a73666"
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-held-out-corrosion-family",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/pv-held-out-corrosion-family\",\"case_id\":\"pv-held-out-corrosion-family\",\"profile_id\":\"pv-second-life-v1\",\"domain\":\"pv_second_life\",\"profile_version\":\"pv-second-life-v1\",\"criteria_regime\":\"electrical-safety-and-reuse-v1\",\"taxonomy_version\":\"pv-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"delamination_with_hidden_interconnect_corrosion\"],\"evidence_tags\":[\"electrical_safety_test\",\"hazard_classification_review\",\"provenance\",\"visual_damage_assessment\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "304f40bd80826ad66642ccc041225726ea3defc1c9c0e1b545957c1dffcd7949"
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-stale-inspection",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/pv-stale-inspection\",\"case_id\":\"pv-stale-inspection\",\"profile_id\":\"pv-second-life-v1\",\"domain\":\"pv_second_life\",\"profile_version\":\"pv-second-life-v1\",\"criteria_regime\":\"electrical-safety-and-reuse-v1\",\"taxonomy_version\":\"pv-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"mechanical_damage\"],\"evidence_tags\":[\"electrical_safety_test\",\"hazard_classification_review\",\"provenance\",\"visual_damage_assessment\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "7958107089b58ab9ff65e49895bba571fae6e1f157f2b2d0196f2d437cab8de3"
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-insulation-safety-gate-block",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/pv-insulation-safety-gate-block\",\"case_id\":\"pv-insulation-safety-gate-block\",\"profile_id\":\"pv-second-life-v1\",\"domain\":\"pv_second_life\",\"profile_version\":\"pv-second-life-v1\",\"criteria_regime\":\"electrical-safety-and-reuse-v1\",\"taxonomy_version\":\"pv-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"insulation_failure\"],\"evidence_tags\":[\"electrical_safety_test\",\"hazard_classification_review\",\"provenance\",\"visual_damage_assessment\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "0658f34279d0ab300dbafce0a2fc864c9a40843312c43b6d7f8a6489ddd94e1a"
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-known-family-complete-evidence",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/infrastructure-known-family-complete-evidence\",\"case_id\":\"infrastructure-known-family-complete-evidence\",\"profile_id\":\"infrastructure-recovery-v1\",\"domain\":\"infrastructure_recovery\",\"profile_version\":\"infrastructure-recovery-v1\",\"criteria_regime\":\"service-continuity-and-structural-safety-v1\",\"taxonomy_version\":\"infrastructure-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"capacity_overload\",\"utility_outage\"],\"evidence_tags\":[\"capacity_record\",\"hazard_classification_review\",\"service_state\",\"structural_inspection\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "edc7f245e76ef12fe217edbf59310973e20ec2420cb14ded41c3ef771f041479"
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-profile-version-mismatch",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/infrastructure-profile-version-mismatch\",\"case_id\":\"infrastructure-profile-version-mismatch\",\"profile_id\":\"infrastructure-recovery-v1\",\"domain\":\"infrastructure_recovery\",\"profile_version\":\"infrastructure-recovery-v2\",\"criteria_regime\":\"service-continuity-and-structural-safety-v1\",\"taxonomy_version\":\"infrastructure-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"water_ingress\"],\"evidence_tags\":[\"capacity_record\",\"hazard_classification_review\",\"service_state\",\"structural_inspection\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "acc2f1fd24a92421f6f0574d9458add12d8a74d241ce32ec74464ce5a0821057"
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-capacity-evidence-missing",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/infrastructure-capacity-evidence-missing\",\"case_id\":\"infrastructure-capacity-evidence-missing\",\"profile_id\":\"infrastructure-recovery-v1\",\"domain\":\"infrastructure_recovery\",\"profile_version\":\"infrastructure-recovery-v1\",\"criteria_regime\":\"service-continuity-and-structural-safety-v1\",\"taxonomy_version\":\"infrastructure-failure-taxonomy-v1\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"structural_crack\"],\"evidence_tags\":[\"hazard_classification_review\",\"service_state\",\"structural_inspection\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "26c5d3e2366eb5196d91c2b4e9136866920bfecf22a19fc404aa1fddc1501ee7"
+    },
+    {
+      "record_id": "synthetic://classification-review/unknown-profile-id",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/unknown-profile-id\",\"case_id\":\"unknown-profile-id\",\"profile_id\":\"unregistered-profile-v9\",\"domain\":\"unknown_domain\",\"profile_version\":\"unregistered-profile-v9\",\"criteria_regime\":\"unregistered-criteria-v9\",\"taxonomy_version\":\"unregistered-taxonomy-v9\",\"classification_status\":\"COMPLETE\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"unmapped_hazard\"],\"evidence_tags\":[\"hazard_classification_review\",\"some_evidence\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "dddeceecda8585914309e6d6f84c066c80f95b03646da69675b8970969710955"
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-hazard-classification-unknown",
+      "canonical_payload_json": "{\"record_id\":\"synthetic://classification-review/infrastructure-hazard-classification-unknown\",\"case_id\":\"infrastructure-hazard-classification-unknown\",\"profile_id\":\"infrastructure-recovery-v1\",\"domain\":\"infrastructure_recovery\",\"profile_version\":\"infrastructure-recovery-v1\",\"criteria_regime\":\"service-continuity-and-structural-safety-v1\",\"taxonomy_version\":\"infrastructure-failure-taxonomy-v1\",\"classification_status\":\"UNKNOWN\",\"classification_review_status\":\"REVIEWED\",\"classified_failure_families\":[\"structural_crack\"],\"evidence_tags\":[\"capacity_record\",\"hazard_classification_review\",\"service_state\",\"structural_inspection\"],\"issued_day\":19995,\"valid_from_day\":19995,\"valid_until_day\":20030,\"revocation_policy_id\":\"synthetic-revocation-policy-v1\",\"source_authenticity_status\":\"UNVERIFIED_SYNTHETIC\"}",
+      "sha256": "10d0b3fe9465d209d2503d98fd122ae729c519e9a20cddb48452053eae17d644"
+    }
+  ],
+  "case_bindings": [
+    {
+      "case_id": "forest-known-family-complete-evidence",
+      "record_id": "synthetic://classification-review/forest-known-family-complete-evidence",
+      "sha256": "21a7a561ae4c262ccd377f1d7f3940ab11ff7ff1a64d5c7a97e8c835ac011be6"
+    },
+    {
+      "case_id": "forest-mixed-known-and-held-out-contamination",
+      "record_id": "synthetic://classification-review/forest-mixed-known-and-held-out-contamination",
+      "sha256": "ec43e42dd962fcfb2a5f65d0fc6e56f70253a93df7e1fd09d09f0e33527f01cf"
+    },
+    {
+      "case_id": "forest-family-classification-incomplete",
+      "record_id": "synthetic://classification-review/forest-family-classification-incomplete",
+      "sha256": "9fa43186a9469a779fa758b38db87760ab4aa2db1e211388562defb6245f7474"
+    },
+    {
+      "case_id": "forest-criteria-regime-changed",
+      "record_id": "synthetic://classification-review/forest-criteria-regime-changed",
+      "sha256": "d69c5db9144fcf6dc6db8fc65f7c50a930a22ce51bd88313ba525075ac4d14dd"
+    },
+    {
+      "case_id": "forest-stale-evidence",
+      "record_id": "synthetic://classification-review/forest-stale-evidence",
+      "sha256": "701f1bec8fbe2a1399781013ad455b1eaf03c33a524f4f7a9d4c6d4a1484c78b"
+    },
+    {
+      "case_id": "forest-required-legal-evidence-missing",
+      "record_id": "synthetic://classification-review/forest-required-legal-evidence-missing",
+      "sha256": "08c8bbf7c632360cfa5331e5329cf23e95ffece500201f250a8ee4eb02aa4856"
+    },
+    {
+      "case_id": "forest-habitat-hard-gate-block",
+      "record_id": "synthetic://classification-review/forest-habitat-hard-gate-block",
+      "sha256": "94b252e57265143c81fb0e6dbef3fe3744818baf0d5fb5ee0efe5e065a3343d5"
+    },
+    {
+      "case_id": "forest-hard-gate-unknown",
+      "record_id": "synthetic://classification-review/forest-hard-gate-unknown",
+      "sha256": "78e0ba454ecdcb2c9d26f915339ece78fbec4d85e36b08774bf0a23c089e1180"
+    },
+    {
+      "case_id": "pv-known-family-complete-evidence",
+      "record_id": "synthetic://classification-review/pv-known-family-complete-evidence",
+      "sha256": "649c0bdbc8d866446021c61f55bc1ee8d38af99d9886776680079d0c76a73666"
+    },
+    {
+      "case_id": "pv-held-out-corrosion-family",
+      "record_id": "synthetic://classification-review/pv-held-out-corrosion-family",
+      "sha256": "304f40bd80826ad66642ccc041225726ea3defc1c9c0e1b545957c1dffcd7949"
+    },
+    {
+      "case_id": "pv-stale-inspection",
+      "record_id": "synthetic://classification-review/pv-stale-inspection",
+      "sha256": "7958107089b58ab9ff65e49895bba571fae6e1f157f2b2d0196f2d437cab8de3"
+    },
+    {
+      "case_id": "pv-insulation-safety-gate-block",
+      "record_id": "synthetic://classification-review/pv-insulation-safety-gate-block",
+      "sha256": "0658f34279d0ab300dbafce0a2fc864c9a40843312c43b6d7f8a6489ddd94e1a"
+    },
+    {
+      "case_id": "infrastructure-known-family-complete-evidence",
+      "record_id": "synthetic://classification-review/infrastructure-known-family-complete-evidence",
+      "sha256": "edc7f245e76ef12fe217edbf59310973e20ec2420cb14ded41c3ef771f041479"
+    },
+    {
+      "case_id": "infrastructure-profile-version-mismatch",
+      "record_id": "synthetic://classification-review/infrastructure-profile-version-mismatch",
+      "sha256": "acc2f1fd24a92421f6f0574d9458add12d8a74d241ce32ec74464ce5a0821057"
+    },
+    {
+      "case_id": "infrastructure-capacity-evidence-missing",
+      "record_id": "synthetic://classification-review/infrastructure-capacity-evidence-missing",
+      "sha256": "26c5d3e2366eb5196d91c2b4e9136866920bfecf22a19fc404aa1fddc1501ee7"
+    },
+    {
+      "case_id": "unknown-profile-id",
+      "record_id": "synthetic://classification-review/unknown-profile-id",
+      "sha256": "dddeceecda8585914309e6d6f84c066c80f95b03646da69675b8970969710955"
+    },
+    {
+      "case_id": "infrastructure-hazard-classification-unknown",
+      "record_id": "synthetic://classification-review/infrastructure-hazard-classification-unknown",
+      "sha256": "10d0b3fe9465d209d2503d98fd122ae729c519e9a20cddb48452053eae17d644"
+    }
+  ],
+  "revocation_entries": [
+    {
+      "record_id": "synthetic://classification-review/forest-known-family-complete-evidence",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-mixed-known-and-held-out-contamination",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-family-classification-incomplete",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-criteria-regime-changed",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-stale-evidence",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-required-legal-evidence-missing",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-habitat-hard-gate-block",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/forest-hard-gate-unknown",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-known-family-complete-evidence",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-held-out-corrosion-family",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-stale-inspection",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/pv-insulation-safety-gate-block",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-known-family-complete-evidence",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-profile-version-mismatch",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-capacity-evidence-missing",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/unknown-profile-id",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    },
+    {
+      "record_id": "synthetic://classification-review/infrastructure-hazard-classification-unknown",
+      "status": "ACTIVE",
+      "recorded_day": 19995
+    }
+  ]
+}
