@@ -2,7 +2,8 @@
 
 **Status:** executable split-conformal reference and synthetic unit suite authored; exact-head Rust CI pending.  
 **Implementation:** crates/domains/symtropy-maritime-evidence/src/arrival_calibration.rs  
-**Purpose:** estimate uncertainty around an ETA and report coverage, interval width, and abstention separately.
+**Purpose:** estimate uncertainty around an ETA and report coverage, interval width, and abstention separately.  
+**Tracking:** [MARITIME-ETA-CAL-001 #1973](https://github.com/Luminous-Dynamics/symtropy/issues/1973)
 
 ## Paradigm shift
 
