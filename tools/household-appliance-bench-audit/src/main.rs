@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::env;
 use std::fs;
+use std::io::{BufWriter, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -12,6 +13,7 @@ mod decision;
 mod experiment;
 mod faults;
 mod morphology;
+mod ords;
 mod portfolio;
 mod restoration;
 mod sourcing;
@@ -538,6 +540,24 @@ fn run() -> Result<(), String> {
             "--compatibility-schema and --compatibility-graph must be supplied together".to_owned(),
         );
     }
+    let ords_schema_path = read_arg_path("--ords-schema");
+    let ords_mapping_path = read_arg_path("--ords-mapping");
+    let ords_csv_path = read_arg_path("--ords-csv");
+    let ords_output_path = read_arg_path("--ords-output");
+    let ords_any = ords_schema_path.is_some()
+        || ords_mapping_path.is_some()
+        || ords_csv_path.is_some()
+        || ords_output_path.is_some();
+    let ords_all = ords_schema_path.is_some()
+        && ords_mapping_path.is_some()
+        && ords_csv_path.is_some()
+        && ords_output_path.is_some();
+    if ords_any && !ords_all {
+        return Err(
+            "--ords-schema, --ords-mapping, --ords-csv, and --ords-output must be supplied together"
+                .to_owned(),
+        );
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -833,6 +853,76 @@ fn run() -> Result<(), String> {
             "real_compatibility_claims_established": false,
             "purchase_authorized": false,
             "product_safety_assessed": false
+        });
+    }
+
+    if let (
+        Some(ords_schema_path),
+        Some(ords_mapping_path),
+        Some(ords_csv_path),
+        Some(ords_output_path),
+    ) = (
+        ords_schema_path,
+        ords_mapping_path,
+        ords_csv_path,
+        ords_output_path,
+    ) {
+        let ords_schema_raw = fs::read_to_string(&ords_schema_path)
+            .map_err(|error| format!("cannot read {}: {error}", ords_schema_path.display()))?;
+        let ords_mapping_raw = fs::read_to_string(&ords_mapping_path)
+            .map_err(|error| format!("cannot read {}: {error}", ords_mapping_path.display()))?;
+        let ords_csv_raw = fs::read(&ords_csv_path)
+            .map_err(|error| format!("cannot read {}: {error}", ords_csv_path.display()))?;
+        let output_file = fs::File::create(&ords_output_path)
+            .map_err(|error| format!("cannot create {}: {error}", ords_output_path.display()))?;
+        let mut ords_output = BufWriter::new(output_file);
+        let ords_summary = ords::audit_csv_to_writer(
+            &ords_schema_raw,
+            &ords_mapping_raw,
+            &ords_csv_raw,
+            &mut ords_output,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+        ords_output
+            .flush()
+            .map_err(|error| format!("cannot flush {}: {error}", ords_output_path.display()))?;
+
+        report["ords_repair_data_interop"] = json!({
+            "status": if ords_summary.quarantined_row_count == 0 {
+                "PASS_IMPORT_CONTRACT_NO_QUARANTINES"
+            } else {
+                "PASS_IMPORT_CONTRACT_WITH_EXPLICIT_QUARANTINES"
+            },
+            "row_count": ords_summary.row_count,
+            "accepted_row_count": ords_summary.accepted_row_count,
+            "quarantined_row_count": ords_summary.quarantined_row_count,
+            "fixed_row_count": ords_summary.fixed_row_count,
+            "repairable_row_count": ords_summary.repairable_row_count,
+            "end_of_life_row_count": ords_summary.end_of_life_row_count,
+            "unknown_status_row_count": ords_summary.unknown_status_row_count,
+            "category_candidate_row_count": ords_summary.category_candidate_row_count,
+            "category_ambiguous_row_count": ords_summary.category_ambiguous_row_count,
+            "category_unmapped_row_count": ords_summary.category_unmapped_row_count,
+            "duplicate_identity_row_count": ords_summary.duplicate_identity_row_count,
+            "missing_identity_row_count": ords_summary.missing_identity_row_count,
+            "invalid_status_row_count": ords_summary.invalid_status_row_count,
+            "barrier_status_gate_violation_count": ords_summary.barrier_status_gate_violation_count,
+            "invalid_end_of_life_barrier_count": ords_summary.invalid_end_of_life_barrier_count,
+            "dataset_release_id": ords_summary.dataset_release_id,
+            "source_license": ords_summary.source_license,
+            "profile_status": ords_summary.profile_status,
+            "schema_sha256": ords_summary.schema_sha256,
+            "mapping_sha256": ords_summary.mapping_sha256,
+            "input_sha256": ords_summary.input_sha256,
+            "schema_path": ords_schema_path.display().to_string(),
+            "mapping_path": ords_mapping_path.display().to_string(),
+            "input_path": ords_csv_path.display().to_string(),
+            "output_path": ords_output_path.display().to_string(),
+            "all_rows_accounted_for": ords_summary.accepted_row_count + ords_summary.quarantined_row_count == ords_summary.row_count,
+            "verified_restoration_claim_generated": false,
+            "physical_safety_claim_generated": false,
+            "exact_part_fit_claim_generated": false,
+            "population_prevalence_claim_permitted": false
         });
     }
 
