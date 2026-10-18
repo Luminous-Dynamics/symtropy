@@ -222,36 +222,7 @@ fn validate_schedule_internal(
     }
 
     if check_exclusive_overlaps {
-        for left_index in 0..operations.len() {
-            let left = &operations[left_index];
-            let Some(left_start) = valid_start(left) else {
-                continue;
-            };
-            let Some(left_end) = left.end_seconds() else {
-                continue;
-            };
-            for right in operations.iter().skip(left_index + 1) {
-                if left.resource_id != right.resource_id {
-                    continue;
-                }
-                let Some(right_start) = valid_start(right) else {
-                    continue;
-                };
-                let Some(right_end) = right.end_seconds() else {
-                    continue;
-                };
-                if left_start < right_end && right_start < left_end {
-                    let mut ids = vec![left.id.clone(), right.id.clone()];
-                    ids.sort();
-                    push_violation(
-                        &mut violations,
-                        ScheduleViolationCode::ExclusiveResourceOverlap,
-                        ids,
-                        "two operations overlap on one exclusive resource",
-                    );
-                }
-            }
-        }
+        append_exclusive_resource_overlaps(operations, &mut violations);
     }
 
     for violation in &mut violations {
@@ -435,6 +406,63 @@ pub fn validate_schedule_with_resource_capacities(
 
     normalize_violations(&mut report.violations);
     report
+}
+
+/// Append all pairwise conflicts using a per-resource sweep line.
+///
+/// For schedules with sparse overlap, this avoids comparing operations that use
+/// different resources and avoids a full all-pairs scan. Runtime is
+/// O(n log n + k) for n valid intervals and k reported overlapping pairs; k can
+/// itself be quadratic when the input truly contains quadratic many conflicts.
+/// Sorting plus final report normalization keeps the externally visible report
+/// deterministic despite the hash-map grouping.
+fn append_exclusive_resource_overlaps(
+    operations: &[ScheduledOperation],
+    violations: &mut Vec<ScheduleViolation>,
+) {
+    let mut by_resource: HashMap<&str, Vec<(usize, &ScheduledOperation, f64, f64)>> =
+        HashMap::new();
+
+    for (index, operation) in operations.iter().enumerate() {
+        let (Some(start), Some(end)) = (valid_start(operation), operation.end_seconds()) else {
+            continue;
+        };
+        if operation.resource_id.trim().is_empty() {
+            continue;
+        }
+        by_resource
+            .entry(operation.resource_id.as_str())
+            .or_default()
+            .push((index, operation, start, end));
+    }
+
+    for (_resource_id, mut intervals) in by_resource {
+        intervals.sort_by(|left, right| {
+            left.2
+                .total_cmp(&right.2)
+                .then_with(|| left.3.total_cmp(&right.3))
+                .then_with(|| left.1.id.cmp(&right.1.id))
+                .then_with(|| left.0.cmp(&right.0))
+        });
+
+        // Only active intervals can overlap the current interval. Remove intervals
+        // ending at the current start because the model uses half-open [start, end).
+        let mut active: Vec<(usize, &ScheduledOperation, f64)> = Vec::new();
+        for (index, operation, start, end) in intervals {
+            active.retain(|(_, _, active_end)| *active_end > start);
+            for (_, other, _) in &active {
+                let mut ids = vec![operation.id.clone(), other.id.clone()];
+                ids.sort();
+                push_violation(
+                    violations,
+                    ScheduleViolationCode::ExclusiveResourceOverlap,
+                    ids,
+                    "two operations overlap on one exclusive resource",
+                );
+            }
+            active.push((index, operation, end));
+        }
+    }
 }
 
 fn normalize_violations(violations: &mut Vec<ScheduleViolation>) {
@@ -811,6 +839,82 @@ mod tests {
         let second = validate_schedule_with_resource_capacities(&operations, &capacities);
         assert_eq!(first, second);
         assert!(!first.is_feasible());
+    }
+
+    #[test]
+    fn exclusive_sweep_matches_independent_pairwise_oracle_for_tiny_schedules() {
+        // Exhaustive synthetic test over start, duration, and two resource labels.
+        // The expected conflict set is computed independently with direct pair checks.
+        for operation_count in 1usize..=4 {
+            let cases = 6usize.pow(operation_count as u32);
+            for mut encoded in 0..cases {
+                let mut operations = Vec::with_capacity(operation_count);
+                for index in 0..operation_count {
+                    let choice = encoded % 6;
+                    encoded /= 6;
+                    let start = (choice % 3) as f64;
+                    let duration = if choice / 3 == 0 { 1.0 } else { 2.0 };
+                    let resource = if index % 2 == 0 { "pool-a" } else { "pool-b" };
+                    operations.push(operation(
+                        &format!("op-{index}"),
+                        resource,
+                        start,
+                        duration,
+                        &[],
+                    ));
+                }
+
+                let mut expected = Vec::new();
+                for left_index in 0..operations.len() {
+                    for right_index in (left_index + 1)..operations.len() {
+                        let left = &operations[left_index];
+                        let right = &operations[right_index];
+                        let left_end = left.end_seconds().unwrap();
+                        let right_end = right.end_seconds().unwrap();
+                        if left.resource_id == right.resource_id
+                            && left.start_seconds < right_end
+                            && right.start_seconds < left_end
+                        {
+                            let mut ids = vec![left.id.clone(), right.id.clone()];
+                            ids.sort();
+                            expected.push(ids);
+                        }
+                    }
+                }
+                expected.sort();
+
+                let mut actual: Vec<Vec<String>> = validate_schedule(&operations)
+                    .violations
+                    .into_iter()
+                    .filter(|v| v.code == ScheduleViolationCode::ExclusiveResourceOverlap)
+                    .map(|v| v.operation_ids)
+                    .collect();
+                actual.sort();
+                assert_eq!(
+                    actual, expected,
+                    "operation_count={operation_count}, operations={operations:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn sparse_schedule_with_many_distinct_resources_is_feasible() {
+        // This is a scalability regression fixture, not a timing assertion. A
+        // full all-pairs scan would perform about 72 million pair checks here.
+        let operations: Vec<ScheduledOperation> = (0..12_000)
+            .map(|index| {
+                operation(
+                    &format!("op-{index}"),
+                    &format!("resource-{index}"),
+                    index as f64 * 2.0,
+                    1.0,
+                    &[],
+                )
+            })
+            .collect();
+        let report = validate_schedule(&operations);
+        assert!(report.is_feasible(), "{:?}", report.violations);
     }
 
     #[test]
