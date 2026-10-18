@@ -490,7 +490,7 @@ fn validate_acceptance_evidence(
             if record.outcome_evidence_kind
                 != OutcomeEvidenceKindV1::FarmerDecisionEvent
                 && matches!(
-                    record.outcome,
+                    &record.outcome,
                     RequestOutcomeClassV1::AcceptedWithinUsefulWindow
                         | RequestOutcomeClassV1::AcceptedLate
                 )
@@ -513,7 +513,7 @@ fn validate_acceptance_evidence(
         }
         Some(AcceptanceDecisionModeV1::AuthorizedIntermediaryRecorded) => {
             if matches!(
-                record.outcome,
+                &record.outcome,
                 RequestOutcomeClassV1::AcceptedWithinUsefulWindow
                     | RequestOutcomeClassV1::AcceptedLate
             ) && record.outcome_evidence_kind
