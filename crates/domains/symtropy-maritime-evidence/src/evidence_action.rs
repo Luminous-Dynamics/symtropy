@@ -14,6 +14,7 @@ use super::{
 use std::collections::BTreeSet;
 
 pub const NANOS_PER_MINUTE: i128 = 60 * NANOS_PER_SECOND;
+const NANOS_PER_MINUTE_U128: u128 = 60_000_000_000;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DecisionWindow {
@@ -346,7 +347,7 @@ fn ceil_minutes(nanos: u128) -> u64 {
     if nanos == 0 {
         return 0;
     }
-    let minute = u128::try_from(NANOS_PER_MINUTE).unwrap_or(u128::MAX);
+    let minute = NANOS_PER_MINUTE_U128;
     let whole = nanos / minute;
     let extra = u128::from(nanos % minute != 0);
     u64::try_from(whole.saturating_add(extra)).unwrap_or(u64::MAX)
@@ -414,7 +415,7 @@ pub fn evaluate_decision(
                 .actual_arrival_utc_nanos
                 .abs_diff(window.starts_at_utc_nanos)
                 <= u128::from(window.late_grace_minutes)
-                    * u128::try_from(NANOS_PER_MINUTE).unwrap_or(u128::MAX)
+                    * NANOS_PER_MINUTE_U128
     });
     let actionable_despite_evidence_issue = selected_window.is_some()
         && decision.has_evidence_quality_issue()
@@ -686,12 +687,15 @@ mod tests {
         }
     }
 
-    fn oracle_ceil_minutes(nanos: i128) -> u64 {
-        if nanos <= 0 {
-            return 0;
-        }
-        let minute = 60 * super::super::NANOS_PER_SECOND;
-        u64::try_from((nanos + minute - 1) / minute).unwrap_or(u64::MAX)
+    fn oracle_ceil_minutes(nanos: u128) -> u64 {
+        let quotient = nanos / NANOS_PER_MINUTE_U128;
+        let remainder = nanos % NANOS_PER_MINUTE_U128;
+        let rounded = if remainder == 0 {
+            quotient
+        } else {
+            quotient.saturating_add(1)
+        };
+        u64::try_from(rounded).unwrap_or(u64::MAX)
     }
 
     fn independent_oracle_window_cost(
@@ -699,15 +703,14 @@ mod tests {
         window: &DecisionWindow,
         missed_penalty: u64,
     ) -> u64 {
-        let delta = arrival_utc_nanos - window.starts_at_utc_nanos;
-        if delta <= 0 {
-            return oracle_ceil_minutes(-delta);
+        if arrival_utc_nanos <= window.starts_at_utc_nanos {
+            return oracle_ceil_minutes(window.starts_at_utc_nanos.abs_diff(arrival_utc_nanos));
         }
-        let lateness = oracle_ceil_minutes(delta);
+        let lateness = oracle_ceil_minutes(arrival_utc_nanos.abs_diff(window.starts_at_utc_nanos));
         if lateness <= u64::from(window.late_grace_minutes) {
             lateness
         } else {
-            missed_penalty + lateness
+            missed_penalty.saturating_add(lateness)
         }
     }
 
