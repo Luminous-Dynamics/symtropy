@@ -759,12 +759,43 @@ mod tests {
             .find(|case| case.case_id == "02-hard-property-explicitly-missing")
             .expect("missing-property fixture exists");
         let result = evaluate_scenario(case);
-        let property = result.requirement_results.first().expect("property result exists");
+        let property = result
+            .requirement_results
+            .first()
+            .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
         assert_eq!(property.diagnostic_codes, vec!["NO_TARGET_OBSERVATION"]);
         assert_eq!(property.source_object_id, "panel-001");
         assert_eq!(property.property_key, "RequiredFireClass");
         assert!(property.observed_value.is_none());
+    }
+
+    #[test]
+    fn structured_transform_result_retains_rule_and_source_target_units() {
+        let (manifest, _) = fixture();
+        let case = manifest
+            .cases
+            .iter()
+            .find(|case| case.case_id == "05-declared-unit-transform-correct")
+            .expect("transform fixture exists");
+        let result = evaluate_scenario(case);
+        let property = result
+            .requirement_results
+            .first()
+            .expect("transformed property result exists");
+        assert_eq!(property.outcome, RequirementOutcome::Transformed);
+        assert_eq!(property.transform_id.as_deref(), Some("mm-to-m-v1"));
+        assert_eq!(property.expected_value, "18.0");
+        assert_eq!(property.expected_unit.as_deref(), Some("mm"));
+        assert_eq!(property.observed_value.as_deref(), Some("0.018"));
+        assert_eq!(property.observed_unit.as_deref(), Some("m"));
+        assert!(property.diagnostic_codes.is_empty());
+
+        let value = serde_json::to_value(&result).expect("scenario result serializes");
+        assert_eq!(value["requirement_results"][0]["outcome"], "Transformed");
+        assert_eq!(value["requirement_results"][0]["transform_id"], "mm-to-m-v1");
+        assert_eq!(value["requirement_results"][0]["expected_unit"], "mm");
+        assert_eq!(value["requirement_results"][0]["observed_unit"], "m");
     }
 
     #[test]
