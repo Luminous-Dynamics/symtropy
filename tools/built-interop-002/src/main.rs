@@ -627,8 +627,7 @@ mod tests {
             "ENDSEC;\nEND-ISO-10303-21;",
             &format!("{second_wall}ENDSEC;\nEND-ISO-10303-21;"),
         );
-        let report =
-            evaluate(duplicate.as_bytes(), &ids).expect("duplicate-identity IFC parses");
+        let report = evaluate(duplicate.as_bytes(), &ids).expect("duplicate-identity IFC parses");
         assert_eq!(report.decision, Decision::Blocked);
         assert_eq!(report.applicable_wall_count, Some(2));
         assert!(
