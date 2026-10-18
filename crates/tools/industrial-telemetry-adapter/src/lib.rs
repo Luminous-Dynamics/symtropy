@@ -55,6 +55,8 @@ pub enum TraceError {
         value: String,
         reason: &'static str,
     },
+    InvalidCoverageInterval,
+    InvalidGapThreshold,
     CountOverflow,
 }
 
@@ -78,12 +80,145 @@ impl fmt::Display for TraceError {
                     "invalid UTC timestamp at line {line_number} ({value:?}): {reason}"
                 )
             }
+            Self::InvalidCoverageInterval => {
+                write!(f, "coverage interval must have start < end")
+            }
+            Self::InvalidGapThreshold => {
+                write!(f, "maximum unobserved interval threshold must be non-negative")
+            }
             Self::CountOverflow => write!(f, "trace counter overflow"),
         }
     }
 }
 
 impl std::error::Error for TraceError {}
+
+/// Classification of an unobserved time span. Edge gaps mean the requested
+/// interval extends outside the first/last event in the supplied trace; they
+/// do not assert anything about the machine before/after the trace.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageGapKind {
+    NoEvents,
+    BeforeFirstEvent,
+    BetweenEvents,
+    AfterLastEvent,
+}
+
+/// A threshold-exceeding interval with no event timestamp supporting it.
+///
+/// `overlap_start_ns..overlap_end_ns` is the portion intersecting the caller's
+/// requested interval. `source_gap_duration_ns` is known for between-event
+/// gaps and absent for open-ended/no-event regions. This type only describes
+/// event chronology. It does not qualify equipment state or authorize work.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoverageGap {
+    pub kind: CoverageGapKind,
+    pub overlap_start_ns: i128,
+    pub overlap_end_ns: i128,
+    pub overlap_duration_ns: i128,
+    pub source_gap_duration_ns: Option<i128>,
+}
+
+/// Find threshold-exceeding event-silence intervals intersecting a proposed
+/// operation window `[interval_start_ns, interval_end_ns)`.
+///
+/// Input events may be out of order; the function uses sorted unique timestamp
+/// values and never modifies the caller's evidence. A between-event gap is
+/// reported if the original gap exceeds the threshold even when only a small
+/// portion intersects the requested operation window. Before-first, after-last
+/// and no-event regions are measured only over the requested window.
+///
+/// **No returned gaps is not an availability or safety approval.** It means
+/// only that this detector found no gap exceeding the caller's threshold.
+pub fn find_unobserved_intervals(
+    events: &[TraceEvent],
+    interval_start_ns: i128,
+    interval_end_ns: i128,
+    max_unobserved_ns: i128,
+) -> Result<Vec<CoverageGap>, TraceError> {
+    if interval_start_ns >= interval_end_ns {
+        return Err(TraceError::InvalidCoverageInterval);
+    }
+    if max_unobserved_ns < 0 {
+        return Err(TraceError::InvalidGapThreshold);
+    }
+
+    let query_duration = interval_end_ns - interval_start_ns;
+    if events.is_empty() {
+        return Ok(if query_duration > max_unobserved_ns {
+            vec![CoverageGap {
+                kind: CoverageGapKind::NoEvents,
+                overlap_start_ns: interval_start_ns,
+                overlap_end_ns: interval_end_ns,
+                overlap_duration_ns: query_duration,
+                source_gap_duration_ns: None,
+            }]
+        } else {
+            Vec::new()
+        });
+    }
+
+    let unique_times: BTreeSet<i128> =
+        events.iter().map(|event| event.timestamp_unix_ns).collect();
+    let times: Vec<i128> = unique_times.into_iter().collect();
+    let mut gaps = Vec::new();
+
+    let first = times[0];
+    if interval_start_ns < first {
+        let overlap_end_ns = interval_end_ns.min(first);
+        if overlap_end_ns > interval_start_ns {
+            let duration = overlap_end_ns - interval_start_ns;
+            if duration > max_unobserved_ns {
+                gaps.push(CoverageGap {
+                    kind: CoverageGapKind::BeforeFirstEvent,
+                    overlap_start_ns: interval_start_ns,
+                    overlap_end_ns,
+                    overlap_duration_ns: duration,
+                    source_gap_duration_ns: None,
+                });
+            }
+        }
+    }
+
+    for pair in times.windows(2) {
+        let gap_start_ns = pair[0];
+        let gap_end_ns = pair[1];
+        let source_gap_duration_ns = gap_end_ns - gap_start_ns;
+        if source_gap_duration_ns <= max_unobserved_ns {
+            continue;
+        }
+        let overlap_start_ns = interval_start_ns.max(gap_start_ns);
+        let overlap_end_ns = interval_end_ns.min(gap_end_ns);
+        if overlap_start_ns < overlap_end_ns {
+            gaps.push(CoverageGap {
+                kind: CoverageGapKind::BetweenEvents,
+                overlap_start_ns,
+                overlap_end_ns,
+                overlap_duration_ns: overlap_end_ns - overlap_start_ns,
+                source_gap_duration_ns: Some(source_gap_duration_ns),
+            });
+        }
+    }
+
+    let last = *times.last().ok_or(TraceError::EmptyTrace)?;
+    if interval_end_ns > last {
+        let overlap_start_ns = interval_start_ns.max(last);
+        if overlap_start_ns < interval_end_ns {
+            let duration = interval_end_ns - overlap_start_ns;
+            if duration > max_unobserved_ns {
+                gaps.push(CoverageGap {
+                    kind: CoverageGapKind::AfterLastEvent,
+                    overlap_start_ns,
+                    overlap_end_ns: interval_end_ns,
+                    overlap_duration_ns: duration,
+                    source_gap_duration_ns: None,
+                });
+            }
+        }
+    }
+
+    Ok(gaps)
+}
 
 /// Parse a full trace. Blank lines are skipped; all nonblank rows must conform
 /// to exactly three pipe-separated columns. A malformed row fails the entire
@@ -420,6 +555,89 @@ mod tests {
         assert_eq!(summary.maximum_gap_ns, None);
         assert_eq!(summary.maximum_gap_start_timestamp_unix_ns, None);
         assert_eq!(summary.maximum_gap_end_timestamp_unix_ns, None);
+    }
+
+    fn timestamp(value: &str) -> i128 {
+        parse_utc_timestamp_ns(value).expect("fixture timestamp parses")
+    }
+
+    #[test]
+    fn flags_a_proposed_operation_that_crosses_a_long_event_gap() {
+        let events = parse_trace(EXCERPT).expect("excerpt parses");
+        let interval_start = timestamp("2017-02-02T17:00:00Z");
+        let interval_end = timestamp("2017-02-02T17:15:00Z");
+        let gaps = find_unobserved_intervals(
+            &events,
+            interval_start,
+            interval_end,
+            60 * NANOS_PER_SECOND,
+        )
+        .expect("interval evaluated");
+        assert_eq!(gaps.len(), 1);
+        assert_eq!(gaps[0].kind, CoverageGapKind::BetweenEvents);
+        assert_eq!(
+            gaps[0].source_gap_duration_ns,
+            Some(5_369_937_500_000_i128)
+        );
+        assert_eq!(gaps[0].overlap_duration_ns, 15 * 60 * NANOS_PER_SECOND);
+    }
+
+    #[test]
+    fn does_not_flag_short_local_event_spacing_but_makes_no_availability_claim() {
+        let events = parse_trace(EXCERPT).expect("excerpt parses");
+        let start = timestamp("2017-02-02T18:06:38.9531250Z");
+        let end = timestamp("2017-02-02T18:06:39.0000000Z");
+        let gaps =
+            find_unobserved_intervals(&events, start, end, NANOS_PER_SECOND)
+                .expect("interval evaluated");
+        assert!(gaps.is_empty());
+    }
+
+    #[test]
+    fn reports_intervals_before_after_and_without_any_events() {
+        let events = parse_trace(EXCERPT).expect("excerpt parses");
+        let before = find_unobserved_intervals(
+            &events,
+            timestamp("2017-02-02T16:00:00Z"),
+            timestamp("2017-02-02T16:30:00Z"),
+            60 * NANOS_PER_SECOND,
+        )
+        .expect("pre-trace interval evaluated");
+        assert_eq!(before.len(), 1);
+        assert_eq!(before[0].kind, CoverageGapKind::BeforeFirstEvent);
+
+        let after = find_unobserved_intervals(
+            &events,
+            timestamp("2017-02-02T19:00:00Z"),
+            timestamp("2017-02-02T19:30:00Z"),
+            60 * NANOS_PER_SECOND,
+        )
+        .expect("post-trace interval evaluated");
+        assert_eq!(after.len(), 1);
+        assert_eq!(after[0].kind, CoverageGapKind::AfterLastEvent);
+
+        let no_events = find_unobserved_intervals(
+            &[],
+            0,
+            120 * NANOS_PER_SECOND,
+            60 * NANOS_PER_SECOND,
+        )
+        .expect("empty evidence interval assessed");
+        assert_eq!(no_events.len(), 1);
+        assert_eq!(no_events[0].kind, CoverageGapKind::NoEvents);
+    }
+
+    #[test]
+    fn rejects_invalid_gap_query_bounds() {
+        let events = parse_trace(EXCERPT).expect("excerpt parses");
+        assert!(matches!(
+            find_unobserved_intervals(&events, 10, 10, 0),
+            Err(TraceError::InvalidCoverageInterval)
+        ));
+        assert!(matches!(
+            find_unobserved_intervals(&events, 0, 10, -1),
+            Err(TraceError::InvalidGapThreshold)
+        ));
     }
 
     #[test]
