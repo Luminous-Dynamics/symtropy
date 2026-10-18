@@ -1640,7 +1640,7 @@ mod tests {
         // leaving the claimed 3.5% grade untouched.
         candidate.road_envelopes[0].elevation_min_m = Some(-60.0);
         candidate.road_envelopes[1].elevation_min_m = Some(-60.0);
-        candidate.road_envelopes[1].elevation_max_m = Some(-19.25);
+        candidate.road_envelopes[1].elevation_max_m = Some(-3.15);
         let modified = serde_json::to_vec(&fixture).expect("fixture serializes");
         let report = evaluate_json(&modified).expect("finite profile remains structurally valid");
         let result = report
