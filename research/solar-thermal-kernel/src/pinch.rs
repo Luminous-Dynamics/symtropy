@@ -285,7 +285,7 @@ pub fn verify_pinch_targets(
     let prepared = shifted_streams(problem)?;
     let mut recomputed_cascade = 0.0_f64;
     let mut minimum_cascade = 0.0_f64;
-    let mut recomputed_intervals = Vec::with_capacity(endpoints.len().saturating_sub(1));
+    let mut recomputed_intervals = Vec::with_capacity(prepared.endpoints.len().saturating_sub(1));
 
     // Deliberately re-express the interval loop here rather than calling the
     // production target calculator or build_intervals().
