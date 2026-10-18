@@ -74,7 +74,13 @@ Store run receipts as downloadable CI artifacts and later sign them independentl
 
 Build repeatable elemental checks and composed mission scenarios rather than one aggregate score. NIST's [Performance of Emergency Response Robots](https://www.nist.gov/programs-projects/performance-emergency-response-robots) program uses task-oriented measurements for capabilities such as mobility, sensing, dexterity, endurance, communication, autonomy, logistics and safety; adapt the method of publishing tasks/measurements, not its physical-robot standards wholesale. The [W3C PROV Model Primer](https://www.w3.org/TR/prov-primer/) offers a vocabulary for entities, activities and responsible agents. Neither reference validates this proposed benchmark; domain expert review remains required.
 
-## 8. Promotion gates
+## 8. Standards and assurance boundary
+
+The official 2025 editions of [ISO 10218-1](https://www.iso.org/standard/73933.html) and [ISO 10218-2](https://www.iso.org/standard/73934.html) address industrial-robot safety and the integration/operation of industrial robot applications and cells. They are useful review inputs, **not an automatic compliance claim for mobile construction or underground infrastructure robots**: the published scope explicitly excludes some domains relevant to such deployments, including underground use and robots that are mounted on or part of mobile platforms. A qualified safety/compliance engineer must map the actual system, intended use, environment and jurisdiction to applicable standards before any conformity claim. This synthetic software benchmark cannot certify a robot, worksite, or emergency-stop circuit.
+
+Use NIST's repeatable, task-based response-robot methods as a model for capability measurement, not as a substitute for application-specific hazard analysis. Keep three separate records: (1) software admission semantics and adversarial tests, (2) robot/hardware test evidence under the applicable methods, and (3) site-specific commissioning and safety evidence.
+
+## 9. Promotion gates
 
 1. **Contract only:** exact-head format, manifest and adversarial tests plus independent tiny-model oracle pass.
 2. **Synthetic comparison:** all hard gates pass; >=1,000 paired seeded scenarios; denominators and uncertainty intervals are public.
