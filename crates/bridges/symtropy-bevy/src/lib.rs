@@ -39,6 +39,7 @@ pub mod biometrics;
 pub mod debug;
 pub mod macro_bridge;
 pub mod plugin;
+pub mod human_motion_metrics;
 pub mod robot;
 pub mod scripting;
 pub mod toolbus;
