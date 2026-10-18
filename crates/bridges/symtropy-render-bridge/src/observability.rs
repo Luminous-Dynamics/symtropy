@@ -282,14 +282,13 @@ fn draw_contact_overlays(
             config.max_velocity_vectors,
         ));
     }
-    let remaining = config.max_velocity_vectors.saturating_sub(velocity_glyphs.len());
+    let remaining = config
+        .max_velocity_vectors
+        .saturating_sub(velocity_glyphs.len());
     if remaining > 0
         && let Some(physics) = physics_3d.as_deref()
     {
-        velocity_glyphs.extend(extract_velocity_glyphs(
-            &physics.world.bodies,
-            remaining,
-        ));
+        velocity_glyphs.extend(extract_velocity_glyphs(&physics.world.bodies, remaining));
     }
 
     let scale = if config.velocity_scale.is_finite() {
