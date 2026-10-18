@@ -219,6 +219,13 @@ pub fn sample_review_route(
     if !elapsed_seconds.is_finite() || validate_review_route(route).is_err() {
         return None;
     }
+    sample_valid_route_pose(route, elapsed_seconds)
+}
+
+fn sample_valid_route_pose(
+    route: &ArchitecturalReviewRoute,
+    elapsed_seconds: f32,
+) -> Option<Transform> {
     // Teleport stops require an explicit user action; never advance them from
     // elapsed time. The consumer should call review_waypoint_transform only
     // after a stop is selected and confirmed.
@@ -257,6 +264,79 @@ pub fn sample_review_route(
     }
 
     waypoint_transform(route.waypoints.last()?)
+}
+
+/// Component that plays a validated route on the Transform it is attached to.
+/// For an XR scene, attach it to the rig origin and have the XR adapter apply
+/// tracked head pose below that origin; do not attach it to a head-tracked camera
+/// if that would overwrite headset movement. Invalid routes cannot construct a
+/// player. AccessibleTeleport routes are never clock-driven.
+#[derive(Component, Clone, Debug)]
+pub struct ReviewRoutePlayback {
+    route: ArchitecturalReviewRoute,
+    elapsed_seconds: f32,
+    playing: bool,
+}
+
+impl ReviewRoutePlayback {
+    pub fn new(route: ArchitecturalReviewRoute) -> Result<Self, Vec<ReviewRouteIssue>> {
+        validate_review_route(&route)?;
+        let playing = route.rig != ReviewRig::AccessibleTeleport;
+        Ok(Self {
+            route,
+            elapsed_seconds: 0.0,
+            playing,
+        })
+    }
+
+    pub fn route(&self) -> &ArchitecturalReviewRoute {
+        &self.route
+    }
+
+    pub fn elapsed_seconds(&self) -> f32 {
+        self.elapsed_seconds
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.playing
+    }
+
+    /// Pause/resume only the clock-driven modes. Teleport remains user-directed.
+    pub fn set_playing(&mut self, playing: bool) {
+        self.playing = playing && self.route.rig != ReviewRig::AccessibleTeleport;
+    }
+}
+
+/// Advance camera-route players. On invalid runtime poses, playback pauses and
+/// leaves the last valid Transform unchanged (a safe static fallback).
+pub fn advance_architectural_review_routes(
+    time: bevy::prelude::Res<bevy::prelude::Time>,
+    mut query: bevy::prelude::Query<(
+        &mut Transform,
+        &mut ReviewRoutePlayback,
+    )>,
+) {
+    for (mut transform, mut playback) in &mut query {
+        if !playback.playing {
+            continue;
+        }
+        playback.elapsed_seconds += time.delta_secs();
+        if let Some(pose) = sample_valid_route_pose(
+            &playback.route,
+            playback.elapsed_seconds,
+        ) {
+            *transform = pose;
+        } else {
+            playback.playing = false;
+            continue;
+        }
+        if let Some(last) = playback.route.waypoints.last() {
+            if playback.elapsed_seconds >= last.arrival_seconds + last.dwell_seconds {
+                playback.elapsed_seconds = last.arrival_seconds + last.dwell_seconds;
+                playback.playing = false;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -363,6 +443,21 @@ mod tests {
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
             matches!(issue, ReviewRouteIssue::DegenerateLookDirection { waypoint_id } if waypoint_id == "kitchen")
         }));
+    }
+
+    #[test]
+    fn playback_requires_validated_route_and_honors_pause_controls() {
+        let route = route();
+        let mut playback = ReviewRoutePlayback::new(route).expect("fixture route is valid");
+        assert!(playback.is_playing());
+        playback.set_playing(false);
+        assert!(!playback.is_playing());
+        playback.set_playing(true);
+        assert!(playback.is_playing());
+
+        let mut invalid = route();
+        invalid.max_translation_speed_mps = 0.0;
+        assert!(ReviewRoutePlayback::new(invalid).is_err());
     }
 
     #[test]
