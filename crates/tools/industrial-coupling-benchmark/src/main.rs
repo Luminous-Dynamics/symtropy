@@ -18,6 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             transfer_variable_cost_milli_per_input_kwh: 200,
             coordination_fixed_cost_milli: 1_000,
             source_surplus_share_bps: 5_000,
+            source_minimum_participation_surplus_milli: 10_000,
+            sink_minimum_participation_surplus_milli: 20_000,
         },
         Scenario {
             scenario_id: "IC-001-NEGATIVE-GRADE-SYNTHETIC".to_owned(),
@@ -33,6 +35,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             transfer_variable_cost_milli_per_input_kwh: 200,
             coordination_fixed_cost_milli: 1_000,
             source_surplus_share_bps: 5_000,
+            source_minimum_participation_surplus_milli: 10_000,
+            sink_minimum_participation_surplus_milli: 20_000,
         },
         Scenario {
             scenario_id: "IC-001-NEGATIVE-ECONOMICS-SYNTHETIC".to_owned(),
@@ -48,6 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             transfer_variable_cost_milli_per_input_kwh: 3_000,
             coordination_fixed_cost_milli: 1_000,
             source_surplus_share_bps: 5_000,
+            source_minimum_participation_surplus_milli: 10_000,
+            sink_minimum_participation_surplus_milli: 20_000,
         },
     ];
 
