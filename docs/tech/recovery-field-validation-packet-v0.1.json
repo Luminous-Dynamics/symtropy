@@ -25,7 +25,8 @@
       "data_rights",
       "condition_inspection"
     ],
-    "max_evidence_age_days": 30
+    "max_evidence_age_days": 30,
+    "domain": "forestry_recovery"
   },
   "protocol_contract": {
     "decision_inputs_exclude_post_decision_outcomes": true,
