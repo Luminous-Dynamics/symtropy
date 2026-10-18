@@ -29,6 +29,8 @@ Do not claim that Symthaea itself synthesizes superior body motion unless the ex
 
 ## Machine-readable trace format
 
+The motion trace records observed/predicted trajectories; it is separate from the upstream [semantic intent schema](human-motion-intent-v0.1.schema.json), which records what an agent intends to do and with what confidence/provenance. Do not use intention correctness as a substitute for realized motion quality.
+
 [`human-motion-trace-v0.1.schema.json`](human-motion-trace-v0.1.schema.json) defines the versioned world-space trace contract; [`fixtures/human-motion-trace-synthetic-v0.1.json`](fixtures/human-motion-trace-synthetic-v0.1.json) is a synthetic fixture only. JSON Schema cannot express all cross-array rules here: the future reader must reject mismatched sample lengths, non-increasing timestamps, non-finite parsed values, missing asset provenance on non-synthetic traces, and incompatible rigs before computing scores. Compare prediction/reference traces only after an explicit alignment step.
 
 ## Task suite
