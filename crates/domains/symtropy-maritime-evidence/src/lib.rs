@@ -856,24 +856,16 @@ mod tests {
 
     #[test]
     fn maps_pco_planned_arrival_payload_without_collapsing_identity_or_time() {
-        let json = r#"{
-            "shipIMONumber": "9123456",
-            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
-            "shipReportingSystemEntryPortCode": "NLRTM",
-            "dateTimeArrivalPlanned": {
-                "pilotBoardingPlaceName": "MC",
-                "plannedTimeOfArrival": "2026-10-18T12:00:00.52Z"
-            }
-        }"#;
+        let json = include_str!("../fixtures/pco-arrival-valid.json");
         let item = parse_pco_arrival_response(
             json,
             ingest_context("OBS-PCO-ARRIVAL", "PCO-TESTBED"),
         )
         .unwrap();
-        assert_eq!(item.ship_imo_number, "9123456");
-        assert_eq!(item.port_id, "NLRTM");
-        assert_eq!(item.port_call_id, "CALL-EXAMPLE-A");
-        assert_eq!(item.location_context.as_deref(), Some("MC"));
+        assert_eq!(item.ship_imo_number, "9990001");
+        assert_eq!(item.port_id, "ZZSYN");
+        assert_eq!(item.port_call_id, "SYNTH-CALL-001");
+        assert_eq!(item.location_context.as_deref(), Some("SYNTH-PBP-01"));
         assert_eq!(
             item.source_field_code,
             "dateTimeArrivalPlanned.plannedTimeOfArrival"
@@ -890,21 +882,13 @@ mod tests {
 
     #[test]
     fn maps_pco_planned_departure_payload_and_preserves_berth_name() {
-        let json = r#"{
-            "shipIMONumber": "9123456",
-            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
-            "shipReportingSystemEntryPortCode": "NLRTM",
-            "dateTimeDeparturePlanned": {
-                "berthName": "DS QUAY",
-                "plannedTimeOfDeparture": "2026-10-19T17:20:50.52Z"
-            }
-        }"#;
+        let json = include_str!("../fixtures/pco-departure-valid.json");
         let item = parse_pco_departure_response(
             json,
             ingest_context("OBS-PCO-DEPARTURE", "PCO-TESTBED"),
         )
         .unwrap();
-        assert_eq!(item.location_context.as_deref(), Some("DS QUAY"));
+        assert_eq!(item.location_context.as_deref(), Some("SYNTH-BERTH-01"));
         assert_eq!(
             item.source_field_code,
             "dateTimeDeparturePlanned.plannedTimeOfDeparture"
@@ -915,14 +899,8 @@ mod tests {
 
     #[test]
     fn pco_adapter_rejects_missing_location_and_malformed_time() {
-        let missing_location = r#"{
-            "shipIMONumber": "9123456",
-            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
-            "shipReportingSystemEntryPortCode": "NLRTM",
-            "dateTimeArrivalPlanned": {
-                "plannedTimeOfArrival": "2026-10-18T12:00:00Z"
-            }
-        }"#;
+        let missing_location =
+            include_str!("../fixtures/pco-arrival-missing-location.json");
         assert!(matches!(
             parse_pco_arrival_response(
                 missing_location,
@@ -933,15 +911,8 @@ mod tests {
             ))
         ));
 
-        let malformed_time = r#"{
-            "shipIMONumber": "9123456",
-            "shipStayReferenceNumber": "CALL-EXAMPLE-A",
-            "shipReportingSystemEntryPortCode": "NLRTM",
-            "dateTimeArrivalPlanned": {
-                "pilotBoardingPlaceName": "MC",
-                "plannedTimeOfArrival": "2026-10-18T12:00:00"
-            }
-        }"#;
+        let malformed_time =
+            include_str!("../fixtures/pco-arrival-malformed-time.json");
         assert!(matches!(
             parse_pco_arrival_response(
                 malformed_time,
