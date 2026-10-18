@@ -41,6 +41,18 @@ The Rust module includes tests for timezone normalization, fractional timestamp 
 
 These tests are authored but have not been executed here because no Rust toolchain is available through this authoring path. No compile, test, Clippy or CI pass is claimed.
 
+## Falsification and performance gates
+
+Before an operational adapter is considered, qualification should report each of these dimensions separately:
+
+- 100% exact UTC-nanosecond agreement for the frozen supported timestamp vectors, with original source lexemes and offset retained.
+- 100% of planned/requested/estimated/forecast/actual vectors retain their meaning across normalization and resolution; no cross-meaning conflict.
+- Zero malformed field/value pairs, stale source records, expired validity windows, unknown terminal/berth IDs, duplicate IDs or future source metadata silently accepted.
+- 100% report equality across permutations of the same evidence set, including conflict candidate ordering.
+- Zero conflicted semantic keys returned by the uncontested projection.
+- Explicit counts and reasons for rejected records, consistent groups and conflicts; do not compress these into one opaque quality score.
+- Measure 1,000 / 10,000 / 100,000-observation batches for p50/p95 runtime and peak memory on a named, reproducible host. Establish a measured baseline before choosing a latency SLO; never trade correctness for throughput.
+
 ## Claim ceiling and next integration steps
 
 This first slice validates an in-memory contract, not the source's authority or truth. It does not authenticate source signatures, query a live PCO API, resolve entity aliases automatically, apply port-specific trust rankings, generate a cryptographic evidence digest, or change a berth/schedule. The report is deterministic over normalized inputs but does not yet issue a cryptographic replay receipt. Do not treat this as end-to-end provenance or official API conformance.
