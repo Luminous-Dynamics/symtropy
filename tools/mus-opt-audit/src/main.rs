@@ -64,7 +64,7 @@ fn expected_disposition(challenge: &str) -> Option<&'static str> {
     }
 }
 
-fn semantic_findings(schema: &Value, corpus: &Value) -> Vec<String> {
+fn semantic_findings(corpus: &Value) -> Vec<String> {
     let mut findings = Vec::new();
     let cases = match corpus.get("scenarios").and_then(Value::as_array) {
         Some(value) => value,
@@ -168,6 +168,10 @@ fn semantic_findings(schema: &Value, corpus: &Value) -> Vec<String> {
             let as_of_date = observation.get("as_of_date");
             let uncertainty = observation.get("uncertainty_absolute");
 
+            if kind == "baseline" && evidence_status != "unresolved" {
+                findings.push(format!("{metric_path}: baseline objective must remain unresolved until actual source/observation evidence is attached"));
+            }
+
             if evidence_status == "unresolved" {
                 if !value.is_some_and(Value::is_null) {
                     findings.push(format!("{metric_path}.value: unresolved objective must be null, never a zero-value pass"));
@@ -181,9 +185,7 @@ fn semantic_findings(schema: &Value, corpus: &Value) -> Vec<String> {
                 if metric_name == "bom_cost" && !observation.get("currency_code").is_some_and(Value::is_null) {
                     findings.push(format!("{metric_path}.currency_code: unresolved BOM cost must have null currency"));
                 }
-                if kind == "baseline" && evidence_status != "unresolved" {
-                    findings.push(format!("{metric_path}: baseline objectives may not imply evidence before the pilot"));
-                }
+
             } else if ["quoted", "observed", "derived"].contains(&evidence_status) {
                 if !value.is_some_and(Value::is_number) {
                     findings.push(format!("{metric_path}.value: resolved evidence requires a numeric value"));
@@ -234,7 +236,7 @@ fn build_report(schema_bytes: &[u8], corpus_bytes: &[u8], schema: &Value, corpus
     jsonschema::meta::validate(schema).map_err(|e| format!("schema meta-validation failed: {e}"))?;
     let validator = jsonschema::validator_for(schema).map_err(|e| format!("schema compilation failed: {e}"))?;
     let mut findings = validator.iter_errors(corpus).map(|e| format!("schema validation: {e}")).collect::<Vec<_>>();
-    findings.extend(semantic_findings(schema, corpus));
+    findings.extend(semantic_findings(corpus));
 
     let scenarios = corpus.get("scenarios").and_then(Value::as_array).cloned().unwrap_or_default();
     Ok(AuditReport {
@@ -326,7 +328,7 @@ mod tests {
         serde_json::from_str(include_str!("../../../fixtures/manufacturing/instrument_architecture_matrix_v0_1.json")).expect("corpus parses")
     }
     fn findings(data: &Value) -> Vec<String> {
-        semantic_findings(&schema(), data)
+        semantic_findings(data)
     }
 
     #[test]
@@ -359,6 +361,17 @@ mod tests {
         let mut data = corpus();
         data["scenarios"][0]["objective_evidence"]["bom_cost"]["value"] = json!(0);
         assert!(findings(&data).iter().any(|f| f.contains("unresolved objective must be null")));
+    }
+
+    #[test]
+    fn baseline_cannot_promote_a_metric_to_quoted_evidence() {
+        let mut data = corpus();
+        data["scenarios"][0]["objective_evidence"]["bom_cost"]["value"] = json!(120);
+        data["scenarios"][0]["objective_evidence"]["bom_cost"]["evidence_status"] = json!("quoted");
+        data["scenarios"][0]["objective_evidence"]["bom_cost"]["currency_code"] = json!("ZAR");
+        data["scenarios"][0]["objective_evidence"]["bom_cost"]["source_ref"] = json!("quote-example");
+        data["scenarios"][0]["objective_evidence"]["bom_cost"]["as_of_date"] = json!("2026-10-18");
+        assert!(findings(&data).iter().any(|f| f.contains("baseline objective must remain unresolved")));
     }
 
     #[test]
