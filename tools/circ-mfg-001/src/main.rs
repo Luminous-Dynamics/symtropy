@@ -3,7 +3,7 @@
 //! CIRC-MFG-001 synthetic contract auditor.
 //!
 //! This tool evaluates evidence semantics in a frozen synthetic fixture set.
-//! "Eligible" means only that the fixture satisfies this contract; it is not
+//! "Conformant" means only that the fixture satisfies this contract; it is not
 //! a manufacturing release, safety approval, building-code determination, or
 //! physical qualification.
 
@@ -115,7 +115,7 @@ enum ExternalRefRole {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 enum Decision {
-    Eligible,
+    Conformant,
     Blocked,
     Unresolved,
 }
@@ -553,7 +553,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     } else if unresolved {
         Decision::Unresolved
     } else {
-        Decision::Eligible
+        Decision::Conformant
     };
     CaseResult {
         case_id: case.case_id.clone(),
@@ -605,7 +605,7 @@ fn build_report(manifest: &Manifest, raw_input: &[u8]) -> Report {
 
 fn usage() -> &'static str {
     "Usage: circ-mfg-audit [manifest.json] [--output report.json]\n\
-     Evaluates Synthetic CIRC-MFG-001 v0.1 fixtures only. Eligible is not physical qualification."
+     Evaluates Synthetic CIRC-MFG-001 v0.1 fixtures only. Conformant is not physical qualification."
 }
 
 fn main() {
@@ -693,7 +693,7 @@ mod tests {
         // manifest. Editing both a fixture and its expected_decision must not
         // make the suite agree with itself silently.
         const EXPECTED: &[(&str, Decision)] = &[
-            ("01-complete-evidence-and-external-bindings", Decision::Eligible),
+            ("01-complete-evidence-and-external-bindings", Decision::Conformant),
             ("02-verified-payload-digest-mismatch", Decision::Blocked),
             ("03-required-material-lot-missing", Decision::Unresolved),
             ("04-mandatory-quality-gate-fails", Decision::Blocked),
