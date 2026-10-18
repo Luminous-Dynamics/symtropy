@@ -257,7 +257,10 @@ mod tests {
 
         let world = app.world_mut();
         let mut query = world.query::<&DirectionalLight>();
-        let sun = query.iter(world).next().expect("configured sun should spawn");
+        let sun = query
+            .iter(world)
+            .next()
+            .expect("configured sun should spawn");
         assert!(!sun.shadow_maps_enabled);
     }
 
@@ -277,7 +280,10 @@ mod tests {
 
         let world = app.world_mut();
         let mut query = world.query::<&DirectionalLight>();
-        let light = query.iter(world).next().expect("secondary light should spawn");
+        let light = query
+            .iter(world)
+            .next()
+            .expect("secondary light should spawn");
         assert!(light.shadow_maps_enabled);
     }
 
