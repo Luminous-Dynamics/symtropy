@@ -43,6 +43,13 @@ The last two are sensitivity estimates from related measurements and a shared so
 
 The seed defines three separate reconstruction models and one model-comparison group. Its explicit decision rule is to report axes separately instead of synthesizing a winner. Initial axes include fit to measured hole spacing, sensitivity to fracture handling, calendar-interpretation consistency, mechanical feasibility, dependence on missing geometry, and evidence provenance.
 
+The comparison contains four explicit model/axis assessments:
+- **Source-reported:** the 2024 authors' conclusion that 365 holes are not plausible under their assumptions, plus their two sensitivity estimates. This is attributed to the paper, not independently re-fit here.
+- **Source-reported:** the 2025 authors' statement that three candidate designs are mechanically feasible; the candidates have not been locally recreated.
+- **Not evaluated:** common mechanical feasibility for the 365-hole candidate. This is explicitly recorded as unassessed, not treated as evidence against it.
+
+Every assessment must name a declared comparison axis and a model in the comparison group. Future `independently_reproduced` results require a versioned validation artifact; a citation alone is insufficient.
+
 This is only a typed literature comparison. We have not locally recreated any gear train, refit the published statistical model, or verified any paper's numerical output.
 
 ## Validation and adversarial tests
