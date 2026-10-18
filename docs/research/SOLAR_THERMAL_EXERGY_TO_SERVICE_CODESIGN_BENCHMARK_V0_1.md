@@ -118,17 +118,27 @@ The canonical analytic day/night fixture has a 10 kg store with constant 1,000 J
 
 Next, extend this state layer without skipping falsification: grow the fixed receipt schema into a versioned schedule-trace format; seed negative controls for duration/power mismatch, capacity overflow, incorrect temperature-grade transfer, tampered or reordered periods, duplicated energy, and inconsistent state; then connect per-period pinch targets to storage state and utilities. The time-expanded graph must preserve energy grade, source provenance, interval duration, rate constraints, and service timing. A controller is not allowed to certify its own result.
 
+### 3.8 Turn the model into an active scientist
+
+Symthaea can propose the next simulation or measurement that most reduces decision-relevant uncertainty, not merely search a fixed design space. Test expected value of information per unit time and cost using a held-out evaluator.
+
+This requires separating epistemic uncertainty (poorly known model parameters) from real variability (weather and demand). The agent must not get evaluator-only ground truth. A simulation recommendation must say which measurement could disconfirm the preferred design and what decision changes if its result differs.
+
 ### 3.9 Make fidelity adaptive to the decision
 
 A fixed-fidelity model forces a bad trade: either every candidate is expensive to simulate, or every candidate inherits the limitations of a fast simplified model. Instead use a promotion ladder: analytic/lumped screening, dynamic reduced-order dispatch, a richer stratified or multi-node model when temperature grade and fast draw matter, then a pinned external reference or experiment for finalists. The cheap model must declare its validity envelope; outside that envelope, escalate rather than extrapolate silently.
 
 The goal is not maximal simulation fidelity everywhere. It is **decision quality per unit of evaluation budget**. Pre-register output-specific tolerances and report false-screen rate (high-fidelity winners discarded early), false-promotion rate (cheap winners failing the higher-fidelity check), ranking flips, compute time, memory and evaluator calls. A proposed initial engineering target is at least 10× faster screening on a pinned corpus while every decision-critical output stays inside its declared error budget; this is a test target, not achieved performance. See [THERMAL-FIDELITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/1954).
 
-### 3.8 Turn the model into an active scientist
+### 3.10 Optimize for tail service risk, not mean performance alone
 
-Symthaea can propose the next simulation or measurement that most reduces decision-relevant uncertainty, not merely search a fixed design space. Test expected value of information per unit time and cost using a held-out evaluator.
+Expected cost or average useful heat can hide rare but serious failures. The benchmark must treat critical-service floors as hard constraints and report the upper tail of unmet-service fraction and operating-cost regret separately from the mean. Scenario-based stochastic, robust/worst-case, risk-aware CVaR, deterministic forecast, rule-based and perfect-foresight policies must receive the same realized scenarios and appropriate information at decision time. Perfect foresight is an upper bound only; it must never be presented as an online controller.
 
-This requires separating epistemic uncertainty (poorly known model parameters) from real variability (weather and demand). The agent must not get evaluator-only ground truth. A simulation recommendation must say which measurement could disconfirm the preferred design and what decision changes if its result differs.
+Preserve chronology and correlation among irradiance, ambient temperature, load, tariffs and faults. Separate forecast inputs available to the controller from held-out realized conditions used only by the evaluator. Include cloudy/ramp events, seasonal demand shifts, component outages, sensor dropouts, forecast bias and storage degradation. Do not let scenario reduction remove rare service-critical events without a documented coverage audit.
+
+Report expected service shortfall, worst-case shortfall, weighted P95 and CVaR95 of demand-normalized unmet heat, probability of critical-service-floor violation, longest consecutive deficit, reserve-floor excursions, fallback activations and tail regret against a held-out oracle. Define the weighted quantile and CVaR convention explicitly and test it on small hand-calculable distributions, including ties and fractional tail mass. A service-floor breach cannot be compensated by a lower average cost.
+
+This direction is supported by published CST/TES research comparing stochastic dispatch with deterministic and heuristic strategies, and newer risk-aware MPC studies that explicitly measure dispatch deficit and upper-tail scenario risk. Their quantitative gains are plant- and objective-specific; they are hypotheses for a matched-boundary benchmark, not targets to copy blindly. See [THERMAL-RISK-001](https://github.com/Luminous-Dynamics/symtropy/issues/1969).
 
 ## 4. System alternatives
 
@@ -324,6 +334,7 @@ Report a Pareto table instead of one opaque score. Primary metrics must be prede
 ### Service and thermodynamics
 - fraction of required heat demand met, stratified by load and temperature band;
 - unmet useful heat in kWh_th, heat-deficit hours, longest interruption and critical-load service;
+- expected, worst-case, weighted P95 and CVaR95 of demand-normalized unmet heat; probability of critical service-floor violation and held-out regret;
 - net electricity delivered or consumed, reported separately from heat;
 - annual useful solar fraction, dump/curtailment fraction, parasitic energy and start-up losses;
 - exergy delivered at the load and declared exergy destruction / loss budget;
@@ -353,6 +364,7 @@ All following are proposed experimental gates, not standards or demonstrated res
 5. **Shift robustness:** retain declared service floors on held-out site/year/weather and fault families; report worst-case and tail results, not only means.
 6. **Ablation evidence:** the claimed Symthaea mechanism must contribute measurable incremental value versus the strongest non-Symthaea design/control search at equal budgets.
 7. **Multi-fidelity decision quality:** measure low-to-high-fidelity false screens, false promotions, ranking flips and decision quality per compute budget. Require per-quantity error budgets and escalation on out-of-domain or decision-reversing model disagreement ([THERMAL-FIDELITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/1954)).
+8. **Tail-risk service quality:** report weighted P95/CVaR95 shortfall, critical-service violation probability and worst-case deficit; preserve hard critical-service/equipment limits under held-out weather, demand and fault scenarios. Perfect foresight is an upper-bound comparator only ([THERMAL-RISK-001](https://github.com/Luminous-Dynamics/symtropy/issues/1969)).
 7. **Engineering cost:** include model-build, simulator-call, compute and human-review effort. A small gain requiring disproportionate engineering or unrealistic sensors is not automatically useful.
 8. **External evidence:** hardware or field performance, component durability, safety and real cost remain separate gates requiring their own measurements and review.
 9. **Numerical resolution:** compare loss integration with a closed-form constant-cp reference; demonstrate timestep-refinement convergence for variable cp(T); bind integrator/version/tolerance/step settings into receipts, and reject or explicitly flag trajectories outside the error budget ([THERMAL-LOSS-001](https://github.com/Luminous-Dynamics/symtropy/issues/1947)). Energy closure alone does not establish trajectory accuracy.
@@ -393,6 +405,10 @@ Use only sources appropriate to the modeled technology and version. Initial refe
 
 - Walmsley (2026), **OpenPinch: An Open-Source Python Library for Advanced Pinch Analysis and Total Site Integration**, *Process Integration and Optimization for Sustainability* 10, 3947–3963, DOI: https://doi.org/10.1007/s41660-026-00729-6. Use as a reference for method semantics and test cases; Symtropy’s Rust implementation must be independently compared, not assumed equivalent.
 - Falch, Espen, and Anantharaman (2026), **Optimizing Heat Storage Integration for Solar Thermal Systems in Industrial Process Heat Networks**, *Systems and Control Transactions* 5, 419–423, DOI: https://doi.org/10.69997/sct.176470. The lubricant-plant utilization/storage numbers are an external reproduction target only after exact data, assumptions, and measurement boundaries are pinned.
+
+- Mohammadzadeh et al. (2024), **A stochastic-MILP dispatch optimization model for concentrated solar thermal under uncertainty**, *Sustainable Energy, Grids and Networks* 39, 101458, DOI https://doi.org/10.1016/j.segan.2024.101458. Use as a baseline-design reference for stochastic and heuristic dispatch comparisons; preserve the perfect-knowledge upper-bound distinction.
+- **Risk-aware stochastic MPC for optimal dispatch in concentrating solar power plants under irradiance uncertainty** (2026), DOI https://doi.org/10.1016/j.segan.2026.101458. The indexed abstract reports evaluations against deterministic MPC, scenario-based stochastic MPC, rule-based and robust-minimax baselines using scenario-tail CVaR and dispatch deficit. Treat its gains as case-specific; first align plant, forecast, storage, cost and service boundaries.
+- **Medium-term optimal operation of energy hub considering risk assessment and uncertainties of energy price and renewable energy resources** (2025), DOI https://doi.org/10.1016/j.ecmx.2025.101350, illustrates a CVaR-based cost/risk trade-off for a system that includes thermal storage.
 
 Record source version, licence/terms, units, calibration window, missing-data handling and provenance. Do not invent field inputs from climatology or literature summaries. Reference models are not truth: validate against physical data within the proposed system's regime.
 
