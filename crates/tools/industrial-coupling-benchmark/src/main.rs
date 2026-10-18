@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // A single transfer quantity must remain acceptable under both scenarios.
     // The objective maximizes the worst-case surplus, not the average.
-    let mut conservative = Scenario {
+    let conservative = Scenario {
         scenario_id: "IC-001-CONSERVATIVE-SYNTHETIC".to_owned(),
         source_surplus_kwh: 60,
         sink_heat_demand_kwh: 35,
@@ -95,7 +95,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         source_minimum_participation_surplus_milli: 10_000,
         sink_minimum_participation_surplus_milli: 20_000,
     };
-    conservative.source_supply_temp_c = 180;
     let robust_scenarios = vec![
         Scenario {
             scenario_id: "IC-001-POSITIVE-SYNTHETIC".to_owned(),
