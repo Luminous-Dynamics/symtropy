@@ -42,40 +42,70 @@
       "request_ref": "req-study-001",
       "outcome": {
         "class": "accepted_within_useful_window"
-      }
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": "80",
+      "acceptance_evidence_ref": "evt-study-001-acceptance",
+      "acceptance_decision_mode": "farmer_direct",
+      "acceptance_authority_ref": null
     },
     {
       "request_ref": "req-study-002",
       "outcome": {
         "class": "accepted_late"
-      }
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": "120",
+      "acceptance_evidence_ref": "evt-study-002-acceptance",
+      "acceptance_decision_mode": "farmer_direct",
+      "acceptance_authority_ref": null
     },
     {
       "request_ref": "req-study-003",
       "outcome": {
         "class": "known_not_accepted",
         "reason_code": "no_provider_available"
-      }
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null
     },
     {
       "request_ref": "req-study-004",
       "outcome": {
         "class": "provider_completion_awaiting_farmer_decision",
         "useful_window_status": "open"
-      }
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null
     },
     {
       "request_ref": "req-study-005",
       "outcome": {
         "class": "disputed_or_rework",
         "resolution": "unresolved"
-      }
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null
     },
     {
       "request_ref": "req-study-006",
       "outcome": {
         "class": "outcome_unknown"
-      }
+      },
+      "useful_window_deadline_minute": "100",
+      "acceptance_at_minute": null,
+      "acceptance_evidence_ref": null,
+      "acceptance_decision_mode": null,
+      "acceptance_authority_ref": null
     }
   ]
 }
