@@ -9,8 +9,12 @@ This is a deliberately small first prototype. It checks whether records are inte
 From the Symtropy workspace root:
 
 ```sh
+# Structural validation
 cargo test -p humanity-history-core
 cargo run -p humanity-history-core --bin humanity-history-validate -- crates/domains/humanity-history-core/fixtures/synthetic-validation.json
+
+# Calculate the declared point-vs-interval sensitivity probes
+cargo run -p humanity-history-core --bin humanity-history-validate -- analyze-contrasts crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
 ```
 
 The CLI prints a JSON report. Exit codes are:
@@ -54,6 +58,17 @@ cargo run -p humanity-history-core --bin humanity-history-validate -- crates/dom
 ```
 
 The authored unit suite also parses and validates the seed via `include_str!`. This check has **not been executed in the current environment**; do not treat its expected clean result as a passing test until a Rust toolchain runs the suite.
+
+## Descriptive sensitivity diagnostic
+
+`analyze-contrasts` evaluates the explicitly declared `estimate_contrasts` in the dataset. It reports the candidate point's position relative to the reference estimate's reported interval and the distance to the nearest interval bound in the declared unit.
+
+For the Antikythera research seed, the expected descriptive result is:
+- 365 compared with the all-measurement 68% interval [353.88, 356.63]: above the interval by 8.37 holes.
+- 365 compared with the fracture-excluded 68% interval [352.67, 355.55]: above by 9.45 holes.
+- 354 lies within each of those two reported intervals.
+
+These are arithmetic locations relative to intervals reported by a paper. They are **not** posterior model probabilities, Bayes factors, or a formal adjudication of the calendar-ring interpretation. Woan and Bayley's two intervals are alternative analyses of related measurements, not independent replications. The 354 and 365 values are published reconstruction parameters; comparing one to an interval does not itself prove which historical model is correct.
 
 ## Synthetic fixture
 
