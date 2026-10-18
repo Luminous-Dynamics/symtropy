@@ -630,6 +630,9 @@ fn evaluate(root: &Value) -> Result<Value, Vec<String>> {
             if !flag(platform, "has_recovery_plan") {
                 mismatch_reasons.insert(format!("{leg_id}:platform_recovery_plan_missing"));
             }
+            let has_people = payload_list
+                .iter()
+                .any(|payload| num(payload, "occupants") > 0.0);
             if has_people && !flag(platform, "has_emergency_egress") {
                 mismatch_reasons.insert(format!("{leg_id}:human_transport_egress_missing"));
             }
