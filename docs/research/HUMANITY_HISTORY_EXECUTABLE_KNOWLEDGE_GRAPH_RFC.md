@@ -6,7 +6,7 @@
 - **Non-goal:** claiming that one model, one civilization narrative, or one physics engine can explain all human history
 - **Decision requested:** review the domain model, evidence contract, first vertical slice, and benchmark gates before implementation expands
 
-> **Implementation snapshot (2026-10-18):** This draft branch now includes an initial `humanity-history-core` Rust package, typed source/claim/evidence/relation/asset records, a JSON validation CLI, a synthetic fixture, and 18 unit tests. The tests have been authored but **have not been executed** in this environment because a Rust toolchain is unavailable. This is a prototype snapshot, not a passing build claim. The validator checks structural invariants; it does not establish historical truth or evaluate whether cited text semantically entails a claim.
+> **Implementation snapshot (2026-10-18):** This draft branch now includes an initial `humanity-history-core` Rust package, typed source/claim/evidence/relation/asset records, a JSON validation CLI, a synthetic fixture, an Antikythera research seed (6 sources, 7 claims, 2 challenge edges, no bundled media), and 19 unit tests. The tests have been authored but **have not been executed** in this environment because a Rust toolchain is unavailable. This is a prototype snapshot, not a passing build claim. The validator checks structural invariants; it does not establish historical truth or evaluate whether cited text semantically entails a claim.
 
 ## 1. Executive thesis
 
