@@ -42,10 +42,7 @@ jobs:
       - name: TEMP format and emit source for patch capture
         run: |
           cargo fmt --manifest-path tools/civ-infra-adaptive-investigation/Cargo.toml
-          for file in \\
-            tools/civ-infra-adaptive-investigation/src/lib.rs \\
-            tools/civ-infra-adaptive-investigation/src/main.rs \\
-            tools/civ-infra-adaptive-investigation/tests/adaptive_policy.rs; do
+          for file in tools/civ-infra-adaptive-investigation/src/lib.rs tools/civ-infra-adaptive-investigation/src/main.rs tools/civ-infra-adaptive-investigation/tests/adaptive_policy.rs; do
             echo "FILE_BEGIN:$file"
             base64 -w0 "$file"
             echo
