@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod external_audit;
 pub mod provenance;
 
 use serde::{Deserialize, Serialize};
