@@ -1,6 +1,6 @@
 # Recovery Classification Record Audit
 
-Standalone Rust tool for verifying the content integrity and case/profile binding of the synthetic record packet in Symtropy. It is layered on the scenario applicability audit branch and is intentionally a separate executable so the record-packet receipt can be qualified independently.
+Standalone Rust tool for verifying the content integrity and case/profile binding of the synthetic record packet in Symtropy. The outer packet envelope is documented in `schemas/recovery/classification-record-packet-v0.1.schema.json`; its schema does not replace the Rust semantic and digest checks. It is layered on the scenario applicability audit branch and is intentionally a separate executable so the record-packet receipt can be qualified independently.
 
 ## Run
 
