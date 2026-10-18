@@ -271,6 +271,13 @@ struct EvaluatorEventQueue {
     injections_by_tick: BTreeMap<u32, Vec<String>>,
 }
 
+fn normalize_queue_buckets(queue: &mut BTreeMap<u32, Vec<String>>) {
+    for case_ids in queue.values_mut() {
+        case_ids.sort();
+        case_ids.dedup();
+    }
+}
+
 impl EvaluatorEventQueue {
     fn from_events(events: &[QueuedEvent]) -> Self {
         let mut queue = Self::default();
