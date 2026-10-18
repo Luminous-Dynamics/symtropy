@@ -125,7 +125,7 @@ mod tests {
     };
 
     fn utc(value: &str) -> i128 {
-        super::super::super::parse_rfc3339_timestamp(value)
+        super::super::parse_rfc3339_timestamp(value)
             .expect("frozen synthetic timestamp parses")
             .utc_unix_nanos()
     }
