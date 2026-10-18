@@ -16,6 +16,7 @@ on:
       - "docs/tech/PROOF_CARRYING_REPAIR_OUTCOME_BENCHMARK_V0_1.md"
       - "docs/tech/REPAIRABILITY_FACTORIAL_EXPERIMENT_PLAN_V0_1.md"
       - "docs/tech/PARTS_COMPATIBILITY_EVIDENCE_GRAPH_V0_1.md"
+      - "docs/tech/ORDS_V0_3_EVIDENCE_ADAPTER_AND_SAMPLING_LIMITS_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -39,6 +40,7 @@ on:
       - "docs/tech/PROOF_CARRYING_REPAIR_OUTCOME_BENCHMARK_V0_1.md"
       - "docs/tech/REPAIRABILITY_FACTORIAL_EXPERIMENT_PLAN_V0_1.md"
       - "docs/tech/PARTS_COMPATIBILITY_EVIDENCE_GRAPH_V0_1.md"
+      - "docs/tech/ORDS_V0_3_EVIDENCE_ADAPTER_AND_SAMPLING_LIMITS_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -88,3 +90,7 @@ jobs:
           --experiment-plan fixtures/appliances/washer_repairability_factorial_plan_v0_1.json
           --compatibility-schema schemas/appliances/parts_compatibility_evidence_graph_v0_1.schema.json
           --compatibility-graph fixtures/appliances/parts_compatibility_evidence_graph_v0_1.json
+          --ords-schema schemas/appliances/ords_adapter_mapping_v0_1.schema.json
+          --ords-mapping fixtures/appliances/ords_adapter_mapping_v0_1.json
+          --ords-csv fixtures/appliances/ords_v0_3_synthetic.csv
+          --ords-output /tmp/ords-v0-3-synthetic.jsonl
