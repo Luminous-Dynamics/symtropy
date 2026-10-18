@@ -105,10 +105,12 @@ enum ExternalAuthority {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 enum ExternalRefRole {
+    ProcessPlanReference,
     ProcessExecutionReceipt,
     QualificationReceipt,
     MaterialFlowAccount,
     ChainOfCustodyProfile,
+    SiteResourceObservation,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -705,6 +707,7 @@ mod tests {
             ("12-custody-reference-role-mismatch", Decision::Blocked),
             ("13-duplicate-custody-reference", Decision::Blocked),
             ("14-external-reference-authority-mismatch", Decision::Blocked),
+            ("15-site-resource-observation-missing", Decision::Unresolved),
         ];
 
         let (manifest, raw) = fixture();
