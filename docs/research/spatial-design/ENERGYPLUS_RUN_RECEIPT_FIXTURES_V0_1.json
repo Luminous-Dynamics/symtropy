@@ -1,0 +1,722 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmark_id": "ENERGYPLUS-RUN-RECEIPT-GATE",
+  "version": "0.1.0",
+  "status": "synthetic_receipt_gate_fixtures_not_engine_runs",
+  "claim_ceiling": "These ten records are synthetic known-answer fixtures for adapter-envelope gate logic. No EnergyPlus package has been installed or executed by this fixture corpus; a fixture marked eligible only means its record is structurally eligible for reference comparison, not that physical performance has been validated.",
+  "required_fixture_count": 10,
+  "fixtures": [
+    {
+      "fixture_id": "EPLUS-F-001",
+      "title": "Complete pinned run envelope is eligible for reference comparison only",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-001",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "eligible_for_reference_comparison",
+        "claimed_blocker_codes": []
+      },
+      "expected_gate": "eligible_for_reference_comparison",
+      "expected_blocker_codes": []
+    },
+    {
+      "fixture_id": "EPLUS-F-002",
+      "title": "Unpinned package digest remains unknown",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-002",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "unknown",
+        "claimed_blocker_codes": [
+          "ENGINE_PACKAGE_DIGEST_MISMATCH"
+        ]
+      },
+      "expected_gate": "unknown",
+      "expected_blocker_codes": [
+        "ENGINE_PACKAGE_DIGEST_MISMATCH"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-003",
+      "title": "Input schema revision mismatch remains unknown",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-003",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.1.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "unknown",
+        "claimed_blocker_codes": [
+          "INPUT_SCHEMA_REVISION_MISMATCH"
+        ]
+      },
+      "expected_gate": "unknown",
+      "expected_blocker_codes": [
+        "INPUT_SCHEMA_REVISION_MISMATCH"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-004",
+      "title": "Non-converged solver is blocked, never treated as zero",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-004",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": false,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "blocked",
+        "claimed_blocker_codes": [
+          "SOLVER_NOT_CONVERGED"
+        ]
+      },
+      "expected_gate": "blocked",
+      "expected_blocker_codes": [
+        "SOLVER_NOT_CONVERGED"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-005",
+      "title": "Nonzero process exit is blocked",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-005",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "failed",
+          "exit_code": 1,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "blocked",
+        "claimed_blocker_codes": [
+          "PROCESS_EXIT_NONZERO",
+          "RUN_NOT_COMPLETED"
+        ]
+      },
+      "expected_gate": "blocked",
+      "expected_blocker_codes": [
+        "PROCESS_EXIT_NONZERO",
+        "RUN_NOT_COMPLETED"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-006",
+      "title": "Partial output bundle is blocked",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-006",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "partial",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": true,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "blocked",
+        "claimed_blocker_codes": [
+          "PARTIAL_OUTPUTS",
+          "RUN_NOT_COMPLETED"
+        ]
+      },
+      "expected_gate": "blocked",
+      "expected_blocker_codes": [
+        "PARTIAL_OUTPUTS",
+        "RUN_NOT_COMPLETED"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-007",
+      "title": "Missing required temperature output is unknown",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-007",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "unknown",
+        "claimed_blocker_codes": [
+          "REQUIRED_OUTPUT_MISSING:Zone Air Temperature"
+        ]
+      },
+      "expected_gate": "unknown",
+      "expected_blocker_codes": [
+        "REQUIRED_OUTPUT_MISSING:Zone Air Temperature"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-008",
+      "title": "Output units that differ from the contract are unknown",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-008",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "Wh",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "unknown",
+        "claimed_blocker_codes": [
+          "OUTPUT_UNITS_MISMATCH:Electricity:Facility"
+        ]
+      },
+      "expected_gate": "unknown",
+      "expected_blocker_codes": [
+        "OUTPUT_UNITS_MISMATCH:Electricity:Facility"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-009",
+      "title": "Severe solver errors are blocked",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-009",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 1,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "blocked",
+        "claimed_blocker_codes": [
+          "SOLVER_SEVERE_ERRORS"
+        ]
+      },
+      "expected_gate": "blocked",
+      "expected_blocker_codes": [
+        "SOLVER_SEVERE_ERRORS"
+      ]
+    },
+    {
+      "fixture_id": "EPLUS-F-010",
+      "title": "A self-declared gate cannot override clean run evidence",
+      "receipt": {
+        "receipt_id": "EPLUS-RUN-010",
+        "receipt_schema_version": "0.1.0",
+        "engine": {
+          "name": "EnergyPlus",
+          "version": "26.2.0",
+          "git_tag": "v26.2.0",
+          "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+          "package_sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+          "platform": "ubuntu-24.04-x86_64"
+        },
+        "input": {
+          "format": "epJSON",
+          "schema_revision": "EnergyPlus-v26.2.0-epJSON",
+          "schema_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "model_id": "single-zone-reference-v1",
+          "model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "authoritative_geometry_revision": "geometry-revision-v1",
+          "weather_id": "weather-fixture-v1",
+          "weather_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "schedule_revision": "schedule-revision-v1",
+          "schedule_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "unit_system": "SI",
+          "timestep_minutes": 15,
+          "run_start_date": "2026-01-01",
+          "run_end_date": "2026-01-07",
+          "warmup_max_days": 25,
+          "calendar_basis": "energyplus_standard_time_no_implicit_utc_conversion"
+        },
+        "execution": {
+          "run_status": "completed",
+          "exit_code": 0,
+          "converged": true,
+          "severe_error_count": 0,
+          "fatal_error_count": 0,
+          "partial_outputs": false,
+          "run_log_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "outputs": [
+          {
+            "name": "Zone Air Temperature",
+            "kind": "variable",
+            "units": "C",
+            "report_frequency": "timestep",
+            "artifact_path": "outputs/zone-air-temperature.csv",
+            "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "sample_count": 672
+          },
+          {
+            "name": "Electricity:Facility",
+            "kind": "meter",
+            "units": "J",
+            "report_frequency": "hourly",
+            "artifact_path": "outputs/electricity-facility.csv",
+            "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "sample_count": 168
+          }
+        ],
+        "claimed_gate": "blocked",
+        "claimed_blocker_codes": [
+          "FALSE_BLOCKER"
+        ]
+      },
+      "expected_gate": "unknown",
+      "expected_blocker_codes": [
+        "CLAIMED_BLOCKER_CODES_MISMATCH",
+        "CLAIMED_GATE_MISMATCH"
+      ]
+    }
+  ]
+}
