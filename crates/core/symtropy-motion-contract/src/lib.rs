@@ -170,7 +170,7 @@ impl fmt::Display for IntentValidationError {
             Self::InvalidEvaluationTime => "evaluation time must be finite and non-negative",
             Self::InvalidValidityWindow => {
                 "valid_until_sec must be finite and greater than issued_at_sec"
-            },
+            }
             Self::NotYetValid => "intent was issued after the supplied simulation time",
             Self::Expired => "intent has expired",
             Self::InvalidUrgency => "urgency must be finite and in [0, 1]",
@@ -178,18 +178,18 @@ impl fmt::Display for IntentValidationError {
             Self::InvalidUncertainty => "uncertainty must be finite and in [0, 1]",
             Self::MissingCalibrationProfile => {
                 "calibrated probability requires calibration_profile_id"
-            },
+            }
             Self::MissingLocomotionVelocity => {
                 "locomote intent requires desired_planar_velocity_mps"
-            },
+            }
             Self::InvalidVelocity => "desired planar velocity contains a non-finite value",
             Self::MissingTarget => "reach/grasp intent requires an entity or positional target",
             Self::InvalidTarget => {
                 "intent target contains no valid entity, position, or orientation"
-            },
+            }
             Self::InvalidTargetPosition => {
                 "target position must contain finite world-space coordinates"
-            },
+            }
             Self::InvalidTargetOrientation => concat!(
                 "target orientation must be a finite near-unit quaternion ",
                 "in x,y,z,w order"
@@ -198,7 +198,7 @@ impl fmt::Display for IntentValidationError {
             Self::EmptyPolicyVersion => "provenance.policy_version must not be empty",
             Self::InvalidObservationDigest => {
                 "observation_digest_sha256 must be 64 hexadecimal characters"
-            },
+            }
             Self::InvalidModelDigest => "model_sha256 must be 64 hexadecimal characters",
             Self::MissingModelDigest => "external_model source requires model_sha256",
         };
@@ -231,7 +231,10 @@ impl SemanticMotionIntent {
         if !self.issued_at_sec.is_finite() || self.issued_at_sec < 0.0 {
             return Err(IntentValidationError::InvalidIssuedTime);
         }
-        if self.valid_until_sec.is_some_and(|end| !end.is_finite() || end <= self.issued_at_sec) {
+        if self
+            .valid_until_sec
+            .is_some_and(|end| !end.is_finite() || end <= self.issued_at_sec)
+        {
             return Err(IntentValidationError::InvalidValidityWindow);
         }
         if !in_unit_interval(self.urgency) {
@@ -244,7 +247,10 @@ impl SemanticMotionIntent {
             return Err(IntentValidationError::InvalidUncertainty);
         }
         if self.confidence_semantics == ConfidenceSemantics::CalibratedProbability
-            && !self.calibration_profile_id.as_deref().is_some_and(|value| !value.trim().is_empty())
+            && !self
+                .calibration_profile_id
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
         {
             return Err(IntentValidationError::MissingCalibrationProfile);
         }
@@ -295,15 +301,16 @@ impl SemanticMotionIntent {
         if self.target.is_some() && !has_target {
             return Err(IntentValidationError::InvalidTarget);
         }
-        if matches!(self.intent_kind, MotionIntentKind::Reach | MotionIntentKind::Grasp)
-            && !self.target.as_ref().is_some_and(|target| {
-                target
-                    .entity_ref
-                    .as_deref()
-                    .is_some_and(|value| !value.trim().is_empty())
-                    || target.position_world_m.is_some()
-            })
-        {
+        if matches!(
+            self.intent_kind,
+            MotionIntentKind::Reach | MotionIntentKind::Grasp
+        ) && !self.target.as_ref().is_some_and(|target| {
+            target
+                .entity_ref
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+                || target.position_world_m.is_some()
+        }) {
             return Err(IntentValidationError::MissingTarget);
         }
 
@@ -321,11 +328,20 @@ impl SemanticMotionIntent {
         {
             return Err(IntentValidationError::InvalidObservationDigest);
         }
-        if self.provenance.model_sha256.as_deref().is_some_and(|hash| !is_hex_digest(hash, 64)) {
+        if self
+            .provenance
+            .model_sha256
+            .as_deref()
+            .is_some_and(|hash| !is_hex_digest(hash, 64))
+        {
             return Err(IntentValidationError::InvalidModelDigest);
         }
         if self.provenance.source == IntentSource::ExternalModel
-            && !self.provenance.model_sha256.as_deref().is_some_and(|hash| is_hex_digest(hash, 64))
+            && !self
+                .provenance
+                .model_sha256
+                .as_deref()
+                .is_some_and(|hash| is_hex_digest(hash, 64))
         {
             return Err(IntentValidationError::MissingModelDigest);
         }
@@ -381,25 +397,40 @@ mod tests {
     fn synthetic_intent_fixture_validates_but_has_no_claim_of_calibration() {
         let intent = fixture();
         assert_eq!(intent.schema_version, HUMAN_MOTION_INTENT_SCHEMA_VERSION);
-        assert_eq!(intent.confidence_semantics, ConfidenceSemantics::UncalibratedScore);
-        intent.validate().expect("fixture should be structurally valid");
-        intent.validate_at(0.5).expect("fixture should be valid at 0.5 seconds");
+        assert_eq!(
+            intent.confidence_semantics,
+            ConfidenceSemantics::UncalibratedScore
+        );
+        intent
+            .validate()
+            .expect("fixture should be structurally valid");
+        intent
+            .validate_at(0.5)
+            .expect("fixture should be valid at 0.5 seconds");
     }
 
     #[test]
     fn locomote_requires_velocity() {
         let mut intent = fixture();
         intent.desired_planar_velocity_mps = None;
-        assert_eq!(intent.validate(), Err(IntentValidationError::MissingLocomotionVelocity));
+        assert_eq!(
+            intent.validate(),
+            Err(IntentValidationError::MissingLocomotionVelocity)
+        );
     }
 
     #[test]
     fn calibrated_confidence_requires_a_named_calibration_profile() {
         let mut intent = fixture();
         intent.confidence_semantics = ConfidenceSemantics::CalibratedProbability;
-        assert_eq!(intent.validate(), Err(IntentValidationError::MissingCalibrationProfile));
+        assert_eq!(
+            intent.validate(),
+            Err(IntentValidationError::MissingCalibrationProfile)
+        );
         intent.calibration_profile_id = Some("isotonic-v1-heldout".to_owned());
-        intent.validate().expect("calibrated confidence profile is present");
+        intent
+            .validate()
+            .expect("calibrated confidence profile is present");
     }
 
     #[test]
@@ -413,28 +444,39 @@ mod tests {
             position_world_m: None,
             orientation_xyzw: None,
         });
-        intent.validate().expect("entity target is sufficient for reach");
+        intent
+            .validate()
+            .expect("entity target is sufficient for reach");
     }
 
     #[test]
     fn rejects_invalid_numeric_values_and_bad_quaternions() {
         let mut intent = fixture();
         intent.confidence = f32::NAN;
-        assert_eq!(intent.validate(), Err(IntentValidationError::InvalidConfidence));
+        assert_eq!(
+            intent.validate(),
+            Err(IntentValidationError::InvalidConfidence)
+        );
         let mut intent = fixture();
         intent.target = Some(MotionIntentTarget {
             entity_ref: None,
             position_world_m: None,
             orientation_xyzw: Some([0.0, 0.0, 0.0, 0.0]),
         });
-        assert_eq!(intent.validate(), Err(IntentValidationError::InvalidTargetOrientation));
+        assert_eq!(
+            intent.validate(),
+            Err(IntentValidationError::InvalidTargetOrientation)
+        );
     }
 
     #[test]
     fn validates_expiration_on_simulation_time() {
         let intent = fixture();
         assert_eq!(intent.validate_at(1.0), Err(IntentValidationError::Expired));
-        assert_eq!(intent.validate_at(-1.0), Err(IntentValidationError::InvalidEvaluationTime));
+        assert_eq!(
+            intent.validate_at(-1.0),
+            Err(IntentValidationError::InvalidEvaluationTime)
+        );
         assert_eq!(intent.validate_at(0.0), Ok(()));
     }
 
@@ -442,8 +484,13 @@ mod tests {
     fn external_model_intent_requires_model_hash() {
         let mut intent = fixture();
         intent.provenance.source = IntentSource::ExternalModel;
-        assert_eq!(intent.validate(), Err(IntentValidationError::MissingModelDigest));
+        assert_eq!(
+            intent.validate(),
+            Err(IntentValidationError::MissingModelDigest)
+        );
         intent.provenance.model_sha256 = Some("a".repeat(64));
-        intent.validate().expect("valid model hash should pass validation");
+        intent
+            .validate()
+            .expect("valid model hash should pass validation");
     }
 }
