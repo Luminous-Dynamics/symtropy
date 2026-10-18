@@ -34,6 +34,9 @@ pub struct Dataset {
     /// Explicit comparison sets; no single winner is inferred by the validator.
     #[serde(default)]
     pub model_comparisons: Vec<ModelComparison>,
+    /// Explicit descriptive point-vs-interval sensitivity probes. These are not model probabilities.
+    #[serde(default)]
+    pub estimate_contrasts: Vec<EstimateContrast>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -266,6 +269,110 @@ pub enum ReconstructionModelStatus {
     Hypothesis,
 }
 
+/// A declared comparison between a point-valued reconstruction parameter and a
+/// source-reported uncertainty interval for the same quantity and unit.
+///
+/// This is intentionally a descriptive diagnostic. It does not calculate a Bayes factor,
+/// posterior model probability, or truth score.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EstimateContrast {
+    pub id: String,
+    pub candidate_estimate_id: String,
+    pub reference_estimate_id: String,
+    pub purpose: String,
+    /// Explain whether the analyses share data, methods, artifact assumptions, or dependencies.
+    pub dependence_note: String,
+    /// Explain why interval position must not be interpreted as a model probability.
+    pub interpretation_limit: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntervalPosition {
+    Below,
+    Within,
+    Above,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PointIntervalDiagnostic {
+    pub contrast_id: String,
+    pub candidate_estimate_id: String,
+    pub reference_estimate_id: String,
+    pub quantity: String,
+    pub unit: String,
+    pub candidate_value: f64,
+    pub interval_lower: f64,
+    pub interval_upper: f64,
+    pub interval_kind: IntervalKind,
+    pub coverage_percent: Option<String>,
+    pub position: IntervalPosition,
+    /// Distance in the declared unit; zero means the point lies within the reported bounds.
+    pub distance_to_interval: f64,
+    pub interpretation_limit: String,
+}
+
+pub fn analyze_estimate_contrast(
+    dataset: &Dataset,
+    contrast: &EstimateContrast,
+) -> Result<PointIntervalDiagnostic, String> {
+    let candidate = dataset
+        .estimates
+        .iter()
+        .find(|estimate| estimate.id == contrast.candidate_estimate_id)
+        .ok_or_else(|| format!("missing candidate estimate '{}'", contrast.candidate_estimate_id))?;
+    let reference = dataset
+        .estimates
+        .iter()
+        .find(|estimate| estimate.id == contrast.reference_estimate_id)
+        .ok_or_else(|| format!("missing reference estimate '{}'", contrast.reference_estimate_id))?;
+
+    if candidate.quantity != reference.quantity || candidate.unit != reference.unit {
+        return Err("point-vs-interval contrast requires identical quantity and unit".to_owned());
+    }
+    if candidate.interval.is_some() {
+        return Err("candidate estimate must be point-valued; choose a point parameter without an interval".to_owned());
+    }
+    let interval = reference
+        .interval
+        .as_ref()
+        .ok_or_else(|| "reference estimate has no reported uncertainty interval".to_owned())?;
+    let candidate_value = parse_finite_decimal(&candidate.value_decimal)
+        .ok_or_else(|| "candidate value is not a finite decimal".to_owned())?;
+    let interval_lower = parse_finite_decimal(&interval.lower_decimal)
+        .ok_or_else(|| "interval lower bound is not a finite decimal".to_owned())?;
+    let interval_upper = parse_finite_decimal(&interval.upper_decimal)
+        .ok_or_else(|| "interval upper bound is not a finite decimal".to_owned())?;
+
+    if interval_lower > interval_upper {
+        return Err("reference interval lower bound exceeds its upper bound".to_owned());
+    }
+
+    let (position, distance_to_interval) = if candidate_value < interval_lower {
+        (IntervalPosition::Below, interval_lower - candidate_value)
+    } else if candidate_value > interval_upper {
+        (IntervalPosition::Above, candidate_value - interval_upper)
+    } else {
+        (IntervalPosition::Within, 0.0)
+    };
+
+    Ok(PointIntervalDiagnostic {
+        contrast_id: contrast.id.clone(),
+        candidate_estimate_id: candidate.id.clone(),
+        reference_estimate_id: reference.id.clone(),
+        quantity: candidate.quantity.clone(),
+        unit: candidate.unit.clone(),
+        candidate_value,
+        interval_lower,
+        interval_upper,
+        interval_kind: interval.kind,
+        coverage_percent: interval.coverage_percent.clone(),
+        position,
+        distance_to_interval,
+        interpretation_limit: contrast.interpretation_limit.clone(),
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModelComparison {
     pub id: String,
@@ -333,6 +440,7 @@ pub enum ValidationCode {
     MissingEstimateReference,
     InvalidModelComparison,
     InvalidModelAssessment,
+    InvalidEstimateContrast,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -787,6 +895,70 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
     let estimate_ids: BTreeSet<String> =
         dataset.estimates.iter().map(|estimate| estimate.id.clone()).collect();
 
+    for contrast in &dataset.estimate_contrasts {
+        register_id(&contrast.id, &mut all_ids, &contrast.id, &mut issues);
+        require_nonempty(&contrast.purpose, &contrast.id, "contrast purpose", &mut issues);
+        require_nonempty(&contrast.dependence_note, &contrast.id, "contrast dependence note", &mut issues);
+        require_nonempty(
+            &contrast.interpretation_limit,
+            &contrast.id,
+            "contrast interpretation limit",
+            &mut issues,
+        );
+        if !estimate_ids.contains(&contrast.candidate_estimate_id) {
+            issue(
+                &mut issues,
+                &contrast.id,
+                ValidationCode::InvalidEstimateContrast,
+                format!("contrast refers to unknown candidate estimate '{}'", contrast.candidate_estimate_id),
+            );
+        }
+        if !estimate_ids.contains(&contrast.reference_estimate_id) {
+            issue(
+                &mut issues,
+                &contrast.id,
+                ValidationCode::InvalidEstimateContrast,
+                format!("contrast refers to unknown reference estimate '{}'", contrast.reference_estimate_id),
+            );
+        }
+        let candidate = dataset.estimates.iter().find(|e| e.id == contrast.candidate_estimate_id);
+        let reference = dataset.estimates.iter().find(|e| e.id == contrast.reference_estimate_id);
+        if let (Some(candidate), Some(reference)) = (candidate, reference) {
+            if candidate.id == reference.id {
+                issue(
+                    &mut issues,
+                    &contrast.id,
+                    ValidationCode::InvalidEstimateContrast,
+                    "candidate and reference estimates must be different records",
+                );
+            }
+            if candidate.quantity != reference.quantity || candidate.unit != reference.unit {
+                issue(
+                    &mut issues,
+                    &contrast.id,
+                    ValidationCode::InvalidEstimateContrast,
+                    "candidate and reference must describe the same quantity and unit",
+                );
+            }
+            if candidate.interval.is_some() {
+                issue(
+                    &mut issues,
+                    &contrast.id,
+                    ValidationCode::InvalidEstimateContrast,
+                    "candidate estimate must be point-valued",
+                );
+            }
+            if reference.interval.is_none() {
+                issue(
+                    &mut issues,
+                    &contrast.id,
+                    ValidationCode::InvalidEstimateContrast,
+                    "reference estimate must have a reported uncertainty interval",
+                );
+            }
+        }
+    }
+
     for model in &dataset.reconstruction_models {
         register_id(&model.id, &mut all_ids, &model.id, &mut issues);
         require_nonempty(&model.title, &model.id, "model title", &mut issues);
@@ -1086,6 +1258,7 @@ mod tests {
             estimates: vec![],
             reconstruction_models: vec![],
             model_comparisons: vec![],
+            estimate_contrasts: vec![],
         }
     }
 
