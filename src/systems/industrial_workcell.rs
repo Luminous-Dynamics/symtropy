@@ -58,6 +58,11 @@ pub enum ScheduleViolationCode {
     MissingPredecessor,
     PrecedenceViolation,
     ExclusiveResourceOverlap,
+    EmptyResourceCapacityId,
+    DuplicateResourceCapacity,
+    ZeroResourceCapacity,
+    UnknownResourceCapacity,
+    ResourceCapacityExceeded,
 }
 
 /// A concrete violation tied to the affected operation IDs.
@@ -255,6 +260,182 @@ pub fn validate_schedule(operations: &[ScheduledOperation]) -> ScheduleValidatio
     ScheduleValidationReport { violations }
 }
 
+
+/// Declared concurrent capacity for an interchangeable resource pool.
+///
+/// Unlike a one-resource-per-machine schedule, this allows a shared pool such as
+/// a set of equivalent cranes, inspectors, or welding stations to serve multiple
+/// simultaneous operations up to an explicit limit. It does not claim that the
+/// units are interchangeable for every job; capability matching is a separate
+/// qualification obligation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResourceCapacity {
+    pub resource_id: String,
+    pub capacity: usize,
+}
+
+/// Validate a schedule against explicit resource-pool capacities.
+///
+/// Every non-empty resource identifier used by an operation must have exactly one
+/// capacity declaration. Missing or duplicated declarations fail closed. Time
+/// intervals are half-open ([start, end)); end events are processed before start
+/// events at the same instant so back-to-back use is permitted.
+///
+/// The ordinary single-capacity conflict findings are replaced by pool-capacity
+/// findings for this validation path; other structural and precedence checks from
+/// \`validate_schedule\` are retained.
+pub fn validate_schedule_with_resource_capacities(
+    operations: &[ScheduledOperation],
+    resource_capacities: &[ResourceCapacity],
+) -> ScheduleValidationReport {
+    let mut report = validate_schedule(operations);
+    report
+        .violations
+        .retain(|violation| violation.code != ScheduleViolationCode::ExclusiveResourceOverlap);
+
+    let mut declarations: HashMap<&str, Vec<usize>> = HashMap::new();
+    for declaration in resource_capacities {
+        if declaration.resource_id.trim().is_empty() {
+            push_violation(
+                &mut report.violations,
+                ScheduleViolationCode::EmptyResourceCapacityId,
+                vec![declaration.resource_id.clone()],
+                "resource capacity ID cannot be empty",
+            );
+            continue;
+        }
+        if declaration.capacity == 0 {
+            push_violation(
+                &mut report.violations,
+                ScheduleViolationCode::ZeroResourceCapacity,
+                vec![declaration.resource_id.clone()],
+                "resource capacity must be greater than zero",
+            );
+        }
+        declarations
+            .entry(declaration.resource_id.as_str())
+            .or_default()
+            .push(declaration.capacity);
+    }
+
+    let mut valid_capacities: HashMap<&str, usize> = HashMap::new();
+    let mut ambiguous = std::collections::HashSet::new();
+    for (resource_id, capacities) in &declarations {
+        if capacities.len() > 1 {
+            ambiguous.insert(*resource_id);
+            push_violation(
+                &mut report.violations,
+                ScheduleViolationCode::DuplicateResourceCapacity,
+                vec![(*resource_id).to_string()],
+                "resource ID must have exactly one capacity declaration",
+            );
+        } else if let Some(capacity) = capacities.first().copied() {
+            if capacity > 0 {
+                valid_capacities.insert(resource_id, capacity);
+            }
+        }
+    }
+
+    let mut by_resource: HashMap<&str, Vec<(usize, &ScheduledOperation)>> = HashMap::new();
+    for (index, operation) in operations.iter().enumerate() {
+        if operation.resource_id.trim().is_empty() {
+            continue;
+        }
+        if !declarations.contains_key(operation.resource_id.as_str()) {
+            push_violation(
+                &mut report.violations,
+                ScheduleViolationCode::UnknownResourceCapacity,
+                vec![operation.id.clone()],
+                &format!(
+                    "resource '{}' has no explicit capacity declaration",
+                    operation.resource_id
+                ),
+            );
+        } else if !ambiguous.contains(operation.resource_id.as_str())
+            && valid_capacities.contains_key(operation.resource_id.as_str())
+        {
+            by_resource
+                .entry(operation.resource_id.as_str())
+                .or_default()
+                .push((index, operation));
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    struct CapacityEvent<'a> {
+        time: f64,
+        starts: bool,
+        index: usize,
+        operation: &'a ScheduledOperation,
+    }
+
+    for (resource_id, resource_operations) in by_resource {
+        let Some(capacity) = valid_capacities.get(resource_id).copied() else {
+            continue;
+        };
+        let mut events = Vec::with_capacity(resource_operations.len() * 2);
+        for (index, operation) in resource_operations {
+            let (Some(start), Some(end)) = (valid_start(operation), operation.end_seconds()) else {
+                continue;
+            };
+            events.push(CapacityEvent { time: start, starts: true, index, operation });
+            events.push(CapacityEvent { time: end, starts: false, index, operation });
+        }
+        events.sort_by(|left, right| {
+            left.time
+                .total_cmp(&right.time)
+                // false (end) precedes true (start): half-open interval semantics.
+                .then_with(|| left.starts.cmp(&right.starts))
+                .then_with(|| left.operation.id.cmp(&right.operation.id))
+                .then_with(|| left.index.cmp(&right.index))
+        });
+
+        let mut active: Vec<(usize, &ScheduledOperation)> = Vec::new();
+        for event in events {
+            if !event.starts {
+                active.retain(|(index, _)| *index != event.index);
+                continue;
+            }
+            if active.len() >= capacity {
+                let mut operation_ids: Vec<String> = active
+                    .iter()
+                    .map(|(_, operation)| operation.id.clone())
+                    .chain(std::iter::once(event.operation.id.clone()))
+                    .collect();
+                operation_ids.sort();
+                operation_ids.dedup();
+                push_violation(
+                    &mut report.violations,
+                    ScheduleViolationCode::ResourceCapacityExceeded,
+                    operation_ids,
+                    &format!(
+                        "resource '{}' capacity {} is exceeded by concurrent operations",
+                        resource_id, capacity
+                    ),
+                );
+            }
+            active.push((event.index, event.operation));
+        }
+    }
+
+    normalize_violations(&mut report.violations);
+    report
+}
+
+fn normalize_violations(violations: &mut Vec<ScheduleViolation>) {
+    for violation in violations.iter_mut() {
+        violation.operation_ids.sort();
+        violation.operation_ids.dedup();
+    }
+    violations.sort_by(|left, right| {
+        left.code
+            .cmp(&right.code)
+            .then_with(|| left.operation_ids.cmp(&right.operation_ids))
+            .then_with(|| left.detail.cmp(&right.detail))
+    });
+    violations.dedup();
+}
+
 fn valid_start(operation: &ScheduledOperation) -> Option<f64> {
     (operation.start_seconds.is_finite() && operation.start_seconds >= 0.0)
         .then_some(operation.start_seconds)
@@ -410,6 +591,103 @@ mod tests {
             report.violation_count(ScheduleViolationCode::DuplicatePredecessor),
             1
         );
+    }
+
+    #[test]
+    fn resource_pool_capacity_allows_parallel_work_until_limit() {
+        let operations = vec![
+            operation("inspect-a", "ndt-team", 0.0, 10.0, &[]),
+            operation("inspect-b", "ndt-team", 0.0, 5.0, &[]),
+            operation("inspect-c", "ndt-team", 4.0, 8.0, &[]),
+        ];
+        let capacities = vec![ResourceCapacity {
+            resource_id: "ndt-team".into(),
+            capacity: 2,
+        }];
+        let report = validate_schedule_with_resource_capacities(&operations, &capacities);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::ResourceCapacityExceeded),
+            1
+        );
+        assert_eq!(
+            report.violations
+                .iter()
+                .find(|v| v.code == ScheduleViolationCode::ResourceCapacityExceeded)
+                .unwrap()
+                .operation_ids,
+            vec!["inspect-a", "inspect-b", "inspect-c"]
+        );
+    }
+
+    #[test]
+    fn resource_pool_capacity_respects_half_open_back_to_back_intervals() {
+        let operations = vec![
+            operation("weld-a", "bay-pool", 0.0, 10.0, &[]),
+            operation("weld-b", "bay-pool", 10.0, 7.0, &[]),
+        ];
+        let capacities = vec![ResourceCapacity {
+            resource_id: "bay-pool".into(),
+            capacity: 1,
+        }];
+        assert!(validate_schedule_with_resource_capacities(&operations, &capacities).is_feasible());
+    }
+
+    #[test]
+    fn missing_capacity_declaration_fails_closed() {
+        let report = validate_schedule_with_resource_capacities(
+            &[operation("cut", "cnc-pool", 0.0, 2.0, &[])],
+            &[],
+        );
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::UnknownResourceCapacity),
+            1
+        );
+    }
+
+    #[test]
+    fn ambiguous_and_zero_capacity_declarations_are_rejected() {
+        let operations = vec![operation("cut", "cnc-pool", 0.0, 2.0, &[])];
+        let duplicate = vec![
+            ResourceCapacity { resource_id: "cnc-pool".into(), capacity: 1 },
+            ResourceCapacity { resource_id: "cnc-pool".into(), capacity: 2 },
+        ];
+        let report = validate_schedule_with_resource_capacities(&operations, &duplicate);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::DuplicateResourceCapacity),
+            1
+        );
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::ResourceCapacityExceeded),
+            0
+        );
+
+        let zero = vec![ResourceCapacity { resource_id: "cnc-pool".into(), capacity: 0 }];
+        let report = validate_schedule_with_resource_capacities(&operations, &zero);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::ZeroResourceCapacity),
+            1
+        );
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::ResourceCapacityExceeded),
+            0
+        );
+    }
+
+    #[test]
+    fn resource_capacity_reports_are_deterministically_ordered() {
+        let operations = vec![
+            operation("c", "crane-pool", 2.0, 10.0, &[]),
+            operation("a", "crane-pool", 0.0, 10.0, &[]),
+            operation("b", "crane-pool", 1.0, 10.0, &[]),
+        ];
+        let capacities = vec![ResourceCapacity {
+            resource_id: "crane-pool".into(),
+            capacity: 1,
+        }];
+        let first = validate_schedule_with_resource_capacities(&operations, &capacities);
+        let second = validate_schedule_with_resource_capacities(&operations, &capacities);
+        assert_eq!(first, second);
+        assert!(!first.is_feasible());
     }
 
     #[test]
