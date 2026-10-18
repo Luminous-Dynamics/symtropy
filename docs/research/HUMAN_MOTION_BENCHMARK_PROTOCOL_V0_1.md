@@ -22,7 +22,7 @@ Do not claim that Symthaea itself synthesizes superior body motion unless the ex
 
 - Do not bundle third-party human body meshes, motion clips, weights, or training datasets until the applicable license and redistribution terms have been reviewed and recorded.
 - AMASS is explicitly licensed for non-commercial research/education/artistic use and prohibits training methods or neural networks for commercial use under its published license. It is not an acceptable default for training a commercial product without a separate written license.
-- Prefer (a) original motion capture with documented participant consent and rights, (b) assets explicitly licensed for the exact research and intended commercial use, or (c) synthetic scripted fixtures for the unit tests. A demo license is not automatically a training license.
+- Prefer (a) original motion capture with documented participant consent and rights, (b) assets explicitly licensed for the exact research and intended commercial use, or (c) synthetic scripted fixtures for the unit tests. A demo license is not automatically a training license. The optional Innerscene Maya locomotion GLB is currently listed as CC0 and is documented in [`assets/humans/README.md`](../../assets/humans/README.md); use it to smoke-test rendering and clip playback only, not as mocap ground truth.
 - Keep source video, face identity, names, and sensitive metadata out of the public artifact by default. Publish derived traces only where consent, rights and re-identification risk are addressed.
 - Every run must pin the rig/retarget map, animation clips, model/checkpoint, dataset version, split manifest, preprocessing, random seed, engine commit and configuration digest.
 - Split by actor and recording session, not merely by adjacent frames. Avoid leakage of the same motion sequence into training and evaluation.
@@ -95,7 +95,7 @@ Before promoting any target to a release gate, record baseline performance and p
 
 - **ARDY (SIGGRAPH 2026):** interactive autoregressive diffusion with text prompts and long-horizon kinematic constraints. Its released implementation uses Python/PyTorch; treat it as an external benchmark, not a production Rust dependency. Read its evaluation notes carefully: some root error tasks use ground-truth hip paths as constraints, making the ground-truth root error zero by construction. Do not compare non-identical suites as if they measure the same thing.
 - **MotionBricks (ACM TOG / SIGGRAPH 2026):** modular latent generation and smart primitives aimed at real-time interactive motion skills. It is a promising baseline for skill composition and detailed control, not proof that our implementation matches the reported results.
-- **Authored Bevy clips:** mandatory cheap baseline for visual transitions and locomotion before introducing a learned generator.
+- **Authored Bevy clips:** mandatory cheap baseline for visual transitions and locomotion before introducing a learned generator. The optional Innerscene Maya GLB provides a practical smoke scene with named clips, but its publisher describes the motion as authored periodic-pose recipes rather than motion capture.
 - **Scripted deterministic controller:** mandatory task-success/robustness baseline. The Symthaea component must beat or complement it on predeclared metrics, not merely produce a more complicated trace.
 
 ## Next implementation slices
