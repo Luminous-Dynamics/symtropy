@@ -667,7 +667,13 @@ fn evaluate(
             prediction: TraceIdentityReport::from(prediction),
             configuration_hashes_match: reference.run.configuration_sha256
                 == prediction.run.configuration_sha256,
-            asset_hashes_match: reference.run.asset_sha256 == prediction.run.asset_sha256,
+            // Two absent hashes are not evidence that assets match.
+            asset_hashes_match: reference
+                .run
+                .asset_sha256
+                .as_ref()
+                .zip(prediction.run.asset_sha256.as_ref())
+                .is_some_and(|(left, right)| left == right),
         },
         root_trajectory_error: RootTrajectoryReport {
             samples: root.samples,
@@ -798,6 +804,7 @@ mod tests {
         assert_eq!(report.root_trajectory_error.final_displacement_error_m, 0.0);
         assert_eq!(report.left_stance_foot_drift.max_drift_m, 0.0);
         assert_eq!(report.right_stance_foot_drift.max_drift_m, 0.0);
+        assert!(!report.provenance.asset_hashes_match);
         assert!(report.caveats.iter().any(|value| value.contains("not evidence")));
     }
 
