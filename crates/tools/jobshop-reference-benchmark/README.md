@@ -15,6 +15,7 @@ cargo test --locked --offline --manifest-path crates/tools/jobshop-reference-ben
 cargo run --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- summarize crates/tools/jobshop-reference-benchmark/fixtures/ta01.txt
 
 cargo run --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- solve-exact crates/tools/jobshop-reference-benchmark/fixtures/tiny_cross_2x2.txt
+cargo run --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- dispatch-mwkr crates/tools/jobshop-reference-benchmark/fixtures/ta01.txt
 
 The exact solver has hard limits (12 operations and 2,000,000 expanded nodes).
 Larger inputs are parsed and summarized but are not solved by this oracle. A
