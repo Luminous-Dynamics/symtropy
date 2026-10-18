@@ -275,6 +275,11 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
             report.measurement_status
         ));
     }
+    if report.claim_ceiling
+        != "observed-real-frame-intervals-and-caller-declared-metadata-only; not-gpu-timestamp-or-visual-or-physical-validation"
+    {
+        return Err(format!("{}: unexpected measurement claim ceiling", path.display()));
+    }
     if report.sample_count < report.min_required_samples || report.sample_count < 30 {
         return Err(format!("{}: insufficient frame samples", path.display()));
     }
