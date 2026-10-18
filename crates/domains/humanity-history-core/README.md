@@ -67,10 +67,10 @@ The `analysis_runs` field records experiment lifecycle rather than treating a ci
 - `planned`: protocol only; no execution claim.
 - `inputs_verified`: input artifacts and a content-addressed input manifest have been recorded.
 - `executed`: command, code revision, environment fingerprint, inputs, and output digests are recorded.
-- `reproduced`: the executed record also references the source record and target estimates being reproduced.
+- `reproduced`: the executed record also references the source record, target estimates, and a preregistered comparison rule.
 - `failed`: the command/environment/input context and failure summary remain auditable.
 
-Executed/reproduced runs require SHA-256 strings for the input manifest and each named artifact. This crate validates digest shape but does not itself read the files and calculate the hashes; the ingest/runner must hash actual bytes. A run's limitations are mandatory. A `reproduced` status is still a recorded assertion, not a proof of scientific equivalence; acceptance requires reviewing the output artifacts and the declared tolerance protocol.
+Executed/reproduced runs require SHA-256 strings for the input manifest and each named artifact. This crate validates digest shape but does not itself read the files and calculate the hashes; the ingest/runner must hash actual bytes. A run's limitations are mandatory. A `reproduced` status is still a recorded assertion, not a proof of scientific equivalence; acceptance requires reviewing the output artifacts and the declared tolerance protocol. The Antikythera planned run preregisters a provisional 0.15-hole tolerance for the 68% interval endpoints, 0.02 absolute probability tolerance for the discrete table, and separate convergence/posterior-predictive gates; these are acceptance targets, not achieved results.
 
 The Antikythera seed now contains one `planned` reproduction run with no inputs or outputs. That is intentionally **not** labeled executed: the source measurement files and their exact license are not yet verified.
 
