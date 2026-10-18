@@ -25,6 +25,7 @@ struct Corpus {
     temporal_evidence_records: Vec<TemporalEvidenceRecord>,
     temporal_policy_decisions: Vec<TemporalPolicyDecision>,
     expected_temporal_counts: ExpectedTemporalCounts,
+    criteria_sensitivity_control: CriteriaSensitivityControl,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -150,6 +151,49 @@ struct ExpectedTemporalCounts {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct RankedStrategy {
+    strategy_id: String,
+    metric_values: BTreeMap<String, i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct PriorityCriterion {
+    metric: String,
+    direction: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct AdmissibilityConstraint {
+    metric: String,
+    operator: String,
+    threshold: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct CriteriaRegimeControl {
+    regime_id: String,
+    profile_version: String,
+    criteria_regime: String,
+    adopted_by_current_profile: bool,
+    priority_order: Vec<PriorityCriterion>,
+    admissibility_constraints: Vec<AdmissibilityConstraint>,
+    expected_ranked_strategy_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct CriteriaSensitivityControl {
+    control_id: String,
+    strategies: Vec<RankedStrategy>,
+    regimes: Vec<CriteriaRegimeControl>,
+    expected_top_strategy_reversal: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct CaseResult {
     case_id: String,
     scope_status: String,
@@ -178,6 +222,9 @@ struct AuditReceipt {
     missing_evidence_reference_count: usize,
     temporal_actuation_authorized_count: usize,
     expected_temporal_counts_match: bool,
+    criteria_regime_rankings: BTreeMap<String, Vec<String>>,
+    criteria_regime_top_strategy_reversal: bool,
+    criteria_sensitivity_control_matches: bool,
     scope_counts: BTreeMap<String, usize>,
     evidence_counts: BTreeMap<String, usize>,
     hard_gate_counts: BTreeMap<String, usize>,
@@ -247,6 +294,19 @@ fn canonical_corpus_sha256(corpus: &Corpus) -> String {
     canonical.temporal_policy_decisions.sort_by(|a, b| a.decision_id.cmp(&b.decision_id));
     for decision in &mut canonical.temporal_policy_decisions {
         decision.evidence_refs.sort();
+    }
+    canonical
+        .criteria_sensitivity_control
+        .strategies
+        .sort_by(|a, b| a.strategy_id.cmp(&b.strategy_id));
+    canonical
+        .criteria_sensitivity_control
+        .regimes
+        .sort_by(|a, b| a.regime_id.cmp(&b.regime_id));
+    for regime in &mut canonical.criteria_sensitivity_control.regimes {
+        regime.admissibility_constraints.sort_by(|a, b| {
+            (&a.metric, &a.operator, a.threshold).cmp(&(&b.metric, &b.operator, b.threshold))
+        });
     }
     serde_json::to_vec(&canonical)
         .map(|bytes| sha256_hex(&bytes))
