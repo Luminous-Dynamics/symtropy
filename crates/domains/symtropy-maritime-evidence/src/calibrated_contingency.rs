@@ -117,9 +117,7 @@ pub fn choose_calibrated_window(
 
 #[cfg(test)]
 mod tests {
-    use super::super::arrival_calibration::{
-        ArrivalResidualSample, NANOS_PER_SECOND, fit_split_conformal,
-    };
+    use super::super::arrival_calibration::{ArrivalResidualSample, NANOS_PER_SECOND};
     use super::*;
 
     fn utc(value: &str) -> i128 {
@@ -246,9 +244,9 @@ mod tests {
             whole_minutes.saturating_add(1)
         };
         let cost = u64::try_from(rounded_minutes).unwrap_or(u64::MAX);
-        if arrival_utc_nanos <= window.starts_at_utc_nanos {
-            cost
-        } else if cost <= u64::from(window.late_grace_minutes) {
+        if arrival_utc_nanos <= window.starts_at_utc_nanos
+            || cost <= u64::from(window.late_grace_minutes)
+        {
             cost
         } else {
             missed_penalty_minutes.saturating_add(cost)
