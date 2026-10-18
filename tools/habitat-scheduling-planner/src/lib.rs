@@ -771,8 +771,7 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         suite_id: fixture.suite_id,
         input_sha256: sha256_hex(bytes),
         input_bytes: bytes.len(),
-        algorithm: "deterministic_multi_priority_list_scheduling_with_independent_feasibility_validation"
-            .to_owned(),
+        algorithm: "deterministic_five_rule_list_scheduler_with_independent_validator".to_owned(),
         case_count: results.len(),
         all_returned_schedules_independently_validated: every_schedule_valid,
         claim_ceiling: CLAIM_CEILING.to_owned(),
