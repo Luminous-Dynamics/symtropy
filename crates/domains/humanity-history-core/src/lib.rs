@@ -1043,14 +1043,18 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
         }
 
         if let Some(interval) = &estimate.interval {
-            let lower = parse_finite_decimal(&interval.lower_decimal);
-            let upper = parse_finite_decimal(&interval.upper_decimal);
-            if lower.is_none() || upper.is_none() || lower.unwrap() > upper.unwrap() {
+            let interval_order = compare_decimal_strings(
+                &interval.lower_decimal,
+                &interval.upper_decimal,
+            );
+            if interval_order.is_none()
+                || interval_order == Some(std::cmp::Ordering::Greater)
+            {
                 issue(
                     &mut issues,
                     &estimate.id,
                     ValidationCode::InvalidUncertaintyInterval,
-                    "uncertainty interval endpoints must be finite decimal strings with lower <= upper",
+                    "uncertainty interval endpoints must be finite plain decimals with lower <= upper",
                 );
             }
             require_nonempty(
