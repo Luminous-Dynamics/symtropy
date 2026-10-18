@@ -10,6 +10,7 @@ Use Cargo to format/test the crate and execute the audit. With no path argument,
 
 - SHA-256 checks content integrity relative to a cited digest; it does not authenticate the issuer.
 - All records and revocation states in v0.1 are synthetic; authenticity is explicitly `UNVERIFIED_SYNTHETIC`.
+- The tool independently rechecks freshness, required evidence and PASS hard-gate state before emitting any synthetic candidate; a parent expected label cannot override those checks.
 - A successful result is finite contract conformance, not evidence that the classification is true or a professional signed it.
 - Outputs are review-only; operations are never authorized.
 
