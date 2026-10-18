@@ -724,6 +724,17 @@ mod tests {
     }
 
     #[test]
+    fn public_domain_asset_requires_recorded_basis() {
+        let mut data = fixture();
+        data.assets[0].rights.basis_note = None;
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:asset-1"
+                && item.code == ValidationCode::InvalidRightsDeclaration
+        }));
+    }
+
+    #[test]
     fn open_license_requires_exact_identifier() {
         let mut data = fixture();
         data.assets[0].rights.license_id = None;
