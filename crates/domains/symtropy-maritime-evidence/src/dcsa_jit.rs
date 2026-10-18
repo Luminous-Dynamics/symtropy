@@ -470,7 +470,10 @@ mod tests {
     fn preserves_eta_berth_without_calling_it_pco_pilot_boarding_place_arrival() {
         let payload = include_str!("../fixtures/dcsa-jit-eta-berth.json");
         let parsed = parse_timestamp_message(payload, context("DCSA-ETA-01")).unwrap();
-        assert_eq!(parsed.time_meaning(), TimeMeaning::Estimated);
+        assert_eq!(
+            parsed.event_classifier_code.time_meaning(),
+            TimeMeaning::Estimated
+        );
         assert_eq!(parsed.facility_type_code, FacilityTypeCode::Berth);
         assert_eq!(parsed.location_name, "SYNTHETIC BERTH A");
         assert_eq!(parsed.un_location_code, "ZZSYN");
@@ -535,15 +538,12 @@ mod tests {
             })
         );
 
-        let port_conflict = vessel_conflict
-            .replace(
-                "\"vesselIMONumber\": \"9990002\"",
-                "\"vesselIMONumber\": \"9990001\"",
-            )
-            .replace(
-                "\"UNLocationCode\": \"ZZSYN\"",
-                "\"UNLocationCode\": \"ZZOTHER\"",
-            );
+        let mut port_conflict_value: serde_json::Value =
+            serde_json::from_str(vessel_conflict).unwrap();
+        port_conflict_value["vessel"]["vesselIMONumber"] =
+            serde_json::Value::String("9990001".to_owned());
+        port_conflict_value["UNLocationCode"] = serde_json::Value::String("ZZOTHER".to_owned());
+        let port_conflict = port_conflict_value.to_string();
         assert!(matches!(
             parse_timestamp_message(&port_conflict, context("DCSA-DUP-PORT")),
             Err(DcsaJitParseError::ConflictingDuplicate {
@@ -743,8 +743,17 @@ mod tests {
         let planned = parse_timestamp_message(&planned_payload, context("DCSA-PLN")).unwrap();
         assert_eq!(estimated.facility_type_code, requested.facility_type_code);
         assert_eq!(requested.facility_type_code, planned.facility_type_code);
-        assert_eq!(estimated.time_meaning(), TimeMeaning::Estimated);
-        assert_eq!(requested.time_meaning(), TimeMeaning::Requested);
-        assert_eq!(planned.time_meaning(), TimeMeaning::Planned);
+        assert_eq!(
+            estimated.event_classifier_code.time_meaning(),
+            TimeMeaning::Estimated
+        );
+        assert_eq!(
+            requested.event_classifier_code.time_meaning(),
+            TimeMeaning::Requested
+        );
+        assert_eq!(
+            planned.event_classifier_code.time_meaning(),
+            TimeMeaning::Planned
+        );
     }
 }
