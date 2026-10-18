@@ -44,37 +44,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:01-complete-evidence-and-external-bindings",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:01-complete-evidence-and-external-bindings",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:01-complete-evidence-and-external-bindings",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:01-complete-evidence-and-external-bindings",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:01-complete-evidence-and-external-bindings",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:01-complete-evidence-and-external-bindings",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:01-complete-evidence-and-external-bindings",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:01-complete-evidence-and-external-bindings",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -101,37 +109,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:02-verified-payload-digest-mismatch",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:02-verified-payload-digest-mismatch",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:02-verified-payload-digest-mismatch",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:02-verified-payload-digest-mismatch",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:02-verified-payload-digest-mismatch",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:02-verified-payload-digest-mismatch",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:02-verified-payload-digest-mismatch",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:02-verified-payload-digest-mismatch",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -159,37 +175,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:03-required-material-lot-missing",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:03-required-material-lot-missing",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:03-required-material-lot-missing",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:03-required-material-lot-missing",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:03-required-material-lot-missing",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:03-required-material-lot-missing",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:03-required-material-lot-missing",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:03-required-material-lot-missing",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -220,37 +244,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:04-mandatory-quality-gate-fails",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:04-mandatory-quality-gate-fails",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:04-mandatory-quality-gate-fails",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:04-mandatory-quality-gate-fails",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:04-mandatory-quality-gate-fails",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:04-mandatory-quality-gate-fails",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:04-mandatory-quality-gate-fails",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:04-mandatory-quality-gate-fails",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -277,33 +309,40 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:05-required-material-flow-account-missing",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:05-required-material-flow-account-missing",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:05-required-material-flow-account-missing",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:05-required-material-flow-account-missing",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:05-required-material-flow-account-missing",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:05-required-material-flow-account-missing",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "custody-profile:05-required-material-flow-account-missing",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -330,37 +369,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:06-required-evidence-stale",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:06-required-evidence-stale",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:06-required-evidence-stale",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:06-required-evidence-stale",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:06-required-evidence-stale",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:06-required-evidence-stale",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:06-required-evidence-stale",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:06-required-evidence-stale",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -387,37 +434,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:07-critical-evidence-wrong-unit",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:07-critical-evidence-wrong-unit",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:07-critical-evidence-wrong-unit",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:07-critical-evidence-wrong-unit",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:07-critical-evidence-wrong-unit",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:07-critical-evidence-wrong-unit",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:07-critical-evidence-wrong-unit",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:07-critical-evidence-wrong-unit",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -444,37 +499,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:08-critical-evidence-contradictory",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:08-critical-evidence-contradictory",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:08-critical-evidence-contradictory",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:08-critical-evidence-contradictory",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:08-critical-evidence-contradictory",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:08-critical-evidence-contradictory",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:08-critical-evidence-contradictory",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:08-critical-evidence-contradictory",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -501,37 +564,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:09-critical-evidence-scope-invalid",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:09-critical-evidence-scope-invalid",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:09-critical-evidence-scope-invalid",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:09-critical-evidence-scope-invalid",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:09-critical-evidence-scope-invalid",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:09-critical-evidence-scope-invalid",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:09-critical-evidence-scope-invalid",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:09-critical-evidence-scope-invalid",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -564,37 +635,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:10-duplicate-evidence-record",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:10-duplicate-evidence-record",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:10-duplicate-evidence-record",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:10-duplicate-evidence-record",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:10-duplicate-evidence-record",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:10-duplicate-evidence-record",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:10-duplicate-evidence-record",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:10-duplicate-evidence-record",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -627,37 +706,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:11-unreferenced-evidence-record",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:11-unreferenced-evidence-record",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:11-unreferenced-evidence-record",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:11-unreferenced-evidence-record",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:11-unreferenced-evidence-record",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:11-unreferenced-evidence-record",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:11-unreferenced-evidence-record",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:11-unreferenced-evidence-record",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -684,37 +771,45 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:12-custody-reference-role-mismatch",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:12-custody-reference-role-mismatch",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:12-custody-reference-role-mismatch",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:12-custody-reference-role-mismatch",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:12-custody-reference-role-mismatch",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:12-custody-reference-role-mismatch",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:12-custody-reference-role-mismatch",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:12-custody-reference-role-mismatch",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         }
       ]
     },
@@ -753,41 +848,133 @@
       "required_external_refs": [
         {
           "reference_id": "process-receipt:13-duplicate-custody-reference",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:13-duplicate-custody-reference",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:13-duplicate-custody-reference",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:13-duplicate-custody-reference",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         }
       ],
       "external_refs": [
         {
           "reference_id": "process-receipt:13-duplicate-custody-reference",
-          "role": "ProcessExecutionReceipt"
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "qualification-receipt:13-duplicate-custody-reference",
-          "role": "QualificationReceipt"
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
         },
         {
           "reference_id": "material-flow-account:13-duplicate-custody-reference",
-          "role": "MaterialFlowAccount"
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:13-duplicate-custody-reference",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
         },
         {
           "reference_id": "custody-profile:13-duplicate-custody-reference",
-          "role": "ChainOfCustodyProfile"
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        }
+      ]
+    },
+    {
+      "case_id": "14-external-reference-authority-mismatch",
+      "expected_decision": "Blocked",
+      "required_evidence_ids": [
+        "design-revision",
+        "bom-revision",
+        "inspection-result"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "design-revision",
+          "status": "Verified",
+          "payload": "design-rev-a",
+          "sha256": "a3121c2773bf33dde88ccc299cc1ca33ba206dde9e26e7919683dd23d4b503b2"
+        },
+        {
+          "evidence_id": "bom-revision",
+          "status": "Verified",
+          "payload": "bom-rev-a",
+          "sha256": "907856890256de1155d564ce464a23fec083bb507d71923ed771b11c90019717"
+        },
+        {
+          "evidence_id": "inspection-result",
+          "status": "Verified",
+          "payload": "inspection-result-pass",
+          "sha256": "0f314417e12e59512c00c15801ab868efd18269a55ee311ea82a8dd31b31d42c"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "name": "dimensional-inspection",
+          "status": "Pass"
+        },
+        {
+          "name": "functional-fit-check",
+          "status": "Pass"
+        }
+      ],
+      "required_external_refs": [
+        {
+          "reference_id": "process-receipt:14-external-reference-authority-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:14-external-reference-authority-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:14-external-reference-authority-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:14-external-reference-authority-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "Mycelix"
+        }
+      ],
+      "external_refs": [
+        {
+          "reference_id": "process-receipt:14-external-reference-authority-mismatch",
+          "role": "ProcessExecutionReceipt",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "qualification-receipt:14-external-reference-authority-mismatch",
+          "role": "QualificationReceipt",
+          "authority": "Symtropy"
+        },
+        {
+          "reference_id": "material-flow-account:14-external-reference-authority-mismatch",
+          "role": "MaterialFlowAccount",
+          "authority": "Mycelix"
+        },
+        {
+          "reference_id": "custody-profile:14-external-reference-authority-mismatch",
+          "role": "ChainOfCustodyProfile",
+          "authority": "SolAtlas"
         }
       ]
     }
