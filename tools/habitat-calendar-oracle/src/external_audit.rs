@@ -129,6 +129,7 @@ pub struct ExternalAuditReport {
     pub source_results_csv_sha256: String,
     pub source_artifacts_match_pinned_sha256: bool,
     pub instance_count: usize,
+    pub total_task_count: usize,
     pub solver_result_row_count: usize,
     pub successful_solver_row_count: usize,
     pub timeout_or_failed_row_count: usize,
@@ -428,6 +429,7 @@ pub fn audit_embedded_external_corpus() -> Result<ExternalAuditReport, String> {
         )),
         source_artifacts_match_pinned_sha256: true,
         instance_count: instance_bounds.len(),
+        total_task_count: instance_bounds.iter().map(|instance| instance.task_count).sum(),
         solver_result_row_count: solver_rows.len(),
         successful_solver_row_count: successful,
         timeout_or_failed_row_count: timeouts,
@@ -453,6 +455,7 @@ mod tests {
     fn pinned_source_corpus_reproduces_the_lower_bound_audit() {
         let report = audit_embedded_external_corpus().expect("source corpus should audit cleanly");
         assert_eq!(report.instance_count, EXPECTED_INSTANCE_COUNT);
+        assert_eq!(report.total_task_count, 2819);
         assert_eq!(report.solver_result_row_count, EXPECTED_RESULT_ROW_COUNT);
         assert_eq!(report.successful_solver_row_count, EXPECTED_SUCCESS_ROW_COUNT);
         assert_eq!(report.timeout_or_failed_row_count, EXPECTED_TIMEOUT_ROW_COUNT);
