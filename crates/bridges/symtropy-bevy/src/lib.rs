@@ -38,15 +38,18 @@ pub mod biometrics;
 #[cfg(feature = "debug-gizmos")]
 pub mod debug;
 pub mod macro_bridge;
-pub mod plugin;
 pub mod human_motion_metrics;
+pub mod plugin;
 pub mod robot;
 pub mod scripting;
 pub mod toolbus;
 
 pub use animation::{AnimationState, RoboticAnimationPlugin};
 #[cfg(feature = "human-animation")]
-pub use human_animation::{HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanLocomotionConfig, HumanLocomotionIntent, HumanMotion};
+pub use human_animation::{
+    HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanLocomotionConfig,
+    HumanLocomotionIntent, HumanMotion,
+};
 pub use audio::{AudioEmitter, RoboticAudioPlugin};
 pub use biometrics::{PlayerBiometrics, biometric_to_phi_system};
 pub use macro_bridge::{MacroWorldState, apply_macro_modifiers_system};
