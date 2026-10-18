@@ -1,0 +1,236 @@
+{
+  "schema_version": "0.1",
+  "sources": [
+    {
+      "id": "antikythera:src-nature-2006",
+      "title": "Decoding the ancient Greek astronomical calculator known as the Antikythera Mechanism",
+      "source_uri": "https://doi.org/10.1038/nature05357",
+      "rights": {
+        "status": "restricted",
+        "license_id": null,
+        "attribution": "Freeth et al., Nature 444, 587–591 (2006), DOI 10.1038/nature05357.",
+        "basis_note": "Citation and source locator only. The article text, figures, and media are not included in this fixture."
+      }
+    },
+    {
+      "id": "antikythera:src-nature-2008",
+      "title": "Calendars with Olympiad display and eclipse prediction on the Antikythera Mechanism",
+      "source_uri": "https://doi.org/10.1038/nature07130",
+      "rights": {
+        "status": "restricted",
+        "license_id": null,
+        "attribution": "Nature 454 (2008), DOI 10.1038/nature07130.",
+        "basis_note": "Citation and source locator only. No article text, figures, or media are bundled."
+      }
+    },
+    {
+      "id": "antikythera:src-scirep-2021",
+      "title": "A Model of the Cosmos in the ancient Greek Antikythera Mechanism",
+      "source_uri": "https://discovery.ucl.ac.uk/id/eprint/10124374/",
+      "rights": {
+        "status": "open_license",
+        "license_id": "CC-BY-4.0",
+        "attribution": "Freeth et al., Scientific Reports 11, 5821 (2021), DOI 10.1038/s41598-021-84310-w.",
+        "basis_note": "UCL Discovery identifies the article as CC BY 4.0. Images or third-party material must still be checked against their individual credit lines."
+      }
+    },
+    {
+      "id": "antikythera:src-bhi-2020",
+      "title": "The Antikythera Mechanism — Evidence of a Lunar Calendar",
+      "source_uri": "https://bhi.co.uk/wp-content/uploads/2020/12/BHI-Antikythera-Mechanism-Evidence-of-a-Lunar-Calendar.pdf",
+      "rights": {
+        "status": "unknown",
+        "license_id": null,
+        "attribution": "Budiselic, Thoeni, Dubno, and Ramsey; British Horological Institute, first posted December 2020, later printed in the March 2021 Horological Journal.",
+        "basis_note": "Citation only; reuse rights for the paper and embedded imagery have not been established in this fixture."
+      }
+    },
+    {
+      "id": "antikythera:src-woan-bayley-2024",
+      "title": "An improved calendar ring hole-count for the Antikythera mechanism",
+      "source_uri": "https://eprints.gla.ac.uk/329337/",
+      "rights": {
+        "status": "unknown",
+        "license_id": null,
+        "attribution": "Graham Woan and Joseph Bayley, Horological Journal (2024), accepted version hosted by the University of Glasgow.",
+        "basis_note": "Citation only. The repository lists an accepted version and copyright information; this fixture does not assert a redistribution license."
+      }
+    },
+    {
+      "id": "antikythera:src-lin-2025",
+      "title": "New reconstruction designs based on the Re-decrypt calendar dial on the front plate of Antikythera mechanism",
+      "source_uri": "https://doi.org/10.1016/j.rineng.2025.108632",
+      "rights": {
+        "status": "unknown",
+        "license_id": null,
+        "attribution": "Jian Liang Lin, Results in Engineering (2025), DOI 10.1016/j.rineng.2025.108632.",
+        "basis_note": "The landing page indicates open access under a Creative Commons license, but the exact license identifier has not been normalized here. Citation only; no article content is redistributed."
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "antikythera:construction-date",
+      "proposition": "The working chronology places construction in the second century BCE; an influential 2006 study describes it as toward the end of that century.",
+      "mode": "evidence_based_reconstruction",
+      "valid_time": {
+        "calendar": "proleptic_gregorian_astronomical_year_numbering",
+        "start_year": -199,
+        "end_year": -100,
+        "precision": "century"
+      },
+      "evidence": [
+        {
+          "source_id": "antikythera:src-nature-2006",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The article dates construction around the end of the second century BCE."
+        },
+        {
+          "source_id": "antikythera:src-scirep-2021",
+          "locator": "Abstract and Introduction",
+          "relation": "supports",
+          "note": "The article describes the device as a second-century BCE mechanism."
+        }
+      ],
+      "interpretation_note": "The interval is an explicitly broad display range for 200–101 BCE under astronomical year numbering, not an exact artifact date. Review the dating scope before tightening it."
+    },
+    {
+      "id": "antikythera:eclipse-babylonian-cycles",
+      "proposition": "A 2006 analysis interpreted the mechanism's eclipse predictions as using Babylonian arithmetic-progression cycles.",
+      "mode": "evidence_based_reconstruction",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-nature-2006",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The analysis identifies Babylonian arithmetic-progression cycles as the basis of eclipse prediction."
+        },
+        {
+          "source_id": "antikythera:src-scirep-2021",
+          "locator": "Abstract and Introduction",
+          "relation": "supports",
+          "note": "The later reconstruction also describes the integration of Babylonian astronomical cycles with other mathematical and astronomical ideas."
+        }
+      ],
+      "interpretation_note": "The presence of Babylonian cycles in the mechanism's model is not, by itself, proof of a specific direct transmission route between named institutions or individuals. This seed intentionally adds no such edge."
+    },
+    {
+      "id": "antikythera:fragmentary-evidence",
+      "proposition": "The surviving mechanism is fragmented, and its inscriptions and missing components leave parts of the original design open to reconstruction.",
+      "mode": "attested",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-nature-2006",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The authors describe fragmentary gears and inscriptions and state that specific functions remained controversial."
+        },
+        {
+          "source_id": "antikythera:src-scirep-2021",
+          "locator": "Abstract and Introduction",
+          "relation": "supports",
+          "note": "The article describes 82 fragments and only about a third of the original surviving."
+        }
+      ],
+      "interpretation_note": null
+    },
+    {
+      "id": "antikythera:calendar-ring-365-model",
+      "proposition": "A published 2008 reconstruction described a movable 365-hole calendar ring associated with an Egyptian civil-calendar interpretation.",
+      "mode": "evidence_based_reconstruction",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-nature-2008",
+          "locator": "Supplementary Information, Overview of the Mechanism, Front Dials",
+          "relation": "supports",
+          "note": "The reconstruction describes 365 holes beneath the movable calendar scale."
+        }
+      ],
+      "interpretation_note": "This record describes one published reconstruction, not an adjudication that 365 is the historically correct count."
+    },
+    {
+      "id": "antikythera:calendar-ring-354-proposal",
+      "proposition": "A 2020 analysis of measured hole spacing proposed that the front calendar ring represented a 354-day lunar calendar rather than the previously assumed 365-day calendar.",
+      "mode": "evidence_based_reconstruction",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-bhi-2020",
+          "locator": "Synopsis and hole-measurement discussion",
+          "relation": "supports",
+          "note": "The authors propose a 354-day lunar calendar from measurements of surviving holes."
+        }
+      ],
+      "interpretation_note": "This is a published interpretation based on an incomplete ring; preserve it as a model with assumptions rather than declaring the whole question settled."
+    },
+    {
+      "id": "antikythera:calendar-hole-count-statistics-2024",
+      "proposition": "A 2024 analysis reported a 68% credible estimate of 355.24 holes (+1.39/-1.36) using all measured data and 354.08 (+1.47/-1.41) when holes adjacent to fractures are excluded; the authors said 365 was not plausible under their model assumptions.",
+      "mode": "attested",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The source reports both estimates and qualifies them by treatment of holes adjacent to fractures."
+        }
+      ],
+      "interpretation_note": "These are model-conditioned credible estimates from surviving measurements, not a direct count of the complete missing ring."
+    },
+    {
+      "id": "antikythera:calendar-designs-2025",
+      "proposition": "A 2025 engineering paper presented three feasible candidate designs for the front date subsystem under a 354-division lunar-year interpretation.",
+      "mode": "evidence_based_reconstruction",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-lin-2025",
+          "locator": "Abstract and Highlights",
+          "relation": "supports",
+          "note": "The paper reports three conceptual models and kinematic/geometric feasibility analyses."
+        }
+      ],
+      "interpretation_note": "Candidate kinematic feasibility does not independently prove that any proposed gear train was the original historical arrangement."
+    }
+  ],
+  "relations": [
+    {
+      "id": "antikythera:relation-2020-challenges-2008",
+      "from_claim_id": "antikythera:calendar-ring-354-proposal",
+      "to_claim_id": "antikythera:calendar-ring-365-model",
+      "kind": "challenges",
+      "status": "documented",
+      "evidence": [
+        {
+          "source_id": "antikythera:src-bhi-2020",
+          "locator": "Synopsis",
+          "relation": "supports",
+          "note": "This source supports the statement that the later interpretation challenges the prior 365-day assumption."
+        }
+      ],
+      "interpretation_note": null
+    },
+    {
+      "id": "antikythera:relation-2024-challenges-2008",
+      "from_claim_id": "antikythera:calendar-hole-count-statistics-2024",
+      "to_claim_id": "antikythera:calendar-ring-365-model",
+      "kind": "challenges",
+      "status": "documented",
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Abstract",
+          "relation": "supports",
+          "note": "The estimate is reported as strongly disfavoring a 365-hole ring under the authors' stated model assumptions."
+        }
+      ],
+      "interpretation_note": null
+    }
+  ],
+  "assets": []
+}
