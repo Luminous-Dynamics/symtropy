@@ -6,11 +6,10 @@ use std::io::Write;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:ords-appliance-adapter-profile:0.1.0";
 const ADAPTER_ID: &str = "REPAIR-DATA-INTEROP-001";
-const REQUIRED_HEADERS: [&str; 7] = [
+const REQUIRED_HEADERS: [&str; 6] = [
     "id",
     "partner_product_category",
     "repair_status",
-    "problem",
     "event_date",
     "country",
     "data_provider",
@@ -949,13 +948,14 @@ mod tests {
 
     #[test]
     fn optional_product_category_and_brand_fields_are_not_required() {
-        let csv = b"id,partner_product_category,repair_status,problem,event_date,country,data_provider\nr-opt,Small home electrical,0,unknown,2026-06-01,ZAF,provider-opt\n";
+        let csv = b"id,partner_product_category,repair_status,event_date,country,data_provider\nr-opt,Small home electrical,0,2026-06-01,ZAF,provider-opt\n";
         let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
         assert_eq!(summary.row_count, 1);
         assert_eq!(summary.accepted_row_count, 1);
         let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
         assert_eq!(record["raw_fields"].get("brand"), None);
         assert_eq!(record["raw_fields"].get("product_category"), None);
+        assert_eq!(record["raw_fields"].get("problem"), None);
         assert_eq!(record["repair_status"]["normalized_value"], "unknown");
         assert_eq!(record["product_category_mapping"]["mapping_status"], "unmapped");
         assert_eq!(record["product_category_mapping"]["mapping_match_method"], "unmapped");
