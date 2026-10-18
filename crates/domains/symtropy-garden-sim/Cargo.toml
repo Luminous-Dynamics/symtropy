@@ -19,6 +19,10 @@ path = "src/bin/verify_field_robot_cost_manifest.rs"
 name = "verify-provider-coverage-manifest"
 path = "src/bin/verify_provider_coverage_manifest.rs"
 
+[[bin]]
+name = "verify-service-access-manifest"
+path = "src/bin/verify_service_access_manifest.rs"
+
 [[bench]]
 name = "portfolio_frontier"
 harness = false

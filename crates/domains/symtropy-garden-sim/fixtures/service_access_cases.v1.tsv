@@ -1,0 +1,21 @@
+# SERVICE-ACCESS-BENCH-V1
+case_id	expected_result	rationale
+lifecycle_denominators_and_nearest_rank_waits_match_hand_calculation	CALCULATED	Three synthetic requests establish request-to-accepted counts, within-window outcome and exact nearest-rank waits
+completed_pending_delivery_decision_is_not_promoted_to_acceptance	CALCULATED	Completed work without a farmer decision is counted separately, not treated as accepted
+duplicate_request_id_blocks_without_partial_aggregate	BLOCKED	Duplicate request identities would inflate or collapse denominators
+scope_mismatch_blocks	BLOCKED	Request and assessment scope must be identical
+stale_request_evidence_blocks	BLOCKED	Stale service records cannot support a current-period access result
+unpriced_quote_blocks	BLOCKED	A quote without full price terms is not countable as a valid offer
+booking_without_quote_blocks	BLOCKED	Bookings require a complete, not-expired quote
+completion_without_booking_blocks	BLOCKED	Physical completion without a recorded booking is invalid in this versioned contract
+timestamp_reversal_blocks	BLOCKED	Lifecycle timestamps must be monotone
+no_show_requires_booking_and_is_not_counted_as_fulfilled	BLOCKED	A no-show reason without a booking is inconsistent
+quote_unit_mismatch_blocks	BLOCKED	Quote fee basis must match requested service unit
+separate_travel_charge_requires_explicit_fee	BLOCKED	Separate travel charge must be visible rather than hidden
+malformed_source_digest_blocks	BLOCKED	Digest syntax must be valid before source-referenced records are admitted
+cohort_below_threshold_is_suppressed	CALCULATED	Sub-k cohort names and values must be omitted from output
+cohort_at_threshold_is_aggregated_after_explicit_consent	CALCULATED	A single consented cohort of size ten is eligible for aggregate output
+cohort_label_without_consent_blocks	BLOCKED	Labels must not be retained in this output without explicit aggregation consent
+unsupported_small_cohort_threshold_blocks	BLOCKED	Displayed cohort threshold cannot be configured below ten
+missing_evidence_blocks	BLOCKED	Missing is not equivalent to zero service or failure/success
+quote_expired_before_booking_blocks	BLOCKED	Booking after quote validity must be blocked
