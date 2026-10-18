@@ -730,6 +730,9 @@ mod tests {
             .expect("missing fixture exists")
             .clone();
         case.observations[0].disposition = LossDisposition::NotEvaluated;
-        assert_eq!(evaluate_scenario(&case).computed_decision, Decision::Blocked);
+        assert_eq!(
+            evaluate_scenario(&case).computed_decision,
+            Decision::Blocked
+        );
     }
 }
