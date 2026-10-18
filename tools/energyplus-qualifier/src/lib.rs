@@ -594,7 +594,7 @@ pub fn validate_receipt_bytes(
     receipt_bytes: &[u8],
     spec_bytes: &[u8],
     receipt_schema_bytes: &[u8],
-    artifact_root: Option<&Path>,
+    artifact_root: &Path,
 ) -> GateResult {
     let receipt = match parse_json(receipt_bytes) {
         Ok(receipt) => receipt,
@@ -637,9 +637,7 @@ pub fn validate_receipt_bytes(
             };
         }
     };
-    let artifact_codes = artifact_root
-        .map(|root| verify_receipt_artifacts(&receipt, root))
-        .unwrap_or_default();
+    let artifact_codes = verify_receipt_artifacts(&receipt, artifact_root);
     evaluate_receipt_metadata(&receipt, &spec, &artifact_codes)
 }
 
@@ -731,7 +729,35 @@ pub fn validate_fixture_corpus_bytes(
                 continue;
             }
         };
-        let result = validate_receipt_bytes(&receipt_bytes, spec_bytes, receipt_schema_bytes, None);
+        match add_schema_findings(&receipt, receipt_schema_bytes, "RECEIPT") {
+            Ok(findings) if findings.is_empty() => {}
+            Ok(findings) => {
+                for finding in findings {
+                    summary.fail(
+                        "FIXTURE_RECEIPT_SCHEMA_INVALID",
+                        format!("{path}.receipt{}", finding.path),
+                        finding.detail,
+                    );
+                }
+                continue;
+            }
+            Err(detail) => {
+                summary.fail(
+                    "FIXTURE_RECEIPT_SCHEMA_UNAVAILABLE",
+                    format!("{path}.receipt"),
+                    detail,
+                );
+                continue;
+            }
+        }
+        let spec_value: Value = match parse_json(spec_bytes) {
+            Ok(spec_value) => spec_value,
+            Err(error) => {
+                summary.fail("ADAPTER_SPEC_INVALID", "$", error);
+                continue;
+            }
+        };
+        let result = evaluate_receipt_metadata(&receipt, &spec_value, &[]);
         let expected_gate = string_field(fixture_object, "expected_gate").unwrap_or("unknown");
         let expected_codes = fixture_object
             .get("expected_blocker_codes")
@@ -817,43 +843,31 @@ mod tests {
     fn non_convergence_is_blocked_and_not_reported_as_zero() {
         let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
         let mut receipt = corpus["fixtures"][0]["receipt"].clone();
+        let spec: Value = serde_json::from_str(EMBEDDED_SPEC).unwrap();
         receipt["execution"]["converged"] = Value::Bool(false);
         receipt["claimed_gate"] = Value::String("blocked".to_owned());
         receipt["claimed_blocker_codes"] = serde_json::json!(["SOLVER_NOT_CONVERGED"]);
-        let result = validate_receipt_bytes(
-            &serde_json::to_vec(&receipt).unwrap(),
-            EMBEDDED_SPEC.as_bytes(),
-            EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
-            None,
-        );
+        let result = evaluate_receipt_metadata(&receipt, &spec, &[]);
         assert_eq!(result.disposition, "blocked");
         assert_eq!(result.blocker_codes, vec!["SOLVER_NOT_CONVERGED"]);
     }
 
+    fn evaluate_fixture(index: usize) -> GateResult {
+        let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
+        let spec: Value = serde_json::from_str(EMBEDDED_SPEC).unwrap();
+        evaluate_receipt_metadata(&corpus["fixtures"][index]["receipt"], &spec, &[])
+    }
+
     #[test]
     fn mismatched_package_digest_remains_unknown() {
-        let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
-        let receipt = &corpus["fixtures"][1]["receipt"];
-        let result = validate_receipt_bytes(
-            &serde_json::to_vec(receipt).unwrap(),
-            EMBEDDED_SPEC.as_bytes(),
-            EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
-            None,
-        );
+        let result = evaluate_fixture(1);
         assert_eq!(result.disposition, "unknown");
         assert_eq!(result.blocker_codes, vec!["ENGINE_PACKAGE_DIGEST_MISMATCH"]);
     }
 
     #[test]
     fn incomplete_output_bundle_remains_unknown() {
-        let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
-        let receipt = &corpus["fixtures"][6]["receipt"];
-        let result = validate_receipt_bytes(
-            &serde_json::to_vec(receipt).unwrap(),
-            EMBEDDED_SPEC.as_bytes(),
-            EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
-            None,
-        );
+        let result = evaluate_fixture(6);
         assert_eq!(result.disposition, "unknown");
         assert_eq!(
             result.blocker_codes,
@@ -863,14 +877,7 @@ mod tests {
 
     #[test]
     fn a_claimed_gate_cannot_override_computed_evidence() {
-        let corpus: Value = serde_json::from_str(EMBEDDED_FIXTURE_CORPUS).unwrap();
-        let receipt = &corpus["fixtures"][9]["receipt"];
-        let result = validate_receipt_bytes(
-            &serde_json::to_vec(receipt).unwrap(),
-            EMBEDDED_SPEC.as_bytes(),
-            EMBEDDED_RECEIPT_SCHEMA.as_bytes(),
-            None,
-        );
+        let result = evaluate_fixture(9);
         assert_eq!(result.disposition, "unknown");
         assert_eq!(
             result.blocker_codes,
