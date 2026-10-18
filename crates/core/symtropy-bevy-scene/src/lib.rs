@@ -100,7 +100,8 @@ pub mod loader;
 
 pub use architectural_review::{
     ArchitecturalReviewRoute, ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind,
-    ReviewAnnotationState, ReviewRig, ReviewRouteIssue, ReviewRoutePlayback, ReviewWaypoint,
+    ReviewAnnotationState, ReviewFreeCameraController, ReviewRig, ReviewRouteIssue,
+    ReviewRoutePlayback, ReviewWaypoint,
     advance_architectural_review_routes, drive_free_review_camera, review_waypoint_transform,
     sample_review_route, validate_review_annotations_for_revision, validate_review_route,
 };
