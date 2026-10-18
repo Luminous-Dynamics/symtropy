@@ -53,7 +53,7 @@ Every scenario is executed against the same avatar, coordinate system, frame rat
 ## Metrics and definitions
 
 - **Mean displacement error (ADE):** mean of the Euclidean root-position error over aligned samples.
-- **Final displacement error (FDE):** Euclidean root-position error at the final aligned sample.
+- **Final displacement error (FDE):** Euclidean root-position error at the exact end of the shared time interval, interpolated from the two traces even when the uniform metric grid does not land exactly on that timestamp.
 - **Maximum displacement error:** largest aligned root-position error; report as an outlier measure, not a substitute for ADE.
 - **Stance-foot drift:** RMS and maximum world-space foot displacement from the beginning of each detected contact interval. Publish the contact detector and threshold. Contact labels inferred from generated output and evaluation labels must be independently specified.
 - **Mean-squared jerk:** discrete trajectory jerk estimate, reported with sample rate, filtering and units (m²/s⁶). It is noise-sensitive and must not be optimized in isolation; an immobile character would look artificially smooth.
@@ -94,7 +94,7 @@ cargo run -p symtropy-bevy --bin human-motion-bench -- \
   docs/research/fixtures/human-motion-trace-synthetic-v0.1.json
 ```
 
-For actual traces, provide the reference and candidate JSON paths; use `--step-sec 0.033333` to explicitly set a common 30 Hz grid, and `--output report.json` to save the machine-readable report. The default common grid uses the coarser median sample interval, is bounded to one million samples, interpolates positions linearly and samples contact booleans by nearest neighbour. Both traces must overlap in time and share the same coordinate frame, canonical skeleton signature and retarget-map hash. Model/config/asset hashes are both recorded and may differ as part of the experiment.
+For actual traces, provide the reference and candidate JSON paths; use `--step-sec 0.033333` to explicitly set a common 30 Hz grid, and `--output report.json` to save the machine-readable report. The default common grid uses the coarser median sample interval, is bounded to one million samples, interpolates positions linearly and samples contact booleans by nearest neighbour. ADE and maximum error use grid samples; FDE is interpolated at the exact overlap endpoint. Both traces must overlap in time and share the same coordinate frame, canonical skeleton signature and retarget-map hash. Model/config/asset hashes are both recorded and may differ as part of the experiment.
 
 The CLI rejects malformed JSON, incomplete required fields, wrong sample counts, non-finite coordinates, non-increasing time, incomplete asset/license provenance, and incompatible skeleton/retarget metadata. Invalid samples are rejected rather than silently dropped. The report is marked `synthetic_fixture_only` when either side is synthetic. The current implementation measures metric-computation time but does not yet provide peak-memory accounting, renderer frame-time capture, visual preference study orchestration, or a real-avatar smoke screenshot.
 
