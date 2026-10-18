@@ -247,42 +247,37 @@ fn inspect_image(
     expected_width: Option<u32>,
     expected_height: Option<u32>,
 ) -> ImageReceipt {
+    const MAX_PNG_BYTES: u64 = 512 * 1024 * 1024;
+
     let Some(path) = path else {
         return image_failure(scheduled_time_secs, None, "missing_capture_path");
     };
 
-    let mut file = match File::open(path) {
+    let file = match File::open(path) {
         Ok(file) => file,
         Err(_) => return image_failure(scheduled_time_secs, Some(path), "unreadable"),
     };
 
-    let mut hasher = Sha256::new();
-    let mut byte_len = 0_u64;
-    let mut signature = [0_u8; PNG_SIGNATURE.len()];
-    let mut signature_len = 0_usize;
-    let mut buffer = [0_u8; 64 * 1024];
-
-    loop {
-        let read = match file.read(&mut buffer) {
-            Ok(read) => read,
-            Err(_) => return image_failure(scheduled_time_secs, Some(path), "read_error"),
-        };
-        if read == 0 {
-            break;
-        }
-
-        if signature_len < signature.len() {
-            let take = (signature.len() - signature_len).min(read);
-            signature[signature_len..signature_len + take].copy_from_slice(&buffer[..take]);
-            signature_len += take;
-        }
-        byte_len = match byte_len.checked_add(read as u64) {
-            Some(total) => total,
-            None => return image_failure(scheduled_time_secs, Some(path), "size_overflow"),
-        };
-        hasher.update(&buffer[..read]);
+    // Hash and decode the exact same bounded byte buffer. Reopening a path for
+    // decode after hashing could otherwise make the digest and dimensions refer
+    // to different file contents if the path were replaced between operations.
+    let mut bytes = Vec::new();
+    let mut limited = file.take(MAX_PNG_BYTES + 1);
+    if limited.read_to_end(&mut bytes).is_err() {
+        return image_failure(scheduled_time_secs, Some(path), "read_error");
     }
-
+    let byte_len = bytes.len() as u64;
+    if byte_len > MAX_PNG_BYTES {
+        return ImageReceipt {
+            scheduled_time_secs,
+            path: Some(path.to_owned()),
+            status: "size_limit_exceeded".to_owned(),
+            byte_len: Some(byte_len),
+            sha256: None,
+            width_px: None,
+            height_px: None,
+        };
+    }
     if byte_len == 0 {
         return ImageReceipt {
             scheduled_time_secs,
@@ -294,36 +289,22 @@ fn inspect_image(
             height_px: None,
         };
     }
-    if signature_len != PNG_SIGNATURE.len() || signature != PNG_SIGNATURE {
+
+    let digest = format!("{:x}", Sha256::digest(&bytes));
+    if !bytes.starts_with(&PNG_SIGNATURE) {
         return ImageReceipt {
             scheduled_time_secs,
             path: Some(path.to_owned()),
             status: "invalid_png_signature".to_owned(),
             byte_len: Some(byte_len),
-            sha256: Some(format!("{:x}", hasher.finalize())),
+            sha256: Some(digest),
             width_px: None,
             height_px: None,
         };
     }
 
-    let digest = format!("{:x}", hasher.finalize());
-    let decoded = match image::ImageReader::open(path)
-        .and_then(|reader| reader.with_guessed_format())
-    {
-        Ok(reader) => match reader.decode() {
-            Ok(image) => image,
-            Err(_) => {
-                return ImageReceipt {
-                    scheduled_time_secs,
-                    path: Some(path.to_owned()),
-                    status: "decode_error".to_owned(),
-                    byte_len: Some(byte_len),
-                    sha256: Some(digest),
-                    width_px: None,
-                    height_px: None,
-                };
-            }
-        },
+    let decoded = match image::load_from_memory_with_format(&bytes, image::ImageFormat::Png) {
+        Ok(image) => image,
         Err(_) => {
             return ImageReceipt {
                 scheduled_time_secs,
@@ -336,6 +317,8 @@ fn inspect_image(
             };
         }
     };
+    drop(bytes);
+
     let width_px = decoded.width();
     let height_px = decoded.height();
     if expected_width.is_some_and(|expected| expected != width_px)
