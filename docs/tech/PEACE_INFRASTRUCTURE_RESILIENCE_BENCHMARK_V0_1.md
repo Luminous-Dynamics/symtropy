@@ -6,6 +6,7 @@ scope: synthetic conformance, intervention robustness, evidence quality, privacy
 owner: research/evaluation/civic-systems
 authority: MeasurementOnly
 related:
+  - PIRB_FIELD_EVALUATION_PROTOCOL_TEMPLATE_V0_1.md
   - STRATEGIC_CONFLICT_CAMPAIGN_AND_OCCUPATION_SIMULATION_V0_1.md
   - INTERSETTLEMENT_TREATY_STANDARDS_AND_MUTUAL_AID_RUNTIME_V0_1.md
   - SOCIAL_SIGNAL_RUMOR_REPUTATION_AND_PUBLIC_OPINION_RUNTIME_V0_1.md
@@ -157,7 +158,7 @@ These fixtures test semantics and failure handling only. Numeric quantities are 
 
 **Gate C — Privacy and governance review:** verify data-flow boundaries, access policies, threat models, appeal/exit processes, and decision authority.
 
-**Gate D — External evaluation design:** agree on outcomes and stop conditions with local partners; preregister a defensible comparison before intervention outcomes are reviewed.
+**Gate D — External evaluation design:** agree on outcomes and stop conditions with local partners; preregister a defensible comparison before intervention outcomes are reviewed. Use the [PIRB field-evaluation protocol template](PIRB_FIELD_EVALUATION_PROTOCOL_TEMPLATE_V0_1.md) as a checklist, not as approval or evidence that a study has been authorized.
 
 **Gate E — Field evidence:** publish limitations and adverse results as well as positive results. A deployment can be technically correct and still be ineffective, illegitimate, inequitable, or unsafe.
 
