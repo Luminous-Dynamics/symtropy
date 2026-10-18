@@ -49,6 +49,7 @@ Every scenario is executed against the same avatar, coordinate system, frame rat
 | HM-08 | Crowd/LOD | collision rate, route/flow distributions, latency and memory by visible/logical count | unbounded resource growth, silent desynchronization |
 | HM-09 | Asset robustness | load failures, missing bones/clips, material errors, scale/range warnings | broken skeleton, unreported fallback or crash |
 | HM-10 | Accessibility and mobility | user-defined speed/stride/mobility adherence, transfer/turn success | system assumes a single able-bodied gait or overrides an explicit mobility profile |
+| HM-11 | Blocked locomotion / intent mismatch | requested-vs-observed speed gap, realized root displacement, animation state | walk/run loop continues while the physics body remains stationary despite valid observed-velocity feedback |
 
 ## Metrics and definitions
 
@@ -57,6 +58,7 @@ Every scenario is executed against the same avatar, coordinate system, frame rat
 - **Maximum displacement error:** largest aligned root-position error; report as an outlier measure, not a substitute for ADE.
 - **Named-joint trajectory error:** for every identically named joint in the canonical skeleton, report ADE, FDE at the exact shared endpoint, and maximum aligned error. Also report macro-mean per-joint ADE and the worst joint FDE. Reject differing joint-name sets; never score only the overlapping names because that can hide missing limbs or inconsistent retargeting. If neither trace contains joint trajectories, mark the comparison root/contact-only rather than implying whole-body evaluation.
 - **Stance-foot drift:** RMS and maximum world-space foot displacement from the beginning of each detected contact interval. Publish the contact detector and threshold. Contact labels inferred from generated output and evaluation labels must be independently specified.
+- **Intent/realization mismatch:** compare requested velocity against measured root velocity and displacement. If measured velocity is available, locomotion animation must follow realized velocity; a blocked character must not visually walk at the requested rate. Report when feedback is missing and the adapter falls back to desired velocity.
 - **Mean-squared jerk:** discrete trajectory jerk estimate, reported with sample rate, filtering and units (m²/s⁶). It is noise-sensitive and must not be optimized in isolation; an immobile character would look artificially smooth.
 - **Constraint adherence:** position/orientation error for each root, waypoint, hand, foot or joint constraint; report distributions and failure rates, not only averages.
 - **Diversity/repetition:** unique motion-cluster coverage and duplicate/repetition rates, normalized by task and sequence length.
