@@ -770,6 +770,39 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     )?;
     solar_input::verify_mean_dni_report(bni_irradiation, bni_duration, bni_report)?;
 
+    // Canonical hand-calculable service-risk fixture. Scenario outcomes are
+    // caller-supplied; this receipt tests metric arithmetic, not forecasting.
+    let risk_outcomes = [
+        scenario_risk::ScenarioServiceOutcome {
+            scenario_id: 10,
+            probability: scenario_risk::ScenarioProbability::new(0.80)
+                .map_err(|_| ModelError::ReportMismatch("risk.probability_0"))?,
+            requested_useful_heat: EnergyJ::new(100.0)?,
+            delivered_useful_heat: EnergyJ::new(100.0)?,
+        },
+        scenario_risk::ScenarioServiceOutcome {
+            scenario_id: 20,
+            probability: scenario_risk::ScenarioProbability::new(0.17)
+                .map_err(|_| ModelError::ReportMismatch("risk.probability_1"))?,
+            requested_useful_heat: EnergyJ::new(100.0)?,
+            delivered_useful_heat: EnergyJ::new(80.0)?,
+        },
+        scenario_risk::ScenarioServiceOutcome {
+            scenario_id: 30,
+            probability: scenario_risk::ScenarioProbability::new(0.03)
+                .map_err(|_| ModelError::ReportMismatch("risk.probability_2"))?,
+            requested_useful_heat: EnergyJ::new(100.0)?,
+            delivered_useful_heat: EnergyJ::new(20.0)?,
+        },
+    ];
+    let risk_service_floor = Fraction::new(0.80)?;
+    let risk_report = scenario_risk::summarize_scenario_service_risk(
+        &risk_outcomes, risk_service_floor,
+    ).map_err(|_| ModelError::ReportMismatch("risk.summary"))?;
+    scenario_risk::verify_scenario_service_risk_report(
+        &risk_outcomes, risk_service_floor, &risk_report,
+    ).map_err(|_| ModelError::ReportMismatch("risk.verification"))?;
+
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
@@ -780,6 +813,24 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "bni_interval_irradiation_wh_per_m2", 100.0);
     number(&mut json, "bni_interval_duration_s", 900.0);
     number(&mut json, "bni_interval_mean_dni_w_per_m2", bni_report.interval_mean_irradiance.value());
+
+    json.push_str(",\"risk_fixture_id\":\"scenario-service-risk-001\"");
+    number(&mut json, "risk_service_floor_fraction", risk_service_floor.value());
+    number(&mut json, "risk_scenario_count", risk_outcomes.len() as f64);
+    for (index, outcome) in risk_outcomes.iter().enumerate() {
+        number(&mut json, &format!("risk_scenario_{index}_id"), outcome.scenario_id as f64);
+        number(&mut json, &format!("risk_scenario_{index}_probability"), outcome.probability.value());
+        number(&mut json, &format!("risk_scenario_{index}_requested_heat_j"), outcome.requested_useful_heat.value());
+        number(&mut json, &format!("risk_scenario_{index}_delivered_heat_j"), outcome.delivered_useful_heat.value());
+    }
+    number(&mut json, "risk_expected_unmet_useful_heat_j", risk_report.expected_unmet_useful_heat.value());
+    number(&mut json, "risk_worst_unmet_useful_heat_j", risk_report.worst_unmet_useful_heat.value());
+    number(&mut json, "risk_expected_shortfall_fraction", risk_report.expected_shortfall_fraction);
+    number(&mut json, "risk_worst_shortfall_fraction", risk_report.worst_shortfall_fraction);
+    number(&mut json, "risk_p95_shortfall_fraction", risk_report.p95_shortfall_fraction);
+    number(&mut json, "risk_cvar95_shortfall_fraction", risk_report.cvar95_shortfall_fraction);
+    number(&mut json, "risk_probability_below_service_floor", risk_report.probability_below_service_floor);
+    number(&mut json, "risk_worst_case_scenario_id", risk_report.worst_case_scenario_id as f64);
 
     json.push_str(",\"dni_fixture_id\":\"direct-beam-interval-001\"");
     number(&mut json, "dni_direct_normal_irradiance_w_per_m2", 800.0);
@@ -982,6 +1033,11 @@ mod tests {
         assert!(first.contains("\"final_store_exergy_j\""));
         assert!(first.contains("\"exergy_reference_temperature_k\":300.000000000"));
         assert!(first.contains("\"optical_efficiency\":0.800000000"));
+        assert!(first.contains("\"risk_fixture_id\":\"scenario-service-risk-001\""));
+        assert!(first.contains("\"risk_expected_unmet_useful_heat_j\":5.800000000"));
+        assert!(first.contains("\"risk_p95_shortfall_fraction\":0.200000000"));
+        assert!(first.contains("\"risk_cvar95_shortfall_fraction\":0.560000000"));
+        assert!(first.contains("\"risk_probability_below_service_floor\":0.030000000"));
         assert!(first.contains("\"dni_fixture_id\":\"direct-beam-interval-001\""));
         assert!(first.contains("\"dni_incident_power_w\":3200.000000000"));
         assert!(first.contains("\"dni_incident_energy_j\":11520000.000000000"));
