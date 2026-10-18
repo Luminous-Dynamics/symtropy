@@ -690,7 +690,7 @@ mod tests {
     #[test]
     fn approved_transform_rule_is_pinned_out_of_band() {
         const EXPECTED: &[(&str, &str, &str, f64, f64, f64)] =
-            &[( "mm-to-m-v1", "mm", "m", 0.001, 0.0, 0.000000001 )];
+            &[("mm-to-m-v1", "mm", "m", 0.001, 0.0, 0.000000001)];
 
         let (manifest, _) = fixture();
         let rules: Vec<&TransformRule> = manifest
