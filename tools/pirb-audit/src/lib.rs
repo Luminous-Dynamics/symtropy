@@ -658,7 +658,7 @@ fn audit_robust_frontier(scenario: &Value, path: &str, findings: &mut Vec<Findin
         }
 
         let cost = option.get("cost_ticks").and_then(Value::as_i64);
-        if !cost.is_some_and(|value| value >= 0) {
+        if cost.is_none_or(|value| value < 0) {
             findings.push(finding(
                 "PIRB_OPTION_COST_INVALID",
                 &format!("{option_path}.cost_ticks"),
