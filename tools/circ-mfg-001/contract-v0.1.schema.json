@@ -33,7 +33,7 @@
   "$defs": {
     "decision": {
       "enum": [
-        "Eligible",
+        "Conformant",
         "Blocked",
         "Unresolved"
       ]
