@@ -54,7 +54,9 @@ The corpus also includes a two-strategy sensitivity control with explicit feasib
 | Biosecurity exposure (minimize when prioritized) | 5 | 1 |
 | Habitat disturbance (must be ≤ 3) | 2 | 0 |
 
-Both strategies satisfy the fixture's constraints. Under the current profile's material-recovery-first regime, the rapid option ranks first. Under a proposed biosecurity-first regime, retain/inspect/replan ranks first. That ranking reversal is a sensitivity control demonstrating that priority changes matter; it is not evidence that either option is actually safer or preferable in a real forest.
+The two plausible strategies satisfy the fixture's constraints. A third strategy, `constraint-violating-high-yield-shortcut`, has synthetic material yield 100 and biosecurity exposure 0, but habitat disturbance 99, violating the hard `habitat_disturbance ≤ 3` constraint. The auditor must exclude it in both regimes despite its attractive objective values. A mutation that weakens the hard threshold to 99 must cause the shortcut to enter the ranking and fail the frozen expected result.
+
+Among the two admissible strategies, the current profile's material-recovery-first regime ranks the rapid option first. Under the proposed biosecurity-first regime, retain/inspect/replan ranks first. This ranking reversal is a sensitivity control demonstrating that priority changes matter; it is not evidence that either option is actually safer or preferable in a real forest.
 
 The proposed regime is explicitly not adopted by the current profile. Ranking under a proposed regime does not confer applicability, permission or authority. The current profile continues to require an explicit versioned adoption/reassessment before using that regime in real decisions.
 
