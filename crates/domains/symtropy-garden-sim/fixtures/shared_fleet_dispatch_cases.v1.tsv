@@ -10,7 +10,7 @@ unknown_task_duration_is_not_zero	CALCULATED	Unknown service duration remains an
 capacity_limit_yields_explicit_unavailable_outcome	CALCULATED	Known resource window prevents a schedule without wrapping or dropping the request
 maintenance_robot_is_never_assigned	CALCULATED	Parts-unavailable readiness blocks resource allocation
 no_compatible_robot_is_counted_explicitly	CALCULATED	Unsupported task capability has its own disposition
-modeled_and_observed_travel_minutes_remain_separate	CALCULATED	Modeled and observed trip durations are reported in separate totals
+observed_trip_time_is_not_used_as_future_forecast	CALCULATED	Historical observed-trip duration cannot masquerade as a future travel-time forecast
 duplicate_route_key_blocks_without_partial_report	BLOCKED	Duplicate robot/from/to legs are an ambiguous route join
 cross_season_route_evidence_blocks	BLOCKED	Route records from another season cannot be silently reused
 time_overflow_blocks_without_saturated_or_wrapped_schedule	BLOCKED	Checked arithmetic rejects impossible time overflow
