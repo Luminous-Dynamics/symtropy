@@ -498,10 +498,12 @@ fn parse_gate_file(path: &Path) -> Result<Gate, String> {
 }
 
 fn parse_args() -> Result<Option<CliArgs>, String> {
-    let mut args = env::args().skip(1);
-    if matches!(args.clone().next().as_deref(), Some("--help" | "-h")) {
+    let mut raw_args = env::args().skip(1);
+    let first = raw_args.next();
+    if matches!(first.as_deref(), Some("--help" | "-h")) {
         return Ok(None);
     }
+    let mut args = first.into_iter().chain(raw_args);
     let mut singleton = BTreeMap::<String, String>::new();
     let mut gate_json = Vec::new();
     while let Some(flag) = args.next() {
