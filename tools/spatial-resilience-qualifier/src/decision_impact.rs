@@ -1487,6 +1487,177 @@ mod tests {
         assert!(has_code(&summary, "DECISION_SCHEMA_VALIDATION_FAILED"));
     }
 
+    fn reference_robust(
+        candidates: &[Candidate],
+        states: &[String],
+        unresolved: &[String],
+    ) -> Vec<String> {
+        let mut answer = Vec::new();
+        if unresolved.is_empty() {
+            for candidate in candidates {
+                let mut accepted = true;
+                for state in states {
+                    match candidate.states.get(state) {
+                        Some(result) if result.feasible => {}
+                        _ => {
+                            accepted = false;
+                            break;
+                        }
+                    }
+                }
+                if accepted {
+                    answer.push(candidate.id.clone());
+                }
+            }
+        }
+        answer.sort();
+        answer
+    }
+
+    fn reference_objectives(
+        candidate: &Candidate,
+        states: &[String],
+    ) -> Option<ObjectiveVector> {
+        let mut service_hours = u64::MAX;
+        let mut energy_units = 0;
+        let mut repair_ticks = 0;
+        let mut cost_units = 0;
+        for state in states {
+            let current = candidate.states.get(state)?.objectives;
+            service_hours = service_hours.min(current.service_hours);
+            energy_units = energy_units.max(current.energy_units);
+            repair_ticks = repair_ticks.max(current.repair_ticks);
+            cost_units = cost_units.max(current.cost_units);
+        }
+        (!states.is_empty()).then_some(ObjectiveVector {
+            service_hours,
+            energy_units,
+            repair_ticks,
+            cost_units,
+        })
+    }
+
+    fn reference_dominates(left: ObjectiveVector, right: ObjectiveVector) -> bool {
+        let all_no_worse = left.service_hours >= right.service_hours
+            && left.energy_units <= right.energy_units
+            && left.repair_ticks <= right.repair_ticks
+            && left.cost_units <= right.cost_units;
+        let any_better = left.service_hours > right.service_hours
+            || left.energy_units < right.energy_units
+            || left.repair_ticks < right.repair_ticks
+            || left.cost_units < right.cost_units;
+        all_no_worse && any_better
+    }
+
+    fn reference_pareto(
+        candidates: &[Candidate],
+        states: &[String],
+        unresolved: &[String],
+    ) -> Vec<String> {
+        let feasible = reference_robust(candidates, states, unresolved);
+        let mut answer = Vec::new();
+        for candidate_id in &feasible {
+            let candidate = candidates
+                .iter()
+                .find(|item| item.id == *candidate_id)
+                .expect("feasible reference candidate must exist");
+            let current = reference_objectives(candidate, states)
+                .expect("candidate must have state objectives");
+            let mut dominated = false;
+            for other_id in &feasible {
+                if other_id == candidate_id {
+                    continue;
+                }
+                let other = candidates
+                    .iter()
+                    .find(|item| item.id == *other_id)
+                    .expect("dominator candidate must exist");
+                let other_vector = reference_objectives(other, states)
+                    .expect("other candidate must have state objectives");
+                if reference_dominates(other_vector, current) {
+                    dominated = true;
+                    break;
+                }
+            }
+            if !dominated {
+                answer.push(candidate_id.clone());
+            }
+        }
+        answer.sort();
+        answer
+    }
+
+    #[test]
+    fn exhaustive_reference_matches_100_worlds_and_over_10000_candidate_state_results() {
+        let mut candidate_state_evaluations = 0usize;
+        for world in 0..100usize {
+            let state_count = 2 + (world % 4);
+            let states: Vec<String> = (0..state_count)
+                .map(|index| format!("state-{index}"))
+                .collect();
+            let mut candidates = Vec::with_capacity(100);
+
+            for candidate_index in 0..100usize {
+                let mut state_results = BTreeMap::new();
+                for (state_index, state_id) in states.iter().enumerate() {
+                    let seed = world * 17 + candidate_index * 7 + state_index * 11;
+                    let objectives = ObjectiveVector {
+                        service_hours: ((seed * 3 + 5) % 19) as u64,
+                        energy_units: ((seed * 5 + 2) % 17) as u64,
+                        repair_ticks: ((seed * 7 + 3) % 13) as u64,
+                        cost_units: ((seed * 11 + 1) % 23) as u64,
+                    };
+                    state_results.insert(
+                        state_id.clone(),
+                        StateResult {
+                            feasible: seed % 13 != 0,
+                            objectives,
+                        },
+                    );
+                }
+                candidates.push(Candidate {
+                    id: format!("candidate-{candidate_index:03}"),
+                    states: state_results,
+                });
+            }
+
+            candidate_state_evaluations += candidates.len() * states.len();
+            let mut partitions = vec![states.clone()];
+            for excluded_index in 0..states.len() {
+                partitions.push(
+                    states
+                        .iter()
+                        .enumerate()
+                        .filter(|(index, _)| *index != excluded_index)
+                        .map(|(_, state)| state.clone())
+                        .collect(),
+                );
+            }
+
+            for (partition_index, partition) in partitions.iter().enumerate() {
+                let unresolved = if (world + partition_index) % 19 == 0 {
+                    vec!["critical-unknown".to_owned()]
+                } else {
+                    Vec::new()
+                };
+                assert_eq!(
+                    robust_feasible_candidates(&candidates, partition, &unresolved),
+                    reference_robust(&candidates, partition, &unresolved),
+                    "robust feasible mismatch in world {world}, partition {partition_index}"
+                );
+                assert_eq!(
+                    pareto_candidates(&candidates, partition, &unresolved),
+                    reference_pareto(&candidates, partition, &unresolved),
+                    "Pareto mismatch in world {world}, partition {partition_index}"
+                );
+            }
+        }
+        assert!(
+            candidate_state_evaluations >= 10_000,
+            "generated test must cover at least 10,000 candidate/state results"
+        );
+    }
+
     #[test]
     fn input_order_changes_do_not_change_decision_outputs() {
         let original = validate_decision_impact_bytes(
