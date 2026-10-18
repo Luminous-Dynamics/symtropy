@@ -12,8 +12,8 @@
 
 use bevy::prelude::*;
 use symtropy_bevy_scene::{
-    ArchitecturalReviewRoute, ReviewRig, ReviewRoutePlayback, ReviewWaypoint,
-    SymtropyScenePlugin,
+    ArchitecturalReviewRoute, ReviewFreeCameraController, ReviewRig, ReviewRoutePlayback,
+    ReviewWaypoint, SymtropyScenePlugin,
 };
 
 fn main() {
@@ -137,10 +137,12 @@ fn setup(
         .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
     let playback = ReviewRoutePlayback::new(route)
         .expect("the example route must satisfy route validation");
-    commands.spawn((Camera3d::default(), camera_pose, playback));
+    let free_camera = ReviewFreeCameraController::from_transform(&camera_pose);
+    commands.spawn((Camera3d::default(), camera_pose, playback, free_camera));
 
     info!("Synthetic architectural review scene; not a real plan or compliance model.");
-    info!("Press Space to pause/resume the floating-camera route.");
+    info!("Space: pause/resume route. R: restart route. F: toggle free camera.");
+    info!("Free camera: hold right mouse to look, WASD to move, E/Q to rise/descend, Shift to move faster.");
 }
 
 fn waypoint(
@@ -163,14 +165,18 @@ fn waypoint(
 
 fn toggle_review_pause(
     keys: Res<ButtonInput<KeyCode>>,
-    mut players: Query<&mut ReviewRoutePlayback>,
+    mut players: Query<(&mut ReviewRoutePlayback, &mut ReviewFreeCameraController)>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
-        for mut player in &mut players {
+        for (mut player, mut free_camera) in &mut players {
+            if free_camera.is_enabled() {
+                free_camera.set_enabled(false);
+            }
             player.set_playing(!player.is_playing());
         }
     } else if keys.just_pressed(KeyCode::KeyR) {
-        for mut player in &mut players {
+        for (mut player, mut free_camera) in &mut players {
+            free_camera.set_enabled(false);
             player.restart();
         }
     }
