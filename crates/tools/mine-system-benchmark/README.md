@@ -31,3 +31,7 @@ The package has no third-party dependencies and declares its own nested Cargo wo
 The built-in example is synthetic and separately records the product mass (42,000 kg) that corresponds to its 42.0 saleable tonnes per shift. An `ELIGIBLE_SYNTHETIC` result means only that the provided synthetic values satisfy this prototype's declared gates. It is not a mine safety decision, engineering authorization, physical model validation, reserve/resource statement, economic feasibility result, or SMR approval.
 
 See [MINE_SYSTEM_BENCHMARK_V0_1.md](../../../docs/research/MINE_SYSTEM_BENCHMARK_V0_1.md) and [issue #1933](https://github.com/Luminous-Dynamics/symtropy/issues/1933) for the broader benchmark contract.
+
+## Next portfolio work
+
+The campaign extension for reuse-first comparisons is tracked in [BROWNFIELD-UNDERGROUND-001](https://github.com/Luminous-Dynamics/symtropy/issues/1951): compare existing-asset reuse, rehabilitation, partial reuse plus new excavation, new build, and no-build/remediation under equivalent service needs.

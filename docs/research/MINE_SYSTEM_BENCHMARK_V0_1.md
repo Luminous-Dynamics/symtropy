@@ -57,7 +57,8 @@ A benchmark campaign may include:
 5. crushing, beneficiation and downstream processing;
 6. consumables, repair, inspection, spares and equipment lifecycle;
 7. energy supply, conversion, storage, distribution and demand;
-8. recovered products, coproducts, tailings, wastes and closure/rehabilitation liabilities.
+8. reuse of existing underground/mining assets versus refurbishment, partial reuse, new excavation and no-build/remediation;
+9. recovered products, coproducts, tailings, wastes and closure/rehabilitation liabilities.
 
 Every included stage declares its input/output boundary. Omitting a real demand is allowed only when the benchmark labels it as omitted and prevents full-system cost/energy claims.
 
@@ -160,6 +161,7 @@ Each case binds scenario_id, semantic version, fixed seed, initial state and evi
 | MS-008 Product/coproduct integrity | Prevent double counting | Recovery, grade or downstream qualification absent; do not credit a coproduct as saleable |
 | MS-009 Economics under uncertainty | Test economic feasibility | Grade/price/energy/maintenance/closure assumptions change; report sensitivity and dominated/ineligible choices |
 | MS-010 Compound disturbance | Test graceful degradation | Combine selected failures while preserving explicit stop, retreat, inspection and recovery semantics |
+| MS-011 Brownfield reuse vs new build | Avoid assuming new excavation is the default | Compare reuse-as-is, rehabilitation, partial reuse plus targeted new excavation, new build and no-build on equivalent qualified service; unqualified site evidence blocks use-specific capacity |
 
 These cases are synthetic definitions, not a model of any actual mine or a claim that one source/architecture is suitable for a particular site.
 
@@ -212,6 +214,7 @@ Every metric record must declare name, version, value, unit, numerator/denominat
 - **Reliability:** productive availability, unscheduled downtime, repair lead time, spare-part stockout, mission recovery, inspection rejection/rework.
 - **Economics/environment:** capex/opex basis; cost per accepted saleable tonne; sensitivity ranges; energy/emissions basis; water withdrawal/treatment; closure/rehabilitation cost and omitted-cost disclosure.
 - **Risk and evidence:** hard-constraint false-safe count; stops/retreats; unknown/conflicting evidence dispositions; interval coverage on held-out measurements; unresolved applicability requirements.
+- **Reuse-first portfolio:** net new excavated volume, asset refurbishment/remediation cost, time to qualified service, site-evidence coverage, added lifecycle risk, usable capacity after site-specific qualification, and exclusion reasons.
 
 A single weighted score is not a substitute for these component metrics and constraints.
 
@@ -227,6 +230,13 @@ These papers are reference baselines, not transferable guaranteed outcomes. Pres
 - [Technology System and Engineering Evaluation of Mine Geothermal Resource Utilization Based on Evidence Grading (online September 2026)](https://cje.ustb.edu.cn/en/article/doi/10.13374/j.issn2095-9389.2026.07.08.007): distinguishes occurrence/potential from deliverable engineering service and notes that active-deep-mine heat recovery still needs stronger long-term monitoring than more mature mine-water/abandoned-mine heat-pump applications.
 
 Never rank literature studies on their headline percentage alone. Different studies optimize different outputs, geologies, system boundaries, base cases, capital assumptions and evidence tiers.
+ 
+- [Weber et al., A global atlas of pumped hydro systems that repurpose existing mining sites (Renewable Energy, 2024)](https://doi.org/10.1016/j.renene.2024.120113): GIS screening identified 904 brownfield candidates with a reported 30 TWh of indicative storage potential. The paper notes indicative reservoir dimensions and the need for detailed surveys. This is not proof that underground workings have a qualified reservoir capacity or that any site is structurally, hydraulically, environmentally, economically or legally feasible.
+- [ISO 17757:2019](https://www.iso.org/standard/76126.html): current standard for autonomous/semi-autonomous earth-moving and mining machine system safety, including applicable underground mobile mining systems. Use it as a standards input for hazard and safety-case review; this benchmark makes no compliance or certification claim.
+
+## 10.2 Reuse-first campaign extension
+
+Track the focused [BROWNFIELD-UNDERGROUND-001 issue #1951](https://github.com/Luminous-Dynamics/symtropy/issues/1951). The campaign benchmark includes a synthetic reuse-versus-new-build scenario, but it does not become an authoritative asset register, GIS, geotechnical solver or asset-reuse approval engine. Reuse may lose to new build or no-build when site evidence, costs, remediation or lifecycle risk justify that outcome.
 
 ## 11. Implementation sequence
 

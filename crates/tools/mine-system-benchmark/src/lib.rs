@@ -507,6 +507,13 @@ mod tests {
         let mut no_output = eligible_case();
         no_output.metrics.accepted_tonnes_per_shift = 0.0;
         assert_eq!(evaluate(&no_output).disposition, Disposition::InvalidInput);
+
+        let mut negative_product_mass = eligible_case();
+        negative_product_mass.saleable_product_kg_per_shift = -1.0;
+        assert_eq!(
+            evaluate(&negative_product_mass).disposition,
+            Disposition::InvalidInput
+        );
     }
 
     #[test]
