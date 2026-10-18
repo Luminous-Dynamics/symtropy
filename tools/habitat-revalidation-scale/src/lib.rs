@@ -17,7 +17,9 @@ pub const CLAIM_CEILING: &str =
 const MAX_ARTIFACTS: usize = 100_000;
 const MAX_TASKS: usize = 10_000;
 const MAX_GATES: usize = 10_000;
-const MAX_ALTERNATIVES: usize = 100_000;
+const MAX_TARGETS: usize = 256;
+const MAX_ALTERNATIVES: usize = 1_024;
+const MAX_DEPENDENCY_EDGES: u128 = 1_000_000;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -265,6 +267,7 @@ fn validate_profile(profile: &ProfileSpec) -> Result<(), String> {
     if profile.artifact_count > MAX_ARTIFACTS
         || profile.task_count > MAX_TASKS
         || profile.gate_count > MAX_GATES
+        || profile.target_count > MAX_TARGETS
         || profile.tradeoff_alternatives > MAX_ALTERNATIVES
         || profile.max_dependency_depth > MAX_ARTIFACTS
     {
@@ -466,6 +469,24 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
         extra_unrelated_count,
         unrelated_chunk_depth,
     );
+    let support_roots = if profile.profile_id == "deep_chain" {
+        1usize
+    } else if shared_task_count > 0 {
+        shared_task_count
+    } else {
+        profile.target_count
+    };
+    let estimated_edges = (support_tails.len() as u128 * support_roots as u128)
+        + (unrelated_tails.len() as u128 * detached_count as u128)
+        + (shared_task_count as u128 * profile.target_count as u128)
+        + profile.artifact_count as u128
+        + profile.task_count as u128;
+    if estimated_edges > MAX_DEPENDENCY_EDGES {
+        return Err(format!(
+            "profile {} would generate too many dependency edges",
+            profile.profile_id
+        ));
+    }
 
     let mut task_requirements: Vec<Vec<String>> = vec![Vec::new(); profile.task_count];
     for index in 0..profile.task_count {
