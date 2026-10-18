@@ -277,9 +277,9 @@ impl CounterfactualSensitivityReport {
 }
 
 fn validate_identifier(kind: &'static str, value: &str) -> Result<(), ValueShareError> {
-    let allowed = value.bytes().all(|byte| {
-        byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-')
-    });
+    let allowed = value
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'));
     if value.is_empty() || !allowed {
         return Err(ValueShareError::InvalidIdentifier {
             kind,
@@ -300,7 +300,10 @@ fn validate_basis(basis: &CounterfactualBasis) -> Result<(), ValueShareError> {
     validate_identifier("case", &basis.case_id)?;
 
     if basis.currency_code.len() != 3
-        || !basis.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+        || !basis
+            .currency_code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase())
     {
         return Err(ValueShareError::InvalidCurrencyCode(
             basis.currency_code.clone(),
@@ -309,7 +312,10 @@ fn validate_basis(basis: &CounterfactualBasis) -> Result<(), ValueShareError> {
 
     validate_sha256("baseline_receipt_sha256", &basis.baseline_receipt_sha256)?;
     validate_sha256("treatment_receipt_sha256", &basis.treatment_receipt_sha256)?;
-    validate_sha256("comparison_contract_sha256", &basis.comparison_contract_sha256)?;
+    validate_sha256(
+        "comparison_contract_sha256",
+        &basis.comparison_contract_sha256,
+    )?;
 
     if basis.baseline_receipt_sha256 == basis.treatment_receipt_sha256 {
         return Err(ValueShareError::IdenticalCounterfactualReceipts);
@@ -444,9 +450,7 @@ pub fn evaluate_counterfactual_sensitivity(
             ));
         }
         if input.basis.case_id != reference.basis.case_id {
-            return Err(ValueShareError::InconsistentSensitivityBasis {
-                field: "case_id",
-            });
+            return Err(ValueShareError::InconsistentSensitivityBasis { field: "case_id" });
         }
         if input.basis.currency_code != reference.basis.currency_code {
             return Err(ValueShareError::InconsistentSensitivityBasis {
@@ -551,9 +555,8 @@ pub fn evaluate_counterfactual_sensitivity(
             .map(|outcome| outcome.net_benefit_minor)
             .max()
             .expect("sensitivity ensemble is non-empty");
-        let meets_reservation_in_all_baselines = outcomes
-            .iter()
-            .all(|outcome| outcome.meets_reservation);
+        let meets_reservation_in_all_baselines =
+            outcomes.iter().all(|outcome| outcome.meets_reservation);
         participants.push(ParticipantSensitivityOutcome {
             participant_id: reference_participant.participant_id.clone(),
             worst_case_net_benefit_minor,
@@ -627,10 +630,10 @@ pub fn run_demo() -> Result<ValueShareReport, ValueShareError> {
             evidence_tier: EvidenceTier::Synthetic,
             same_delivered_service: true,
             cost_boundary_complete: true,
-            baseline_receipt_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                .to_owned(),
-            treatment_receipt_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                .to_owned(),
+            baseline_receipt_sha256:
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            treatment_receipt_sha256:
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
             comparison_contract_sha256:
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
         },
@@ -832,7 +835,9 @@ mod tests {
         let first_report = evaluate_value_share(&first).unwrap();
         let second_report = evaluate_value_share(&second).unwrap();
         assert_eq!(first_report.to_json(), second_report.to_json());
-        first.participants.sort_by_key(|item| item.participant_id.clone());
+        first
+            .participants
+            .sort_by_key(|item| item.participant_id.clone());
         assert_eq!(
             evaluate_value_share(&first).unwrap().to_json(),
             first_report.to_json()
@@ -989,9 +994,7 @@ mod tests {
         duplicate.participants[0].baseline_net_cost_minor += 100;
         assert_eq!(
             evaluate_counterfactual_sensitivity(&[baseline.clone(), duplicate]),
-            Err(ValueShareError::DuplicateBaselineReceipt(
-                "a".repeat(64)
-            ))
+            Err(ValueShareError::DuplicateBaselineReceipt("a".repeat(64)))
         );
 
         let mut changed_allocation = input();
@@ -1019,8 +1022,7 @@ mod tests {
             evaluate_counterfactual_sensitivity(&[first.clone(), second.clone()]).unwrap();
         first.participants.reverse();
         second.participants.reverse();
-        let permuted =
-            evaluate_counterfactual_sensitivity(&[second, first]).unwrap();
+        let permuted = evaluate_counterfactual_sensitivity(&[second, first]).unwrap();
         assert_eq!(original.to_json(), permuted.to_json());
     }
 
