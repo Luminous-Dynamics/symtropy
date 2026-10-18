@@ -948,7 +948,7 @@ mod tests {
                 ingest_context("OBS-PCO-BAD-TIME", "PCO-TESTBED")
             ),
             Err(PcoPayloadParseError::InvalidTimestamp(
-                TimestampParseError::InvalidTimezone
+                TimestampParseError::TooShort
             ))
         ));
     }
