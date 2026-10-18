@@ -7,9 +7,10 @@ schedules PNG screenshots and writes a sibling versioned receipt:
 - <stem>_t1.5.png, <stem>_t4.0.png, ... — captured screenshots
 - <stem>.capture-receipt.json — byte hashes, PNG decode checks, dimensions, and declared run provenance
 
-Each image is capped at 256 MiB for integrity verification; known oversized files
-are rejected before being read into memory, and files that grow past the cap during
-reading are rejected as well. Hashing and decoding operate on the same bounded byte buffer.
+Each image is capped at 256 MiB and 20 million decoded pixels. Known oversized files
+are rejected before being read into memory, oversized image dimensions are rejected
+before pixel allocation, and files that grow past the byte cap during reading are
+rejected as well. Hashing and decoding operate on the same bounded byte buffer.
 
 The receipt distinguishes two separate results:
 
