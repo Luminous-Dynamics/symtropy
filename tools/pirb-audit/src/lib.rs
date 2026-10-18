@@ -168,6 +168,21 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
                 "Scenario track must be one of PIRB-0 through PIRB-5.",
             ));
         }
+        let expected_track = match id {
+            "pirb-r2-minimum-service-floor-01" => "PIRB-2",
+            "pirb-r1-required-acceptance-01" | "pirb-r1-refused-participation-01" => "PIRB-1",
+            "pirb-r0-stale-capacity-01" | "pirb-r0-conflicting-reports-01" => "PIRB-0",
+            "pirb-r4-personal-data-boundary-01" => "PIRB-4",
+            "pirb-r3-no-lookahead-01" => "PIRB-3",
+            _ => "UNKNOWN",
+        };
+        if track != Some(expected_track) {
+            findings.push(finding(
+                "PIRB_TRACK_SCENARIO_MISMATCH",
+                &format!("{path}.track"),
+                "Reference scenario is assigned to the wrong benchmark track.",
+            ));
+        }
 
         if object.get("domain").and_then(Value::as_str).is_none() {
             findings.push(finding(
@@ -367,6 +382,19 @@ fn audit_conflicting_reports(scenario: &Value, path: &str, findings: &mut Vec<Fi
             "Reference case must include at least two distinct claims.",
         ));
     }
+    let all_uncorroborated = scenario
+        .get("reports")
+        .and_then(Value::as_array)
+        .is_some_and(|reports| {
+            reports.iter().all(|report| report.get("corroborated").and_then(Value::as_bool) == Some(false))
+        });
+    if !all_uncorroborated {
+        findings.push(finding(
+            "PIRB_CONFLICT_FIXTURE_CORROBORATION_INVALID",
+            &format!("{path}.reports"),
+            "This reference case is specifically for conflicting uncorroborated reports.",
+        ));
+    }
     if state != Some("contested_unknown") {
         findings.push(finding(
             "PIRB_CONFLICT_COLLAPSED",
@@ -379,7 +407,9 @@ fn audit_conflicting_reports(scenario: &Value, path: &str, findings: &mut Vec<Fi
 fn audit_privacy_boundary(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     let input: BTreeSet<String> = string_list(scenario.get("input_fields")).into_iter().collect();
     let prohibited = string_list(scenario.get("prohibited_shared_fields"));
+    let shared: BTreeSet<String> = string_list(scenario.get("proposed_shared_record_fields")).into_iter().collect();
     let has_prohibited_input = prohibited.iter().any(|field| input.contains(field));
+    let leaked: Vec<_> = prohibited.iter().filter(|field| shared.contains(*field)).cloned().collect();
     let decision = scenario.pointer("/expected/shared_record_decision").and_then(Value::as_str);
 
     if prohibited.is_empty() || !has_prohibited_input {
@@ -387,6 +417,13 @@ fn audit_privacy_boundary(scenario: &Value, path: &str, findings: &mut Vec<Findi
             "PIRB_PRIVACY_FIXTURE_INVALID",
             path,
             "Reference case must exercise at least one prohibited shared-data field.",
+        ));
+    }
+    if !leaked.is_empty() {
+        findings.push(finding(
+            "PIRB_SENSITIVE_FIELD_LEAK",
+            &format!("{path}.proposed_shared_record_fields"),
+            "A prohibited field appears in the proposed shared record.",
         ));
     }
     if decision != Some("reject_or_redact_under_explicit_policy") {
@@ -521,7 +558,7 @@ mod tests {
     #[test]
     fn missing_required_scenario_is_rejected() {
         let mut value = corpus();
-        value["scenarios"].as_array_mut().unwrap().pop();
+        assert!(value["scenarios"].as_array_mut().unwrap().pop().is_some());
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_REQUIRED_SCENARIO_MISSING"));
     }
@@ -581,6 +618,25 @@ mod tests {
         value["scenarios"][4]["expected"]["shared_record_decision"] = json!("allow");
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_PRIVACY_BOUNDARY_BYPASSED"));
+    }
+
+    #[test]
+    fn sensitive_field_in_proposed_shared_record_is_rejected() {
+        let mut value = corpus();
+        value["scenarios"][4]["proposed_shared_record_fields"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("person_name"));
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_SENSITIVE_FIELD_LEAK"));
+    }
+
+    #[test]
+    fn wrong_benchmark_track_is_rejected() {
+        let mut value = corpus();
+        value["scenarios"][2]["track"] = json!("PIRB-4");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_TRACK_SCENARIO_MISMATCH"));
     }
 
     #[test]
