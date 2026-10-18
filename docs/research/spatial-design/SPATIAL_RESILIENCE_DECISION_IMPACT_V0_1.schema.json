@@ -423,6 +423,7 @@
                       "robust_feasible_candidate_ids",
                       "pareto_candidate_ids",
                       "compatible_state_count",
+                      "compatible_state_ids",
                       "compatible_state_ids"
                     ],
                     "properties": {
