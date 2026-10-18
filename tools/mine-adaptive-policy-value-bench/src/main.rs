@@ -95,7 +95,7 @@ struct ExpectedAggregate {
     rolling_regret_reduction_vs_static_basis_points: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 struct Observation {
     event_id: String,
     lot_id: String,
@@ -133,7 +133,7 @@ struct PolicyOutcome {
 struct ScenarioReceipt {
     scenario_id: String,
     probability_basis_points: u32,
-    static: PolicyOutcome,
+    static_policy: PolicyOutcome,
     two_stage: PolicyOutcome,
     rolling_horizon: PolicyOutcome,
     clairvoyant_upper_bound_units: i64,
@@ -160,7 +160,6 @@ struct Receipt {
     expected_controls_matched: usize,
     trace_violations: usize,
     nonanticipativity_violations: usize,
-    static_regret_reduction_vs_clairvoyant_basis_points: u32,
     two_stage_regret_reduction_vs_static_basis_points: u32,
     rolling_regret_reduction_vs_two_stage_basis_points: u32,
     rolling_regret_reduction_vs_static_basis_points: u32,
@@ -197,7 +196,7 @@ fn validate_corpus(corpus: &Corpus) -> Check<()> {
         || corpus.probability_basis_points != PROBABILITY_BPS
         || corpus.scenarios.len() != EXPECTED_SCENARIOS
         || corpus.utility_model.assay_cost_units < 0
-        || corpus.utility_model.assay_delivery_delay_epochs == 0
+        || corpus.utility_model.assay_delivery_delay_epochs != 1
         || !nonempty(&corpus.utility_model.prior_knowledge)
     {
         return Err("invalid suite identity, evidence class, probabilities, model, or frozen scenario count".to_owned());
@@ -477,7 +476,6 @@ fn verify_trace(
                 .get(event_id)
                 .ok_or_else(|| format!("decision dependency {event_id} was not delivered"))?;
             if observation.delivered_at_epoch > decision.epoch
-                || observation.visibility_is_invalid()
                 || !observation.source_record_present
                 || !observation.qc_pass
             {
@@ -491,12 +489,6 @@ fn verify_trace(
         }
     }
     Ok(())
-}
-
-impl Observation {
-    fn visibility_is_invalid(&self) -> bool {
-        false
-    }
 }
 
 fn clairvoyant_outcome(model: &UtilityModel, scenario: &Scenario) -> i64 {
@@ -568,7 +560,7 @@ fn run() -> Check<ExitCode> {
         scenario_receipts.push(ScenarioReceipt {
             scenario_id: scenario.scenario_id.clone(),
             probability_basis_points: scenario.probability_basis_points,
-            static: static_outcome,
+            static_policy: static_outcome,
             two_stage: two_stage_outcome,
             rolling_horizon: rolling_outcome,
             clairvoyant_upper_bound_units: upper_bound,
@@ -578,7 +570,7 @@ fn run() -> Check<ExitCode> {
 
     let static_mean = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.static.net_utility_units).collect::<Vec<_>>(),
+        &scenario_receipts.iter().map(|row| row.static_policy.net_utility_units).collect::<Vec<_>>(),
     )?;
     let two_stage_mean = weighted_mean(
         &corpus.scenarios,
@@ -594,7 +586,7 @@ fn run() -> Check<ExitCode> {
     )?;
     let static_regret = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| row.static.clairvoyant_regret_units).collect::<Vec<_>>(),
+        &scenario_receipts.iter().map(|row| row.static_policy.clairvoyant_regret_units).collect::<Vec<_>>(),
     )?;
     let two_stage_regret = weighted_mean(
         &corpus.scenarios,
@@ -607,13 +599,13 @@ fn run() -> Check<ExitCode> {
 
     let trace_violations = scenario_receipts
         .iter()
-        .flat_map(|row| [&row.static, &row.two_stage, &row.rolling_horizon])
+        .flat_map(|row| [&row.static_policy, &row.two_stage, &row.rolling_horizon])
         .filter(|outcome| !outcome.trace_valid)
         .count();
     let nonanticipativity_violations = count_nonanticipativity_violations(&scenario_receipts);
     let static_assays = weighted_mean(
         &corpus.scenarios,
-        &scenario_receipts.iter().map(|row| i64::from(row.static.assay_count) * 1000).collect::<Vec<_>>(),
+        &scenario_receipts.iter().map(|row| i64::from(row.static_policy.assay_count) * 1000).collect::<Vec<_>>(),
     )?;
     let two_stage_assays = weighted_mean(
         &corpus.scenarios,
@@ -654,7 +646,6 @@ fn run() -> Check<ExitCode> {
         expected_controls_matched,
         trace_violations,
         nonanticipativity_violations,
-        static_regret_reduction_vs_clairvoyant_basis_points: 0,
         two_stage_regret_reduction_vs_static_basis_points: reduction_basis_points(static_regret, two_stage_regret)?,
         rolling_regret_reduction_vs_two_stage_basis_points: rolling_vs_two_stage,
         rolling_regret_reduction_vs_static_basis_points: rolling_vs_static,
@@ -693,7 +684,7 @@ fn count_nonanticipativity_violations(scenarios: &[ScenarioReceipt]) -> usize {
     let mut seen: BTreeMap<(Policy, u32, String), Action> = BTreeMap::new();
     let mut violations = 0_usize;
     for scenario in scenarios {
-        for outcome in [&scenario.static, &scenario.two_stage, &scenario.rolling_horizon] {
+        for outcome in [&scenario.static_policy, &scenario.two_stage, &scenario.rolling_horizon] {
             let observations: BTreeMap<String, &Observation> = outcome
                 .delivered_observations
                 .iter()
