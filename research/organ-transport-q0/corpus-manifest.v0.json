@@ -16,9 +16,17 @@
       "path": "network-reference-cases.v0.json",
       "corpus_id": "ORGAN-TRANSPORT-Q0-NETWORK",
       "schema_version": "0.1.0",
-      "sha256": "d7df2f97215a725edc258d6ebe031b6b96702435e09289309a71bf955be5c007",
-      "byte_length": 6274,
-      "case_count": 3
+      "sha256": "a58b71124763fcd5104e23418ade3e94a4929b0140eaaccc21f5e5eebf16a744",
+      "byte_length": 12318,
+      "case_count": 6,
+      "case_ids": [
+        "q0-network-series-equal-resistance",
+        "q0-network-bifurcation-two-equal-outlets",
+        "q0-network-merge-two-inlets",
+        "q0-network-bifurcation-three-to-one-flow-split",
+        "q0-network-two-level-branching",
+        "q0-network-reversed-edge-orientation"
+      ]
     }
   ],
   "notes": [
