@@ -1,0 +1,16 @@
+# SHARED-FLEET-DISPATCH-BENCH-V1
+case_id	expected_result	rationale
+deadline_first_schedule_counts_on_time_and_late_separately	CALCULATED	Hand-calculated two-request schedule reports one useful-window success and one late job
+input_row_permutation_preserves_deterministic_report	CALCULATED	Sorting and tie-breaks make the result independent of request/robot/leg row order
+geodesic_distance_cannot_be_relabelled_as_route_time	CALCULATED	Geodesic-only evidence is never treated as a dispatchable travel duration
+missing_route_leg_is_unknown_not_zero_distance	CALCULATED	Missing route evidence leaves the request unknown and unassigned
+no_route_claim_requires_validated_coverage_and_source_evidence	BLOCKED	Unvalidated or unsupported no-route claims fail closed
+unvalidated_route_does_not_imply_feasible_dispatch	CALCULATED	A structurally declared but unvalidated route cannot support an assignment
+unknown_task_duration_is_not_zero	CALCULATED	Unknown service duration remains an explicit unknown disposition
+capacity_limit_yields_explicit_unavailable_outcome	CALCULATED	Known resource window prevents a schedule without wrapping or dropping the request
+maintenance_robot_is_never_assigned	CALCULATED	Parts-unavailable readiness blocks resource allocation
+no_compatible_robot_is_counted_explicitly	CALCULATED	Unsupported task capability has its own disposition
+modeled_and_observed_travel_minutes_remain_separate	CALCULATED	Modeled and observed trip durations are reported in separate totals
+duplicate_route_key_blocks_without_partial_report	BLOCKED	Duplicate robot/from/to legs are an ambiguous route join
+cross_season_route_evidence_blocks	BLOCKED	Route records from another season cannot be silently reused
+time_overflow_blocks_without_saturated_or_wrapped_schedule	BLOCKED	Checked arithmetic rejects impossible time overflow
