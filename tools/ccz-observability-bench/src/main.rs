@@ -35,6 +35,7 @@ const CASE_IDS: &[&str] = &[
     "impact-and-recovery-are-separate",
     "cumulative-exposure-complete",
     "baseline-and-calibration-unknown",
+    "blank-sample-identity",
 ];
 
 type Check<T> = Result<T, String>;
@@ -166,6 +167,7 @@ enum SpatialScope {
 enum ReasonCode {
     SourceSnapshotMismatch,
     DuplicateSampleIdentity,
+    MissingSampleIdentity,
     SampleSetEmpty,
     BaselineMissing,
     BaselineUnknown,
@@ -291,6 +293,10 @@ fn assess(evidence: &Evidence) -> Assessment {
     let unique: HashSet<&str> = evidence.sample_ids.iter().map(String::as_str).collect();
     if unique.len() != evidence.sample_ids.len() {
         reasons.insert(ReasonCode::DuplicateSampleIdentity);
+        invalid = true;
+    }
+    if evidence.sample_ids.iter().any(|sample_id| sample_id.trim().is_empty()) {
+        reasons.insert(ReasonCode::MissingSampleIdentity);
         invalid = true;
     }
     let integrity = if invalid {
@@ -715,6 +721,53 @@ mod tests {
         let result = assess(&scenario.evidence);
         assert_eq!(result.evidence_integrity, EvidenceIntegrity::InvalidEvidence);
         assert!(result.reason_codes.contains(&ReasonCode::DuplicateSampleIdentity));
+    }
+
+    #[test]
+    fn blank_sample_identity_invalidates_evidence() {
+        let scenario = case("blank-sample-identity");
+        let result = assess(&scenario.evidence);
+        assert_eq!(result.evidence_integrity, EvidenceIntegrity::InvalidEvidence);
+        assert!(result.reason_codes.contains(&ReasonCode::MissingSampleIdentity));
+    }
+
+    #[test]
+    fn single_fault_mutations_downgrade_all_comparability_gates() {
+        let good = case("non-detection-bounded-to-scope").evidence;
+        let mut mutations = Vec::new();
+
+        let mut e = good.clone(); e.baseline = BaselineStatus::Missing; mutations.push(e);
+        let mut e = good.clone(); e.baseline = BaselineStatus::Unknown; mutations.push(e);
+        let mut e = good.clone(); e.reference_control = ReferenceControlStatus::Missing; mutations.push(e);
+        let mut e = good.clone(); e.reference_control = ReferenceControlStatus::Incomparable; mutations.push(e);
+        let mut e = good.clone(); e.reference_control = ReferenceControlStatus::Unknown; mutations.push(e);
+        let mut e = good.clone(); e.sampling_methods = SamplingMethodStatus::Incomparable; mutations.push(e);
+        let mut e = good.clone(); e.sampling_methods = SamplingMethodStatus::Unknown; mutations.push(e);
+        let mut e = good.clone(); e.detection_limits = DetectionLimitStatus::Missing; mutations.push(e);
+        let mut e = good.clone(); e.detection_limits = DetectionLimitStatus::Unknown; mutations.push(e);
+        let mut e = good.clone(); e.sensor_calibration = CalibrationStatus::Stale; mutations.push(e);
+        let mut e = good.clone(); e.sensor_calibration = CalibrationStatus::Unknown; mutations.push(e);
+        let mut e = good.clone(); e.spatial_coverage = SpatialCoverage::Incomplete; mutations.push(e);
+        let mut e = good; e.spatial_coverage = SpatialCoverage::Unknown; mutations.push(e);
+
+        for mutated in mutations {
+            let result = assess(&mutated);
+            assert_eq!(result.comparability, Comparability::Indeterminate);
+            assert_eq!(result.impact, ImpactResult::Indeterminate);
+        }
+    }
+
+    #[test]
+    fn each_cumulative_exposure_channel_is_an_independent_gate() {
+        let mut e = case("cumulative-exposure-complete").evidence;
+        e.cumulative_sound = ExposureCoverage::Incomplete;
+        assert_eq!(assess(&e).cumulative_exposure, CumulativeExposureResult::Indeterminate);
+        e.cumulative_sound = ExposureCoverage::Complete;
+        e.cumulative_light = ExposureCoverage::Unknown;
+        assert_eq!(assess(&e).cumulative_exposure, CumulativeExposureResult::Indeterminate);
+        e.cumulative_light = ExposureCoverage::Complete;
+        e.cumulative_sediment = ExposureCoverage::Incomplete;
+        assert_eq!(assess(&e).cumulative_exposure, CumulativeExposureResult::Indeterminate);
     }
 
     #[test]
