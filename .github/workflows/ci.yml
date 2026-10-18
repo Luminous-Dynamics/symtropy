@@ -84,7 +84,7 @@ jobs:
         cargo test --locked --manifest-path tools/pirb-audit/Cargo.toml
         cargo clippy --locked --manifest-path tools/pirb-audit/Cargo.toml --all-targets -- -D warnings
         source_commit="$(git rev-parse HEAD)"
-        test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+        test "$source_commit" = "${{ github.sha }}"
         corpus="docs/fixtures/peace-infrastructure-resilience-v0.1.json"
         expected_corpus_sha="$(sha256sum "$corpus" | awk '{print $1}')"
         cargo run --locked --quiet --manifest-path tools/pirb-audit/Cargo.toml -- --source-commit "$source_commit" > pirb-reference-receipt.json
