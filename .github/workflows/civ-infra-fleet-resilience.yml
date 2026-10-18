@@ -46,7 +46,7 @@ jobs:
           fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
           expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
           report="$RUNNER_TEMP/civ-infra-fleet-resilience-report.json"
-          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- "$fixture" > "$report"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin civ-infra-fleet-resilience -- "$fixture" > "$report"
           jq -e --arg expected_sha "$expected_sha" '
             .schema_version == "luminous.civ_infra.fleet_resilience_manifest_report.v0.1" and
             .input_sha256 == $expected_sha and
