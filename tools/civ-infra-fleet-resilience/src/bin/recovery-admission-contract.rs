@@ -578,7 +578,7 @@ fn assess(contract: &Contract, proposal: &Proposal) -> Decision {
             reason_codes: vec![format!("unknown_task:{}", proposal.task_id)],
         };
     };
-    if proposal.tick > MAX_CONTRACT_TICK {
+    if proposal.tick > MAX_CONTRACT_TICK && action_uses_policy_observations(proposal.action) {
         reasons.insert("tick_outside_contract_horizon".to_string());
     }
     let target_state = transition_target(proposal.state, proposal.action);
@@ -586,10 +586,13 @@ fn assess(contract: &Contract, proposal: &Proposal) -> Decision {
         reasons.insert("invalid_state_transition".to_string());
     }
 
+    let uses_policy_observations = action_uses_policy_observations(proposal.action);
     let mut observation_ids = BTreeSet::new();
-    for id in &proposal.observation_ids {
-        if !observation_ids.insert(id.clone()) {
-            reasons.insert(format!("duplicate_observation_reference:{id}"));
+    if uses_policy_observations {
+        for id in &proposal.observation_ids {
+            if !observation_ids.insert(id.clone()) {
+                reasons.insert(format!("duplicate_observation_reference:{id}"));
+            }
         }
     }
 
@@ -598,7 +601,7 @@ fn assess(contract: &Contract, proposal: &Proposal) -> Decision {
     } else {
         None
     };
-    if action_uses_policy_observations(proposal.action) {
+    if uses_policy_observations {
         for observation in relevant_observations(
             contract,
             &proposal.task_id,
@@ -612,36 +615,43 @@ fn assess(contract: &Contract, proposal: &Proposal) -> Decision {
                 ));
             }
         }
-    }
 
-    for observation_id in &proposal.observation_ids {
-        match contract.observations.get(observation_id) {
-            None => {
-                reasons.insert(format!("unknown_observation:{observation_id}"));
-            }
-            Some(observation) => {
-                if proposal.tick < observation.observable_tick {
-                    reasons.insert(format!("observation_not_yet_visible:{observation_id}"));
+        for observation_id in &proposal.observation_ids {
+            match contract.observations.get(observation_id) {
+                None => {
+                    reasons.insert(format!("unknown_observation:{observation_id}"));
                 }
-                let closure = task_ancestor_closure(contract, &proposal.task_id);
-                let task_relevant = observation
-                    .affected_task_ids
-                    .iter()
-                    .any(|id| closure.contains(id));
-                let resource_relevant = resource_for_context.is_some_and(|resource| {
-                    observation
-                        .affected_resource_ids
+                Some(observation) => {
+                    if proposal.tick < observation.observable_tick {
+                        reasons.insert(format!("observation_not_yet_visible:{observation_id}"));
+                    }
+                    let closure = task_ancestor_closure(contract, &proposal.task_id);
+                    let task_relevant = observation
+                        .affected_task_ids
                         .iter()
-                        .any(|id| id == resource)
-                });
-                if !task_relevant && !resource_relevant {
-                    reasons.insert(format!("irrelevant_observation:{observation_id}"));
+                        .any(|id| closure.contains(id));
+                    let resource_relevant = resource_for_context.is_some_and(|resource| {
+                        observation
+                            .affected_resource_ids
+                            .iter()
+                            .any(|id| id == resource)
+                    });
+                    if !task_relevant && !resource_relevant {
+                        reasons.insert(format!("irrelevant_observation:{observation_id}"));
+                    }
                 }
             }
         }
     }
 
-    let visible_refs = active_observations(contract, proposal);
+    // Protective-stop and abort decisions are safety overrides: caller-supplied
+    // observation references are neither required nor allowed to veto them.
+    let visible_refs: Vec<&PolicyObservation> = if uses_policy_observations {
+        active_observations(contract, proposal)
+    } else {
+        Vec::new()
+    };
+
     let mut evidence_ids = BTreeSet::new();
     for evidence in &proposal.evidence {
         if evidence.evidence_id.is_empty() || !evidence_ids.insert(evidence.evidence_id.clone()) {
@@ -1245,6 +1255,46 @@ fn build_scenarios(contract: &Contract) -> Result<Vec<Scenario>, String> {
         case_id: Some("R-008".to_string()),
         expected_admitted: true,
         proposal: protective_stop,
+    });
+
+    let protective_stop_with_future_reference = Proposal {
+        attempt_id: "global-protective-stop-with-future-reference".to_string(),
+        task_id: "place-water-pipe-01".to_string(),
+        state: TaskState::Running,
+        action: Action::ProtectiveStop,
+        tick: 2,
+        resource_id: None,
+        previous_resource_id: None,
+        observation_ids: vec!["R-008".to_string()],
+        predecessor_receipts: Vec::new(),
+        evidence: Vec::new(),
+        gates: GateSnapshot::safe(),
+    };
+    scenarios.push(Scenario {
+        scenario_id: "global-protective-stop-with-future-reference".to_string(),
+        case_id: Some("R-008".to_string()),
+        expected_admitted: true,
+        proposal: protective_stop_with_future_reference,
+    });
+
+    let protective_stop_beyond_horizon = Proposal {
+        attempt_id: "global-protective-stop-beyond-contract-horizon".to_string(),
+        task_id: "place-water-pipe-01".to_string(),
+        state: TaskState::Running,
+        action: Action::ProtectiveStop,
+        tick: MAX_CONTRACT_TICK + 1,
+        resource_id: None,
+        previous_resource_id: None,
+        observation_ids: vec!["unknown-observation".to_string()],
+        predecessor_receipts: Vec::new(),
+        evidence: Vec::new(),
+        gates: GateSnapshot::safe(),
+    };
+    scenarios.push(Scenario {
+        scenario_id: "global-protective-stop-beyond-contract-horizon".to_string(),
+        case_id: None,
+        expected_admitted: true,
+        proposal: protective_stop_beyond_horizon,
     });
 
     let mut same_resource_reassign = make_proposal(
