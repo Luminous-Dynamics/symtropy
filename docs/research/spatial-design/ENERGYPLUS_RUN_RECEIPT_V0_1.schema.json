@@ -78,7 +78,13 @@
         "run_start_date",
         "run_end_date",
         "warmup_max_days",
-        "calendar_basis"
+        "calendar_basis",
+        "schema_artifact_path",
+        "model_artifact_path",
+        "geometry_artifact_path",
+        "weather_artifact_path",
+        "schedule_artifact_path",
+        "configuration_artifact_path"
       ],
       "properties": {
         "format": {
@@ -159,6 +165,30 @@
           "enum": [
             "energyplus_standard_time_no_implicit_utc_conversion"
           ]
+        },
+        "schema_artifact_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "model_artifact_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "geometry_artifact_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "weather_artifact_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "schedule_artifact_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "configuration_artifact_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
         }
       },
       "additionalProperties": false
@@ -172,7 +202,8 @@
         "severe_error_count",
         "fatal_error_count",
         "partial_outputs",
-        "run_log_sha256"
+        "run_log_sha256",
+        "run_log_artifact_path"
       ],
       "properties": {
         "run_status": {
@@ -216,6 +247,17 @@
             {
               "type": "string",
               "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_log_artifact_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
             },
             {
               "type": "null"
