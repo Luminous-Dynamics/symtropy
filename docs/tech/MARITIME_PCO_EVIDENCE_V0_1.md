@@ -27,7 +27,14 @@ The enum separates event location (arrival or departure) from time meaning (plan
 
 ## Contract
 
-Each observation carries stable observation, port, port-call and source identifiers; the semantic field and exact source field code; a typed identifier or typed timestamp with planned/requested/estimated/forecast/actual meaning; source-event time, ingestion time and optional validity end; schema version; original timestamp text; source UTC offset; and normalized UTC nanoseconds.
+Envelope identity mapping follows the PCO Guide's sample operational response:
+- shipReportingSystemEntryPortCode -> port_id, retained verbatim as the source port code;
+- shipStayReferenceNumber -> port_call_id, retained verbatim as the source port-call reference;
+- shipIMONumber -> ship_imo_number, retained verbatim as the vessel identifier.
+
+This crate does not resolve aliases or canonicalize location identifiers. Any mapping into an internal canonical port/berth ID must be provided by an explicit, audited mapping layer.
+
+Each observation carries stable observation, port, port-call, vessel and source identifiers; the semantic field and exact source field code; a typed identifier or typed timestamp with planned/requested/estimated/forecast/actual meaning; source-event time, ingestion time and optional validity end; schema version; original timestamp text; source UTC offset; and normalized UTC nanoseconds.
 
 The timestamp parser accepts a strict RFC 3339 subset: YYYY-MM-DDTHH:MM:SS[.1-9 digits](Z or signed HH:MM offset). It rejects timezone-less values, invalid calendar values, leap-second notation and precision beyond nanoseconds rather than guessing. A broader adapter must test any wider ISO 8601 syntax used by its actual provider. The original string is retained.
 
