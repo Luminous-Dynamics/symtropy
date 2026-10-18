@@ -140,6 +140,9 @@ Report expected service shortfall, worst-case shortfall, weighted P95 and CVaR95
 
 This direction is supported by published CST/TES research comparing stochastic dispatch with deterministic and heuristic strategies, and newer risk-aware MPC studies that explicitly measure dispatch deficit and upper-tail scenario risk. Their quantitative gains are plant- and objective-specific; they are hypotheses for a matched-boundary benchmark, not targets to copy blindly. See [THERMAL-RISK-001](https://github.com/Luminous-Dynamics/symtropy/issues/1969).
 
+The current kernel receipt now includes a hand-calculable three-scenario fixture that checks the metric contract independently of controller logic: probability weights 0.80 / 0.17 / 0.03; 100 J requested in each scenario; 100 / 80 / 20 J delivered; 0.80 minimum service fraction. It yields 5.8 J expected unmet heat, 80 J worst unmet heat, 0.058 mean normalized shortfall, P95 shortfall 0.2, CVaR95 0.56 and 0.03 service-floor violation probability. The CVaR definition uses exactly the worst 5% probability mass, fractionally selecting mass at the boundary. This fixture validates arithmetic and receipt tamper controls only; it does not validate scenario likelihoods or controller performance. See the separate kernel implementation in [PR #1853](https://github.com/Luminous-Dynamics/symtropy/pull/1853).
+
+
 ## 4. System alternatives
 
 At minimum, compare the following at a common site, weather, service and reliability boundary. Unsupported options should be marked out of domain, not assigned optimistic guessed performance.
