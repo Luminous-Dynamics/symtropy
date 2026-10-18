@@ -14,6 +14,7 @@ const CLAIM_CEILING: &str =
 const MAX_CASES: usize = 64;
 const MAX_TASKS_PER_CASE: usize = 12;
 const MAX_TIME_BOUND: u32 = 10_000;
+const MAX_START_ASSIGNMENT_SPACE: u128 = 2_000_000;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -541,6 +542,33 @@ fn solve_scenario(
         return (None, Some("time_horizon_exceeds_tiny_oracle_bounds".to_owned()));
     }
 
+    // The reference oracle refuses large Cartesian search spaces instead of
+    // accidentally turning a tiny exact oracle into an unbounded production solver.
+    let mut search_space = 1u128;
+    for (index, task) in case.tasks.iter().enumerate() {
+        let mut max_start = horizon.saturating_sub(durations[index]);
+        if let Some(latest) = task.latest_start {
+            max_start = max_start.min(latest);
+        }
+        if let Some(latest_finish) = task.latest_finish {
+            if latest_finish < durations[index] {
+                return (None, Some("no_feasible_schedule".to_owned()));
+            }
+            max_start = max_start.min(latest_finish - durations[index]);
+        }
+        if task.earliest_start > max_start {
+            return (None, Some("no_feasible_schedule".to_owned()));
+        }
+        let domain = u128::from(max_start - task.earliest_start) + 1;
+        search_space = search_space.saturating_mul(domain);
+        if search_space > MAX_START_ASSIGNMENT_SPACE {
+            return (
+                None,
+                Some("oracle_instance_exceeds_exhaustive_budget".to_owned()),
+            );
+        }
+    }
+
     let mut starts = vec![None; case.tasks.len()];
     let mut best = None;
     enumerate_schedules(
@@ -670,6 +698,39 @@ mod tests {
         let mut value: serde_json::Value = serde_json::from_slice(FIXTURE).unwrap();
         value["oracle_override"] = serde_json::Value::Bool(true);
         assert!(evaluate_fixture_bytes(value.to_string().as_bytes()).is_err());
+    }
+
+    #[test]
+    fn excessive_cartesian_search_space_is_rejected_not_run_unbounded() {
+        let mut value: serde_json::Value = serde_json::from_slice(FIXTURE).unwrap();
+        let case = &mut value["cases"][0];
+        let tasks: Vec<serde_json::Value> = (0..12)
+            .map(|index| {
+                serde_json::json!({
+                    "id": format!("TASK-{index:02}"),
+                    "nominal_duration": 1,
+                    "upper_duration": 1,
+                    "resource_demands": {},
+                    "required_gates": [],
+                    "earliest_start": 0,
+                    "latest_start": null,
+                    "latest_finish": null
+                })
+            })
+            .collect();
+        case["tasks"] = serde_json::Value::Array(tasks);
+        case["precedence"] = serde_json::json!([]);
+        case["resources"] = serde_json::json!([]);
+        case["declared_gates"] = serde_json::json!([]);
+        case["available_gates"] = serde_json::json!([]);
+        case["hard_deadline"] = serde_json::Value::Null;
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let report = evaluate_fixture_bytes(&bytes).unwrap();
+        assert_eq!(
+            report.case_results[0].rejection_reason.as_deref(),
+            Some("oracle_instance_exceeds_exhaustive_budget")
+        );
+        assert!(!report.case_results[0].expected_outcome_match);
     }
 
     #[test]
