@@ -33,7 +33,7 @@ fn setup(mut commands: Commands) {
 - One `DirectionalLight` ("sun") at a stage-lighting angle (upper-front-right),
   illuminance 8000 lux, with shadow maps enabled by default
 
-Everything is overridable via `SymtropyScenePlugin::with_config(...)`. Set `sun_shadow_maps_enabled: false` for a low-power profile or headless validation. The default light helper stays shadow-free; use `fixed_light_with_shadows(...)` when an additional light should cast shadows.
+Everything is overridable via `SymtropyScenePlugin::with_config(...)`. Set `sun_shadow_maps_enabled: false` for a low-power profile or when real-time shadows are not wanted. The default light helper stays shadow-free; use `fixed_light_with_shadows(...)` when an additional light should cast shadows.
 
 ## Helpers
 
