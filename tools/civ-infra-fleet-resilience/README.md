@@ -83,3 +83,21 @@ cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -
 It recalculates the byte digest, event case records, delay counts, evaluator-side hidden/injected sets and policy-visible observation frames, and rejects unknown report fields or a false claim that the timeline tool simulated policies. CI now runs it against the first binary's actual JSON output. This is a separately implemented checker in the same project, not an independent third-party audit. Its eight unit tests inject early visibility, a forbidden injection-time field, an input-digest mismatch, false policy-simulation claims, changed frozen case identity, input-array permutation, and unknown report fields.
 
 The policy observation surface is implemented as a cursor in a private Rust module: its caller can only `advance_one_tick()` to receive the next frame. There is no API to request tick N or inspect the queued future observations; the frame's schema omits event injection time and hidden evaluator state. The full timeline in the audit report is an artifact for review, not a policy input. A separate `event-timeline-check` executable reconstructs and verifies that artifact.
+
+
+## Typed recovery-admission contract
+
+Run the typed synthetic contract suite from the repository root:
+
+```sh
+cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-contract
+```
+
+This contract introduces explicit task states and allowed actions, then checks whether an action is admissible against the policy-visible observation prefix, task-predecessor receipts, resource/capacity gates, current capability and calibration, localization, communication, energy reserve, utility-envelope status, authorization, inspection outcome, and current recovery/acceptance evidence. It distinguishes an immediate protective stop from a replanning decision: a stop can be admitted before the planner can observe the cause, while resumption and acceptance cannot use future observations.
+
+The suite derives observation records from the same 13-case frozen fixture using `observable_tick`; injection timestamps are not exposed in the policy-facing projection. It includes positive and negative cases for every disturbance, plus controls for stale capability, unknown utility, declined approval, overcommitment, missing predecessors/evidence, future-dated evidence, failed inspection, terminal-task restart, duplicate observation references, and invalid reassignment. Failed inspection remains rejected until explicit rework and later successful reinspection evidence supports acceptance.
+
+The report is explicitly `synthetic_only` and sets `policy_simulation_executed: false`, `policy_runs_performed: 0`, `physical_control_executed: false`, and `dispatch_authorized: false`. This tests an admission contract; it is **not** a B0/B1/B2 rollout, a live dispatch path, a field-safety result, or a productivity benchmark. Rust formatting, compile, tests and the report assertions must pass on the exact commit before this slice is qualified.
+
+
+**Trust boundary:** the gate snapshot booleans and predecessor receipts in this slice are synthetic caller-supplied assertions. The contract reports `input_receipts_cryptographically_verified: false` and `immutable_history_store_executed: false`; it does not verify signatures, real sensor provenance, or durable append-only history. A later integration must validate content-addressed/version-bound evidence through an independent receipt verifier before using these types to authorize any real operation.

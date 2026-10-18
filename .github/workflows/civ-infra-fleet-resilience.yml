@@ -8,7 +8,7 @@ on:
       - "docs/research/civ-infra-resilience/**"
       - ".github/workflows/civ-infra-fleet-resilience.yml"
   pull_request:
-    branches: ["main", "docs/civ-infra-fleet-resilience-v0-1"]
+    branches: ["main", "docs/civ-infra-fleet-resilience-v0-1", "feat/civ-infra-event-timeline-audit-clean"]
     paths:
       - "tools/civ-infra-fleet-resilience/**"
       - "docs/research/civ-infra-resilience/**"
@@ -145,3 +145,35 @@ jobs:
             .timeline_tick_count == 8 and
             .policy_simulation_executed == false
           ' "$checker_report"
+
+      - name: Execute typed recovery-admission contract
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/recovery-admission-contract.rs') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-recovery-admission-report.json"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-contract > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.recovery_admission_contract.v0.1" and
+            .fixture_id == "civ-infra-fleet-resilience-synthetic-001" and
+            .fixture_sha256 == $expected_sha and
+            .classification == "synthetic_only" and
+            .validation_status == "typed_task_admission_contract_checked" and
+            .contract_suite_executed == true and
+            .scenario_count >= 40 and
+            .expectation_mismatch_count == 0 and
+            .all_expected_decisions_match == true and
+            .policy_simulation_executed == false and
+            .policy_runs_performed == 0 and
+            .physical_control_executed == false and
+            .dispatch_authorized == false and
+            .input_receipts_cryptographically_verified == false and
+            .immutable_history_store_executed == false and
+            .gate_inputs_are_synthetic_assertions == true and
+            ([.scenario_results[] | select((.scenario_id | test("^R-[0-9]{3}-accept-after-recovery$")) and .admitted == true)] | length) == 13 and
+            ([.scenario_results[] | select((.scenario_id | test("^R-[0-9]{3}-missing-recovery-evidence$")) and .admitted == false)] | length) == 13 and
+            ([.scenario_results[] | select(.scenario_id == "R-008-future-observation-reference" and .admitted == false and (.reason_codes | index("observation_not_yet_visible:R-008") != null))] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-protective-stop-before-observation" and .admitted == true and .next_state == "interrupted")] | length) == 1
+          ' "$report"
