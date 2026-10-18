@@ -574,9 +574,15 @@ impl ReviewFreeCameraController {
         self.enabled
     }
 
-    /// Toggle between route playback and direct desktop camera control.
-    pub fn set_enabled(&mut self, enabled: bool) {
-        self.enabled = enabled;
+    /// Enable direct movement and atomically pause the attached scripted route.
+    pub fn enable(&mut self, playback: &mut ReviewRoutePlayback) {
+        self.enabled = true;
+        playback.set_playing(false);
+    }
+
+    /// Disable direct movement; the caller chooses whether to resume or restart the route.
+    pub fn disable(&mut self) {
+        self.enabled = false;
     }
 
     pub fn settings_are_valid(&self) -> bool {
@@ -676,15 +682,16 @@ pub fn manage_architectural_review_controls(
 
     for (mut playback, mut free_camera) in &mut query {
         if keys.just_pressed(KeyCode::KeyF) {
-            free_camera.set_enabled(!free_camera.is_enabled());
             if free_camera.is_enabled() {
-                playback.set_playing(false);
+                free_camera.disable();
+            } else {
+                free_camera.enable(&mut playback);
             }
         } else if keys.just_pressed(KeyCode::Space) {
-            free_camera.set_enabled(false);
+            free_camera.disable();
             playback.set_playing(!playback.is_playing());
         } else if keys.just_pressed(KeyCode::KeyR) {
-            free_camera.set_enabled(false);
+            free_camera.disable();
             playback.restart();
         }
     }
@@ -968,12 +975,11 @@ mod tests {
         let mut playback = ReviewRoutePlayback::new(route).unwrap();
         let mut controller = ReviewFreeCameraController::from_transform(&camera_pose);
 
-        controller.set_enabled(true);
-        playback.set_playing(false);
+        controller.enable(&mut playback);
         assert!(controller.is_enabled());
         assert!(!playback.is_playing());
         playback.elapsed_seconds = 4.0;
-        controller.set_enabled(false);
+        controller.disable();
         playback.restart();
         assert_eq!(playback.elapsed_seconds(), 0.0);
         assert!(playback.is_playing());
