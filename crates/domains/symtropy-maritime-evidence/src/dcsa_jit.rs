@@ -589,13 +589,15 @@ mod tests {
             })
         );
 
-        let port_conflict = vessel_conflict.replace(
-            "\"vesselIMONumber\": \"9990002\"",
-            "\"vesselIMONumber\": \"9990001\"",
-        ).replace(
-            "\"UNLocationCode\": \"ZZSYN\"\n        },",
-            "\"UNLocationCode\": \"ZZOTHER\"\n        },",
-        );
+        let port_conflict = vessel_conflict
+            .replace(
+                "\\"vesselIMONumber\\": \\"9990002\\"",
+                "\\"vesselIMONumber\\": \\"9990001\\"",
+            )
+            .replace(
+                "\\"UNLocationCode\\": \\"ZZSYN\\"",
+                "\\"UNLocationCode\\": \\"ZZOTHER\\"",
+            );
         assert!(matches!(
             parse_timestamp(&port_conflict, context("DCSA-DUP-PORT")),
             Err(DcsaJitParseError::ConflictingDuplicate {
