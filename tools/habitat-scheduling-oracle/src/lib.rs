@@ -103,7 +103,6 @@ struct Expected {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct CaseResult {
     pub case_id: String,
     pub feasible: bool,
@@ -116,7 +115,6 @@ pub struct CaseResult {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct OracleReport {
     pub schema_version: String,
     pub suite_id: String,
