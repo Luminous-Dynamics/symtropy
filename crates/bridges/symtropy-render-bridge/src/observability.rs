@@ -105,12 +105,11 @@ pub fn extract_contact_glyphs<const D: usize>(
 
 fn project_vector<const D: usize>(vector: &nalgebra::SVector<f64, D>) -> Option<[f32; 3]> {
     let mut result = [0.0_f32; 3];
-    for index in 0..D.min(3) {
-        let value = vector[index];
+    for (index, value) in vector.iter().take(3).enumerate() {
         if !value.is_finite() || value.abs() > f64::from(f32::MAX) {
             return None;
         }
-        result[index] = value as f32;
+        result[index] = *value as f32;
     }
     Some(result)
 }
@@ -151,10 +150,10 @@ fn draw_contact_overlays(
         ));
     }
     let remaining = config.max_contact_points.saturating_sub(glyphs.len());
-    if remaining > 0 {
-        if let Some(physics) = physics_3d {
-            glyphs.extend(extract_contact_glyphs(&physics.world.contacts, remaining));
-        }
+    if remaining > 0
+        && let Some(physics) = physics_3d
+    {
+        glyphs.extend(extract_contact_glyphs(&physics.world.contacts, remaining));
     }
 
     let extent = if config.point_half_extent.is_finite() {
