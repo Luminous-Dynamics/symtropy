@@ -266,6 +266,11 @@ fn keyboard_motion_control(
             controller.motion = motion;
             controller.transition_seconds = 0.2;
             intent.desired_planar_velocity_mps = Vec2::new(0.0, speed_mps);
+            intent.observed_planar_velocity_mps = None;
+            intent.motion_override = match motion {
+                HumanMotion::Idle | HumanMotion::Talk => Some(motion),
+                HumanMotion::Walk | HumanMotion::Run => None,
+            };
         }
     }
 }
