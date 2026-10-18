@@ -340,66 +340,68 @@ pub fn evaluate_component_ledger(
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn input() -> ComponentLedgerInput {
-        ComponentLedgerInput {
-            case_id: "component-ledger-demo".to_owned(),
-            currency_code: "USD".to_owned(),
-            evidence_tier: EvidenceTier::Synthetic,
-            same_delivered_service: true,
-            baseline_receipt_sha256: "a".repeat(64),
-            treatment_receipt_sha256: "b".repeat(64),
-            comparison_contract_sha256: "c".repeat(64),
-            category_manifest_sha256: "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a".to_owned(),
-            required_category_ids: vec!["fuel".to_owned(), "coordination".to_owned()],
-            baseline_fuel_grams: 100_000,
-            treatment_fuel_grams: 90_000,
-            baseline_co2_grams: 316_000,
-            treatment_co2_grams: 284_400,
-            participants: vec![
-                CostLedgerParticipantTerms {
-                    participant_id: "PORT-OPS".to_owned(),
-                    transfer_in_minor: -500,
-                    minimum_acceptable_benefit_minor: 0,
-                },
-                CostLedgerParticipantTerms {
-                    participant_id: "SHIP-OWNER".to_owned(),
-                    transfer_in_minor: 2_000,
-                    minimum_acceptable_benefit_minor: 0,
-                },
-                CostLedgerParticipantTerms {
-                    participant_id: "CHARTERER".to_owned(),
-                    transfer_in_minor: -1_500,
-                    minimum_acceptable_benefit_minor: 0,
-                },
-            ],
-            components: vec![
-                row("PORT-OPS", "fuel", 60_000, 58_000),
-                row("PORT-OPS", "coordination", 40_000, 37_000),
-                row("SHIP-OWNER", "fuel", 70_000, 71_000),
-                row("SHIP-OWNER", "coordination", 50_000, 51_000),
-                row("CHARTERER", "fuel", 60_000, 57_000),
-                row("CHARTERER", "coordination", 20_000, 20_000),
-            ],
-        }
+fn demo_demo_input() -> ComponentLedgerInput {
+    ComponentLedgerInput {
+        case_id: "component-ledger-demo".to_owned(),
+        currency_code: "USD".to_owned(),
+        evidence_tier: EvidenceTier::Synthetic,
+        same_delivered_service: true,
+        baseline_receipt_sha256: "a".repeat(64),
+        treatment_receipt_sha256: "b".repeat(64),
+        comparison_contract_sha256: "c".repeat(64),
+        category_manifest_sha256: "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a".to_owned(),
+        required_category_ids: vec!["fuel".to_owned(), "coordination".to_owned()],
+        baseline_fuel_grams: 100_000,
+        treatment_fuel_grams: 90_000,
+        baseline_co2_grams: 316_000,
+        treatment_co2_grams: 284_400,
+        participants: vec![
+            CostLedgerParticipantTerms {
+                participant_id: "PORT-OPS".to_owned(),
+                transfer_in_minor: -500,
+                minimum_acceptable_benefit_minor: 0,
+            },
+            CostLedgerParticipantTerms {
+                participant_id: "SHIP-OWNER".to_owned(),
+                transfer_in_minor: 2_000,
+                minimum_acceptable_benefit_minor: 0,
+            },
+            CostLedgerParticipantTerms {
+                participant_id: "CHARTERER".to_owned(),
+                transfer_in_minor: -1_500,
+                minimum_acceptable_benefit_minor: 0,
+            },
+        ],
+        components: vec![
+            row("PORT-OPS", "fuel", 60_000, 58_000),
+            row("PORT-OPS", "coordination", 40_000, 37_000),
+            row("SHIP-OWNER", "fuel", 70_000, 71_000),
+            row("SHIP-OWNER", "coordination", 50_000, 51_000),
+            row("CHARTERER", "fuel", 60_000, 57_000),
+            row("CHARTERER", "coordination", 20_000, 20_000),
+        ],
     }
+}
 
-    fn row(
-        participant_id: &str,
-        category_id: &str,
-        baseline: i64,
-        treatment: i64,
-    ) -> CostComponentRow {
-        CostComponentRow {
-            participant_id: participant_id.to_owned(),
-            category_id: category_id.to_owned(),
-            baseline_cost_minor: baseline,
-            treatment_cost_minor: treatment,
-        }
+fn row(
+    participant_id: &str,
+    category_id: &str,
+    baseline: i64,
+    treatment: i64,
+) -> CostComponentRow {
+    CostComponentRow {
+        participant_id: participant_id.to_owned(),
+        category_id: category_id.to_owned(),
+        baseline_cost_minor: baseline,
+        treatment_cost_minor: treatment,
     }
+}
+
+
+/// Deterministic synthetic cost-ledger example for a local/CI receipt.
+pub fn run_demo_component_ledger() -> Result<CostLedgerReport, CostLedgerError> {
+    evaluate_component_ledger(&demo_demo_input())
+}
 
     #[test]
     fn synthetic_category_manifest_is_exactly_pinned() {
@@ -410,7 +412,7 @@ mod tests {
                 "\n"
             )
         );
-        let case = input();
+        let case = demo_input();
         assert_eq!(
             case.category_manifest_sha256,
             "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a"
@@ -428,7 +430,7 @@ mod tests {
 
     #[test]
     fn category_ledger_reconciles_to_participant_account_totals() {
-        let report = evaluate_component_ledger(&input()).unwrap();
+        let report = evaluate_component_ledger(&demo_input()).unwrap();
         assert_eq!(
             report.to_json(),
             include_str!("../fixtures/component-ledger-v0.1.expected.json").trim_end()
@@ -463,7 +465,7 @@ mod tests {
 
     #[test]
     fn missing_rows_are_not_silently_treated_as_zero() {
-        let mut case = input();
+        let mut case = demo_input();
         case.components.retain(|item| {
             item.participant_id != "SHIP-OWNER" || item.category_id != "coordination"
         });
@@ -478,7 +480,7 @@ mod tests {
 
     #[test]
     fn duplicate_and_unknown_category_rows_reject() {
-        let mut duplicate = input();
+        let mut duplicate = demo_input();
         duplicate.components.push(duplicate.components[0].clone());
         assert_eq!(
             evaluate_component_ledger(&duplicate),
@@ -488,7 +490,7 @@ mod tests {
             })
         );
 
-        let mut unknown = input();
+        let mut unknown = demo_input();
         unknown.components.push(row("PORT-OPS", "unmanifested", 0, 0));
         assert_eq!(
             evaluate_component_ledger(&unknown),
@@ -500,14 +502,14 @@ mod tests {
 
     #[test]
     fn duplicate_category_and_participant_contract_entries_reject() {
-        let mut duplicate_category = input();
+        let mut duplicate_category = demo_input();
         duplicate_category.required_category_ids.push("fuel".to_owned());
         assert_eq!(
             evaluate_component_ledger(&duplicate_category),
             Err(CostLedgerError::DuplicateCategory("fuel".to_owned()))
         );
 
-        let mut duplicate_participant = input();
+        let mut duplicate_participant = demo_input();
         let duplicate_terms = duplicate_participant.participants[0].clone();
         duplicate_participant.participants.push(duplicate_terms);
         assert_eq!(
@@ -518,7 +520,7 @@ mod tests {
 
     #[test]
     fn all_zero_category_still_requires_an_explicit_zero_row() {
-        let mut case = input();
+        let mut case = demo_input();
         for item in &mut case.components {
             if item.category_id == "coordination" {
                 item.baseline_cost_minor = 0;
@@ -536,8 +538,8 @@ mod tests {
 
     #[test]
     fn component_ledger_is_input_order_invariant() {
-        let mut first = input();
-        let mut second = input();
+        let mut first = demo_input();
+        let mut second = demo_input();
         first.components.reverse();
         first.participants.reverse();
         second.required_category_ids.reverse();
@@ -549,7 +551,7 @@ mod tests {
 
     #[test]
     fn aggregate_outside_supported_account_range_rejects() {
-        let mut case = input();
+        let mut case = demo_input();
         case.required_category_ids = vec!["one".to_owned(), "two".to_owned()];
         case.components = vec![
             row("PORT-OPS", "one", i64::MAX, i64::MAX),
@@ -567,7 +569,7 @@ mod tests {
 
     #[test]
     fn malformed_manifest_digest_and_unqualified_evidence_fail_closed() {
-        let mut bad_digest = input();
+        let mut bad_digest = demo_input();
         bad_digest.category_manifest_sha256 = "not-a-digest".to_owned();
         assert_eq!(
             evaluate_component_ledger(&bad_digest),
@@ -576,7 +578,7 @@ mod tests {
             }))
         );
 
-        let mut unqualified = input();
+        let mut unqualified = demo_input();
         unqualified.evidence_tier = EvidenceTier::Unqualified;
         assert_eq!(
             evaluate_component_ledger(&unqualified),
