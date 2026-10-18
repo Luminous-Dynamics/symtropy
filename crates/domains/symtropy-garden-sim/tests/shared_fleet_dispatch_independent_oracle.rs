@@ -4,7 +4,7 @@
 //! Independent synthetic oracle cases for evidence-gated shared-fleet dispatch.
 
 use symtropy_garden_sim::shared_fleet_dispatch::{
-    DispatchRobotReadinessV1, DispatchTravelCoverageV1, DispatchTravelLegV1,
+    DispatchRobotReadinessV1, DispatchTravelCoverageV1, SharedFleetTravelLegV1,
     DispatchTravelMetricV1, DispatchTravelModeV1, DispatchTravelStateV1,
     SHARED_FLEET_DISPATCH_SCHEMA_VERSION_V1, SharedFleetDispatchAssignmentV1,
     SharedFleetDispatchBlockerCodeV1, SharedFleetDispatchDispositionV1, SharedFleetDispatchInputV1,
@@ -47,8 +47,8 @@ fn robot(
     }
 }
 
-fn route(robot_id: &str, from: &str, to: &str, minutes: u64) -> DispatchTravelLegV1 {
-    DispatchTravelLegV1 {
+fn route(robot_id: &str, from: &str, to: &str, minutes: u64) -> SharedFleetTravelLegV1 {
+    SharedFleetTravelLegV1 {
         robot_id: robot_id.into(),
         from_location_ref: from.into(),
         to_location_ref: to.into(),
@@ -66,7 +66,7 @@ fn route(robot_id: &str, from: &str, to: &str, minutes: u64) -> DispatchTravelLe
     }
 }
 
-fn no_route(robot_id: &str, from: &str, to: &str) -> DispatchTravelLegV1 {
+fn no_route(robot_id: &str, from: &str, to: &str) -> SharedFleetTravelLegV1 {
     let mut leg = route(robot_id, from, to, 0);
     leg.state = DispatchTravelStateV1::NoRoute;
     leg.coverage = DispatchTravelCoverageV1::Validated;
@@ -77,7 +77,7 @@ fn no_route(robot_id: &str, from: &str, to: &str) -> DispatchTravelLegV1 {
 fn input(
     requests: Vec<SharedFleetRequestV1>,
     robots: Vec<SharedFleetRobotV1>,
-    travel_legs: Vec<DispatchTravelLegV1>,
+    travel_legs: Vec<SharedFleetTravelLegV1>,
 ) -> SharedFleetDispatchInputV1 {
     SharedFleetDispatchInputV1 {
         schema_version: SHARED_FLEET_DISPATCH_SCHEMA_VERSION_V1,
