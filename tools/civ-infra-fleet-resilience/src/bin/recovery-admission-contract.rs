@@ -1274,8 +1274,8 @@ fn run_contract_suite(contract: &Contract) -> Result<ContractReport, String> {
                 .expect("normalized proposal should serialize");
             let input_sha256 = sha256_hex(&proposal_bytes);
             let decision = assess(contract, &scenario.proposal);
-            let decision_bytes = serde_json::to_vec(&decision)
-                .expect("normalized decision should serialize");
+            let decision_bytes =
+                serde_json::to_vec(&decision).expect("normalized decision should serialize");
             ScenarioResult {
                 scenario_id: scenario.scenario_id.clone(),
                 case_id: scenario.case_id.clone(),
@@ -1295,8 +1295,8 @@ fn run_contract_suite(contract: &Contract) -> Result<ContractReport, String> {
         .iter()
         .filter(|item| item.expected_admitted != item.admitted)
         .count();
-    let scenario_set_bytes = serde_json::to_vec(&scenario_results)
-        .expect("normalized scenario set should serialize");
+    let scenario_set_bytes =
+        serde_json::to_vec(&scenario_results).expect("normalized scenario set should serialize");
     let scenario_set_sha256 = sha256_hex(&scenario_set_bytes);
     Ok(ContractReport {
         schema_version: "luminous.civ_infra.recovery_admission_contract.v0.1".to_string(),
@@ -1374,10 +1374,12 @@ mod tests {
             1,
             Some("excavator-01".to_string()),
         );
-        assert!(proposal
-            .observation_ids
-            .iter()
-            .any(|id| contract.observations[id].case_id == "R-012"));
+        assert!(
+            proposal
+                .observation_ids
+                .iter()
+                .any(|id| contract.observations[id].case_id == "R-012")
+        );
         proposal.gates.authorization = Authorization::NotRequired;
         let decision = assess(&contract, &proposal);
         assert!(!decision.admitted);
