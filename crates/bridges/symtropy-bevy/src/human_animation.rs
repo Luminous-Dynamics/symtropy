@@ -141,7 +141,6 @@ impl Plugin for HumanAnimationPlugin {
     }
 }
 
-
 fn derive_human_motion_from_intent(
     config: Res<HumanLocomotionConfig>,
     mut query: Query<(&HumanLocomotionIntent, &mut HumanAnimationController)>,
@@ -289,27 +288,63 @@ mod tests {
     #[test]
     fn locomotion_transitions_use_hysteresis() {
         let config = HumanLocomotionConfig::default();
-        assert_eq!(select_locomotion_motion(0.0, HumanMotion::Walk, config), HumanMotion::Idle);
-        assert_eq!(select_locomotion_motion(0.15, HumanMotion::Walk, config), HumanMotion::Walk);
-        assert_eq!(select_locomotion_motion(0.19, HumanMotion::Idle, config), HumanMotion::Walk);
-        assert_eq!(select_locomotion_motion(2.1, HumanMotion::Walk, config), HumanMotion::Run);
-        assert_eq!(select_locomotion_motion(1.8, HumanMotion::Run, config), HumanMotion::Run);
-        assert_eq!(select_locomotion_motion(1.6, HumanMotion::Run, config), HumanMotion::Walk);
+        assert_eq!(
+            select_locomotion_motion(0.0, HumanMotion::Walk, config),
+            HumanMotion::Idle
+        );
+        assert_eq!(
+            select_locomotion_motion(0.15, HumanMotion::Walk, config),
+            HumanMotion::Walk
+        );
+        assert_eq!(
+            select_locomotion_motion(0.19, HumanMotion::Idle, config),
+            HumanMotion::Walk
+        );
+        assert_eq!(
+            select_locomotion_motion(2.1, HumanMotion::Walk, config),
+            HumanMotion::Run
+        );
+        assert_eq!(
+            select_locomotion_motion(1.8, HumanMotion::Run, config),
+            HumanMotion::Run
+        );
+        assert_eq!(
+            select_locomotion_motion(1.6, HumanMotion::Run, config),
+            HumanMotion::Walk
+        );
     }
 
     #[test]
     fn invalid_velocity_or_thresholds_fail_closed_to_idle() {
         let config = HumanLocomotionConfig::default();
-        assert_eq!(select_locomotion_motion(f32::NAN, HumanMotion::Run, config), HumanMotion::Idle);
-        assert_eq!(select_locomotion_motion(f32::INFINITY, HumanMotion::Walk, config), HumanMotion::Idle);
-        let invalid = HumanLocomotionConfig { run_exit_speed_mps: 2.5, ..config };
-        assert_eq!(select_locomotion_motion(3.0, HumanMotion::Run, invalid), HumanMotion::Idle);
+        assert_eq!(
+            select_locomotion_motion(f32::NAN, HumanMotion::Run, config),
+            HumanMotion::Idle
+        );
+        assert_eq!(
+            select_locomotion_motion(f32::INFINITY, HumanMotion::Walk, config),
+            HumanMotion::Idle
+        );
+        let invalid = HumanLocomotionConfig {
+            run_exit_speed_mps: 2.5,
+            ..config
+        };
+        assert_eq!(
+            select_locomotion_motion(3.0, HumanMotion::Run, invalid),
+            HumanMotion::Idle
+        );
     }
 
     #[test]
     fn stationary_talk_state_is_preserved_until_movement_is_requested() {
         let config = HumanLocomotionConfig::default();
-        assert_eq!(select_locomotion_motion(0.0, HumanMotion::Talk, config), HumanMotion::Talk);
-        assert_eq!(select_locomotion_motion(0.8, HumanMotion::Talk, config), HumanMotion::Walk);
+        assert_eq!(
+            select_locomotion_motion(0.0, HumanMotion::Talk, config),
+            HumanMotion::Talk
+        );
+        assert_eq!(
+            select_locomotion_motion(0.8, HumanMotion::Talk, config),
+            HumanMotion::Walk
+        );
     }
 }
