@@ -251,6 +251,125 @@ mod tests {
         assert_eq!(first, second);
     }
 
+    fn oracle_score_window(
+        arrival_utc_nanos: i128,
+        window: &DecisionWindow,
+        missed_penalty_minutes: u64,
+    ) -> u64 {
+        let absolute_delta_nanos = arrival_utc_nanos.abs_diff(window.starts_at_utc_nanos);
+        let whole_minutes = absolute_delta_nanos / 60_000_000_000;
+        let remainder = absolute_delta_nanos % 60_000_000_000;
+        let rounded_minutes = if remainder == 0 {
+            whole_minutes
+        } else {
+            whole_minutes.saturating_add(1)
+        };
+        let cost = u64::try_from(rounded_minutes).unwrap_or(u64::MAX);
+        if arrival_utc_nanos <= window.starts_at_utc_nanos {
+            cost
+        } else if cost <= u64::from(window.late_grace_minutes) {
+            cost
+        } else {
+            missed_penalty_minutes.saturating_add(cost)
+        }
+    }
+
+    fn calibration_with_radius_minutes(radius_minutes: u32) -> CalibratedArrivalEnvelope {
+        let samples = (1_usize..=20)
+            .map(|index| {
+                let error = match index {
+                    1..=18 => 0,
+                    19 => i64::from(radius_minutes) * 60,
+                    _ => i64::from(radius_minutes) * 60 + 1,
+                };
+                sample(index, error)
+            })
+            .collect::<Vec<_>>();
+        super::super::arrival_calibration::fit_split_conformal(
+            &samples,
+            20_000 * NANOS_PER_SECOND,
+            1_000,
+        )
+        .unwrap()
+    }
+
+    fn windows_with_grace(grace: u32) -> Vec<DecisionWindow> {
+        [12 * 60, 13 * 60, 14 * 60]
+            .into_iter()
+            .map(|minute| DecisionWindow {
+                id: format!("WINDOW-{minute}"),
+                starts_at_utc_nanos: utc(&format!(
+                    "2026-10-18T{:02}:{:02}:00Z",
+                    minute / 60,
+                    minute % 60
+                )),
+                late_grace_minutes: grace,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn interval_choice_and_abstention_match_independent_exhaustive_oracle() {
+        let radii = [0_u32, 1, 5, 15, 30, 60]
+            .into_iter()
+            .map(calibration_with_radius_minutes)
+            .collect::<Vec<_>>();
+        let mut configurations = 0usize;
+
+        for forecast_minute in (11 * 60..=15 * 60).step_by(15) {
+            let predicted = utc(&format!(
+                "2026-10-18T{:02}:{:02}:00Z",
+                forecast_minute / 60,
+                forecast_minute % 60
+            ));
+            for calibration in &radii {
+                let interval = calibration.interval_for(predicted).unwrap().unwrap();
+                for grace in [0_u32, 15, 30] {
+                    let windows = windows_with_grace(grace);
+                    for missed_penalty in [30_u64, 100, 200] {
+                        let scored = windows
+                            .iter()
+                            .map(|window| {
+                                let lower = oracle_score_window(
+                                    interval.lower_utc_nanos,
+                                    window,
+                                    missed_penalty,
+                                );
+                                let upper = oracle_score_window(
+                                    interval.upper_utc_nanos,
+                                    window,
+                                    missed_penalty,
+                                );
+                                (lower.max(upper), window.starts_at_utc_nanos, window.id.clone())
+                            })
+                            .min();
+                        for abstention_cost in [0_u64, 5, 15, 30, 60, 130, 300] {
+                            let expected = scored.as_ref().and_then(|(cost, _, id)| {
+                                (*cost < abstention_cost).then(|| id.clone())
+                            });
+                            let actual = choose_calibrated_window(
+                                calibration,
+                                predicted,
+                                &windows,
+                                missed_penalty,
+                                abstention_cost,
+                            )
+                            .unwrap()
+                            .chosen_window_id;
+                            assert_eq!(
+                                actual,
+                                expected,
+                                "oracle mismatch {forecast_minute}/{grace}/{missed_penalty}/{abstention_cost}"
+                            );
+                            configurations += 1;
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(configurations, 6_426);
+    }
+
     #[test]
     fn interval_overflow_fails_closed_as_an_error() {
         let fitted = calibration(9);
