@@ -334,10 +334,10 @@ pub fn validate_schedule_with_resource_capacities(
                 vec![(*resource_id).to_string()],
                 "resource ID must have exactly one capacity declaration",
             );
-        } else if let Some(capacity) = capacities.first().copied() {
-            if capacity > 0 {
-                valid_capacities.insert(resource_id, capacity);
-            }
+        } else if let Some(capacity) = capacities.first().copied()
+            && capacity > 0
+        {
+            valid_capacities.insert(resource_id, capacity);
         }
     }
 
