@@ -22,6 +22,17 @@ cargo run --manifest-path tools/built-interop-001/Cargo.toml -- \
 
 The CLI emits raw-input, canonical-input and semantic-result SHA-256 digests. Canonicalization sorts scenarios, source requirements, target observations and transform rules by stable fields. Row-order permutations should not change the canonical/result digests; the raw-input hash still records byte-level differences.
 
+## Machine-readable requirement results
+
+Each scenario report now includes `requirement_results`. Every source requirement receives its own structured record with:
+- source requirement ID, source object ID, property key and criticality;
+- expected value/unit and observed target object/value/unit (nullable when absent);
+- declared loss disposition and transform ID;
+- requirement outcome (`Preserved`, `Transformed`, `Blocked`, or `Unresolved`);
+- stable diagnostic codes such as `NO_TARGET_OBSERVATION`, `OBJECT_IDENTITY_MISMATCH`, `PRESERVED_VALUE_OR_UNIT_MISMATCH`, `MISSING_OR_DUPLICATE_TRANSFORM_RULE`, and `DECLARED_TRANSFORM_RESULT_MISMATCH`.
+
+Consumers should use these fields rather than parsing human-readable issue strings. Global malformed/orphan-record diagnostics remain in the scenario-level `issues` array. The report contract is defined in [report-v0.1.schema.json](report-v0.1.schema.json); the input manifest contract remains [semantic-loss-v0.1.schema.json](semantic-loss-v0.1.schema.json).
+
 ## Loss taxonomy
 
 Every requirement is compared against target observations using one of these outcomes:
