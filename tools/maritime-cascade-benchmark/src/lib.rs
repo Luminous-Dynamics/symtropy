@@ -36,13 +36,28 @@ pub struct Shock {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ModelError {
     EmptyOperations,
-    InvalidIdentifier { kind: &'static str, value: String },
+    InvalidIdentifier {
+        kind: &'static str,
+        value: String,
+    },
     DuplicateOperationId(String),
-    DuplicateResource { operation_id: String, resource_id: String },
+    DuplicateResource {
+        operation_id: String,
+        resource_id: String,
+    },
     NegativeDuration(String),
-    NegativeLag { predecessor_id: String, successor_id: String },
-    MissingOperation { role: &'static str, operation_id: String },
-    DuplicateDependency { predecessor_id: String, successor_id: String },
+    NegativeLag {
+        predecessor_id: String,
+        successor_id: String,
+    },
+    MissingOperation {
+        role: &'static str,
+        operation_id: String,
+    },
+    DuplicateDependency {
+        predecessor_id: String,
+        successor_id: String,
+    },
     Cycle,
     DuplicateShockId(String),
     NegativeShockDelay(String),
@@ -111,8 +126,12 @@ impl ScenarioReport {
     /// an ASCII allowlist by validation. The frozen receipt is compared bytewise.
     pub fn to_json(&self) -> String {
         let mut out = String::new();
-        write!(&mut out, "{{\"case_id\":\"{}\",\"operations\":[", self.case_id)
-            .expect("writing into String cannot fail");
+        write!(
+            &mut out,
+            "{{\"case_id\":\"{}\",\"operations\":[",
+            self.case_id
+        )
+        .expect("writing into String cannot fail");
 
         for (index, item) in self.operations.iter().enumerate() {
             if index > 0 {
@@ -203,9 +222,9 @@ struct ValidatedModel {
 }
 
 fn validate_identifier(kind: &'static str, value: &str) -> Result<(), ModelError> {
-    let allowed = value.bytes().all(|byte| {
-        byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-')
-    });
+    let allowed = value
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'));
     if value.is_empty() || !allowed {
         return Err(ModelError::InvalidIdentifier {
             kind,
@@ -301,10 +320,7 @@ fn validate_model(
         predecessor_map
             .get_mut(&dependency.successor_id)
             .expect("validated operation exists")
-            .push((
-                dependency.predecessor_id.clone(),
-                dependency.lag_minutes,
-            ));
+            .push((dependency.predecessor_id.clone(), dependency.lag_minutes));
         successor_map
             .get_mut(&dependency.predecessor_id)
             .expect("validated operation exists")
@@ -461,10 +477,9 @@ fn causal_drivers_for(
     // A local shock is causal only if its shifted scheduled start is a binding
     // constraint and it actually changed this operation's start versus baseline.
     if shock_delay > 0 && shifted_start == scenario_start && scenario_start > baseline_start {
-        for shock in shocks
-            .iter()
-            .filter(|shock| shock.operation_id == operation_id && shock.additional_start_delay_minutes > 0)
-        {
+        for shock in shocks.iter().filter(|shock| {
+            shock.operation_id == operation_id && shock.additional_start_delay_minutes > 0
+        }) {
             drivers.push(CausalDriver::DirectShock {
                 shock_id: shock.id.clone(),
             });
@@ -559,13 +574,15 @@ fn find_resource_conflicts(
         }
     }
 
-    conflicts.sort_by_key(|conflict| (
-        conflict.resource_id.clone(),
-        conflict.overlap_start_minute,
-        conflict.operation_a_id.clone(),
-        conflict.operation_b_id.clone(),
-        conflict.overlap_end_minute,
-    ));
+    conflicts.sort_by_key(|conflict| {
+        (
+            conflict.resource_id.clone(),
+            conflict.overlap_start_minute,
+            conflict.operation_a_id.clone(),
+            conflict.operation_b_id.clone(),
+            conflict.overlap_end_minute,
+        )
+    });
     conflicts
 }
 
@@ -633,7 +650,8 @@ pub fn evaluate_scenario(
         if impact.direct_shock_minutes == 0 {
             downstream_delay_minutes = downstream_delay_minutes
                 .checked_add(
-                    u128::try_from(impact.delay_minutes).map_err(|_| ModelError::ArithmeticOverflow)?,
+                    u128::try_from(impact.delay_minutes)
+                        .map_err(|_| ModelError::ArithmeticOverflow)?,
                 )
                 .ok_or(ModelError::ArithmeticOverflow)?;
         }
@@ -799,7 +817,11 @@ mod tests {
             &[shock("delay-A", "A", 5)],
         )
         .unwrap();
-        let b = report.operations.iter().find(|item| item.operation_id == "B").unwrap();
+        let b = report
+            .operations
+            .iter()
+            .find(|item| item.operation_id == "B")
+            .unwrap();
         assert_eq!(b.baseline_start_minute, 20);
         assert_eq!(b.scenario_start_minute, 20);
         assert_eq!(b.delay_minutes, 0);
@@ -829,7 +851,10 @@ mod tests {
 
     #[test]
     fn cycles_and_dangling_edges_fail_closed() {
-        let operations = vec![operation("A", 0, 1, &[], None), operation("B", 1, 1, &[], None)];
+        let operations = vec![
+            operation("A", 0, 1, &[], None),
+            operation("B", 1, 1, &[], None),
+        ];
         assert_eq!(
             evaluate_scenario(
                 "cycle",
@@ -840,7 +865,12 @@ mod tests {
             Err(ModelError::Cycle)
         );
         assert_eq!(
-            evaluate_scenario("dangling", &operations, &[dependency("A", "MISSING", 0)], &[]),
+            evaluate_scenario(
+                "dangling",
+                &operations,
+                &[dependency("A", "MISSING", 0)],
+                &[],
+            ),
             Err(ModelError::MissingOperation {
                 role: "dependency successor",
                 operation_id: "MISSING".to_owned(),
@@ -1006,22 +1036,16 @@ mod tests {
                 for target in 0..node_count {
                     let target_id = format!("OP-{target}");
                     for delay in [0_i64, 1, 3] {
-                        let shocks = vec![shock(
-                            &format!("SHOCK-{target}-{delay}"),
-                            &target_id,
-                            delay,
-                        )];
+                        let shocks =
+                            vec![shock(&format!("SHOCK-{target}-{delay}"), &target_id, delay)];
                         let scenario =
                             independent_relaxation_oracle(&operations, &dependencies, &shocks);
-                        let case_id =
-                            format!("oracle-n{node_count}-mask{edge_mask}-target{target}-delay{delay}");
-                        let report = evaluate_scenario(
-                            &case_id,
-                            &operations,
-                            &dependencies,
-                            &shocks,
-                        )
-                        .unwrap();
+                        let case_id = format!(
+                            "oracle-n{node_count}-mask{edge_mask}-target{target}-delay{delay}"
+                        );
+                        let report =
+                            evaluate_scenario(&case_id, &operations, &dependencies, &shocks)
+                                .unwrap();
 
                         let mut expected_affected = 0usize;
                         let mut expected_downstream_delay = 0_u128;
@@ -1141,7 +1165,11 @@ mod tests {
             &[shock("shock-A", "A", 5), shock("shock-B", "B", 5)],
         )
         .unwrap();
-        let c = report.operations.iter().find(|item| item.operation_id == "C").unwrap();
+        let c = report
+            .operations
+            .iter()
+            .find(|item| item.operation_id == "C")
+            .unwrap();
         assert_eq!(c.scenario_start_minute, 15);
         assert_eq!(
             c.causal_drivers,
