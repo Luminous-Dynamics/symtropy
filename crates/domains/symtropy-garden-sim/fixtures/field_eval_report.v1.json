@@ -3,6 +3,10 @@
   "report_ref": "study-sa-irrigation-feasibility-v1",
   "protocol_ref": "protocol-agri-service-007-v1",
   "analysis_plan_ref": "analysis-sa-irrigation-v1",
+  "preregistered_exclusion_rule_refs": [
+    "rule-scope-eligibility",
+    "rule-task-eligibility"
+  ],
   "screened_request_refs": [
     "req-study-001",
     "req-study-002",
