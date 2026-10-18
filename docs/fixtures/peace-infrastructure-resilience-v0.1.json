@@ -1,0 +1,167 @@
+{
+  "corpus_version": "0.1",
+  "corpus_kind": "synthetic_reference_only",
+  "field_evidence": false,
+  "quantities_are_policy_thresholds": false,
+  "claim_ceiling": "Semantics and failure-handling tests only; no causal or deployment claim.",
+  "scenarios": [
+    {
+      "id": "pirb-r2-minimum-service-floor-01",
+      "track": "PIRB-2",
+      "domain": "shared_water_allocation",
+      "units": "fictional service units per period",
+      "minimum_service_floor": {
+        "community_a": 10,
+        "community_b": 10
+      },
+      "candidates": [
+        {
+          "id": "balanced-10-10",
+          "allocation": {
+            "community_a": 10,
+            "community_b": 10
+          },
+          "total": 20
+        },
+        {
+          "id": "throughput-15-5",
+          "allocation": {
+            "community_a": 15,
+            "community_b": 5
+          },
+          "total": 20
+        }
+      ],
+      "expected": {
+        "eligible_candidates": [
+          "balanced-10-10"
+        ],
+        "rejected_candidates": [
+          "throughput-15-5"
+        ],
+        "invariant": "A candidate that violates any mandatory minimum-service floor is never eligible, even when its total output is equal or greater."
+      }
+    },
+    {
+      "id": "pirb-r1-required-acceptance-01",
+      "track": "PIRB-1",
+      "domain": "shared_resource_agreement",
+      "required_parties": [
+        "community-a",
+        "community-b",
+        "watershed-council"
+      ],
+      "accepted_by": [
+        "community-a",
+        "community-b"
+      ],
+      "effective_time_reached": true,
+      "expected": {
+        "state": "pending_not_active",
+        "invariant": "Every required party and authority check must pass before the agreement can become active."
+      }
+    },
+    {
+      "id": "pirb-r0-stale-capacity-01",
+      "track": "PIRB-0",
+      "domain": "clinic-power-resilience",
+      "required_evidence": {
+        "datum": "backup_capacity_kw",
+        "freshness_status": "stale",
+        "unit": "kW"
+      },
+      "proposed_action": "allocate_backup_power",
+      "expected": {
+        "decision": "blocked_or_unknown",
+        "invariant": "Stale mandatory capacity evidence cannot be silently treated as current or sufficient."
+      }
+    },
+    {
+      "id": "pirb-r0-conflicting-reports-01",
+      "track": "PIRB-0",
+      "domain": "water-service-status",
+      "reports": [
+        {
+          "source": "fictional-inspector-a",
+          "claim": "service_available",
+          "corroborated": false
+        },
+        {
+          "source": "fictional-inspector-b",
+          "claim": "service_unavailable",
+          "corroborated": false
+        }
+      ],
+      "expected": {
+        "evidence_state": "contested_unknown",
+        "invariant": "Conflicting uncorroborated reports must not be silently collapsed into a single asserted fact."
+      }
+    },
+    {
+      "id": "pirb-r4-personal-data-boundary-01",
+      "track": "PIRB-4",
+      "domain": "shared-evidence-record",
+      "input_fields": [
+        "aggregate_service_gap",
+        "person_name",
+        "political_affiliation",
+        "precise_household_location"
+      ],
+      "prohibited_shared_fields": [
+        "person_name",
+        "political_affiliation",
+        "precise_household_location"
+      ],
+      "expected": {
+        "shared_record_decision": "reject_or_redact_under_explicit_policy",
+        "invariant": "Direct identity, political affiliation, and precise vulnerable-household location do not enter the shared benchmark evidence plane."
+      }
+    },
+    {
+      "id": "pirb-r3-no-lookahead-01",
+      "track": "PIRB-3",
+      "domain": "adaptive_service_recovery",
+      "stages": [
+        {
+          "stage": "initial_decision",
+          "observable_inputs": [
+            "known_damage",
+            "current_budget"
+          ],
+          "future_observation_available": false
+        },
+        {
+          "stage": "post-inspection",
+          "observable_inputs": [
+            "known_damage",
+            "current_budget",
+            "inspection_result"
+          ],
+          "future_observation_available": true
+        }
+      ],
+      "expected": {
+        "invariant": "The initial action cannot depend on inspection_result; adaptation using that result is legal only after the declared inspection event."
+      }
+    },
+    {
+      "id": "pirb-r1-refused-participation-01",
+      "track": "PIRB-1",
+      "domain": "community-consent",
+      "required_parties": [
+        "community-a",
+        "community-b"
+      ],
+      "accepted_by": [
+        "community-a"
+      ],
+      "explicit_refusal_by": [
+        "community-b"
+      ],
+      "expected": {
+        "state": "not_active",
+        "invariant": "Refusal or non-participation is not consent and cannot be rewritten as assent by an optimizer or simulation."
+      }
+    }
+  ]
+}
