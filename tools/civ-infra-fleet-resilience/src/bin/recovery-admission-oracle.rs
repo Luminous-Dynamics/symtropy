@@ -682,9 +682,7 @@ fn record_stop_override(
     let decision = evaluate_candidate(fixture, &proposal)?;
     summary.protective_stop_checks += 1;
     if !decision.admitted || decision.next_state.as_deref() != Some(expected_state) {
-        summary
-            .protective_stop_violations
-            .push(format!("{scenario_id}:{mutation_id}"));
+        summary.protective_stop_violations += 1;
     }
     summary.outcomes.push(MutationOutcome {
         scenario_id: scenario_id.to_string(),
@@ -704,7 +702,7 @@ fn fail_closed_mutation_sweep(
         outcomes: Vec::new(),
         violations: Vec::new(),
         protective_stop_checks: 0,
-        protective_stop_violations: Vec::new(),
+        protective_stop_violations: 0,
     };
     let resource_gates = [
         "resource_available",
@@ -1249,7 +1247,7 @@ fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleR
         all_fail_closed_mutations_rejected: mutation_summary.violations.is_empty(),
         fail_closed_mutation_violation_examples,
         protective_stop_override_checks: mutation_summary.protective_stop_checks,
-        protective_stop_override_violations: mutation_summary.protective_stop_violations.len(),
+        protective_stop_override_violations: mutation_summary.protective_stop_violations,
         claim_ceiling: "Independent source-level semantic cross-check of synthetic report proposals only; it is not physical validation, evidence authentication, dispatch authorization, or an exhaustive oracle over all task/resource/evidence states.".to_string(),
         scenarios: checks,
     })
