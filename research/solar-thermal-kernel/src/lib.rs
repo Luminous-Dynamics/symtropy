@@ -762,12 +762,25 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     let dni_report = solar_input::integrate_direct_beam(dni_input)?;
     solar_input::verify_direct_beam_interval(dni_input, dni_report)?;
 
+    // Synthetic interval-BNI conversion fixture: 100 Wh/m² over 15 minutes.
+    let bni_irradiation = solar_input::DirectNormalIrradiationWhPerM2::new(100.0)?;
+    let bni_duration = Seconds::new(900.0)?;
+    let bni_report = solar_input::mean_dni_from_interval_irradiation(
+        bni_irradiation, bni_duration,
+    )?;
+    solar_input::verify_mean_dni_report(bni_irradiation, bni_duration, bni_report)?;
+
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
     fn number(out: &mut String, key: &str, value: f64) {
         write!(out, ",\"{key}\":{value:.9}").expect("writing to a String cannot fail");
     }
+    json.push_str(",\"bni_fixture_id\":\"interval-bni-to-mean-dni-001\"");
+    number(&mut json, "bni_interval_irradiation_wh_per_m2", 100.0);
+    number(&mut json, "bni_interval_duration_s", 900.0);
+    number(&mut json, "bni_interval_mean_dni_w_per_m2", bni_report.interval_mean_irradiance.value());
+
     json.push_str(",\"dni_fixture_id\":\"direct-beam-interval-001\"");
     number(&mut json, "dni_direct_normal_irradiance_w_per_m2", 800.0);
     number(&mut json, "dni_aperture_area_m2", 10.0);
@@ -972,6 +985,8 @@ mod tests {
         assert!(first.contains("\"dni_fixture_id\":\"direct-beam-interval-001\""));
         assert!(first.contains("\"dni_incident_power_w\":3200.000000000"));
         assert!(first.contains("\"dni_incident_energy_j\":11520000.000000000"));
+        assert!(first.contains("\"bni_fixture_id\":\"interval-bni-to-mean-dni-001\""));
+        assert!(first.contains("\"bni_interval_mean_dni_w_per_m2\":400.000000000"));
         assert!(first.contains("\"store_initial_temperature_k\":300.000000000"));
         assert!(first.contains("\"store_charge_effectiveness\":1.000000000"));
         assert!(first.contains("\"standing_loss_ambient_temperature_k\":300.000000000"));
