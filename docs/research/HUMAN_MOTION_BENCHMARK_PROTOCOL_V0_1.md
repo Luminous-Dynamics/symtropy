@@ -27,6 +27,10 @@ Do not claim that Symthaea itself synthesizes superior body motion unless the ex
 - Every run must pin the rig/retarget map, animation clips, model/checkpoint, dataset version, split manifest, preprocessing, random seed, engine commit and configuration digest.
 - Split by actor and recording session, not merely by adjacent frames. Avoid leakage of the same motion sequence into training and evaluation.
 
+## Machine-readable trace format
+
+[`human-motion-trace-v0.1.schema.json`](human-motion-trace-v0.1.schema.json) defines the versioned world-space trace contract; [`fixtures/human-motion-trace-synthetic-v0.1.json`](fixtures/human-motion-trace-synthetic-v0.1.json) is a synthetic fixture only. JSON Schema cannot express all cross-array rules here: the future reader must reject mismatched sample lengths, non-increasing timestamps, non-finite parsed values, missing asset provenance on non-synthetic traces, and incompatible rigs before computing scores. Compare prediction/reference traces only after an explicit alignment step.
+
 ## Task suite
 
 Every scenario is executed against the same avatar, coordinate system, frame rate, physics settings and saved input trace where technically applicable.
