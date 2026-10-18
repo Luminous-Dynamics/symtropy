@@ -94,7 +94,7 @@ These are software-conformance targets, not field impact thresholds:
 2. Implement a standalone Rust validator/evaluator that checks structure, version transitions, event ordering, approval preconditions, stale/post-hoc changes, challenge state and claim ceilings.
 3. Add generated fixtures for incomplete authority, contested consent, missing affected communities, post-hoc metric changes, suppressed appeals, privacy leaks, and inconsistent governance histories.
 4. Build a bounded independent oracle and mutation suite; require exact results under permutations of non-semantic event ordering but preserve chronology where order matters.
-5. Only later propose a field pilot. Use the [field-evaluation protocol template](PIRB_FIELD_EVALUATION_PROTOCOL_TEMPLATE_V0_1.md) when it exists on the intended integration branch, and require local authority, independent review, predeclared outcomes, an appropriate evaluation design, data-protection controls, and stop/revise authority.
+5. Only later propose a field pilot. Use the [field-evaluation protocol template](https://github.com/Luminous-Dynamics/symtropy/blob/research/peace-infrastructure-resilience-benchmark-v0-1-20261018/docs/tech/PIRB_FIELD_EVALUATION_PROTOCOL_TEMPLATE_V0_1.md) when it exists on the intended integration branch, and require local authority, independent review, predeclared outcomes, an appropriate evaluation design, data-protection controls, and stop/revise authority.
 
 ## Relationship to existing work
 
