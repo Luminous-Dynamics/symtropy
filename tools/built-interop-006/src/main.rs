@@ -15,6 +15,11 @@ use std::process;
 const REPORT_SCHEMA_VERSION: &str = "1.0.0";
 const REPORT_BENCHMARK_ID: &str = "BUILT-INTEROP-004";
 const IDS_STANDARD_VERSION: &str = "1.0";
+const IFC_SCHEMA_PROFILE_ID: &str = "DECLARED-IFC-SCHEMA-SUPPORTED-RULES-v0.1";
+const IFC_SCHEMA_POLICY_ID: &str = "BUILT-INTEROP-005/v0.1;step=ifc-step-0.5.0-strict;model=ifc-model-0.3.1;schema=ifc-schema-0.3.2-ifc4-only;validator=ifc-validate-0.6.0;schema-selection=declared-only;errors=FAIL;evaluation-errors-unsupported-truncated=UNRESOLVED;findings=stable-sorted;lock-sha256=cdf5e081cacba012ed1e52246b399f1062934b0e71eeeb5f6743f4f81a279c7c";
+const IFC_SCHEMA_TOOL_VERSION: &str =
+    "ifc-validate=0.6.0;ifc-schema=0.3.2;ifc-model=0.3.1;ifc-step=0.5.0";
+const PAYLOAD_POINTER: &str = "report-json-pointer:/evidence_payload";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -161,6 +166,13 @@ struct Report {
     overall_decision: OverallDecision,
     scope_statement: String,
     limitations: Vec<String>,
+}
+
+#[derive(Debug)]
+struct ProducerGate {
+    gate: Gate,
+    path: PathBuf,
+    evidence_payload: Option<Value>,
 }
 
 #[derive(Debug)]
@@ -533,18 +545,133 @@ fn validate_report(report: &Report) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_gate_file(path: &Path) -> Result<Gate, String> {
+fn parse_gate_file(path: &Path) -> Result<ProducerGate, String> {
     let bytes = fs::read(path)
         .map_err(|error| format!("CANNOT_READ_GATE_JSON:{}:{error}", path.display()))?;
     let json: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("INVALID_GATE_JSON:{}:{error}", path.display()))?;
+    let is_envelope = json.get("gate").is_some();
     let gate_value = json.get("gate").unwrap_or(&json).clone();
+    let evidence_payload = if is_envelope {
+        json.get("evidence_payload").cloned()
+    } else {
+        None
+    };
     let mut gate: Gate = serde_json::from_value(gate_value)
         .map_err(|error| format!("INVALID_TYPED_GATE:{}:{error}", path.display()))?;
     validate_gate(&gate)?;
     gate.evidence
         .sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
-    Ok(gate)
+    Ok(ProducerGate {
+        gate,
+        path: path.to_path_buf(),
+        evidence_payload,
+    })
+}
+
+/// Verify an embedded producer payload against the evidence digest and, for
+/// BUILT-INTEROP-005, against the exact source IFC bytes and declared profile.
+fn verify_embedded_payload(
+    input: &ProducerGate,
+    source_bytes: &[u8],
+    declared_schema: &str,
+) -> Result<(), String> {
+    let points_to_embedded_payload = input
+        .gate
+        .evidence
+        .iter()
+        .any(|evidence| evidence.locator == PAYLOAD_POINTER);
+    let Some(payload) = &input.evidence_payload else {
+        if points_to_embedded_payload {
+            return Err("EVIDENCE_PAYLOAD_MISSING".into());
+        }
+        return Ok(());
+    };
+
+    let payload_bytes = serde_json::to_vec(payload)
+        .map_err(|error| format!("EVIDENCE_PAYLOAD_SERIALIZATION_FAILED:{error}"))?;
+    let payload_sha256 = sha256_hex(&payload_bytes);
+    if !input
+        .gate
+        .evidence
+        .iter()
+        .any(|evidence| evidence.sha256 == payload_sha256)
+    {
+        return Err("EVIDENCE_PAYLOAD_DIGEST_MISMATCH".into());
+    }
+    for evidence in input
+        .gate
+        .evidence
+        .iter()
+        .filter(|evidence| evidence.locator == PAYLOAD_POINTER)
+    {
+        if evidence.sha256 != payload_sha256 {
+            return Err("EVIDENCE_POINTER_DIGEST_MISMATCH".into());
+        }
+    }
+
+    if input.gate.gate_id == GateId::IfcSchemaConformance {
+        if payload["profile_id"] != IFC_SCHEMA_PROFILE_ID {
+            return Err("IFC_SCHEMA_PROFILE_ID_MISMATCH".into());
+        }
+        let source_sha256 = sha256_hex(source_bytes);
+        if payload["input_sha256"].as_str() != Some(source_sha256.as_str())
+            || payload["input_byte_length"].as_u64() != u64::try_from(source_bytes.len()).ok()
+        {
+            return Err("IFC_SCHEMA_EVIDENCE_ARTIFACT_MISMATCH".into());
+        }
+        match payload.get("declared_schema_token") {
+            Some(Value::String(token)) if token == declared_schema => {}
+            Some(Value::Null) if declared_schema == "UNDECLARED" => {}
+            _ => return Err("IFC_SCHEMA_EVIDENCE_PROFILE_MISMATCH".into()),
+        }
+
+        let expected_config_sha256 = sha256_hex(IFC_SCHEMA_POLICY_ID.as_bytes());
+        match input.gate.tool.as_ref() {
+            Some(tool)
+                if tool.name == "ifc-validate+ifc-schema"
+                    && tool.version == IFC_SCHEMA_TOOL_VERSION
+                    && tool.config_sha256 == expected_config_sha256 => {}
+            _ => return Err("IFC_SCHEMA_TOOL_PROVENANCE_MISMATCH".into()),
+        }
+    }
+    Ok(())
+}
+
+/// Replace a producer-local JSON pointer with a file-qualified pointer so the
+/// assembled report can locate the original embedded payload.
+fn resolve_payload_locator(input: &mut ProducerGate) -> Result<(), String> {
+    if input.evidence_payload.is_none()
+        || !input
+            .gate
+            .evidence
+            .iter()
+            .any(|evidence| evidence.locator == PAYLOAD_POINTER)
+    {
+        return Ok(());
+    }
+    let absolute = fs::canonicalize(&input.path)
+        .map_err(|error| format!("CANNOT_CANONICALIZE_GATE_SOURCE:{}:{error}", input.path.display()))?;
+    let raw = absolute.to_string_lossy().replace('\\\\', "/");
+    let mut encoded = String::new();
+    for byte in raw.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b':' | b'-' | b'.' | b'_' | b'~') {
+            encoded.push(byte as char);
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    let file_uri = if encoded.starts_with('/') {
+        format!("file://{encoded}")
+    } else {
+        format!("file:///{encoded}")
+    };
+    for evidence in &mut input.gate.evidence {
+        if evidence.locator == PAYLOAD_POINTER {
+            evidence.locator = format!("{file_uri}#/evidence_payload");
+        }
+    }
+    Ok(())
 }
 
 fn parse_args() -> Result<Option<CliArgs>, String> {
@@ -630,7 +757,10 @@ fn run() -> Result<i32, String> {
     })?;
     let mut producer_gates = Vec::new();
     for gate_path in &args.gate_json {
-        producer_gates.push(parse_gate_file(gate_path)?);
+        let mut input = parse_gate_file(gate_path)?;
+        verify_embedded_payload(&input, &source_bytes, &args.ifc_schema)?;
+        resolve_payload_locator(&mut input)?;
+        producer_gates.push(input.gate);
     }
 
     let report = assemble_report(
