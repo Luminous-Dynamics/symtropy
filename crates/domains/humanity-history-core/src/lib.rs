@@ -40,6 +40,9 @@ pub struct Dataset {
     /// Paired point estimates used to quantify change across an explicitly named data/method variant.
     #[serde(default)]
     pub estimate_deltas: Vec<EstimateDelta>,
+    /// Execution manifests for model runs; a claim of reproduction requires a traceable run record.
+    #[serde(default)]
+    pub analysis_runs: Vec<AnalysisRun>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -195,6 +198,57 @@ pub struct AssetRecord {
     pub distributable: bool,
     /// SHA-256 of the exact asset bytes, represented by 64 hexadecimal characters.
     pub content_sha256: String,
+}
+
+/// A content-addressed file included in an analysis run's input or output manifest.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RunArtifactDigest {
+    pub name: String,
+    pub sha256: String,
+}
+
+/// Status is deliberately lifecycle-oriented: source-reported literature values do not count as
+/// executed or reproduced local analyses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnalysisRunStatus {
+    Planned,
+    InputsVerified,
+    Executed,
+    Reproduced,
+    Failed,
+}
+
+/// Versioned record of an experiment/reproduction attempt. The digest fields must be calculated
+/// from actual bytes by the caller. This validator checks their syntax and required provenance
+/// fields but cannot inspect external files or prove that a command was truly executed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AnalysisRun {
+    pub id: String,
+    pub purpose: String,
+    pub status: AnalysisRunStatus,
+    pub model_spec_version: String,
+    #[serde(default)]
+    pub code_revision: Option<String>,
+    #[serde(default)]
+    pub command: Option<String>,
+    #[serde(default)]
+    pub environment_fingerprint: Option<String>,
+    #[serde(default)]
+    pub input_manifest_sha256: Option<String>,
+    #[serde(default)]
+    pub input_artifacts: Vec<RunArtifactDigest>,
+    #[serde(default)]
+    pub output_artifacts: Vec<RunArtifactDigest>,
+    #[serde(default)]
+    pub random_seed: Option<String>,
+    #[serde(default)]
+    pub target_estimate_ids: Vec<String>,
+    #[serde(default)]
+    pub comparison_source_id: Option<String>,
+    #[serde(default)]
+    pub result_summary: Option<String>,
+    pub limitations: Vec<String>,
 }
 
 /// A numerical result reported by a source or specified by a reconstruction.
@@ -546,6 +600,7 @@ pub enum ValidationCode {
     InvalidModelAssessment,
     InvalidEstimateContrast,
     InvalidEstimateDelta,
+    InvalidAnalysisRun,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -1581,6 +1636,7 @@ mod tests {
             model_comparisons: vec![],
             estimate_contrasts: vec![],
             estimate_deltas: vec![],
+            analysis_runs: vec![],
         }
     }
 
