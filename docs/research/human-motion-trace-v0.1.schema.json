@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/human-motion-trace-v0.1.schema.json",
+  "title": "Symtropy Human Motion Trace v0.1",
+  "description": "One time-aligned, world-space human motion trace. Array-length and monotonic-time invariants require semantic validation in addition to JSON Schema validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "run",
+    "timestamps_sec",
+    "root_world_m",
+    "left_foot_world_m",
+    "left_foot_contact",
+    "right_foot_world_m",
+    "right_foot_contact"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "git_commit",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "synthetic_test_fixture",
+            "licensed_asset",
+            "original_consent_capture",
+            "external_model"
+          ]
+        },
+        "git_commit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "model_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "asset_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "asset_license": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test",
+            "synthetic"
+          ]
+        },
+        "actor_pseudonym": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Non-identifying pseudonym only; never a real name."
+        },
+        "recording_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "length_unit": {
+          "const": "metre"
+        },
+        "up_axis": {
+          "const": "+Y"
+        },
+        "forward_axis": {
+          "enum": [
+            "+Z",
+            "-Z"
+          ]
+        },
+        "position_space": {
+          "const": "world"
+        }
+      },
+      "default": {
+        "length_unit": "metre",
+        "up_axis": "+Y",
+        "forward_axis": "-Z",
+        "position_space": "world"
+      }
+    },
+    "timestamps_sec": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "number"
+      }
+    },
+    "root_world_m": {
+      "$ref": "#/$defs/positions"
+    },
+    "left_foot_world_m": {
+      "$ref": "#/$defs/positions"
+    },
+    "left_foot_contact": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "right_foot_world_m": {
+      "$ref": "#/$defs/positions"
+    },
+    "right_foot_contact": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "joint_world_m": {
+      "type": "object",
+      "description": "Optional named joint trajectories; every joint array must match timestamps_sec length.",
+      "additionalProperties": {
+        "$ref": "#/$defs/positions"
+      }
+    },
+    "constraint_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "time_sec",
+          "target",
+          "position_world_m"
+        ],
+        "properties": {
+          "time_sec": {
+            "type": "number"
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "position_world_m": {
+            "$ref": "#/$defs/position"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "positions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/position"
+      }
+    }
+  }
+}
