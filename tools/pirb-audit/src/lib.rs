@@ -1530,6 +1530,96 @@ mod tests {
     }
 
     #[test]
+    fn robust_frontier_matches_independent_exhaustive_oracle_grid() {
+        let mut value = corpus();
+        let mut options = Vec::new();
+        let mut feasible_rows = Vec::<(String, i64, i64)>::new();
+        let mut expected_worst = serde_json::Map::new();
+
+        // Exhaust the small integer objective space: cost x three named stress gaps.
+        for cost in 0_i64..=2 {
+            for baseline in 0_i64..=2 {
+                for drought in 0_i64..=2 {
+                    for supplier in 0_i64..=2 {
+                        let id = format!(
+                            "grid-c{cost}-b{baseline}-d{drought}-s{supplier}"
+                        );
+                        let worst = baseline.max(drought).max(supplier);
+                        options.push(json!({
+                            "id": id,
+                            "cost_ticks": cost,
+                            "hard_gates": {
+                                "civilian_safety": "pass",
+                                "evidence_qualification": "pass"
+                            },
+                            "service_gap_by_scenario": {
+                                "baseline": baseline,
+                                "drought": drought,
+                                "supplier_disruption": supplier
+                            }
+                        }));
+                        expected_worst.insert(id.clone(), json!(worst));
+                        feasible_rows.push((id, cost, worst));
+                    }
+                }
+            }
+        }
+
+        // A gate-unknown option looks excellent on service/cost but is never feasible.
+        let excluded_id = "grid-unknown-gate";
+        options.push(json!({
+            "id": excluded_id,
+            "cost_ticks": 0,
+            "hard_gates": {
+                "civilian_safety": "unknown",
+                "evidence_qualification": "pass"
+            },
+            "service_gap_by_scenario": {
+                "baseline": 0,
+                "drought": 0,
+                "supplier_disruption": 0
+            }
+        }));
+        expected_worst.insert(excluded_id.to_owned(), json!(0));
+
+        // Independent oracle: compute each cost bucket's minimum gap, then retain
+        // only local minima that improve on every strictly cheaper bucket.
+        let mut minimum_gap_by_cost = BTreeMap::<i64, i64>::new();
+        for (_, cost, gap) in &feasible_rows {
+            minimum_gap_by_cost
+                .entry(*cost)
+                .and_modify(|minimum| *minimum = (*minimum).min(*gap))
+                .or_insert(*gap);
+        }
+        let mut expected_frontier = Vec::new();
+        for (id, cost, gap) in &feasible_rows {
+            let local_minimum = minimum_gap_by_cost[cost];
+            let best_cheaper_gap = minimum_gap_by_cost
+                .range(..*cost)
+                .map(|(_, value)| *value)
+                .min();
+            if *gap == local_minimum
+                && best_cheaper_gap.is_none_or(|cheaper_gap| *gap < cheaper_gap)
+            {
+                expected_frontier.push(id.clone());
+            }
+        }
+        expected_frontier.sort();
+
+        let mut expected_feasible: Vec<String> =
+            feasible_rows.iter().map(|(id, _, _)| id.clone()).collect();
+        expected_feasible.sort();
+        value["scenarios"][7]["options"] = json!(options);
+        value["scenarios"][7]["expected"]["feasible_options"] = json!(expected_feasible);
+        value["scenarios"][7]["expected"]["excluded_by_hard_gate"] = json!([excluded_id]);
+        value["scenarios"][7]["expected"]["worst_case_service_gap"] = json!(expected_worst);
+        value["scenarios"][7]["expected"]["pareto_frontier"] = json!(expected_frontier);
+
+        let report = audit_corpus(&value);
+        assert!(report.passed, "{:#?}", report.findings);
+    }
+
+    #[test]
     fn incorrect_robust_frontier_is_rejected() {
         let mut value = corpus();
         value["scenarios"][7]["expected"]["pareto_frontier"] = json!(["repair_plus_backup"]);
