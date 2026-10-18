@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/legal-evidence-benchmark-evaluation-receipt-v0.1.schema.json",
+  "title": "Legal Evidence Benchmark Evaluation Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "evaluator_version",
+    "dataset_kind",
+    "corpus_sha256",
+    "submission_sha256",
+    "system_id",
+    "total_cases",
+    "provided_results",
+    "action_accuracy_pct",
+    "claim_code_exact_match_pct",
+    "citation_exact_match_pct",
+    "missing_result_case_ids",
+    "duplicate_result_case_ids",
+    "extra_result_case_ids",
+    "unknown_authority_citations",
+    "unavailable_source_citations",
+    "authority_role_mismatches",
+    "unknown_span_citations",
+    "temporally_inapplicable_citations",
+    "temporally_unverified_citations",
+    "prohibited_source_citations",
+    "unverified_authority_citations",
+    "duplicate_citations",
+    "duplicate_claim_codes",
+    "uncited_answers",
+    "critical_failure_case_ids",
+    "fixture_gate_passed",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "report_version": {
+      "const": "0.1.0"
+    },
+    "evaluator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_kind": {
+      "const": "synthetic_only"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "submission_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "system_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "total_cases": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provided_results": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "action_accuracy_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "claim_code_exact_match_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "citation_exact_match_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "missing_result_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "duplicate_result_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "extra_result_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "unknown_authority_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unavailable_source_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "authority_role_mismatches": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unknown_span_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "temporally_inapplicable_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "temporally_unverified_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "prohibited_source_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unverified_authority_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_citations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_claim_codes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "uncited_answers": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "critical_failure_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "fixture_gate_passed": {
+      "type": "boolean"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
