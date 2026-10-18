@@ -43,6 +43,16 @@ The last two are sensitivity estimates from related measurements and a shared so
 
 The seed defines three separate reconstruction models and one model-comparison group. Its explicit decision rule is to report axes separately instead of synthesizing a winner. Initial axes include fit to measured hole spacing, sensitivity to fracture handling, calendar-interpretation consistency, mechanical feasibility, dependence on missing geometry, and evidence provenance.
 
+The seed now also records six source-reported discrete posterior probabilities from Table 2 of Woan and Bayley (2024):
+
+| Integer hole count | Full data | Trimmed data | Delta (trimmed − full) |
+|---:|---:|---:|---:|
+| 354 | 0.1917 | 0.2714 | +0.0797 |
+| 355 | 0.2823 | 0.2251 | −0.0572 |
+| 356 | 0.2479 | 0.1173 | −0.1306 |
+
+The paper describes its trimmed set as excluding short segments S5/S6 and the first and last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76, and 81). The paired deltas subtract source values rounded to four decimal places; they are not newly computed posterior probabilities.
+
 The seed additionally declares four point-vs-interval probes. The analysis calculates only the candidate value's location relative to the reported interval and the arithmetic distance to the nearest bound:
 - 365 is 8.37 holes above the all-measurement interval [353.88, 356.63].
 - 365 is 9.45 holes above the fracture-excluded interval [352.67, 355.55].
@@ -66,7 +76,7 @@ Run from the Symtropy workspace root:
 ```sh
 cargo test -p humanity-history-core
 cargo run -p humanity-history-core --bin humanity-history-validate -- crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
-cargo run -p humanity-history-core --bin humanity-history-validate -- analyze-contrasts crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
+cargo run -p humanity-history-core --bin humanity-history-validate -- analyze-sensitivity crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
 ```
 
 The first command should run the core's unit suite; the second should emit JSON with `valid: true` and zero issues. These are **expected outputs**, not test results claimed by this research seed. The code must be compiled and run in a Rust-enabled environment before acceptance.
