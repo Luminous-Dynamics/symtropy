@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "0.1.0",
+  "manifest_id": "ODRH-STIM-001",
+  "title": "Deterministic display stimulus source artifacts",
+  "status": "SPECIFICATION_ONLY",
+  "evidence_class": "SYNTHETIC_STIMULUS",
+  "physical_output_validation": "NOT_PERFORMED",
+  "claim_ceiling": "The generated file bytes and code-level raster are specified. Signal negotiation, host/compositor/video-path preservation, physical panel output, photometry, colorimetry, HDR transport, and human perception are not evaluated.",
+  "source_corpus": {
+    "corpus_id": "VIS-DISP-CORPUS-001",
+    "schema_version": "0.1.0",
+    "repository": "Luminous-Dynamics/symthaea",
+    "path": "docs/engineering/visual-display-workload-corpus-v0.1.json",
+    "git_blob_sha1": "040cc324cc4116cfeaac249ea62300a44380024b",
+    "url": "https://github.com/Luminous-Dynamics/symthaea/blob/research/vis-tech-001-program-2026-10-17/docs/engineering/visual-display-workload-corpus-v0.1.json",
+    "source_status": "UNQUALIFIED"
+  },
+  "encoding": {
+    "format": "PPM_P6",
+    "channel_order": "RGB",
+    "origin": "TOP_LEFT",
+    "transfer_semantics": "EXPLICIT_CODE_VALUES_ONLY",
+    "color_profile": "NONE_EMBEDDED",
+    "metadata_transport": "NOT_REPRESENTED"
+  },
+  "stimuli": [
+    {
+      "id": "ODRH-STIM-GREY-RAMP-001",
+      "source_case_id": "VIS-DISP-GREY-RAMP-012",
+      "title": "Neutral code ramp",
+      "primitive": "neutral_ramp",
+      "width": 16,
+      "height": 4,
+      "bit_depth": 8,
+      "maxval": 255,
+      "status": "UNQUALIFIED",
+      "claim_limit": "Monotonic encoded RGB code ramp only; not a physical luminance ramp or banding assessment.",
+      "parameters": {}
+    },
+    {
+      "id": "ODRH-STIM-NEARBLACK-001",
+      "source_case_id": "VIS-DISP-NEARBLACK-013",
+      "title": "Near-black encoded code steps",
+      "primitive": "near_black_steps",
+      "width": 12,
+      "height": 4,
+      "bit_depth": 10,
+      "maxval": 1023,
+      "status": "UNQUALIFIED",
+      "claim_limit": "Explicit 10-bit code values only; labels do not assert nits or measured black-crush behavior.",
+      "parameters": {
+        "levels": [0, 1, 2, 5, 10, 20]
+      }
+    },
+    {
+      "id": "ODRH-STIM-LOCAL-HIGHLIGHT-001",
+      "source_case_id": "VIS-DISP-LOCAL-HIGHLIGHT-014",
+      "title": "Center patch against explicit encoded background",
+      "primitive": "center_patch",
+      "width": 16,
+      "height": 12,
+      "bit_depth": 10,
+      "maxval": 1023,
+      "status": "UNQUALIFIED",
+      "claim_limit": "Pixel geometry and code values only; no claim about panel local dimming, peak luminance, halo, or actual average picture level.",
+      "parameters": {
+        "background_code": [0, 0, 0],
+        "foreground_code": [1023, 1023, 1023],
+        "patch_width_px": 4,
+        "patch_height_px": 4
+      }
+    },
+    {
+      "id": "ODRH-STIM-COLOR-GRADIENT-001",
+      "source_case_id": "VIS-DISP-COLOR-GRADIENT-028",
+      "title": "Two-dimensional RGB code gradient",
+      "primitive": "rgb_gradient",
+      "width": 16,
+      "height": 16,
+      "bit_depth": 8,
+      "maxval": 255,
+      "status": "UNQUALIFIED",
+      "claim_limit": "Encoded RGB codes only; no ICC profile, colorimetric accuracy, display gamut, or perceptual banding is implied.",
+      "parameters": {
+        "blue_rule": "ROUNDED_MEAN_OF_RED_GREEN"
+      }
+    }
+  ]
+}
