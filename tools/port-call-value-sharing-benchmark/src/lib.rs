@@ -1027,6 +1027,4 @@ mod tests {
         let permuted = evaluate_counterfactual_sensitivity(&[second, first]).unwrap();
         assert_eq!(original.to_json(), permuted.to_json());
     }
-
-
 }
