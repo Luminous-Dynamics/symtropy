@@ -27,6 +27,14 @@ Missing artifacts and digest/length mismatches appear in the report; the CLI wri
 
 These limits bound the prototype's declared work. They do not claim protection against every local filesystem race or establish tamper-proof storage. A production resolver should use immutable content-addressed storage or platform-specific safe-open primitives, signed attestations, and access-controlled provenance roots.
 
+## Interoperability and trust path for a future version
+
+Do not evolve this prototype into an isolated signature scheme. W3C PROV models provenance through entities, activities and agents, which is a useful neutral vocabulary for describing source artifacts, solver runs and the agents responsible for producing them: https://www.w3.org/TR/prov-overview/
+
+For authenticated build/analysis steps, evaluate in-toto attestations and their policy verification model rather than trusting manifest producer labels. The in-toto verification workflow can check signed layouts and link metadata, authorization/threshold requirements, expiry and material/product rules: https://in-toto.readthedocs.io/en/stable/command-line-tools/in-toto-verify.html and https://github.com/in-toto/attestation
+
+A future adapter should map bundle artifacts to provenance entities, compute runs to activities, and producers/reviewers to agents; then verify signatures against an explicit trust policy. That still would not establish physical validity: independent model qualification, uncertainty treatment, applicability-domain evidence and comparison against reference measurements remain separate gates.
+
 ## Benchmark gates
 
 - Exact match to the three frozen fixture artifact lengths and SHA-256 digests.
