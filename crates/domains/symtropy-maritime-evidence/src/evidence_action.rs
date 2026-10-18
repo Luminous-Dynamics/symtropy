@@ -342,12 +342,14 @@ pub fn decide(policy: EvidencePolicy, input: &EvidenceDecisionInput) -> Evidence
     }
 }
 
-fn ceil_minutes(nanos: i128) -> u64 {
-    if nanos <= 0 {
+fn ceil_minutes(nanos: u128) -> u64 {
+    if nanos == 0 {
         return 0;
     }
-    let minutes = (nanos + NANOS_PER_MINUTE - 1) / NANOS_PER_MINUTE;
-    u64::try_from(minutes).unwrap_or(u64::MAX)
+    let minute = u128::try_from(NANOS_PER_MINUTE).unwrap_or(u128::MAX);
+    let whole = nanos / minute;
+    let extra = u128::from(nanos % minute != 0);
+    u64::try_from(whole.saturating_add(extra)).unwrap_or(u64::MAX)
 }
 
 /// Synthetic cost model: waiting is rounded up to minutes; lateness within the
@@ -358,9 +360,15 @@ pub fn score_window(
     missed_window_penalty_minutes: u64,
 ) -> u64 {
     if actual_or_predicted_arrival_utc_nanos <= window.starts_at_utc_nanos {
-        return ceil_minutes(window.starts_at_utc_nanos - actual_or_predicted_arrival_utc_nanos);
+        return ceil_minutes(
+            window
+                .starts_at_utc_nanos
+                .abs_diff(actual_or_predicted_arrival_utc_nanos),
+        );
     }
-    let lateness = ceil_minutes(actual_or_predicted_arrival_utc_nanos - window.starts_at_utc_nanos);
+    let lateness = ceil_minutes(
+        actual_or_predicted_arrival_utc_nanos.abs_diff(window.starts_at_utc_nanos),
+    );
     if lateness <= u64::from(window.late_grace_minutes) {
         lateness
     } else {
@@ -401,8 +409,12 @@ pub fn evaluate_decision(
         .unwrap_or(input.abstention_cost_minutes);
     let oracle_cost_minutes = best_window_cost.min(input.abstention_cost_minutes);
     let served = selected_window.is_some_and(|window| {
-        truth.actual_arrival_utc_nanos
-            <= window.starts_at_utc_nanos + i128::from(window.late_grace_minutes) * NANOS_PER_MINUTE
+        truth.actual_arrival_utc_nanos <= window.starts_at_utc_nanos
+            || truth
+                .actual_arrival_utc_nanos
+                .abs_diff(window.starts_at_utc_nanos)
+                <= u128::from(window.late_grace_minutes)
+                    * u128::try_from(NANOS_PER_MINUTE).unwrap_or(u128::MAX)
     });
     let actionable_despite_evidence_issue = selected_window.is_some()
         && decision.has_evidence_quality_issue()
@@ -794,6 +806,28 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn extreme_timestamp_differences_saturate_without_integer_overflow() {
+        let late_window = DecisionWindow {
+            id: "MAX-TIME".to_owned(),
+            starts_at_utc_nanos: i128::MAX,
+            late_grace_minutes: 15,
+        };
+        let early_window = DecisionWindow {
+            id: "MIN-TIME".to_owned(),
+            starts_at_utc_nanos: i128::MIN,
+            late_grace_minutes: 15,
+        };
+        assert_eq!(
+            score_window(i128::MIN, &late_window, 100),
+            u64::MAX
+        );
+        assert_eq!(
+            score_window(i128::MAX, &early_window, 100),
+            u64::MAX
+        );
     }
 
     #[test]
