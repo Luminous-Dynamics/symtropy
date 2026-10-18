@@ -123,15 +123,16 @@ fn fixture_bytes_match_the_pinned_sha256_manifest() {
     for fixture in fixtures {
         let path = string_field(fixture, "path");
         assert!(paths.insert(path.to_owned()), "duplicate manifest path {path}");
-        let (source, expected_id, expected_cases) = match path {
+        let (source, expected_id, expected_case_ids): (&str, &str, &[&str]) = match path {
             "tube-reference-cases.v0.json" => {
-                (TUBE_CORPUS, "ORGAN-TRANSPORT-Q0-TUBE", 5usize)
+                (TUBE_CORPUS, "ORGAN-TRANSPORT-Q0-TUBE", TUBE_CASE_IDS)
             }
             "network-reference-cases.v0.json" => {
-                (NETWORK_CORPUS, "ORGAN-TRANSPORT-Q0-NETWORK", 3usize)
+                (NETWORK_CORPUS, "ORGAN-TRANSPORT-Q0-NETWORK", NETWORK_CASE_IDS)
             }
             other => panic!("unrecognized corpus path in manifest: {other}"),
         };
+        let expected_cases = expected_case_ids.len();
 
         assert_eq!(string_field(fixture, "corpus_id"), expected_id);
         assert_eq!(string_field(fixture, "schema_version"), "0.1.0");
@@ -148,12 +149,30 @@ fn fixture_bytes_match_the_pinned_sha256_manifest() {
             "{path}: input digest changed; review and intentionally repin the corpus"
         );
 
+        let pinned_case_ids = field(fixture, "case_ids")
+            .as_array()
+            .expect("case_ids must be an array");
+        assert_eq!(pinned_case_ids.len(), expected_case_ids.len(), "{path}: manifest case IDs changed");
+        for (index, pinned_id) in pinned_case_ids.iter().enumerate() {
+            assert_eq!(
+                pinned_id.as_str(),
+                Some(expected_case_ids[index]),
+                "{path}: manifest case ID/order differs at index {index}"
+            );
+        }
+
         let parsed = parse_json_corpus(source, expected_id);
-        assert_eq!(
-            field(&parsed, "cases").as_array().expect("cases must be an array").len(),
-            expected_cases,
-            "{path}: case count changed"
-        );
+        let parsed_cases = field(&parsed, "cases")
+            .as_array()
+            .expect("cases must be an array");
+        assert_eq!(parsed_cases.len(), expected_cases, "{path}: case count changed");
+        for (index, case) in parsed_cases.iter().enumerate() {
+            assert_eq!(
+                string_field(case, "id"),
+                expected_case_ids[index],
+                "{path}: fixture case ID/order differs at index {index}"
+            );
+        }
         assert_eq!(
             field(fixture, "case_count").as_u64().expect("case_count must be u64") as usize,
             expected_cases
