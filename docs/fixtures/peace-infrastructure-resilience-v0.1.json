@@ -262,6 +262,12 @@
         "aggregate_gap_before": 15,
         "aggregate_gap_after": 15,
         "displacement_detected": true,
+        "improved_groups": [
+          "target_area"
+        ],
+        "worsened_groups": [
+          "neighbor_area"
+        ],
         "claim_status": "descriptive_only",
         "improvement_claim": "not_supported"
       }
