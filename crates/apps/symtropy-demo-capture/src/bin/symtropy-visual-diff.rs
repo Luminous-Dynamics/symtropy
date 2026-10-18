@@ -716,43 +716,188 @@ fn read_bounded(path: &Path, max_bytes: u64) -> io::Result<Vec<u8>> {
     Ok(bytes)
 }
 
-fn ensure_output_is_distinct(output: &Path, inputs: &[&Path]) -> Result<(), String> {
-    let parent = output
+fn ensure_outputs_are_distinct(
+    report_output: &Path,
+    diff_output: Option<&Path>,
+    inputs: &[&Path],
+) -> Result<(), String> {
+    let report_path = normalized_destination_path(report_output)?;
+    let diff_path = diff_output.map(normalized_destination_path).transpose()?;
+    if diff_path.as_ref().is_some_and(|path| path == &report_path) {
+        return Err("report JSON and difference heatmap must use different output paths".to_owned());
+    }
+
+    for input in inputs {
+        let input_path = fs::canonicalize(input)
+            .map_err(|error| format!("cannot resolve input path {}: {error}", input.display()))?;
+        if report_path == input_path || diff_path.as_ref().is_some_and(|path| path == &input_path) {
+            return Err(format!(
+                "output artifacts must not overwrite input artifact {}",
+                input.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn normalized_destination_path(path: &Path) -> Result<PathBuf, String> {
+    let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
     fs::create_dir_all(parent).map_err(|error| {
         format!(
-            "cannot create report directory {}: {error}",
+            "cannot create output directory {}: {error}",
             parent.display()
         )
     })?;
-    let file_name = output
+    let file_name = path
         .file_name()
-        .ok_or_else(|| "report path must name a file".to_owned())?;
-    let output_path = if output.exists() {
-        fs::canonicalize(output)
-            .map_err(|error| format!("cannot resolve report path {}: {error}", output.display()))?
+        .ok_or_else(|| "output path must name a file".to_owned())?;
+    if path.exists() {
+        fs::canonicalize(path)
+            .map_err(|error| format!("cannot resolve output path {}: {error}", path.display()))
     } else {
         fs::canonicalize(parent)
+            .map(|parent| parent.join(file_name))
             .map_err(|error| {
                 format!(
-                    "cannot resolve report directory {}: {error}",
+                    "cannot resolve output directory {}: {error}",
                     parent.display()
                 )
-            })?
-            .join(file_name)
-    };
+            })
+    }
+}
 
-    for input in inputs {
-        let input_path = fs::canonicalize(input)
-            .map_err(|error| format!("cannot resolve input path {}: {error}", input.display()))?;
-        if output_path == input_path {
-            return Err(format!(
-                "report output {} must not overwrite an input artifact",
-                output.display()
-            ));
+fn write_diff_heatmap(
+    path: &Path,
+    baseline: &RgbaImage,
+    candidate: &RgbaImage,
+    pixel_threshold: u8,
+) -> Result<DiffImageSummary, String> {
+    let heatmap = build_diff_heatmap(baseline, candidate)?;
+    let (width_px, height_px) = heatmap.dimensions();
+    let mut cursor = Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(heatmap)
+        .write_to(&mut cursor, ImageFormat::Png)
+        .map_err(|error| format!("cannot encode difference heatmap: {error}"))?;
+    let bytes = cursor.into_inner();
+    let sha256 = format!("{:x}", Sha256::digest(&bytes));
+    write_bytes_atomically(path, &bytes)?;
+
+    Ok(DiffImageSummary {
+        path: path.display().to_string(),
+        sha256,
+        width_px,
+        height_px,
+        encoding: "PNG",
+        legend: if pixel_threshold == 0 {
+            "black=no-change; blue/cyan/yellow/red=small-to-large raw RGBA channel delta; threshold=0"
+        } else {
+            "black=no-change; blue/cyan/yellow/red=small-to-large raw RGBA channel delta; threshold is recorded in JSON metrics"
+        },
+    })
+}
+
+/// Build an inspectable heatmap over the exact pixel-aligned comparison.
+/// This is a review aid only: its colors encode raw maximum RGBA code-value
+/// deltas, not perceptual salience or correctness.
+fn build_diff_heatmap(
+    baseline: &RgbaImage,
+    candidate: &RgbaImage,
+) -> Result<RgbaImage, String> {
+    if baseline.dimensions() != candidate.dimensions() {
+        return Err("heatmap inputs must have identical dimensions".to_owned());
+    }
+
+    let (width, height) = baseline.dimensions();
+    let mut heatmap = RgbaImage::new(width, height);
+    for (index, (left, right)) in baseline.pixels().zip(candidate.pixels()).enumerate() {
+        let delta = (0..4)
+            .map(|channel| left[channel].abs_diff(right[channel]))
+            .max()
+            .unwrap_or(0);
+        let color = if delta == 0 {
+            [0, 0, 0, 255]
+        } else if delta < 64 {
+            [0, 0, delta.saturating_mul(4), 255]
+        } else if delta < 128 {
+            [0, (delta - 64).saturating_mul(4), 255, 255]
+        } else if delta < 192 {
+            [
+                (delta - 128).saturating_mul(4),
+                255,
+                255_u8.saturating_sub((delta - 128).saturating_mul(4)),
+                255,
+            ]
+        } else {
+            [
+                255,
+                255_u8.saturating_sub((delta - 192).saturating_mul(4)),
+                0,
+                255,
+            ]
+        };
+        let x = (index as u32) % width.max(1);
+        let y = (index as u32) / width.max(1);
+        heatmap.put_pixel(x, y, image::Rgba(color));
+    }
+    Ok(heatmap)
+}
+
+fn write_bytes_atomically(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "cannot create output directory {}: {error}",
+            parent.display()
+        )
+    })?;
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| "output path must name a file".to_owned())?
+        .to_string_lossy()
+        .into_owned();
+    let absolute_path = fs::canonicalize(parent)
+        .map_err(|error| {
+            format!(
+                "cannot resolve output directory {}: {error}",
+                parent.display()
+            )
+        })?
+        .join(file_name);
+    let temporary = absolute_path.with_file_name(format!(
+        ".{}.{}.tmp",
+        absolute_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy(),
+        std::process::id()
+    ));
+    let write_result = (|| -> io::Result<()> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        drop(file);
+
+        #[cfg(windows)]
+        if absolute_path.exists() {
+            fs::remove_file(&absolute_path)?;
         }
+        fs::rename(&temporary, &absolute_path)
+    })();
+    if let Err(error) = write_result {
+        let _ = fs::remove_file(&temporary);
+        return Err(format!(
+            "cannot write artifact {}: {error}",
+            absolute_path.display()
+        ));
     }
     Ok(())
 }
@@ -852,6 +997,25 @@ mod tests {
         assert_eq!(metrics.changed_pixel_count, 1);
         assert_eq!(metrics.changed_pixel_fraction, 0.5);
         assert_eq!(metrics.mean_absolute_channel_delta, 4.0);
+    }
+
+    #[test]
+    fn identical_images_produce_black_heatmap() {
+        let image = pixels(&[[10, 20, 30, 255], [200, 100, 40, 255]]);
+        let heatmap = build_diff_heatmap(&image, &image).expect("heatmap should build");
+        assert_eq!(heatmap.get_pixel(0, 0).0, [0, 0, 0, 255]);
+        assert_eq!(heatmap.get_pixel(1, 0).0, [0, 0, 0, 255]);
+    }
+
+    #[test]
+    fn changed_pixels_produce_heatmap_with_delta_intensity() {
+        let baseline = pixels(&[[0, 0, 0, 255], [0, 0, 0, 255], [0, 0, 0, 255]]);
+        let candidate = pixels(&[[0, 0, 0, 255], [16, 0, 0, 255], [220, 0, 0, 255]]);
+        let heatmap = build_diff_heatmap(&baseline, &candidate).expect("heatmap should build");
+        assert_eq!(heatmap.get_pixel(0, 0).0, [0, 0, 0, 255]);
+        assert_ne!(heatmap.get_pixel(1, 0).0, heatmap.get_pixel(2, 0).0);
+        assert_eq!(heatmap.get_pixel(2, 0).0[0], 255);
+        assert_eq!(heatmap.get_pixel(2, 0).0[3], 255);
     }
 
     #[test]
