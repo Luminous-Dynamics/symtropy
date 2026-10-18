@@ -7,7 +7,7 @@
 //! collector aperture plane. It deliberately does not estimate DNI from GHI,
 //! model sun position, include diffuse/albedo radiation, or model receiver loss.
 
-use super::{check, finite, nonnegative, positive, EnergyJ, Fraction, ModelError, PowerW, Seconds};
+use super::{check, finite, nonnegative, positive, EnergyJ, Fraction, ModelError, Seconds};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct IrradianceWPerM2(f64);
@@ -15,6 +15,19 @@ pub struct IrradianceWPerM2(f64);
 impl IrradianceWPerM2 {
     pub fn new(value: f64) -> Result<Self, ModelError> {
         nonnegative(value, "direct_normal_irradiance_w_per_m2").map(Self)
+    }
+
+    pub fn value(self) -> f64 {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct IncidentPowerW(f64);
+
+impl IncidentPowerW {
+    pub fn new(value: f64) -> Result<Self, ModelError> {
+        nonnegative(value, "incident_power_w").map(Self)
     }
 
     pub fn value(self) -> f64 {
@@ -51,7 +64,7 @@ pub struct DirectBeamIntervalInput {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DirectBeamIntervalReport {
     /// DNI x aperture area x incidence cosine x unshaded fraction.
-    pub incident_power_at_aperture: PowerW,
+    pub incident_power_at_aperture: IncidentPowerW,
     /// Incident direct-beam energy integrated over this interval.
     pub incident_energy: EnergyJ,
 }
@@ -69,7 +82,7 @@ pub fn integrate_direct_beam(
         * input.unshaded_fraction.value();
     let energy = projected_power * input.duration.value();
     Ok(DirectBeamIntervalReport {
-        incident_power_at_aperture: PowerW::new(projected_power)?,
+        incident_power_at_aperture: IncidentPowerW::new(projected_power)?,
         incident_energy: EnergyJ::new(energy)?,
     })
 }
