@@ -267,6 +267,16 @@ pub fn evaluate(case: &CampaignCase) -> Evaluation {
 
     let mass_audit = mass_audit.expect("validated above");
     let energy_audit = energy_audit.expect("validated above");
+    let derived_energy_intensity =
+        case.energy_ledger_kwh.outputs / case.metrics.accepted_tonnes_per_shift;
+    if !derived_energy_intensity.is_finite() {
+        return Evaluation {
+            disposition: Disposition::InvalidInput,
+            mass_residual_kg: Some(mass_audit.residual),
+            energy_residual_kwh: Some(energy_audit.residual),
+            reasons: vec!["derived energy intensity is non-finite"],
+        };
+    }
 
     if !mass_audit.within_tolerance {
         reasons.push("mass ledger does not close within declared tolerance");
@@ -277,11 +287,7 @@ pub fn evaluate(case: &CampaignCase) -> Evaluation {
     {
         reasons.push("accepted product mass exceeds the aggregate accounted output for the shift");
     }
-    let derived_energy_intensity =
-        case.energy_ledger_kwh.outputs / case.metrics.accepted_tonnes_per_shift;
-    if !derived_energy_intensity.is_finite() {
-        reasons.push("derived energy intensity is non-finite");
-    } else if (derived_energy_intensity - case.metrics.energy_kwh_per_saleable_tonne).abs()
+    if (derived_energy_intensity - case.metrics.energy_kwh_per_saleable_tonne).abs()
         > case.energy_intensity_tolerance_kwh_per_tonne
     {
         reasons.push("reported energy intensity does not match the shift energy ledger");
@@ -522,7 +528,7 @@ mod tests {
             comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 45.0,
             lifecycle_cost_per_saleable_tonne: 75.0,
-            energy_kwh_per_saleable_tonne: 10.0,
+            energy_kwh_per_saleable_tonne: 2.4,
             water_m3_per_saleable_tonne: 0.18,
             emissions_kg_co2e_per_saleable_tonne: 3.5,
         };
@@ -535,7 +541,7 @@ mod tests {
             comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 47.0,
             lifecycle_cost_per_saleable_tonne: 83.0,
-            energy_kwh_per_saleable_tonne: 11.0,
+            energy_kwh_per_saleable_tonne: 2.0,
             water_m3_per_saleable_tonne: 0.19,
             emissions_kg_co2e_per_saleable_tonne: 3.8,
         };
