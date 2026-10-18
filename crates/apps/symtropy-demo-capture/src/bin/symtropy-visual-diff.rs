@@ -323,7 +323,8 @@ fn parse_options(args: Vec<String>) -> Result<Option<Options>, String> {
     if !(0.0..=255.0).contains(&max_mean_channel_delta) || !max_mean_channel_delta.is_finite() {
         return Err("--max-mean-channel-delta must be finite and within 0..=255".to_owned());
     }
-    if !(0.0..=1.0).contains(&max_changed_pixel_fraction) || !max_changed_pixel_fraction.is_finite() {
+    if !(0.0..=1.0).contains(&max_changed_pixel_fraction) || !max_changed_pixel_fraction.is_finite()
+    {
         return Err("--max-changed-pixel-fraction must be within 0..=1".to_owned());
     }
 
