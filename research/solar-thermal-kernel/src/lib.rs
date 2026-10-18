@@ -11,6 +11,7 @@ use std::{error::Error, fmt, fmt::Write as _};
 pub mod cascade;
 pub mod loss_integrator;
 pub mod pinch;
+pub mod scenario_risk;
 pub mod solar_input;
 pub mod temporal;
 
