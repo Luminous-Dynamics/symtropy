@@ -166,7 +166,7 @@ fn setup_probe(
             if config.shadow_maps_enabled { "on" } else { "off" }
         )),
         TextFont {
-            font_size: 18.0,
+            font_size: FontSize::Px(18.0),
             ..default()
         },
         TextColor(Color::WHITE),
