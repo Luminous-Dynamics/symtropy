@@ -911,12 +911,13 @@ mod tests {
         let rust_ids = GateId::ALL.iter().map(|id| id.as_str()).collect::<Vec<_>>();
         assert_eq!(schema_ids, rust_ids);
 
-        let schema_statuses = schema["properties"]["gates"]["items"]["properties"]["status"]["enum"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|value| value.as_str().unwrap())
-            .collect::<BTreeSet<_>>();
+        let schema_statuses =
+            schema["properties"]["gates"]["items"]["properties"]["status"]["enum"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_str().unwrap())
+                .collect::<BTreeSet<_>>();
         let expected_statuses = ["FAIL", "NOT_RUN", "PASS", "UNRESOLVED"]
             .into_iter()
             .collect::<BTreeSet<_>>();
@@ -928,12 +929,17 @@ mod tests {
             .iter()
             .find(|rule| rule["if"]["properties"]["status"]["const"] == "NOT_RUN")
             .unwrap();
-        assert_eq!(not_run_rule["then"]["properties"]["evidence"]["maxItems"], 0);
-        assert!(not_run_rule["then"]["not"]["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|value| value == "tool"));
+        assert_eq!(
+            not_run_rule["then"]["properties"]["evidence"]["maxItems"],
+            0
+        );
+        assert!(
+            not_run_rule["then"]["not"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == "tool")
+        );
     }
 
     #[test]
