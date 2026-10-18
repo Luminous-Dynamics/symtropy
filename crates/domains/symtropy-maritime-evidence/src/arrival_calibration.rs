@@ -254,9 +254,7 @@ pub fn evaluate_coverage(
                 {
                     covered_count += 1;
                 }
-                let width = interval
-                    .upper_utc_nanos
-                    .abs_diff(interval.lower_utc_nanos);
+                let width = interval.upper_utc_nanos.abs_diff(interval.lower_utc_nanos);
                 total_width_nanos = total_width_nanos
                     .checked_add(width)
                     .ok_or(CalibrationError::ArithmeticOverflow)?;
@@ -271,11 +269,9 @@ pub fn evaluate_coverage(
             .map_err(|_| CalibrationError::ArithmeticOverflow)?
             .checked_mul(u128::from(BASIS_POINTS))
             .ok_or(CalibrationError::ArithmeticOverflow)?;
-        let issued = u128::try_from(interval_count)
-            .map_err(|_| CalibrationError::ArithmeticOverflow)?;
-        Some(
-            u16::try_from(scaled / issued).map_err(|_| CalibrationError::ArithmeticOverflow)?,
-        )
+        let issued =
+            u128::try_from(interval_count).map_err(|_| CalibrationError::ArithmeticOverflow)?;
+        Some(u16::try_from(scaled / issued).map_err(|_| CalibrationError::ArithmeticOverflow)?)
     };
     let issued_scaled = u128::try_from(interval_count)
         .map_err(|_| CalibrationError::ArithmeticOverflow)?
@@ -382,7 +378,9 @@ mod tests {
 
     #[test]
     fn split_conformal_uses_exact_finite_sample_order_statistic() {
-        let samples = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let samples = (1..=9)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
         assert_eq!(fitted.sample_count, 9);
         assert_eq!(fitted.radius_nanos, Some(9 * NANOS_PER_SECOND as u128));
@@ -391,7 +389,9 @@ mod tests {
 
     #[test]
     fn insufficient_sample_size_returns_infinite_radius_not_a_guessed_bound() {
-        let samples = (1..=8).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let samples = (1..=8)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
         assert_eq!(fitted.radius_nanos, None);
         assert_eq!(fitted.interval_for(base()).unwrap(), None);
@@ -462,7 +462,9 @@ mod tests {
 
     #[test]
     fn interval_bounds_are_symmetric_and_overflow_fails_closed() {
-        let samples = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let samples = (1..=9)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
         let interval = fitted.interval_for(base()).unwrap().unwrap();
         assert_eq!(interval.lower_utc_nanos, base() - 9 * NANOS_PER_SECOND);
@@ -475,7 +477,9 @@ mod tests {
 
     #[test]
     fn coverage_metrics_report_coverage_width_and_abstention_separately() {
-        let samples = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let samples = (1..=9)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
         let report = evaluate_coverage(&fitted, &cases(&[0, 3, -8, 9, 10])).unwrap();
         assert_eq!(report.evaluation_count, 5);
@@ -492,7 +496,9 @@ mod tests {
 
     #[test]
     fn unbounded_conformal_result_reports_abstentions_not_perfect_coverage() {
-        let samples = (1..=8).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let samples = (1..=8)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
         let report = evaluate_coverage(&fitted, &cases(&[0, 1, 2])).unwrap();
         assert_eq!(report.interval_count, 0);
@@ -504,7 +510,9 @@ mod tests {
 
     #[test]
     fn evaluation_rejects_rows_that_leak_across_the_calibration_cutoff() {
-        let samples = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let samples = (1..=9)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let fitted = fit_split_conformal(&samples, CUTOFF, 1_000).unwrap();
 
         let mut forecast_leak = cases(&[1]);
@@ -567,7 +575,9 @@ mod tests {
 
     #[test]
     fn calibration_is_permutation_invariant_and_preserves_cutoff() {
-        let first = (1..=9).map(|index| sample(index, index as i64)).collect::<Vec<_>>();
+        let first = (1..=9)
+            .map(|index| sample(index, index as i64))
+            .collect::<Vec<_>>();
         let mut second = first.clone();
         second.reverse();
         assert_eq!(
