@@ -731,6 +731,24 @@ fn assess(contract: &Contract, proposal: &Proposal) -> Decision {
         }
     }
 
+    let approval_gated_progress = matches!(
+        target_state,
+        Some(
+            TaskState::Running
+                | TaskState::AwaitingEvidence
+                | TaskState::Accepted
+                | TaskState::ReworkRequired
+        )
+    );
+    if approval_gated_progress
+        && visible_refs
+            .iter()
+            .any(|observation| observation.case_id == "R-012")
+        && proposal.gates.authorization != Authorization::Granted
+    {
+        reasons.insert("visible_approval_gate_requires_granted_authorization:R-012".to_string());
+    }
+
     if matches!(proposal.action, Action::SubmitForAcceptance) && !proposal.gates.work_complete {
         reasons.insert("cannot_submit_incomplete_work_for_acceptance".to_string());
     }
@@ -1325,6 +1343,31 @@ mod tests {
             .reason_codes
             .iter()
             .any(|reason| reason.starts_with(prefix))
+    }
+
+    #[test]
+    fn visible_declined_approval_cannot_be_bypassed_as_not_required() {
+        let contract = contract();
+        let mut proposal = make_proposal(
+            &contract,
+            "approval-not-required-bypass",
+            "trench-segment-01",
+            TaskState::Ready,
+            Action::Start,
+            1,
+            Some("excavator-01".to_string()),
+        );
+        assert!(proposal
+            .observation_ids
+            .iter()
+            .any(|id| contract.observations[id].case_id == "R-012"));
+        proposal.gates.authorization = Authorization::NotRequired;
+        let decision = assess(&contract, &proposal);
+        assert!(!decision.admitted);
+        assert!(has_reason(
+            &decision,
+            "visible_approval_gate_requires_granted_authorization:R-012"
+        ));
     }
 
     #[test]
