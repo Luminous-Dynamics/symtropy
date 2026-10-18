@@ -13,15 +13,32 @@ pub const MANIFEST_ID: &str = "ODRH-STIM-001";
 pub const SCHEMA_VERSION: &str = "0.1.0";
 pub const CORPUS_ID: &str = "VIS-DISP-CORPUS-001";
 pub const CORPUS_BLOB_SHA1: &str = "040cc324cc4116cfeaac249ea62300a44380024b";
+const CLAIM_CEILING: &str = "The generated file bytes and code-level raster are specified. Signal negotiation, host/compositor/video-path preservation, physical panel output, photometry, colorimetry, HDR transport, and human perception are not evaluated.";
 const SCHEMA_DRAFT: &str = "https://json-schema.org/draft/2020-12/schema";
 const MAX_DIMENSION: u64 = 4096;
 const MAX_RASTER_BYTES: u64 = 64 * 1024 * 1024;
 
-const SUPPORTED_CASES: [(&str, &str); 4] = [
-    ("VIS-DISP-GREY-RAMP-012", "neutral_ramp"),
-    ("VIS-DISP-NEARBLACK-013", "near_black_steps"),
-    ("VIS-DISP-LOCAL-HIGHLIGHT-014", "center_patch"),
-    ("VIS-DISP-COLOR-GRADIENT-028", "rgb_gradient"),
+const SUPPORTED_CASES: [(&str, &str, &str); 4] = [
+    (
+        "VIS-DISP-GREY-RAMP-012",
+        "neutral_ramp",
+        "Monotonic encoded RGB code ramp only; not a physical luminance ramp or banding assessment.",
+    ),
+    (
+        "VIS-DISP-NEARBLACK-013",
+        "near_black_steps",
+        "Explicit 10-bit code values only; labels do not assert nits or measured black-crush behavior.",
+    ),
+    (
+        "VIS-DISP-LOCAL-HIGHLIGHT-014",
+        "center_patch",
+        "Pixel geometry and code values only; no claim about panel local dimming, peak luminance, halo, or actual average picture level.",
+    ),
+    (
+        "VIS-DISP-COLOR-GRADIENT-028",
+        "rgb_gradient",
+        "Encoded RGB codes only; no ICC profile, colorimetric accuracy, display gamut, or perceptual banding is implied.",
+    ),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,6 +115,11 @@ fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
             "physical output validation cannot be promoted by a manifest edit".to_owned(),
         ));
     }
+    if required_str(manifest, "claim_ceiling")? != CLAIM_CEILING {
+        return Err(StimulusError(
+            "manifest claim ceiling does not match the frozen v0.1 boundary".to_owned(),
+        ));
+    }
     if manifest.pointer("/encoding/format").and_then(Value::as_str) != Some("PPM_P6")
         || manifest.pointer("/encoding/channel_order").and_then(Value::as_str) != Some("RGB")
         || manifest
@@ -140,9 +162,11 @@ fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
                 "duplicate source case ID: {source_case_id}"
             )));
         }
-        let expected_primitive = SUPPORTED_CASES
+        let (expected_primitive, expected_claim_limit) = SUPPORTED_CASES
             .iter()
-            .find_map(|(case, kind)| (*case == source_case_id).then_some(*kind))
+            .find_map(|(case, kind, claim_limit)| {
+                (*case == source_case_id).then_some((*kind, *claim_limit))
+            })
             .ok_or_else(|| {
                 StimulusError(format!(
                     "source case is not in the frozen v0.1 renderable allowlist: {source_case_id}"
@@ -151,6 +175,11 @@ fn validate_semantics(manifest: &Value) -> Result<(), StimulusError> {
         if primitive != expected_primitive {
             return Err(StimulusError(format!(
                 "source case {source_case_id} requires primitive {expected_primitive}, not {primitive}"
+            )));
+        }
+        if required_str(stimulus, "claim_limit")? != expected_claim_limit {
+            return Err(StimulusError(format!(
+                "stimulus {id} claim_limit is not the frozen v0.1 claim boundary"
             )));
         }
         if stimulus.get("status").and_then(Value::as_str) != Some("UNQUALIFIED") {
@@ -702,6 +731,17 @@ mod tests {
         let mut manifest = parse_manifest();
         manifest["physical_output_validation"] = Value::String("VALIDATED".to_owned());
         assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT).is_err());
+    }
+
+    #[test]
+    fn claim_limit_cannot_be_weakened_into_a_physical_result_claim() {
+        let mut manifest = parse_manifest();
+        manifest["stimuli"][1]["claim_limit"] =
+            Value::String("This proves physical luminance in nits".to_owned());
+        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+            .expect_err("overclaiming claim_limit must fail closed")
+            .0
+            .contains("claim_limit is not the frozen"));
     }
 
     #[test]
