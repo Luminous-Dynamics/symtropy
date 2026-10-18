@@ -1,0 +1,13 @@
+{
+  "eventClassifierCode": "PLN",
+  "operationsEventTypeCode": "DEPA",
+  "facilityTypeCode": "BRTH",
+  "eventDateTime": "2026-10-19T17:20:50.52Z",
+  "eventLocation": {
+    "locationName": "SYNTHETIC BERTH A",
+    "UNLocationCode": "ZZSYN",
+    "facilityCode": "SYN1",
+    "facilityCodeListProvider": "SMDG"
+  },
+  "vesselIMONumber": "9990001"
+}
