@@ -21,7 +21,7 @@ const CLAIM_CEILING: &str =
 const CSV_PATH: &str =
     "docs/research/external/ca-rcpsp-v1.0/results/per_scenario_results.csv";
 const CSV_SHA256: &str =
-    "b9244c2f08ee0ca013b15478ecd12c35facf45b7ca79a63d777246040c740c38";
+    "834ad0cf18b8062497d2a0a5387524c340145fd164d6a2071982d83688555ce1";
 
 struct InstanceInput {
     path: &'static str,
@@ -33,62 +33,62 @@ const INSTANCE_INPUTS: &[InstanceInput] = &[
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/tiny/tiny_manufacturing_demo.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/tiny/tiny_manufacturing_demo.json"),
-        expected_sha256: "0721265f42f7c81203bda651444eb45b41e4f920ec18000e6b4279630dde0ac2",
+        expected_sha256: "11906038ee3ac9e3979f6987523cf01d6e4ab56c488a684de44fbd1c54c06ed3",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/tiny/tiny_assembly_demo.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/tiny/tiny_assembly_demo.json"),
-        expected_sha256: "f903697f60817ca65065e18b70de771f5e4745ed3c92ab2d6b7bd96f19ca8916",
+        expected_sha256: "9a480474a2af9d40cb2ea2c03046056421db86c6ce4b687fab664ace64b2043c",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/tiny/tiny_quality_demo.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/tiny/tiny_quality_demo.json"),
-        expected_sha256: "1ae8cbf857e0599ee580fe695d6cc8eff45249b2d25168658c4858e00a46b44a",
+        expected_sha256: "22ca5908ae6ff41b166a9cf944b3f1a25ec141417af4878ec2e42881fe214363",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/small/small_disrupted_manufacturing_25.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/small/small_disrupted_manufacturing_25.json"),
-        expected_sha256: "d9b0d63d65a4e70c3fae0777998bf1fde2a2e913fe86fc020be43e9e099fa0ff",
+        expected_sha256: "23d9c83bba9519ebdde39ef53d8f9745e355644238bee910aeace498dc3e4c8f",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/small/small_multi_resource_35.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/small/small_multi_resource_35.json"),
-        expected_sha256: "bfb3b3cab059b7f468528d4d541272cd466b3af1fa4aa607d230d71bd4916bc4",
+        expected_sha256: "910747c895761d350cddbb143659b251945d1cc5903de88a583abb56d6474495",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/small/small_shift_operations_40.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/small/small_shift_operations_40.json"),
-        expected_sha256: "1f6bb99b777c5b84b7a47796753dc4f118c791146b04ca79623bf2752c6cf0f6",
+        expected_sha256: "16cc51fca4ed158dd5f745c160d716bb9a0d0fd91dc1786ac1496b41204b3350",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/medium/medium_complex_manufacturing_120.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/medium/medium_complex_manufacturing_120.json"),
-        expected_sha256: "4f2dfb6b15bdee702e7e8ce8a0c6504b16e89465ebdfd71996386155689e8f63",
+        expected_sha256: "badfaf46fe9e48cbed5f3fd1a85dc5eee31b0b016c6798013dd1ee6008484e18",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/medium/medium_multi_shift_factory_150.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/medium/medium_multi_shift_factory_150.json"),
-        expected_sha256: "84257b847be1d7cb9d7e558f05b1020ad11d6ae15efa634a447bfd4e6b76e176",
+        expected_sha256: "1fcc43e6c15ba4b44b79c9dc3039f5f9dde0e2e6d6775ada94c4e7bac63784fc",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/medium/medium_supply_chain_180.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/medium/medium_supply_chain_180.json"),
-        expected_sha256: "fe9c56059e94fe2c9bbf58ec9ce7f2b480f34543ea6440d58cc514e2440c51ac",
+        expected_sha256: "d7dab8a80f61b6c98662f82af4870c3419fe0dcc710052c21dc8dd3869258928",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/large/large_industrial_scale_500.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/large/large_industrial_scale_500.json"),
-        expected_sha256: "f2362367bdb2fb7d702e266b79b25e7d0b2296259057bf6051cb27a6ef5322c2",
+        expected_sha256: "67b290d07f5795e40f1e89a7a0b7c28be3da0e9276b25cd2e8ea880f87b338cc",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/large/large_enterprise_manufacturing_750.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/large/large_enterprise_manufacturing_750.json"),
-        expected_sha256: "6033eb863c0dfd135a2601219c8fadd2bcc01a819d31a6899222f3a1ae8d876d",
+        expected_sha256: "e7881ea9405d62f9380e7a9b0928865038bcd988bc4178b8538d1ed53a284509",
     },
     InstanceInput {
         path: "docs/research/external/ca-rcpsp-v1.0/scenarios/large/large_mega_scale_factory_1000.json",
         bytes: include_bytes!("../../../docs/research/external/ca-rcpsp-v1.0/scenarios/large/large_mega_scale_factory_1000.json"),
-        expected_sha256: "c8d74b3f92019b4615140cdde8b258e38b21de49b1828c8e0a63166eac886f8d",
+        expected_sha256: "2e8279aecf4f5e60b95d966a07055c71676474c681d5a3c192fbe25edb065aa5",
     },
 ];
 
