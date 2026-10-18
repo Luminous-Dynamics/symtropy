@@ -121,7 +121,10 @@ fn print_summary(path: &std::ffi::OsStr, summary: &TraceSummary) {
     for (field, count) in &summary.field_counts {
         println!("  {field}={count}");
     }
-    println!("claim_ceiling=event chronology and sampling gaps only; no availability, safety, quality, energy, or cost inference");
+    println!(concat!(
+        "claim_ceiling=event chronology and sampling gaps only; ",
+        "no availability, safety, quality, energy, or cost inference"
+    ));
 }
 
 fn verify_nist_profile(byte_len: usize, summary: &TraceSummary) -> Result<(), &'static str> {
