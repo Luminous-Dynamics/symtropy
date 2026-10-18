@@ -23,7 +23,7 @@ The architectural_review module provides validated route metadata, deterministic
 
 Every experience must leave the user in control:
 
-1. Pause, exit, recenter, return to a static view, and lower or disable camera motion at any point.
+1. Pause, restart, exit, recenter, return to a static view, and lower or disable camera motion at any point.
 2. Offer adjustable movement speeds and dwell times; a single global motion speed is not suitable for every user.
 3. Do not force continuous locomotion. Keep teleport as an explicit user action.
 4. Separate authored camera route from a tracked headset pose; never overwrite the user's head tracking with the authored gaze direction.
