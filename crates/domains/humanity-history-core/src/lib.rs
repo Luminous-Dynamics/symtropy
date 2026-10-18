@@ -2066,7 +2066,7 @@ mod tests {
         assert!(report.is_valid(), "{:#?}", report.issues);
         assert_eq!(data.sources.len(), 7);
         assert_eq!(data.claims.len(), 9);
-        assert_eq!(data.estimates.len(), 10);
+        assert_eq!(data.estimates.len(), 30);
         assert_eq!(data.analysis_runs.len(), 1);
         assert_eq!(data.analysis_runs[0].status, AnalysisRunStatus::Planned);
         assert!(data.analysis_runs[0].input_artifacts.is_empty());
@@ -2172,12 +2172,42 @@ mod tests {
     }
 
     #[test]
+    fn complete_source_posterior_table_has_all_integer_counts_and_rounded_sums() {
+        let raw = include_str!("../fixtures/antikythera-research-seed.json");
+        let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
+        let probabilities: Vec<_> = data
+            .estimates
+            .iter()
+            .filter(|estimate| estimate.id.starts_with("antikythera:posterior-all-")
+                || estimate.id.starts_with("antikythera:posterior-trim-"))
+            .collect();
+        assert_eq!(probabilities.len(), 26);
+
+        for n in 349..=361 {
+            assert!(probabilities.iter().any(|estimate| estimate.id == format!("antikythera:posterior-all-{n}")));
+            assert!(probabilities.iter().any(|estimate| estimate.id == format!("antikythera:posterior-trim-{n}")));
+            assert!(data.estimate_deltas.iter().any(|delta| delta.id == format!("antikythera:delta-posterior-n{n}-trimmed")));
+        }
+
+        let sum_for = |prefix: &str| -> f64 {
+            probabilities.iter()
+                .filter(|estimate| estimate.id.starts_with(prefix))
+                .map(|estimate| estimate.value_decimal.parse::<f64>().expect("table value"))
+                .sum()
+        };
+        // Source values are transcribed to four decimals. The sums therefore check rounding,
+        // not posterior normalization at full numerical precision.
+        assert!((sum_for("antikythera:posterior-all-") - 0.9998).abs() < 1e-9);
+        assert!((sum_for("antikythera:posterior-trim-") - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn antikythera_full_vs_trimmed_posterior_deltas_match_source_table() {
         let raw = include_str!("../fixtures/antikythera-research-seed.json");
         let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
         let report = validate(&data);
         assert!(report.is_valid(), "{:#?}", report.issues);
-        assert_eq!(data.estimate_deltas.len(), 3);
+        assert_eq!(data.estimate_deltas.len(), 13);
 
         let n354 = data.estimate_deltas.iter()
             .find(|delta| delta.id == "antikythera:delta-posterior-n354-trimmed")
