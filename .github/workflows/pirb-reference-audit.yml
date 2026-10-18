@@ -78,8 +78,8 @@ jobs:
               and (.dependency_lock_sha256 | test("^[0-9a-f]{64}$"))
               and .rustc_version == $rustc_version
               and .cargo_version == $cargo_version
-              and .scenario_count == 7
-              and (.scenarios | length == 7)
+              and .scenario_count == 9
+              and (.scenarios | length == 9)
               and ((.scenarios | map(select(.status != "pass")) | length) == 0)
               and (.findings | length == 0)
             ' pirb-reference-receipt.json
