@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/legal-evidence-benchmark-candidate-submission-v0.1.schema.json",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/submission-v0.1.schema.json",
   "title": "Legal Evidence Benchmark Candidate Submission v0.1",
   "type": "object",
   "additionalProperties": false,
@@ -56,6 +56,37 @@
               "$ref": "#/$defs/citation"
             }
           }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "role",
+        "span_id"
+      ],
+      "properties": {
+        "authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "binding_in_scope",
+            "persuasive_only",
+            "policy_only",
+            "metadata_only",
+            "unverified"
+          ]
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
