@@ -99,9 +99,10 @@ pub mod architectural_review;
 pub mod loader;
 
 pub use architectural_review::{
-    ArchitecturalReviewRoute, ReviewRig, ReviewRouteIssue, ReviewRoutePlayback, ReviewWaypoint,
+    ArchitecturalReviewRoute, ReviewAnnotation, ReviewAnnotationIssue, ReviewAnnotationKind,
+    ReviewAnnotationState, ReviewRig, ReviewRouteIssue, ReviewRoutePlayback, ReviewWaypoint,
     advance_architectural_review_routes, review_waypoint_transform, sample_review_route,
-    validate_review_route,
+    validate_review_annotations_for_revision, validate_review_route,
 };
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
