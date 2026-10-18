@@ -270,9 +270,6 @@ fn canonical_packet_sha256(packet: &Packet) -> String {
         record.required_metric_ids.sort();
         record.data_rights.allowed_purposes.sort();
         record.authority_gates.sort_by(|a, b| a.gate_id.cmp(&b.gate_id));
-        for gate in &mut record.authority_gates {
-            // Gate identity is the set key; its evidence reference/status remain attached.
-        }
         record.measurements.sort_by(|a, b| a.metric_id.cmp(&b.metric_id));
         record.ground_truth.outcome_evidence_refs.sort();
     }
@@ -1248,7 +1245,7 @@ mod tests {
         permuted.records.reverse();
         permuted.evidence_records.reverse();
         for record in &mut permuted.records {
-            record.decision_input_evidence_refs.reverse();
+            // Decision-input references are required to remain canonical because their order is hash-bound in the manifest.
             record.post_decision_outcome_evidence_refs.reverse();
             record.required_metric_ids.reverse();
             record.data_rights.allowed_purposes.reverse();
@@ -1266,6 +1263,26 @@ mod tests {
             serde_json::to_vec(&first).expect("receipt serializes"),
             serde_json::to_vec(&second).expect("receipt serializes")
         );
+    }
+
+    #[test]
+    fn duplicate_evidence_ids_fail_closed() {
+        let mut value = packet();
+        let duplicate = value.evidence_records[0].clone();
+        value.evidence_records.push(duplicate);
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("DUPLICATE_EVIDENCE_ID")));
+    }
+
+    #[test]
+    fn referral_and_censored_episodes_remain_in_denominator() {
+        let receipt = run(&packet());
+        assert_eq!(receipt.episode_status_counts.get("NO_ACTION"), Some(&3));
+        assert_eq!(receipt.episode_status_counts.get("REFERRED"), Some(&3));
+        assert_eq!(receipt.episode_status_counts.get("FOLLOW_UP_CENSORED"), Some(&1));
+        assert_eq!(receipt.case_count, 7);
     }
 
     #[test]
