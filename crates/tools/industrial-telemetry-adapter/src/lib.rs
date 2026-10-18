@@ -35,9 +35,9 @@ pub struct TraceSummary {
     /// event-driven MTConnect records and are not automatically duplicates.
     pub adjacent_same_timestamp_pairs: u64,
     pub unique_timestamp_count: usize,
-    pub maximum_gap_ns: i128,
-    pub maximum_gap_start_utc_ns: i128,
-    pub maximum_gap_end_utc_ns: i128,
+    pub maximum_gap_ns: Option<i128>,
+    pub maximum_gap_start_timestamp_unix_ns: Option<i128>,
+    pub maximum_gap_end_timestamp_unix_ns: Option<i128>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -147,17 +147,17 @@ pub fn summarize_events(events: &[TraceEvent]) -> Result<TraceSummary, TraceErro
         previous = Some(event.timestamp_unix_ns);
     }
 
-    let mut maximum_gap_ns = 0_i128;
-    let mut maximum_gap_start_utc_ns = 0_i128;
-    let mut maximum_gap_end_utc_ns = 0_i128;
+    let mut maximum_gap_ns: Option<i128> = None;
+    let mut maximum_gap_start_timestamp_unix_ns: Option<i128> = None;
+    let mut maximum_gap_end_timestamp_unix_ns: Option<i128> = None;
     let mut sorted = unique_times.iter();
     if let Some(mut prior) = sorted.next().copied() {
         for current in sorted {
             let gap = *current - prior;
-            if gap > maximum_gap_ns {
-                maximum_gap_ns = gap;
-                maximum_gap_start_utc_ns = prior;
-                maximum_gap_end_utc_ns = *current;
+            if maximum_gap_ns.map_or(true, |observed| gap > observed) {
+                maximum_gap_ns = Some(gap);
+                maximum_gap_start_timestamp_unix_ns = Some(prior);
+                maximum_gap_end_timestamp_unix_ns = Some(*current);
             }
             prior = *current;
         }
@@ -173,8 +173,8 @@ pub fn summarize_events(events: &[TraceEvent]) -> Result<TraceSummary, TraceErro
         adjacent_same_timestamp_pairs: same_timestamp_pairs,
         unique_timestamp_count: unique_times.len(),
         maximum_gap_ns,
-        maximum_gap_start_utc_ns,
-        maximum_gap_end_utc_ns,
+        maximum_gap_start_timestamp_unix_ns,
+        maximum_gap_end_timestamp_unix_ns,
     })
 }
 
@@ -279,7 +279,7 @@ fn is_leap_year(year: u32) -> bool {
 /// Howard Hinnant's civil-date conversion, returning days from 1970-01-01.
 /// Inputs are already constrained to years 1970..=9999.
 fn days_from_civil(year: u32, month: u32, day: u32) -> i128 {
-    let y = year as i128 - i128::from(month <= 2);
+    let y = year as i128 - if month <= 2 { 1 } else { 0 };
     let era = y / 400;
     let year_of_era = y - era * 400;
     let month_prime = month as i128 + if month > 2 { -3 } else { 9 };
@@ -319,10 +319,11 @@ mod tests {
         assert_eq!(summary.adjacent_same_timestamp_pairs, 1);
         assert_eq!(summary.unique_timestamp_count, 5);
         assert_eq!(summary.timestamp_inversions, 0);
-        assert_eq!(summary.maximum_gap_ns, 5_369_937_500_000);
+        assert_eq!(summary.maximum_gap_ns, Some(5_369_937_500_000));
         assert_eq!(
-            summary.maximum_gap_end_utc_ns - summary.maximum_gap_start_utc_ns,
-            summary.maximum_gap_ns
+            summary.maximum_gap_end_timestamp_unix_ns.unwrap()
+                - summary.maximum_gap_start_timestamp_unix_ns.unwrap(),
+            summary.maximum_gap_ns.unwrap()
         );
         assert_eq!(summary.field_counts.get("Block_Number"), Some(&2));
     }
@@ -335,7 +336,7 @@ mod tests {
         );
         let summary = parse_and_summarize(out_of_order).expect("both rows are valid");
         assert_eq!(summary.timestamp_inversions, 1);
-        assert_eq!(summary.maximum_gap_ns, 3_600 * NANOS_PER_SECOND);
+        assert_eq!(summary.maximum_gap_ns, Some(3_600 * NANOS_PER_SECOND));
     }
 
     #[test]
