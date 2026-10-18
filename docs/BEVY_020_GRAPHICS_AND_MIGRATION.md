@@ -26,6 +26,8 @@ Bevy 0.20 was released on **2026-10-08**. The official release highlights improv
 
 This workspace remains on Bevy 0.19. Do not mass-replace versions without updating the lockfile, adapting source APIs, and preserving the repository's single-Bevy-version invariant.
 
+**Toolchain gate:** Bevy 0.20.0's own root manifest declares `rust-version = "1.97.1"`, while the production Symtropy CI workflow pins Rust 1.96.0. The full migration must explicitly update and review `rust-toolchain.toml`, CI toolchains, cache keys, and any downstream MSRV promises before a 0.20 lockfile can be qualified. A separate probe under `research/bevy-020-graphics-probe` tests 0.20 on Rust 1.97.1 without changing the production workspace version set.
+
 ### Hard ecosystem gate: Lightyear
 
 `crates/domains/symtropy-lightyear/Cargo.toml` currently declares `lightyear = "0.28"` and Bevy sub-crates at 0.19; `symtropy-multiplayer-demo` consumes this bridge. At review time, the upstream [Lightyear compatibility table](https://github.com/cBournhonesque/lightyear#supported-bevy-version) lists Lightyear 0.28–0.30 against Bevy 0.19, with no advertised Bevy 0.20-compatible release.
