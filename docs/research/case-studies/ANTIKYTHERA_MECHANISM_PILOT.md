@@ -69,6 +69,10 @@ Every assessment must name a declared comparison axis and a model in the compari
 
 This is only a typed literature comparison. We have not locally recreated any gear train, refit the published statistical model, or verified any paper's numerical output.
 
+## Next stage: independently reproduce the posterior
+
+The [posterior replication protocol](ANTIKYTHERA_POSTERIOR_REPLICATION_PROTOCOL.md) specifies the raw-data manifest, 22-parameter source model, Rust-first implementation lane, synthetic recovery tests, source-result tolerances, and convergence gates. The published result remains source-reported until that protocol is executed against the licensed, hashed measurement files.
+
 ## Validation and adversarial tests
 
 Run from the Symtropy workspace root:
