@@ -533,8 +533,10 @@ fn apply_duration_bounds(
 ) -> (Vec<ScheduledOperation>, Vec<ScheduleViolation>) {
     let mut violations = Vec::new();
     let mut by_operation: HashMap<&str, Vec<&OperationDurationBounds>> = HashMap::new();
-    let known_operation_ids: std::collections::HashSet<&str> =
-        operations.iter().map(|operation| operation.id.as_str()).collect();
+    let known_operation_ids: std::collections::HashSet<&str> = operations
+        .iter()
+        .map(|operation| operation.id.as_str())
+        .collect();
 
     for bound in duration_bounds {
         if bound.operation_id.trim().is_empty() {
@@ -1291,8 +1293,9 @@ mod tests {
                 )
             })
             .collect();
-        let predecessor_ids: Vec<String> =
-            (0..predecessor_count).map(|index| format!("prep-{index}")).collect();
+        let predecessor_ids: Vec<String> = (0..predecessor_count)
+            .map(|index| format!("prep-{index}"))
+            .collect();
         operations.push(ScheduledOperation {
             id: "join".into(),
             job_id: "job-join".into(),
