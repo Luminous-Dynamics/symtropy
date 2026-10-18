@@ -33,7 +33,7 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 - No mandatory gate can be compensated for by cost, circularity or another favorable metric.
 - Every listed evidence record and external reference must bind to a declared requirement exactly once; unreferenced/duplicate records fail closed.
 - Evidence marked `Verified` must include a payload whose SHA-256 matches the declared digest.
-- External references are checked for exact authority, identifier and declared role only. The target record is not dereferenced or qualified by this tool. Its source owner must validate target integrity, accounting boundary, custody strategy, and physical meaning.
+- External references are checked for exact authority, identifier and declared role only. Fixture role examples include Symthaea process-plan references, Mycelix process/accounting/custody references, Symtropy qualification references, and Sol-Atlas site-resource observations. These owner-role mappings are synthetic integration proposals and must be confirmed by the respective owners before measured data are admitted. The target record is not dereferenced or qualified by this tool; its source owner must validate target integrity, freshness, applicability, measurement quality and physical meaning.
 - Expected dispositions are test oracles only. They are not passed into any optimizer/policy as candidate guidance.
 
 ## Initial adversarial cases
@@ -54,6 +54,7 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 | `12-custody-reference-role-mismatch` | Blocked | a custody reference cannot substitute for a material-flow account or vice versa |
 | `13-duplicate-custody-reference` | Blocked | duplicate lifecycle reference bindings fail closed |
 | `14-external-reference-authority-mismatch` | Blocked | an identifier from another owning system cannot satisfy the reference |
+| `15-site-resource-observation-missing` | Unresolved | missing site telemetry does not imply water, energy or service capacity |
 
 All cases are synthetic. They are not evidence of the frequency of real production defects or material loss.
 
