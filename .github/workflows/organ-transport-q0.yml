@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -35,8 +38,19 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt
 
-      - name: Check isolated crate formatting
-        run: cargo fmt --manifest-path research/organ-transport-q0/Cargo.toml -- --check
+      - name: Execute Q0 verifier and emit exact-head receipt
+        env:
+          Q0_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash research/organ-transport-q0/verify-q0.sh \
+            "${RUNNER_TEMP}/organ-transport-q0-receipt.json" \
+            "$Q0_SOURCE_COMMIT"
 
-      - name: Execute Q0 unit and fixture-corpus tests
-        run: cargo test --manifest-path research/organ-transport-q0/Cargo.toml
+      - name: Upload exact-head Q0 receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: organ-transport-q0-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/organ-transport-q0-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
