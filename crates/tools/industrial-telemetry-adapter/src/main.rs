@@ -51,8 +51,16 @@ fn main() -> ExitCode {
     println!("timestamp_inversions={}", summary.timestamp_inversions);
     println!("adjacent_same_timestamp_pairs={}", summary.adjacent_same_timestamp_pairs);
     println!("unique_timestamp_count={}", summary.unique_timestamp_count);
-    println!("maximum_gap_ns={}", summary.maximum_gap_ns);
-    println!("maximum_gap_minutes={:.9}", summary.maximum_gap_ns as f64 / 60_000_000_000.0);
+    match summary.maximum_gap_ns {
+        Some(gap_ns) => {
+            println!("maximum_gap_ns={gap_ns}");
+            println!("maximum_gap_minutes={:.9}", gap_ns as f64 / 60_000_000_000.0);
+        }
+        None => {
+            println!("maximum_gap_ns=not_defined_fewer_than_two_unique_timestamps");
+            println!("maximum_gap_minutes=not_defined_fewer_than_two_unique_timestamps");
+        }
+    }
     println!("field_counts:");
     for (field, count) in &summary.field_counts {
         println!("  {field}={count}");
