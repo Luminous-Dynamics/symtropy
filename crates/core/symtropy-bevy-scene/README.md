@@ -42,9 +42,9 @@ Everything is overridable via `SymtropyScenePlugin::with_config(...)`.
 - `fixed_light(illuminance, color, euler_xyz)` — secondary directional
   light spawn.
 
-## Architectural review routes
+## Architectural review routes and annotations
 
-The crate also exposes a deterministic route model for pre-construction design review:
+The crate exposes validated routes for scripted review and a direct desktop floating camera, plus revision-pinned annotations that distinguish binding rules, evidence, guidance, site unknowns, preferences, and reform proposals. These APIs prepare a future pre-construction review experience; they do not make legal or engineering determinations.
 
 - `ReviewRig::FloatingCamera` for a free inspection camera and `GuidedWalkthrough` for a human-height path.
 - `AccessibleTeleport` for user-confirmed waypoint-to-waypoint movement.
@@ -65,7 +65,7 @@ From the workspace root, run:
 cargo run -p symtropy-bevy-scene --example architectural_review_room
 ```
 
-The example creates an illustrative room with a floating-camera route; press Space to pause/resume and R to restart. It is a visual prototype with synthetic geometry, not a real home model, collision-checked navigation, XR implementation, engineering simulation, or compliance check.
+The example creates an illustrative room with a scripted route and a direct free-camera mode: Space pauses/resumes the route, R restarts it, F toggles free camera, hold right mouse to look, WASD to move horizontally, E/Q to rise/descend, and Shift to move faster. The direct camera pauses the route. This is a visual prototype with synthetic geometry, not a real home model, collision-checked navigation, XR implementation, engineering simulation, or compliance check.
 
 ## License
 
