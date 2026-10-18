@@ -30,7 +30,7 @@ Location constraints are deliberate:
 - If a field is duplicated in modern and legacy positions, the values must agree; conflicting vessel IMO or UN location codes fail closed.
 - `eventDateTime` is parsed as a timezone-qualified timestamp. Source update time, ingest time and validity window come from caller-supplied `DcsaIngestContext`, never from the event timestamp.
 
-The parsed type retains the DCSA classifier, operation, facility/location semantics, codes, location name, vessel identifier, optional publication/voyage fields, source profile label, context version and parsed timestamp. The shared RFC 3339 parser distinguishes `Z`, explicit `+00:00`, and `-00:00` (UTC timestamp with unknown local offset) while preserving source text. It does not map every DCSA message to PCO automatically.
+The parsed type retains the DCSA classifier, operation, facility/location semantics, codes, location name, vessel identifier, optional publication/voyage fields, source profile label, context version and parsed timestamp. Offset semantics follow [RFC 9557](https://www.rfc-editor.org/info/rfc9557/): `Z` and `-00:00` indicate a known UTC instant whose local offset is unknown, while `+00:00` marks UTC as the preferred reference point. The original timestamp lexeme is preserved. It does not map every DCSA message to PCO automatically.
 
 ## Explicit cross-profile candidates
 
@@ -42,7 +42,7 @@ This helper does not construct a PCO observation or resolve canonical port/call 
 
 ## Frozen synthetic fixtures and tests
 
-The module has nine authored Rust tests, including an explicit classifier × operation × facility matrix with 12 accepted cases and four PBPL-departure rejections, and uses four frozen JSON fixtures:
+The module has nine authored Rust tests, including an explicit classifier × operation × facility matrix with 12 accepted cases and four PBPL-departure rejections, plus a regression test that Z and -00:00 share RFC 9557 unknown-local-offset semantics while +00:00 remains explicit. It uses four frozen JSON fixtures:
 - `dcsa-jit-eta-berth.json` — estimated berth arrival; negative control for accidental PCO conversion.
 - `dcsa-jit-pta-pbp.json` — planned pilot boarding place arrival.
 - `dcsa-jit-ptd-berth.json` — planned berth departure.
