@@ -498,6 +498,116 @@
         "canonical_witness": [],
         "rejection_reason": "precedence_cycle"
       }
+    },
+    {
+      "case_id": "priority_rules_miss_feasible_schedule",
+      "purpose": "Adversarial counterexample: five deterministic list priorities miss a feasible schedule, while exact enumeration finds it; heuristic failure must not imply infeasibility.",
+      "tasks": [
+        {
+          "id": "A",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "B",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": 5,
+          "latest_finish": null
+        },
+        {
+          "id": "C",
+          "nominal_duration": 4,
+          "upper_duration": 4,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": 11,
+          "latest_finish": null
+        },
+        {
+          "id": "D",
+          "nominal_duration": 5,
+          "upper_duration": 5,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": 9,
+          "latest_finish": null
+        },
+        {
+          "id": "E",
+          "nominal_duration": 1,
+          "upper_duration": 1,
+          "resource_demands": {
+            "CREW_X": 1
+          },
+          "required_gates": [],
+          "earliest_start": 1,
+          "latest_start": null,
+          "latest_finish": 3
+        }
+      ],
+      "precedence": [],
+      "resources": [
+        {
+          "id": "CREW_X",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [],
+      "available_gates": [],
+      "hard_deadline": null,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 19,
+        "upper_scenario_optimal_makespan": 19,
+        "robust_feasible": true,
+        "canonical_witness": [
+          {
+            "task_id": "A",
+            "start": 15,
+            "finish": 19
+          },
+          {
+            "task_id": "B",
+            "start": 2,
+            "finish": 6
+          },
+          {
+            "task_id": "C",
+            "start": 11,
+            "finish": 15
+          },
+          {
+            "task_id": "D",
+            "start": 6,
+            "finish": 11
+          },
+          {
+            "task_id": "E",
+            "start": 1,
+            "finish": 2
+          }
+        ],
+        "rejection_reason": null
+      }
     }
   ]
 }
