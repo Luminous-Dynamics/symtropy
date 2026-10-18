@@ -1007,4 +1007,28 @@ mod tests {
         assert_eq!(parse_date("2025-13-01"), None);
         assert_eq!(parse_date("not-a-date"), None);
     }
+
+    #[test]
+    fn sha256_matches_standard_known_vector() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn evaluation_receipt_binds_both_inputs_to_sha256_digests() {
+        let benchmark = fixture();
+        let submission = reference_submission(&benchmark);
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert_eq!(report.corpus_sha256.len(), 64);
+        assert_eq!(report.submission_sha256.len(), 64);
+        assert_ne!(report.corpus_sha256, report.submission_sha256);
+        assert_eq!(report.evaluator_version, env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
+    fn raw_input_digest_changes_when_bytes_change() {
+        assert_ne!(sha256_hex(b"{\"x\":1}"), sha256_hex(b"{ \"x\":1 }"));
+    }
 }
