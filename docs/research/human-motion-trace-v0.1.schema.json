@@ -228,10 +228,28 @@
           "run": {
             "required": ["asset_sha256", "asset_license", "git_commit"],
             "properties": {
-              "git_commit": { "pattern": "^[a-fA-F0-9]{40}$" }
+              "git_commit": { "pattern": "^[a-fA-F0-9]{40}$" },
+              "asset_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+              "asset_license": { "type": "string", "minLength": 1 }
             }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "run": { "properties": { "source_kind": { "const": "external_model" } }, "required": ["source_kind"] } },
+              "required": ["run"]
+            },
+            "then": {
+              "properties": {
+                "run": {
+                  "required": ["model_sha256"],
+                  "properties": { "model_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" } }
+                }
+              }
+            }
+          }
+        ]
       }
     }
   ],
