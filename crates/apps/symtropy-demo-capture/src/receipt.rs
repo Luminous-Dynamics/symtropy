@@ -88,6 +88,13 @@ impl CaptureMetadata {
         if !self.height_px.is_some_and(|value| value > 0) {
             issues.push("missing_or_invalid_height_px".to_owned());
         }
+        if self
+            .source_commit
+            .as_deref()
+            .is_some_and(|value| !(is_sha1(value) || is_sha256(value)))
+        {
+            issues.push("invalid_source_commit".to_owned());
+        }
         match self.fixture_sha256.as_deref() {
             Some(value) if is_sha256(value) => {}
             Some(_) => issues.push("invalid_fixture_sha256".to_owned()),
@@ -223,6 +230,10 @@ fn env_value(key: &str) -> Option<String> {
         .ok()
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
+}
+
+fn is_sha1(value: &str) -> bool {
+    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -490,10 +501,33 @@ mod tests {
     }
 
     #[test]
+    fn declared_dimensions_must_match_decoded_png() {
+        let directory = test_directory();
+        let path = directory.join("frame.png");
+        write_test_png(&path, 2, 1);
+        let mut metadata = qualified_metadata();
+        metadata.width_px = Some(1920);
+        metadata.height_px = Some(1080);
+        let receipt = CaptureReceipt::build(
+            "test",
+            &[1.5],
+            &[path.to_string_lossy().into_owned()],
+            metadata,
+        );
+
+        assert!(!receipt.capture_complete);
+        assert_eq!(receipt.images[0].status, "dimension_mismatch");
+        assert_eq!(receipt.images[0].width_px, Some(2));
+        assert_eq!(receipt.images[0].height_px, Some(1));
+
+        let _ = fs::remove_dir_all(directory);
+    }
+
+    #[test]
     fn missing_schedule_path_mismatch_is_not_hidden() {
         let directory = test_directory();
         let path = directory.join("frame.png");
-        fs::write(&path, PNG_SIGNATURE).expect("fixture should be written");
+        write_test_png(&path, 1, 1);
         let receipt = CaptureReceipt::build(
             "test",
             &[1.5, 4.0],
