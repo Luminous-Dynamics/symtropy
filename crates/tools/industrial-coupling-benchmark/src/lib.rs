@@ -304,6 +304,10 @@ pub fn verify_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
 /// candidate evaluator.
 pub fn verify_optimal_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
     verify_plan(s, p)?;
+    if p.transfer_input_kwh > 0 && p.network_surplus_milli == 0 {
+        // The independent-operation baseline achieves the same surplus with less exchange.
+        return Err(BenchmarkError::NonOptimalPlan);
+    }
     let upper = s.maximum_transfer_kwh();
     if upper > MAX_EXHAUSTIVE_TRANSFER_KWH {
         return Err(BenchmarkError::SearchSpaceTooLarge {
@@ -489,6 +493,34 @@ mod tests {
             p.source_surplus_allocation_milli + p.sink_surplus_allocation_milli,
             p.network_surplus_milli as u64
         );
+    }
+
+    #[test]
+    fn optimality_audit_prefers_no_exchange_on_zero_surplus_tie() {
+        let mut s = scenario();
+        s.transfer_efficiency_bps = 10_000;
+        s.avoided_utility_cost_milli_per_kwh = 1_000;
+        s.source_opportunity_cost_milli_per_kwh = 0;
+        s.transfer_variable_cost_milli_per_input_kwh = 1_000;
+        s.coordination_fixed_cost_milli = 0;
+        s.source_minimum_participation_surplus_milli = 0;
+        s.sink_minimum_participation_surplus_milli = 0;
+        let tied_but_wasteful = Plan {
+            transfer_input_kwh: 1,
+            heat_delivered_kwh: 1,
+            transfer_loss_kwh: 0,
+            utility_cost_avoided_milli: 1_000,
+            source_opportunity_cost_milli: 0,
+            transfer_variable_cost_milli: 1_000,
+            coordination_fixed_cost_milli: 0,
+            network_surplus_milli: 0,
+            source_surplus_allocation_milli: 0,
+            sink_surplus_allocation_milli: 0,
+        };
+        assert!(matches!(
+            verify_optimal_plan(&s, &tied_but_wasteful),
+            Err(BenchmarkError::NonOptimalPlan)
+        ));
     }
 
     #[test]
