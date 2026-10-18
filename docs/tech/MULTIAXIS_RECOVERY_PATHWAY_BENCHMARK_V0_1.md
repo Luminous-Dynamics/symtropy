@@ -105,6 +105,19 @@ Every decision names its observed history, decision day, and evidence references
 
 Expected temporal counts are 3 synthetic evidence records, 4 decisions, 3 visible-history groups, zero non-anticipativity violations, zero future-evidence violations, zero missing references, and zero actuation-authorized decisions. Mutation tests deliberately diverge the shared-prefix actions and inject a day-5 signpost into the day-0 decision. This is a finite trace contract—not proof that an arbitrary deployed controller did not use undeclared information.
 
+## Criteria-priority reversal control
+
+The fixture includes two synthetic strategies and two explicit criteria regimes. The strategy vectors are:
+
+| Strategy | Material yield | Biosecurity exposure | Habitat disturbance |
+|---|---:|---:|---:|
+| Rapid material recovery | 8 | 5 | 2 |
+| Retain, inspect, replan | 3 | 1 | 0 |
+
+These numbers are dimensionless synthetic comparison values, not measured performance. Both alternatives pass the explicit constraint set in the miniature control. The current profile puts material yield first and therefore ranks `rapid_material_recovery` ahead of `retain_inspect_replan`; a proposed, **unadopted** `biosecurity-priority-v2` profile puts biosecurity exposure first and reverses the order. Ranking uses a transparent lexicographic priority list, not a hidden global weighted score.
+
+The auditor rechecks the complete ranked order, requires the expected top-strategy reversal, and verifies that the changed criteria regime is not falsely marked as adopted by the current profile. This demonstrates sensitivity to objective priorities; it does not adopt the proposed regime, recommend either strategy, or establish a globally best real-world recovery action.
+
 ## Independent auditor contract
 
 The Rust tool validates corpus/schema identities, claim ceiling, profile/family-set/commitment definitions, exact case count, uniqueness of case IDs, valid enum values, non-empty families and time ranges. For each case it independently recomputes:
@@ -127,6 +140,7 @@ The receipt reports a canonical corpus digest and exact source commit, sorted pe
 | Stale/conflicting/missing required evidence promoted | 0 | Evidence gating |
 | Lead time below required lead still called adequate | 0 | Timing boundary logic |
 | Criteria changed or reverted-new-version promoted | 0 | Version-bound profile logic |
+| Ranking-reversal control misses the declared top-strategy change | 0 | Synthetic criteria-priority sensitivity only |
 | Input permutation | Byte-identical canonical receipt | Determinism |
 | Independent finite oracle | 100% | Tiny-case exact correctness |
 | Future-evidence leakage into earlier decisions | 0 | Declared temporal evidence references only |
