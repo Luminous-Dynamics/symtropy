@@ -9,7 +9,7 @@
 //! create an XR session, or assert that a design is safe or code-compliant.
 //! Callers retain control of input, pausing, and comfort settings.
 
-use bevy::prelude::{Transform, Vec3};
+use bevy::prelude::{Component, Transform, Vec3};
 
 const POSE_EPSILON: f32 = 1.0e-4;
 
@@ -360,7 +360,7 @@ mod tests {
         }
     }
 
-    fn route() -> ArchitecturalReviewRoute {
+    fn sample_route_fixture() -> ArchitecturalReviewRoute {
         ArchitecturalReviewRoute {
             route_id: "home-review:accessible-tour".into(),
             design_revision_id: "house-model:r7".into(),
@@ -376,7 +376,7 @@ mod tests {
 
     #[test]
     fn valid_route_has_a_deterministic_midpoint_pose() {
-        let route = route();
+        let route = sample_route_fixture();
         assert_eq!(validate_review_route(&route), Ok(()));
         let pose = sample_review_route(&route, 3.25).expect("route midpoint must sample");
         assert!((pose.translation.z - 2.0).abs() < 1.0e-5);
@@ -384,7 +384,7 @@ mod tests {
 
     #[test]
     fn route_holds_at_stops_and_clamps_after_the_final_stop() {
-        let route = route();
+        let route = sample_route_fixture();
         let at_entry = sample_review_route(&route, 1.0).unwrap();
         let after_end = sample_review_route(&route, 100.0).unwrap();
         assert_eq!(at_entry.translation, Vec3::new(0.0, 1.6, 4.0));
@@ -393,7 +393,7 @@ mod tests {
 
     #[test]
     fn duplicated_waypoint_ids_are_rejected() {
-        let mut route = route();
+        let mut route = sample_route_fixture();
         route.waypoints[1].waypoint_id = route.waypoints[0].waypoint_id.clone();
         assert!(validate_review_route(&route).unwrap_err().contains(
             &ReviewRouteIssue::DuplicateWaypointId("entry".into())
@@ -403,7 +403,7 @@ mod tests {
 
     #[test]
     fn route_rejects_non_finite_coordinates_and_invalid_time() {
-        let mut route = route();
+        let mut route = sample_route_fixture();
         route.waypoints[1].position_m[0] = f32::NAN;
         route.waypoints[2].arrival_seconds = f32::INFINITY;
         let issues = validate_review_route(&route).unwrap_err();
@@ -419,7 +419,7 @@ mod tests {
 
     #[test]
     fn route_rejects_speed_above_the_declared_limit() {
-        let mut route = route();
+        let mut route = sample_route_fixture();
         route.waypoints[1].arrival_seconds = 2.1;
         route.max_translation_speed_mps = 0.5;
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn route_requires_dwell_and_travel_time_not_to_overlap() {
-        let mut route = route();
+        let mut route = sample_route_fixture();
         route.waypoints[1].arrival_seconds = 1.0;
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
             matches!(issue, ReviewRouteIssue::TimelineOverlap { waypoint_id } if waypoint_id == "kitchen")
@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn degenerate_camera_look_direction_is_rejected() {
-        let mut route = route();
+        let mut route = sample_route_fixture();
         route.waypoints[1].look_at_m = route.waypoints[1].position_m;
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
             matches!(issue, ReviewRouteIssue::DegenerateLookDirection { waypoint_id } if waypoint_id == "kitchen")
@@ -447,7 +447,7 @@ mod tests {
 
     #[test]
     fn playback_requires_validated_route_and_honors_pause_controls() {
-        let route = route();
+        let route = sample_route_fixture();
         let mut playback = ReviewRoutePlayback::new(route).expect("fixture route is valid");
         assert!(playback.is_playing());
         playback.set_playing(false);
@@ -462,7 +462,7 @@ mod tests {
 
     #[test]
     fn teleport_requires_explicit_stop_selection_and_vr_is_adapter_only() {
-        let mut route = route();
+        let mut route = sample_route_fixture();
         route.rig = ReviewRig::AccessibleTeleport;
         route.waypoints[1].arrival_seconds = 2.0;
         assert_eq!(validate_review_route(&route), Ok(()));
