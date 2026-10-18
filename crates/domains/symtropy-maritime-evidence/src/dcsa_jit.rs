@@ -591,12 +591,12 @@ mod tests {
 
         let port_conflict = vessel_conflict
             .replace(
-                "\\"vesselIMONumber\\": \\"9990002\\"",
-                "\\"vesselIMONumber\\": \\"9990001\\"",
+                "\"vesselIMONumber\": \"9990002\"",
+                "\"vesselIMONumber\": \"9990001\"",
             )
             .replace(
-                "\\"UNLocationCode\\": \\"ZZSYN\\"",
-                "\\"UNLocationCode\\": \\"ZZOTHER\\"",
+                "\"UNLocationCode\": \"ZZSYN\"",
+                "\"UNLocationCode\": \"ZZOTHER\"",
             );
         assert!(matches!(
             parse_timestamp(&port_conflict, context("DCSA-DUP-PORT")),
