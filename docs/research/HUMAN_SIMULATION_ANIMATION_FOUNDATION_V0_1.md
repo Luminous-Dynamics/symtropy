@@ -76,10 +76,10 @@ These are proposed gates, not measured results. The first report must include th
 - Leave the default robotics feature set unchanged.
 - Document the avatar/physics contract, license boundary, and benchmark protocol.
 
-### P1 — First visible person
-- Select one licensed, rigged GLB with named idle/walk/run clips and validate scale, skinning, material loading, shadows, and animation bounds.
-- Add a tiny reproducible Bevy scene and screenshot capture; no human asset enters Git until licensing/provenance is cleared.
-- Validate idle/walk/run transitions, pause/resume, loop seams, and missing-clip behavior.
+### P1 — First visible person (scene scaffold committed; render still unverified)
+- `crates/bridges/symtropy-bevy/examples/human_avatar.rs` loads a user-supplied GLB from the Bevy `assets/` root, enumerates named clips, maps common idle/walk/run/talk aliases, binds the controller to the `AnimationPlayer` in the loaded scene, and supports keyboard state changes.
+- No binary avatar is bundled. Re-check asset provenance/terms and record the asset SHA-256 before use.
+- Run the documented cargo command and visually validate scale, skinning, materials, lighting, shadows, clip names, transitions, and failure behavior. Source presence is not proof that the model rendered.
 
 ### P2 — Physically credible movement
 - Add root-motion policy (in-place clips versus extracted root motion), pelvis/root alignment, foot-contact detection, ground alignment, obstacle response, and physics-corrected motion.
@@ -105,8 +105,11 @@ Run locally from a fresh clone after obtaining the branch:
 
     cargo fmt --check
     cargo check -p symtropy-bevy --features human-animation
-    cargo test -p symtropy-bevy
-    cargo check --features human-animation
+    cargo test -p symtropy-bevy --features human-animation
+    cargo check -p symtropy-bevy --features human-animation --example human_avatar
+    cargo run -p symtropy-bevy --features human-animation --example human_avatar
+
+Place a licensed rigged GLB at `assets/humans/person.glb`, or set `SYMTROPY_HUMAN_AVATAR` to a path relative to the Bevy `assets/` directory. The example logs discovered clip names and mappings. The exact command output and a screenshot from the rendered scene must be retained as evidence.
 
 Then run the visual scene with a legally sourced rigged GLB. Source presence or a queued workflow is not a passing result. Attach the exact commit SHA, command output, asset hashes, dataset provenance, and benchmark JSON to the validation record.
 
