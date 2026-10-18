@@ -1,0 +1,48 @@
+# humanity-history-core
+
+Renderer-independent Rust records and structural validation for evidence-aware historical reconstruction.
+
+This is a deliberately small first prototype. It checks whether records are internally reviewable; it does **not** judge whether a historical claim is true, whether a source is credible, or whether a cited passage entails a claim.
+
+## Run
+
+From the Symtropy workspace root:
+
+```sh
+cargo test -p humanity-history-core
+cargo run -p humanity-history-core --bin humanity-history-validate -- crates/domains/humanity-history-core/fixtures/synthetic-validation.json
+```
+
+The CLI prints a JSON report. Exit codes are:
+- `0`: structurally valid dataset;
+- `1`: dataset parsed but failed validation;
+- `2`: input/read/JSON/CLI error.
+
+## Initial invariants
+
+- IDs are non-empty and globally unique across record kinds.
+- Attested claims and evidence-based reconstructions need at least one source-linked evidence locator.
+- Hypotheses and counterfactuals require an explicit interpretation note instead of being silently treated as attested.
+- Documented knowledge-graph relations need evidence. Unknown claim/source references are rejected.
+- Reversed date ranges are rejected. Certain temporal contradictions are detected only when two intervals use the same named calendar and the intervals decisively conflict. Overlapping/uncertain dates are not silently converted to exact timestamps.
+- Rights declarations preserve an exact license identifier or permission basis when required. Distributable assets fail closed for restricted, unknown, or community-protocol rights.
+- Asset records carry the SHA-256 digest of the precise asset bytes; this crate validates digest shape, not asset bytes, so the ingestion/build pipeline must calculate and independently verify the digest.
+- Validation issues have stable sort order, intended for repeatable local checks.
+
+## Synthetic fixture
+
+`fixtures/synthetic-validation.json` is test data only. It deliberately contains no real historical assertion or media. Its asset digest is the standard SHA-256 digest for an empty byte sequence, used to demonstrate the required 64-hex-character field.
+
+## Limitations and next steps
+
+This first implementation does not:
+- ingest or crawl sources;
+- establish source independence or scholarly credibility;
+- prove that evidence semantically supports a claim;
+- transform dates between calendars;
+- detect every graph contradiction or causal error;
+- verify external content hashes or package assets;
+- claim full CIDOC CRM / PROV-O conformance;
+- integrate with Bevy, Sol-Atlas, Symthaea, or Mycelix yet.
+
+Next gates: run tests in a Rust-enabled local environment; add invalid JSON fixtures/negative controls; calculate the content digest from actual input bytes in an ingestion command; add migration tests; then implement a source-reviewed historical case study. Do not use CI queue state as a pass.
