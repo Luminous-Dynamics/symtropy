@@ -135,21 +135,29 @@ fn run() -> Result<(), String> {
     ensure_output_is_distinct(&output_path, &input_paths)?;
     let mut reports = input_paths
         .iter()
-        .map(|path| read_report(path))
+        .map(|path| read_report(path).map(|report| (path.clone(), report)))
         .collect::<Result<Vec<_>, _>>()?;
-    for (index, report) in reports.iter().enumerate() {
-        validate_report(report, &input_paths[index])?;
+    for (path, report) in &reports {
+        validate_report(report, path)?;
     }
-    reports.sort_by_key(|report| report.object_count);
-    validate_comparable_context(&reports)?;
+    reports.sort_by_key(|(_, report)| report.object_count);
+    let comparable_reports: Vec<FrameTimeReport> = reports
+        .iter()
+        .map(|(_, report)| report.clone())
+        .collect();
+    validate_comparable_context(&comparable_reports)?;
 
-    let object_counts: BTreeSet<usize> = reports.iter().map(|report| report.object_count).collect();
+    let object_counts: BTreeSet<usize> = reports
+        .iter()
+        .map(|(_, report)| report.object_count)
+        .collect();
     if object_counts.len() != reports.len() {
         return Err("duplicate object_count reports are not allowed in one sweep".to_owned());
     }
 
     let smallest = reports
         .first()
+        .map(|(_, report)| report)
         .ok_or_else(|| "no reports after validation".to_owned())?;
     let baseline_p95 = required_number(
         smallest.p95_frame_interval_ms,
@@ -159,14 +167,14 @@ fn run() -> Result<(), String> {
     let context = make_context(smallest)?;
 
     let mut points = Vec::with_capacity(reports.len());
-    for (index, report) in reports.iter().enumerate() {
+    for (path, report) in &reports {
         let p95 = required_number(
             report.p95_frame_interval_ms,
             &report.object_count,
             "p95_frame_interval_ms",
         )?;
         points.push(SweepPoint {
-            input_path: input_paths_for_report(report, &input_paths),
+            input_path: path.display().to_string(),
             object_count: report.object_count,
             sample_count: report.sample_count,
             mean_frame_interval_ms: required_number(
@@ -367,16 +375,6 @@ fn make_context(report: &FrameTimeReport) -> Result<SweepContext, String> {
         sample_window_start_secs: report.sample_window_start_secs,
         sample_window_end_secs: report.sample_window_end_secs,
     })
-}
-
-fn input_paths_for_report(report: &FrameTimeReport, paths: &[PathBuf]) -> String {
-    // Reports have unique counts in a valid sweep. This maps the sorted report
-    // back to its declared path without reading additional mutable state.
-    paths
-        .iter()
-        .find(|path| read_report(path).is_ok_and(|candidate| candidate.object_count == report.object_count))
-        .map(|path| path.display().to_string())
-        .unwrap_or_else(|| "<unresolved>".to_owned())
 }
 
 fn required_number(
