@@ -325,11 +325,16 @@ mod tests {
         let report = evaluate_fixture_bytes(FIXTURE).unwrap();
         assert_eq!(report.total_case_count, 10);
         assert_eq!(report.oracle_feasible_case_count, 6);
-        assert_eq!(report.heuristic_candidate_count, 5);
-        assert_eq!(report.heuristic_missed_feasible_candidate_count, 1);
+        assert_eq!(report.priority_only_candidate_count, 5);
+        assert_eq!(report.priority_only_feasible_case_coverage_ppm, 833_333);
+        assert_eq!(report.priority_only_missed_feasible_candidate_count, 1);
+        assert_eq!(report.bounded_fallback_candidate_count, 1);
+        assert_eq!(report.bounded_fallback_states_expanded_total, 326);
+        assert_eq!(report.heuristic_candidate_count, 6);
+        assert_eq!(report.heuristic_missed_feasible_candidate_count, 0);
         assert_eq!(report.false_infeasibility_claim_count, 0);
         assert_eq!(report.candidate_oracle_conflict_count, 0);
-        assert_eq!(report.heuristic_feasible_case_coverage_ppm, 833_333);
+        assert_eq!(report.heuristic_feasible_case_coverage_ppm, 1_000_000);
         assert_eq!(report.conditional_mean_relative_gap_ppm, Some(0));
         assert_eq!(report.conditional_max_relative_gap_ppm, Some(0));
         assert_eq!(report.optimality_claim_count, 0);
@@ -348,12 +353,22 @@ mod tests {
             .unwrap();
         assert!(row.oracle_feasible);
         assert_eq!(row.oracle_optimal_makespan, Some(19));
-        assert!(row.heuristic_makespan.is_none());
-        assert!(row.heuristic_missed_feasible_candidate);
+        assert!(row.priority_only_makespan.is_none());
+        assert!(row.priority_only_missed_feasible_candidate);
+        assert_eq!(
+            row.priority_only_status,
+            "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY"
+        );
+        assert_eq!(
+            row.fallback_status,
+            "CANDIDATE_FOUND_SEARCH_COMPLETE_NOT_OPTIMAL_PROVEN"
+        );
+        assert_eq!(row.heuristic_makespan, Some(19));
+        assert!(!row.heuristic_missed_feasible_candidate);
         assert!(!row.false_infeasibility_claim);
         assert_eq!(
             row.heuristic_status,
-            "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY"
+            "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL"
         );
     }
 
