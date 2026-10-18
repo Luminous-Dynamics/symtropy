@@ -151,6 +151,9 @@ fn verify_report(json: &str) -> Result<(), String> {
     if text_field(json, "bni_fixture_id")? != "interval-bni-to-mean-dni-001" {
         return Err("unexpected interval-BNI fixture id".to_owned());
     }
+    if text_field(json, "risk_fixture_id")? != "scenario-service-risk-001" {
+        return Err("unexpected scenario-risk fixture id".to_owned());
+    }
     if text_field(json, "dni_fixture_id")? != "direct-beam-interval-001" {
         return Err("unexpected direct-beam fixture id".to_owned());
     }
@@ -169,6 +172,20 @@ fn verify_report(json: &str) -> Result<(), String> {
         ("dni_duration_s", 3_600.0),
         ("bni_interval_irradiation_wh_per_m2", 100.0),
         ("bni_interval_duration_s", 900.0),
+        ("risk_service_floor_fraction", 0.8),
+        ("risk_scenario_count", 3.0),
+        ("risk_scenario_0_id", 10.0),
+        ("risk_scenario_0_probability", 0.80),
+        ("risk_scenario_0_requested_heat_j", 100.0),
+        ("risk_scenario_0_delivered_heat_j", 100.0),
+        ("risk_scenario_1_id", 20.0),
+        ("risk_scenario_1_probability", 0.17),
+        ("risk_scenario_1_requested_heat_j", 100.0),
+        ("risk_scenario_1_delivered_heat_j", 80.0),
+        ("risk_scenario_2_id", 30.0),
+        ("risk_scenario_2_probability", 0.03),
+        ("risk_scenario_2_requested_heat_j", 100.0),
+        ("risk_scenario_2_delivered_heat_j", 20.0),
         ("optical_efficiency", 0.8),
         ("receiver_loss_j", 100_000.0),
         ("store_mass_kg", 1.0),
@@ -228,6 +245,95 @@ fn verify_report(json: &str) -> Result<(), String> {
         required_nonnegative(json, "bni_interval_mean_dni_w_per_m2")?,
         expected_mean_dni,
     )?;
+
+    // Independently recompute the canonical scenario-risk distribution.
+    let service_floor = number(json, "risk_service_floor_fraction")?;
+    let scenario_count = number(json, "risk_scenario_count")?;
+    if scenario_count != 3.0 || !(0.0..=1.0).contains(&service_floor) {
+        return Err("unsupported scenario-risk fixture shape".to_owned());
+    }
+    let mut scenario_rows = Vec::with_capacity(3);
+    let mut probability_sum = 0.0;
+    let mut expected_unmet = 0.0;
+    let mut expected_shortfall = 0.0;
+    let mut worst_unmet: f64 = 0.0;
+    let mut worst_shortfall: f64 = 0.0;
+    let mut floor_violation_probability = 0.0;
+    let mut worst_scenario_id = u64::MAX;
+    for index in 0..3 {
+        let id_raw = number(json, &format!("risk_scenario_{index}_id"))?;
+        if id_raw < 0.0 || id_raw.fract() != 0.0 || id_raw > u64::MAX as f64 {
+            return Err("scenario id must be a non-negative integer".to_owned());
+        }
+        let id = id_raw as u64;
+        let probability = required_nonnegative(json, &format!("risk_scenario_{index}_probability"))?;
+        let requested = required_nonnegative(json, &format!("risk_scenario_{index}_requested_heat_j"))?;
+        let delivered = required_nonnegative(json, &format!("risk_scenario_{index}_delivered_heat_j"))?;
+        if probability <= 0.0 || probability > 1.0 || delivered > requested {
+            return Err("invalid scenario probability or service outcome".to_owned());
+        }
+        if scenario_rows.iter().any(|row: &(u64, f64, f64, f64, f64)| row.0 == id) {
+            return Err("duplicate scenario ID in risk fixture".to_owned());
+        }
+        probability_sum += probability;
+        let unmet = requested - delivered;
+        let fraction = if requested == 0.0 { 0.0 } else { unmet / requested };
+        expected_unmet += probability * unmet;
+        expected_shortfall += probability * fraction;
+        if unmet > worst_unmet {
+            worst_unmet = unmet;
+        }
+        if fraction > worst_shortfall || (fraction == worst_shortfall && id < worst_scenario_id) {
+            worst_shortfall = fraction;
+            worst_scenario_id = id;
+        }
+        let service = if requested == 0.0 { 1.0 } else { delivered / requested };
+        if service < service_floor {
+            floor_violation_probability += probability;
+        }
+        scenario_rows.push((id, probability, requested, delivered, fraction));
+    }
+    near("risk probability mass", probability_sum, 1.0)?;
+
+    // Weighted empirical P95: smallest shortfall whose cumulative mass reaches 0.95.
+    let mut ascending = scenario_rows.clone();
+    ascending.sort_by(|a, b| a.4.total_cmp(&b.4).then_with(|| a.0.cmp(&b.0)));
+    let mut cumulative = 0.0;
+    let mut p95_shortfall = 0.0;
+    for row in &ascending {
+        cumulative += row.1;
+        p95_shortfall = row.4;
+        if cumulative >= 0.95 - 1.0e-12 {
+            break;
+        }
+    }
+
+    // CVaR95 is the expected shortfall over exactly the worst 5% probability mass.
+    let mut descending = scenario_rows.clone();
+    descending.sort_by(|a, b| b.4.total_cmp(&a.4).then_with(|| a.0.cmp(&b.0)));
+    let mut remaining_tail = 0.05;
+    let mut tail_integral = 0.0;
+    for row in &descending {
+        if remaining_tail <= 1.0e-12 {
+            break;
+        }
+        let mass = row.1.min(remaining_tail);
+        tail_integral += mass * row.4;
+        remaining_tail -= mass;
+    }
+    near("risk CVaR tail mass", remaining_tail, 0.0)?;
+    let cvar95_shortfall = tail_integral / 0.05;
+    near("risk expected unmet heat",
+        required_nonnegative(json, "risk_expected_unmet_useful_heat_j")?, expected_unmet)?;
+    near("risk worst unmet heat",
+        required_nonnegative(json, "risk_worst_unmet_useful_heat_j")?, worst_unmet)?;
+    near("risk mean normalized shortfall", number(json, "risk_expected_shortfall_fraction")?, expected_shortfall)?;
+    near("risk worst normalized shortfall", number(json, "risk_worst_shortfall_fraction")?, worst_shortfall)?;
+    near("risk weighted P95", number(json, "risk_p95_shortfall_fraction")?, p95_shortfall)?;
+    near("risk CVaR95", number(json, "risk_cvar95_shortfall_fraction")?, cvar95_shortfall)?;
+    near("risk service-floor violation probability",
+        number(json, "risk_probability_below_service_floor")?, floor_violation_probability)?;
+    near("risk worst scenario ID", number(json, "risk_worst_case_scenario_id")?, worst_scenario_id as f64)?;
 
     let incident = required_nonnegative(json, "incident_solar_j")?;
     let optical_efficiency = number(json, "optical_efficiency")?;
@@ -821,6 +927,28 @@ mod tests {
         let tampered = report.replace(
             "\"bni_interval_irradiation_wh_per_m2\":100.000000000",
             "\"bni_interval_irradiation_wh_per_m2\":101.000000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_scenario_risk_metric() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"risk_cvar95_shortfall_fraction\":0.560000000",
+            "\"risk_cvar95_shortfall_fraction\":0.500000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_scenario_outcome() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"risk_scenario_2_delivered_heat_j\":20.000000000",
+            "\"risk_scenario_2_delivered_heat_j\":21.000000000",
         );
         assert_ne!(tampered, report);
         assert!(verify_report(&tampered).is_err());
