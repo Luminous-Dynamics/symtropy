@@ -1217,9 +1217,7 @@ mod tests {
                 }
             }
 
-            if let (Some(items_schema), Some(items)) =
-                (schema.get("items"), instance.as_array())
-            {
+            if let (Some(items_schema), Some(items)) = (schema.get("items"), instance.as_array()) {
                 for (index, item) in items.iter().enumerate() {
                     check_required_fields(
                         root_schema,
@@ -1268,8 +1266,8 @@ mod tests {
         ];
 
         for (name, schema_source, instance) in instances {
-            let schema: Value =
-                serde_json::from_str(schema_source).unwrap_or_else(|error| panic!("{name}: {error}"));
+            let schema: Value = serde_json::from_str(schema_source)
+                .unwrap_or_else(|error| panic!("{name}: {error}"));
             check_required_fields(&schema, &schema, &instance, name);
         }
     }
