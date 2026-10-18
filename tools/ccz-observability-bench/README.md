@@ -5,7 +5,6 @@ Standalone Rust verifier for a frozen **synthetic** corpus of evidence-adequacy 
 From the repository root, with Rust installed:
 
 ```sh
-cargo fmt --manifest-path tools/ccz-observability-bench/Cargo.toml -- --check
 cargo test --manifest-path tools/ccz-observability-bench/Cargo.toml
 cargo run --quiet --manifest-path tools/ccz-observability-bench/Cargo.toml -- \
   --corpus docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json \
