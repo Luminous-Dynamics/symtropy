@@ -779,7 +779,11 @@ fn same_semantic_value(left: &PcoObservation, right: &PcoObservation) -> bool {
                 meaning: b_meaning,
                 value: b,
             },
-        ) => a_meaning == b_meaning && a.utc_unix_nanos == b.utc_unix_nanos,
+        ) => {
+            a_meaning == b_meaning
+                && a.utc_unix_nanos == b.utc_unix_nanos
+                && left.location_context == right.location_context
+        },
         _ => false,
     }
 }
@@ -1058,6 +1062,43 @@ mod tests {
             ObservationResolution::Consistent { .. }
         ));
         assert!(report.resolutions[0].agreed_value().is_some());
+    }
+
+    #[test]
+    fn conflicting_location_contexts_are_not_mistaken_for_equal_timestamps() {
+        let mut a = arrival(
+            "OBS-LOCATION-A",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T12:00:00Z",
+        );
+        let mut b = arrival(
+            "OBS-LOCATION-B",
+            "SOURCE-B",
+            TimeMeaning::Planned,
+            "2026-10-18T12:00:00Z",
+        );
+        a.location_context = Some("PILOT-BOARDING-PLACE-A".to_owned());
+        b.location_context = Some("PILOT-BOARDING-PLACE-B".to_owned());
+
+        let report = resolve_observations(&[a, b], &policy());
+        assert!(report.has_conflicts());
+        assert!(report.resolutions[0].agreed_value().is_none());
+    }
+
+    #[test]
+    fn missing_location_context_is_rejected_for_time_observations() {
+        let mut item = arrival(
+            "OBS-NO-LOCATION",
+            "SOURCE-A",
+            TimeMeaning::Planned,
+            "2026-10-18T12:00:00Z",
+        );
+        item.location_context = None;
+        assert_eq!(
+            validate_observation(&item, &policy()),
+            Err(RejectionReason::MissingLocationContext)
+        );
     }
 
     #[test]
