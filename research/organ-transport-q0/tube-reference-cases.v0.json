@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1.0",
   "corpus_id": "ORGAN-TRANSPORT-Q0-TUBE",
-  "status": "REFERENCE_FIXTURES_NOT_EXECUTED",
+  "status": "REFERENCE_FIXTURE_SPECIFICATION",
   "purpose": "Analytic and metamorphic fixtures for the dependency-free rigid circular tube reference function.",
   "units": {
     "length": "m",
@@ -124,7 +124,7 @@
   ],
   "provenance": {
     "reference_equation": "Hagen-Poiseuille law under explicitly declared assumptions",
-    "fixture_status": "Expected values are specifications; they are not evidence that the Rust implementation or CI tests executed.",
-    "next_step": "Bind each fixture to a test case and exact-head test receipt after execution in a Rust-enabled environment."
+    "fixture_status": "Expected values are pinned specifications. Execution status is established only by an exact-source verifier or CI receipt.",
+    "next_step": "Run the executable Rust corpus verifier and record its receipt against the exact source and input digests."
   }
 }
