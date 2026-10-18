@@ -57,12 +57,17 @@ jobs:
             .schema_version == "luminous.habitat_schedule_benchmark_report.v0.1" and
             .total_case_count == 10 and
             .oracle_feasible_case_count == 6 and
-            .heuristic_candidate_count == 5 and
-            .heuristic_feasible_case_coverage_ppm == 833333 and
-            .heuristic_missed_feasible_candidate_count == 1 and
+            .priority_only_candidate_count == 5 and
+            .priority_only_feasible_case_coverage_ppm == 833333 and
+            .priority_only_missed_feasible_candidate_count == 1 and
+            .bounded_fallback_candidate_count == 1 and
+            .bounded_fallback_states_expanded_total == 326 and
+            .heuristic_candidate_count == 6 and
+            .heuristic_feasible_case_coverage_ppm == 1000000 and
+            .heuristic_missed_feasible_candidate_count == 0 and
             .false_infeasibility_claim_count == 0 and
             .candidate_oracle_conflict_count == 0 and
-            .independently_validated_candidate_count == 5 and
+            .independently_validated_candidate_count == 6 and
             .conditional_mean_relative_gap_ppm == 0 and
             .conditional_max_relative_gap_ppm == 0 and
             .gap_metrics_are_conditional_on_candidate_found == true and
@@ -75,7 +80,13 @@ jobs:
             ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
               .oracle_optimal_makespan) == 19) and
             ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
-              .heuristic_missed_feasible_candidate) == true) and
+              .priority_only_missed_feasible_candidate) == true) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .heuristic_makespan) == 19) and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .heuristic_status) == "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL") and
+            ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .heuristic_missed_feasible_candidate) == false) and
             ((.rows[] | select(.case_id == "priority_rules_miss_feasible_schedule") |
               .false_infeasibility_claim) == false)
           ' "$report" >/dev/null
@@ -85,10 +96,11 @@ jobs:
             echo
             echo "- Exact reference cases: 10"
             echo "- Reference-feasible cases: 6"
-            echo "- Heuristic candidates found: 5"
-            echo "- Feasible-case coverage: 83.3333%"
-            echo "- Missed feasible candidate cases: 1 (correctly not called infeasible)"
-            echo "- Conditional mean / max makespan gap among found candidates: 0 / 0 ppm"
+            echo "- Five-rule priority-only candidates: 5"
+            echo "- Priority-only feasible-case coverage: 83.3333% (one miss, not called infeasible)"
+            echo "- Bounded fallback candidates recovered: 1 (326 search states)"
+            echo "- Recovered planner candidates: 6/6 feasible cases (100% coverage)"
+            echo "- Conditional mean / max makespan gap among validated candidates: 0 / 0 ppm"
             echo "- False infeasibility claims: 0"
             echo "- Global-optimality claims: 0"
             echo
