@@ -923,6 +923,116 @@ pub fn validate_field_frame(frame: &FieldFrame) -> Result<(), String> {
     Ok(())
 }
 
+fn is_scalar_quantity(quantity: PhysicalQuantity) -> bool {
+    matches!(
+        quantity,
+        PhysicalQuantity::Temperature
+            | PhysicalQuantity::ElectricPotential
+            | PhysicalQuantity::ElectricFieldMagnitude
+            | PhysicalQuantity::MagneticFluxDensityMagnitude
+            | PhysicalQuantity::MagneticFieldIntensityMagnitude
+            | PhysicalQuantity::PoyntingMagnitude
+            | PhysicalQuantity::AcousticPressure
+            | PhysicalQuantity::EquivalentStress
+            | PhysicalQuantity::StrainMagnitude
+            | PhysicalQuantity::Density
+            | PhysicalQuantity::SpectralRadiance
+            | PhysicalQuantity::CustomScalar
+    )
+}
+
+pub fn grid_sample_count(dimensions: [usize; 3]) -> Result<usize, String> {
+    dimensions
+        .into_iter()
+        .try_fold(1_usize, |count, dimension| {
+            if dimension == 0 {
+                return Err("regular grid dimensions must all be nonzero".to_owned());
+            }
+            count
+                .checked_mul(dimension)
+                .ok_or_else(|| "regular grid dimension product overflow".to_owned())
+        })
+}
+
+pub fn validate_regular_scalar_grid(grid: &RegularScalarGrid3D) -> Result<usize, String> {
+    grid.metadata.validate()?;
+    if !is_scalar_quantity(grid.metadata.quantity) {
+        return Err(format!(
+            "quantity {:?} is not valid for a scalar grid",
+            grid.metadata.quantity
+        ));
+    }
+    let sample_count = grid_sample_count(grid.dimensions)?;
+    if sample_count > MAX_GRID_SAMPLES_PER_GRID {
+        return Err(format!(
+            "grid {:?} exceeds the {MAX_GRID_SAMPLES_PER_GRID}-sample limit",
+            grid.metadata.id
+        ));
+    }
+    if grid.values.len() != sample_count {
+        return Err(format!(
+            "grid {:?} dimensions require {sample_count} values but found {}",
+            grid.metadata.id,
+            grid.values.len()
+        ));
+    }
+    if grid.values.iter().any(|value| !value.is_finite()) {
+        return Err(format!(
+            "grid {:?} contains a non-finite scalar value",
+            grid.metadata.id
+        ));
+    }
+    if let Some(uncertainty) = &grid.uncertainty {
+        if uncertainty.len() != sample_count {
+            return Err(format!(
+                "grid {:?} requires {sample_count} uncertainty values but found {}",
+                grid.metadata.id,
+                uncertainty.len()
+            ));
+        }
+        if uncertainty
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
+        {
+            return Err(format!(
+                "grid {:?} contains invalid uncertainty",
+                grid.metadata.id
+            ));
+        }
+    }
+    if grid.origin.iter().any(|value| !value.is_finite()) {
+        return Err(format!("grid {:?} has a non-finite origin", grid.metadata.id));
+    }
+    if grid.spacing.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        return Err(format!(
+            "grid {:?} spacing must be finite and positive",
+            grid.metadata.id
+        ));
+    }
+
+    let mut maximum_corner = grid.origin;
+    for axis in 0..3 {
+        maximum_corner[axis] += grid.spacing[axis] * (grid.dimensions[axis] - 1) as f64;
+    }
+    if maximum_corner.iter().any(|value| !value.is_finite()) {
+        return Err(format!(
+            "grid {:?} coordinate bounds are non-finite",
+            grid.metadata.id
+        ));
+    }
+    project_position(
+        grid.origin,
+        grid.metadata.spatial_unit,
+        grid.metadata.world_units_per_meter,
+    )?;
+    project_position(
+        maximum_corner,
+        grid.metadata.spatial_unit,
+        grid.metadata.world_units_per_meter,
+    )?;
+    Ok(sample_count)
+}
+
 fn checked_observation_count(current: usize, additional: usize) -> Result<usize, String> {
     let total = current
         .checked_add(additional)
