@@ -19,7 +19,7 @@ curl -L 'https://raw.githubusercontent.com/usnistgov/smstestbed/968279f14ebe96c0
 git hash-object /tmp/Box-OP1-Hurco02-01of20.txt
 ```
 
-Expected blob output is `aa5e49ad87a787573259c4318b1516196e8b349a`. The CLI prints this reference identity but **does not itself verify the input file's digest**; checking with `git hash-object` is a separate input qualification step. Keep attribution and the source repository's notices with any redistributions. NIST's repository says public information may generally be copied/distributed except material marked copyrighted and requests appropriate attribution; this is not a blanket conclusion about unrelated third-party artefacts.
+Expected blob output is `aa5e49ad87a787573259c4318b1516196e8b349a`. The CLI prints this expected identity but **does not itself verify the input file's digest**; checking with `git hash-object` is a separate input qualification step. After that digest check, `verify-nist-reference` compares byte length, full summary counts, timestamp endpoints, precise largest-gap endpoints and all 11 field counts against the pinned reference profile. Profile agreement is a consistency check, not a cryptographic identity check. Keep attribution and the source repository's notices with any redistributions. NIST's repository says public information may generally be copied/distributed except material marked copyrighted and requests appropriate attribution; this is not a blanket conclusion about unrelated third-party artefacts.
 
 ## Run offline
 
@@ -27,7 +27,8 @@ From the repository root, after downloading and verifying the source file:
 
 ```sh
 cargo test --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml
-cargo run --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- /tmp/Box-OP1-Hurco02-01of20.txt
+cargo run --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- summarize /tmp/Box-OP1-Hurco02-01of20.txt
+cargo run --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- verify-nist-reference /tmp/Box-OP1-Hurco02-01of20.txt
 ```
 
 The crate has no external dependencies and defines its own Cargo workspace to avoid compiling the full Symtropy workspace. Parsing and tests require no network access. The runtime CLI reads a local file only.
@@ -45,7 +46,7 @@ The pinned trace was inspected independently before this adapter was authored. I
 | Timestamp order inversions | 0 |
 | Adjacent same-timestamp event pairs | 458 |
 | Unique timestamps | 11,261 |
-| Largest gap between observed event times | approximately 89.5 minutes (prior millisecond-resolution profiling) |
+| Largest gap between observed event times | 5,369,937,500,000 ns (89.498958333 minutes) |
 
 Observed field counts from that exploration:
 
@@ -63,7 +64,7 @@ Observed field counts from that exploration:
 | `Program_Status` | 2 |
 | `Part_Count` | 1 |
 
-These numbers are prior source-inspection results, **not yet output from a run of this crate**. The exact max-gap nanosecond result is computed from source fractional-second precision by the adapter and should be recorded after running it. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch.
+These numbers are from an independent high-precision scan of the pinned source, **not yet output from a run of this crate**. The exact maximum gap is from `2017-02-02T16:37:08.9062500Z` to `2017-02-02T18:06:38.8437500Z`. The adapter's `verify-nist-reference` mode is designed to reproduce this profile once it is executed locally. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch.
 
 ## Safety and epistemic boundaries
 
@@ -79,6 +80,6 @@ These numbers are prior source-inspection results, **not yet output from a run o
 
 ## Qualification gates
 
-The nine authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, single-timestamp gaps and blank values. They are authored but have **not been executed in this environment** because a Rust/Cargo toolchain is unavailable.
+The ten authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, UTC epoch conversion, single-timestamp gaps and blank values. They are authored but have **not been executed in this environment** because a Rust/Cargo toolchain is unavailable.
 
 Next steps: execute the offline suite; run on the exact pinned source and compare all counts/first-last timestamps with the exploratory profile; record actual byte digest, exact maximum gap and runtime; then add a downstream schedule-admission test that fails closed when a requested interval crosses an unobserved gap.
