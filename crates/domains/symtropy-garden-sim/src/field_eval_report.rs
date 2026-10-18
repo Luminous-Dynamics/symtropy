@@ -20,6 +20,9 @@ pub struct FieldStudyManifestV1 {
     pub report_ref: String,
     pub protocol_ref: String,
     pub analysis_plan_ref: String,
+    /// Frozen rule identifiers from the declared analysis plan. This cross-checks
+    /// exclusion references but does not itself prove when the plan was registered.
+    pub preregistered_exclusion_rule_refs: Vec<String>,
     /// Every screened candidate, including those explicitly excluded.
     pub screened_request_refs: Vec<String>,
     /// The fixed primary denominator, frozen before outcome inspection.
@@ -127,6 +130,10 @@ pub enum FieldEvalBlockerCodeV1 {
     DuplicateExclusion,
     MissingExclusion,
     ExclusionRuleReferenceMissing,
+    EmptyPreregisteredRuleCatalog,
+    InvalidPreregisteredRuleReference,
+    DuplicatePreregisteredRule,
+    ExclusionRuleNotPreregistered,
     OutcomeRequestNotEligible,
     DuplicateOutcomeRecord,
     MissingOutcomeRecord,
@@ -376,6 +383,34 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
         }
     }
 
+    let mut preregistered_rules: BTreeSet<String> = BTreeSet::new();
+    if !manifest.exclusions.is_empty() && manifest.preregistered_exclusion_rule_refs.is_empty() {
+        push_blocker(
+            &mut blockers,
+            FieldEvalBlockerCodeV1::EmptyPreregisteredRuleCatalog,
+            None,
+            "exclusions require a declared preregistered rule inventory",
+        );
+    }
+    for rule_ref in &manifest.preregistered_exclusion_rule_refs {
+        if !valid_opaque_reference(rule_ref, "rule-", 2, 64) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::InvalidPreregisteredRuleReference,
+                None,
+                "preregistered exclusion rules must be opaque rule-* references",
+            );
+        }
+        if !preregistered_rules.insert(rule_ref.clone()) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::DuplicatePreregisteredRule,
+                None,
+                "preregistered exclusion rule inventory contains a duplicate",
+            );
+        }
+    }
+
     let mut exclusions: BTreeMap<String, &StudyExclusionV1> = BTreeMap::new();
     for exclusion in &manifest.exclusions {
         if !screened.contains(exclusion.request_ref.as_str()) {
@@ -400,6 +435,14 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 FieldEvalBlockerCodeV1::ExclusionRuleReferenceMissing,
                 Some(&exclusion.request_ref),
                 "exclusion requires a preregistered opaque rule-* reference",
+            );
+        }
+        if !preregistered_rules.contains(&exclusion.preregistered_rule_ref) {
+            push_blocker(
+                &mut blockers,
+                FieldEvalBlockerCodeV1::ExclusionRuleNotPreregistered,
+                Some(&exclusion.request_ref),
+                "exclusion rule reference is not listed in the frozen rule inventory",
             );
         }
         if exclusions
@@ -750,6 +793,10 @@ mod tests {
             report_ref: "study-sa-irrigation-feasibility-v1".to_owned(),
             protocol_ref: "protocol-agri-service-007-v1".to_owned(),
             analysis_plan_ref: "analysis-sa-irrigation-v1".to_owned(),
+            preregistered_exclusion_rule_refs: vec![
+                "rule-scope-eligibility".to_owned(),
+                "rule-task-eligibility".to_owned(),
+            ],
             screened_request_refs,
             eligible_request_refs,
             exclusions,
@@ -885,6 +932,33 @@ mod tests {
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
         assert!(report.blockers.iter().any(|blocker| {
             blocker.code == FieldEvalBlockerCodeV1::DuplicateOutcomeRecord
+        }));
+    }
+
+    #[test]
+    fn exclusion_must_reference_a_listed_preregistered_rule() {
+        let mut manifest = valid_manifest();
+        manifest
+            .preregistered_exclusion_rule_refs
+            .retain(|rule_ref| rule_ref != "rule-scope-eligibility");
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::ExclusionRuleNotPreregistered
+        }));
+        assert!(report.evidence_confirmed_lower_bound.is_none());
+    }
+
+    #[test]
+    fn duplicate_preregistered_rules_block_report() {
+        let mut manifest = valid_manifest();
+        manifest
+            .preregistered_exclusion_rule_refs
+            .push("rule-scope-eligibility".to_owned());
+        let report = preflight_field_study_v1(&manifest);
+        assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
+        assert!(report.blockers.iter().any(|blocker| {
+            blocker.code == FieldEvalBlockerCodeV1::DuplicatePreregisteredRule
         }));
     }
 
