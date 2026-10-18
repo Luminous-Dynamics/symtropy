@@ -4,11 +4,11 @@
 //! Independent synthetic oracle cases for evidence-gated shared-fleet dispatch.
 
 use symtropy_garden_sim::shared_fleet_dispatch::{
-    DispatchRobotReadinessV1, DispatchTravelCoverageV1, SharedFleetTravelLegV1,
-    DispatchTravelMetricV1, DispatchTravelModeV1, DispatchTravelStateV1,
-    SHARED_FLEET_DISPATCH_SCHEMA_VERSION_V1, SharedFleetDispatchAssignmentV1,
-    SharedFleetDispatchBlockerCodeV1, SharedFleetDispatchDispositionV1, SharedFleetDispatchInputV1,
-    SharedFleetDispatchReportV1, SharedFleetRequestV1, SharedFleetRobotV1,
+    DispatchRobotReadinessV1, DispatchTravelCoverageV1, DispatchTravelMetricV1,
+    DispatchTravelModeV1, DispatchTravelStateV1, SHARED_FLEET_DISPATCH_SCHEMA_VERSION_V1,
+    SharedFleetDispatchAssignmentV1, SharedFleetDispatchBlockerCodeV1,
+    SharedFleetDispatchDispositionV1, SharedFleetDispatchInputV1, SharedFleetDispatchReportV1,
+    SharedFleetRequestV1, SharedFleetRobotV1, SharedFleetTravelLegV1,
     plan_shared_fleet_dispatch_v1,
 };
 
