@@ -18,6 +18,11 @@ const MAX_FIELD_SAMPLES: usize = 100_000;
 const MAX_FIELD_LAYERS: usize = 256;
 const MAX_FIELD_FRAME_JSON_BYTES: usize = 256 * 1024 * 1024;
 const MAX_FIELD_FRAME_OBSERVATIONS: usize = 1_000_000;
+const MAX_GRID_SAMPLES_PER_GRID: usize = 4_194_304;
+const MAX_GRID_SAMPLES_PER_FRAME: usize = 8_388_608;
+const MAX_GRID_SLICE_VERTICES: usize = 1_048_576;
+const MAX_GRID_SLICE_VERTICES_TOTAL: usize = 2_097_152;
+const MAX_GRID_SLICES_RENDERED: usize = 4;
 pub const FIELD_FRAME_SCHEMA_VERSION: u32 = 1;
 const MAX_SCALAR_MARKERS_PER_LAYER: usize = 2_048;
 const MAX_VECTOR_GLYPHS_PER_LAYER: usize = 1_024;
@@ -633,6 +638,57 @@ pub struct ScalarFieldLayer {
     pub samples: Vec<ScalarFieldSample>,
 }
 
+/// Dense, row-major scalar samples on a regular 3D grid (a 2D image is a
+/// grid whose third dimension is 1). Values are producer-supplied physical
+/// measurements or solver outputs; this type does not simulate the field.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RegularScalarGrid3D {
+    pub metadata: FieldLayerMetadata,
+    pub enabled: bool,
+    /// Number of samples along each world axis. Total length must equal the
+    /// checked product of the three dimensions.
+    pub dimensions: [usize; 3],
+    /// Coordinate of sample (0,0,0), in metadata.spatial_unit.
+    pub origin: [f64; 3],
+    /// Positive, axis-aligned sample spacing in metadata.spatial_unit.
+    pub spacing: [f64; 3],
+    /// Row-major, x-fastest scalar values.
+    pub values: Vec<f64>,
+    /// Optional standard uncertainty per scalar sample, in the declared unit.
+    pub uncertainty: Option<Vec<f64>>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum GridAxis {
+    X,
+    Y,
+    Z,
+}
+
+/// Select a cross-section from one regular grid. Stride subsamples both in-plane
+/// axes but always retains the final edge sample, keeping the slice bounded.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GridSliceRequest {
+    pub grid_id: String,
+    pub axis: GridAxis,
+    pub index: usize,
+    pub stride: usize,
+    pub enabled: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GridSliceGeometry {
+    pub grid_id: String,
+    pub axis: GridAxis,
+    pub slice_index: usize,
+    pub width: u32,
+    pub height: u32,
+    pub positions: Vec<[f32; 3]>,
+    pub normals: Vec<[f32; 3]>,
+    pub colors: Vec<[f32; 4]>,
+    pub indices: Vec<u32>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VectorFieldLayer {
     pub metadata: FieldLayerMetadata,
@@ -666,6 +722,8 @@ impl Default for FieldLayerSet {
             max_vector_glyphs_total: 4_096,
             scalar_layers: Vec::new(),
             vector_layers: Vec::new(),
+            scalar_grids: Vec::new(),
+            grid_slices: Vec::new(),
             spectra: Vec::new(),
             spectrum_plot: SpectrumPlotSettings::default(),
         }
@@ -687,6 +745,10 @@ pub struct FieldFrame {
     pub source_dataset_sha256: Option<String>,
     pub scalar_layers: Vec<ScalarFieldLayer>,
     pub vector_layers: Vec<VectorFieldLayer>,
+    /// Compact dense scalar arrays, e.g. calibrated thermal camera frames or
+    /// scalar EM/FEA volume data. Empty in older schema-v1 records.
+    #[serde(default)]
+    pub scalar_grids: Vec<RegularScalarGrid3D>,
     pub spectra: Vec<SpectrumProfile>,
 }
 
@@ -734,6 +796,7 @@ impl FieldFrame {
         let mut layers = FieldLayerSet::default();
         layers.scalar_layers.clone_from(&self.scalar_layers);
         layers.vector_layers.clone_from(&self.vector_layers);
+        layers.scalar_grids.clone_from(&self.scalar_grids);
         layers.spectra.clone_from(&self.spectra);
         Ok(layers)
     }
