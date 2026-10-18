@@ -155,7 +155,8 @@ App::new()
         scalar_layers: vec![temperature],
         vector_layers: vec![electric_field],
         ..default()
-    });
+    })
+    .run();
 ```
 
 The plugin draws read-only glyphs. Switching views means toggling a layer's `enabled` flag or replacing its supplied sample frame. Current drawing limits are 100,000 samples per input layer, at most 256 scalar and 256 vector layers, up to 2,048 scalar markers per layer / 8,192 total, and up to 1,024 vector glyphs per layer / 4,096 total. These are safety ceilings, not claims about achieving a particular frame rate.
