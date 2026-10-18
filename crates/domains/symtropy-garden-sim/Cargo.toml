@@ -23,6 +23,10 @@ path = "src/bin/verify_provider_coverage_manifest.rs"
 name = "verify-service-access-manifest"
 path = "src/bin/verify_service_access_manifest.rs"
 
+[[bin]]
+name = "verify-shared-fleet-dispatch-manifest"
+path = "src/bin/verify_shared_fleet_dispatch_manifest.rs"
+
 [[bench]]
 name = "portfolio_frontier"
 harness = false
