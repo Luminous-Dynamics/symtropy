@@ -3,7 +3,7 @@
 
 #![forbid(unsafe_code)]
 
-use industrial_telemetry_adapter::{parse_and_summarize, TraceSummary};
+use industrial_telemetry_adapter::{TraceSummary, parse_and_summarize};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
@@ -100,14 +100,21 @@ fn print_summary(path: &std::ffi::OsStr, summary: &TraceSummary) {
     match summary.maximum_gap_ns {
         Some(gap_ns) => {
             println!("maximum_gap_ns={gap_ns}");
-            println!("maximum_gap_minutes={:.9}", gap_ns as f64 / 60_000_000_000.0);
+            println!(
+                "maximum_gap_minutes={:.9}",
+                gap_ns as f64 / 60_000_000_000.0
+            );
             println!(
                 "maximum_gap_start_timestamp_unix_ns={}",
-                summary.maximum_gap_start_timestamp_unix_ns.unwrap_or_default()
+                summary
+                    .maximum_gap_start_timestamp_unix_ns
+                    .unwrap_or_default()
             );
             println!(
                 "maximum_gap_end_timestamp_unix_ns={}",
-                summary.maximum_gap_end_timestamp_unix_ns.unwrap_or_default()
+                summary
+                    .maximum_gap_end_timestamp_unix_ns
+                    .unwrap_or_default()
             );
         }
         None => {
@@ -146,10 +153,8 @@ fn verify_nist_profile(byte_len: usize, summary: &TraceSummary) -> Result<(), &'
         return Err("timestamp order/tie/uniqueness metrics differ from pinned source profile");
     }
     if summary.maximum_gap_ns != Some(5_369_937_500_000_i128)
-        || summary.maximum_gap_start_timestamp_unix_ns
-            != Some(1_486_053_428_906_250_000_i128)
-        || summary.maximum_gap_end_timestamp_unix_ns
-            != Some(1_486_058_798_843_750_000_i128)
+        || summary.maximum_gap_start_timestamp_unix_ns != Some(1_486_053_428_906_250_000_i128)
+        || summary.maximum_gap_end_timestamp_unix_ns != Some(1_486_058_798_843_750_000_i128)
     {
         return Err("maximum observed-event gap differs from pinned source profile");
     }
