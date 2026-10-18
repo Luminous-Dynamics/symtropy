@@ -12,6 +12,8 @@ use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PeriodAction {
+    /// The store remains idle except for the period's declared standing loss.
+    Idle,
     Charge { available_heat: EnergyJ },
     Discharge { request: DischargeRequest },
 }
@@ -25,6 +27,7 @@ pub struct TemporalPeriod {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PeriodActionReport {
+    Idle,
     Charge(ChargeReport),
     Discharge(DischargeReport),
 }
@@ -100,6 +103,7 @@ pub fn simulate_schedule(
         standing_loss_total += loss_report.heat_lost.value();
 
         let (next_state, action_report) = match period.action {
+            PeriodAction::Idle => (after_loss, PeriodActionReport::Idle),
             PeriodAction::Charge { available_heat } => {
                 let (next, report) = charge_store(config, after_loss, available_heat, period.duration)?;
                 accepted_charge += report.accepted_input.value();
@@ -211,6 +215,7 @@ pub fn verify_schedule_report(
         // Recompute the action equations directly. Reusing the public operation
         // functions here would make this verifier circular.
         let expected_final_temperature = match (period.action, report.action) {
+            (PeriodAction::Idle, PeriodActionReport::Idle) => post_loss_temperature,
             (PeriodAction::Charge { available_heat }, PeriodActionReport::Charge(action)) => {
                 let store_energy = stored_energy_at(config, post_loss_temperature)?.value();
                 let room = (capacity - store_energy).max(0.0);
@@ -321,6 +326,10 @@ pub fn verify_schedule_report(
                 };
                 action.accepted_input.value()
             }
+            PeriodAction::Idle => match report.action {
+                PeriodActionReport::Idle => 0.0,
+                _ => return Err(ModelError::ReportMismatch("temporal.action_kind")),
+            },
             PeriodAction::Discharge { .. } => {
                 let action = match report.action {
                     PeriodActionReport::Discharge(a) => a,
@@ -359,7 +368,7 @@ pub fn verify_schedule_report(
     check("temporal.delivered_service_closure",
         schedule.iter().map(|p| match p.action {
             PeriodAction::Discharge { request } => request.requested_useful_heat.value(),
-            PeriodAction::Charge { .. } => 0.0,
+            PeriodAction::Charge { .. } | PeriodAction::Idle => 0.0,
         }).sum(),
         useful_delivered + unmet_useful)?;
     Ok(())
@@ -427,6 +436,28 @@ mod tests {
     }
 
     #[test]
+    fn idle_period_applies_losses_without_fabricating_charge_or_service() {
+        let config = fixture_config();
+        let mut schedule = canonical_day_night_schedule();
+        schedule.push(TemporalPeriod {
+            duration: seconds(3_600.0),
+            ambient_temperature: k(300.0),
+            action: PeriodAction::Idle,
+        });
+        let report = simulate_schedule(&config, &schedule).unwrap();
+        assert_eq!(report.periods.len(), 3);
+        assert_eq!(report.periods[2].action, PeriodActionReport::Idle);
+        assert!((report.periods[2].standing_loss.heat_lost.value() - 19_233.6).abs() < 1.0e-6);
+        assert!(report.periods[2].state_after.temperature.value()
+            < report.periods[2].state_after_standing_loss.temperature.value() + 1.0e-12);
+        assert!((report.accepted_charge_heat.value() - 900_000.0).abs() < 1.0e-6);
+        assert!((report.useful_heat_delivered.value() - 300_000.0).abs() < 1.0e-6);
+        assert!(report.unmet_useful_heat.value() < 1.0e-6);
+        assert!(report.energy_balance_residual_j.abs() < 1.0e-6);
+        verify_schedule_report(&config, &schedule, &report).unwrap();
+    }
+
+    #[test]
     fn independent_verifier_rejects_tampered_aggregate_loss() {
         let config = fixture_config();
         let schedule = canonical_day_night_schedule();
@@ -461,7 +492,7 @@ mod tests {
         let mut schedule = canonical_day_night_schedule();
         let request = match schedule[1].action {
             PeriodAction::Discharge { request } => request,
-            PeriodAction::Charge { .. } => unreachable!(),
+            PeriodAction::Charge { .. } | PeriodAction::Idle => unreachable!(),
         };
         schedule[1].action = PeriodAction::Discharge {
             request: DischargeRequest { duration: seconds(7_200.0), ..request },
