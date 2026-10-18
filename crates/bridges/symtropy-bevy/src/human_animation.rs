@@ -135,20 +135,49 @@ fn drive_human_animation_players(
             continue;
         }
 
-        let seconds = if controller.transition_seconds.is_finite() {
-            controller.transition_seconds.clamp(0.0, 2.0)
-        } else {
-            0.0
-        };
-
         transitions
             .play(
                 &mut player,
                 controller.clips.index_for(controller.motion),
-                Duration::from_secs_f32(seconds),
+                bounded_transition_duration(controller.transition_seconds),
             )
             .repeat();
 
         runtime.motion = Some(controller.motion);
+    }
+}
+
+
+fn bounded_transition_duration(seconds: f32) -> Duration {
+    let seconds = if seconds.is_finite() {
+        seconds.clamp(0.0, 2.0)
+    } else {
+        0.0
+    };
+    Duration::from_secs_f32(seconds)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn transition_duration_clamps_negative_and_excessive_values() {
+        assert_eq!(bounded_transition_duration(-1.0), Duration::ZERO);
+        assert_eq!(
+            bounded_transition_duration(10.0),
+            Duration::from_secs_f32(2.0)
+        );
+    }
+
+    #[test]
+    fn transition_duration_rejects_non_finite_values() {
+        assert_eq!(bounded_transition_duration(f32::NAN), Duration::ZERO);
+        assert_eq!(bounded_transition_duration(f32::INFINITY), Duration::ZERO);
+    }
+
+    #[test]
+    fn default_motion_is_idle() {
+        assert_eq!(HumanMotion::default(), HumanMotion::Idle);
     }
 }
