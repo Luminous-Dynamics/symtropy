@@ -85,10 +85,14 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
         || oracle.input_bytes != bytes.len()
         || heuristic.input_bytes != bytes.len()
     {
-        return Err("oracle/planner report provenance does not match exact fixture bytes".to_owned());
+        return Err(
+            "oracle/planner report provenance does not match exact fixture bytes".to_owned(),
+        );
     }
     if !oracle.all_expected_outcomes_match {
-        return Err("exact oracle disagrees with one or more frozen reference expectations".to_owned());
+        return Err(
+            "exact oracle disagrees with one or more frozen reference expectations".to_owned(),
+        );
     }
     if oracle.case_count != heuristic.case_count || oracle.case_count == 0 {
         return Err("oracle and heuristic reports contain different case counts".to_owned());
@@ -159,14 +163,17 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
         let gap = if reference.feasible && candidate_validated {
             let exact = reference
                 .nominal_optimal_makespan
-                .ok_or_else(|| format!("{}: feasible oracle case has no optimum", reference.case_id))?;
+                .ok_or_else(|| {
+                    format!("{}: feasible oracle case has no optimum", reference.case_id)
+                })?;
             let found = candidate
                 .nominal
                 .makespan
                 .ok_or_else(|| format!("{}: candidate status has no makespan", reference.case_id))?;
             let Some(absolute) = found.checked_sub(exact) else {
                 return Err(format!(
-                    "{}: heuristic candidate beats the exact oracle; investigate reference/model mismatch",
+                    "{}: heuristic candidate beats the exact oracle; investigate ",
+                    "reference/model mismatch",
                     reference.case_id
                 ));
             };
