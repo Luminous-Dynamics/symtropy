@@ -58,7 +58,10 @@ pub struct ParticipantAccount {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScenarioInput {
     pub basis: CounterfactualBasis,
-    /// Physical mass accounting in grams. Not converted to money by this crate.
+    /// Physical consumption quantities in grams, separate from currency accounts.
+    pub baseline_fuel_grams: u64,
+    pub treatment_fuel_grams: u64,
+    /// CO2 mass in grams. Not converted to money by this crate.
     pub baseline_co2_grams: u64,
     pub treatment_co2_grams: u64,
     pub participants: Vec<ParticipantAccount>,
@@ -102,6 +105,13 @@ pub struct ValueShareReport {
     pub case_id: String,
     pub currency_code: String,
     pub evidence_tier: EvidenceTier,
+    pub baseline_receipt_sha256: String,
+    pub treatment_receipt_sha256: String,
+    pub comparison_contract_sha256: String,
+    pub baseline_fuel_grams: u64,
+    pub treatment_fuel_grams: u64,
+    /// Positive indicates a reduction; negative indicates an increase.
+    pub fuel_reduction_grams: i128,
     pub baseline_co2_grams: u64,
     pub treatment_co2_grams: u64,
     /// Positive indicates a reduction; negative indicates an increase.
@@ -120,10 +130,16 @@ impl ValueShareReport {
         let mut output = String::new();
         write!(
             &mut output,
-            "{{\"case_id\":\"{}\",\"currency_code\":\"{}\",\"evidence_tier\":\"{}\",\"baseline_co2_grams\":{},\"treatment_co2_grams\":{},\"emissions_reduction_grams\":{},\"total_gross_benefit_minor\":{},\"net_transfer_minor\":{},\"all_reservations_met\":{},\"participants\":[",
+            "{{\"case_id\":\"{}\",\"currency_code\":\"{}\",\"evidence_tier\":\"{}\",\"baseline_receipt_sha256\":\"{}\",\"treatment_receipt_sha256\":\"{}\",\"comparison_contract_sha256\":\"{}\",\"baseline_fuel_grams\":{},\"treatment_fuel_grams\":{},\"fuel_reduction_grams\":{},\"baseline_co2_grams\":{},\"treatment_co2_grams\":{},\"emissions_reduction_grams\":{},\"total_gross_benefit_minor\":{},\"net_transfer_minor\":{},\"all_reservations_met\":{},\"participants\":[",
             self.case_id,
             self.currency_code,
             self.evidence_tier.as_str(),
+            self.baseline_receipt_sha256,
+            self.treatment_receipt_sha256,
+            self.comparison_contract_sha256,
+            self.baseline_fuel_grams,
+            self.treatment_fuel_grams,
+            self.fuel_reduction_grams,
             self.baseline_co2_grams,
             self.treatment_co2_grams,
             self.emissions_reduction_grams,
@@ -257,6 +273,8 @@ pub fn evaluate_value_share(input: &ScenarioInput) -> Result<ValueShareReport, V
 
     participants.sort_by_key(|item| item.participant_id.clone());
     let all_reservations_met = participants.iter().all(|item| item.meets_reservation);
+    let fuel_reduction_grams =
+        i128::from(input.baseline_fuel_grams) - i128::from(input.treatment_fuel_grams);
     let emissions_reduction_grams =
         i128::from(input.baseline_co2_grams) - i128::from(input.treatment_co2_grams);
 
@@ -276,6 +294,12 @@ pub fn evaluate_value_share(input: &ScenarioInput) -> Result<ValueShareReport, V
         case_id: input.basis.case_id.clone(),
         currency_code: input.basis.currency_code.clone(),
         evidence_tier: input.basis.evidence_tier,
+        baseline_receipt_sha256: input.basis.baseline_receipt_sha256.clone(),
+        treatment_receipt_sha256: input.basis.treatment_receipt_sha256.clone(),
+        comparison_contract_sha256: input.basis.comparison_contract_sha256.clone(),
+        baseline_fuel_grams: input.baseline_fuel_grams,
+        treatment_fuel_grams: input.treatment_fuel_grams,
+        fuel_reduction_grams,
         baseline_co2_grams: input.baseline_co2_grams,
         treatment_co2_grams: input.treatment_co2_grams,
         emissions_reduction_grams,
@@ -304,8 +328,10 @@ pub fn run_demo() -> Result<ValueShareReport, ValueShareError> {
             comparison_contract_sha256:
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
         },
-        baseline_co2_grams: 100_000,
-        treatment_co2_grams: 90_000,
+        baseline_fuel_grams: 100_000,
+        treatment_fuel_grams: 90_000,
+        baseline_co2_grams: 316_000,
+        treatment_co2_grams: 284_400,
         participants: vec![
             ParticipantAccount {
                 participant_id: "PORT-OPS".to_owned(),
@@ -370,8 +396,10 @@ mod tests {
     fn input() -> ScenarioInput {
         ScenarioInput {
             basis: basis(),
-            baseline_co2_grams: 100_000,
-            treatment_co2_grams: 90_000,
+            baseline_fuel_grams: 100_000,
+            treatment_fuel_grams: 90_000,
+            baseline_co2_grams: 316_000,
+            treatment_co2_grams: 284_400,
             participants: vec![
                 account("PORT-OPS", 100_000, 95_000, -500, 0),
                 account("SHIP-OWNER", 120_000, 122_000, 2_000, 0),
@@ -390,7 +418,20 @@ mod tests {
         assert_eq!(report.total_gross_benefit_minor, 6_000);
         assert_eq!(report.net_transfer_minor, 0);
         assert!(report.all_reservations_met);
-        assert_eq!(report.emissions_reduction_grams, 10_000);
+        assert_eq!(report.fuel_reduction_grams, 10_000);
+        assert_eq!(report.emissions_reduction_grams, 31_600);
+        assert_eq!(
+            report.baseline_receipt_sha256,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
+        assert_eq!(
+            report.treatment_receipt_sha256,
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        );
+        assert_eq!(
+            report.comparison_contract_sha256,
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        );
     }
 
     #[test]
@@ -495,10 +536,11 @@ mod tests {
     #[test]
     fn physical_emissions_remain_separate_even_when_the_treatment_increases_them() {
         let mut input = input();
-        input.treatment_co2_grams = 105_000;
+        input.treatment_co2_grams = 330_000;
         let report = evaluate_value_share(&input).unwrap();
         assert_eq!(report.total_gross_benefit_minor, 6_000);
-        assert_eq!(report.emissions_reduction_grams, -5_000);
+        assert_eq!(report.fuel_reduction_grams, 10_000);
+        assert_eq!(report.emissions_reduction_grams, -14_000);
     }
 
     #[test]
