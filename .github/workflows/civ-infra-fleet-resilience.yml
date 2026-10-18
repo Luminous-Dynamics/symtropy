@@ -179,6 +179,7 @@ jobs:
             ([.scenario_results[] | select((.scenario_id | test("^R-[0-9]{3}-missing-recovery-evidence$")) and .admitted == false)] | length) == 13 and
             ([.scenario_results[] | select(.scenario_id == "R-008-future-observation-reference" and .admitted == false and (.reason_codes | index("observation_not_yet_visible:R-008") != null))] | length) == 1 and
             ([.scenario_results[] | select(.scenario_id == "global-approval-not-required-bypass" and .admitted == false and (.reason_codes | index("visible_approval_gate_requires_granted_authorization:R-012") != null))] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-unknown-utility-at-acceptance" and .admitted == false and (.reason_codes | index("visible_utility_gate_must_be_resolved:R-011") != null))] | length) == 1 and
             ([.scenario_results[] | select(.scenario_id == "global-protective-stop-before-observation" and .admitted == true and .next_state == "interrupted")] | length) == 1
           ' "$report"
 
