@@ -445,7 +445,6 @@ mod tests {
 
         let bodies = vec![first, second];
         assert!(extract_velocity_glyphs(&bodies, 0).is_empty());
-        let bodies = vec![second, first];
         assert_eq!(extract_velocity_glyphs(&bodies, 1).len(), 1);
     }
 
