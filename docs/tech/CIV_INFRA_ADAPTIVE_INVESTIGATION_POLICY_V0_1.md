@@ -1,6 +1,6 @@
 # CIV-INFRA Adaptive Investigation Policy v0.1
 
-**Status:** specification and synthetic contract fixture; no policy evaluator implemented by this document alone.  
+**Status:** synthetic contract specification with a bounded reference evaluator in [PR #1942](https://github.com/Luminous-Dynamics/symtropy/pull/1942); this document alone does not establish engineering validity.  
 **Parent issue:** [CIV-INFRA-POLICY-001 #1941](https://github.com/Luminous-Dynamics/symtropy/issues/1941)  
 **Composes:** [decision-impact planner #1799](https://github.com/Luminous-Dynamics/symtropy/pull/1799), [measurement compatibility #1810](https://github.com/Luminous-Dynamics/symtropy/pull/1810), [robust design #1769](https://github.com/Luminous-Dynamics/symtropy/issues/1769), and [bridge/tunnel evidence profile #1921](https://github.com/Luminous-Dynamics/symtropy/issues/1921).
 
@@ -50,6 +50,8 @@ At each node:
 
 The evaluator must reject cycles, duplicate action/outcome IDs, unknown state references, policy edges naming a result incompatible with their action, and paths beyond the declared depth.
 
+The implementation must also bound **total expansion**, not just depth. The reference evaluator uses memoized longest-path analysis for graph validation, caps recursive operation accounting at 100,000 operations and output at 10,000 leaves, and returns an error without a partial policy report when either limit is exceeded. Caps are versioned implementation constraints, not promises about maximum useful project size. Any future limit increase must include adversarial time/memory measurements and preserve fail-closed semantics.
+
 ## 5. Objective and reporting
 
 V0 uses a transparent lexicographic objective over supported leaves only:
@@ -67,7 +69,7 @@ Every report must also expose support-failure leaves separately, with the full p
 - **P0 — Contract:** exact input-byte hash, schema/version checks, deterministic canonical report, unknown outcomes and model-support failures remain visible.
 - **P1 — Tiny exhaustive oracle:** enumerate all valid policy trees under a small state/action/depth cap; require exact agreement on leaf state sets, disposition classes, ranking and worst-case metrics.
 - **P2 — Adversarial corpus:** overlapping outcomes, state compatible with every outcome, action with no decision impact, missing edge, duplicate outcome, stale digest, incompatible model version, cycle, hidden future observation, and out-of-support reading.
-- **P3 — Generated corpus:** at least 100 deterministic worlds and 10,000 state/outcome edges; report exact denominators, oracle matches, work budget, runtime and memory.
+- **P3 — Generated corpus:** at least 100 deterministic worlds and 10,000 state/outcome edges; report exact denominators, oracle matches, work budget, runtime and memory. Include a layered branching DAG whose path count grows exponentially; require an explicit budget error, no partial report, and bounded operation/leaf counts.
 - **P4 — Admitted measurements:** only after a verified artifact resolver, measurement-model applicability and discrepancy evidence have been reviewed. Synthetic performance is not a physical measurement claim.
 
 Core acceptance targets:
