@@ -1,0 +1,76 @@
+name: EnergyPlus A0 adapter qualifier
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/spatial-design/ENERGYPLUS_*"
+      - "tools/energyplus-qualifier/**"
+      - ".github/workflows/energyplus-qualifier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/research/spatial-design/ENERGYPLUS_*"
+      - "tools/energyplus-qualifier/**"
+      - ".github/workflows/energyplus-qualifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a0-envelope:
+    name: Pinned package, schemas, and synthetic receipt gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate revision
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Resolve and snapshot standalone dependencies
+        run: cargo generate-lockfile --manifest-path tools/energyplus-qualifier/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/energyplus-qualifier/Cargo.toml -- --check
+
+      - name: Run Rust unit and negative-control tests
+        run: cargo test --manifest-path tools/energyplus-qualifier/Cargo.toml --locked
+
+      - name: Validate pinned A0 adapter envelope
+        run: cargo run --manifest-path tools/energyplus-qualifier/Cargo.toml --locked -- --check-spec --json > energyplus-a0-spec-receipt.json
+
+      - name: Execute synthetic run-receipt gate fixtures
+        run: cargo run --manifest-path tools/energyplus-qualifier/Cargo.toml --locked -- --check-fixtures --json > energyplus-a0-fixture-receipt.json
+
+      - name: Bind qualification receipts to exact files and commit
+        run: |
+          sha256sum \
+            docs/research/spatial-design/ENERGYPLUS_ADAPTER_ENVELOPE_V0_1.json \
+            docs/research/spatial-design/ENERGYPLUS_ADAPTER_ENVELOPE_V0_1.schema.json \
+            docs/research/spatial-design/ENERGYPLUS_RUN_RECEIPT_V0_1.schema.json \
+            docs/research/spatial-design/ENERGYPLUS_RUN_RECEIPT_FIXTURES_V0_1.json \
+            docs/research/spatial-design/ENERGYPLUS_RUN_RECEIPT_FIXTURES_V0_1.schema.json \
+            docs/research/spatial-design/ENERGYPLUS_ADAPTER_PROTOCOL_V0_1.md \
+            tools/energyplus-qualifier/Cargo.toml \
+            tools/energyplus-qualifier/src/lib.rs \
+            tools/energyplus-qualifier/src/main.rs \
+            tools/energyplus-qualifier/Cargo.lock \
+            energyplus-a0-spec-receipt.json \
+            energyplus-a0-fixture-receipt.json > energyplus-a0-receipts.sha256
+          git rev-parse HEAD > energyplus-a0-commit.txt
+
+      - name: Upload exact-head receipt and dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: energyplus-adapter-a0-receipt
+          if-no-files-found: error
+          path: |
+            energyplus-a0-spec-receipt.json
+            energyplus-a0-fixture-receipt.json
+            energyplus-a0-receipts.sha256
+            energyplus-a0-commit.txt
+            tools/energyplus-qualifier/Cargo.lock
