@@ -906,13 +906,17 @@ mod tests {
 
                                             let case = ScenarioCase {
                                                 case_id: format!(
-                                                    "matrix-{}-{}-{}-{}-{}",
+                                                    "matrix-{}-{}-{}-{}-{}-{}-{}-{}-{}",
                                                     profile.profile_id,
                                                     family_is_known,
                                                     classification,
                                                     regime_matches,
-                                                    evidence_mode
-                                                ) + &format!("-{gate}"),
+                                                    taxonomy_matches,
+                                                    review_status,
+                                                    record_is_valid,
+                                                    evidence_mode,
+                                                    gate
+                                                ),
                                                 profile_id: profile.profile_id.clone(),
                                                 domain: profile.domain.clone(),
                                                 profile_version: if regime_matches {
