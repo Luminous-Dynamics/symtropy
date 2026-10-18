@@ -141,11 +141,6 @@ impl Plugin for HumanAnimationPlugin {
     }
 }
 
-impl FromWorld for HumanLocomotionConfig {
-    fn from_world(_world: &mut World) -> Self {
-        Self::default()
-    }
-}
 
 fn derive_human_motion_from_intent(
     config: Res<HumanLocomotionConfig>,
@@ -174,7 +169,7 @@ fn select_locomotion_motion(
         || thresholds.iter().any(|value| !value.is_finite() || *value < 0.0)
         || config.stop_exit_speed_mps >= config.walk_enter_speed_mps
         || config.walk_enter_speed_mps >= config.run_enter_speed_mps
-        || config.run_exit_speed_mps < config.stop_exit_speed_mps
+        || config.run_exit_speed_mps < config.walk_enter_speed_mps
         || config.run_exit_speed_mps >= config.run_enter_speed_mps
     {
         return HumanMotion::Idle;
