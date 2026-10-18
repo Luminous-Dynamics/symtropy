@@ -179,9 +179,15 @@ pub struct CampaignCase {
     pub evidence: Vec<EvidenceState>,
     pub hard_constraints: Vec<ConstraintState>,
     pub product_state: ProductState,
-    /// Each ledger must represent one declared material stream or energy
-    /// carrier, with consistent units and a documented system boundary.
+    /// Aggregate accounted material output, which may include saleable product,
+    /// rejects, residues or other separately declared streams; kg per shift.
     pub mass_ledger_kg_per_shift: BalanceLedger,
+    /// Accepted product mass recorded independently from aggregate mass outflow.
+    pub saleable_product_kg_per_shift: f64,
+    /// Tolerance for reconciling accepted tonnes with product mass, in kg.
+    pub product_mass_tolerance_kg: f64,
+    /// Energy ledger outputs represent metered useful/end-use energy at the
+    /// declared service boundary; losses and closing storage are separate.
     pub energy_ledger_kwh: BalanceLedger,
     /// Admitted error tolerance for the derived energy intensity, kWh/t.
     pub energy_intensity_tolerance_kwh_per_tonne: f64,
@@ -243,7 +249,13 @@ pub fn evaluate(case: &CampaignCase) -> Evaluation {
     {
         reasons.push("energy-intensity tolerance is invalid");
     }
+    if !case.product_mass_tolerance_kg.is_finite() || case.product_mass_tolerance_kg < 0.0 {
+        reasons.push("product-mass tolerance is invalid");
+    }
     let accepted_product_kg = case.metrics.accepted_tonnes_per_shift * 1_000.0;
+    if !case.saleable_product_kg_per_shift.is_finite() || case.saleable_product_kg_per_shift < 0.0 {
+        reasons.push("saleable product mass is non-finite or negative");
+    }
     if !accepted_product_kg.is_finite() {
         reasons.push("accepted-product tonnes-to-kilograms conversion overflowed");
     }
@@ -283,11 +295,16 @@ pub fn evaluate(case: &CampaignCase) -> Evaluation {
     if !mass_audit.within_tolerance {
         reasons.push("mass ledger does not close within declared tolerance");
     }
-    if accepted_product_kg > case.mass_ledger_kg_per_shift.outputs
-        && accepted_product_kg - case.mass_ledger_kg_per_shift.outputs
+    if (accepted_product_kg - case.saleable_product_kg_per_shift).abs()
+        > case.product_mass_tolerance_kg
+    {
+        reasons.push("accepted saleable tonnes do not reconcile with the explicit product-mass record");
+    }
+    if case.saleable_product_kg_per_shift > case.mass_ledger_kg_per_shift.outputs
+        && case.saleable_product_kg_per_shift - case.mass_ledger_kg_per_shift.outputs
             > case.mass_ledger_kg_per_shift.tolerance
     {
-        reasons.push("accepted product mass exceeds the aggregate accounted output for the shift");
+        reasons.push("saleable product mass exceeds aggregate accounted material output");
     }
     if (derived_energy_intensity - case.metrics.energy_kwh_per_saleable_tonne).abs()
         > case.energy_intensity_tolerance_kwh_per_tonne
@@ -404,6 +421,8 @@ mod tests {
             hard_constraints: vec![ConstraintState::Satisfied],
             product_state: ProductState::MeetsSpecification,
             mass_ledger_kg_per_shift,
+            saleable_product_kg_per_shift: 42_000.0,
+            product_mass_tolerance_kg: 1e-9,
             energy_ledger_kwh,
             energy_intensity_tolerance_kwh_per_tonne: 1e-9,
             metrics: metrics(),
@@ -491,18 +510,18 @@ mod tests {
     }
 
     #[test]
-    fn accepted_product_must_fit_inside_the_accounted_shift_output() {
-        let mut case = eligible_case();
-        case.mass_ledger_kg_per_shift = BalanceLedger {
-            opening: 0.0,
-            inputs: 60_000.0,
-            recoveries: 0.0,
-            outputs: 30_000.0,
-            losses: 10_000.0,
-            closing: 20_000.0,
-            tolerance: 1e-9,
-        };
-        assert_eq!(evaluate(&case).disposition, Disposition::BalanceFailure);
+    fn saleable_product_mass_must_reconcile_with_the_accepted_tonnage() {
+        let mut product_mismatch = eligible_case();
+        product_mismatch.saleable_product_kg_per_shift = 41_000.0;
+        assert_eq!(evaluate(&product_mismatch).disposition, Disposition::BalanceFailure);
+
+        let mut aggregate_mismatch = eligible_case();
+        aggregate_mismatch.mass_ledger_kg_per_shift.outputs = 30_000.0;
+        aggregate_mismatch.mass_ledger_kg_per_shift.inputs = 0.0;
+        aggregate_mismatch.mass_ledger_kg_per_shift.opening = 60_000.0;
+        aggregate_mismatch.mass_ledger_kg_per_shift.losses = 10_000.0;
+        aggregate_mismatch.mass_ledger_kg_per_shift.closing = 20_000.0;
+        assert_eq!(evaluate(&aggregate_mismatch).disposition, Disposition::BalanceFailure);
     }
 
     #[test]
