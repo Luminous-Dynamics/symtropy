@@ -106,6 +106,7 @@ jobs:
             .source_artifacts_match_pinned_sha256 == true and
             .source_results_csv_sha256 == "834ad0cf18b8062497d2a0a5387524c340145fd164d6a2071982d83688555ce1" and
             .instance_count == 12 and
+            .total_task_count == 2819 and
             .solver_result_row_count == 36 and
             .successful_solver_row_count == 30 and
             .timeout_or_failed_row_count == 6 and
