@@ -1022,8 +1022,7 @@ mod timeline_fixture_tests {
             serde_json::from_str(EMBEDDED_ORACLE_CORPUS).expect("valid timeline corpus");
         corpus["cases"][0]["expected_stable_recovery_tick"] = Value::from(7);
         let bytes = serde_json::to_vec(&corpus).expect("serialize mutation");
-        let summary =
-            validate_timeline_fixtures_bytes(&bytes, EMBEDDED_ORACLE_SCHEMA.as_bytes());
+        let summary = validate_timeline_fixtures_bytes(&bytes, EMBEDDED_ORACLE_SCHEMA.as_bytes());
         assert!(has_code(&summary, "TIMELINE_EXPECTATION_MISMATCH"));
     }
 
