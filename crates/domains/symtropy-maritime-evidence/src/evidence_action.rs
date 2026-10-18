@@ -813,8 +813,11 @@ mod tests {
                                 abstention_cost,
                             );
                             assert_eq!(
-                                actual, expected,
-                                "oracle mismatch: {first}/{second}/{grace}/{missed}/{abstain}"
+                                actual,
+                                expected,
+                                "oracle mismatch: {first}/{second}/{grace}/{miss}/{abstain}",
+                                miss = missed_penalty,
+                                abstain = abstention_cost
                             );
                         }
                     }
