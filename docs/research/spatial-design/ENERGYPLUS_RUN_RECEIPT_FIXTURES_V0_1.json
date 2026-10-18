@@ -43,7 +43,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -118,7 +119,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -197,7 +199,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -276,7 +279,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -355,7 +359,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "failed",
@@ -436,7 +441,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "partial",
@@ -517,7 +523,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -587,7 +594,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -666,7 +674,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
@@ -745,7 +754,8 @@
           "geometry_artifact_path": "inputs/geometry-manifest.json",
           "weather_artifact_path": "inputs/weather.epw",
           "schedule_artifact_path": "inputs/schedules.json",
-          "configuration_artifact_path": "inputs/run-configuration.json"
+          "configuration_artifact_path": "inputs/run-configuration.json",
+          "geometry_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
         },
         "execution": {
           "run_status": "completed",
