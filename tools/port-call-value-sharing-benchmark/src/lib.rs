@@ -81,6 +81,9 @@ pub enum ValueShareError {
     TooFewParticipants,
     DuplicateParticipant(String),
     TransfersDoNotConserve { net_transfer_minor: i128 },
+    EmptySensitivityEnsemble,
+    DuplicateBaselineReceipt(String),
+    InconsistentSensitivityBasis { field: &'static str },
     ArithmeticOverflow,
 }
 
@@ -164,6 +167,103 @@ impl ValueShareReport {
                 participant.net_benefit_minor,
                 participant.minimum_acceptable_benefit_minor,
                 participant.meets_reservation
+            )
+            .expect("writing into String cannot fail");
+        }
+
+        output.push_str("]}");
+        output
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BaselineSensitivityOutcome {
+    pub baseline_receipt_sha256: String,
+    pub total_gross_benefit_minor: i128,
+    pub fuel_reduction_grams: i128,
+    pub emissions_reduction_grams: i128,
+    pub all_reservations_met: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParticipantSensitivityOutcome {
+    pub participant_id: String,
+    pub worst_case_net_benefit_minor: i128,
+    pub best_case_net_benefit_minor: i128,
+    pub minimum_acceptable_benefit_minor: i64,
+    pub meets_reservation_in_all_baselines: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CounterfactualSensitivityReport {
+    pub case_id: String,
+    pub currency_code: String,
+    pub treatment_receipt_sha256: String,
+    pub comparison_contract_sha256: String,
+    pub baseline_count: usize,
+    pub worst_case_total_gross_benefit_minor: i128,
+    pub best_case_total_gross_benefit_minor: i128,
+    pub worst_case_fuel_reduction_grams: i128,
+    pub best_case_fuel_reduction_grams: i128,
+    pub worst_case_emissions_reduction_grams: i128,
+    pub best_case_emissions_reduction_grams: i128,
+    pub all_reservations_met_in_all_baselines: bool,
+    pub baselines: Vec<BaselineSensitivityOutcome>,
+    pub participants: Vec<ParticipantSensitivityOutcome>,
+}
+
+impl CounterfactualSensitivityReport {
+    /// Canonical JSON with baseline receipts and participant ranges sorted.
+    /// Scenario counts are not probabilities and no expected value is inferred.
+    pub fn to_json(&self) -> String {
+        let mut output = String::new();
+        write!(
+            &mut output,
+            "{{\"case_id\":\"{}\",\"currency_code\":\"{}\",\"treatment_receipt_sha256\":\"{}\",\"comparison_contract_sha256\":\"{}\",\"baseline_count\":{},\"worst_case_total_gross_benefit_minor\":{},\"best_case_total_gross_benefit_minor\":{},\"worst_case_fuel_reduction_grams\":{},\"best_case_fuel_reduction_grams\":{},\"worst_case_emissions_reduction_grams\":{},\"best_case_emissions_reduction_grams\":{},\"all_reservations_met_in_all_baselines\":{},\"baselines\":[",
+            self.case_id,
+            self.currency_code,
+            self.treatment_receipt_sha256,
+            self.comparison_contract_sha256,
+            self.baseline_count,
+            self.worst_case_total_gross_benefit_minor,
+            self.best_case_total_gross_benefit_minor,
+            self.worst_case_fuel_reduction_grams,
+            self.best_case_fuel_reduction_grams,
+            self.worst_case_emissions_reduction_grams,
+            self.best_case_emissions_reduction_grams,
+            self.all_reservations_met_in_all_baselines
+        )
+        .expect("writing into String cannot fail");
+
+        for (index, baseline) in self.baselines.iter().enumerate() {
+            if index > 0 {
+                output.push(',');
+            }
+            write!(
+                &mut output,
+                "{{\"baseline_receipt_sha256\":\"{}\",\"total_gross_benefit_minor\":{},\"fuel_reduction_grams\":{},\"emissions_reduction_grams\":{},\"all_reservations_met\":{}}}",
+                baseline.baseline_receipt_sha256,
+                baseline.total_gross_benefit_minor,
+                baseline.fuel_reduction_grams,
+                baseline.emissions_reduction_grams,
+                baseline.all_reservations_met
+            )
+            .expect("writing into String cannot fail");
+        }
+
+        output.push_str("],\"participants\":[");
+        for (index, participant) in self.participants.iter().enumerate() {
+            if index > 0 {
+                output.push(',');
+            }
+            write!(
+                &mut output,
+                "{{\"id\":\"{}\",\"worst_case_net_benefit_minor\":{},\"best_case_net_benefit_minor\":{},\"minimum_acceptable_benefit_minor\":{},\"meets_reservation_in_all_baselines\":{}}}",
+                participant.participant_id,
+                participant.worst_case_net_benefit_minor,
+                participant.best_case_net_benefit_minor,
+                participant.minimum_acceptable_benefit_minor,
+                participant.meets_reservation_in_all_baselines
             )
             .expect("writing into String cannot fail");
         }
@@ -308,6 +408,203 @@ pub fn evaluate_value_share(input: &ScenarioInput) -> Result<ValueShareReport, V
         total_gross_benefit_minor,
         net_transfer_minor,
         all_reservations_met,
+        participants,
+    })
+}
+
+/// Compare multiple explicit business-as-usual baselines against one fixed
+/// treatment, comparison contract, participant set, and transfer proposal.
+/// Each baseline gets a separate deterministic report; no scenario probability
+/// or expected saving is invented. Baseline receipts must be distinct.
+pub fn evaluate_counterfactual_sensitivity(
+    inputs: &[ScenarioInput],
+) -> Result<CounterfactualSensitivityReport, ValueShareError> {
+    if inputs.is_empty() {
+        return Err(ValueShareError::EmptySensitivityEnsemble);
+    }
+
+    let mut reports = Vec::with_capacity(inputs.len());
+    for input in inputs {
+        reports.push(evaluate_value_share(input)?);
+    }
+
+    let reference = &inputs[0];
+    let reference_report = &reports[0];
+    let mut baseline_receipts = BTreeSet::new();
+    for input in inputs {
+        if !baseline_receipts.insert(input.basis.baseline_receipt_sha256.clone()) {
+            return Err(ValueShareError::DuplicateBaselineReceipt(
+                input.basis.baseline_receipt_sha256.clone(),
+            ));
+        }
+        if input.basis.case_id != reference.basis.case_id {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "case_id",
+            });
+        }
+        if input.basis.currency_code != reference.basis.currency_code {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "currency_code",
+            });
+        }
+        if input.basis.evidence_tier != reference.basis.evidence_tier {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "evidence_tier",
+            });
+        }
+        if input.basis.treatment_receipt_sha256 != reference.basis.treatment_receipt_sha256 {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "treatment_receipt_sha256",
+            });
+        }
+        if input.basis.comparison_contract_sha256 != reference.basis.comparison_contract_sha256 {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "comparison_contract_sha256",
+            });
+        }
+        if input.treatment_fuel_grams != reference.treatment_fuel_grams {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "treatment_fuel_grams",
+            });
+        }
+        if input.treatment_co2_grams != reference.treatment_co2_grams {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "treatment_co2_grams",
+            });
+        }
+
+        let mut candidate_accounts = input.participants.iter().collect::<Vec<_>>();
+        candidate_accounts.sort_by_key(|account| account.participant_id.clone());
+        let mut reference_accounts = reference.participants.iter().collect::<Vec<_>>();
+        reference_accounts.sort_by_key(|account| account.participant_id.clone());
+        if candidate_accounts.len() != reference_accounts.len() {
+            return Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "participant_count",
+            });
+        }
+
+        for (candidate, expected) in candidate_accounts.iter().zip(&reference_accounts) {
+            if candidate.participant_id != expected.participant_id {
+                return Err(ValueShareError::InconsistentSensitivityBasis {
+                    field: "participant_ids",
+                });
+            }
+            if candidate.treatment_net_cost_before_transfer_minor
+                != expected.treatment_net_cost_before_transfer_minor
+            {
+                return Err(ValueShareError::InconsistentSensitivityBasis {
+                    field: "treatment_net_cost_before_transfer_minor",
+                });
+            }
+            if candidate.transfer_in_minor != expected.transfer_in_minor {
+                return Err(ValueShareError::InconsistentSensitivityBasis {
+                    field: "transfer_in_minor",
+                });
+            }
+            if candidate.minimum_acceptable_benefit_minor
+                != expected.minimum_acceptable_benefit_minor
+            {
+                return Err(ValueShareError::InconsistentSensitivityBasis {
+                    field: "minimum_acceptable_benefit_minor",
+                });
+            }
+        }
+    }
+
+    reports.sort_by_key(|report| report.baseline_receipt_sha256.clone());
+    let baselines = reports
+        .iter()
+        .map(|report| BaselineSensitivityOutcome {
+            baseline_receipt_sha256: report.baseline_receipt_sha256.clone(),
+            total_gross_benefit_minor: report.total_gross_benefit_minor,
+            fuel_reduction_grams: report.fuel_reduction_grams,
+            emissions_reduction_grams: report.emissions_reduction_grams,
+            all_reservations_met: report.all_reservations_met,
+        })
+        .collect::<Vec<_>>();
+
+    let mut participants = Vec::with_capacity(reference_report.participants.len());
+    for reference_participant in &reference_report.participants {
+        let outcomes = reports
+            .iter()
+            .map(|report| {
+                report
+                    .participants
+                    .iter()
+                    .find(|item| item.participant_id == reference_participant.participant_id)
+                    .expect("participant sets were validated")
+            })
+            .collect::<Vec<_>>();
+        let worst_case_net_benefit_minor = outcomes
+            .iter()
+            .map(|outcome| outcome.net_benefit_minor)
+            .min()
+            .expect("sensitivity ensemble is non-empty");
+        let best_case_net_benefit_minor = outcomes
+            .iter()
+            .map(|outcome| outcome.net_benefit_minor)
+            .max()
+            .expect("sensitivity ensemble is non-empty");
+        let meets_reservation_in_all_baselines = outcomes
+            .iter()
+            .all(|outcome| outcome.meets_reservation);
+        participants.push(ParticipantSensitivityOutcome {
+            participant_id: reference_participant.participant_id.clone(),
+            worst_case_net_benefit_minor,
+            best_case_net_benefit_minor,
+            minimum_acceptable_benefit_minor: reference_participant
+                .minimum_acceptable_benefit_minor,
+            meets_reservation_in_all_baselines,
+        });
+    }
+
+    let worst_case_total_gross_benefit_minor = baselines
+        .iter()
+        .map(|baseline| baseline.total_gross_benefit_minor)
+        .min()
+        .expect("sensitivity ensemble is non-empty");
+    let best_case_total_gross_benefit_minor = baselines
+        .iter()
+        .map(|baseline| baseline.total_gross_benefit_minor)
+        .max()
+        .expect("sensitivity ensemble is non-empty");
+    let worst_case_fuel_reduction_grams = baselines
+        .iter()
+        .map(|baseline| baseline.fuel_reduction_grams)
+        .min()
+        .expect("sensitivity ensemble is non-empty");
+    let best_case_fuel_reduction_grams = baselines
+        .iter()
+        .map(|baseline| baseline.fuel_reduction_grams)
+        .max()
+        .expect("sensitivity ensemble is non-empty");
+    let worst_case_emissions_reduction_grams = baselines
+        .iter()
+        .map(|baseline| baseline.emissions_reduction_grams)
+        .min()
+        .expect("sensitivity ensemble is non-empty");
+    let best_case_emissions_reduction_grams = baselines
+        .iter()
+        .map(|baseline| baseline.emissions_reduction_grams)
+        .max()
+        .expect("sensitivity ensemble is non-empty");
+
+    Ok(CounterfactualSensitivityReport {
+        case_id: reference.basis.case_id.clone(),
+        currency_code: reference.basis.currency_code.clone(),
+        treatment_receipt_sha256: reference.basis.treatment_receipt_sha256.clone(),
+        comparison_contract_sha256: reference.basis.comparison_contract_sha256.clone(),
+        baseline_count: baselines.len(),
+        worst_case_total_gross_benefit_minor,
+        best_case_total_gross_benefit_minor,
+        worst_case_fuel_reduction_grams,
+        best_case_fuel_reduction_grams,
+        worst_case_emissions_reduction_grams,
+        best_case_emissions_reduction_grams,
+        all_reservations_met_in_all_baselines: participants
+            .iter()
+            .all(|participant| participant.meets_reservation_in_all_baselines),
+        baselines,
         participants,
     })
 }
