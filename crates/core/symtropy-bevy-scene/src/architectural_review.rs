@@ -594,11 +594,12 @@ impl ReviewFreeCameraController {
     }
 }
 
-/// Free-camera controls: toggle with F; hold right mouse to look; WASD to
-/// move horizontally; E/Q to rise/descend; Shift to move faster. Enabling free
-/// control pauses any attached guided route. Invalid controller settings result
-/// in no camera movement. The system deliberately does not lock or capture the
-/// cursor, so the host app can choose its own accessible pointer behavior.
+/// Apply direct free-camera motion: hold right mouse to look; WASD to move
+/// horizontally; E/Q to rise/descend; Shift to move faster. The separately
+/// ordered `manage_architectural_review_controls` system owns F/Space/R and route
+/// state. Invalid controller settings result in no camera movement. This system
+/// does not lock or capture the cursor, so the host app can choose its own
+/// accessible pointer behavior.
 pub fn drive_free_review_camera(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
