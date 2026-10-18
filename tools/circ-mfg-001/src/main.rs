@@ -597,7 +597,7 @@ mod tests {
         let (manifest, raw) = fixture();
         validate_manifest(&manifest).expect("manifest contract should be valid");
         let report = build_report(&manifest, &raw);
-        assert_eq!(report.summary.case_count, 6);
+        assert_eq!(report.summary.case_count, 12);
         assert_eq!(report.summary.oracle_matches, 6);
         assert!(report.summary.suite_passed);
     }
