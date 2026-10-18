@@ -31,6 +31,8 @@
 //! switching crates.
 
 pub mod animation;
+#[cfg(feature = "human-animation")]
+pub mod human_animation;
 pub mod audio;
 pub mod biometrics;
 #[cfg(feature = "debug-gizmos")]
@@ -42,6 +44,8 @@ pub mod scripting;
 pub mod toolbus;
 
 pub use animation::{AnimationState, RoboticAnimationPlugin};
+#[cfg(feature = "human-animation")]
+pub use human_animation::{HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin, HumanMotion};
 pub use audio::{AudioEmitter, RoboticAudioPlugin};
 pub use biometrics::{PlayerBiometrics, biometric_to_phi_system};
 pub use macro_bridge::{MacroWorldState, apply_macro_modifiers_system};
