@@ -10,7 +10,7 @@ Status semantics are deliberately conservative:
 - `NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY`: the tried priority rules found no candidate; this is not a proof that none exists.
 - `INTERNAL_VALIDATOR_DISAGREEMENT`: treat as a correctness failure; do not use the candidate.
 
-Robustness is separately evaluated against the declared upper-duration scenario. It does not mean probabilistic reliability or physical safety certification. The executable currently consumes the nine-case synthetic micro-oracle fixture, and the fixture's expected results are not used by the scheduling algorithm.
+Robustness is separately evaluated against the declared upper-duration scenario. It does not mean probabilistic reliability or physical safety certification. The executable currently consumes the ten-case synthetic micro-oracle fixture, and the fixture's expected results are not used by the scheduling algorithm.
 
 From the repository root:
 
