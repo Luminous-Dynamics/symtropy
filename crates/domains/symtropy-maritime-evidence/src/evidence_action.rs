@@ -365,9 +365,8 @@ pub fn score_window(
                 .abs_diff(actual_or_predicted_arrival_utc_nanos),
         );
     }
-    let lateness = ceil_minutes(
-        actual_or_predicted_arrival_utc_nanos.abs_diff(window.starts_at_utc_nanos),
-    );
+    let lateness =
+        ceil_minutes(actual_or_predicted_arrival_utc_nanos.abs_diff(window.starts_at_utc_nanos));
     if lateness <= u64::from(window.late_grace_minutes) {
         lateness
     } else {
@@ -412,8 +411,7 @@ pub fn evaluate_decision(
             || truth
                 .actual_arrival_utc_nanos
                 .abs_diff(window.starts_at_utc_nanos)
-                <= u128::from(window.late_grace_minutes)
-                    * NANOS_PER_MINUTE_U128
+                <= u128::from(window.late_grace_minutes) * NANOS_PER_MINUTE_U128
     });
     let actionable_despite_evidence_issue = selected_window.is_some()
         && decision.has_evidence_quality_issue()
@@ -759,14 +757,8 @@ mod tests {
             starts_at_utc_nanos: i128::MIN,
             late_grace_minutes: 15,
         };
-        assert_eq!(
-            score_window(i128::MIN, &late_window, 100),
-            u64::MAX
-        );
-        assert_eq!(
-            score_window(i128::MAX, &early_window, 100),
-            u64::MAX
-        );
+        assert_eq!(score_window(i128::MIN, &late_window, 100), u64::MAX);
+        assert_eq!(score_window(i128::MAX, &early_window, 100), u64::MAX);
     }
 
     #[test]
