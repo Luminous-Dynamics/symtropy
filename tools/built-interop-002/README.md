@@ -54,7 +54,7 @@ The Rust test suite contains controls for the happy path, wrong literal, missing
 ## Next integration steps
 
 1. Generate and commit the reviewed Cargo.lock; verify all resolved licenses and checksums.
-2. Validate an IFC4 fixture separately using an authoritative IFC validation service/schema layer; STEP parse success alone does not prove schema conformance.
+2. Keep schema validity as a separate gate. An integration candidate is Rust `ifc-schema` + `ifc-validate`: schema tables interpret the generic model, and the validator reports structural/type findings plus unsupported rules explicitly. Its docs state that some aggregate bounds and inverse-derived rules are not evaluated, so a clean report must be accompanied by unsupported-rule counts. Pin exact compatible crate versions and regenerate/review the lock before integrating; do not call parser success schema validity. References: https://docs.rs/ifc-schema/0.3.2/ifc_schema/ and https://docs.rs/ifc-validate/0.6.0/ifc_validate/.
 3. Only after the exact subset is stable, grow to IFC schema-derived attribute lookup and explicit typed IFC properties; don’t hard-code more positional slots.
 4. Extend IDS feature-by-feature with the full official IDS positive/negative corpus and independently pinned oracle results. Unimplemented facets must remain `NotEvaluated`.
 5. Bind outputs to BUILT-INTEROP-001's structured contract by exact input digests and object/property identities, then measure semantic loss on exact-version exporter/importer pairs.
