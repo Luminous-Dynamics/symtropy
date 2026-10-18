@@ -11,6 +11,18 @@ A solver is only as safe as the evidence it consumes. Port-call systems can cont
 
 The IAPH–IHMA PCO Guide takes a basics-first approach: identify terminal and berth, and exchange planned arrival at the Pilot Boarding Place (PTA-PBP) and planned departure from berth (PTD). It bases semantics on IMO/IHO concepts and requires ISO 8601 date/time with timezone for timestamps. This crate maps the core concepts while retaining the source field code and original time text. It is not an official PCO SDK or a certified API adapter.
 
+### Explicit PCO-to-contract mapping
+
+| PCO Guide concept | Typed field | Typed value | Mapping constraint |
+|---|---|---|---|
+| Terminal identifier | TerminalIdentifier | Identifier | Must match an explicitly configured terminal registry entry. |
+| Berth identifier | BerthIdentifier | Identifier | Must match an explicitly configured berth registry entry. |
+| Planned time of arrival at Pilot Boarding Place (PTA-PBP) | ArrivalAtPilotBoardingPlace | Timestamp with Planned meaning | Preserve the source's exact field code and text; do not recast it as ETA or actual arrival. |
+| Planned time of departure from berth (PTD) | DepartureFromBerth | Timestamp with Planned meaning | Preserve the source's exact field code and text; do not recast it as forecast or actual departure. |
+
+The enum separates event location (arrival or departure) from time meaning (planned, requested, estimated, forecast or actual). A production adapter must map a source field only after checking the source's published definition; the generic enum does not itself establish that a particular provider field means the same thing as the PCO field. The table deliberately does not invent numeric source-field codes.
+
+
 ## Contract
 
 Each observation carries stable observation, port, port-call and source identifiers; the semantic field and exact source field code; a typed identifier or typed timestamp with planned/requested/estimated/forecast/actual meaning; source-event time, ingestion time and optional validity end; schema version; original timestamp text; source UTC offset; and normalized UTC nanoseconds.
