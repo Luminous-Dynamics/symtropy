@@ -57,6 +57,12 @@ impl std::fmt::Display for ModelError {
 
 impl std::error::Error for ModelError {}
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CausalDriver {
+    DirectShock { shock_id: String },
+    DelayedPredecessor { operation_id: String },
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OperationImpact {
     pub operation_id: String,
@@ -66,6 +72,9 @@ pub struct OperationImpact {
     pub delay_minutes: i64,
     pub direct_shock_minutes: i64,
     pub deadline_lateness_minutes: i64,
+    /// Only binding inputs that increased this operation's start versus baseline.
+    /// Follow DelayedPredecessor references to reconstruct a causal chain.
+    pub causal_drivers: Vec<CausalDriver>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -109,16 +118,41 @@ impl ScenarioReport {
             if index > 0 {
                 out.push(',');
             }
+            let mut causes_json = String::new();
+            for (cause_index, cause) in item.causal_drivers.iter().enumerate() {
+                if cause_index > 0 {
+                    causes_json.push(',');
+                }
+                match cause {
+                    CausalDriver::DirectShock { shock_id } => {
+                        write!(
+                            &mut causes_json,
+                            "{{\"kind\":\"direct_shock\",\"id\":\"{}\"}}",
+                            shock_id
+                        )
+                        .expect("writing into String cannot fail");
+                    }
+                    CausalDriver::DelayedPredecessor { operation_id } => {
+                        write!(
+                            &mut causes_json,
+                            "{{\"kind\":\"delayed_predecessor\",\"id\":\"{}\"}}",
+                            operation_id
+                        )
+                        .expect("writing into String cannot fail");
+                    }
+                }
+            }
             write!(
                 &mut out,
-                "{{\"id\":\"{}\",\"baseline_start_minute\":{},\"scenario_start_minute\":{},\"scenario_end_minute\":{},\"delay_minutes\":{},\"direct_shock_minutes\":{},\"deadline_lateness_minutes\":{}}}",
+                "{{\"id\":\"{}\",\"baseline_start_minute\":{},\"scenario_start_minute\":{},\"scenario_end_minute\":{},\"delay_minutes\":{},\"direct_shock_minutes\":{},\"deadline_lateness_minutes\":{},\"causal_drivers\":[{}]}}",
                 item.operation_id,
                 item.baseline_start_minute,
                 item.scenario_start_minute,
                 item.scenario_end_minute,
                 item.delay_minutes,
                 item.direct_shock_minutes,
-                item.deadline_lateness_minutes
+                item.deadline_lateness_minutes,
+                causes_json
             )
             .expect("writing into String cannot fail");
         }
@@ -399,6 +433,77 @@ fn evaluate_timeline(
     Ok(timings)
 }
 
+fn causal_drivers_for(
+    operation_id: &str,
+    operation: &Operation,
+    shocks: &[Shock],
+    shock_delays: &BTreeMap<String, i64>,
+    model: &ValidatedModel,
+    baseline: &BTreeMap<String, Timing>,
+    scenario: &BTreeMap<String, Timing>,
+) -> Result<Vec<CausalDriver>, ModelError> {
+    let baseline_start = baseline
+        .get(operation_id)
+        .expect("baseline contains validated operation")
+        .start_minute;
+    let scenario_start = scenario
+        .get(operation_id)
+        .expect("scenario contains validated operation")
+        .start_minute;
+    let shock_delay = shock_delays.get(operation_id).copied().unwrap_or(0);
+    let shifted_start = operation
+        .scheduled_start_minute
+        .checked_add(shock_delay)
+        .ok_or(ModelError::ArithmeticOverflow)?;
+
+    let mut drivers = Vec::new();
+
+    // A local shock is causal only if its shifted scheduled start is a binding
+    // constraint and it actually changed this operation's start versus baseline.
+    if shock_delay > 0 && shifted_start == scenario_start && scenario_start > baseline_start {
+        for shock in shocks
+            .iter()
+            .filter(|shock| shock.operation_id == operation_id && shock.additional_start_delay_minutes > 0)
+        {
+            drivers.push(CausalDriver::DirectShock {
+                shock_id: shock.id.clone(),
+            });
+        }
+    }
+
+    // A predecessor is causal only when its finish constraint binds the scenario
+    // start and is later than the same predecessor's baseline finish constraint.
+    for (predecessor_id, lag_minutes) in model
+        .predecessors
+        .get(operation_id)
+        .expect("validated predecessor list exists")
+    {
+        let baseline_predecessor = baseline
+            .get(predecessor_id)
+            .expect("baseline contains validated predecessor");
+        let scenario_predecessor = scenario
+            .get(predecessor_id)
+            .expect("scenario contains validated predecessor");
+        let baseline_ready = baseline_predecessor
+            .end_minute
+            .checked_add(*lag_minutes)
+            .ok_or(ModelError::ArithmeticOverflow)?;
+        let scenario_ready = scenario_predecessor
+            .end_minute
+            .checked_add(*lag_minutes)
+            .ok_or(ModelError::ArithmeticOverflow)?;
+        if scenario_ready == scenario_start && scenario_ready > baseline_ready {
+            drivers.push(CausalDriver::DelayedPredecessor {
+                operation_id: predecessor_id.clone(),
+            });
+        }
+    }
+
+    drivers.sort();
+    drivers.dedup();
+    Ok(drivers)
+}
+
 fn find_resource_conflicts(
     model: &ValidatedModel,
     timings: &BTreeMap<String, Timing>,
@@ -497,6 +602,15 @@ pub fn evaluate_scenario(
                 .ok_or(ModelError::ArithmeticOverflow)?,
             _ => 0,
         };
+        let causal_drivers = causal_drivers_for(
+            operation_id,
+            operation,
+            shocks,
+            &shock_delays,
+            &model,
+            &baseline,
+            &scenario,
+        )?;
         impacts.push(OperationImpact {
             operation_id: operation_id.clone(),
             baseline_start_minute: baseline_timing.start_minute,
@@ -505,6 +619,7 @@ pub fn evaluate_scenario(
             delay_minutes,
             direct_shock_minutes,
             deadline_lateness_minutes,
+            causal_drivers,
         });
     }
 
@@ -969,5 +1084,77 @@ mod tests {
 
         assert_eq!(configurations, 855);
     }
+
+    #[test]
+    fn causal_attribution_distinguishes_propagation_from_resource_coincidence() {
+        let report = run_demo().unwrap();
+        let causes = |id: &str| {
+            report
+                .operations
+                .iter()
+                .find(|item| item.operation_id == id)
+                .expect("known demo operation")
+                .causal_drivers
+                .clone()
+        };
+
+        assert_eq!(
+            causes("BERTH-A"),
+            vec![CausalDriver::DirectShock {
+                shock_id: "DELAY-BERTH-20".to_owned(),
+            }]
+        );
+        assert_eq!(
+            causes("PILOT-1"),
+            vec![CausalDriver::DelayedPredecessor {
+                operation_id: "BERTH-A".to_owned(),
+            }]
+        );
+        assert_eq!(
+            causes("CRANE-1"),
+            vec![CausalDriver::DelayedPredecessor {
+                operation_id: "PILOT-1".to_owned(),
+            }]
+        );
+        assert_eq!(
+            causes("CUTOFF-RAIL-1"),
+            vec![CausalDriver::DelayedPredecessor {
+                operation_id: "CRANE-1".to_owned(),
+            }]
+        );
+        // Sharing a crane explains the overlap, not the start-time cause.
+        assert!(causes("CRANE-2").is_empty());
+        assert!(causes("ISOLATED-CONTROL").is_empty());
+    }
+
+    #[test]
+    fn equally_binding_delayed_predecessors_are_both_attributed() {
+        let operations = vec![
+            operation("A", 0, 10, &[], None),
+            operation("B", 0, 10, &[], None),
+            operation("C", 10, 5, &[], None),
+        ];
+        let report = evaluate_scenario(
+            "fanin-tie",
+            &operations,
+            &[dependency("A", "C", 0), dependency("B", "C", 0)],
+            &[shock("shock-A", "A", 5), shock("shock-B", "B", 5)],
+        )
+        .unwrap();
+        let c = report.operations.iter().find(|item| item.operation_id == "C").unwrap();
+        assert_eq!(c.scenario_start_minute, 15);
+        assert_eq!(
+            c.causal_drivers,
+            vec![
+                CausalDriver::DelayedPredecessor {
+                    operation_id: "A".to_owned(),
+                },
+                CausalDriver::DelayedPredecessor {
+                    operation_id: "B".to_owned(),
+                },
+            ]
+        );
+    }
+
 
 }
