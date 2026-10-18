@@ -61,9 +61,7 @@ fn incomplete_investigation_outcomes_fail_closed() {
         .iter_mut()
         .find(|outcome| outcome.outcome_id == "no-specified-scour-indicator")
         .expect("expected bridge negative-control outcome");
-    outcome
-        .state_ids
-        .retain(|state_id| state_id != "unresolved-deep-geology");
+    outcome.state_ids.retain(|state_id| state_id != "unresolved-deep-geology");
 
     let mutated_bytes = serde_json::to_vec(&input).expect("mutated input must serialize");
     let digest = sha256_hex(&mutated_bytes);
