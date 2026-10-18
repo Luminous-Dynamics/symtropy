@@ -863,6 +863,7 @@ mod tests {
                     demand_id: "CALL-B".to_owned(),
                     target_slot_id: "LATE".to_owned(),
                     state: FlexOfferState::AcceptedConditional,
+                    accepted_at_minute: Some(70),
                     expires_at_minute: 100,
                     max_deviation_minutes: 60,
                     reported_cost_minor_units: 4,
@@ -1314,12 +1315,16 @@ mod tests {
                             assert!(
                                 truthful_utility >= deviated_utility,
                                 concat!(
-                                    "profitable unilateral report: true={true_costs:?}, ",
-                                    "participant={}, report={reported_cost}, ",
-                                    "truthful_utility={truthful_utility}, ",
-                                    "deviated_utility={deviated_utility}"
+                                    "profitable unilateral report: true={:?}, ",
+                                    "participant={}, report={}, ",
+                                    "truthful_utility={}, ",
+                                    "deviated_utility={}"
                                 ),
-                                offer_ids[participant_index]
+                                true_costs,
+                                offer_ids[participant_index],
+                                reported_cost,
+                                truthful_utility,
+                                deviated_utility
                             );
                         }
                     }
