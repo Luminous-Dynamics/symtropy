@@ -1098,7 +1098,10 @@ mod tests {
         for (name, raw) in schemas {
             let schema: Value =
                 serde_json::from_str(raw).unwrap_or_else(|error| panic!("{name}: {error}"));
-            assert_eq!(schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+            assert_eq!(
+                schema["$schema"],
+                "https://json-schema.org/draft/2020-12/schema"
+            );
             assert_eq!(schema["type"], "object");
             assert_eq!(schema["additionalProperties"], false);
             assert!(schema["required"].is_array());
