@@ -14,13 +14,13 @@ fn main() {
         evidence: vec![EvidenceState::Qualified],
         hard_constraints: vec![ConstraintState::Satisfied],
         product_state: ProductState::MeetsSpecification,
-        mass_ledger_kg: BalanceLedger {
-            opening: 100.0,
-            inputs: 50.0,
+        mass_ledger_kg_per_shift: BalanceLedger {
+            opening: 100_000.0,
+            inputs: 50_000.0,
             recoveries: 0.0,
-            outputs: 120.0,
-            losses: 10.0,
-            closing: 20.0,
+            outputs: 120_000.0,
+            losses: 10_000.0,
+            closing: 20_000.0,
             tolerance: 1e-9,
         },
         energy_ledger_kwh: BalanceLedger {
@@ -32,11 +32,12 @@ fn main() {
             closing: 20.0,
             tolerance: 1e-9,
         },
+        energy_intensity_tolerance_kwh_per_tonne: 1e-9,
         metrics: CandidateMetrics {
             comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 42.0,
             lifecycle_cost_per_saleable_tonne: 80.0,
-            energy_kwh_per_saleable_tonne: 12.0,
+            energy_kwh_per_saleable_tonne: 110.0 / 42.0,
             water_m3_per_saleable_tonne: 0.2,
             emissions_kg_co2e_per_saleable_tonne: 4.0,
         },
