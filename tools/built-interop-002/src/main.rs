@@ -96,16 +96,23 @@ fn classify_ids_version(version: &Detected<IdsVersion>) -> (String, Option<Decis
     }
 }
 
-fn unsupported_report(
-    ifc_bytes: &[u8],
-    ids_bytes: &[u8],
+struct UnsupportedContext {
     schema_token: Option<String>,
     ids_version_evidence: String,
     parsed_entity_count: usize,
+}
+
+fn unsupported_report(
+    input_bytes: (&[u8], &[u8]),
+    context: UnsupportedContext,
     code: &str,
     message: &str,
     decision: Decision,
 ) -> Report {
+    let (ifc_bytes, ids_bytes) = input_bytes;
+    let schema_token = context.schema_token;
+    let ids_version_evidence = context.ids_version_evidence;
+    let parsed_entity_count = context.parsed_entity_count;
     let diagnostics = vec![format!("{code}:{message}")];
     let semantic = SemanticDigest {
         supported_profile: SUPPORTED_PROFILE,
@@ -146,11 +153,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let (ids_version_evidence, version_decision) = classify_ids_version(&ids.version);
     if !model.is_complete() {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "IFC_RECOVERY_DIAGNOSTICS",
             "strict parser returned a model with recovery diagnostics",
             Decision::Unresolved,
@@ -158,11 +166,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     }
     if schema_token.as_deref() != Some("IFC4") {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "IFC_SCHEMA_PROFILE_MISMATCH",
             "v0.1 requires an exact IFC4 header token",
             Decision::Blocked,
@@ -170,11 +179,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     }
     if let Some(decision) = version_decision {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "IDS_VERSION_NOT_EXPLICITLY_CONFIRMED",
             "v0.1 requires IDS 1.0 declared and consistent with document shape",
             decision,
@@ -183,11 +193,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
 
     if ids.specifications.len() != 1 {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "IDS_SPECIFICATION_COUNT_UNSUPPORTED",
             "v0.1 supports exactly one IDS specification",
             Decision::Unresolved,
@@ -197,11 +208,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let specification = &ids.specifications[0];
     if specification.ifc_versions.as_slice() != [IfcVersion::Ifc4] {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "IDS_IFC_VERSION_PROFILE_MISMATCH",
             "the single IDS specification must declare IFC4 only",
             Decision::Blocked,
@@ -219,11 +231,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
         || specification.applicability.max_occurs.is_some()
     {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "IDS_APPLICABILITY_UNSUPPORTED",
             "v0.1 supports required, unbounded IFCWALL entity applicability only",
             Decision::Unresolved,
@@ -234,11 +247,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
         Some(requirements) if requirements.facets.len() == 1 => requirements,
         _ => {
             return Ok(unsupported_report(
-                ifc_bytes,
-                ids_bytes,
-                schema_token,
-                ids_version_evidence,
-                model.len(),
+                (ifc_bytes, ids_bytes),
+                UnsupportedContext {
+                    schema_token,
+                    ids_version_evidence,
+                    parsed_entity_count: model.len(),
+                },
                 "IDS_REQUIREMENT_SHAPE_UNSUPPORTED",
                 "v0.1 supports exactly one requirement facet",
                 Decision::Unresolved,
@@ -253,11 +267,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
                     Some(Value::Simple(value)) => ("Name", value.clone()),
                     _ => {
                         return Ok(unsupported_report(
-                            ifc_bytes,
-                            ids_bytes,
-                            schema_token,
-                            ids_version_evidence,
-                            model.len(),
+                            (ifc_bytes, ids_bytes),
+                            UnsupportedContext {
+                                schema_token,
+                                ids_version_evidence,
+                                parsed_entity_count: model.len(),
+                            },
                             "IDS_ATTRIBUTE_VALUE_UNSUPPORTED",
                             "v0.1 supports a literal simpleValue attribute requirement",
                             Decision::Unresolved,
@@ -267,11 +282,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
             }
             _ => {
                 return Ok(unsupported_report(
-                    ifc_bytes,
-                    ids_bytes,
-                    schema_token,
-                    ids_version_evidence,
-                    model.len(),
+                    (ifc_bytes, ids_bytes),
+                    UnsupportedContext {
+                        schema_token,
+                        ids_version_evidence,
+                        parsed_entity_count: model.len(),
+                    },
                     "IDS_REQUIREMENT_FACET_UNSUPPORTED",
                     "v0.1 supports only a required IFC attribute named Name",
                     Decision::Unresolved,
@@ -280,11 +296,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
         },
         _ => {
             return Ok(unsupported_report(
-                ifc_bytes,
-                ids_bytes,
-                schema_token,
-                ids_version_evidence,
-                model.len(),
+                (ifc_bytes, ids_bytes),
+                UnsupportedContext {
+                    schema_token,
+                    ids_version_evidence,
+                    parsed_entity_count: model.len(),
+                },
                 "IDS_REQUIREMENT_CARDINALITY_UNSUPPORTED",
                 "v0.1 supports required cardinality only",
                 Decision::Unresolved,
@@ -295,11 +312,12 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let walls: Vec<_> = model.of_type("IFCWALL").collect();
     if walls.is_empty() {
         return Ok(unsupported_report(
-            ifc_bytes,
-            ids_bytes,
-            schema_token,
-            ids_version_evidence,
-            model.len(),
+            (ifc_bytes, ids_bytes),
+            UnsupportedContext {
+                schema_token,
+                ids_version_evidence,
+                parsed_entity_count: model.len(),
+            },
             "NO_APPLICABLE_WALL",
             "IDS applicability requires at least one IFCWALL",
             Decision::Blocked,
