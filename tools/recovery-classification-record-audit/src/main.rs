@@ -378,8 +378,10 @@ fn evaluate_case(
     let payload = payload_for(record, errors);
     let Some(payload) = payload else {
         result.record_integrity_status = "INVALID".to_string();
+        result.authenticity_status = "UNAVAILABLE".to_string();
         return result;
     };
+    result.authenticity_status = payload.source_authenticity_status.clone();
 
     let record_digest_matches = sha256_hex(record.canonical_payload_json.as_bytes()) == record.sha256;
     let binding_digest_matches = binding.sha256 == record.sha256;
@@ -560,9 +562,11 @@ fn audit(
         .filter(|result| result.synthetic_review_candidate)
         .count();
     let all_authenticity_unverified = !packet.claim_ceiling.authenticity_verified
-        && case_results
-            .iter()
-            .all(|result| result.authenticity_status == "UNVERIFIED_SYNTHETIC");
+        && case_results.iter().all(|result| {
+            result.authenticity_status == "UNVERIFIED_SYNTHETIC"
+                && result.record_integrity_status == "MATCH"
+                && result.case_binding_status == "MATCH"
+        });
     let all_actuation_disabled = !packet.claim_ceiling.expected_actuation
         && case_results.iter().all(|result| !result.actuation_authorized);
     if !all_authenticity_unverified {
@@ -897,6 +901,7 @@ mod tests {
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(!receipt.all_authenticity_unverified);
         assert!(receipt.errors.iter().any(|error| error.contains("RECORD_AUTHENTICITY_CEILING_VIOLATION")));
     }
 
