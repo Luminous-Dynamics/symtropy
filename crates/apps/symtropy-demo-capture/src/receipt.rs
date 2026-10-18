@@ -11,11 +11,12 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File, OpenOptions},
-    io::{self, ErrorKind, Read, Write},
+    io::{self, Cursor, ErrorKind, Read, Write},
     path::{Path, PathBuf},
 };
 
 const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+const MAX_IMAGE_PIXELS: u64 = 20_000_000;
 const CLAIM_CEILING: &str = "png-decode-byte-integrity-and-declared-provenance-only; not-visual-quality-or-physical-validation";
 
 /// Metadata supplied by the benchmark runner. Missing values remain explicit;
@@ -336,6 +337,39 @@ fn inspect_image(
         };
     }
 
+    let (declared_width, declared_height) =
+        match image::ImageReader::with_format(Cursor::new(bytes.as_slice()), image::ImageFormat::Png)
+            .into_dimensions()
+        {
+            Ok(dimensions) => dimensions,
+            Err(_) => {
+                return ImageReceipt {
+                    scheduled_time_secs,
+                    path: Some(path.to_owned()),
+                    status: "decode_error".to_owned(),
+                    byte_len: Some(byte_len),
+                    sha256: Some(digest),
+                    width_px: None,
+                    height_px: None,
+                };
+            }
+        };
+    let pixel_count = u64::from(declared_width).checked_mul(u64::from(declared_height));
+    if declared_width == 0
+        || declared_height == 0
+        || pixel_count.is_none_or(|count| count > MAX_IMAGE_PIXELS)
+    {
+        return ImageReceipt {
+            scheduled_time_secs,
+            path: Some(path.to_owned()),
+            status: "pixel_limit_exceeded".to_owned(),
+            byte_len: Some(byte_len),
+            sha256: Some(digest),
+            width_px: Some(declared_width),
+            height_px: Some(declared_height),
+        };
+    }
+
     let decoded = match image::load_from_memory_with_format(&bytes, image::ImageFormat::Png) {
         Ok(image) => image,
         Err(_) => {
@@ -354,6 +388,17 @@ fn inspect_image(
 
     let width_px = decoded.width();
     let height_px = decoded.height();
+    if width_px != declared_width || height_px != declared_height {
+        return ImageReceipt {
+            scheduled_time_secs,
+            path: Some(path.to_owned()),
+            status: "dimension_instability".to_owned(),
+            byte_len: Some(byte_len),
+            sha256: Some(digest),
+            width_px: Some(width_px),
+            height_px: Some(height_px),
+        };
+    }
     if expected_width.is_some_and(|expected| expected != width_px)
         || expected_height.is_some_and(|expected| expected != height_px)
     {
