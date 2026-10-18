@@ -516,7 +516,7 @@ fn evaluate_scenario(case: &Scenario) -> ScenarioResult {
     let mut issues = global_issues;
     for result in &requirement_results {
         for code in &result.diagnostic_codes {
-            issues.push(format!("{}:{}", code, result.requirement_id));
+            issues.push(format!("{:?}:{}", code, result.requirement_id));
         }
     }
     issues.sort();
