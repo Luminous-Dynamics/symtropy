@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-here="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 validator="$here/validate-report.sh"
 schema="$here/report-v1.schema.json"
 command -v jq >/dev/null 2>&1 || { echo "MISSING_TOOL: jq" >&2; exit 2; }
