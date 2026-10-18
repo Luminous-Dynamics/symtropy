@@ -275,12 +275,12 @@ pub fn parse_timestamp_message(
     )?
     .map(str::to_owned);
     let legacy_facility_code = optional_string(&root, &["facilitySMDGCode"], "facilitySMDGCode")?;
-    if let (Some(modern), Some(legacy)) = (&facility_code, legacy_facility_code) {
-        if modern.as_str() != legacy {
-            return Err(DcsaJitParseError::ConflictingDuplicate {
-                field: "facilityCode/facilitySMDGCode",
-            });
-        }
+    if let (Some(modern), Some(legacy)) = (&facility_code, legacy_facility_code)
+        && modern.as_str() != legacy
+    {
+        return Err(DcsaJitParseError::ConflictingDuplicate {
+            field: "facilityCode/facilitySMDGCode",
+        });
     }
 
     match &facility_type_code {
@@ -536,7 +536,7 @@ mod tests {
         );
 
         let mut port_conflict_value: serde_json::Value =
-            serde_json::from_str(&vessel_conflict).unwrap();
+            serde_json::from_str(vessel_conflict).unwrap();
         port_conflict_value["vesselIMONumber"] = serde_json::Value::String("9990001".to_owned());
         port_conflict_value["UNLocationCode"] = serde_json::Value::String("ZZOTHER".to_owned());
         let port_conflict = port_conflict_value.to_string();
