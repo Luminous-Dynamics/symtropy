@@ -16,6 +16,7 @@
   "product_category_mappings": [
     {
       "ords_product_category": "Aircon/dehumidifier",
+      "ords_product_category_id": 1,
       "target_family_id": "F7-RESIDENTIAL-HVAC",
       "mapping_status": "candidate",
       "confidence": "low",
@@ -24,6 +25,7 @@
     },
     {
       "ords_product_category": "Coffee maker",
+      "ords_product_category_id": 36,
       "target_family_id": "F8-COOKING-APPLIANCES",
       "mapping_status": "candidate",
       "confidence": "low",
@@ -32,6 +34,7 @@
     },
     {
       "ords_product_category": "Food processor",
+      "ords_product_category_id": 37,
       "target_family_id": "F8-COOKING-APPLIANCES",
       "mapping_status": "candidate",
       "confidence": "low",
@@ -40,6 +43,7 @@
     },
     {
       "ords_product_category": "Small kitchen item",
+      "ords_product_category_id": 29,
       "target_family_id": null,
       "mapping_status": "ambiguous",
       "confidence": "low",
@@ -48,6 +52,7 @@
     },
     {
       "ords_product_category": "Toaster",
+      "ords_product_category_id": 31,
       "target_family_id": "F8-COOKING-APPLIANCES",
       "mapping_status": "candidate",
       "confidence": "low",
@@ -56,6 +61,7 @@
     },
     {
       "ords_product_category": "Small home electrical",
+      "ords_product_category_id": 28,
       "target_family_id": null,
       "mapping_status": "unmapped",
       "confidence": "none",
@@ -64,6 +70,7 @@
     },
     {
       "ords_product_category": "Vacuum",
+      "ords_product_category_id": 34,
       "target_family_id": null,
       "mapping_status": "unmapped",
       "confidence": "none",
@@ -72,6 +79,7 @@
     },
     {
       "ords_product_category": "Misc",
+      "ords_product_category_id": 18,
       "target_family_id": null,
       "mapping_status": "unmapped",
       "confidence": "none",

@@ -6,11 +6,9 @@ use std::io::Write;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:ords-appliance-adapter-profile:0.1.0";
 const ADAPTER_ID: &str = "REPAIR-DATA-INTEROP-001";
-const REQUIRED_HEADERS: [&str; 9] = [
+const REQUIRED_HEADERS: [&str; 7] = [
     "id",
     "partner_product_category",
-    "product_category",
-    "brand",
     "repair_status",
     "problem",
     "event_date",
@@ -40,6 +38,7 @@ pub(crate) struct OrdsAuditSummary {
     pub(crate) category_candidate_row_count: usize,
     pub(crate) category_ambiguous_row_count: usize,
     pub(crate) category_unmapped_row_count: usize,
+    pub(crate) category_id_label_mismatch_row_count: usize,
     pub(crate) duplicate_identity_row_count: usize,
     pub(crate) missing_identity_row_count: usize,
     pub(crate) invalid_status_row_count: usize,
@@ -168,6 +167,7 @@ fn validate_mapping_profile(
     };
 
     let mut category_keys = BTreeSet::new();
+    let mut category_ids = BTreeSet::new();
     for (index, item) in categories.iter().enumerate() {
         let Some(raw) = text_at(item, "ords_product_category") else {
             errors.push(format!(
@@ -175,6 +175,18 @@ fn validate_mapping_profile(
             ));
             continue;
         };
+        let Some(category_id) = item
+            .get("ords_product_category_id")
+            .and_then(Value::as_u64)
+        else {
+            errors.push(format!(
+                "product_category_mappings[{index}] lacks a positive ORDS category ID"
+            ));
+            continue;
+        };
+        if !category_ids.insert(category_id) {
+            errors.push(format!("duplicate ORDS product_category_id {category_id}"));
+        }
         if raw.trim().is_empty() {
             errors.push(format!(
                 "product_category_mappings[{index}] has an empty category key"
@@ -222,6 +234,33 @@ fn validate_mapping_profile(
                 .to_owned(),
         );
     }
+    let mut status_aliases = BTreeSet::new();
+    for item in &statuses {
+        for alias in item
+            .get("raw_values")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+        {
+            if !status_aliases.insert(normalize_key(alias)) {
+                errors.push(format!("overlapping normalized ORDS repair-status alias {alias:?}"));
+            }
+        }
+    }
+    for (code, expected) in [
+        ("0", "unknown"),
+        ("1", "fixed"),
+        ("2", "repairable"),
+        ("3", "end_of_life"),
+        ("", "unknown"),
+    ] {
+        if status_mapping(&statuses, code) != Some(expected) {
+            errors.push(format!(
+                "ORDS repair status code {code:?} must map to {expected}"
+            ));
+        }
+    }
 
     let mut barrier_ids = BTreeSet::new();
     for item in &barriers {
@@ -238,6 +277,34 @@ fn validate_mapping_profile(
         errors.push(
             "ORDS repair-barrier mapping must cover all six v0.3 barriers exactly".to_owned(),
         );
+    }
+    let mut barrier_aliases = BTreeSet::new();
+    for item in &barriers {
+        for alias in item
+            .get("raw_values")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+        {
+            if !barrier_aliases.insert(normalize_key(alias)) {
+                errors.push(format!("overlapping normalized ORDS repair-barrier alias {alias:?}"));
+            }
+        }
+    }
+    for (code, expected) in [
+        ("1", "spare_parts_unavailable"),
+        ("2", "spare_parts_too_expensive"),
+        ("3", "product_cannot_be_opened"),
+        ("4", "repair_information_unavailable"),
+        ("5", "equipment_unavailable"),
+        ("6", "item_too_worn_out"),
+    ] {
+        if barrier_mapping(&barriers, code) != Some(expected) {
+            errors.push(format!(
+                "ORDS repair barrier code {code:?} must map to {expected}"
+            ));
+        }
     }
 
     if !errors.is_empty() {
@@ -390,6 +457,14 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
             text_at(item, "ords_product_category").map(|raw| (normalize_key(raw), item))
         })
         .collect();
+    let categories_by_id: BTreeMap<u64, &Value> = categories
+        .iter()
+        .filter_map(|item| {
+            item.get("ords_product_category_id")
+                .and_then(Value::as_u64)
+                .map(|id| (id, item))
+        })
+        .collect();
 
     let mut summary = OrdsAuditSummary {
         row_count: 0,
@@ -402,6 +477,7 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
         category_candidate_row_count: 0,
         category_ambiguous_row_count: 0,
         category_unmapped_row_count: 0,
+        category_id_label_mismatch_row_count: 0,
         duplicate_identity_row_count: 0,
         missing_identity_row_count: 0,
         invalid_status_row_count: 0,
@@ -437,9 +513,29 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
         let normalized_status = status_mapping(&statuses, raw_status);
         let raw_barrier = raw_field(&record, &indexes, "repair_barrier_if_end_of_life");
         let raw_category = raw_field(&record, &indexes, "product_category");
+        let raw_category_id = raw_field(&record, &indexes, "product_category_id");
         let raw_partner_category = raw_field(&record, &indexes, "partner_product_category");
         let raw_brand = raw_field(&record, &indexes, "brand");
-        let category = categories_by_key.get(&normalize_key(raw_category)).copied();
+        let category_by_id = raw_category_id
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .and_then(|id| categories_by_id.get(&id).copied());
+        let (category, mapping_match_method) = if raw_category_id.trim().is_empty() {
+            match categories_by_key.get(&normalize_key(raw_category)).copied() {
+                Some(item) => (Some(item), "normalized_label_fallback"),
+                None => (None, "unmapped"),
+            }
+        } else {
+            match category_by_id {
+                Some(item) => (Some(item), "product_category_id"),
+                None => (None, "unmapped_product_category_id"),
+            }
+        };
+        let category_id_label_mismatch = category.is_some()
+            && !raw_category.trim().is_empty()
+            && normalize_key(text_at(category.unwrap(), "ords_product_category").unwrap_or(""))
+                != normalize_key(raw_category);
 
         let identity = source_identity(&record, &indexes);
         let stable_record_key = identity
@@ -449,6 +545,10 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
         if identity.is_none() {
             reasons.push("identity_components_missing".to_owned());
             summary.missing_identity_row_count += 1;
+        }
+        if category_id_label_mismatch {
+            reasons.push("product_category_id_label_mismatch".to_owned());
+            summary.category_id_label_mismatch_row_count += 1;
         }
         if let Some(identity) = &identity {
             if identity_counts.get(identity).copied().unwrap_or(0) > 1 {
@@ -557,9 +657,10 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
             },
             "product_category_mapping": {
                 "raw_product_category": raw_category,
+                "raw_product_category_id": raw_category_id,
                 "raw_partner_product_category": raw_partner_category,
                 "mapping_version": mapping_version,
-                "mapping_match_method": "trim_whitespace_and_casefold",
+                "mapping_match_method": mapping_match_method,
                 "mapping_status": category_status,
                 "target_family_id_candidate": category_family,
                 "confidence": category_confidence,
@@ -844,6 +945,72 @@ mod tests {
                 .iter()
                 .any(|error| error.contains("missing required v0.3 columns"))
         );
+    }
+
+    #[test]
+    fn optional_product_category_and_brand_fields_are_not_required() {
+        let csv = b"id,partner_product_category,repair_status,problem,event_date,country,data_provider\\nr-opt,Small home electrical,0,unknown,2026-06-01,ZAF,provider-opt\\n";
+        let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
+        assert_eq!(summary.row_count, 1);
+        assert_eq!(summary.accepted_row_count, 1);
+        let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
+        assert_eq!(record["raw_fields"].get("brand"), None);
+        assert_eq!(record["raw_fields"].get("product_category"), None);
+        assert_eq!(record["repair_status"]["normalized_value"], "unknown");
+        assert_eq!(record["product_category_mapping"]["mapping_status"], "unmapped");
+        assert_eq!(record["product_category_mapping"]["mapping_match_method"], "unmapped");
+    }
+
+    #[test]
+    fn category_id_label_disagreement_is_quarantined() {
+        let source = String::from_utf8(CSV.to_vec()).unwrap();
+        let changed = source.replace(",Toaster,31,", ",Coffee maker,31,");
+        assert_ne!(source, changed, "mutation must change the synthetic category label");
+        let (summary, output) = run_fixture(SCHEMA, PROFILE, changed.as_bytes());
+        assert_eq!(summary.category_id_label_mismatch_row_count, 1);
+        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+        let mismatched = records
+            .iter()
+            .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-004")
+            .unwrap();
+        assert_eq!(mismatched["quarantine"]["disposition"], "quarantined");
+        assert_eq!(
+            mismatched["product_category_mapping"]["mapping_match_method"],
+            "product_category_id"
+        );
+    }
+
+    #[test]
+    fn ords_numeric_status_codes_cannot_be_reassigned() {
+        let mut profile: Value = serde_json::from_str(PROFILE).unwrap();
+        profile["repair_status_mappings"][1]["raw_values"][0] = json!("9");
+        let profile_raw = serde_json::to_string(&profile).unwrap();
+        let mut output = Vec::new();
+        let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
+            .expect_err("ORDS Fixed status code cannot be reassigned");
+        assert!(errors.iter().any(|error| error.contains("ORDS repair status code \"1\" must map to fixed")));
+    }
+
+    #[test]
+    fn ords_numeric_barrier_codes_cannot_be_reassigned() {
+        let mut profile: Value = serde_json::from_str(PROFILE).unwrap();
+        profile["repair_barrier_mappings"][0]["raw_values"][0] = json!("9");
+        let profile_raw = serde_json::to_string(&profile).unwrap();
+        let mut output = Vec::new();
+        let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
+            .expect_err("ORDS barrier code cannot be reassigned");
+        assert!(errors.iter().any(|error| error.contains("ORDS repair barrier code \"1\" must map to spare_parts_unavailable")));
+    }
+
+    #[test]
+    fn overlapping_status_aliases_are_rejected() {
+        let mut profile: Value = serde_json::from_str(PROFILE).unwrap();
+        profile["repair_status_mappings"][0]["raw_values"].as_array_mut().unwrap().push(json!("1"));
+        let profile_raw = serde_json::to_string(&profile).unwrap();
+        let mut output = Vec::new();
+        let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
+            .expect_err("overlapping status aliases must fail closed");
+        assert!(errors.iter().any(|error| error.contains("overlapping normalized ORDS repair-status alias")));
     }
 
     #[test]

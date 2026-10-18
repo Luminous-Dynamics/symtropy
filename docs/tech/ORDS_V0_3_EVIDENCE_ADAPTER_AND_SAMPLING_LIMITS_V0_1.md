@@ -16,8 +16,8 @@ Treat repair data as **observations plus an explicit selection mechanism**, not 
 
 - Every source row produces exactly one JSONL row, either `accepted` or `quarantined`. CSV structure errors, absent required columns, duplicate column names or invalid mapping configuration fail closed.
 - The SHA-256 of the exact input bytes, mapping profile and schema is reported and copied to each row. Dataset release, ORDS version, source URL, retrieval date, CC BY-SA 4.0 licence, provider, group, source ID and event/record dates are retained.
-- Every input column/value is copied into `raw_fields`. Original `partner_product_category`, `product_category`, `brand`, repair status, problem text, and barrier text are never overwritten.
-- Product-category mapping is versioned and exact after whitespace collapse/case-folding. A family mapping is a low-confidence **candidate** only; aggregate categories may stay ambiguous; unknown categories remain unmapped. Brand normalization only trims/collapses whitespace and case-folds; it does not perform entity resolution.
+- Every input column/value is copied into `raw_fields`. Original `partner_product_category`, `product_category`, `product_category_id`, `brand`, repair status, problem text, and barrier text are never overwritten. Optional columns remain optional as defined by ORDS v0.3.
+- ORDS `product_category_id` is the preferred category mapping key. A configured ID that conflicts with a non-empty category label quarantines the row. Label fallback is permitted only when the ID is absent; an unconfigured present ID stays unmapped instead of being overridden by a friendly label. Product category and brand are optional fields. A family mapping is a low-confidence **candidate** only; aggregate categories may stay ambiguous. Brand normalization only trims/collapses whitespace and case-folds; it does not perform entity resolution.
 - ORDS statuses remain distinct: `Fixed`, `Repairable`, `End of life`, and `Unknown`. Empty/zero/Unknown maps to unknown, not a failed repair. Any unrecognized status is quarantined with the raw value preserved.
 - `repair_barrier_if_end_of_life` is normalized only for an `End of life` row. A barrier on any other status, or an unrecognized barrier on an end-of-life row, is quarantined.
 - If `provider + group + id` repeats, **all colliding rows** are quarantined, not first-wins. Missing provider or ID gets an explicit identity exception. Group identifier is optional in ORDS v0.3, so an absent group is preserved as empty and never silently invented.
@@ -39,7 +39,7 @@ The output is a line-oriented file; the CLI's ordinary JSON report includes row 
 
 ## Contract fixture
 
-The ten-row fixture is entirely synthetic. It covers a fixed event outcome, repairable outcome, empty/zero unknown, valid end-of-life barrier, invalid barrier, invalid status, duplicated identity, a barrier/status mismatch, ambiguous aggregate category and unmapped category. Expected accounting: 10 rows; 5 accepted and 5 quarantined (the two repeated IDs are both quarantined); all 10 are emitted. These are contract examples, not empirical results.
+The ten-row fixture is entirely synthetic. It covers stable category IDs, a fixed event outcome, repairable outcome, empty/zero unknown, valid end-of-life barrier, invalid barrier, invalid status, duplicated identity, a barrier/status mismatch, ambiguous aggregate category and unmapped category. A separate test omits optional product-category and brand columns, and a negative control deliberately makes category ID and label disagree. Expected accounting: 10 rows; 5 accepted and 5 quarantined (the two repeated IDs are both quarantined); all 10 are emitted. These are contract examples, not empirical results.
 
 ## Benchmarks and acceptance gates
 
