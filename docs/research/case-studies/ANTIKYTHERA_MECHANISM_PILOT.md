@@ -1,0 +1,69 @@
+# Pilot case study: Antikythera Mechanism reconstruction dispute
+
+**Status:** Research seed; not an adjudicated historical reconstruction  
+**Purpose:** Stress-test evidence links, uncertainty, chronology, competing reconstructions, and rights metadata  
+**Data fixture:** `crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json`
+
+## Why this is a useful engineering pilot
+
+This is selected for its epistemic stress-test value, not as the first or most important human advance. The case crosses mathematics, astronomical cycles, bronze gearing, inscription interpretation, and modern imaging. The evidence is fragmentary, and published accounts contain meaningfully different interpretations of the front calendar ring.
+
+The seed records seven claims, six bibliographic sources, two explicit challenge relations, one interval-valued construction date, and no media assets. It includes:
+- A 365-hole movable calendar-ring interpretation in a 2008 reconstruction;
+- A 354-day lunar-calendar proposal from later hole-spacing analysis;
+- A 2024 study's uncertainty-qualified hole-count estimates;
+- A 2025 paper's candidate kinematic designs under a 354-division assumption;
+- The published use of Babylonian arithmetic-progression cycles in eclipse prediction.
+
+It deliberately **does not** infer a complete direct cultural-transmission route merely because Babylonian cycles appear in a Greek mechanism. The connection between knowledge traditions deserves its own evidence, actors, places, translation or travel records, and uncertainty. A timeline ordering alone is not a transmission claim.
+
+## Research sources and how they are used
+
+1. **Freeth et al. (2006), Nature:** [Decoding the ancient Greek astronomical calculator](https://doi.org/10.1038/nature05357). The abstract dates the device toward the end of the second century BCE and describes eclipse predictions based on Babylonian arithmetic-progression cycles. It also acknowledges fragmentary evidence and controversial functions.
+2. **Freeth et al. (2008), Nature:** [Calendars with Olympiad display and eclipse prediction](https://doi.org/10.1038/nature07130). Its supplementary description presents a 365-hole movable calendar scale.
+3. **Freeth et al. (2021), Scientific Reports:** [A Model of the Cosmos](https://doi.org/10.1038/s41598-021-84310-w). This paper proposes a specific epicyclic front mechanism consistent with its reading of the surviving inscriptions and spatial constraints. UCL Discovery identifies the article as CC BY 4.0; third-party figures still need their own credit-line review.
+4. **Budiselic et al. (2020/2021), British Horological Institute:** [Evidence of a Lunar Calendar](https://bhi.co.uk/wp-content/uploads/2020/12/BHI-Antikythera-Mechanism-Evidence-of-a-Lunar-Calendar.pdf). This analysis challenges the assumed 365-day ring and proposes 354 days using measurements of surviving holes.
+5. **Woan and Bayley (2024), Horological Journal:** [An improved calendar ring hole-count](https://eprints.gla.ac.uk/329337/). Its abstract reports a 68% credible estimate of 355.24 holes (+1.39/-1.36) from all measured points, and 354.08 (+1.47/-1.41) after excluding holes adjacent to fractures. The authors state that 365 holes are not plausible under their model assumptions.
+6. **Lin (2025), Results in Engineering:** [New reconstruction designs](https://doi.org/10.1016/j.rineng.2025.108632). The abstract describes three candidate date-subsystem designs under a 354-division lunar-ring interpretation. The exact reuse license has not been normalized in this seed; only citation metadata is stored.
+
+Bibliographic links are not equivalent to bundling the paper or its imagery. The fixture's rights records preserve this distinction: the 2021 article has a verified CC BY 4.0 record; unknown rights remain unknown; no paper or media files are redistributed.
+
+## Validation and adversarial tests
+
+Run from the Symtropy workspace root:
+
+```sh
+cargo test -p humanity-history-core
+cargo run -p humanity-history-core --bin humanity-history-validate -- crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
+```
+
+The first command should run the core's unit suite; the second should emit JSON with `valid: true` and zero issues. These are **expected outputs**, not test results claimed by this research seed. The code must be compiled and run in a Rust-enabled environment before acceptance.
+
+Required mutation controls for the case study:
+
+1. Remove one referenced source from `sources`: validation must emit `missing_source_reference`.
+2. Change the only support link on the 2024 claim to `challenges`: validation must emit `missing_evidence_for_claim`; a challenge must never satisfy a positive-support gate.
+3. Reverse the construction interval's endpoints: validation must emit `invalid_time_interval`.
+4. Change the 2024-to-2008 challenge edge's evidence relation from `supports` to `challenges`: validation must emit `missing_evidence_for_relation`; the edge is documented by evidence that the challenge was made, not by a citation that merely opposes it.
+5. Change the schema version to an unsupported value: validation must emit `unsupported_schema_version`.
+6. Add a distributable asset with `unknown` rights: validation must fail closed with `undistributable_rights`.
+
+Interpretation-level checks, which the structural validator cannot yet automate:
+- The user can open both 365- and 354-division branches from the same dispute node.
+- Every model-specific quantitative result displays the assumptions and uncertainty from the relevant paper.
+- The interface distinguishes a published claim, a proposed reconstruction, and the underlying physical observation.
+- A simulated gear train is never presented as proof that the ancient maker used that exact train.
+- No source claims that temporal precedence by itself establishes historical influence.
+
+## Acceptance criteria for this pilot
+
+- Structural validator returns zero issues on the unmodified seed.
+- Each mutation above fails with the expected error code and no unrelated error.
+- Both competing ring interpretations remain queryable; neither is silently deleted or averaged into one answer.
+- Citation locators and reuse-status decisions are inspectable.
+- A later visualization links gear/dial elements to claim IDs and shows each reconstruction's assumptions.
+- An independent reviewer can reproduce the result from the pinned dataset version without a live model or online service.
+
+## Coverage limitation
+
+This pilot is not a representative sample of global human history and must not become the default template for what counts as a major advance. A subsequent case study should be chosen using published-source access, local or community review, multilingual evidence, rights constraints, and clear significance criteria—while broadening the corpus beyond Mediterranean mechanical astronomy.
