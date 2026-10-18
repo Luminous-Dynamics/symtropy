@@ -485,29 +485,29 @@ pub fn parse_rfc3339_timestamp(input: &str) -> Result<ParsedTimestamp, Timestamp
     }
 
     let (offset_minutes, offset_semantics, consumed) = match bytes.get(index).copied() {
-            Some(b'Z' | b'z') if index + 1 == bytes.len() => {
-                (0i16, TimestampOffsetSemantics::UtcDesignator, index + 1)
+        Some(b'Z' | b'z') if index + 1 == bytes.len() => {
+            (0i16, TimestampOffsetSemantics::UtcDesignator, index + 1)
+        }
+        Some(b'+' | b'-') => {
+            if bytes.len() != index + 6 || bytes[index + 3] != b':' {
+                return Err(TimestampParseError::InvalidTimezone);
             }
-            Some(b'+' | b'-') => {
-                if bytes.len() != index + 6 || bytes[index + 3] != b':' {
-                    return Err(TimestampParseError::InvalidTimezone);
-                }
-                let offset_hour = parse_digits(bytes, index + 1, 2)? as i16;
-                let offset_minute = parse_digits(bytes, index + 4, 2)? as i16;
-                if offset_hour > 23 || offset_minute > 59 {
-                    return Err(TimestampParseError::InvalidTimezone);
-                }
-                let sign = if bytes[index] == b'+' { 1 } else { -1 };
-                let minutes = sign * (offset_hour * 60 + offset_minute);
-                let semantics = if sign == -1 && offset_hour == 0 && offset_minute == 0 {
-                    TimestampOffsetSemantics::UnknownLocalOffset
-                } else {
-                    TimestampOffsetSemantics::ExplicitOffset
-                };
-                (minutes, semantics, index + 6)
+            let offset_hour = parse_digits(bytes, index + 1, 2)? as i16;
+            let offset_minute = parse_digits(bytes, index + 4, 2)? as i16;
+            if offset_hour > 23 || offset_minute > 59 {
+                return Err(TimestampParseError::InvalidTimezone);
             }
-            _ => return Err(TimestampParseError::InvalidTimezone),
-        };
+            let sign = if bytes[index] == b'+' { 1 } else { -1 };
+            let minutes = sign * (offset_hour * 60 + offset_minute);
+            let semantics = if sign == -1 && offset_hour == 0 && offset_minute == 0 {
+                TimestampOffsetSemantics::UnknownLocalOffset
+            } else {
+                TimestampOffsetSemantics::ExplicitOffset
+            };
+            (minutes, semantics, index + 6)
+        }
+        _ => return Err(TimestampParseError::InvalidTimezone),
+    };
     if consumed != bytes.len() {
         return Err(TimestampParseError::TrailingCharacters);
     }
@@ -606,18 +606,12 @@ pub fn validate_observation(
                 return Err(RejectionReason::UnknownBerth(value.clone()));
             }
         }
-        (
-            PcoField::ArrivalAtPilotBoardingPlace,
-            ObservedValue::Timestamp { .. },
-        )
-        | (
-            PcoField::DepartureFromBerth,
-            ObservedValue::Timestamp { .. },
-        ) if observation
-            .location_context
-            .as_ref()
-            .is_some_and(|location| !location.trim().is_empty()) =>
-        {}
+        (PcoField::ArrivalAtPilotBoardingPlace, ObservedValue::Timestamp { .. })
+        | (PcoField::DepartureFromBerth, ObservedValue::Timestamp { .. })
+            if observation
+                .location_context
+                .as_ref()
+                .is_some_and(|location| !location.trim().is_empty()) => {}
         (
             PcoField::ArrivalAtPilotBoardingPlace | PcoField::DepartureFromBerth,
             ObservedValue::Timestamp { .. },
