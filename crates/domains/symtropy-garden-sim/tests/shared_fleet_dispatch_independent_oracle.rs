@@ -339,7 +339,7 @@ fn no_compatible_robot_is_counted_explicitly() {
 }
 
 #[test]
-fn modeled_and_observed_travel_minutes_remain_separate() {
+fn observed_trip_time_is_not_used_as_future_forecast() {
     let mut observed = route("robot-1", "site-a", "site-b", 4);
     observed.metric = DispatchTravelMetricV1::ObservedTripTime;
     observed.method_id = Some("synthetic-trip-log".into());
@@ -352,23 +352,21 @@ fn modeled_and_observed_travel_minutes_remain_separate() {
             request("request-b", "site-b", 30, Some(1)),
         ],
         vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
-        vec![
-            route("robot-1", "depot", "site-a", 3),
-            observed,
-        ],
+        vec![route("robot-1", "depot", "site-a", 3), observed],
     ))
     .unwrap();
 
+    assert_eq!(report.scheduled_count, 1);
     assert_eq!(report.total_modeled_route_minutes, 3);
-    assert_eq!(report.total_observed_trip_minutes, 4);
     assert_eq!(
         assignment(&report, "request-a").travel_metric,
         Some(DispatchTravelMetricV1::ModeledRouteTime)
     );
     assert_eq!(
-        assignment(&report, "request-b").travel_metric,
-        Some(DispatchTravelMetricV1::ObservedTripTime)
+        assignment(&report, "request-b").disposition,
+        SharedFleetDispatchDispositionV1::UnknownTravelEvidence
     );
+    assert_eq!(assignment(&report, "request-b").travel_minutes, None);
 }
 
 #[test]
