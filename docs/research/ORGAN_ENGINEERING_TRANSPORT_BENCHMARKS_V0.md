@@ -282,23 +282,36 @@ Do not use visual similarity, a large cell count, or one successful perfusion mo
 
 The next software tranche should encode these distinctions in benchmark metadata and hostile fixtures before adding complex biological simulation.
 
-## Q0 executable corpus verifier
+## Q0 executable verifier and exact-head receipt
 
-The first executable tranche now includes a test-driven verifier under `research/organ-transport-q0/tests/fixture_corpus.rs`. The numerical reference library has no runtime dependencies; `serde_json` and `sha2` are development-only dependencies for parsing fixtures and verifying exact bytes.
+The isolated numerical reference library remains dependency-free at runtime. The test harness uses development-only `serde_json` and `sha2` to execute the checked-in fixtures and compare their exact bytes against `research/organ-transport-q0/corpus-manifest.v0.json`.
 
-Pinned inputs:
-- `tube-reference-cases.v0.json`: five cases for an analytic baseline, pressure reversal, zero pressure, nonpositive radius, and a non-finite pressure negative control.
-- `network-reference-cases.v0.json`: three prescribed-pressure networks—two equal-resistance tubes in series, one inlet splitting into two equal outlets, and two inlets merging to one outlet. The verifier checks each edge's analytical flow and mass conservation at every declared internal junction.
-- `corpus-manifest.v0.json`: pins SHA-256 and byte length for both JSON inputs. The verifier refuses byte drift until the corpus change is reviewed and the digest manifest is intentionally repinned.
+### Pinned fixture coverage
 
-Executable commands:
+- `tube-reference-cases.v0.json`: five ordered cases—analytic baseline, pressure reversal, zero pressure, nonpositive radius and non-finite pressure.
+- `network-reference-cases.v0.json`: six ordered prescribed-pressure cases—equal-resistance series flow, equal-outlet bifurcation, two-inlet merge, 3:1 asymmetric outlet split, two-level branching with two internal junctions, and reversed edge orientation producing signed negative flow.
+- `corpus-manifest.v0.json`: pins SHA-256, byte length, case count and ordered case IDs for both exact JSON inputs. Fixture edits require deliberate review and an intentional manifest update; edits cannot silently drift the pinned inputs.
+
+The network cases calculate edge flow from pre-specified node pressures and the Hagen–Poiseuille formula. They check every edge result and signed mass-balance residual at each internal junction. They do **not** solve for unknown node pressures. This keeps Q0’s analytical oracle small enough to inspect independently before any network solver or optimizer is admitted.
+
+### Exact execution and receipt
+
+From the repository root, with Rust 1.96.0 and `sha256sum` available:
+
 ```sh
-cargo fmt --manifest-path research/organ-transport-q0/Cargo.toml -- --check
-cargo test --manifest-path research/organ-transport-q0/Cargo.toml
+bash research/organ-transport-q0/verify-q0.sh \
+  target/organ-transport-q0-receipt.json \
+  "$(git rev-parse HEAD)"
 ```
 
-The network fixtures prescribe node pressures and check the resulting flows; they do not yet solve an unknown-pressure network. That is intentional: Q0 first verifies constitutive equations and conservation against exact analytical cases before introducing a network solver or design optimization.
+The verifier runs the isolated crate’s formatting check and Cargo unit/integration tests, then emits a receipt shaped by `benchmark-receipt.schema.json`. The receipt binds the exact code commit, Rust toolchain, per-file SHA-256 and byte length evidence, combined fixture digest, configuration identity, test/format outcomes, model assumptions, and claim ceiling.
 
-A dedicated `Organ Transport Q0` workflow now pins Rust 1.96.0, checks formatting, and executes the isolated unit and fixture-corpus tests. A future versioned result receipt must include this source SHA, the manifest and fixture digests, the toolchain, exact commands and observed outcomes; a matching hash identifies bytes but does not prove their scientific correctness. Its status must be read from the run attached to the exact final source SHA. A queued run, a previous-head success, or the existence of a fixture is not a passing receipt. Because this editing environment has no `cargo` or `rustc`, Rust execution has not been performed locally; the exact-head workflow remains the required verification evidence.
+Status semantics are explicit: `PASS` means both required commands passed; `FAIL` means a required command failed; `BLOCKED` means the full required gate could not be completed; `NOT_RUN` means the Rust test/format commands could not execute. Any non-PASS status exits nonzero. The `Organ Transport Q0` workflow checks out the exact PR head and uploads the generated receipt even on failure. A queued run, a prior-head success, or a fixture file is not a passing receipt.
 
-This verifier's maximum claim is analytical/software conformance under the declared steady, laminar, Newtonian, rigid-tube assumptions. It does not validate pressure solutions for arbitrary networks, pulsatile flow, vessel compliance, barrier transport, oxygen delivery, viability, tissue-specific biology, or clinical use.
+### Research boundary
+
+The 15 October 2026 *Nature Biomedical Engineering* editorial emphasizes that the value of organoids, organs-on-chips and microphysiological systems depends on generating actionable physiological/disease insights and improving reproducibility—not simply making constructs resemble native tissue. It also notes that no single in-vitro model captures the full complexity of human biology. [Editorial](https://doi.org/10.1038/s41551-026-01824-2).
+
+ISO/CD 25693 remains under development, with the ISO page listing a draft in committee review; it should inform context-of-use discipline but must not be described as a final published standard. [ISO project status](https://www.iso.org/standard/91185.html).
+
+Q0’s maximum claim is **analytic/software conformance** under steady, laminar, Newtonian, rigid-tube assumptions. It does not establish physical transport accuracy, pulsatile hemodynamics, vessel compliance, barrier permeability, oxygen delivery, tissue viability, organ function, disease-model validity, transplant readiness or clinical safety.
