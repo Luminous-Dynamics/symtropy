@@ -4,7 +4,9 @@ This offline, dependency-free Rust crate starts the INDUSTRIAL-SCHED-REF-001
 benchmark track. It pins two classic job-shop (JSP) instances, validates their
 input format, computes workload lower bounds, and provides a bounded exhaustive
 makespan oracle for tiny cases. The oracle emits operation-level start/finish records
-and audits precedence, machine exclusivity, assignment, duration, and makespan.
+and audits precedence, machine exclusivity, assignment, duration, and makespan. Three
+deterministic dispatch baselines (shortest processing time, most work remaining, and
+most operations remaining) generate audited feasible schedules for the larger pinned fixtures.
 
 ## Run
 
