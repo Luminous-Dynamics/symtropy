@@ -937,7 +937,10 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
             }
         });
         let robust_status = match upper_with_deadline.status.as_str() {
-            "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL" => "ROBUST_FEASIBLE_CANDIDATE",
+            "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL" => "ROBUST_FEASIBLE_CANDIDATE_NOT_PROVEN_OPTIMAL",
+            "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL" => {
+                "ROBUST_FEASIBLE_CANDIDATE_NOT_PROVEN_OPTIMAL"
+            }
             "PROVEN_INFEASIBLE_PRECHECK" => {
                 "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT"
             }
@@ -1040,6 +1043,10 @@ mod tests {
             "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL"
         );
         assert_eq!(result.nominal.makespan, Some(19));
+        assert_eq!(
+            result.robust_status,
+            "ROBUST_FEASIBLE_CANDIDATE_NOT_PROVEN_OPTIMAL"
+        );
         assert_eq!(result.optimality_claim, "NOT_PROVEN");
     }
 
