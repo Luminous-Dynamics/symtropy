@@ -249,6 +249,7 @@ All numeric targets below are **proposed acceptance targets**, not measured curr
 ### 6.2 Quantitative evidence and reconstruction comparison
 
 - Numeric values are stored as decimal strings with units and source anchors; the validator rejects non-finite values and reversed uncertainty bounds.
+- Declared point-vs-interval sensitivity probes report interval position and arithmetic distance only. They must be labeled descriptive, never as posterior odds or model probabilities unless a separate, explicit statistical model with validated assumptions is implemented.
 - Credible/confidence intervals require explicit coverage and conditioning notes; a sensitivity variant must not be counted as an independent replication merely because it is a separate estimate record.
 - Every reconstruction model points to its target claims and quantitative estimates, declares assumptions, and carries source evidence.
 - Every model comparison contains at least two distinct models, named evaluation axes, and a declared decision rule. Per-model/per-axis assessments distinguish source-reported findings, independently reproduced results, hypotheses, and not-evaluated axes; independently reproduced results require a versioned validation artifact. The default case-study rule is no aggregate winner when axes or evidence are not comparable.
