@@ -21,6 +21,10 @@ fn main() -> ExitCode {
     let workload_path = &supplied[2];
     let receipt_path = &supplied[3];
     let source_commit = supplied[4].to_string_lossy();
+    if matrix_path == workload_path || matrix_path == receipt_path || workload_path == receipt_path {
+        eprintln!("error: matrix, workload, and receipt paths must be distinct");
+        return ExitCode::from(2);
+    }
 
     let matrix_bytes = match fs::read(matrix_path) {
         Ok(bytes) => bytes,
