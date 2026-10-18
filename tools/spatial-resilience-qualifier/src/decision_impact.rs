@@ -1467,7 +1467,11 @@ mod tests {
             EMBEDDED_DECISION_IMPACT_CORPUS.as_bytes(),
             EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
         );
-        let case = summary.results.iter().find(|result| result.case_id == "SPR-V-001").unwrap();
+        let case = summary
+            .results
+            .iter()
+            .find(|result| result.case_id == "SPR-V-001")
+            .unwrap();
         let action = case
             .actions
             .iter()
@@ -1505,8 +1509,16 @@ mod tests {
             .iter()
             .find(|item| item.action_id == "targeted-clearance-survey")
             .expect("targeted survey result");
-        assert!(action.rejection_codes.contains(&"ACTION_STATE_UNDECLARED".to_owned()));
-        assert!(action.rejection_codes.contains(&"ACTION_PARTITION_INCOMPLETE".to_owned()));
+        assert!(
+            action
+                .rejection_codes
+                .contains(&"ACTION_STATE_UNDECLARED".to_owned())
+        );
+        assert!(
+            action
+                .rejection_codes
+                .contains(&"ACTION_PARTITION_INCOMPLETE".to_owned())
+        );
     }
 
     #[test]
@@ -1559,10 +1571,7 @@ mod tests {
         answer
     }
 
-    fn reference_objectives(
-        candidate: &Candidate,
-        states: &[String],
-    ) -> Option<ObjectiveVector> {
+    fn reference_objectives(candidate: &Candidate, states: &[String]) -> Option<ObjectiveVector> {
         let mut service_hours = u64::MAX;
         let mut energy_units = 0;
         let mut repair_ticks = 0;
@@ -1639,12 +1648,10 @@ mod tests {
         corpus["cases"][4]["unresolved_critical_unknown_ids"] =
             serde_json::json!(["fire-separation-review", "structural-load-review"]);
         let bytes = serde_json::to_vec(&corpus).expect("serialize augmented unknowns");
-        let mut summary = DecisionImpactSummary::new(
-            &bytes,
-            EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes(),
-        );
-        let scenario = parse_scenario(&corpus["cases"][4], 4, &mut summary)
-            .expect("scenario should parse");
+        let mut summary =
+            DecisionImpactSummary::new(&bytes, EMBEDDED_DECISION_IMPACT_SCHEMA.as_bytes());
+        let scenario =
+            parse_scenario(&corpus["cases"][4], 4, &mut summary).expect("scenario should parse");
         let result = evaluate_scenario(&scenario);
         let combined = result
             .actions
@@ -1661,13 +1668,9 @@ mod tests {
                 .iter()
                 .all(|outcome| outcome.robust_feasible_candidate_ids.is_empty())
         );
-        assert!(
-            combined
-                .outcomes
-                .iter()
-                .all(|outcome| outcome.remaining_critical_unknown_ids
-                    == vec!["structural-load-review"])
-        );
+        assert!(combined.outcomes.iter().all(
+            |outcome| outcome.remaining_critical_unknown_ids == vec!["structural-load-review"]
+        ));
     }
 
     #[test]
