@@ -8,7 +8,7 @@
 
 This is selected for its epistemic stress-test value, not as the first or most important human advance. The case crosses mathematics, astronomical cycles, bronze gearing, inscription interpretation, and modern imaging. The evidence is fragmentary, and published accounts contain meaningfully different interpretations of the front calendar ring.
 
-The seed records nine claims, seven source records (including the input-data DOI), two explicit challenge relations, ten quantitative estimates, four point-vs-interval probes, three paired posterior sensitivity deltas, and no media assets. The actual Harvard Dataverse measurements have not yet been downloaded or hashed. It includes:
+The seed records nine claims, seven source records (including the input-data DOI), two explicit challenge relations, 30 quantitative estimates, four point-vs-interval probes, thirteen paired posterior sensitivity deltas, one comparison group with explicit assessment states, and one planned (not executed) reproduction run. No source paper or media files are bundled. The actual Harvard Dataverse measurements have not yet been downloaded or hashed. It includes:
 - A 365-hole movable calendar-ring interpretation in a 2008 reconstruction;
 - A 354-day lunar-calendar proposal from later hole-spacing analysis;
 - A 2024 study's uncertainty-qualified hole-count estimates;
@@ -47,9 +47,19 @@ The seed now also records six source-reported discrete posterior probabilities f
 
 | Integer hole count | Full data | Trimmed data | Delta (trimmed − full) |
 |---:|---:|---:|---:|
+| 349 | 0.0000 | 0.0006 | +0.0006 |
+| 350 | 0.0002 | 0.0055 | +0.0053 |
+| 351 | 0.0027 | 0.0293 | +0.0266 |
+| 352 | 0.0187 | 0.0978 | +0.0791 |
+| 353 | 0.0776 | 0.2056 | +0.1280 |
 | 354 | 0.1917 | 0.2714 | +0.0797 |
 | 355 | 0.2823 | 0.2251 | −0.0572 |
 | 356 | 0.2479 | 0.1173 | −0.1306 |
+| 357 | 0.1298 | 0.0384 | −0.0914 |
+| 358 | 0.0405 | 0.0079 | −0.0326 |
+| 359 | 0.0075 | 0.0010 | −0.0065 |
+| 360 | 0.0008 | 0.0001 | −0.0007 |
+| 361 | 0.0001 | 0.0000 | −0.0001 |
 
 The paper describes its trimmed set as excluding short segments S5/S6 and the first and last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76, and 81). The paired deltas subtract source values rounded to four decimal places; they are not newly computed posterior probabilities.
 
