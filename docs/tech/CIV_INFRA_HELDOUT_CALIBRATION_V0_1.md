@@ -14,7 +14,7 @@ V0.1 uses conservative interval arithmetic and synthetic exact truth. It does no
 
 Each record has an explicit split, case ID, site, instrument, model family, applicability domain, quantity unit, model prediction and numerical uncertainty, reference value and reference uncertainty, synthetic ground truth, plus three declared SHA-256 identifiers for case input, model artifact and reference artifact.
 
-The evaluator verifies the digest strings' syntax and exact input bytes' SHA-256. It does not fetch or byte-verify the referenced external artifacts. Their digests are provenance declarations in this prototype, not proof of source retrieval. A future resolver contract must verify external bytes before any real-evidence claim.
+The evaluator verifies the digest strings' syntax, exact input bytes' SHA-256, and a separate canonical split-manifest digest over sorted calibration and holdout case IDs. It does not fetch or byte-verify the referenced external artifacts. Their digests are provenance declarations in this prototype, not proof of source retrieval. A future resolver contract must verify external bytes before any real-evidence claim.
 
 Calibration and holdout IDs must be unique. Site, instrument and model-family IDs may not cross the calibration/holdout boundary. This is a strict leakage guard for the synthetic holdout design. Held-out records whose applicability-domain ID is absent from calibration are reported as not qualified out of domain and excluded from the qualified coverage denominator rather than extrapolated.
 
