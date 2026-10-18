@@ -13,7 +13,7 @@ use symtropy_garden_sim::repair_recovery::{
 };
 use symtropy_garden_sim::service_access::{
     SERVICE_ACCESS_SCHEMA_VERSION_V1, ServiceAccessEvidenceV1, ServiceAccessInputV1,
-    ServiceAccessRequestV1, TravelChargeTreatmentV1,
+    ServiceAccessRequestV1,
 };
 
 fn request(id: &str) -> ServiceAccessRequestV1 {
