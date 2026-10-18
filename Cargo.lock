@@ -9366,6 +9366,7 @@ dependencies = [
  "bevy",
  "serde",
  "serde_json",
+ "sha2",
  "symtropy-demo-capture",
 ]
 
