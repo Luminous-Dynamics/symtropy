@@ -6,13 +6,12 @@ This standalone Rust crate audits the **synthetic** Peace Infrastructure and Res
 
 From the repository root:
 
-\`\`\`sh
-cargo test --manifest-path tools/pirb-audit/Cargo.toml
-cargo run --manifest-path tools/pirb-audit/Cargo.toml
-cargo run --manifest-path tools/pirb-audit/Cargo.toml -- path/to/other-corpus.json
-\`\`\`
+    cargo test --manifest-path tools/pirb-audit/Cargo.toml
+    cargo run --manifest-path tools/pirb-audit/Cargo.toml
+    source_commit="$(git rev-parse HEAD)"
+    cargo run --manifest-path tools/pirb-audit/Cargo.toml -- --source-commit "$source_commit"
 
-The CLI emits a JSON report and exits non-zero if any finding is recorded.
+The CLI emits a JSON receipt with the corpus SHA-256 and source commit, plus per-scenario results. A local run without `--source-commit` is explicitly marked `UNPINNED_LOCAL_RUN` and is not an exact-head receipt. The CLI exits non-zero if any audit finding is recorded.
 
 ## Scope and claim ceiling
 
