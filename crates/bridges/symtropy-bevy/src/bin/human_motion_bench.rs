@@ -13,8 +13,7 @@ use std::{
     collections::BTreeMap,
     env,
     error::Error,
-    fmt,
-    fs,
+    fmt, fs,
     path::{Path, PathBuf},
     process,
     time::Instant,
@@ -193,9 +192,12 @@ impl Trace {
                 "{source}: run.asset_sha256 must be null or 64 hexadecimal characters"
             ));
         }
-        if self.run.split.as_deref().is_some_and(|split| {
-            !matches!(split, "train" | "validation" | "test" | "synthetic")
-        }) {
+        if self
+            .run
+            .split
+            .as_deref()
+            .is_some_and(|split| !matches!(split, "train" | "validation" | "test" | "synthetic"))
+        {
             return fail(format!("{source}: unknown run.split value"));
         }
 
@@ -244,13 +246,13 @@ impl Trace {
         }
 
         if self.timestamps_sec.is_empty() {
-            return fail(format!("{source}: timestamps_sec must contain at least one sample"));
+            return fail(format!(
+                "{source}: timestamps_sec must contain at least one sample"
+            ));
         }
         for (index, time) in self.timestamps_sec.iter().copied().enumerate() {
             if !time.is_finite() {
-                return fail(format!(
-                    "{source}: timestamps_sec[{index}] is not finite"
-                ));
+                return fail(format!("{source}: timestamps_sec[{index}] is not finite"));
             }
             if index > 0 && time <= self.timestamps_sec[index - 1] {
                 return fail(format!(
@@ -299,7 +301,9 @@ impl Trace {
 
         for (joint, positions) in &self.joint_world_m {
             if joint.trim().is_empty() {
-                return fail(format!("{source}: joint_world_m contains an empty joint name"));
+                return fail(format!(
+                    "{source}: joint_world_m contains an empty joint name"
+                ));
             }
             validate_positions(
                 &self.timestamps_sec,
@@ -374,7 +378,10 @@ fn median_sample_interval(timestamps: &[f64]) -> Result<f64, BenchError> {
     if timestamps.len() < 2 {
         return fail("each input trace requires at least two timestamped samples");
     }
-    let mut differences: Vec<f64> = timestamps.windows(2).map(|pair| pair[1] - pair[0]).collect();
+    let mut differences: Vec<f64> = timestamps
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .collect();
     differences.sort_by(f64::total_cmp);
     let middle = differences.len() / 2;
     let median = if differences.len() % 2 == 0 {
@@ -655,8 +662,8 @@ fn evaluate(
         .map_err(|error| BenchError(format!("prediction jerk metric failed: {error}")))?;
     let elapsed_metric_computation_ms = timer.elapsed().as_secs_f64() * 1000.0;
 
-    let synthetic = reference.run.source_kind.is_synthetic()
-        || prediction.run.source_kind.is_synthetic();
+    let synthetic =
+        reference.run.source_kind.is_synthetic() || prediction.run.source_kind.is_synthetic();
     let mut caveats = vec![
         "Low-level trajectory and stance-foot metrics do not prove visual, biomechanical, or behavioral realism.",
         "Foot drift is measured only over predicted contact intervals; false contact labels can make this metric misleading.",
@@ -745,14 +752,16 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
                 let value = args.next().ok_or_else(|| {
                     BenchError("--step-sec requires a positive numeric value".to_owned())
                 })?;
-                requested_step = Some(value.parse::<f64>().map_err(|_| {
-                    BenchError(format!("invalid --step-sec value {value:?}"))
-                })?);
+                requested_step = Some(
+                    value
+                        .parse::<f64>()
+                        .map_err(|_| BenchError(format!("invalid --step-sec value {value:?}")))?,
+                );
             }
             "--output" => {
-                let value = args.next().ok_or_else(|| {
-                    BenchError("--output requires a path".to_owned())
-                })?;
+                let value = args
+                    .next()
+                    .ok_or_else(|| BenchError("--output requires a path".to_owned()))?;
                 output_path = Some(PathBuf::from(value));
             }
             _ if arg.starts_with('-') => {
@@ -826,7 +835,12 @@ mod tests {
         assert_eq!(report.left_stance_foot_drift.max_drift_m, 0.0);
         assert_eq!(report.right_stance_foot_drift.max_drift_m, 0.0);
         assert!(!report.provenance.asset_hashes_match);
-        assert!(report.caveats.iter().any(|value| value.contains("not evidence")));
+        assert!(
+            report
+                .caveats
+                .iter()
+                .any(|value| value.contains("not evidence"))
+        );
     }
 
     #[test]
@@ -867,11 +881,13 @@ mod tests {
     fn rejects_non_synthetic_trace_without_rights_or_provenance() {
         let mut trace = fixture();
         trace.run.source_kind = SourceKind::LicensedAsset;
-        assert!(trace
-            .validate(Path::new("missing-provenance.json"))
-            .unwrap_err()
-            .to_string()
-            .contains("40-character hexadecimal git commit"));
+        assert!(
+            trace
+                .validate(Path::new("missing-provenance.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("40-character hexadecimal git commit")
+        );
     }
 
     #[test]
