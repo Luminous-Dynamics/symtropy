@@ -23,6 +23,8 @@ fn main() {
             closing: 20_000.0,
             tolerance: 1e-9,
         },
+        saleable_product_kg_per_shift: 42_000.0,
+        product_mass_tolerance_kg: 1e-9,
         energy_ledger_kwh: BalanceLedger {
             opening: 30.0,
             inputs: 100.0,
