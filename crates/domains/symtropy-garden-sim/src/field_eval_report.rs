@@ -328,7 +328,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
         );
     }
 
-    let mut screened = BTreeSet::new();
+    let mut screened: BTreeSet<String> = BTreeSet::new();
     for request_ref in &manifest.screened_request_refs {
         if !valid_opaque_reference(request_ref, "req-", 3, 64) {
             push_blocker(
@@ -338,7 +338,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "request reference must be an opaque req-* reference",
             );
         }
-        if !screened.insert(request_ref.as_str()) {
+        if !screened.insert(request_ref.clone()) {
             push_blocker(
                 &mut blockers,
                 FieldEvalBlockerCodeV1::DuplicateScreenedRequest,
@@ -348,7 +348,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
         }
     }
 
-    let mut eligible = BTreeSet::new();
+    let mut eligible: BTreeSet<String> = BTreeSet::new();
     for request_ref in &manifest.eligible_request_refs {
         if !valid_opaque_reference(request_ref, "req-", 3, 64) {
             push_blocker(
@@ -358,7 +358,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "eligible request reference must be an opaque req-* reference",
             );
         }
-        if !eligible.insert(request_ref.as_str()) {
+        if !eligible.insert(request_ref.clone()) {
             push_blocker(
                 &mut blockers,
                 FieldEvalBlockerCodeV1::DuplicateEligibleRequest,
@@ -376,7 +376,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
         }
     }
 
-    let mut exclusions: BTreeMap<&str, &StudyExclusionV1> = BTreeMap::new();
+    let mut exclusions: BTreeMap<String, &StudyExclusionV1> = BTreeMap::new();
     for exclusion in &manifest.exclusions {
         if !screened.contains(exclusion.request_ref.as_str()) {
             push_blocker(
@@ -403,7 +403,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
             );
         }
         if exclusions
-            .insert(exclusion.request_ref.as_str(), exclusion)
+            .insert(exclusion.request_ref.clone(), exclusion)
             .is_some()
         {
             push_blocker(
@@ -436,7 +436,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
         }
     }
 
-    let mut outcomes: BTreeMap<&str, &RequestOutcomeRecordV1> = BTreeMap::new();
+    let mut outcomes: BTreeMap<String, &RequestOutcomeRecordV1> = BTreeMap::new();
     for record in &manifest.outcome_records {
         if !eligible.contains(record.request_ref.as_str()) {
             push_blocker(
@@ -454,7 +454,7 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "outcome classification conflicts with its useful-window state",
             );
         }
-        if outcomes.insert(record.request_ref.as_str(), record).is_some() {
+        if outcomes.insert(record.request_ref.clone(), record).is_some() {
             push_blocker(
                 &mut blockers,
                 FieldEvalBlockerCodeV1::DuplicateOutcomeRecord,
