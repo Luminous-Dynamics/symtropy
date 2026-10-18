@@ -16,8 +16,7 @@ use std::{
 };
 
 const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
-const CLAIM_CEILING: &str =
-    "png-decode-byte-integrity-and-declared-provenance-only; not-visual-quality-or-physical-validation";
+const CLAIM_CEILING: &str = "png-decode-byte-integrity-and-declared-provenance-only; not-visual-quality-or-physical-validation";
 
 /// Metadata supplied by the benchmark runner. Missing values remain explicit;
 /// the receipt is not qualified for comparisons until required fields exist.
@@ -168,7 +167,11 @@ impl CaptureReceipt {
             crate_name: env!("CARGO_PKG_NAME"),
             crate_version: env!("CARGO_PKG_VERSION"),
             capture_stem: stem.into(),
-            capture_status: if capture_complete { "complete" } else { "incomplete" },
+            capture_status: if capture_complete {
+                "complete"
+            } else {
+                "incomplete"
+            },
             capture_complete,
             qualification_status: if qualification_complete {
                 "qualified_metadata"
@@ -428,7 +431,9 @@ mod tests {
         let directory = test_directory();
         let path = directory.join("frame.png");
         write_test_png(&path, 2, 1);
-        let byte_len = fs::metadata(&path).expect("PNG metadata should exist").len();
+        let byte_len = fs::metadata(&path)
+            .expect("PNG metadata should exist")
+            .len();
         let path_string = path.to_string_lossy().into_owned();
 
         let mut metadata = qualified_metadata();
@@ -452,8 +457,7 @@ mod tests {
     fn missing_image_is_incomplete_not_a_successful_capture() {
         let directory = test_directory();
         let missing = directory.join("missing.png").to_string_lossy().into_owned();
-        let receipt =
-            CaptureReceipt::build("test", &[1.5], &[missing], qualified_metadata());
+        let receipt = CaptureReceipt::build("test", &[1.5], &[missing], qualified_metadata());
 
         assert!(!receipt.capture_complete);
         assert_eq!(receipt.capture_status, "incomplete");
@@ -579,10 +583,9 @@ mod tests {
         let second = write_capture_receipt(&directory, "test", &receipt)
             .expect("receipt should be replaceable");
         assert_eq!(first, second);
-        let encoded: serde_json::Value = serde_json::from_slice(
-            &fs::read(&second).expect("receipt should be readable"),
-        )
-        .expect("receipt should contain JSON");
+        let encoded: serde_json::Value =
+            serde_json::from_slice(&fs::read(&second).expect("receipt should be readable"))
+                .expect("receipt should contain JSON");
         assert_eq!(encoded["schema_version"], 1);
         assert_eq!(encoded["capture_status"], "complete");
 
