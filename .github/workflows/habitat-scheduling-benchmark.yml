@@ -55,6 +55,7 @@ jobs:
 
           jq -e '
             .schema_version == "luminous.habitat_schedule_benchmark_report.v0.1" and
+            .scored_duration_scenario == "nominal_duration_only" and
             .total_case_count == 10 and
             .oracle_feasible_case_count == 6 and
             .priority_only_candidate_count == 5 and
