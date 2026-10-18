@@ -117,6 +117,8 @@ The CLI rejects malformed JSON, incomplete required fields, wrong sample counts,
 - **MotionBricks (ACM TOG / SIGGRAPH 2026):** modular latent generation and smart primitives aimed at real-time interactive motion skills. It is a promising baseline for skill composition and detailed control, not proof that our implementation matches the reported results.
 - **Authored Bevy clips:** mandatory cheap baseline for visual transitions and locomotion before introducing a learned generator. The optional Innerscene Maya GLB provides a practical smoke scene with named clips, but its publisher describes the motion as authored periodic-pose recipes rather than motion capture.
 - **Scripted deterministic controller:** mandatory task-success/robustness baseline. The Symthaea component must beat or complement it on predeclared metrics, not merely produce a more complicated trace.
+- **InterPhys (2026):** recent physics-aware synthesis work motivates a dedicated dynamic-contact suite spanning body, object and scene interactions and force/torque consistency. Our current trace format measures kinematics/contact labels, not forces; do not claim physical-dynamics parity until force residuals and dynamic object interaction are instrumented.
+- **AnimationBench (2026):** video-model animation evaluation operationalizes character consistency and motion rationality. It may inform blinded visual/perceptual dimensions, but its video-generation scores are not directly comparable to rigged 3D skeletal animation.
 
 ## Next implementation slices
 
@@ -131,6 +133,9 @@ The CLI rejects malformed JSON, incomplete required fields, wrong sample counts,
 
 - Bevy 0.19 animated glTF example: https://github.com/bevyengine/bevy/blob/v0.19.0/examples/animation/animated_mesh_control.rs
 - ARDY paper: https://arxiv.org/abs/2607.08741
+- MotionBricks — scalable modular motion generation and smart primitives: https://doi.org/10.1145/3811334
+- InterPhys — physics-aware human motion synthesis in dynamic scenes: https://arxiv.org/abs/2605.01036
+- AnimationBench — character-centric animation evaluation: https://arxiv.org/abs/2604.15299
 - ARDY implementation and evaluation notes: https://github.com/nv-tlabs/ardy
 - MotionBricks paper and project: https://nvlabs.github.io/motionbricks/
 - AMASS license: https://github.com/nghorbani/amass/blob/master/LICENSE.txt
