@@ -23,11 +23,12 @@ pub mod telemetry_ssbo;
 
 #[cfg(feature = "field-visualization")]
 pub use field_visualization::{
-    CalibrationStatus, DisplayRange, FieldColorMap, FieldDataOrigin, FieldLayerMetadata,
-    FieldLayerSet, FieldUnit, FieldVisualizationPlugin, PhysicalQuantity, ScalarFieldGlyph,
-    ScalarFieldLayer, ScalarFieldSample, SpatialUnit, SpectrumBin, SpectrumProfile,
-    VectorFieldGlyph, VectorFieldLayer, VectorFieldSample, WavelengthBand, extract_scalar_glyphs,
-    extract_vector_glyphs, validate_spectrum_profile,
+    CalibrationStatus, DisplayRange, FIELD_FRAME_SCHEMA_VERSION, FieldColorMap, FieldDataOrigin,
+    FieldFrame, FieldLayerMetadata, FieldLayerSet, FieldUnit, FieldVisualizationPlugin,
+    PhysicalQuantity, ScalarFieldGlyph, ScalarFieldLayer, ScalarFieldSample, SpatialUnit,
+    SpectrumBin, SpectrumProfile, VectorFieldGlyph, VectorFieldLayer, VectorFieldSample,
+    WavelengthBand, extract_scalar_glyphs, extract_vector_glyphs, validate_field_frame,
+    validate_spectrum_profile,
 };
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
