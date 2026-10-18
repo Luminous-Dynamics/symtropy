@@ -15,7 +15,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
     schema_version: String,
@@ -32,7 +32,7 @@ enum EvidenceClass {
     IndependentReview,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct Case {
     case_id: String,
