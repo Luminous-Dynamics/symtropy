@@ -726,6 +726,17 @@ mod tests {
     }
 
     #[test]
+    fn catches_tampered_temporal_dispatch_delivery() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"temporal_period_1_useful_heat_delivered_j\":300000.000000000",
+            "\"temporal_period_1_useful_heat_delivered_j\":301000.000000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
     fn rejects_duplicate_fields_in_report() {
         let json = "{\"key\":1,\"key\":2}";
         assert!(scalar(json, "key").is_err());
