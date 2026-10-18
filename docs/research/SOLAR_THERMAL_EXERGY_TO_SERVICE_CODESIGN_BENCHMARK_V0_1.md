@@ -91,6 +91,23 @@ The scheduling question becomes: which source should charge which store, at what
 
 The goal is not to assume that “hybrid” always wins. Test whether independent charge/discharge paths and source flexibility improve delivered service or lifecycle cost after full parasitic and conversion losses.
 
+### 3.7D Target process integration before storage and collector sizing
+
+Add pinch-style source/sink integration as a first-class stage, rather than estimating storage size from gross solar surplus alone. Represent each hot and cold stream with supply/target temperatures, interval-integrated duty, availability window, and an explicit minimum approach. Compute minimum external hot/cold utility targets and pinch temperatures before comparing storage or heat-pump options.
+
+The first Rust pinch implementation is intentionally bounded to static, sensible, non-isothermal streams with constant integrated heat capacity. Its hand-checkable fixture is:
+- Hot stream: 423.15 K to 323.15 K, 100 kJ available.
+- Cold stream: 393.15 K to 493.15 K, 120 kJ required.
+- Minimum approach: 20 K.
+- Expected minimum hot utility: 110 kJ; minimum cold utility: 90 kJ; maximum internal process heat recovery: 10 kJ.
+- Expected shifted pinch: 403.15 K; hot-side pinch 413.15 K; cold-side pinch 393.15 K.
+
+These targets are thermodynamic bounds, not a synthesized exchanger network or guaranteed realized savings. Negative controls must reject reversed hot/cold streams, zero or negative duties, invalid temperature shifts, temperature-approach violations, and manipulated target receipts.
+
+Next, extend from static targeting to a time-expanded heat network where each period carries storage state, heat availability, process demand, equipment rate limits, source identity, and temperature grade. Heat may be carried from one time step to another only through a modeled store with capacity, standing-loss, charge/discharge-power and admissible-temperature constraints. Optimizing a time-average alone is insufficient when solar and process schedules are mismatched.
+
+A useful external reference is Falch, Espen, and Anantharaman (June 2026), who describe pinch-informed storage integration in multiperiod heat-exchanger-network synthesis and report 90% solar-thermal utilization at 250 kWh of storage versus 70% without storage in one lubricant-plant case. Those values are specific to that plant and paper boundary; capture and reproduce its actual data and assumptions before comparison: https://doi.org/10.69997/sct.176470. OpenPinch (March 2026) provides a broader open implementation of static advanced pinch analysis and total-site integration, and identifies dynamic/multi-period analysis as an extension direction: https://doi.org/10.1007/s41660-026-00729-6.
+
 ### 3.8 Turn the model into an active scientist
 
 Symthaea can propose the next simulation or measurement that most reduces decision-relevant uncertainty, not merely search a fixed design space. Test expected value of information per unit time and cost using a held-out evaluator.
@@ -220,6 +237,7 @@ Use versioned cases with an explicit validity scope.
 - one collector with hand-calculable incident, reflected/optical, useful, and loss terms;
 - one single-node store with closed-form energy balances and standing loss;
 - one two-temperature cascade where energy conservation and the minimum approach constraint can be checked by hand;
+- one static pinch problem with hand-checkable minimum hot/cold utility targets, maximum internal heat recovery, and shifted/hot-side/cold-side pinch temperatures;
 - one heat pump using a small declared COP map and a test outside the map that must block;
 - negative controls for GHI/DNI swaps, Celsius/Kelvin confusion, double-counted charge/discharge heat, over-unity efficiency, negative inventory, and impossible heat-exchanger approaches.
 
@@ -308,6 +326,8 @@ Use only sources appropriate to the modeled technology and version. Initial refe
 - A 2026 open-access study, **Dynamic modeling of heat pipe integrated thermal battery latent heat storage system experiment validation**, *Journal of Energy Storage* 160, article 121875, DOI: https://doi.org/10.1016/j.est.2026.121875. Use its published model/experiment comparison as a temporal validation case; inspect output-specific errors and applicability before reuse.
 - Deeper 2026 case study on multi-temperature R718 heat pumps, thermal storage and PV in grid-connected industrial multi-energy systems: DOI https://doi.org/10.1016/j.energy.2026.141996. Reproduce applicable model assumptions first; its reported advantages versus rule-based operation are not transferable without matching loads, hardware envelopes and cost boundaries.
 - DOE, **Thermal Storage R&D for CSP Systems**: historical research targets and technology directions; do not silently treat old program targets as current universal acceptance standards: https://www.energy.gov/cmei/systems/thermal-storage-rd-csp-systems
+- Walmsley (2026), **OpenPinch: An Open-Source Python Library for Advanced Pinch Analysis and Total Site Integration**, *Process Integration and Optimization for Sustainability* 10, 3947–3963, DOI: https://doi.org/10.1007/s41660-026-00729-6. Use as a reference for method semantics and test cases; Symtropy’s Rust implementation must be independently compared, not assumed equivalent.
+- Falch, Espen, and Anantharaman (2026), **Optimizing Heat Storage Integration for Solar Thermal Systems in Industrial Process Heat Networks**, *Systems and Control Transactions* 5, 419–423, DOI: https://doi.org/10.69997/sct.176470. The lubricant-plant utilization/storage numbers are an external reproduction target only after exact data, assumptions, and measurement boundaries are pinned.
 
 Record source version, licence/terms, units, calibration window, missing-data handling and provenance. Do not invent field inputs from climatology or literature summaries. Reference models are not truth: validate against physical data within the proposed system's regime.
 
