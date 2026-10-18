@@ -729,7 +729,9 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
                 output_path = Some(PathBuf::from(value));
             }
             _ if arg.starts_with('-') => {
-                return fail(format!("unknown option {arg:?}; use --help for usage")).map_err(Into::into);
+                return Err(Box::new(BenchError(format!(
+                    "unknown option {arg:?}; use --help for usage"
+                ))));
             }
             _ => positional.push(PathBuf::from(arg)),
         }
@@ -737,7 +739,9 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
 
     if positional.len() != 2 {
         print_usage();
-        return fail("expected a reference and a prediction trace path").map_err(Into::into);
+        return Err(Box::new(BenchError(
+            "expected a reference and a prediction trace path".to_owned(),
+        )));
     }
 
     let reference = read_trace(&positional[0])?;
@@ -815,7 +819,20 @@ mod tests {
         let mut trace = fixture();
         trace.left_foot_world_m.pop();
         let path = Path::new("negative-control.json");
-        assert!(trace.validate(path).unwrap_err().to_string().contains("left_foot_world_m"));
+        assert!(
+            trace
+                .validate(path)
+                .unwrap_err()
+                .to_string()
+                .contains("left_foot_world_m")
+        );
+    }
+
+    #[test]
+    fn rejects_trace_missing_required_nullable_retarget_field() {
+        let mut value = serde_json::to_value(fixture()).unwrap();
+        value.as_object_mut().unwrap().remove("retarget_map_sha256");
+        assert!(serde_json::from_value::<Trace>(value).is_err());
     }
 
     #[test]
@@ -838,7 +855,13 @@ mod tests {
     fn rejects_non_monotonic_time() {
         let mut trace = fixture();
         trace.timestamps_sec[2] = trace.timestamps_sec[1];
-        assert!(trace.validate(Path::new("negative-control.json")).unwrap_err().to_string().contains("strictly increasing"));
+        assert!(
+            trace
+                .validate(Path::new("negative-control.json"))
+                .unwrap_err()
+                .to_string()
+                .contains("strictly increasing")
+        );
     }
 
     #[test]
@@ -846,10 +869,20 @@ mod tests {
         let reference = fixture();
         let mut prediction = fixture();
         prediction.skeleton_signature_sha256 = "1".repeat(64);
-        assert!(evaluate(&reference, &prediction, None).unwrap_err().to_string().contains("skeleton signature"));
+        assert!(
+            evaluate(&reference, &prediction, None)
+                .unwrap_err()
+                .to_string()
+                .contains("skeleton signature")
+        );
         let mut prediction = fixture();
         prediction.retarget_map_sha256 = NullableDigest(Some("1".repeat(64)));
-        assert!(evaluate(&reference, &prediction, None).unwrap_err().to_string().contains("retarget-map hashes"));
+        assert!(
+            evaluate(&reference, &prediction, None)
+                .unwrap_err()
+                .to_string()
+                .contains("retarget-map hashes")
+        );
     }
 
     #[test]
