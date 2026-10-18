@@ -1,0 +1,24 @@
+# QUOTE-AFFORDABILITY-BENCH-V1
+case_id	expected_result	rationale
+mixed_quote_decisions_and_budget_comparisons_match_hand_calculation	CALCULATED	Accepted declined expired pending and budget comparisons match hand-derived total of 1300 minor units
+no_quotes_is_zero_quotes_not_an_affordability_claim	CALCULATED	No quote records yield zero quotes and no fabricated affordability conclusion
+missing_quote_response_blocks	BLOCKED	A quoted request cannot silently disappear from the response denominator
+duplicate_response_blocks	BLOCKED	A request has one response snapshot per assessment
+response_for_unquoted_request_blocks	BLOCKED	Responses must refer to a canonical quote
+response_for_unknown_request_blocks	BLOCKED	Response identity must join to a canonical request
+scope_mismatch_blocks	BLOCKED	Quote analysis scope must match the service-access ledger
+currency_mismatch_blocks	BLOCKED	Currency mismatch must block comparisons
+accepted_decision_requires_time	BLOCKED	Acceptance requires an event time
+booking_cannot_have_pending_quote_decision	BLOCKED	A booked request cannot have an unresolved quote decision
+declined_quote_requires_reason	BLOCKED	Decline reason must be explicit or NotStated
+pending_quote_cannot_have_decision_timestamp	BLOCKED	Pending state has no decision timestamp
+expiry_must_not_precede_quote_validity	BLOCKED	Expiry must occur at or after the quote validity boundary
+budget_requires_explicit_disclosure_consent	BLOCKED	Individual budget cannot be stored without explicit consent
+stale_quote_response_evidence_blocks	BLOCKED	Stale quote evidence cannot support the aggregate
+malformed_evidence_digest_blocks	BLOCKED	Malformed source digest shape blocks
+per_unit_quote_multiplication_overflow_blocks	BLOCKED	Per-unit fee multiplied by quantity uses checked arithmetic
+additional_fee_addition_overflow_blocks	BLOCKED	Additional mandatory fees use checked addition
+price_above_budget_reason_conflicts_with_budget_at_or_above_quote	BLOCKED	Farmer price-decline reason cannot contradict disclosed ceiling covering the quote
+total_for_requested_scope_does_not_multiply_by_quantity	CALCULATED	Explicit total-for-scope fee basis must not be multiplied by quantity
+source_referenced_quote_evidence_is_not_called_authenticated	CALCULATED	Source references are provenance but are not authenticated by syntax
+exact_budget_integer_serializes_as_decimal_string	CALCULATED	Exact budget amounts remain decimal strings for JSON consumers
