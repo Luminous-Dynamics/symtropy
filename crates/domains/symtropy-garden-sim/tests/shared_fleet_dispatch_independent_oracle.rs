@@ -244,6 +244,17 @@ fn no_route_claim_requires_validated_coverage_and_source_evidence() {
         ),
         SharedFleetDispatchBlockerCodeV1::MissingTravelEvidence,
     );
+
+    let mut observation_only = no_route("robot-1", "depot", "site-a");
+    observation_only.metric = DispatchTravelMetricV1::ObservedTripTime;
+    assert_blocked(
+        &input(
+            vec![request("request-a", "site-a", 20, Some(5))],
+            vec![robot("robot-1", "depot", 100, DispatchRobotReadinessV1::Ready)],
+            vec![observation_only],
+        ),
+        SharedFleetDispatchBlockerCodeV1::InvalidTravelStateValue,
+    );
 }
 
 #[test]
