@@ -1,6 +1,6 @@
 # MARITIME-CAL-CONTINGENCY-001: minimax service-window selection from calibrated ETA intervals
 
-**Status:** executable synthetic adapter and six authored Rust tests; exact-head CI pending.  
+**Status:** executable synthetic adapter and seven authored Rust tests; exact-head CI pending.  
 **Tracking:** [MARITIME-CAL-CONTINGENCY-001 #1977](https://github.com/Luminous-Dynamics/symtropy/issues/1977)  
 **Composes:** split-conformal ETA calibration and the evidence-aware decision benchmark.
 
@@ -35,7 +35,8 @@ Seven synthetic Rust tests cover:
 3. abstention when best worst-case cost equals the declared abstention cost;
 4. no candidate windows as a distinct abstention reason;
 5. candidate-window permutation invariance;
-6. timestamp interval overflow failing closed.
+6. timestamp interval overflow failing closed;
+7. an independent minimax/abstention oracle sweep over 6,426 forecast/radius/grace/penalty/abstention combinations.
 
 The current fixture estimates arrival at 12:55 UTC with a nine-second radius. For the synthetic 12:00 and 13:00 windows, the 13:00 window has five cost-minutes of worst-case waiting, while the earlier window misses its grace and incurs a larger penalty. If the abstention cost is five, the same selection must abstain instead of accepting an equal-cost option.
 
@@ -50,7 +51,7 @@ References:
 
 ## Proposed benchmark gates (not measured)
 
-- 100% selection and abstention agreement with an independent exhaustive oracle over tiny combinations of interval radius, window start, grace, penalty and abstention cost.
+- 100% selection and abstention agreement with an independent exhaustive oracle over tiny combinations of interval radius, window start, grace, penalty and abstention cost. The authored Rust sweep spans 6,426 cases; its hosted execution is pending.
 - Zero selections for unbounded calibration intervals.
 - Zero selections when best worst-case cost is equal to or greater than abstention cost.
 - 100% determinism under candidate-window permutation and exact tie conditions.
