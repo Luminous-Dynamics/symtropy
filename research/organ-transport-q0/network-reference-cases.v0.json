@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1.0",
   "corpus_id": "ORGAN-TRANSPORT-Q0-NETWORK",
-  "status": "REFERENCE_FIXTURES_NOT_EXECUTED",
+  "status": "REFERENCE_FIXTURE_SPECIFICATION",
   "purpose": "Prescribed-pressure small networks for checking analytic edge flow and junction conservation. These cases verify a network of known node pressures; they do not solve for unknown pressures.",
   "units": {
     "pressure": "Pa",
@@ -220,7 +220,7 @@
     }
   ],
   "provenance": {
-    "fixture_status": "Expected edge flows are analytic specifications. The fixture file does not assert that the executable verifier or Rust CI has run.",
-    "next_step": "Execute the corpus verifier on the exact source revision and attach exact-head workflow receipts."
+    "fixture_status": "Expected edge flows are pinned analytical specifications. Execution status is established only by the exact-source executable verifier or CI receipt.",
+    "next_step": "Run the executable Rust corpus verifier and record its receipt against exact source and input digests."
   }
 }
