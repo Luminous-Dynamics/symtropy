@@ -190,7 +190,8 @@ fn validate_schedule_internal(
             );
         }
 
-        let mut seen_predecessors: HashSet<&str> = HashSet::with_capacity(operation.predecessors.len());
+        let mut seen_predecessors: HashSet<&str> =
+            HashSet::with_capacity(operation.predecessors.len());
         for predecessor_id in &operation.predecessors {
             if !seen_predecessors.insert(predecessor_id.as_str()) {
                 push_violation(
@@ -1275,7 +1276,7 @@ mod tests {
     }
 
     #[test]
-    fn wide_precedence_set_deduplicates_linearly_by_membership() {
+    fn wide_precedence_set_accepts_many_unique_predecessors() {
         // Wide fan-in exercises duplicate tracking over thousands of distinct
         // predecessors without requiring a wall-clock assertion.
         let predecessor_count = 2_048usize;
