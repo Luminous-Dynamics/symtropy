@@ -26,9 +26,11 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
-      "max_evidence_age_days": 30
+      "max_evidence_age_days": 30,
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1"
     },
     {
       "profile_id": "pv-second-life-v1",
@@ -44,9 +46,11 @@
       "required_evidence_tags": [
         "provenance",
         "electrical_safety_test",
-        "visual_damage_assessment"
+        "visual_damage_assessment",
+        "hazard_classification_review"
       ],
-      "max_evidence_age_days": 14
+      "max_evidence_age_days": 14,
+      "family_taxonomy_version": "pv-failure-taxonomy-v1"
     },
     {
       "profile_id": "infrastructure-recovery-v1",
@@ -62,9 +66,11 @@
       "required_evidence_tags": [
         "structural_inspection",
         "capacity_record",
-        "service_state"
+        "service_state",
+        "hazard_classification_review"
       ],
-      "max_evidence_age_days": 7
+      "max_evidence_age_days": 7,
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1"
     }
   ],
   "cases": [
@@ -84,12 +90,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REVIEW_ONLY_CANDIDATE"
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-known-family-complete-evidence"
     },
     {
       "case_id": "forest-mixed-known-and-held-out-contamination",
@@ -107,12 +117,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-mixed-known-and-held-out-contamination"
     },
     {
       "case_id": "forest-family-classification-incomplete",
@@ -129,12 +143,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-family-classification-incomplete"
     },
     {
       "case_id": "forest-criteria-regime-changed",
@@ -151,12 +169,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-criteria-regime-changed"
     },
     {
       "case_id": "forest-stale-evidence",
@@ -173,12 +195,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "INSUFFICIENT",
-      "expected_disposition": "HOLD_EVIDENCE"
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-stale-evidence"
     },
     {
       "case_id": "forest-required-legal-evidence-missing",
@@ -194,12 +220,16 @@
       "observed_evidence_tags": [
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "INSUFFICIENT",
-      "expected_disposition": "HOLD_EVIDENCE"
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-required-legal-evidence-missing"
     },
     {
       "case_id": "forest-habitat-hard-gate-block",
@@ -216,12 +246,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "BLOCK",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "BLOCKED_HARD_GATE"
+      "expected_disposition": "BLOCKED_HARD_GATE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-habitat-hard-gate-block"
     },
     {
       "case_id": "forest-hard-gate-unknown",
@@ -238,12 +272,16 @@
         "legal_authority",
         "species_material_id",
         "condition_inspection",
-        "habitat_assessment"
+        "habitat_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "UNKNOWN",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "HOLD_EVIDENCE"
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-hard-gate-unknown"
     },
     {
       "case_id": "pv-known-family-complete-evidence",
@@ -259,12 +297,16 @@
       "observed_evidence_tags": [
         "provenance",
         "electrical_safety_test",
-        "visual_damage_assessment"
+        "visual_damage_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REVIEW_ONLY_CANDIDATE"
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-known-family-complete-evidence"
     },
     {
       "case_id": "pv-held-out-corrosion-family",
@@ -280,12 +322,16 @@
       "observed_evidence_tags": [
         "provenance",
         "electrical_safety_test",
-        "visual_damage_assessment"
+        "visual_damage_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-held-out-corrosion-family"
     },
     {
       "case_id": "pv-stale-inspection",
@@ -301,12 +347,16 @@
       "observed_evidence_tags": [
         "provenance",
         "electrical_safety_test",
-        "visual_damage_assessment"
+        "visual_damage_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "INSUFFICIENT",
-      "expected_disposition": "HOLD_EVIDENCE"
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-stale-inspection"
     },
     {
       "case_id": "pv-insulation-safety-gate-block",
@@ -322,12 +372,16 @@
       "observed_evidence_tags": [
         "provenance",
         "electrical_safety_test",
-        "visual_damage_assessment"
+        "visual_damage_assessment",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "BLOCK",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "BLOCKED_HARD_GATE"
+      "expected_disposition": "BLOCKED_HARD_GATE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-insulation-safety-gate-block"
     },
     {
       "case_id": "infrastructure-known-family-complete-evidence",
@@ -344,12 +398,16 @@
       "observed_evidence_tags": [
         "structural_inspection",
         "capacity_record",
-        "service_state"
+        "service_state",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REVIEW_ONLY_CANDIDATE"
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-known-family-complete-evidence"
     },
     {
       "case_id": "infrastructure-profile-version-mismatch",
@@ -365,12 +423,16 @@
       "observed_evidence_tags": [
         "structural_inspection",
         "capacity_record",
-        "service_state"
+        "service_state",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-profile-version-mismatch"
     },
     {
       "case_id": "infrastructure-capacity-evidence-missing",
@@ -385,12 +447,16 @@
       "evidence_age_days": 1,
       "observed_evidence_tags": [
         "structural_inspection",
-        "service_state"
+        "service_state",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "IN_SCOPE",
       "expected_evidence_status": "INSUFFICIENT",
-      "expected_disposition": "HOLD_EVIDENCE"
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-capacity-evidence-missing"
     },
     {
       "case_id": "unknown-profile-id",
@@ -404,12 +470,16 @@
       ],
       "evidence_age_days": 1,
       "observed_evidence_tags": [
-        "some_evidence"
+        "some_evidence",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "INSUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "unregistered-taxonomy-v9",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/unknown-profile-id"
     },
     {
       "case_id": "infrastructure-hazard-classification-unknown",
@@ -425,12 +495,16 @@
       "observed_evidence_tags": [
         "structural_inspection",
         "capacity_record",
-        "service_state"
+        "service_state",
+        "hazard_classification_review"
       ],
       "hard_gate_status": "PASS",
       "expected_scope_status": "OUT_OF_SCOPE",
       "expected_evidence_status": "SUFFICIENT",
-      "expected_disposition": "REASSESS_SCOPE"
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-hazard-classification-unknown"
     }
   ]
 }
