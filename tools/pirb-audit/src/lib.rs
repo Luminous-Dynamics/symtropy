@@ -1067,9 +1067,7 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
         }
 
         let actionable = match (owner, resource, lead, latency, safety_buffer) {
-            (Some(true), Some(true), Some(lead), Some(latency), Some(buffer))
-                if buffer >= 0 =>
-            {
+            (Some(true), Some(true), Some(lead), Some(latency), Some(buffer)) if buffer >= 0 => {
                 latency
                     .checked_add(buffer)
                     .is_some_and(|required_minutes| lead > required_minutes)
@@ -1160,11 +1158,7 @@ fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec
     }
 }
 
-fn audit_response_events(
-    value: Option<&Value>,
-    path: &str,
-    findings: &mut Vec<Finding>,
-) -> bool {
+fn audit_response_events(value: Option<&Value>, path: &str, findings: &mut Vec<Finding>) -> bool {
     const REQUIRED_EVENTS: [&str; 6] = [
         "alert_issued",
         "acknowledged",
@@ -1412,7 +1406,10 @@ mod tests {
         value["scenarios"][9]["alerts"][0]["response_events"][5]["independent_attestation"] =
             json!(false);
         let report = audit_corpus(&value);
-        assert!(has_code(&report, "PIRB_RESPONSE_OUTCOME_ATTESTATION_MISSING"));
+        assert!(has_code(
+            &report,
+            "PIRB_RESPONSE_OUTCOME_ATTESTATION_MISSING"
+        ));
         assert!(has_code(&report, "PIRB_RESPONSE_VERIFICATION_UNSUPPORTED"));
     }
 
@@ -1541,9 +1538,7 @@ mod tests {
             for baseline in 0_i64..=2 {
                 for drought in 0_i64..=2 {
                     for supplier in 0_i64..=2 {
-                        let id = format!(
-                            "grid-c{cost}-b{baseline}-d{drought}-s{supplier}"
-                        );
+                        let id = format!("grid-c{cost}-b{baseline}-d{drought}-s{supplier}");
                         let worst = baseline.max(drought).max(supplier);
                         options.push(json!({
                             "id": id,
