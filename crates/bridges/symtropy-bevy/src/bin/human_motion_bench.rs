@@ -906,13 +906,30 @@ fn run_cli() -> Result<(), Box<dyn Error>> {
     let report = evaluate(&reference, &prediction, requested_step)?;
     let json = serde_json::to_string_pretty(&report)?;
 
+    let joint_ade = report
+        .joint_trajectory_error
+        .macro_mean_ade_m
+        .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.4} m"));
+    let joint_fde = report
+        .joint_trajectory_error
+        .max_joint_fde_m
+        .map_or_else(|| "n/a".to_owned(), |value| format!("{value:.4} m"));
     eprintln!(
-        "Motion benchmark: validity={}, samples={}, root ADE={:.4} m, FDE={:.4} m, max={:.4} m, left-foot drift RMS={:.4} m, right-foot drift RMS={:.4} m, root jerk={:.4} m²/s⁶",
+        concat!(
+            "Motion benchmark: validity={}, samples={}, joints_scored={}, ",
+            "root ADE={:.4} m, FDE={:.4} m, max={:.4} m, ",
+            "macro joint ADE={}, max joint FDE={}, ",
+            "left-foot drift RMS={:.4} m, right-foot drift RMS={:.4} m, ",
+            "root jerk={:.4} m²/s⁶"
+        ),
         report.validity,
         report.alignment.samples,
+        report.joint_trajectory_error.joints_scored,
         report.root_trajectory_error.mean_displacement_error_m,
         report.root_trajectory_error.final_displacement_error_m,
         report.root_trajectory_error.max_displacement_error_m,
+        joint_ade,
+        joint_fde,
         report.left_stance_foot_drift.rms_drift_m,
         report.right_stance_foot_drift.rms_drift_m,
         report.prediction_root_mean_squared_jerk_m2_s6
