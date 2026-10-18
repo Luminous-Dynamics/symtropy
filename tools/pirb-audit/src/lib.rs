@@ -912,6 +912,14 @@ mod tests {
     }
 
     #[test]
+    fn displaced_harm_does_not_claim_net_improvement_without_reduction() {
+        let mut value = corpus();
+        value["scenarios"][8]["expected"]["improvement_claim"] = json!("improved");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_NET_IMPROVEMENT_UNSUPPORTED"));
+    }
+
+    #[test]
     fn before_after_only_data_cannot_support_causal_claim() {
         let mut value = corpus();
         value["scenarios"][8]["expected"]["claim_status"] = json!("causal_effect_established");
