@@ -196,6 +196,21 @@
         }
       ],
       "interpretation_note": "Candidate kinematic feasibility does not independently prove that any proposed gear train was the original historical arrangement."
+    },
+    {
+      "id": "antikythera:integer-count-posterior-sensitivity",
+      "proposition": "Woan and Bayley report different discrete posterior probabilities for integer calendar-ring hole counts when they analyze all measured points versus their reduced dataset; these probabilities are conditional on the authors' model and assumptions.",
+      "mode": "attested",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, Prob(N | all) and Prob(N | trim); sections 3.3–3.4",
+          "relation": "supports",
+          "note": "The paper reports posterior probabilities for integer N under its full and reduced data variants and explains which holes are excluded in the trimmed analysis."
+        }
+      ],
+      "interpretation_note": null
     }
   ],
   "relations": [
@@ -333,6 +348,147 @@
           "locator": "Abstract",
           "relation": "supports",
           "note": "The abstract reports 354.08 with -1.41/+1.47 offsets when holes adjacent to fractures are removed."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-354",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.1917",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=354, all measured data",
+      "assumptions": [
+        "Probability is as reported in Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, its assumptions, and its discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed in the source; not recalculated in this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=354, Prob(N | all)",
+          "relation": "supports",
+          "note": "The full-data column reports 0.1917 for N=354."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-355",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.2823",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=355, all measured data",
+      "assumptions": [
+        "Probability is as reported in Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, its assumptions, and its discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed in the source; not recalculated in this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=355, Prob(N | all)",
+          "relation": "supports",
+          "note": "The full-data column reports 0.2823 for N=355."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-all-356",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.2479",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=356, all measured data",
+      "assumptions": [
+        "Probability is as reported in Table 2 for the full measured dataset.",
+        "Conditional on the source's Bayesian model, its assumptions, and its discrete-integer N analysis.",
+        "Rounded to four decimal places as displayed in the source; not recalculated in this project."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=356, Prob(N | all)",
+          "relation": "supports",
+          "note": "The full-data column reports 0.2479 for N=356."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-354",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.2714",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=354, trimmed data",
+      "assumptions": [
+        "Probability is as reported in Table 2 for the source's trimmed dataset.",
+        "The source excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76 and 81).",
+        "Conditional on the source's Bayesian model and assumptions; not recalculated in this project.",
+        "Rounded to four decimal places as displayed in the source."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=354, Prob(N | trim)",
+          "relation": "supports",
+          "note": "The trimmed-data column reports 0.2714 for N=354."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-355",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.2251",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=355, trimmed data",
+      "assumptions": [
+        "Probability is as reported in Table 2 for the source's trimmed dataset.",
+        "The source excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76 and 81).",
+        "Conditional on the source's Bayesian model and assumptions; not recalculated in this project.",
+        "Rounded to four decimal places as displayed in the source."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=355, Prob(N | trim)",
+          "relation": "supports",
+          "note": "The trimmed-data column reports 0.2251 for N=355."
+        }
+      ]
+    },
+    {
+      "id": "antikythera:posterior-trim-356",
+      "claim_id": "antikythera:integer-count-posterior-sensitivity",
+      "quantity": "source-reported posterior probability for a specific integer calendar-ring hole count",
+      "value_decimal": "0.1173",
+      "unit": "probability",
+      "kind": "reported_point",
+      "method": "Source-reported discrete posterior probability for N=356, trimmed data",
+      "assumptions": [
+        "Probability is as reported in Table 2 for the source's trimmed dataset.",
+        "The source excludes short segments S5/S6 and the first/last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76 and 81).",
+        "Conditional on the source's Bayesian model and assumptions; not recalculated in this project.",
+        "Rounded to four decimal places as displayed in the source."
+      ],
+      "interval": null,
+      "evidence": [
+        {
+          "source_id": "antikythera:src-woan-bayley-2024",
+          "locator": "Table 2, row N=356, Prob(N | trim)",
+          "relation": "supports",
+          "note": "The trimmed-data column reports 0.1173 for N=356."
         }
       ]
     }
@@ -557,6 +713,32 @@
       "purpose": "Check whether the 354-hole parameter lies inside the source's sensitivity interval after excluding holes adjacent to fractures.",
       "dependence_note": "This is a sensitivity comparison using related measurements, not an independent replication.",
       "interpretation_limit": "The interval result is descriptive; full model comparison requires declared likelihoods/priors or an explicit reconstruction-validation method."
+    }
+  ],
+  "estimate_deltas": [
+    {
+      "id": "antikythera:delta-posterior-n354-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-354",
+      "perturbed_estimate_id": "antikythera:posterior-trim-354",
+      "variant_description": "Trimmed dataset variant for N=354",
+      "dependence_note": "All vs trimmed data are sensitivity variants of the same source analysis, not independent samples.",
+      "interpretation_limit": "The delta is a difference between rounded source-reported posterior probabilities, not a recalculation or an independent replication."
+    },
+    {
+      "id": "antikythera:delta-posterior-n355-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-355",
+      "perturbed_estimate_id": "antikythera:posterior-trim-355",
+      "variant_description": "Trimmed dataset variant for N=355",
+      "dependence_note": "All vs trimmed data are sensitivity variants of the same source analysis, not independent samples.",
+      "interpretation_limit": "The delta is a difference between rounded source-reported posterior probabilities, not a recalculation or an independent replication."
+    },
+    {
+      "id": "antikythera:delta-posterior-n356-trimmed",
+      "baseline_estimate_id": "antikythera:posterior-all-356",
+      "perturbed_estimate_id": "antikythera:posterior-trim-356",
+      "variant_description": "Trimmed dataset variant for N=356",
+      "dependence_note": "All vs trimmed data are sensitivity variants of the same source analysis, not independent samples.",
+      "interpretation_limit": "The delta is a difference between rounded source-reported posterior probabilities, not a recalculation or an independent replication."
     }
   ]
 }
