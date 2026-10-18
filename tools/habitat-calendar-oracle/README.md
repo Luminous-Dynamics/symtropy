@@ -29,3 +29,13 @@ Run from the repository root:
 - No output indicates executed work, legal approval, code compliance, permit approval, or qualified engineering evidence.
 
 The scorecard is a functional micro-oracle, not a runtime/performance comparison. Do not extrapolate its tiny-case behavior to 500–1,000-task production schedules.
+
+
+## Civil-time provenance controls
+
+The same crate exposes `provenance::evaluate_fixture_bytes`, a metadata-only verifier for real-world calendar artifacts. It binds source revision and bytes, regional time-zone identifier, pinned time-zone database release and bytes, finite UTC expansion horizon, explicit repeated/nonexistent local-time policies, compiler/parser versions, and expanded-interval digest. Its synthetic fixture includes two accepted metadata templates and eight fail-closed negative controls.
+
+- Contract: `docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md`
+- Fixture: `docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json`
+
+A provenance pass is explicitly **not** evidence that UTC expansion is correct. Actual time-zone transition conformance remains a separate follow-on requiring an exact rules-data build and independent recurrence-expansion cross-check.
