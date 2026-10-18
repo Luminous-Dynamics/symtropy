@@ -920,4 +920,97 @@ mod tests {
     }
 
 
+    #[test]
+    fn baseline_sensitivity_reports_worst_case_without_inventing_probabilities() {
+        let good_baseline = input();
+        let mut pessimistic_baseline = input();
+        pessimistic_baseline.basis.baseline_receipt_sha256 = "d".repeat(64);
+        pessimistic_baseline.participants[1].baseline_net_cost_minor = 110_000;
+        pessimistic_baseline.baseline_fuel_grams = 95_000;
+        pessimistic_baseline.baseline_co2_grams = 300_000;
+
+        let report = evaluate_counterfactual_sensitivity(&[
+            good_baseline.clone(),
+            pessimistic_baseline.clone(),
+        ])
+        .unwrap();
+        assert_eq!(report.baseline_count, 2);
+        assert_eq!(report.worst_case_total_gross_benefit_minor, -4_000);
+        assert_eq!(report.best_case_total_gross_benefit_minor, 6_000);
+        assert_eq!(report.worst_case_fuel_reduction_grams, 5_000);
+        assert_eq!(report.best_case_fuel_reduction_grams, 10_000);
+        assert_eq!(report.worst_case_emissions_reduction_grams, 15_600);
+        assert_eq!(report.best_case_emissions_reduction_grams, 31_600);
+        assert!(!report.all_reservations_met_in_all_baselines);
+
+        let owner = report
+            .participants
+            .iter()
+            .find(|item| item.participant_id == "SHIP-OWNER")
+            .unwrap();
+        assert_eq!(owner.worst_case_net_benefit_minor, -10_000);
+        assert_eq!(owner.best_case_net_benefit_minor, 0);
+        assert!(!owner.meets_reservation_in_all_baselines);
+        assert_eq!(report.baselines[0].baseline_receipt_sha256, "a".repeat(64));
+        assert_eq!(report.baselines[1].baseline_receipt_sha256, "d".repeat(64));
+    }
+
+    #[test]
+    fn sensitivity_rejects_changed_treatment_or_duplicate_baseline_receipts() {
+        assert_eq!(
+            evaluate_counterfactual_sensitivity(&[]),
+            Err(ValueShareError::EmptySensitivityEnsemble)
+        );
+
+        let baseline = input();
+        let mut changed_treatment = input();
+        changed_treatment.basis.baseline_receipt_sha256 = "d".repeat(64);
+        changed_treatment.basis.treatment_receipt_sha256 = "e".repeat(64);
+        assert_eq!(
+            evaluate_counterfactual_sensitivity(&[baseline.clone(), changed_treatment]),
+            Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "treatment_receipt_sha256",
+            })
+        );
+
+        let mut duplicate = input();
+        duplicate.participants[0].baseline_net_cost_minor += 100;
+        assert_eq!(
+            evaluate_counterfactual_sensitivity(&[baseline.clone(), duplicate]),
+            Err(ValueShareError::DuplicateBaselineReceipt(
+                "a".repeat(64)
+            ))
+        );
+
+        let mut changed_allocation = input();
+        changed_allocation.basis.baseline_receipt_sha256 = "d".repeat(64);
+        changed_allocation.participants[0].transfer_in_minor = -400;
+        changed_allocation.participants[1].transfer_in_minor = 1_900;
+        assert_eq!(
+            evaluate_counterfactual_sensitivity(&[baseline, changed_allocation]),
+            Err(ValueShareError::InconsistentSensitivityBasis {
+                field: "transfer_in_minor",
+            })
+        );
+    }
+
+    #[test]
+    fn sensitivity_output_is_invariant_to_baseline_and_participant_input_order() {
+        let mut first = input();
+        let mut second = input();
+        second.basis.baseline_receipt_sha256 = "d".repeat(64);
+        second.participants[1].baseline_net_cost_minor = 110_000;
+        second.baseline_fuel_grams = 95_000;
+        second.baseline_co2_grams = 300_000;
+
+        let original =
+            evaluate_counterfactual_sensitivity(&[first.clone(), second.clone()]).unwrap();
+        first.participants.reverse();
+        second.participants.reverse();
+        let permuted =
+            evaluate_counterfactual_sensitivity(&[second, first]).unwrap();
+        assert_eq!(original.to_json(), permuted.to_json());
+    }
+
+
 }
