@@ -461,6 +461,112 @@
         "claim_status": "descriptive_only",
         "improvement_claim": "qualified_with_displacement"
       }
+    },
+    {
+      "id": "pirb-r5-adaptive-stop-rule-01",
+      "track": "PIRB-5",
+      "domain": "fictional locally governed essential-service intervention",
+      "claim_ceiling": "Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator.",
+      "stop_rule_cases": [
+        {
+          "case_id": "mandatory-floor-breach",
+          "current_state": "ACTIVE",
+          "trigger": "mandatory_floor_breached",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "stale-critical-evidence",
+          "current_state": "ACTIVE",
+          "trigger": "mandatory_evidence_stale",
+          "evidence_status": "stale",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "contradictory-critical-evidence",
+          "current_state": "ACTIVE",
+          "trigger": "mandatory_evidence_conflict",
+          "evidence_status": "conflicting",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "unassessed-network-spillover",
+          "current_state": "ACTIVE",
+          "trigger": "material_spillover_unassessed",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": false,
+          "expected_transition": "REVIEW_REQUIRED"
+        },
+        {
+          "case_id": "post-hoc-metric-change",
+          "current_state": "ACTIVE",
+          "trigger": "metric_definition_changed_after_outcomes",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "REVIEW_REQUIRED"
+        },
+        {
+          "case_id": "appeal-suppressed",
+          "current_state": "ACTIVE",
+          "trigger": "appeal_suppressed",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "REVIEW_REQUIRED"
+        },
+        {
+          "case_id": "no-stop-condition",
+          "current_state": "ACTIVE",
+          "trigger": "none",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "CONTINUE"
+        },
+        {
+          "case_id": "missing-authority",
+          "current_state": "ACTIVE",
+          "trigger": "none",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": false,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "unknown-critical-evidence",
+          "current_state": "ACTIVE",
+          "trigger": "none",
+          "evidence_status": "unknown",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "unregistered-trigger",
+          "current_state": "ACTIVE",
+          "trigger": "unregistered-trigger",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        }
+      ],
+      "expected": {
+        "case_count": 10,
+        "fail_closed_on_unknown": true,
+        "block_mandatory_safety_failures": true,
+        "review_material_scope_or_measurement_changes": true,
+        "continue_only_when_no_stop_condition_and_authority_evidence_is_valid": true,
+        "claim_ceiling": "Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator."
+      }
     }
   ]
 }

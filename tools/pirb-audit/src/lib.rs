@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-const REQUIRED_SCENARIOS: [&str; 11] = [
+const REQUIRED_SCENARIOS: [&str; 12] = [
     "pirb-r2-minimum-service-floor-01",
     "pirb-r1-required-acceptance-01",
     "pirb-r0-stale-capacity-01",
@@ -17,6 +17,7 @@ const REQUIRED_SCENARIOS: [&str; 11] = [
     "pirb-r5-displacement-not-net-impact-01",
     "pirb-r5-warning-response-chain-01",
     "pirb-r5-network-spillover-01",
+    "pirb-r5-adaptive-stop-rule-01",
 ];
 
 const ALLOWED_TRACKS: [&str; 6] = ["PIRB-0", "PIRB-1", "PIRB-2", "PIRB-3", "PIRB-4", "PIRB-5"];
@@ -208,7 +209,8 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r3-no-lookahead-01" | "pirb-r3-worst-case-frontier-01" => "PIRB-3",
             "pirb-r5-displacement-not-net-impact-01"
             | "pirb-r5-warning-response-chain-01"
-            | "pirb-r5-network-spillover-01" => "PIRB-5"
+            | "pirb-r5-network-spillover-01"
+            | "pirb-r5-adaptive-stop-rule-01" => "PIRB-5",
             _ => "UNKNOWN",
         };
         if track != Some(expected_track) {
@@ -263,6 +265,9 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             }
             "pirb-r5-network-spillover-01" => {
                 audit_displacement(scenario, &path, &mut findings)
+            }
+            "pirb-r5-adaptive-stop-rule-01" => {
+                audit_adaptive_stop_rules(scenario, &path, &mut findings)
             }
             _ => findings.push(finding(
                 "PIRB_EVALUATOR_MISSING",
@@ -1054,6 +1059,145 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
     }
 }
 
+
+fn audit_adaptive_stop_rules(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
+    let Some(cases) = scenario.get("stop_rule_cases").and_then(Value::as_array) else {
+        findings.push(finding(
+            "PIRB_STOP_RULE_CASES_MISSING",
+            path,
+            "Adaptive stop-rule scenario requires a stop_rule_cases array.",
+        ));
+        return;
+    };
+    if cases.is_empty() {
+        findings.push(finding(
+            "PIRB_STOP_RULE_CASES_EMPTY",
+            &format!("{path}.stop_rule_cases"),
+            "At least one positive control and one safety stop-rule case are required.",
+        ));
+        return;
+    }
+
+    let mut seen = BTreeSet::new();
+    for (index, case) in cases.iter().enumerate() {
+        let case_path = format!("{path}.stop_rule_cases[{index}]");
+        let Some(case_id) = case.get("case_id").and_then(Value::as_str) else {
+            findings.push(finding(
+                "PIRB_STOP_RULE_CASE_ID_MISSING",
+                &case_path,
+                "Every stop-rule case requires a string case_id.",
+            ));
+            continue;
+        };
+        if !seen.insert(case_id.to_owned()) {
+            findings.push(finding(
+                "PIRB_STOP_RULE_CASE_ID_DUPLICATE",
+                &format!("{case_path}.case_id"),
+                "Stop-rule case identifiers must be unique.",
+            ));
+        }
+
+        let state = case.get("current_state").and_then(Value::as_str);
+        if state != Some("ACTIVE") {
+            findings.push(finding(
+                "PIRB_STOP_RULE_STATE_INVALID",
+                &format!("{case_path}.current_state"),
+                "This reference state machine only evaluates explicit ACTIVE interventions.",
+            ));
+        }
+
+        let owner = case.get("accountable_owner_authorized").and_then(Value::as_bool);
+        if owner.is_none() {
+            findings.push(finding(
+                "PIRB_STOP_RULE_AUTHORITY_UNKNOWN",
+                &format!("{case_path}.accountable_owner_authorized"),
+                "Stop-rule authority status must be explicit; missing authority evidence blocks continuation.",
+            ));
+        }
+        let scope_assessed = case.get("affected_scope_assessed").and_then(Value::as_bool);
+        if scope_assessed.is_none() {
+            findings.push(finding(
+                "PIRB_STOP_RULE_SCOPE_UNKNOWN",
+                &format!("{case_path}.affected_scope_assessed"),
+                "Whether the declared affected scope was assessed must be explicit.",
+            ));
+        }
+        let evidence_state = case.get("evidence_status").and_then(Value::as_str);
+        if !matches!(
+            evidence_state,
+            Some("verified") | Some("stale") | Some("conflicting") | Some("unknown")
+        ) {
+            findings.push(finding(
+                "PIRB_STOP_RULE_EVIDENCE_STATE_INVALID",
+                &format!("{case_path}.evidence_status"),
+                "Evidence status must be verified, stale, conflicting, or unknown.",
+            ));
+        }
+
+        let trigger = case.get("trigger").and_then(Value::as_str);
+        let known_trigger = matches!(
+            trigger,
+            Some("mandatory_floor_breached")
+                | Some("mandatory_evidence_stale")
+                | Some("mandatory_evidence_conflict")
+                | Some("prohibited_sensitive_field")
+                | Some("material_spillover_unassessed")
+                | Some("metric_definition_changed_after_outcomes")
+                | Some("appeal_suppressed")
+                | Some("none")
+        );
+        if !known_trigger {
+            findings.push(finding(
+                "PIRB_STOP_RULE_TRIGGER_UNKNOWN",
+                &format!("{case_path}.trigger"),
+                "Unknown or missing triggers fail closed; register a versioned rule before use.",
+            ));
+        }
+
+        let computed = if state != Some("ACTIVE")
+            || owner != Some(true)
+            || scope_assessed.is_none()
+            || evidence_state != Some("verified")
+        {
+            "BLOCKED"
+        } else {
+            match trigger {
+                Some("mandatory_floor_breached")
+                | Some("mandatory_evidence_stale")
+                | Some("mandatory_evidence_conflict")
+                | Some("prohibited_sensitive_field") => "BLOCKED",
+                Some("material_spillover_unassessed")
+                | Some("metric_definition_changed_after_outcomes")
+                | Some("appeal_suppressed") => "REVIEW_REQUIRED",
+                Some("none") if scope_assessed == Some(true) => "CONTINUE",
+                Some("none") => "REVIEW_REQUIRED",
+                _ => "BLOCKED",
+            }
+        };
+
+        let declared = case.get("expected_transition").and_then(Value::as_str);
+        if declared != Some(computed) {
+            findings.push(finding(
+                "PIRB_STOP_RULE_TRANSITION_MISMATCH",
+                &format!("{case_path}.expected_transition"),
+                &format!("Computed safe transition is {computed}; the declared transition must match."),
+            ));
+        }
+    }
+
+    if scenario
+        .pointer("/expected/claim_ceiling")
+        .and_then(Value::as_str)
+        != Some("Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator.")
+    {
+        findings.push(finding(
+            "PIRB_STOP_RULE_CLAIM_CEILING_INVALID",
+            &format!("{path}.expected.claim_ceiling"),
+            "Stop-rule evaluation must not be represented as a live control or deployment authorization.",
+        ));
+    }
+}
+
 fn audit_warning_response_chain(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     let Some(alerts) = scenario.get("alerts").and_then(Value::as_array) else {
         findings.push(finding(
@@ -1479,7 +1623,7 @@ mod tests {
     fn warning_response_chain_requires_authority_resources_and_lead_time() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
-        assert_eq!(report.scenario_count, 11);
+        assert_eq!(report.scenario_count, 12);
         let value = corpus();
         assert_eq!(
             value["scenarios"][9]["expected"]["actionable_alert_ids"],
@@ -1559,7 +1703,7 @@ mod tests {
     fn reference_corpus_passes_all_semantic_checks() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
-        assert_eq!(report.scenario_count, 11);
+        assert_eq!(report.scenario_count, 12);
     }
 
     #[test]
@@ -1750,6 +1894,56 @@ mod tests {
         value["scenarios"][7]["expected"]["pareto_frontier"] = json!(["repair_plus_backup"]);
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_PARETO_FRONTIER_MISMATCH"));
+    }
+
+    #[test]
+    fn stop_rule_reference_corpus_has_explicit_safe_transitions() {
+        let report = audit_corpus_json(FIXTURE);
+        assert!(report.passed, "{:#?}", report.findings);
+        assert_eq!(report.scenario_count, 12);
+        let value = corpus();
+        let cases = value["scenarios"][11]["stop_rule_cases"].as_array().unwrap();
+        assert_eq!(cases[0]["expected_transition"], json!("BLOCKED"));
+        assert_eq!(cases[3]["expected_transition"], json!("REVIEW_REQUIRED"));
+        assert_eq!(cases[6]["expected_transition"], json!("CONTINUE"));
+    }
+
+    #[test]
+    fn mandatory_floor_breach_cannot_continue() {
+        let mut value = corpus();
+        value["scenarios"][11]["stop_rule_cases"][0]["expected_transition"] = json!("CONTINUE");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_STOP_RULE_TRANSITION_MISMATCH"));
+    }
+
+    #[test]
+    fn unassessed_spillover_requires_review() {
+        let mut value = corpus();
+        value["scenarios"][11]["stop_rule_cases"][3]["expected_transition"] = json!("CONTINUE");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_STOP_RULE_TRANSITION_MISMATCH"));
+    }
+
+    #[test]
+    fn unknown_evidence_or_missing_owner_blocks_continuation() {
+        let mut value = corpus();
+        value["scenarios"][11]["stop_rule_cases"][6]["evidence_status"] = json!("unknown");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_STOP_RULE_TRANSITION_MISMATCH"));
+
+        let mut value = corpus();
+        value["scenarios"][11]["stop_rule_cases"][6]["accountable_owner_authorized"] = json!(false);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_STOP_RULE_TRANSITION_MISMATCH"));
+    }
+
+    #[test]
+    fn unregistered_stop_trigger_fails_closed() {
+        let mut value = corpus();
+        value["scenarios"][11]["stop_rule_cases"][9]["trigger"] = json!("unregistered-trigger");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_STOP_RULE_TRIGGER_UNKNOWN"));
+        assert!(has_code(&report, "PIRB_STOP_RULE_TRANSITION_MISMATCH"));
     }
 
     #[test]
