@@ -648,6 +648,436 @@ fn all_state_action_pairs() -> (usize, usize) {
     (states.len() * actions.len(), legal)
 }
 
+
+fn record_blocked_mutation(
+    fixture: &Value,
+    scenario_id: &str,
+    mutation_id: &str,
+    proposal: Value,
+    summary: &mut MutationSummary,
+) -> Result<(), String> {
+    let decision = evaluate_candidate(fixture, &proposal)?;
+    if decision.admitted {
+        summary
+            .violations
+            .push(format!("{scenario_id}:{mutation_id}"));
+    }
+    summary.outcomes.push(MutationOutcome {
+        scenario_id: scenario_id.to_string(),
+        mutation_id: mutation_id.to_string(),
+        admitted: decision.admitted,
+        next_state: decision.next_state,
+        reason_codes: decision.reason_codes,
+    });
+    Ok(())
+}
+
+fn record_stop_override(
+    fixture: &Value,
+    scenario_id: &str,
+    mutation_id: &str,
+    proposal: Value,
+    expected_state: &str,
+    summary: &mut MutationSummary,
+) -> Result<(), String> {
+    let decision = evaluate_candidate(fixture, &proposal)?;
+    summary.protective_stop_checks += 1;
+    if !decision.admitted || decision.next_state.as_deref() != Some(expected_state) {
+        summary
+            .protective_stop_violations
+            .push(format!("{scenario_id}:{mutation_id}"));
+    }
+    summary.outcomes.push(MutationOutcome {
+        scenario_id: scenario_id.to_string(),
+        mutation_id: mutation_id.to_string(),
+        admitted: decision.admitted,
+        next_state: decision.next_state,
+        reason_codes: decision.reason_codes,
+    });
+    Ok(())
+}
+
+fn fail_closed_mutation_sweep(
+    fixture: &Value,
+    source_scenarios: &[Value],
+) -> Result<MutationSummary, String> {
+    let mut summary = MutationSummary {
+        outcomes: Vec::new(),
+        violations: Vec::new(),
+        protective_stop_checks: 0,
+        protective_stop_violations: Vec::new(),
+    };
+    let resource_gates = [
+        "resource_available",
+        "capacity_admissible",
+        "capability_current",
+        "calibration_current",
+        "localization_admissible",
+        "communication_current",
+        "energy_reserve_feasible",
+    ];
+    let predecessor_actions = [
+        "start",
+        "resume",
+        "reassign",
+        "submit_for_acceptance",
+        "accept",
+    ];
+
+    for (index, scenario) in source_scenarios.iter().enumerate() {
+        let context = format!("scenario_results[{index}]");
+        if !field_bool(scenario, "admitted", &context)? {
+            continue;
+        }
+        let scenario_id = field_string(scenario, "scenario_id", &context)?;
+        let proposal = scenario
+            .get("proposal")
+            .ok_or_else(|| format!("{context}.proposal is missing"))?
+            .clone();
+        let baseline = evaluate_candidate(fixture, &proposal)?;
+        if !baseline.admitted {
+            continue;
+        }
+        let action = field_string(&proposal, "action", "proposal")?;
+        let state = field_string(&proposal, "state", "proposal")?;
+        let tick = field_u64(&proposal, "tick", "proposal")?;
+        let task_id = field_string(&proposal, "task_id", "proposal")?;
+        let resource_id = match proposal.get("resource_id") {
+            Some(Value::String(id)) => Some(id.clone()),
+            Some(Value::Null) | None => None,
+            _ => return Err("proposal.resource_id must be a string or null".to_string()),
+        };
+        let observation_ids = string_array(&proposal, "observation_ids", "proposal")?;
+        let mut visible_case_ids = BTreeSet::new();
+        if uses_observations(&action) {
+            for id in &observation_ids {
+                if let Some(observation) = observation_by_id(fixture, id)? {
+                    if field_u64(observation, "observable_tick", "disturbance")? <= tick {
+                        visible_case_ids.insert(field_string(observation, "case_id", "disturbance")?);
+                    }
+                }
+            }
+        }
+        let transition = expected_transition(&state, &action);
+        let advances = matches!(
+            transition,
+            Some("running" | "awaiting_evidence" | "accepted" | "rework_required")
+        );
+
+        if uses_resource(&action) {
+            for gate in resource_gates {
+                let mut mutated = proposal.clone();
+                mutated["gates"][gate] = Value::Bool(false);
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    &format!("gate-{gate}-false"),
+                    mutated,
+                    &mut summary,
+                )?;
+            }
+            let mut unknown_resource = proposal.clone();
+            unknown_resource["resource_id"] = Value::String("__unlisted-resource__".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "unknown-resource",
+                unknown_resource,
+                &mut summary,
+            )?;
+
+            let mut unknown_utility = proposal.clone();
+            unknown_utility["gates"]["utility_envelope"] =
+                Value::String("unknown_or_unsafe".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "unknown-utility-envelope",
+                unknown_utility,
+                &mut summary,
+            )?;
+
+            let mut declined = proposal.clone();
+            declined["gates"]["authorization"] = Value::String("declined".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "declined-authorization",
+                declined,
+                &mut summary,
+            )?;
+        }
+
+        if advances && visible_case_ids.contains("R-011") && !uses_resource(&action) {
+            let mut unknown_utility = proposal.clone();
+            unknown_utility["gates"]["utility_envelope"] =
+                Value::String("unknown_or_unsafe".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "visible-unknown-utility",
+                unknown_utility,
+                &mut summary,
+            )?;
+        }
+        if advances && visible_case_ids.contains("R-012") {
+            for (mutation_id, authorization) in [
+                ("visible-approval-declined", "declined"),
+                ("visible-approval-downgraded", "not_required"),
+            ] {
+                let mut mutated = proposal.clone();
+                mutated["gates"]["authorization"] = Value::String(authorization.to_string());
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    mutation_id,
+                    mutated,
+                    &mut summary,
+                )?;
+            }
+        }
+
+        if uses_observations(&action) {
+            for index in 0..observation_ids.len() {
+                let mut mutated = proposal.clone();
+                mutated["observation_ids"]
+                    .as_array_mut()
+                    .ok_or_else(|| "proposal.observation_ids must be an array".to_string())?
+                    .remove(index);
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    &format!("omitted-observation-{index}"),
+                    mutated,
+                    &mut summary,
+                )?;
+            }
+            if let Some(first) = observation_ids.first() {
+                let mut duplicate = proposal.clone();
+                duplicate["observation_ids"]
+                    .as_array_mut()
+                    .ok_or_else(|| "proposal.observation_ids must be an array".to_string())?
+                    .push(Value::String(first.clone()));
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    "duplicate-observation-reference",
+                    duplicate,
+                    &mut summary,
+                )?;
+            }
+            if let Some(future) = observation_items(fixture)?.iter().find(|observation| {
+                observation
+                    .get("observable_tick")
+                    .and_then(Value::as_u64)
+                    .is_some_and(|visible_tick| visible_tick > tick)
+            }) {
+                let future_id = field_string(future, "case_id", "disturbance")?;
+                let mut hidden = proposal.clone();
+                hidden["observation_ids"]
+                    .as_array_mut()
+                    .ok_or_else(|| "proposal.observation_ids must be an array".to_string())?
+                    .push(Value::String(future_id));
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    "future-observation-reference",
+                    hidden,
+                    &mut summary,
+                )?;
+            }
+        }
+
+        let evidence = array_field(&proposal, "evidence", "proposal")?;
+        if let Some(first_evidence) = evidence.first() {
+            let mut future_dated = proposal.clone();
+            let evidence_items = future_dated["evidence"]
+                .as_array_mut()
+                .ok_or_else(|| "proposal.evidence must be an array".to_string())?;
+            evidence_items[0]["observed_at_tick"] = serde_json::json!(tick.saturating_add(1));
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "future-dated-evidence",
+                future_dated,
+                &mut summary,
+            )?;
+
+            let mut unknown_kind = proposal.clone();
+            unknown_kind["evidence"]
+                .as_array_mut()
+                .ok_or_else(|| "proposal.evidence must be an array".to_string())?[0]
+                ["evidence_kind"] = Value::String("__undeclared-evidence-kind__".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "unknown-evidence-kind",
+                unknown_kind,
+                &mut summary,
+            )?;
+
+            let mut duplicate_evidence = proposal.clone();
+            let cloned_evidence = first_evidence.clone();
+            duplicate_evidence["evidence"]
+                .as_array_mut()
+                .ok_or_else(|| "proposal.evidence must be an array".to_string())?
+                .push(cloned_evidence);
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "duplicate-evidence-id",
+                duplicate_evidence,
+                &mut summary,
+            )?;
+        }
+
+        if action == "submit_for_acceptance" || action == "accept" {
+            let mut incomplete = proposal.clone();
+            incomplete["gates"]["work_complete"] = Value::Bool(false);
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "incomplete-work",
+                incomplete,
+                &mut summary,
+            )?;
+        }
+        if action == "accept" {
+            let mut failed_inspection = proposal.clone();
+            failed_inspection["gates"]["inspection"] = Value::String("failed".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "failed-inspection",
+                failed_inspection,
+                &mut summary,
+            )?;
+
+            let task = task_by_id(fixture, &task_id)?
+                .ok_or_else(|| format!("fixture lacks task {task_id}"))?;
+            let mut required_kinds: BTreeSet<String> =
+                string_array(task, "acceptance_evidence", "task")?.into_iter().collect();
+            for id in &observation_ids {
+                if let Some(observation) = observation_by_id(fixture, id)? {
+                    if field_u64(observation, "observable_tick", "disturbance")? <= tick {
+                        required_kinds.extend(string_array(
+                            observation,
+                            "recovery_evidence",
+                            "disturbance",
+                        )?);
+                    }
+                }
+            }
+            for kind in required_kinds {
+                for property in ["valid", "current"] {
+                    let mut invalid_receipt = proposal.clone();
+                    let items = invalid_receipt["evidence"]
+                        .as_array_mut()
+                        .ok_or_else(|| "proposal.evidence must be an array".to_string())?;
+                    let mut changed = false;
+                    for item in items {
+                        if item.get("evidence_kind").and_then(Value::as_str) == Some(kind.as_str()) {
+                            item[property] = Value::Bool(false);
+                            changed = true;
+                        }
+                    }
+                    if changed {
+                        record_blocked_mutation(
+                            fixture,
+                            &scenario_id,
+                            &format!("required-evidence-{kind}-{property}-false"),
+                            invalid_receipt,
+                            &mut summary,
+                        )?;
+                    }
+                }
+            }
+        }
+        if action == "reject_inspection" {
+            let mut passed_inspection = proposal.clone();
+            passed_inspection["gates"]["inspection"] = Value::String("passed".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "reject-with-passed-inspection",
+                passed_inspection,
+                &mut summary,
+            )?;
+        }
+        if action == "begin_rework" {
+            let mut no_failed_inspection = proposal.clone();
+            no_failed_inspection["gates"]["inspection"] = Value::String("passed".to_string());
+            record_blocked_mutation(
+                fixture,
+                &scenario_id,
+                "rework-without-failed-inspection",
+                no_failed_inspection,
+                &mut summary,
+            )?;
+        }
+
+        if predecessor_actions.contains(&action.as_str()) {
+            let receipts = array_field(&proposal, "predecessor_receipts", "proposal")?;
+            for index in 0..receipts.len() {
+                let mut unaccepted = proposal.clone();
+                unaccepted["predecessor_receipts"]
+                    .as_array_mut()
+                    .ok_or_else(|| "proposal.predecessor_receipts must be an array".to_string())?[index]
+                    ["state"] = Value::String("running".to_string());
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    &format!("predecessor-{index}-not-accepted"),
+                    unaccepted,
+                    &mut summary,
+                )?;
+            }
+        }
+
+        if action == "reassign" {
+            if let Some(resource) = resource_id.as_ref() {
+                let mut same_resource = proposal.clone();
+                same_resource["previous_resource_id"] = Value::String(resource.clone());
+                record_blocked_mutation(
+                    fixture,
+                    &scenario_id,
+                    "reassignment-reuses-resource",
+                    same_resource,
+                    &mut summary,
+                )?;
+            }
+        }
+
+        if action == "protective_stop" || action == "abort" {
+            let expected_state = if action == "protective_stop" { "interrupted" } else { "aborted" };
+            let mut unknown_observation = proposal.clone();
+            unknown_observation["observation_ids"] =
+                serde_json::json!(["__unknown-stop-observation__"]);
+            record_stop_override(
+                fixture,
+                &scenario_id,
+                "stop-ignores-unknown-observation",
+                unknown_observation,
+                expected_state,
+                &mut summary,
+            )?;
+
+            let mut over_horizon = proposal.clone();
+            over_horizon["tick"] = serde_json::json!(MAX_ORACLE_TICK + 1);
+            over_horizon["observation_ids"] = serde_json::json!(["__unknown-horizon-observation__"]);
+            record_stop_override(
+                fixture,
+                &scenario_id,
+                "stop-ignores-planner-horizon",
+                over_horizon,
+                expected_state,
+                &mut summary,
+            )?;
+        }
+    }
+    Ok(summary)
+}
+
 fn evaluate_reports(fixture_bytes: &[u8], report_bytes: &[u8]) -> Result<OracleReport, String> {
     let fixture: Value = serde_json::from_slice(fixture_bytes)
         .map_err(|error| format!("cannot parse fixture: {error}"))?;
