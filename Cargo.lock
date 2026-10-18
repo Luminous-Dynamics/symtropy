@@ -9368,6 +9368,7 @@ dependencies = [
  "bevy_egui",
  "bytemuck",
  "nalgebra 0.34.2",
+ "serde",
  "symtropy-math",
  "symtropy-physics",
 ]
