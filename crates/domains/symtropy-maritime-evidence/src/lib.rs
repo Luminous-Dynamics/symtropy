@@ -623,10 +623,9 @@ pub fn validate_observation(
         meaning: TimeMeaning::Actual,
         value,
     } = &observation.value
+        && value.utc_unix_nanos > latest_acceptable
     {
-        if value.utc_unix_nanos > latest_acceptable {
-            return Err(RejectionReason::ActualTimeTooFarInFuture);
-        }
+        return Err(RejectionReason::ActualTimeTooFarInFuture);
     }
     if observation.source_event_time_utc_nanos > latest_acceptable {
         return Err(RejectionReason::SourceEventTooFarInFuture);
