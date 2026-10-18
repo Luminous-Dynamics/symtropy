@@ -161,7 +161,8 @@ pub struct SharedFleetDispatchAssignmentV1 {
     pub service_start_minute: Option<u64>,
     pub forecast_completion_minute: Option<u64>,
     pub travel_minutes: Option<u64>,
-    /// Preserves modeled-vs-observed distinction for every scheduled travel leg.
+    /// Only explicitly modeled route-time results can be scheduled; the metric
+    /// type is retained for every scheduled travel leg.
     pub travel_metric: Option<DispatchTravelMetricV1>,
 }
 
@@ -184,7 +185,7 @@ pub struct SharedFleetDispatchReportV1 {
     pub no_feasible_route_count: usize,
     pub capacity_unavailable_count: usize,
     /// Never combines modeled-route and observed-trip minutes.
-    pub total_modeled_route_minutes: u64,
+    pub total_scheduled_modeled_route_minutes: u64,
     /// Results are sorted by request_id, independent of input row order.
     pub assignments: Vec<SharedFleetDispatchAssignmentV1>,
 }
@@ -280,7 +281,7 @@ pub fn plan_shared_fleet_dispatch_v1(
 ) -> Result<SharedFleetDispatchReportV1, Vec<SharedFleetDispatchBlockerV1>> {
     let mut blockers = validate_dispatch_input(input);
     if !blockers.is_empty() {
-        blockers.sort_by(|a, b| (a.code, &a.record_ref).cmp(&(b.code, &b.record_ref)));
+        blockers.sort_by_key(|blocker| (blocker.code, blocker.record_ref.clone()));
         blockers.dedup();
         return Err(blockers);
     }
@@ -313,18 +314,11 @@ pub fn plan_shared_fleet_dispatch_v1(
         .collect();
 
     let mut schedule_order: Vec<&SharedFleetRequestV1> = input.requests.iter().collect();
-    schedule_order.sort_by(|a, b| {
-        (
-            a.useful_window_deadline_minute,
-            a.requested_at_minute,
-            &a.request_id,
-        )
-            .cmp(&(
-                b.useful_window_deadline_minute,
-                b.requested_at_minute,
-                &b.request_id,
-            ))
-    });
+    schedule_order.sort_by_key(|request| (
+        request.useful_window_deadline_minute,
+        request.requested_at_minute,
+        request.request_id.clone(),
+    ));
 
     let mut assignments = Vec::with_capacity(input.requests.len());
     let mut total_modeled_route_minutes = 0_u64;
@@ -337,8 +331,7 @@ pub fn plan_shared_fleet_dispatch_v1(
                     && state
                         .robot
                         .supported_task_codes
-                        .iter()
-                        .any(|task| task == &request.task_code)
+                        .contains(&request.task_code)
             })
             .map(|(id, _)| id.clone())
             .collect();
@@ -442,20 +435,12 @@ pub fn plan_shared_fleet_dispatch_v1(
             }
         }
 
-        candidates.sort_by(|a, b| {
-            (
-                !a.within_useful_window,
-                a.completion_minute,
-                a.travel_minutes,
-                &a.robot_id,
-            )
-                .cmp(&(
-                    !b.within_useful_window,
-                    b.completion_minute,
-                    b.travel_minutes,
-                    &b.robot_id,
-                ))
-        });
+        candidates.sort_by_key(|candidate| (
+            !candidate.within_useful_window,
+            candidate.completion_minute,
+            candidate.travel_minutes,
+            candidate.robot_id.clone(),
+        ));
 
         let Some(candidate) = candidates.into_iter().next() else {
             let disposition = if saw_unknown_route {
@@ -499,10 +484,11 @@ pub fn plan_shared_fleet_dispatch_v1(
             SharedFleetDispatchDispositionV1::ScheduledLate
         };
 
-        if let Some(state) = robot_states.get_mut(&candidate.robot_id) {
-            state.available_at_minute = candidate.completion_minute;
-            state.current_location_ref = request.location_ref.clone();
-        }
+        let state = robot_states
+            .get_mut(&candidate.robot_id)
+            .expect("a selected candidate must reference a known robot");
+        state.available_at_minute = candidate.completion_minute;
+        state.current_location_ref = request.location_ref.clone();
 
         assignments.push(SharedFleetDispatchAssignmentV1 {
             request_id: request.request_id.clone(),
@@ -516,7 +502,7 @@ pub fn plan_shared_fleet_dispatch_v1(
         });
     }
 
-    assignments.sort_by(|a, b| a.request_id.cmp(&b.request_id));
+    assignments.sort_by_key(|assignment| assignment.request_id.clone());
 
     let count = |disposition| {
         assignments
@@ -554,7 +540,7 @@ pub fn plan_shared_fleet_dispatch_v1(
         capacity_unavailable_count: count(
             SharedFleetDispatchDispositionV1::CapacityUnavailable,
         ),
-        total_modeled_route_minutes,
+        total_scheduled_modeled_route_minutes: total_modeled_route_minutes,
         assignments,
     })
 }
