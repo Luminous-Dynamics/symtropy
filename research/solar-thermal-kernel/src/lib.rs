@@ -10,6 +10,7 @@ use std::{error::Error, fmt, fmt::Write as _};
 
 pub mod cascade;
 pub mod pinch;
+pub mod solar_input;
 pub mod temporal;
 
 #[derive(Clone, Debug, PartialEq)]
