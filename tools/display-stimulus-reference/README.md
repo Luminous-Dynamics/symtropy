@@ -9,7 +9,7 @@ From the repository root:
     cargo test --manifest-path tools/display-stimulus-reference/Cargo.toml
     cargo run --manifest-path tools/display-stimulus-reference/Cargo.toml -- --case ODRH-STIM-GREY-RAMP-001 --out /tmp/grey-ramp.ppm
 
-Use `--report PATH` to write a JSON report beside the generated raster. The default recipe/schema paths are pinned relative to the repository root; pass `--manifest PATH` or `--schema PATH` to test alternate versions.
+Use `--report PATH` to write a JSON report beside the generated raster; the report is checked against `docs/visual-technology/display-stimulus-report.schema.json`. The default recipe/schema paths are pinned relative to the repository root; pass `--manifest PATH` or `--schema PATH` to test alternate versions.
 
 ## Implemented primitives
 
