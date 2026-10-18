@@ -10,7 +10,7 @@
 //! model variable-capacity resources, or establish physical safety. Those must
 //! be validated separately before production use.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// One scheduled operation that occupies one exclusive resource for an interval.
 #[derive(Debug, Clone, PartialEq)]
@@ -190,9 +190,9 @@ fn validate_schedule_internal(
             );
         }
 
-        let mut seen_predecessors: Vec<&str> = Vec::new();
+        let mut seen_predecessors: HashSet<&str> = HashSet::with_capacity(operation.predecessors.len());
         for predecessor_id in &operation.predecessors {
-            if !seen_predecessors.push_unique(predecessor_id) {
+            if !seen_predecessors.insert(predecessor_id.as_str()) {
                 push_violation(
                     &mut violations,
                     ScheduleViolationCode::DuplicatePredecessor,
@@ -661,21 +661,6 @@ fn push_violation(
         operation_ids,
         detail: detail.to_string(),
     });
-}
-
-trait PushUnique<T> {
-    fn push_unique(&mut self, value: T) -> bool;
-}
-
-impl<T: PartialEq> PushUnique<T> for Vec<T> {
-    fn push_unique(&mut self, value: T) -> bool {
-        if self.contains(&value) {
-            false
-        } else {
-            self.push(value);
-            true
-        }
-    }
 }
 
 #[cfg(test)]
