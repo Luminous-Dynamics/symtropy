@@ -27,10 +27,12 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
     assert_eq!(receipt.receipt_version, 1);
     assert_eq!(receipt.report, report);
     assert_eq!(receipt.source_manifest_sha256.len(), 64);
-    assert!(receipt
-        .source_manifest_sha256
-        .bytes()
-        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()));
+    assert!(
+        receipt
+            .source_manifest_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    );
 
     let in_window = manifest
         .outcome_records
