@@ -27774,5 +27774,93 @@
     "future_evidence_violation_count": 0,
     "missing_evidence_reference_count": 0,
     "actuation_authorized_count": 0
+  },
+  "criteria_sensitivity_control": {
+    "control_id": "criteria-priority-ranking-reversal-v0.1",
+    "strategies": [
+      {
+        "strategy_id": "rapid_material_recovery",
+        "metric_values": {
+          "material_yield": 8,
+          "biosecurity_exposure": 5,
+          "habitat_disturbance": 2
+        }
+      },
+      {
+        "strategy_id": "retain_inspect_replan",
+        "metric_values": {
+          "material_yield": 3,
+          "biosecurity_exposure": 1,
+          "habitat_disturbance": 0
+        }
+      }
+    ],
+    "regimes": [
+      {
+        "regime_id": "current-material-recovery-priority",
+        "profile_version": "forest-recovery-v1",
+        "criteria_regime": "protect-habitat-and-recover-material-v1",
+        "adopted_by_current_profile": true,
+        "priority_order": [
+          {
+            "metric": "material_yield",
+            "direction": "MAXIMIZE"
+          },
+          {
+            "metric": "biosecurity_exposure",
+            "direction": "MINIMIZE"
+          }
+        ],
+        "admissibility_constraints": [
+          {
+            "metric": "habitat_disturbance",
+            "operator": "LTE",
+            "threshold": 3
+          },
+          {
+            "metric": "biosecurity_exposure",
+            "operator": "LTE",
+            "threshold": 6
+          }
+        ],
+        "expected_ranked_strategy_ids": [
+          "rapid_material_recovery",
+          "retain_inspect_replan"
+        ]
+      },
+      {
+        "regime_id": "proposed-biosecurity-priority",
+        "profile_version": "forest-recovery-v2",
+        "criteria_regime": "biosecurity-priority-v2",
+        "adopted_by_current_profile": false,
+        "priority_order": [
+          {
+            "metric": "biosecurity_exposure",
+            "direction": "MINIMIZE"
+          },
+          {
+            "metric": "material_yield",
+            "direction": "MAXIMIZE"
+          }
+        ],
+        "admissibility_constraints": [
+          {
+            "metric": "habitat_disturbance",
+            "operator": "LTE",
+            "threshold": 3
+          },
+          {
+            "metric": "biosecurity_exposure",
+            "operator": "LTE",
+            "threshold": 6
+          }
+        ],
+        "expected_ranked_strategy_ids": [
+          "retain_inspect_replan",
+          "rapid_material_recovery"
+        ]
+      }
+    ],
+    "expected_top_strategy_reversal": true
   }
 }
