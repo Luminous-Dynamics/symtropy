@@ -40,6 +40,7 @@ A future adapter should map bundle artifacts to provenance entities, compute run
 - Exact match to the three frozen fixture artifact lengths and SHA-256 digests.
 - 100% detection of seeded byte-length and digest mismatches.
 - 100% rejection of parent traversal, absolute/Windows-style paths, symlink artifacts, duplicate IDs and duplicate paths.
+- Aggregate declared-size overflow is rejected before any artifact file is read.
 - Missing files remain visible in reports and force nonzero exit status.
 - Deterministic output artifact ordering under manifest reordering; the raw-manifest hash must still change.
 - Resource caps enforced before unbounded reads.
