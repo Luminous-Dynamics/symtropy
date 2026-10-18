@@ -439,8 +439,8 @@ pub fn pco_field_candidate(
 
 #[cfg(test)]
 mod tests {
-    use super::super::TimestampOffsetSemantics;
     use super::*;
+    use super::super::TimestampOffsetSemantics;
 
     fn context(id: &str) -> DcsaIngestContext {
         let now = super::parse_rfc3339_timestamp("2026-10-18T08:00:00Z")
