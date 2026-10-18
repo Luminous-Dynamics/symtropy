@@ -276,6 +276,8 @@ pub struct FieldLayerMetadata {
     /// Named coordinate frame, for example "world", "sensor-local", or a CAD datum.
     pub coordinate_frame: String,
     pub spatial_unit: SpatialUnit,
+    /// Scene coordinates per physical metre; ignored for already-projected WorldUnit data.
+    pub world_units_per_meter: f64,
     /// Unix epoch timestamp in nanoseconds when supplied by the source.
     pub timestamp_unix_ns: Option<u64>,
     /// Optional wave/spectral acquisition band in vacuum wavelength metres.
@@ -306,6 +308,9 @@ impl FieldLayerMetadata {
             ));
         }
         self.display_range.validate()?;
+        if !self.world_units_per_meter.is_finite() || self.world_units_per_meter <= 0.0 {
+            return Err("world_units_per_meter must be finite and positive".to_owned());
+        }
 
         if self.calibration == CalibrationStatus::Calibrated
             && self.origin == FieldDataOrigin::MeasuredSensor
@@ -386,7 +391,7 @@ pub fn validate_spectrum_profile(profile: &SpectrumProfile) -> Result<(), String
     {
         return Err("a calibrated measured spectrum requires a calibration reference".to_owned());
     }
-    project_position(profile.position)?;
+    validate_finite_position(profile.position)?;
     if profile.bins.len() < 2 || profile.bins.len() > 4_096 {
         return Err("spectrum profile must contain 2..=4096 wavelength bins".to_owned());
     }
@@ -509,7 +514,11 @@ pub fn extract_scalar_glyphs(
     }
 
     for sample in layer.samples.iter().take(max_samples) {
-        let position = project_position(sample.position)?;
+        let position = project_position(
+            sample.position,
+            layer.metadata.spatial_unit,
+            layer.metadata.world_units_per_meter,
+        )?;
         if !sample.value.is_finite() {
             return Err(format!("layer {:?} contains a non-finite scalar value", layer.metadata.id));
         }
@@ -644,7 +653,23 @@ fn validate_vector_layer(layer: &VectorFieldLayer) -> Result<(), String> {
     Ok(())
 }
 
-fn project_position(position: [f64; 3]) -> Result<[f32; 3], String> {
+fn project_position(
+    position: [f64; 3],
+    spatial_unit: SpatialUnit,
+    world_units_per_meter: f64,
+) -> Result<[f32; 3], String> {
+    let source_to_meters = match spatial_unit {
+        SpatialUnit::Meter => 1.0,
+        SpatialUnit::Centimeter => 0.01,
+        SpatialUnit::Millimeter => 0.001,
+        SpatialUnit::WorldUnit => return project_world_position(position),
+    };
+    let scale = source_to_meters * world_units_per_meter;
+    let scaled = position.map(|value| value * scale);
+    project_world_position(scaled)
+}
+
+fn project_world_position(position: [f64; 3]) -> Result<[f32; 3], String> {
     let mut projected = [0.0; 3];
     for (index, value) in position.iter().enumerate() {
         if !value.is_finite() || value.abs() > f64::from(f32::MAX) {
@@ -653,6 +678,14 @@ fn project_position(position: [f64; 3]) -> Result<[f32; 3], String> {
         projected[index] = *value as f32;
     }
     Ok(projected)
+}
+
+fn validate_finite_position(position: [f64; 3]) -> Result<(), String> {
+    if position.iter().all(|value| value.is_finite()) {
+        Ok(())
+    } else {
+        Err("spectrum profile has a non-finite position".to_owned())
+    }
 }
 
 /// Optional read-only renderer. Input layers are producer-supplied observations;
@@ -767,6 +800,7 @@ mod tests {
             calibration_reference: None,
             coordinate_frame: "world".to_owned(),
             spatial_unit: SpatialUnit::Meter,
+            world_units_per_meter: 1.0,
             timestamp_unix_ns: Some(1_000_000),
             wavelength_band: None,
             frequency_hz: None,
@@ -803,6 +837,32 @@ mod tests {
         assert_eq!(glyphs[0].normalized_value, 0.0);
         assert_eq!(glyphs[1].normalized_value, 1.0);
         assert_ne!(glyphs[0].color, glyphs[1].color);
+    }
+
+    #[test]
+    fn spatial_units_are_converted_before_scene_projection() {
+        let mut layer = ScalarFieldLayer {
+            metadata: metadata(
+                PhysicalQuantity::Temperature,
+                FieldUnit::Celsius,
+                DisplayRange { min: 0.0, max: 100.0 },
+            ),
+            enabled: true,
+            marker_radius: 0.03,
+            samples: vec![ScalarFieldSample {
+                position: [100.0, 200.0, 300.0],
+                value: 25.0,
+                uncertainty: None,
+            }],
+        };
+        layer.metadata.spatial_unit = SpatialUnit::Centimeter;
+        layer.metadata.world_units_per_meter = 1.0;
+        let glyph = extract_scalar_glyphs(&layer, 1).expect("valid centimeter coordinates")[0];
+        assert_eq!(glyph.position, [1.0, 2.0, 3.0]);
+
+        layer.metadata.spatial_unit = SpatialUnit::WorldUnit;
+        let glyph = extract_scalar_glyphs(&layer, 1).expect("valid world coordinates")[0];
+        assert_eq!(glyph.position, [100.0, 200.0, 300.0]);
     }
 
     #[test]
