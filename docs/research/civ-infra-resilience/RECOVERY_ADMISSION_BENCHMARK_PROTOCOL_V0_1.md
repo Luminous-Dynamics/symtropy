@@ -12,10 +12,11 @@ Traditional orchestration metrics can reward faster work despite untrustworthy o
 
 | Arm | Behavior | Purpose |
 |---|---|---|
-| B0 — baseline | Frozen reference scheduler with the same graph/capacities but no observation-delay gate | Quantify naive-scheduler failures; simulation only, never dispatch |
-| B1 — time-aware | B0 plus injection-time vs policy-observation visibility | Isolate temporal visibility value |
-| B2 — admission kernel | B1 plus typed task state, predecessor receipts, resource/capacity, utility, approval, evidence freshness and inspection gates | Measure unsafe rejection and false blocking |
-| B3 — authenticated receipts (future) | B2 plus schema-bounded, signed, revision-bound, replay-safe envelopes and append-only correction/revocation history | Measure security layer’s incremental cost and benefit |
+| B0 — fixed schedule | Frozen fixed schedule, as named in the canonical fixture | Baseline outcome and failure rate; simulation only, never dispatch |
+| B1 — rule-based recovery | The fixture's rule-based recovery policy, with the same observation-visibility rules | Measure recovery benefit over fixed schedule |
+| B2 — evidence-bounded replanning/admission | Typed task state, predecessor receipts, resource/capacity, utility, approval, evidence freshness and inspection gates | Measure unsafe rejection and false blocking |
+| B3 — finite-instance exhaustive oracle | Exhaustive reference over a declared small state space; **not deployable** | Bound-check candidate decisions and detect oracle disagreement |
+| B2V — verified-receipt overlay (future) | B2 plus schema-bounded, signed, revision-bound, replay-safe envelopes and append-only correction/revocation history | Measure verification security benefit and incremental cost |
 
 Every arm gets the same scenario IDs, paired seeds, dependency graph and exogenous disturbances. Freeze commits and configuration before comparison. B0 is simulation-only, never a dispatch mode.
 
