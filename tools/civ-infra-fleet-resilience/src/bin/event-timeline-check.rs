@@ -141,14 +141,20 @@ fn main() {
     let fixture_bytes = match fs::read(&fixture_path) {
         Ok(bytes) => bytes,
         Err(error) => {
-            eprintln!("cannot read fixture {}: {error}", fixture_path.to_string_lossy());
+            eprintln!(
+                "cannot read fixture {}: {error}",
+                fixture_path.to_string_lossy()
+            );
             process::exit(2);
         }
     };
     let report_bytes = match fs::read(&report_path) {
         Ok(bytes) => bytes,
         Err(error) => {
-            eprintln!("cannot read report {}: {error}", report_path.to_string_lossy());
+            eprintln!(
+                "cannot read report {}: {error}",
+                report_path.to_string_lossy()
+            );
             process::exit(2);
         }
     };
@@ -184,11 +190,12 @@ fn verify_report_bytes(
     fixture_bytes: &[u8],
     report_bytes: &[u8],
 ) -> Result<CheckResult, Vec<String>> {
-    let fixture: Fixture = serde_json::from_slice(fixture_bytes).map_err(|error| {
-        vec![format!("fixture could not be parsed: {error}")]
-    })?;
+    let fixture: Fixture = serde_json::from_slice(fixture_bytes)
+        .map_err(|error| vec![format!("fixture could not be parsed: {error}")])?;
     let report: TimelineReport = serde_json::from_slice(report_bytes).map_err(|error| {
-        vec![format!("report does not match strict report schema: {error}")]
+        vec![format!(
+            "report does not match strict report schema: {error}"
+        )]
     })?;
 
     validate_fixture(&fixture)?;
@@ -204,12 +211,10 @@ fn verify_report_bytes(
     if report.input_sha256 != expected.input_sha256 {
         errors.push("report input_sha256 does not bind the supplied fixture bytes".to_string());
     }
-    if report.classification != "synthetic_only"
-        || report.classification != expected.classification
+    if report.classification != "synthetic_only" || report.classification != expected.classification
     {
-        errors.push(
-            "report classification must be synthetic_only and match the fixture".to_string(),
-        );
+        errors
+            .push("report classification must be synthetic_only and match the fixture".to_string());
     }
     if report.timeline_status != "canonical_event_queue_timing_audited" {
         errors.push("unexpected timeline_status".to_string());
@@ -226,9 +231,8 @@ fn verify_report_bytes(
         errors.push("report claim_ceiling differs from the fixture".to_string());
     }
     if report.counts != expected.counts {
-        errors.push(
-            "report counts differ from independently recomputed fixture counts".to_string(),
-        );
+        errors
+            .push("report counts differ from independently recomputed fixture counts".to_string());
     }
     if report.event_cases != expected.event_cases {
         errors.push(
@@ -317,8 +321,7 @@ fn expected_report(fixture: &Fixture, fixture_bytes: &[u8]) -> TimelineReport {
             disturbances
                 .iter()
                 .filter(|case| {
-                    case.injection_tick <= u64::from(tick)
-                        && case.observable_tick > u64::from(tick)
+                    case.injection_tick <= u64::from(tick) && case.observable_tick > u64::from(tick)
                 })
                 .map(|case| case.case_id.clone())
                 .collect(),
@@ -422,9 +425,15 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
     if fixture.qualification_status != "proposed_not_executed" {
         errors.push("fixture must not imply prior benchmark qualification".to_string());
     }
-    if fixture.clock.get("unit").and_then(serde_json::Value::as_str)
+    if fixture
+        .clock
+        .get("unit")
+        .and_then(serde_json::Value::as_str)
         != Some("fixture_tick")
-        || fixture.clock.get("interval_semantics").and_then(serde_json::Value::as_str)
+        || fixture
+            .clock
+            .get("interval_semantics")
+            .and_then(serde_json::Value::as_str)
             != Some("half_open")
     {
         errors.push("fixture clock must use fixture_tick and half_open semantics".to_string());
@@ -443,12 +452,19 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
         errors.push("fixture must contain exactly 13 disturbance cases".to_string());
     }
 
-    let evidence_ids: std::collections::BTreeSet<&str> =
-        fixture.evidence_vocabulary.iter().map(String::as_str).collect();
+    let evidence_ids: std::collections::BTreeSet<&str> = fixture
+        .evidence_vocabulary
+        .iter()
+        .map(String::as_str)
+        .collect();
     let resource_ids: std::collections::BTreeSet<&str> = fixture
         .resources
         .iter()
-        .filter_map(|resource| resource.get("resource_id").and_then(serde_json::Value::as_str))
+        .filter_map(|resource| {
+            resource
+                .get("resource_id")
+                .and_then(serde_json::Value::as_str)
+        })
         .collect();
     let task_ids: std::collections::BTreeSet<&str> = fixture
         .task_graph
@@ -490,7 +506,10 @@ fn validate_fixture(fixture: &Fixture) -> Result<(), Vec<String>> {
             ));
         }
         if case.recoverability.as_deref() == Some("") {
-            errors.push(format!("case {} has empty recoverability metadata", case.case_id));
+            errors.push(format!(
+                "case {} has empty recoverability metadata",
+                case.case_id
+            ));
         }
         for resource_id in &case.affected_resources {
             if !resource_ids.contains(resource_id.as_str()) {
@@ -551,7 +570,10 @@ fn disturbance_definition(case_id: &str) -> Option<(&'static str, &'static str)>
         "R-007" => Some(("inspection_rejects_installation", "inspection_rejected")),
         "R-008" => Some(("site_geometry_changed_after_schedule", "geometry_changed")),
         "R-009" => Some(("capacity_one_tool_conflict", "resource_conflict")),
-        "R-010" => Some(("energy_return_reserve_infeasible", "energy_reserve_infeasible")),
+        "R-010" => Some((
+            "energy_return_reserve_infeasible",
+            "energy_reserve_infeasible",
+        )),
         "R-011" => Some(("unbounded_unknown_utility", "unknown_utility")),
         "R-012" => Some(("human_approval_declined", "approval_declined")),
         "R-013" => Some(("stale_capability_profile", "capability_profile_stale")),
@@ -602,7 +624,11 @@ mod tests {
         let bytes = serde_json::to_vec(&report).expect("mutated report should serialize");
         let errors = verify_report_bytes(EMBEDDED_FIXTURE.as_bytes(), &bytes)
             .expect_err("early visibility must fail");
-        assert!(errors.iter().any(|error| error.contains("policy-visible observation timeline")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("policy-visible observation timeline"))
+        );
     }
 
     #[test]
@@ -621,8 +647,7 @@ mod tests {
         let report = report_bytes(EMBEDDED_FIXTURE.as_bytes());
         let mut altered = EMBEDDED_FIXTURE.as_bytes().to_vec();
         altered.push(b' ');
-        let errors =
-            verify_report_bytes(&altered, &report).expect_err("digest mismatch must fail");
+        let errors = verify_report_bytes(&altered, &report).expect_err("digest mismatch must fail");
         assert!(errors.iter().any(|error| error.contains("input_sha256")));
     }
 
@@ -636,15 +661,18 @@ mod tests {
         let bytes = serde_json::to_vec(&report).expect("mutated report should serialize");
         let errors =
             verify_report_bytes(EMBEDDED_FIXTURE.as_bytes(), &bytes).expect_err("claim must fail");
-        assert!(errors.iter().any(|error| error.contains("must not claim policy simulation")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("must not claim policy simulation"))
+        );
     }
 
     #[test]
     fn checker_rejects_changed_frozen_case_identity() {
         let mut fixture: serde_json::Value =
             serde_json::from_slice(EMBEDDED_FIXTURE.as_bytes()).expect("fixture should parse");
-        fixture["disturbance_cases"][7]["name"] =
-            serde_json::json!("geometry_change_known_early");
+        fixture["disturbance_cases"][7]["name"] = serde_json::json!("geometry_change_known_early");
         let altered_fixture =
             serde_json::to_vec(&fixture).expect("altered fixture should serialize");
         let report = report_bytes(EMBEDDED_FIXTURE.as_bytes());
@@ -669,8 +697,8 @@ mod tests {
         let report = report_bytes(&altered_fixture);
         let altered: TimelineReport =
             serde_json::from_slice(&report).expect("permuted report should parse");
-        let checked = verify_report_bytes(&altered_fixture, &report)
-            .expect("permuted input should verify");
+        let checked =
+            verify_report_bytes(&altered_fixture, &report).expect("permuted input should verify");
 
         assert_ne!(baseline.input_sha256, altered.input_sha256);
         assert_eq!(baseline.event_cases, altered.event_cases);
