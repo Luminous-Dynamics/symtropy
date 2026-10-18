@@ -271,6 +271,7 @@
       "track": "PIRB-5",
       "domain": "fictional essential-service interruption warning",
       "claim_ceiling": "Response-chain conformance only; no forecast accuracy or causal prevention claim.",
+      "required_safety_buffer_minutes": 15,
       "alerts": [
         {
           "alert_id": "actionable-verified",
@@ -279,7 +280,51 @@
           "accountable_owner_authorized": true,
           "response_resource_available": true,
           "response_state": "verified",
-          "response_outcome_independently_verified": true
+          "response_outcome_independently_verified": true,
+          "response_events": [
+            {
+              "event_id": "synthetic-event-001",
+              "event_type": "alert_issued",
+              "minute_offset": 0,
+              "evidence_ref": "synthetic:alert-log:001",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-002",
+              "event_type": "acknowledged",
+              "minute_offset": 5,
+              "evidence_ref": "synthetic:ack-log:002",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-003",
+              "event_type": "dispatched",
+              "minute_offset": 20,
+              "evidence_ref": "synthetic:dispatch-log:003",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-004",
+              "event_type": "arrived",
+              "minute_offset": 45,
+              "evidence_ref": "synthetic:arrival-log:004",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-005",
+              "event_type": "action_completed",
+              "minute_offset": 60,
+              "evidence_ref": "synthetic:completion-log:005",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-006",
+              "event_type": "outcome_verified",
+              "minute_offset": 70,
+              "evidence_ref": "synthetic:independent-check:006",
+              "independent_attestation": true
+            }
+          ]
         },
         {
           "alert_id": "no-owner",
@@ -306,6 +351,15 @@
           "accountable_owner_authorized": true,
           "response_resource_available": false,
           "response_state": "unassigned",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "no-reserve-at-boundary",
+          "remaining_lead_minutes": 60,
+          "estimated_response_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "ready",
           "response_outcome_independently_verified": false
         },
         {
@@ -336,7 +390,8 @@
         "non_actionable_alert_ids": [
           "no-owner",
           "late-signal",
-          "no-resource"
+          "no-resource",
+          "no-reserve-at-boundary"
         ],
         "verified_response_ids": [
           "actionable-verified"
@@ -345,6 +400,7 @@
           "no-owner",
           "late-signal",
           "no-resource",
+          "no-reserve-at-boundary",
           "ready-not-executed",
           "dispatched-not-verified"
         ],
