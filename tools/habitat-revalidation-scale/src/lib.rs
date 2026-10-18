@@ -262,7 +262,9 @@ fn validate_profile(profile: &ProfileSpec) -> Result<(), String> {
         || profile.max_expanded_states == 0
         || profile.tradeoff_alternatives == 0
     {
-        return Err(format!("{prefix}counts and the search budget must be positive; depth must be at least two"));
+        return Err(format!(
+            "{prefix}counts and the search budget must be positive; depth must be at least two"
+        ));
     }
     if profile.artifact_count > MAX_ARTIFACTS
         || profile.task_count > MAX_TASKS
@@ -446,7 +448,11 @@ fn build_workload(matrix: &Matrix, profile: &ProfileSpec) -> Result<Workload, St
 
     let mut task_edge_depth = vec![0usize; reachable_count];
     for index in 0..reachable_count {
-        if let Some(max_prior_depth) = predecessors[index].iter().map(|prior| task_edge_depth[*prior]).max() {
+        if let Some(max_prior_depth) = predecessors[index]
+            .iter()
+            .map(|prior| task_edge_depth[*prior])
+            .max()
+        {
             task_edge_depth[index] = max_prior_depth + 1;
         }
     }
@@ -779,7 +785,9 @@ pub fn generate_workload(
     source_commit: &str,
 ) -> Result<GeneratedWorkload, String> {
     if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err("generator source commit must be an exact 40-character hexadecimal SHA".to_owned());
+        return Err(
+            "generator source commit must be an exact 40-character hexadecimal SHA".to_owned(),
+        );
     }
     let matrix = parse_matrix(matrix_bytes)?;
     let profile = matrix
