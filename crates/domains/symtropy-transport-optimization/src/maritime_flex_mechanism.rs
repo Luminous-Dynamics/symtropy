@@ -232,7 +232,7 @@ impl fmt::Display for FlexMechanismError {
                 second_slot_id,
             } => write!(
                 f,
-                "slots {first_slot_id} and {second_slot_id} overlap on physical resource {physical_resource_id}"
+                "slots {first_slot_id}/{second_slot_id} overlap on resource {physical_resource_id}"
             ),
             Self::DuplicateDemandId(id) => write!(f, "duplicate flex demand identity {id}"),
             Self::InvalidDemand(id) => write!(f, "demand {id} has invalid identity or quantity"),
@@ -246,7 +246,7 @@ impl fmt::Display for FlexMechanismError {
             Self::DuplicateOfferId(id) => write!(f, "duplicate flex offer identity {id}"),
             Self::DuplicateParticipantOffer(id) => write!(
                 f,
-                "participant {id} has multiple candidate offers; v0.1 requires one offer per participant"
+                "participant {id} has multiple offers; v0.1 allows one"
             ),
             Self::EmptyOfferIdentity(id) => write!(f, "offer {id} has invalid identity"),
             Self::UnknownOfferDemand { offer_id, demand_id } => {
@@ -1156,7 +1156,7 @@ mod tests {
                         utility_for(&deviated_report, "OFFER-A", true_cost_a);
                     assert!(
                         truthful_utility >= deviated_utility,
-                        "A misreport improved utility for costs {true_cost_a}/{true_cost_b}/{reported_cost_a}"
+                        "A gains by misreport {true_cost_a}/{true_cost_b}/{reported_cost_a}"
                     );
                 }
 
@@ -1172,7 +1172,7 @@ mod tests {
                         utility_for(&truthful_report, "OFFER-B", true_cost_b);
                     assert!(
                         truthful_b_utility >= deviated_utility,
-                        "B misreport improved utility for costs {true_cost_a}/{true_cost_b}/{reported_cost_b}"
+                        "B gains by misreport {true_cost_a}/{true_cost_b}/{reported_cost_b}"
                     );
                 }
             }
