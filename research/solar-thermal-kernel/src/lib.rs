@@ -706,6 +706,47 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     let pinch_targets = pinch::target_pinch_utilities(&pinch_problem)?;
     pinch::verify_pinch_targets(&pinch_problem, &pinch_targets)?;
 
+    // Canonical two-period day/night fixture for independent schedule auditing.
+    let temporal_curve = HeatCapacityCurve::new(vec![
+        HeatCapacityPoint::new(Kelvin::new(300.0)?, SpecificHeatJPerKgK::new(1_000.0)?),
+        HeatCapacityPoint::new(Kelvin::new(400.0)?, SpecificHeatJPerKgK::new(1_000.0)?),
+    ])?;
+    let temporal_config = StoreConfig::new(StoreConfigSpec {
+        mass: MassKg::new(10.0)?,
+        heat_capacity: temporal_curve,
+        min_temperature: Kelvin::new(300.0)?,
+        max_temperature: Kelvin::new(400.0)?,
+        initial_temperature: Kelvin::new(300.0)?,
+        max_charge_power: PowerW::new(5_000.0)?,
+        max_discharge_power: PowerW::new(1_000.0)?,
+        standing_loss_conductance: ThermalConductanceWPerK::new(0.1)?,
+    })?;
+    let temporal_duration = Seconds::new(3_600.0)?;
+    let temporal_schedule = vec![
+        temporal::TemporalPeriod {
+            duration: temporal_duration,
+            ambient_temperature: Kelvin::new(300.0)?,
+            action: temporal::PeriodAction::Charge {
+                available_heat: EnergyJ::new(900_000.0)?,
+            },
+        },
+        temporal::TemporalPeriod {
+            duration: temporal_duration,
+            ambient_temperature: Kelvin::new(300.0)?,
+            action: temporal::PeriodAction::Discharge {
+                request: DischargeRequest {
+                    requested_useful_heat: EnergyJ::new(300_000.0)?,
+                    required_supply_temperature: Kelvin::new(340.0)?,
+                    minimum_approach: TemperatureDifferenceK::new(10.0)?,
+                    heat_exchanger_effectiveness: Fraction::new(0.9)?,
+                    duration: temporal_duration,
+                },
+            },
+        },
+    ];
+    let temporal_report = temporal::simulate_schedule(&temporal_config, &temporal_schedule)?;
+    temporal::verify_schedule_report(&temporal_config, &temporal_schedule, &temporal_report)?;
+
     let mut json = String::from(
         "{\"schema\":\"solar-thermal-kernel-report-v0.1\",\"fixture_id\":\"analytic-sensible-store-001\",\"claim_level\":\"synthetic-mechanics-only\",\"source_binding\":\"not-source-hash-bound\",\"assumptions_id\":\"analytic-cp-linear-two-point-v0.1\""
     );
@@ -799,7 +840,61 @@ pub fn canonical_demo_receipt() -> Result<String, ModelError> {
     number(&mut json, "pinch_shifted_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.shifted_temperature.value()));
     number(&mut json, "pinch_hot_side_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.hot_side_temperature.value()));
     number(&mut json, "pinch_cold_side_temperature_k", pinch_targets.pinch_points.first().map_or(0.0, |p| p.cold_side_temperature.value()));
-    json.push_str(",\"all_verifiers_passed\":true,\"hardware_validated\":false}");
+    json.push_str(",\\\"temporal_fixture_id\\\":\\\"analytic-day-night-storage-001\\\"");
+    number(&mut json, "temporal_store_mass_kg", 10.0);
+    number(&mut json, "temporal_store_min_temperature_k", 300.0);
+    number(&mut json, "temporal_store_max_temperature_k", 400.0);
+    number(&mut json, "temporal_store_initial_temperature_k", 300.0);
+    number(&mut json, "temporal_cp_j_per_kg_k", 1_000.0);
+    number(&mut json, "temporal_max_charge_power_w", 5_000.0);
+    number(&mut json, "temporal_max_discharge_power_w", 1_000.0);
+    number(&mut json, "temporal_standing_loss_conductance_w_per_k", 0.1);
+    number(&mut json, "temporal_period_duration_s", 3_600.0);
+    number(&mut json, "temporal_ambient_temperature_k", 300.0);
+    number(&mut json, "temporal_charge_available_heat_j", 900_000.0);
+    number(&mut json, "temporal_load_supply_temperature_k", 340.0);
+    number(&mut json, "temporal_minimum_approach_k", 10.0);
+    number(&mut json, "temporal_heat_exchanger_effectiveness", 0.9);
+    number(&mut json, "temporal_requested_useful_heat_j", 300_000.0);
+
+    number(&mut json, "temporal_initial_stored_energy_j", temporal_report.initial_stored_energy.value());
+    number(&mut json, "temporal_final_stored_energy_j", temporal_report.final_stored_energy.value());
+    number(&mut json, "temporal_accepted_charge_heat_j", temporal_report.accepted_charge_heat.value());
+    number(&mut json, "temporal_rejected_charge_heat_j", temporal_report.rejected_charge_heat.value());
+    number(&mut json, "temporal_source_heat_withdrawn_j", temporal_report.source_heat_withdrawn.value());
+    number(&mut json, "temporal_useful_heat_delivered_j", temporal_report.useful_heat_delivered.value());
+    number(&mut json, "temporal_heat_exchanger_loss_j", temporal_report.heat_exchanger_loss.value());
+    number(&mut json, "temporal_unmet_useful_heat_j", temporal_report.unmet_useful_heat.value());
+    number(&mut json, "temporal_standing_heat_loss_j", temporal_report.standing_heat_loss.value());
+    number(&mut json, "temporal_energy_balance_residual_j", temporal_report.energy_balance_residual_j);
+
+    let temporal_charge = match temporal_report.periods[0].action {
+        temporal::PeriodActionReport::Charge(report) => report,
+        temporal::PeriodActionReport::Discharge(_) => return Err(ModelError::ReportMismatch("temporal.fixture_action_0").into()),
+    };
+    number(&mut json, "temporal_period_0_temperature_before_k", temporal_report.periods[0].state_before.temperature.value());
+    number(&mut json, "temporal_period_0_temperature_after_loss_k", temporal_report.periods[0].state_after_standing_loss.temperature.value());
+    number(&mut json, "temporal_period_0_temperature_after_action_k", temporal_report.periods[0].state_after.temperature.value());
+    number(&mut json, "temporal_period_0_standing_loss_j", temporal_report.periods[0].standing_loss.heat_lost.value());
+    number(&mut json, "temporal_period_0_charge_requested_j", temporal_charge.requested_input.value());
+    number(&mut json, "temporal_period_0_charge_accepted_j", temporal_charge.accepted_input.value());
+    number(&mut json, "temporal_period_0_charge_rejected_j", temporal_charge.rejected_input.value());
+
+    let temporal_discharge = match temporal_report.periods[1].action {
+        temporal::PeriodActionReport::Discharge(report) => report,
+        temporal::PeriodActionReport::Charge(_) => return Err(ModelError::ReportMismatch("temporal.fixture_action_1").into()),
+    };
+    number(&mut json, "temporal_period_1_temperature_before_k", temporal_report.periods[1].state_before.temperature.value());
+    number(&mut json, "temporal_period_1_temperature_after_loss_k", temporal_report.periods[1].state_after_standing_loss.temperature.value());
+    number(&mut json, "temporal_period_1_temperature_after_action_k", temporal_report.periods[1].state_after.temperature.value());
+    number(&mut json, "temporal_period_1_standing_loss_j", temporal_report.periods[1].standing_loss.heat_lost.value());
+    number(&mut json, "temporal_period_1_useful_heat_requested_j", temporal_discharge.requested_useful_heat.value());
+    number(&mut json, "temporal_period_1_source_heat_withdrawn_j", temporal_discharge.source_heat_withdrawn.value());
+    number(&mut json, "temporal_period_1_useful_heat_delivered_j", temporal_discharge.useful_heat_delivered.value());
+    number(&mut json, "temporal_period_1_heat_exchanger_loss_j", temporal_discharge.heat_exchanger_loss.value());
+    number(&mut json, "temporal_period_1_unmet_useful_heat_j", temporal_discharge.unmet_useful_heat.value());
+    json.push_str(",\\\"temporal_period_1_blocked_by_temperature\\\":false");
+    json.push_str(",\\\"all_verifiers_passed\\\":true,\\\"hardware_validated\\\":false}\\n");
     Ok(json)
 }
 
