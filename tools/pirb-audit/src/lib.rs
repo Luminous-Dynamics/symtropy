@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-const REQUIRED_SCENARIOS: [&str; 10] = [
+const REQUIRED_SCENARIOS: [&str; 11] = [
     "pirb-r2-minimum-service-floor-01",
     "pirb-r1-required-acceptance-01",
     "pirb-r0-stale-capacity-01",
@@ -206,9 +206,9 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r0-stale-capacity-01" | "pirb-r0-conflicting-reports-01" => "PIRB-0",
             "pirb-r4-personal-data-boundary-01" => "PIRB-4",
             "pirb-r3-no-lookahead-01" | "pirb-r3-worst-case-frontier-01" => "PIRB-3",
-            "pirb-r5-displacement-not-net-impact-01" | "pirb-r5-warning-response-chain-01" => {
-                "PIRB-5"
-            }
+            "pirb-r5-displacement-not-net-impact-01"
+            | "pirb-r5-warning-response-chain-01"
+            | "pirb-r5-network-spillover-01" => "PIRB-5"
             _ => "UNKNOWN",
         };
         if track != Some(expected_track) {
