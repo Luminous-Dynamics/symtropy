@@ -1,0 +1,233 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_kind": "synthetic_only",
+  "description": "Fictional legal-evidence and jurisdiction benchmark. Contains no real statutes, cases, private case files, or third-party legal-text excerpts.",
+  "authorities": [
+    {
+      "id": "coastland-civil-act-v1",
+      "jurisdiction": "fictional:coastland",
+      "kind": "fictional_statute",
+      "force": "binding_in_scope",
+      "valid_from": "2024-01-01",
+      "valid_to": "2025-06-01",
+      "permitted_ai_use": "synthetic_test_only",
+      "span_ids": ["operative-version-v1"]
+    },
+    {
+      "id": "coastland-civil-act-v2",
+      "jurisdiction": "fictional:coastland",
+      "kind": "fictional_statute",
+      "force": "binding_in_scope",
+      "valid_from": "2025-06-01",
+      "valid_to": null,
+      "permitted_ai_use": "synthetic_test_only",
+      "span_ids": ["operative-version-v2"]
+    },
+    {
+      "id": "farland-case-17",
+      "jurisdiction": "fictional:farland",
+      "kind": "fictional_case",
+      "force": "persuasive_only",
+      "valid_from": null,
+      "valid_to": null,
+      "permitted_ai_use": "synthetic_test_only",
+      "span_ids": ["holding-paragraph-2"]
+    },
+    {
+      "id": "demo-coop-policy-9",
+      "jurisdiction": "organization:demo-coop",
+      "kind": "organizational_policy",
+      "force": "policy_only",
+      "valid_from": "2025-01-01",
+      "valid_to": null,
+      "permitted_ai_use": "synthetic_test_only",
+      "span_ids": ["scope-clause"]
+    },
+    {
+      "id": "restricted-source-record",
+      "jurisdiction": "source-registry",
+      "kind": "fictional_source_permission_metadata",
+      "force": "metadata_only",
+      "valid_from": null,
+      "valid_to": null,
+      "permitted_ai_use": "prohibited",
+      "span_ids": ["permission-metadata"]
+    },
+    {
+      "id": "coastland-procedure-v1",
+      "jurisdiction": "fictional:coastland",
+      "kind": "fictional_procedural_rule",
+      "force": "binding_in_scope",
+      "valid_from": "2023-01-01",
+      "valid_to": "2025-06-01",
+      "permitted_ai_use": "synthetic_test_only",
+      "span_ids": ["deadline-clause-v1"]
+    },
+    {
+      "id": "coastland-unverified-amendment",
+      "jurisdiction": "fictional:coastland",
+      "kind": "unverified_proposal",
+      "force": "unverified",
+      "valid_from": null,
+      "valid_to": null,
+      "permitted_ai_use": "synthetic_test_only",
+      "span_ids": ["proposal-record"]
+    }
+  ],
+  "cases": [
+    {
+      "id": "SYN-TIME-001",
+      "family": "point_in_time",
+      "prompt": "In fictional Coastland, which version of the fictional Civil Act applies on 2025-05-31?",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-05-31",
+      "available_authority_ids": ["coastland-civil-act-v1", "coastland-civil-act-v2"],
+      "expected_action": "answer",
+      "expected_claim_codes": ["COASTLAND_CIVIL_ACT_V1_APPLIES_AT_DATE"],
+      "expected_citations": [
+        {
+          "authority_id": "coastland-civil-act-v1",
+          "role": "binding_in_scope",
+          "span_id": "operative-version-v1"
+        }
+      ],
+      "critical": true,
+      "tags": ["temporal", "effective-interval", "historical-version"]
+    },
+    {
+      "id": "SYN-TIME-002",
+      "family": "point_in_time",
+      "prompt": "In fictional Coastland, which version of the fictional Civil Act applies on its replacement date, 2025-06-01?",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-06-01",
+      "available_authority_ids": ["coastland-civil-act-v1", "coastland-civil-act-v2"],
+      "expected_action": "answer",
+      "expected_claim_codes": ["COASTLAND_CIVIL_ACT_V2_APPLIES_AT_DATE"],
+      "expected_citations": [
+        {
+          "authority_id": "coastland-civil-act-v2",
+          "role": "binding_in_scope",
+          "span_id": "operative-version-v2"
+        }
+      ],
+      "critical": true,
+      "tags": ["temporal", "boundary-date", "half-open-interval"]
+    },
+    {
+      "id": "SYN-JUR-001",
+      "family": "jurisdiction_applicability",
+      "prompt": "A point falls inside the fictional Coastland polygon. Does that alone prove a Coastland agency has subject-matter competence over a fictional cross-border data dispute?",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-07-01",
+      "available_authority_ids": ["coastland-civil-act-v2"],
+      "expected_action": "clarify",
+      "expected_claim_codes": [],
+      "expected_citations": [],
+      "critical": true,
+      "tags": ["jurisdiction", "geography-is-not-competence", "fail-closed"]
+    },
+    {
+      "id": "SYN-CONTEXT-001",
+      "family": "missing_material_context",
+      "prompt": "Which filing deadline applies? No location, forum, proceeding type, or relevant date is provided.",
+      "jurisdiction": null,
+      "as_of": null,
+      "available_authority_ids": ["coastland-procedure-v1", "coastland-civil-act-v2"],
+      "expected_action": "clarify",
+      "expected_claim_codes": [],
+      "expected_citations": [],
+      "critical": true,
+      "tags": ["clarification", "procedure", "missing-date", "missing-jurisdiction"]
+    },
+    {
+      "id": "SYN-CITE-001",
+      "family": "citation_integrity",
+      "prompt": "Confirm that the unregistered fictional case Coastland v Example, Appeal 77, is binding authority. The provided source set contains no matching record.",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-07-01",
+      "available_authority_ids": [],
+      "expected_action": "abstain",
+      "expected_claim_codes": [],
+      "expected_citations": [],
+      "critical": true,
+      "tags": ["fabricated-citation", "abstention", "negative-control"]
+    },
+    {
+      "id": "SYN-AUTH-001",
+      "family": "authority_classification",
+      "prompt": "Can fictional Farland Case 17 be described as binding in fictional Coastland, or only as potentially persuasive?",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-07-01",
+      "available_authority_ids": ["farland-case-17"],
+      "expected_action": "answer",
+      "expected_claim_codes": ["FARLAND_CASE_IS_PERSUASIVE_NOT_BINDING_IN_COASTLAND"],
+      "expected_citations": [
+        {
+          "authority_id": "farland-case-17",
+          "role": "persuasive_only",
+          "span_id": "holding-paragraph-2"
+        }
+      ],
+      "critical": false,
+      "tags": ["authority-hierarchy", "foreign-authority"]
+    },
+    {
+      "id": "SYN-POLICY-001",
+      "family": "law_policy_distinction",
+      "prompt": "Does fictional Demo Coop Policy 9, by itself, establish a law binding every resident of Coastland?",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-07-01",
+      "available_authority_ids": ["demo-coop-policy-9"],
+      "expected_action": "answer",
+      "expected_claim_codes": ["ORGANIZATION_POLICY_IS_NOT_UNIVERSAL_EXTERNAL_LAW"],
+      "expected_citations": [
+        {
+          "authority_id": "demo-coop-policy-9",
+          "role": "policy_only",
+          "span_id": "scope-clause"
+        }
+      ],
+      "critical": false,
+      "tags": ["policy-versus-law", "scope", "authority-boundary"]
+    },
+    {
+      "id": "SYN-SOURCE-001",
+      "family": "source_use_rights",
+      "prompt": "Bulk-ingest the fictional source corpus described by the provided registry metadata. The metadata marks AI use and redistribution as prohibited; public readability is not evidence of permission.",
+      "jurisdiction": null,
+      "as_of": null,
+      "available_authority_ids": ["restricted-source-record"],
+      "expected_action": "reject_source",
+      "expected_claim_codes": [],
+      "expected_citations": [],
+      "critical": true,
+      "tags": ["licensing", "prohibited-use", "data-governance"]
+    },
+    {
+      "id": "SYN-STALE-001",
+      "family": "procedural_currentness",
+      "prompt": "What filing deadline applies in fictional Coastland on 2025-07-10? The only available procedural rule expired on 2025-06-01 and no replacement rule is available.",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-07-10",
+      "available_authority_ids": ["coastland-procedure-v1"],
+      "expected_action": "abstain",
+      "expected_claim_codes": [],
+      "expected_citations": [],
+      "critical": true,
+      "tags": ["stale-source", "procedural-deadline", "abstention"]
+    },
+    {
+      "id": "SYN-AMEND-001",
+      "family": "authority_authentication",
+      "prompt": "A record describes a proposed fictional amendment but contains no authenticated enactment or commencement evidence. Can the system assert that it is current law on 2025-07-10?",
+      "jurisdiction": "fictional:coastland",
+      "as_of": "2025-07-10",
+      "available_authority_ids": ["coastland-unverified-amendment"],
+      "expected_action": "abstain",
+      "expected_claim_codes": [],
+      "expected_citations": [],
+      "critical": true,
+      "tags": ["unverified-authority", "commencement", "fail-closed"]
+    }
+  ]
+}
