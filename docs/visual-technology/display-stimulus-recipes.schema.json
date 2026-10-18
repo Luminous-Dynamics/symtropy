@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/visual-technology/display-stimulus-recipes.schema.json",
+  "title": "ODRH-STIM-001 display stimulus recipe manifest",
+  "description": "Structural validation only. A valid recipe does not prove that a host or physical display emits the generated raster unchanged.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "manifest_id",
+    "title",
+    "status",
+    "evidence_class",
+    "physical_output_validation",
+    "claim_ceiling",
+    "source_corpus",
+    "encoding",
+    "stimuli"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "const": "ODRH-STIM-001"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "const": "SPECIFICATION_ONLY"
+    },
+    "evidence_class": {
+      "type": "string",
+      "const": "SYNTHETIC_STIMULUS"
+    },
+    "physical_output_validation": {
+      "type": "string",
+      "const": "NOT_PERFORMED"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_corpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corpus_id",
+        "schema_version",
+        "repository",
+        "path",
+        "git_blob_sha1",
+        "url",
+        "source_status"
+      ],
+      "properties": {
+        "corpus_id": {
+          "type": "string",
+          "const": "VIS-DISP-CORPUS-001"
+        },
+        "schema_version": {
+          "type": "string",
+          "const": "0.1.0"
+        },
+        "repository": {
+          "type": "string",
+          "const": "Luminous-Dynamics/symthaea"
+        },
+        "path": {
+          "type": "string",
+          "const": "docs/engineering/visual-display-workload-corpus-v0.1.json"
+        },
+        "git_blob_sha1": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_status": {
+          "type": "string",
+          "const": "UNQUALIFIED"
+        }
+      }
+    },
+    "encoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "channel_order",
+        "origin",
+        "transfer_semantics",
+        "color_profile",
+        "metadata_transport"
+      ],
+      "properties": {
+        "format": {
+          "type": "string",
+          "const": "PPM_P6"
+        },
+        "channel_order": {
+          "type": "string",
+          "const": "RGB"
+        },
+        "origin": {
+          "type": "string",
+          "const": "TOP_LEFT"
+        },
+        "transfer_semantics": {
+          "type": "string",
+          "const": "EXPLICIT_CODE_VALUES_ONLY"
+        },
+        "color_profile": {
+          "type": "string",
+          "const": "NONE_EMBEDDED"
+        },
+        "metadata_transport": {
+          "type": "string",
+          "const": "NOT_REPRESENTED"
+        }
+      }
+    },
+    "stimuli": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_case_id",
+          "title",
+          "primitive",
+          "width",
+          "height",
+          "bit_depth",
+          "maxval",
+          "status",
+          "claim_limit",
+          "parameters"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^ODRH-STIM-[A-Z0-9-]+$"
+          },
+          "source_case_id": {
+            "type": "string",
+            "pattern": "^VIS-DISP-[A-Z0-9-]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "primitive": {
+            "type": "string",
+            "enum": [
+              "neutral_ramp",
+              "near_black_steps",
+              "center_patch",
+              "rgb_gradient"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096
+          },
+          "bit_depth": {
+            "type": "integer",
+            "enum": [8, 10]
+          },
+          "maxval": {
+            "type": "integer",
+            "enum": [255, 1023]
+          },
+          "status": {
+            "type": "string",
+            "const": "UNQUALIFIED"
+          },
+          "claim_limit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameters": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
