@@ -29,6 +29,8 @@ External references:
   machine. These are lower bounds only—not feasible schedules.
 - A bounded exhaustive serial-schedule search for at most 12 operations and
   two million expanded nodes.
+- Twenty deterministic tiny instances cross-checked against a separate machine-order
+  permutation oracle that rejects precedence cycles and evaluates longest paths.
 - Negative controls for malformed token counts, non-integer/negative values,
   zero durations, invalid machine IDs, overflow, and attempts to run the exact
   oracle above its limit.
