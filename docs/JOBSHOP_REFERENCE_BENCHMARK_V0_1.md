@@ -28,7 +28,9 @@ External references:
 - Workload lower bounds: maximum total processing time of any job or any
   machine. These are lower bounds only—not feasible schedules.
 - A bounded exhaustive serial-schedule search for at most 12 operations and
-  two million expanded nodes.
+  two million expanded nodes. It emits operation-level timing records.
+- An independent schedule verifier checks completeness, identity, assignment,
+  processing duration, job precedence, machine exclusivity, and reported makespan.
 - Twenty deterministic tiny instances cross-checked against a separate machine-order
   permutation oracle that rejects precedence cycles and evaluates longest paths.
 - Negative controls for malformed token counts, non-integer/negative values,
