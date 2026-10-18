@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-garden-sim/advice_service_link.v1.schema.json",
+  "title": "Farmer advice-to-service reference link V1",
+  "description": "A link between the existing WCARE advice episode/decision references and a canonical Symtropy service request. A valid shape does not authenticate any referenced source or authorize disclosure, and linkage alone never establishes causality.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "link_id",
+    "service_request_ref",
+    "advice_episode_ref",
+    "decision_ref",
+    "advice_scope_ref",
+    "advice_period_ref",
+    "advice_task_code",
+    "reason",
+    "initiated_by_role",
+    "state",
+    "authorization_ref",
+    "observed_outcome_claim_refs",
+    "source_ref",
+    "recorded_at_epoch_seconds"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "link_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "service_request_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "advice_episode_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "decision_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "advice_scope_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "advice_period_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "advice_task_code": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "reason": {
+      "enum": [
+        "farmer_declared",
+        "explicit_advice",
+        "adviser_relay",
+        "service_resolution_after_advice",
+        "post_hoc_follow_up"
+      ]
+    },
+    "initiated_by_role": {
+      "enum": [
+        "farmer",
+        "adviser",
+        "cooperative_relay",
+        "service_provider",
+        "evaluator"
+      ]
+    },
+    "state": {
+      "enum": [
+        "pending",
+        "linked",
+        "stale",
+        "disputed",
+        "revoked_for_future_sharing",
+        "unavailable"
+      ]
+    },
+    "authorization_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "observed_outcome_claim_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "recorded_at_epoch_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  }
+}
