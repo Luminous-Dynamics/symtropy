@@ -1476,7 +1476,7 @@ mod tests {
     fn warning_response_chain_requires_authority_resources_and_lead_time() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
-        assert_eq!(report.scenario_count, 10);
+        assert_eq!(report.scenario_count, 11);
         let value = corpus();
         assert_eq!(
             value["scenarios"][9]["expected"]["actionable_alert_ids"],
@@ -1556,7 +1556,7 @@ mod tests {
     fn reference_corpus_passes_all_semantic_checks() {
         let report = audit_corpus_json(FIXTURE);
         assert!(report.passed, "{:#?}", report.findings);
-        assert_eq!(report.scenario_count, 10);
+        assert_eq!(report.scenario_count, 11);
     }
 
     #[test]
@@ -1747,6 +1747,41 @@ mod tests {
         value["scenarios"][7]["expected"]["pareto_frontier"] = json!(["repair_plus_backup"]);
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_PARETO_FRONTIER_MISMATCH"));
+    }
+
+    #[test]
+    fn network_aggregate_reduction_still_reports_displaced_burden() {
+        let report = audit_corpus_json(FIXTURE);
+        assert!(report.passed, "{:#?}", report.findings);
+        let value = corpus();
+        let scenario = &value["scenarios"][10];
+        assert_eq!(scenario["expected"]["aggregate_gap_before"], json!(36));
+        assert_eq!(scenario["expected"]["aggregate_gap_after"], json!(34));
+        assert_eq!(scenario["expected"]["displacement_detected"], json!(true));
+        assert_eq!(
+            scenario["expected"]["worsened_groups"],
+            json!(["near-community-b", "outer-community-c"])
+        );
+        assert_eq!(
+            scenario["expected"]["improvement_claim"],
+            json!("qualified_with_displacement")
+        );
+    }
+
+    #[test]
+    fn network_displacement_cannot_be_hidden_by_aggregate_improvement() {
+        let mut value = corpus();
+        value["scenarios"][10]["expected"]["improvement_claim"] = json!("improved");
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_DISTRIBUTIONAL_HARM_HIDDEN"));
+    }
+
+    #[test]
+    fn declared_worsened_groups_must_match_network_outcomes() {
+        let mut value = corpus();
+        value["scenarios"][10]["expected"]["worsened_groups"] = json!(["near-community-b"]);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_WORSENED_GROUPS_MISMATCH"));
     }
 
     #[test]
