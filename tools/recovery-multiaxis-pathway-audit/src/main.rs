@@ -682,9 +682,14 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
     let expected_outcomes_match = case_results.iter().all(|result| result.expected_outcome_matches);
     let all_synthetic = corpus.claim_ceiling.all_scenarios_synthetic
         && !corpus.claim_ceiling.real_world_measurements
-        && !corpus.claim_ceiling.probability_weights_provided;
+        && !corpus.claim_ceiling.probability_weights_provided
+        && corpus
+            .temporal_evidence_records
+            .iter()
+            .all(|record| record.source_authenticity_status == "UNVERIFIED_SYNTHETIC");
     let all_actuation_disabled = !corpus.claim_ceiling.expected_actuation
-        && case_results.iter().all(|result| !result.actuation_authorized);
+        && case_results.iter().all(|result| !result.actuation_authorized)
+        && temporal.actuation_authorized_count == 0;
     if !all_synthetic {
         errors.push("SYNTHETIC_CLAIM_CEILING_VIOLATED".to_string());
     }
@@ -842,6 +847,87 @@ mod tests {
     }
 
     #[test]
+    fn temporal_baseline_has_no_anticipativity_or_information_cutoff_violations() {
+        let receipt = run(&corpus());
+        assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
+        assert_eq!(receipt.temporal_evidence_record_count, 3);
+        assert_eq!(receipt.temporal_decision_count, 4);
+        assert_eq!(receipt.visible_history_group_count, 3);
+        assert_eq!(receipt.nonanticipativity_violation_count, 0);
+        assert_eq!(receipt.future_evidence_violation_count, 0);
+        assert_eq!(receipt.missing_evidence_reference_count, 0);
+        assert_eq!(receipt.temporal_actuation_authorized_count, 0);
+        assert!(receipt.expected_temporal_counts_match);
+    }
+
+    #[test]
+    fn same_visible_history_cannot_choose_different_actions_across_futures() {
+        let mut value = corpus();
+        let decision = value
+            .temporal_policy_decisions
+            .iter_mut()
+            .find(|decision| decision.decision_id == "shared-prefix-shift-stage-0")
+            .expect("shared-prefix decision exists");
+        decision.action_id = "COMMIT_IRREVERSIBLY".to_string();
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.nonanticipativity_violation_count, 1);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("NONANTICIPATIVITY_VIOLATION")));
+    }
+
+    #[test]
+    fn future_evidence_cannot_become_an_earlier_decision_input() {
+        let mut value = corpus();
+        let decision = value
+            .temporal_policy_decisions
+            .iter_mut()
+            .find(|decision| decision.decision_id == "shared-prefix-baseline-stage-0")
+            .expect("shared-prefix decision exists");
+        decision
+            .evidence_refs
+            .push("synthetic://temporal-evidence/criteria-shift-signpost-day-5".to_string());
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.future_evidence_violation_count, 1);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("FUTURE_INFORMATION_LEAKAGE")));
+    }
+
+    #[test]
+    fn missing_temporal_evidence_reference_fails_closed() {
+        let mut value = corpus();
+        let decision = value
+            .temporal_policy_decisions
+            .iter_mut()
+            .find(|decision| decision.decision_id == "shared-prefix-baseline-stage-0")
+            .expect("shared-prefix decision exists");
+        decision.evidence_refs.push("synthetic://missing-record".to_string());
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.missing_evidence_reference_count, 1);
+        assert!(receipt.errors.iter().any(|error| error.contains("TEMPORAL_EVIDENCE_REFERENCE_MISSING")));
+    }
+
+    #[test]
+    fn temporal_decision_cannot_authorize_actuation() {
+        let mut value = corpus();
+        value.temporal_policy_decisions[0].expected_actuation = true;
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.temporal_actuation_authorized_count, 1);
+        assert!(!receipt.all_actuation_disabled);
+    }
+
+    #[test]
+    fn duplicate_temporal_decision_ids_fail_closed() {
+        let mut value = corpus();
+        let duplicate = value.temporal_policy_decisions[0].clone();
+        value.temporal_policy_decisions.push(duplicate);
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert!(receipt.errors.iter().any(|error| error.starts_with("TEMPORAL_DECISION_ID_DUPLICATE")));
+    }
+
+    #[test]
     fn novel_family_never_becomes_in_scope_with_fresh_evidence() {
         let receipt = run(&corpus());
         let case = result_for(
@@ -970,6 +1056,11 @@ mod tests {
         let original = corpus();
         let mut permuted = original.clone();
         permuted.cases.reverse();
+        permuted.temporal_evidence_records.reverse();
+        permuted.temporal_policy_decisions.reverse();
+        for decision in &mut permuted.temporal_policy_decisions {
+            decision.evidence_refs.reverse();
+        }
         permuted.decision_profile.covered_failure_families.reverse();
         permuted.decision_profile.required_evidence_tags.reverse();
         for value in permuted.family_set_registry.values_mut() {
