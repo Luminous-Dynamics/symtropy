@@ -1128,6 +1128,7 @@ mod tests {
     fn same_physical_resource_overlapping_slot_definitions_fail_closed() {
         let mut input = base_input();
         input.slots[1].physical_resource_id = "BERTH-A".to_owned();
+        input.slots[1].start_minute = 150;
         let result = select_consent_based_flexibility(&input);
         assert!(matches!(
             result,
