@@ -77,6 +77,16 @@ The benchmark reports whether each participant's net benefit reaches its declare
 
 Report fuel and CO₂ as physical quantities separate from monetary accounts. Monetary fuel/CO₂ valuations must have an explicit payer/receiver and must not be double-counted against the same account line.
 
+## Component-level cost ledger extension
+
+The additive Rust module at `tools/port-call-value-sharing-benchmark/src/component_ledger.rs` checks whether each participant supplies exactly one **baseline and treatment amount per required category**. A missing cost cannot silently become zero: zero must be a literal row. Unknown or duplicate categories, duplicate participants, differing service-contract IDs, differing horizons, invalid digest syntax, unqualified evidence, non-conserving transfers, and arithmetic/invariant errors reject.
+
+The component ledger derives participant baseline/treatment totals and gross benefit from line items using checked wide-integer arithmetic. It also emits category-level baseline/treatment totals and category gross benefit, then checks that participant totals, category totals, net transfers and aggregate gross benefit reconcile. Rows and receipts are deterministically sorted. The CLI flag `--cost-ledger-json` emits the frozen component-ledger example, and focused CI compares it byte-for-byte with a checked-in fixture as well as replaying it twice.
+
+The synthetic demo has USD 60.00 aggregate gross benefit, but its category vector is materially different: bunkers +USD 30.00, coordination -USD 60.00, and demurrage +USD 90.00. This is deliberate: favorable total economics must not erase a cost increase in a particular category or participant.
+
+**Qualification boundary:** this proves completeness only relative to the caller-declared category set. It does not prove that the set covers every real-world cost. The older aggregate API still accepts a caller-declared `cost_boundary_complete` flag; it is not an independently audited line-item ledger. The component ledger validates digest syntax and preserves the digests, but an upstream receipt verifier must prove they match source bytes. Neither a category manifest nor a hash proves the inputs are true or the accounting contract is economically fair.
+
 ## Comparison arms
 
 A future full tournament should compare, on identical basis and bounded information:
@@ -120,6 +130,7 @@ Include:
 - **100%** separate reporting of physical emissions reduction and monetary value; zero double-counting in the frozen negative controls.
 - **100%** of reported treatment savings identify the exact baseline, scope, delivered-service contract, and evidence tier.
 - **100%** of baseline-sensitivity ensembles preserve the fixed treatment/participant contract and report worst/best participant outcomes without inventing scenario probabilities.
+- **100%** of component-ledger fixtures have exactly one baseline/treatment row per required participant/category pair; zero-cost rows are explicit, and category totals, participant totals, gross benefit and transfers reconcile without plug entries.
 - For the later allocation tournament, **100%** agreement with an independent exact oracle on small bounded action sets; report Pareto feasibility, minimum normalized surplus, total surplus, allocation sensitivity, and computation cost separately.
 
 No percentage emissions target is prescribed here. The 2026 pilot shows that waiting time and vessel envelope determine the opportunity; a case with no absorbable idle time can have no additional saving. Targets must be preregistered by a supported case family.
