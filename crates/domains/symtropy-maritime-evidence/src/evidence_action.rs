@@ -696,6 +696,133 @@ mod tests {
         }
     }
 
+    fn oracle_ceil_minutes(nanos: i128) -> u64 {
+        if nanos <= 0 {
+            return 0;
+        }
+        let minute = 60 * super::super::NANOS_PER_SECOND;
+        u64::try_from((nanos + minute - 1) / minute).unwrap_or(u64::MAX)
+    }
+
+    fn independent_oracle_window_cost(
+        arrival_utc_nanos: i128,
+        window: &DecisionWindow,
+        missed_penalty: u64,
+    ) -> u64 {
+        let delta = arrival_utc_nanos - window.starts_at_utc_nanos;
+        if delta <= 0 {
+            return oracle_ceil_minutes(-delta);
+        }
+        let lateness = oracle_ceil_minutes(delta);
+        if lateness <= u64::from(window.late_grace_minutes) {
+            lateness
+        } else {
+            missed_penalty + lateness
+        }
+    }
+
+    fn independent_robust_oracle(
+        windows: &[DecisionWindow],
+        candidate_arrivals: &[i128],
+        missed_penalty: u64,
+        abstention_cost: u64,
+    ) -> Option<String> {
+        let mut scored = windows
+            .iter()
+            .map(|window| {
+                let worst = candidate_arrivals
+                    .iter()
+                    .map(|arrival| {
+                        independent_oracle_window_cost(*arrival, window, missed_penalty)
+                    })
+                    .max()
+                    .unwrap_or(u64::MAX);
+                (worst, window.starts_at_utc_nanos, window.id.clone())
+            })
+            .collect::<Vec<_>>();
+        scored.sort();
+        match scored.first() {
+            Some((cost, _, id)) if *cost < abstention_cost => Some(id.clone()),
+            _ => None,
+        }
+    }
+
+    fn timestamp_at_minute_of_day(minute: u32) -> String {
+        format!(
+            "2026-10-18T{:02}:{:02}:00Z",
+            minute / 60,
+            minute % 60
+        )
+    }
+
+    #[test]
+    fn bounded_policy_matches_independent_oracle_over_frozen_time_grid() {
+        let candidate_minutes = (11 * 60..=15 * 60).step_by(30).collect::<Vec<_>>();
+        let window_starts = [
+            ("WINDOW-12", 12 * 60),
+            ("WINDOW-13", 13 * 60),
+            ("WINDOW-14", 14 * 60),
+        ];
+
+        for first in &candidate_minutes {
+            for second in &candidate_minutes {
+                let input_observations = vec![
+                    observation(
+                        "OBS-GRID-A",
+                        "SOURCE-A",
+                        &timestamp_at_minute_of_day(*first),
+                        10,
+                        5,
+                    ),
+                    observation(
+                        "OBS-GRID-B",
+                        "SOURCE-B",
+                        &timestamp_at_minute_of_day(*second),
+                        12,
+                        4,
+                    ),
+                ];
+                for grace in [0, 15, 30] {
+                    let windows = window_starts
+                        .iter()
+                        .map(|(id, minute)| {
+                            let mut window = window(
+                                id,
+                                &timestamp_at_minute_of_day(*minute as u32),
+                            );
+                            window.late_grace_minutes = grace;
+                            window
+                        })
+                        .collect::<Vec<_>>();
+                    for missed_penalty in [30, 100] {
+                        for abstention_cost in [0, 60, 130, 300] {
+                            let mut input = input(input_observations.clone());
+                            input.windows = windows.clone();
+                            input.missed_window_penalty_minutes = missed_penalty;
+                            input.abstention_cost_minutes = abstention_cost;
+
+                            let actual = decide(EvidencePolicy::BoundedWorstCaseContingency, &input)
+                                .chosen_window_id;
+                            let expected = independent_robust_oracle(
+                                &windows,
+                                &[
+                                    utc(&timestamp_at_minute_of_day(*first)),
+                                    utc(&timestamp_at_minute_of_day(*second)),
+                                ],
+                                missed_penalty,
+                                abstention_cost,
+                            );
+                            assert_eq!(
+                                actual, expected,
+                                "oracle mismatch: arrivals=({first},{second}), grace={grace}, miss={missed_penalty}, abstention={abstention_cost}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn oracle_cost_is_evaluation_only_and_abstention_is_not_free() {
         let input = input(vec![observation(
