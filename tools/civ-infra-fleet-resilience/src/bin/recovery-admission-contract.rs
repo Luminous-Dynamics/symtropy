@@ -1965,7 +1965,7 @@ mod tests {
     }
 
     #[test]
-    fn one_thousand_seeded_gate_perturbations_fail_closed_and_replay_deterministically() {
+    fn ten_thousand_seeded_gate_perturbations_fail_closed_and_replay_deterministically() {
         let contract = contract();
         let baseline = make_proposal(
             &contract,
@@ -1985,13 +1985,13 @@ mod tests {
 
         let mut state = 0xC1F1_1A5E_2026_u64;
         let mut covered = BTreeSet::new();
-        for index in 0..1_000 {
+        for index in 0..10_000 {
             state = state
                 .wrapping_mul(6_364_136_223_846_793_005)
                 .wrapping_add(1_442_695_040_888_963_407);
             let gate = state % 9;
             let mut proposal = baseline.clone();
-            proposal.attempt_id = format!("gate-property-{index:04}");
+            proposal.attempt_id = format!("gate-property-{index:05}");
             match gate {
                 0 => {
                     proposal.gates.resource_available = false;
