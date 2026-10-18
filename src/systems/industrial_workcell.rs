@@ -668,6 +668,61 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_small_pools_match_independent_peak_concurrency_oracle() {
+        // Synthetic exhaustive check only: operation intervals are tiny integer
+        // fixtures; they are not measurements of real manufacturing durations.
+        // Six choices per operation cover starts 0..=2 and durations 1..=2.
+        for operation_count in 1usize..=4 {
+            let cases = 6usize.pow(operation_count as u32);
+            for mut encoded in 0..cases {
+                let mut operations = Vec::with_capacity(operation_count);
+                for index in 0..operation_count {
+                    let choice = encoded % 6;
+                    encoded /= 6;
+                    let start = (choice % 3) as f64;
+                    let duration = if choice / 3 == 0 { 1.0 } else { 2.0 };
+                    operations.push(operation(
+                        &format!("op-{index}"),
+                        "pool",
+                        start,
+                        duration,
+                        &[],
+                    ));
+                }
+
+                let peak_concurrency = (0..=3)
+                    .map(|time| {
+                        let time = time as f64;
+                        operations
+                            .iter()
+                            .filter(|item| {
+                                item.start_seconds <= time
+                                    && item.end_seconds().is_some_and(|end| time < end)
+                            })
+                            .count()
+                    })
+                    .max()
+                    .unwrap_or(0);
+
+                for capacity in 1usize..=3 {
+                    let declarations = vec![ResourceCapacity {
+                        resource_id: "pool".into(),
+                        capacity,
+                    }];
+                    let report =
+                        validate_schedule_with_resource_capacities(&operations, &declarations);
+                    assert_eq!(
+                        report.is_feasible(),
+                        peak_concurrency <= capacity,
+                        "operation_count={operation_count}, capacity={capacity}, operations={operations:?}, report={:?}",
+                        report.violations
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn resource_pool_capacity_respects_half_open_back_to_back_intervals() {
         let operations = vec![
             operation("weld-a", "bay-pool", 0.0, 10.0, &[]),
