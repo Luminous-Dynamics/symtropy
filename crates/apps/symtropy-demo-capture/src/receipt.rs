@@ -343,19 +343,19 @@ fn inspect_image(
     )
     .into_dimensions()
     {
-            Ok(dimensions) => dimensions,
-            Err(_) => {
-                return ImageReceipt {
-                    scheduled_time_secs,
-                    path: Some(path.to_owned()),
-                    status: "decode_error".to_owned(),
-                    byte_len: Some(byte_len),
-                    sha256: Some(digest),
-                    width_px: None,
-                    height_px: None,
-                };
-            }
-        };
+        Ok(dimensions) => dimensions,
+        Err(_) => {
+            return ImageReceipt {
+                scheduled_time_secs,
+                path: Some(path.to_owned()),
+                status: "decode_error".to_owned(),
+                byte_len: Some(byte_len),
+                sha256: Some(digest),
+                width_px: None,
+                height_px: None,
+            };
+        }
+    };
     let pixel_count = u64::from(declared_width).checked_mul(u64::from(declared_height));
     if declared_width == 0
         || declared_height == 0
