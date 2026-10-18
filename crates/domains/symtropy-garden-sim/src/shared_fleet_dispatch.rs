@@ -314,11 +314,13 @@ pub fn plan_shared_fleet_dispatch_v1(
         .collect();
 
     let mut schedule_order: Vec<&SharedFleetRequestV1> = input.requests.iter().collect();
-    schedule_order.sort_by_key(|request| (
-        request.useful_window_deadline_minute,
-        request.requested_at_minute,
-        request.request_id.clone(),
-    ));
+    schedule_order.sort_by_key(|request| {
+        (
+            request.useful_window_deadline_minute,
+            request.requested_at_minute,
+            request.request_id.clone(),
+        )
+    });
 
     let mut assignments = Vec::with_capacity(input.requests.len());
     let mut total_modeled_route_minutes = 0_u64;
@@ -393,8 +395,7 @@ pub fn plan_shared_fleet_dispatch_v1(
                 Some((travel_minutes, metric)) => {
                     let departure_minute =
                         state.available_at_minute.max(request.requested_at_minute);
-                    let Some(service_start_minute) =
-                        departure_minute.checked_add(travel_minutes)
+                    let Some(service_start_minute) = departure_minute.checked_add(travel_minutes)
                     else {
                         return Err(vec![blocker(
                             SharedFleetDispatchBlockerCodeV1::ArithmeticOverflow,
@@ -435,12 +436,14 @@ pub fn plan_shared_fleet_dispatch_v1(
             }
         }
 
-        candidates.sort_by_key(|candidate| (
-            !candidate.within_useful_window,
-            candidate.completion_minute,
-            candidate.travel_minutes,
-            candidate.robot_id.clone(),
-        ));
+        candidates.sort_by_key(|candidate| {
+            (
+                !candidate.within_useful_window,
+                candidate.completion_minute,
+                candidate.travel_minutes,
+                candidate.robot_id.clone(),
+            )
+        });
 
         let Some(candidate) = candidates.into_iter().next() else {
             let disposition = if saw_unknown_route {
@@ -591,9 +594,7 @@ fn schedulable_travel_minutes(
     }
 
     match (leg.metric, leg.travel_minutes) {
-        (DispatchTravelMetricV1::ModeledRouteTime, Some(minutes)) => {
-            Some((minutes, leg.metric))
-        }
+        (DispatchTravelMetricV1::ModeledRouteTime, Some(minutes)) => Some((minutes, leg.metric)),
         _ => None,
     }
 }
@@ -758,7 +759,10 @@ fn validate_dispatch_input(
         {
             blockers.push(blocker(
                 SharedFleetDispatchBlockerCodeV1::UnknownLocationReference,
-                &format!("{}:{}->{}", leg.robot_id, leg.from_location_ref, leg.to_location_ref),
+                &format!(
+                    "{}:{}->{}",
+                    leg.robot_id, leg.from_location_ref, leg.to_location_ref
+                ),
             ));
         }
         if leg.scope_ref != input.scope_ref {
