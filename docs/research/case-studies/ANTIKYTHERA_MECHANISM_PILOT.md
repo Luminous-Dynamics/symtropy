@@ -43,6 +43,13 @@ The last two are sensitivity estimates from related measurements and a shared so
 
 The seed defines three separate reconstruction models and one model-comparison group. Its explicit decision rule is to report axes separately instead of synthesizing a winner. Initial axes include fit to measured hole spacing, sensitivity to fracture handling, calendar-interpretation consistency, mechanical feasibility, dependence on missing geometry, and evidence provenance.
 
+The seed additionally declares four point-vs-interval probes. The analysis calculates only the candidate value's location relative to the reported interval and the arithmetic distance to the nearest bound:
+- 365 is 8.37 holes above the all-measurement interval [353.88, 356.63].
+- 365 is 9.45 holes above the fracture-excluded interval [352.67, 355.55].
+- 354 is within both intervals.
+
+Those distances are deterministic arithmetic, not statistical model scores. In particular, an interval's stated 68% coverage must not be converted into a "32% rejection probability", and related sensitivity estimates must not be treated as independent replicates.
+
 The comparison contains four explicit model/axis assessments:
 - **Source-reported:** the 2024 authors' conclusion that 365 holes are not plausible under their assumptions, plus their two sensitivity estimates. This is attributed to the paper, not independently re-fit here.
 - **Source-reported:** the 2025 authors' statement that three candidate designs are mechanically feasible; the candidates have not been locally recreated.
@@ -59,6 +66,7 @@ Run from the Symtropy workspace root:
 ```sh
 cargo test -p humanity-history-core
 cargo run -p humanity-history-core --bin humanity-history-validate -- crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
+cargo run -p humanity-history-core --bin humanity-history-validate -- analyze-contrasts crates/domains/humanity-history-core/fixtures/antikythera-research-seed.json
 ```
 
 The first command should run the core's unit suite; the second should emit JSON with `valid: true` and zero issues. These are **expected outputs**, not test results claimed by this research seed. The code must be compiled and run in a Rust-enabled environment before acceptance.
