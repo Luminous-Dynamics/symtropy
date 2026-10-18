@@ -57,11 +57,12 @@ All cases are synthetic. They are not evidence of the frequency of real producti
 
 ## Next stage after the contract audit
 
-1. Audit the exact active branches for Symtropy housing evidence (#1596), repairability compiler (#1773), Mycelix Manufacturing Node 0 (#4689) and physical unit/qualification provenance (#3084); record schema/field mappings and avoid forked ledgers.
-2. Expand the manifest with frozen design/task scenarios and independently calculated cost/throughput/resource oracles.
-3. Compare documented conventional practice, a strong parametric/off-site/circular baseline, and the evidence-guided candidate with equal data, engineering-time and simulation budgets.
-4. Keep mandatory gates separate from Pareto objectives: lifecycle cost, schedule, first-pass yield, rework, material/energy/water use, service time, disassembly damage, independently accepted reuse mass, and uncertainty.
-5. Add physical measurements only after tool calibration, measurement uncertainty, custody/provenance, safe test plans and the relevant qualified engineering reviews are established.
+1. Audit exact active contracts for Symtropy housing evidence (#1596), repairability compiler (#1773), and Mycelix unit/qualification provenance (#3084); record field mappings and avoid parallel ledgers.
+2. Coordinate the demonstrated construction/factory vertical with Symthaea [HABITAT-VERTICAL-001 #8051](https://github.com/Luminous-Dynamics/symthaea/issues/8051).
+3. Feed qualified evidence into Symthaea [MFG-VALUE-001 #7608](https://github.com/Luminous-Dynamics/symthaea/issues/7608), the owner of matched-baseline production-value experiments. This package must not grow a second cost/quality/throughput evaluator.
+4. Keep Mycelix [CIRC-MFG-001 #3095](https://github.com/Luminous-Dynamics/mycelix/issues/3095) and [CIRC-MFG-001B #3099](https://github.com/Luminous-Dynamics/mycelix/issues/3099) authoritative for lifecycle event binding, chain-of-custody and material-flow account references; use Symtropy [WOOD-LIFE-001 #1741](https://github.com/Luminous-Dynamics/symtropy/issues/1741) where timber/yield-specific oracles apply.
+5. Keep mandatory qualification gates separate from Pareto objectives. Downstream evaluation can report lifecycle cost, schedule, first-pass yield, rework, material/energy/water use, service time, disassembly damage, independently accepted reuse mass, and uncertainty.
+6. Add measured inputs only after tool calibration, measurement uncertainty, custody/provenance, safe test plans and relevant qualified engineering reviews are established.
 
 ## Research grounding (reviewed 2026-10-18)
 
