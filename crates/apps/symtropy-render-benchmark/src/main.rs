@@ -19,6 +19,7 @@ const CAMERA_ID: &str = "auto-grid-camera-v1";
 const CUBE_SIZE: f32 = 0.72;
 const GRID_SPACING: f32 = 1.05;
 const MAX_OBJECTS: usize = 10_000;
+const MIN_FRAME_SAMPLES: usize = 30;
 
 #[derive(Resource, Clone, Debug)]
 struct BenchConfig {
@@ -72,6 +73,7 @@ struct FrameTimeReport {
     sample_window_start_secs: f32,
     sample_window_end_secs: f32,
     sample_count: usize,
+    min_required_samples: usize,
     mean_frame_interval_ms: Option<f64>,
     p50_frame_interval_ms: Option<f64>,
     p95_frame_interval_ms: Option<f64>,
@@ -300,20 +302,25 @@ fn build_frame_time_report(
         sample_window_start_secs: 1.0,
         sample_window_end_secs: 8.0,
         sample_count: count,
+        min_required_samples: MIN_FRAME_SAMPLES,
         mean_frame_interval_ms: mean,
         p50_frame_interval_ms: percentile(50),
         p95_frame_interval_ms: percentile(95),
         p99_frame_interval_ms: percentile(99),
         over_16_67_ms_fraction: fraction_over(16.67),
         over_33_3_ms_fraction: fraction_over(33.3),
-        measurement_status: if count == 0 {
-            "insufficient_samples"
-        } else if qualified {
-            "measured_metadata_qualified"
-        } else {
-            "measured_metadata_incomplete"
-        },
+        measurement_status: measurement_status(count, qualified),
         claim_ceiling: "observed-real-frame-intervals-and-caller-declared-metadata-only; not-gpu-timestamp-or-visual-or-physical-validation",
+    }
+}
+
+fn measurement_status(sample_count: usize, metadata_qualified: bool) -> &'static str {
+    if sample_count < MIN_FRAME_SAMPLES {
+        "insufficient_samples"
+    } else if metadata_qualified {
+        "measured_metadata_qualified"
+    } else {
+        "measured_metadata_incomplete"
     }
 }
 
@@ -512,6 +519,20 @@ mod tests {
 
         let low_power = profile_defaults("low-power-720p").expect("profile should exist");
         assert_eq!(low_power, (1280, 720, 64, false));
+    }
+
+    #[test]
+    fn insufficient_frame_samples_cannot_be_qualified() {
+        assert_eq!(measurement_status(0, true), "insufficient_samples");
+        assert_eq!(measurement_status(MIN_FRAME_SAMPLES - 1, true), "insufficient_samples");
+        assert_eq!(
+            measurement_status(MIN_FRAME_SAMPLES, true),
+            "measured_metadata_qualified"
+        );
+        assert_eq!(
+            measurement_status(MIN_FRAME_SAMPLES, false),
+            "measured_metadata_incomplete"
+        );
     }
 
     #[test]
