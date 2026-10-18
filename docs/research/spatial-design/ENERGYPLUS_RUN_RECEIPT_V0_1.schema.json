@@ -68,6 +68,7 @@
         "model_id",
         "model_sha256",
         "authoritative_geometry_revision",
+        "geometry_sha256",
         "weather_id",
         "weather_sha256",
         "schedule_revision",
@@ -189,6 +190,10 @@
         "configuration_artifact_path": {
           "type": "string",
           "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "geometry_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       },
       "additionalProperties": false
