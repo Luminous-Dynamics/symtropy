@@ -64,6 +64,10 @@ jobs:
             and .missing_evidence_reference_count == 0
             and .temporal_actuation_authorized_count == 0
             and .expected_temporal_counts_match == true
+            and .criteria_sensitivity_control_matches == true
+            and .criteria_regime_top_strategy_reversal == true
+            and .criteria_regime_rankings["protect-habitat-and-recover-material-v1"][0] == "rapid_material_recovery"
+            and .criteria_regime_rankings["biosecurity-priority-v2"][0] == "retain_inspect_replan"
             and .expected_outcomes_match == true
             and .aggregate_counts_match == true
             and .all_synthetic == true
