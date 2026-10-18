@@ -1,0 +1,347 @@
+{
+  "suite_id": "WOOD_FLOW_KILN_SCHEDULE_BENCHMARK",
+  "suite_version": "0.1.0",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic schedule semantics only. The corpus does not predict real moisture, lumber grade, kiln performance, energy use, mill output or physical savings.",
+  "scenarios": [
+    {
+      "scenario_id": "SEQUENTIAL_CONFORMING_BATCHES",
+      "horizon_hours": 4,
+      "shared_power_limit_kw": 4,
+      "kilns": [
+        {
+          "kiln_id": "KILN_1",
+          "capacity_volume_units": 100,
+          "supported_profiles": [
+            "slow"
+          ],
+          "max_power_kw": 4
+        }
+      ],
+      "batches": [
+        {
+          "batch_id": "BATCH_A",
+          "ready_hour": 0,
+          "duration_hours": 2,
+          "profile_id": "slow",
+          "dry_volume_units": 60,
+          "heat_demand_kw": 3,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1100,
+          "requires_grade_evidence": true,
+          "grade_evidence_status": "qualified",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "BATCH_B",
+          "ready_hour": 1,
+          "duration_hours": 2,
+          "profile_id": "slow",
+          "dry_volume_units": 40,
+          "heat_demand_kw": 3,
+          "target_moisture_bp": 1000,
+          "achieved_moisture_bp": 950,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        }
+      ],
+      "expected": {
+        "baseline_scheduled_batch_ids": [
+          "BATCH_A",
+          "BATCH_B"
+        ],
+        "baseline_conforming_volume_units": 100,
+        "oracle_scheduled_batch_ids": [
+          "BATCH_A",
+          "BATCH_B"
+        ],
+        "oracle_conforming_volume_units": 100,
+        "oracle_makespan_hour": 4,
+        "gate_blocked_reasons": {}
+      }
+    },
+    {
+      "scenario_id": "UNSUPPORTED_PROFILE_BLOCKED",
+      "horizon_hours": 4,
+      "shared_power_limit_kw": 5,
+      "kilns": [
+        {
+          "kiln_id": "KILN_1",
+          "capacity_volume_units": 100,
+          "supported_profiles": [
+            "slow"
+          ],
+          "max_power_kw": 5
+        }
+      ],
+      "batches": [
+        {
+          "batch_id": "A_GOOD",
+          "ready_hour": 0,
+          "duration_hours": 2,
+          "profile_id": "slow",
+          "dry_volume_units": 50,
+          "heat_demand_kw": 3,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "Z_UNSUPPORTED",
+          "ready_hour": 0,
+          "duration_hours": 2,
+          "profile_id": "vacuum",
+          "dry_volume_units": 30,
+          "heat_demand_kw": 2,
+          "target_moisture_bp": 1000,
+          "achieved_moisture_bp": 900,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        }
+      ],
+      "expected": {
+        "baseline_scheduled_batch_ids": [
+          "A_GOOD"
+        ],
+        "baseline_conforming_volume_units": 50,
+        "oracle_scheduled_batch_ids": [
+          "A_GOOD"
+        ],
+        "oracle_conforming_volume_units": 50,
+        "oracle_makespan_hour": 2,
+        "gate_blocked_reasons": {
+          "Z_UNSUPPORTED": [
+            "PROFILE_UNSUPPORTED"
+          ]
+        }
+      }
+    },
+    {
+      "scenario_id": "SHARED_POWER_FORCES_SERIAL",
+      "horizon_hours": 4,
+      "shared_power_limit_kw": 5,
+      "kilns": [
+        {
+          "kiln_id": "KILN_A",
+          "capacity_volume_units": 100,
+          "supported_profiles": [
+            "standard"
+          ],
+          "max_power_kw": 4
+        },
+        {
+          "kiln_id": "KILN_B",
+          "capacity_volume_units": 100,
+          "supported_profiles": [
+            "standard"
+          ],
+          "max_power_kw": 4
+        }
+      ],
+      "batches": [
+        {
+          "batch_id": "BATCH_A",
+          "ready_hour": 0,
+          "duration_hours": 2,
+          "profile_id": "standard",
+          "dry_volume_units": 60,
+          "heat_demand_kw": 4,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "BATCH_B",
+          "ready_hour": 0,
+          "duration_hours": 2,
+          "profile_id": "standard",
+          "dry_volume_units": 40,
+          "heat_demand_kw": 4,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1100,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        }
+      ],
+      "expected": {
+        "baseline_scheduled_batch_ids": [
+          "BATCH_A",
+          "BATCH_B"
+        ],
+        "baseline_conforming_volume_units": 100,
+        "oracle_scheduled_batch_ids": [
+          "BATCH_A",
+          "BATCH_B"
+        ],
+        "oracle_conforming_volume_units": 100,
+        "oracle_makespan_hour": 4,
+        "gate_blocked_reasons": {}
+      }
+    },
+    {
+      "scenario_id": "NONCONFORMING_DRYING_BATCHES_BLOCKED",
+      "horizon_hours": 4,
+      "shared_power_limit_kw": 6,
+      "kilns": [
+        {
+          "kiln_id": "KILN_1",
+          "capacity_volume_units": 200,
+          "supported_profiles": [
+            "slow"
+          ],
+          "max_power_kw": 6
+        }
+      ],
+      "batches": [
+        {
+          "batch_id": "A_GOOD",
+          "ready_hour": 0,
+          "duration_hours": 1,
+          "profile_id": "slow",
+          "dry_volume_units": 50,
+          "heat_demand_kw": 3,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": true,
+          "grade_evidence_status": "qualified",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "B_MOISTURE_FAIL",
+          "ready_hour": 0,
+          "duration_hours": 1,
+          "profile_id": "slow",
+          "dry_volume_units": 20,
+          "heat_demand_kw": 2,
+          "target_moisture_bp": 900,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "C_GRADE_MISSING",
+          "ready_hour": 0,
+          "duration_hours": 1,
+          "profile_id": "slow",
+          "dry_volume_units": 25,
+          "heat_demand_kw": 2,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": true,
+          "grade_evidence_status": "missing",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "D_INSPECTION_FAIL",
+          "ready_hour": 0,
+          "duration_hours": 1,
+          "profile_id": "slow",
+          "dry_volume_units": 15,
+          "heat_demand_kw": 2,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": false
+        }
+      ],
+      "expected": {
+        "baseline_scheduled_batch_ids": [
+          "A_GOOD"
+        ],
+        "baseline_conforming_volume_units": 50,
+        "oracle_scheduled_batch_ids": [
+          "A_GOOD"
+        ],
+        "oracle_conforming_volume_units": 50,
+        "oracle_makespan_hour": 1,
+        "gate_blocked_reasons": {
+          "B_MOISTURE_FAIL": [
+            "MOISTURE_TARGET_MISSED"
+          ],
+          "C_GRADE_MISSING": [
+            "GRADE_EVIDENCE_UNQUALIFIED"
+          ],
+          "D_INSPECTION_FAIL": [
+            "DRYING_QUALITY_GATE_FAILED"
+          ]
+        }
+      }
+    },
+    {
+      "scenario_id": "GREEDY_BASELINE_REGRESSION",
+      "horizon_hours": 4,
+      "shared_power_limit_kw": 4,
+      "kilns": [
+        {
+          "kiln_id": "KILN_1",
+          "capacity_volume_units": 200,
+          "supported_profiles": [
+            "standard"
+          ],
+          "max_power_kw": 4
+        }
+      ],
+      "batches": [
+        {
+          "batch_id": "A_SMALL",
+          "ready_hour": 0,
+          "duration_hours": 2,
+          "profile_id": "standard",
+          "dry_volume_units": 10,
+          "heat_demand_kw": 3,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        },
+        {
+          "batch_id": "B_LARGE",
+          "ready_hour": 0,
+          "duration_hours": 4,
+          "profile_id": "standard",
+          "dry_volume_units": 100,
+          "heat_demand_kw": 3,
+          "target_moisture_bp": 1200,
+          "achieved_moisture_bp": 1000,
+          "requires_grade_evidence": false,
+          "grade_evidence_status": "not_required",
+          "requires_inspection": true,
+          "inspection_pass": true
+        }
+      ],
+      "expected": {
+        "baseline_scheduled_batch_ids": [
+          "A_SMALL"
+        ],
+        "baseline_conforming_volume_units": 10,
+        "oracle_scheduled_batch_ids": [
+          "B_LARGE"
+        ],
+        "oracle_conforming_volume_units": 100,
+        "oracle_makespan_hour": 4,
+        "gate_blocked_reasons": {}
+      }
+    }
+  ]
+}
