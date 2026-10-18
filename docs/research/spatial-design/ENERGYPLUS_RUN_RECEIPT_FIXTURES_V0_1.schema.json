@@ -54,7 +54,7 @@
             "minLength": 8
           },
           "receipt": {
-            "$ref": "ENERGYPLUS_RUN_RECEIPT_V0_1.schema.json"
+            "type": "object"
           },
           "expected_gate": {
             "type": "string",
