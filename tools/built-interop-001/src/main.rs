@@ -764,9 +764,30 @@ mod tests {
             .first()
             .expect("property result exists");
         assert_eq!(property.outcome, RequirementOutcome::Blocked);
-        assert_eq!(property.diagnostic_codes, vec!["NO_TARGET_OBSERVATION"]);
+        assert_eq!(property.diagnostic_codes, vec!["MISSING_TARGET_PROPERTY"]);
         assert_eq!(property.source_object_id, "panel-001");
         assert_eq!(property.property_key, "RequiredFireClass");
+        assert_eq!(property.disposition, Some(LossDisposition::Missing));
+        assert!(property.observed_value.is_none());
+    }
+
+    #[test]
+    fn absent_observation_has_distinct_machine_readable_code() {
+        let (manifest, _) = fixture();
+        let case = manifest
+            .cases
+            .iter()
+            .find(|case| case.case_id == "11-no-observation-record")
+            .expect("no-observation fixture exists");
+        let result = evaluate_scenario(case);
+        let property = result
+            .requirement_results
+            .first()
+            .expect("property result exists");
+        assert_eq!(property.outcome, RequirementOutcome::Blocked);
+        assert_eq!(property.diagnostic_codes, vec!["NO_TARGET_OBSERVATION"]);
+        assert!(property.disposition.is_none());
+        assert!(property.observed_object_id.is_none());
         assert!(property.observed_value.is_none());
     }
 
