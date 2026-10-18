@@ -163,18 +163,20 @@ pub fn validate_review_route(
         let travel_distance = from_position.distance(to_position);
         let view_target_delta = from_look_at.distance(to_look_at);
 
-        if travel_seconds <= 0.0 {
-            if travel_distance > POSE_EPSILON || view_target_delta > POSE_EPSILON {
-                issues.push(ReviewRouteIssue::InsufficientTravelTime {
+        if route.rig != ReviewRig::AccessibleTeleport {
+            if travel_seconds <= 0.0 {
+                if travel_distance > POSE_EPSILON || view_target_delta > POSE_EPSILON {
+                    issues.push(ReviewRouteIssue::InsufficientTravelTime {
+                        from_id: from.waypoint_id.clone(),
+                        to_id: to.waypoint_id.clone(),
+                    });
+                }
+            } else if travel_distance / travel_seconds > route.max_translation_speed_mps {
+                issues.push(ReviewRouteIssue::TranslationSpeedExceeded {
                     from_id: from.waypoint_id.clone(),
                     to_id: to.waypoint_id.clone(),
                 });
             }
-        } else if travel_distance / travel_seconds > route.max_translation_speed_mps {
-            issues.push(ReviewRouteIssue::TranslationSpeedExceeded {
-                from_id: from.waypoint_id.clone(),
-                to_id: to.waypoint_id.clone(),
-            });
         }
     }
 
@@ -183,6 +185,13 @@ pub fn validate_review_route(
     } else {
         Err(issues)
     }
+}
+
+/// Convert one explicitly selected waypoint to a camera pose. An application
+/// can use this only after the person chooses a stop; it is especially useful
+/// for AccessibleTeleport, where clock-driven auto-teleporting is not provided.
+pub fn review_waypoint_transform(waypoint: &ReviewWaypoint) -> Option<Transform> {
+    waypoint_transform(waypoint)
 }
 
 fn waypoint_transform(waypoint: &ReviewWaypoint) -> Option<Transform> {
@@ -208,6 +217,12 @@ pub fn sample_review_route(
     elapsed_seconds: f32,
 ) -> Option<Transform> {
     if !elapsed_seconds.is_finite() || validate_review_route(route).is_err() {
+        return None;
+    }
+    // Teleport stops require an explicit user action; never advance them from
+    // elapsed time. The consumer should call review_waypoint_transform only
+    // after a stop is selected and confirmed.
+    if route.rig == ReviewRig::AccessibleTeleport {
         return None;
     }
     let first = route.waypoints.first()?;
@@ -351,10 +366,19 @@ mod tests {
     }
 
     #[test]
-    fn teleport_or_headset_route_modes_are_data_only() {
+    fn teleport_requires_explicit_stop_selection_and_vr_is_adapter_only() {
         let mut route = route();
         route.rig = ReviewRig::AccessibleTeleport;
+        route.waypoints[1].arrival_seconds = 2.0;
         assert_eq!(validate_review_route(&route), Ok(()));
+        assert!(sample_review_route(&route, 3.0).is_none());
+        assert_eq!(
+            review_waypoint_transform(&route.waypoints[1])
+                .unwrap()
+                .translation,
+            Vec3::new(0.0, 1.6, 0.0)
+        );
+
         route.rig = ReviewRig::HeadTrackedVrReference;
         assert_eq!(validate_review_route(&route), Ok(()));
         // XR runtime, collision checks, and user-input handling belong to adapters.
