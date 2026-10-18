@@ -795,6 +795,7 @@ mod tests {
     fn blank_evidence_record_id_blocks() {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
+        case.required_evidence_ids.push(" ".to_string());
         let mut record = case.evidence[0].clone();
         record.evidence_id = " ".to_string();
         record.payload = Some("x".to_string());
