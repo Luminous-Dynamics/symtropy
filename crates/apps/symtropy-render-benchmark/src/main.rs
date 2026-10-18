@@ -7,7 +7,8 @@
 //! the fixture implementation version bound to the source commit in captures.
 
 use bevy::prelude::*;
-use std::env;
+use serde::Serialize;
+use std::{env, path::PathBuf};
 use symtropy_demo_capture::CapturePlugin;
 
 const FIXTURE_ID: &str = "SCENE-LIGHT-01";
@@ -23,6 +24,92 @@ struct BenchConfig {
     height_px: u32,
     object_count: usize,
     shadows_enabled: bool,
+}
+
+#[derive(Resource)]
+struct FrameTimeSampler {
+    samples_ms: Vec<f64>,
+    written: bool,
+    output_path: PathBuf,
+    context: FrameTimeContext,
+}
+
+#[derive(Clone)]
+struct FrameTimeContext {
+    source_commit: Option<String>,
+    fixture_sha256: Option<String>,
+    render_settings_sha256: Option<String>,
+    gpu_adapter: Option<String>,
+    gpu_driver: Option<String>,
+    render_backend: Option<String>,
+    rustc_version: Option<String>,
+    operating_system: Option<String>,
+}
+
+#[derive(Serialize)]
+struct FrameTimeReport {
+    schema_version: u32,
+    fixture_id: &'static str,
+    renderer: String,
+    profile: String,
+    object_count: usize,
+    shadows_enabled: bool,
+    width_px: u32,
+    height_px: u32,
+    source_commit: Option<String>,
+    fixture_sha256: Option<String>,
+    render_settings_sha256: Option<String>,
+    gpu_adapter: Option<String>,
+    gpu_driver: Option<String>,
+    render_backend: Option<String>,
+    rustc_version: Option<String>,
+    operating_system: Option<String>,
+    sampling_method: &'static str,
+    sample_window_start_secs: f32,
+    sample_window_end_secs: f32,
+    sample_count: usize,
+    mean_frame_interval_ms: Option<f64>,
+    p50_frame_interval_ms: Option<f64>,
+    p95_frame_interval_ms: Option<f64>,
+    p99_frame_interval_ms: Option<f64>,
+    over_16_67_ms_fraction: Option<f64>,
+    over_33_3_ms_fraction: Option<f64>,
+    measurement_status: &'static str,
+    claim_ceiling: &'static str,
+}
+
+impl FrameTimeSampler {
+    fn from_env(config: &BenchConfig) -> Self {
+        let default_dir = format!("target/render-captures/{}", config.capture_profile());
+        let output_path = env::var("SYMTROPY_RENDER_BENCH_METRICS_OUTPUT")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from(default_dir).join("frame-time.json"));
+        let context = FrameTimeContext {
+            source_commit: env_nonempty("SYMTROPY_DEMO_CAPTURE_COMMIT"),
+            fixture_sha256: env_nonempty("SYMTROPY_DEMO_CAPTURE_FIXTURE_SHA256"),
+            render_settings_sha256: env_nonempty(
+                "SYMTROPY_DEMO_CAPTURE_RENDER_SETTINGS_SHA256",
+            ),
+            gpu_adapter: env_nonempty("SYMTROPY_DEMO_CAPTURE_GPU_ADAPTER"),
+            gpu_driver: env_nonempty("SYMTROPY_DEMO_CAPTURE_GPU_DRIVER"),
+            render_backend: env_nonempty("SYMTROPY_DEMO_CAPTURE_RENDER_BACKEND"),
+            rustc_version: env_nonempty("SYMTROPY_DEMO_CAPTURE_RUSTC_VERSION"),
+            operating_system: env_nonempty("SYMTROPY_DEMO_CAPTURE_OS"),
+        };
+        Self {
+            samples_ms: Vec::new(),
+            written: false,
+            output_path,
+            context,
+        }
+    }
+}
+
+fn env_nonempty(name: &str) -> Option<String> {
+    env::var(name)
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
 }
 
 impl BenchConfig {
@@ -86,6 +173,7 @@ fn main() {
         }
     };
 
+    let sampler = FrameTimeSampler::from_env(&config);
     let window = Window {
         title: format!("{FIXTURE_ID} — {}", config.capture_profile()),
         resolution: WindowResolution::new(config.width_px, config.height_px),
@@ -103,10 +191,173 @@ fn main() {
             brightness: 180.0,
             ..default()
         })
+        .insert_resource(sampler)
         .insert_resource(config)
         .add_plugins(CapturePlugin::new("scene-light-01"))
         .add_systems(Startup, setup_scene)
+        .add_systems(Update, sample_and_write_frame_times)
         .run();
+}
+
+fn sample_and_write_frame_times(
+    time: Res<Time<Real>>,
+    config: Res<BenchConfig>,
+    mut sampler: ResMut<FrameTimeSampler>,
+) {
+    const SAMPLE_START_SECS: f32 = 1.0;
+    const SAMPLE_END_SECS: f32 = 8.0;
+    let elapsed = time.elapsed_secs();
+    let frame_interval_ms = f64::from(time.delta_secs()) * 1000.0;
+
+    if (SAMPLE_START_SECS..SAMPLE_END_SECS).contains(&elapsed)
+        && frame_interval_ms.is_finite()
+        && frame_interval_ms > 0.0
+    {
+        sampler.samples_ms.push(frame_interval_ms);
+    }
+
+    if elapsed < SAMPLE_END_SECS || sampler.written {
+        return;
+    }
+
+    let report = build_frame_time_report(&sampler.samples_ms, &sampler.context, &config);
+    match write_report_atomically(&sampler.output_path, &report) {
+        Ok(()) => {
+            info!(
+                "symtropy-render-benchmark: wrote {} frame-time samples to {}",
+                report.sample_count,
+                sampler.output_path.display()
+            );
+            sampler.written = true;
+        }
+        Err(error) => {
+            error!(
+                "symtropy-render-benchmark: failed to write frame-time report {}: {error}",
+                sampler.output_path.display()
+            );
+            // Retry on the next update; the runner also verifies that a fresh
+            // report exists before treating the benchmark invocation as complete.
+        }
+    }
+}
+
+fn build_frame_time_report(
+    samples_ms: &[f64],
+    context: &FrameTimeContext,
+    config: &BenchConfig,
+) -> FrameTimeReport {
+    let mut sorted = samples_ms.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let count = sorted.len();
+    let percentile = |percent: usize| -> Option<f64> {
+        if count == 0 {
+            return None;
+        }
+        let rank = (count * percent).div_ceil(100).max(1) - 1;
+        sorted.get(rank).copied()
+    };
+    let mean = if count == 0 {
+        None
+    } else {
+        Some(sorted.iter().sum::<f64>() / count as f64)
+    };
+    let fraction_over = |limit: f64| -> Option<f64> {
+        if count == 0 {
+            None
+        } else {
+            Some(sorted.iter().filter(|sample| **sample > limit).count() as f64 / count as f64)
+        }
+    };
+    let qualified = context.source_commit.as_deref().is_some_and(is_commit_id)
+        && context.fixture_sha256.as_deref().is_some_and(is_sha256)
+        && context
+            .render_settings_sha256
+            .as_deref()
+            .is_some_and(is_sha256)
+        && context.gpu_adapter.as_deref().is_some_and(not_empty)
+        && context.gpu_driver.as_deref().is_some_and(not_empty)
+        && context.render_backend.as_deref().is_some_and(not_empty)
+        && context.rustc_version.as_deref().is_some_and(not_empty)
+        && context.operating_system.as_deref().is_some_and(not_empty);
+    FrameTimeReport {
+        schema_version: 1,
+        fixture_id: FIXTURE_ID,
+        renderer: env::var("SYMTROPY_DEMO_CAPTURE_RENDERER_VERSION")
+            .unwrap_or_else(|_| "unknown".to_owned()),
+        profile: config.profile.clone(),
+        object_count: config.object_count,
+        shadows_enabled: config.shadows_enabled,
+        width_px: config.width_px,
+        height_px: config.height_px,
+        source_commit: context.source_commit.clone(),
+        fixture_sha256: context.fixture_sha256.clone(),
+        render_settings_sha256: context.render_settings_sha256.clone(),
+        gpu_adapter: context.gpu_adapter.clone(),
+        gpu_driver: context.gpu_driver.clone(),
+        render_backend: context.render_backend.clone(),
+        rustc_version: context.rustc_version.clone(),
+        operating_system: context.operating_system.clone(),
+        sampling_method: "bevy-time-real-frame-delta-ms; not-gpu-timestamp",
+        sample_window_start_secs: 1.0,
+        sample_window_end_secs: 8.0,
+        sample_count: count,
+        mean_frame_interval_ms: mean,
+        p50_frame_interval_ms: percentile(50),
+        p95_frame_interval_ms: percentile(95),
+        p99_frame_interval_ms: percentile(99),
+        over_16_67_ms_fraction: fraction_over(16.67),
+        over_33_3_ms_fraction: fraction_over(33.3),
+        measurement_status: if count == 0 {
+            "insufficient_samples"
+        } else if qualified {
+            "measured_metadata_qualified"
+        } else {
+            "measured_metadata_incomplete"
+        },
+        claim_ceiling: "observed-real-frame-intervals-and-caller-declared-metadata-only; not-gpu-timestamp-or-visual-or-physical-validation",
+    }
+}
+
+fn not_empty(value: &str) -> bool {
+    !value.trim().is_empty()
+}
+
+fn is_commit_id(value: &str) -> bool {
+    (value.len() == 40 || value.len() == 64)
+        && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn write_report_atomically(path: &PathBuf, report: &FrameTimeReport) -> std::io::Result<()> {
+    use std::io::Write as _;
+    let parent = path.parent().filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(std::path::Path::new("."));
+    std::fs::create_dir_all(parent)?;
+    let temporary = path.with_file_name(format!(
+        ".{}.{}.tmp",
+        path.file_name().unwrap_or_default().to_string_lossy(),
+        std::process::id()
+    ));
+    let bytes = serde_json::to_vec_pretty(report)
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+    let result = (|| {
+        let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&temporary)?;
+        file.write_all(&bytes)?;
+        file.sync_all()?;
+        drop(file);
+        #[cfg(windows)]
+        if path.exists() {
+            std::fs::remove_file(path)?;
+        }
+        std::fs::rename(&temporary, path)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
 }
 
 fn setup_scene(
@@ -249,6 +500,25 @@ mod tests {
 
         let low_power = profile_defaults("low-power-720p").expect("profile should exist");
         assert_eq!(low_power, (1280, 720, 64, false));
+    }
+
+    #[test]
+    fn percentiles_use_nearest_rank_and_boundaries() {
+        let values = [1.0, 2.0, 3.0, 4.0, 100.0];
+        assert_eq!(percentile_value(&values, 50), Some(3.0));
+        assert_eq!(percentile_value(&values, 95), Some(100.0));
+        assert_eq!(percentile_value(&values, 99), Some(100.0));
+        assert_eq!(percentile_value(&[], 95), None);
+    }
+
+    fn percentile_value(values: &[f64], percent: usize) -> Option<f64> {
+        if values.is_empty() {
+            return None;
+        }
+        let mut sorted = values.to_vec();
+        sorted.sort_by(f64::total_cmp);
+        let rank = (sorted.len() * percent).div_ceil(100).max(1) - 1;
+        sorted.get(rank).copied()
     }
 
     #[test]
