@@ -15,7 +15,9 @@ on:
     paths:
       - "tools/habitat-calendar-oracle/**"
       - "docs/research/HABITAT_CALENDAR_DISRUPTION_V0_1.md"
+      - "docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md"
       - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+      - "docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
       - ".github/workflows/habitat-calendar-oracle.yml"
 
 permissions:
@@ -65,4 +67,24 @@ jobs:
             ([.results[] | select(.status == "PROVEN_INFEASIBLE")] | length) == 2 and
             ([.results[] | select(.status == "OPTIMAL_EXACT")] | length) == 10 and
             ([.results[] | select(.independent_validator_status == "INDEPENDENT_VALIDATOR_PASSED")] | length) == 10
+          ' "$report"
+
+      - name: Build and verify the civil-time provenance report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
+          report="$RUNNER_TEMP/habitat-calendar-provenance.json"
+          cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- \
+            --provenance "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_calendar_provenance_report.v0.1" and
+            .suite_id == "HABITAT-CALENDAR-PROVENANCE-V0.1" and
+            .input_sha256 == "7717acc7932c79ee056fc9ed33b46bd8fd4af2821204e952f82984c019a4128a" and
+            .accepted_template_count == 2 and
+            .negative_control_count == 8 and
+            .rejected_negative_controls == 8 and
+            .all_expected_statuses_match == true and
+            ([.cases[] | select(.status == "METADATA_PROVENANCE_PASS_NOT_TZDB_CONFORMANCE")] | length) == 2 and
+            ([.cases[] | select(.status == "REJECTED")] | length) == 8
           ' "$report"
