@@ -57,6 +57,14 @@ It includes one synthetic positive case plus negative controls for incompatible 
 
 This is intentionally narrower than INDUSTRIAL-COUPLING-001: it does not model time-dependent storage, temperature profiles, a heat-exchanger network, production schedules, real tariffs, measured facilities, or actual savings. It validates one integration seam and makes the next expansion testable without pretending the whole platform has been implemented.
 
+## Executable robust-decision slice now present
+
+The standalone Rust crate now includes `evaluate_robust` and `verify_robust_plan` for finite-scenario evaluation. One common integer-kWh transfer must pass physical checks and both participants' reservation floors in every listed scenario. The evaluator maximizes worst-case surplus, breaks positive worst-case ties by total surplus and then lower transfer volume, and keeps zero exchange when no robust benefit exists. Scenario IDs must be unique; the evaluator enforces a 64-scenario and 2,000,000 scenario-evaluation cap.
+
+A deterministic two-scenario fixture is independently enumerated in a separate calculation: the selected transfer is 42 kWh input, with 37 kWh and 35 kWh delivered in the nominal and conservative cases respectively, and worst-case net surplus of 44,200 synthetic milli-credits. This arithmetic was checked independently; it is not a Rust test result or a measured plant result.
+
+The first robust slice is intentionally conservative: it chooses a common fixed decision, does not assign probabilities, and does not model recourse. Follow-on research should compare common-decision robust optimization against adaptive policies, calibrated stochastic models, regret/CVaR objectives, and strong conventional optimizers under matched information and evaluation budgets. The decision criterion should be promoted only if held-out cases show it makes better trade-offs between economics and operational risk.
+
 ## Tournament: mandatory comparison arms
 
 All arms receive the same plant model, constraints, demand/price/failure information, and declared compute budget.
@@ -155,6 +163,7 @@ No phase authorizes direct writes to operational technology. Any future plant de
 - Bottecchia, Kranzl & Zambelli (2024), [Driving industrial symbiosis: waste-heat utilization in local district-heating networks](https://doi.org/10.1016/j.enbuild.2024.114865): evaluates the economic conditions required for industrial heat-sharing arrangements.
 - Applied Energy (2025), [Inter-plant heat exchanger network integration with an organic Rankine cycle](https://doi.org/10.1016/j.apenergy.2025.126126): a concrete example of the network-design and shared-cost-allocation problem; published findings are case-specific and should be reproduced rather than generalized.
 - [OpenPinch](https://github.com/waikato-ahuora-smart-energy-systems/OpenPinch): an open-source process-stream integration implementation and potential pinned reference adapter. The existing Symtropy thermal work records a candidate multiperiod fixture; numeric parity must not be claimed until it is actually reproduced under a pinned environment.
+- [Robust optimization for flexible industrial energy scheduling in a cement plant](https://doi.org/10.1016/j.egyr.2025.11.044): a recent scenario-based approach to electricity-price uncertainty and market participation, useful for baseline design. Its published outcomes are case-specific and should not be transferred to another facility without reproduction.
 
 ## Exit criteria
 
