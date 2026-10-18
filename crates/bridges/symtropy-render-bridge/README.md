@@ -196,6 +196,46 @@ let frequencies_hz = band.frequency_range_hz()?;
 
 This profile preserves ordered wavelength-bin values and per-bin uncertainty at one spatial sample. It can back a host UI's spectrum plot or be sampled along an image/volume grid. The current Bevy layer renderer does **not** draw a spectrum chart or a continuous volume; it draws bounded scene glyphs. A future host UI should put an explicit legend beside the view showing quantity, unit, source, calibration status, timestamp, wavelength/frequency band, fixed range, and uncertainty policy.
 
+### Portable FieldFrame interchange (schema v1)
+
+Sensors, CFD/thermal/EM solvers, CAD/FEA tools, and external datasets should exchange **data**, not GPU objects. `FieldFrame` is a versioned JSON envelope for scalar layers, vector layers and wavelength-resolved spectra. It keeps producer identity/version, acquisition time, field units, coordinate frame and source/calibration information with the samples. Its validator checks schema, layer IDs, unit compatibility, coordinate representability, all numeric samples and total observation limits before rendering.
+
+```rust
+use symtropy_render_bridge::{FieldFrame, FIELD_FRAME_SCHEMA_VERSION};
+
+let frame: FieldFrame = FieldFrame::from_json(&input_json)?;
+let validated_json = frame.to_json()?;
+let frame_sha256 = frame.serialized_sha256()?;
+let render_layers = frame.to_layer_set()?;
+
+// Keep the original frame as the evidence record; the layer set is only
+// the renderable scalar/vector projection. Spectrum profiles stay on the original frame.
+assert_eq!(frame.schema_version, FIELD_FRAME_SCHEMA_VERSION);
+assert_eq!(frame_sha256.len(), 64);
+```
+
+An interchange document uses this top-level shape (sample arrays omitted here):
+
+```json
+{
+  "schema_version": 1,
+  "frame_id": "plant-room-thermal-00042",
+  "producer": "sensor-gateway-or-solver-name",
+  "producer_version": "1.4.0",
+  "captured_at_unix_ns": 1800000000000000000,
+  "source_dataset_sha256": "64-character-hex-digest-or-null",
+  "scalar_layers": [],
+  "vector_layers": [],
+  "spectra": []
+}
+```
+
+The JSON API is bounded to 256 MiB, at most 256 layers of each kind, and one million total scalar/vector/spectrum-bin observations. Individual scalar/vector layers are additionally capped at 100,000 samples. These are defensive input limits, not performance promises. The loader rejects unknown schema versions, duplicate IDs across layers/spectra, non-finite numeric values and mismatched units. Unknown future fields may be handled by the Serde schema's normal behavior; a new semantic contract requires a new explicitly tested schema version.
+
+`FieldFrame::serialized_sha256()` separately hashes the exact pretty-printed JSON bytes produced by this crate. It binds that serialization, not the original sensor/solver file; a future serializer change can change the frame hash even when field semantics are unchanged.
+
+`source_dataset_sha256` is a caller-supplied digest string. This bridge checks its hexadecimal shape; it does **not** fetch or hash a sensor file, verify signatures, authenticate the producer, or validate calibration certificates. Preserve the original sensor/solver artifact and bind its actual bytes to the digest in the acquisition pipeline. JSON interchange is a first portability seam, not a replacement for format-specific adapters (for example, radiometric thermal-camera exports, DICOM where relevant, NetCDF/HDF5, OpenFOAM/CFD, or finite-element result files).
+
 ### Important scientific interpretation limits
 
 - A thermal colour map is only a visual encoding. It does **not** turn visible RGB pixels into temperature, solve heat transfer, infer emissivity, or correct for reflected apparent temperature. For real thermography, bring a temperature/radiance product from a documented sensor/calibration pipeline and preserve its uncertainty and calibration status. Thermal-camera measurement accuracy depends on calibration and parameters such as emissivity. See [NIST's thermal-camera calibration procedure](https://www.nist.gov/publications/calibration-and-measurement-procedures-high-magnification-thermal-camera) and the review [Infrared Thermography for Temperature Measurement and Non-Destructive Testing](https://pmc.ncbi.nlm.nih.gov/articles/PMC4168422/).
