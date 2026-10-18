@@ -476,20 +476,20 @@ fn audit(
 
     let mut record_ids = BTreeSet::new();
     for record in &packet.records {
-        record_ids.insert(record.record_id.as_str());
+        record_ids.insert(record.record_id.clone());
     }
     let mut binding_case_ids = BTreeSet::new();
     for binding in &packet.case_bindings {
-        binding_case_ids.insert(binding.case_id.as_str());
+        binding_case_ids.insert(binding.case_id.clone());
         if !envelope.cases.iter().any(|case| case.case_id == binding.case_id) {
             errors.push(format!("ORPHAN_CASE_BINDING:{}", binding.case_id));
         }
-        if !record_ids.contains(binding.record_id.as_str()) {
+        if !record_ids.contains(&binding.record_id) {
             errors.push(format!("BINDING_RECORD_MISSING:{}", binding.case_id));
         }
     }
     for case in &envelope.cases {
-        if !binding_case_ids.contains(case.case_id.as_str()) {
+        if !binding_case_ids.contains(&case.case_id) {
             errors.push(format!("CASE_BINDING_MISSING:{}", case.case_id));
         }
     }
@@ -506,7 +506,7 @@ fn audit(
         }
     }
     for entry in &packet.revocation_entries {
-        if !record_ids.contains(entry.record_id.as_str()) {
+        if !record_ids.contains(&entry.record_id) {
             errors.push(format!("ORPHAN_REVOCATION_ENTRY:{}", entry.record_id));
         }
     }
@@ -921,7 +921,8 @@ mod tests {
     #[test]
     fn future_revocation_entry_is_invalid() {
         let mut value = packet();
-        value.revocation_entries[0].recorded_day = value.decision_day + 1;
+        let future_day = value.decision_day + 1;
+        value.revocation_entries[0].recorded_day = future_day;
         let receipt = run(&value);
         assert_eq!(receipt.result, "fail");
         assert!(receipt.errors.iter().any(|error| error.starts_with("REVOCATION_ENTRY_FROM_FUTURE")));
