@@ -814,7 +814,7 @@ mod tests {
                             );
                             assert_eq!(
                                 actual, expected,
-                                "oracle mismatch: {first}/{second}/{grace}/{missed_penalty}/{abstention_cost}"
+                                "oracle mismatch: {first}/{second}/{grace}/{missed}/{abstain}"
                             );
                         }
                     }
