@@ -346,7 +346,7 @@ mod tests {
         let entry = registry
             .entries
             .iter_mut()
-            .find(|entry| entry.source_id == "minelib-dataset-catalogue")
+            .find(|entry| entry.source_id == "lotsu-2026-zenodo-artifacts")
             .expect("MineLib entry exists");
         entry.redistribution_allowed = true;
         assert!(validate_registry(&registry).is_err());
