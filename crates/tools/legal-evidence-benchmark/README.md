@@ -38,7 +38,7 @@ Versioned JSON Schema documents are published under `schemas/`:
 
 - `benchmark-v0.1.schema.json`: synthetic corpus, authority records, temporal intervals, cases and expected evidence.
 - `submission-v0.1.schema.json`: candidate action, claim-code, and citation output.
-- `evaluation-report-v0.1.schema.json`: score receipt, failure counts, critical-case IDs, and SHA-256 input digests.
+- `evaluation-report-v0.1.schema.json`: score receipt, failure counts, critical-case IDs, and SHA-256 input digests. It also specifies per-case diagnostics and failure codes.
 - `validation-report-v0.1.schema.json`: corpus validation receipt and corpus digest.
 
 The Rust unit suite checks these schemas are valid JSON objects with the expected draft, closed-object posture, required lists, and resolvable local references. This is a structural consistency test, not a full JSON Schema meta-validation; downstream clients should validate against the published schema with a conforming Draft 2020-12 validator. The schemas are contract artifacts, not authority to interpret or apply actual law.
@@ -55,6 +55,8 @@ A submission has schema version 0.1.0, a non-empty system identifier, and exactl
 The candidate adapter is responsible for mapping a system's structured evidence output into this contract. The evaluator does not call a model and does not grade free-form prose.
 
 ## Fail-closed checks
+
+The evaluation receipt includes a per-case diagnostic row with expected and observed actions, claim codes, citations, exact-match flags, and machine-readable failure codes. Missing and duplicate case results get explicit failure rows rather than disappearing into aggregate percentages.
 
 The evaluator reports and gates on:
 
