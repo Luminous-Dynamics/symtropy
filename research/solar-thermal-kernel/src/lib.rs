@@ -26,6 +26,9 @@ pub enum ModelError {
     EnergyAboveStoreCapacity,
     TemperatureBelowReference,
     ReportMismatch(&'static str),
+    InvalidHotStreamOrder,
+    InvalidColdStreamOrder,
+    NoProcessStreams,
 }
 
 impl fmt::Display for ModelError {
@@ -45,6 +48,9 @@ impl fmt::Display for ModelError {
             Self::EnergyAboveStoreCapacity => write!(f, "requested stored energy exceeds configured capacity"),
             Self::TemperatureBelowReference => write!(f, "thermal exergy requires the final temperature to be at or above the reference temperature"),
             Self::ReportMismatch(n) => write!(f, "independent report verification failed: {n}"),
+            Self::InvalidHotStreamOrder => write!(f, "hot stream supply temperature must exceed target temperature"),
+            Self::InvalidColdStreamOrder => write!(f, "cold stream target temperature must exceed supply temperature"),
+            Self::NoProcessStreams => write!(f, "pinch analysis requires at least one hot and one cold process stream"),
         }
     }
 }
