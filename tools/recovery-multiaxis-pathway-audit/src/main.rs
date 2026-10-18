@@ -820,7 +820,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_864_case_corpus_matches_every_expected_outcome() {
+    fn frozen_matrix_and_interaction_controls_match_every_expected_outcome() {
         let receipt = run(&corpus());
         assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
         assert_eq!(receipt.case_count, 868);
