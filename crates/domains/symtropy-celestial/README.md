@@ -33,6 +33,10 @@ Run the focused tests from the Symtropy workspace:
 cargo test -p symtropy-celestial
 ```
 
+## Benchmark ladder
+
+The implementation-level assertions and not-yet-run independent-validation gates are tracked in [`docs/research/CELESTIAL_DYNAMICS_BENCHMARK_LADDER_2026.md`](../../../docs/research/CELESTIAL_DYNAMICS_BENCHMARK_LADDER_2026.md). The reference solver is not qualified for chaotic long-horizon prediction, planetary ephemerides, relativity, or cosmological N-body use by the two-body fixtures alone.
+
 ## Scientific boundaries
 
 This first increment is a Newtonian reference integrator. It is not general relativity, an ephemeris, a relativistic close-encounter solver, a collision or tidal model, a cosmological N-body code, or an implementation of dark-matter structure formation. Positive softening changes the physical force law and must be recorded in a benchmark configuration.
