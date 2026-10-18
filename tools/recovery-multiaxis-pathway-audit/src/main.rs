@@ -823,25 +823,25 @@ mod tests {
     fn frozen_864_case_corpus_matches_every_expected_outcome() {
         let receipt = run(&corpus());
         assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
-        assert_eq!(receipt.case_count, 864);
+        assert_eq!(receipt.case_count, 868);
         assert!(receipt.expected_outcomes_match);
         assert!(receipt.aggregate_counts_match);
-        assert_eq!(receipt.scope_counts.get("IN_SCOPE"), Some(&108));
+        assert_eq!(receipt.scope_counts.get("IN_SCOPE"), Some(&112));
         assert_eq!(receipt.scope_counts.get("OUT_OF_SCOPE"), Some(&756));
-        assert_eq!(receipt.evidence_counts.get("SUFFICIENT"), Some(&288));
+        assert_eq!(receipt.evidence_counts.get("SUFFICIENT"), Some(&292));
         assert_eq!(receipt.evidence_counts.get("INSUFFICIENT"), Some(&576));
-        assert_eq!(receipt.hard_gate_counts.get("PASS"), Some(&216));
-        assert_eq!(receipt.hard_gate_counts.get("UNKNOWN"), Some(&540));
+        assert_eq!(receipt.hard_gate_counts.get("PASS"), Some(&218));
+        assert_eq!(receipt.hard_gate_counts.get("UNKNOWN"), Some(&542));
         assert_eq!(receipt.hard_gate_counts.get("BLOCK"), Some(&108));
-        assert_eq!(receipt.timing_counts.get("ADEQUATE"), Some(&432));
+        assert_eq!(receipt.timing_counts.get("ADEQUATE"), Some(&436));
         assert_eq!(receipt.timing_counts.get("TOO_LATE"), Some(&432));
-        assert_eq!(receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"), Some(&6));
+        assert_eq!(receipt.disposition_counts.get("REVIEW_ONLY_CANDIDATE"), Some(&8));
         assert_eq!(receipt.disposition_counts.get("REASSESS_SCOPE"), Some(&756));
         assert_eq!(receipt.disposition_counts.get("BLOCKED_HARD_GATE"), Some(&18));
-        assert_eq!(receipt.disposition_counts.get("HOLD_EVIDENCE"), Some(&78));
+        assert_eq!(receipt.disposition_counts.get("HOLD_EVIDENCE"), Some(&80));
         assert_eq!(receipt.disposition_counts.get("REPLAN_TOO_LATE"), Some(&6));
         assert_eq!(receipt.lock_in_warning_counts.get("true"), Some(&432));
-        assert_eq!(receipt.lock_in_warning_counts.get("false"), Some(&432));
+        assert_eq!(receipt.lock_in_warning_counts.get("false"), Some(&436));
         assert!(receipt.all_synthetic);
         assert!(receipt.all_actuation_disabled);
     }
@@ -971,6 +971,38 @@ mod tests {
         );
         assert_eq!(case.hard_gate_status, "BLOCK");
         assert_eq!(case.disposition, "BLOCKED_HARD_GATE");
+    }
+
+    #[test]
+    fn sensitive_pair_interaction_is_checked_against_both_single_hazard_controls() {
+        let receipt = run(&corpus());
+        let habitat_normal = result_for(
+            &receipt,
+            "mx-control-known_habitat_only-baseline-complete-fresh-normal-5-reversible_staged",
+        );
+        let route_normal = result_for(
+            &receipt,
+            "mx-control-known_route_only-baseline-complete-fresh-normal-5-reversible_staged",
+        );
+        let habitat_degraded = result_for(
+            &receipt,
+            "mx-control-known_habitat_only-baseline-complete-fresh-degraded-5-reversible_staged",
+        );
+        let route_degraded = result_for(
+            &receipt,
+            "mx-control-known_route_only-baseline-complete-fresh-degraded-5-reversible_staged",
+        );
+        let pair_degraded = result_for(
+            &receipt,
+            "mx-known_capacity_sensitive_pair-baseline-complete-fresh-degraded-5-reversible_staged",
+        );
+
+        assert_eq!(habitat_normal.hard_gate_status, "PASS");
+        assert_eq!(route_normal.hard_gate_status, "PASS");
+        assert_eq!(habitat_degraded.hard_gate_status, "UNKNOWN");
+        assert_eq!(route_degraded.hard_gate_status, "UNKNOWN");
+        assert_eq!(pair_degraded.hard_gate_status, "BLOCK");
+        assert_eq!(pair_degraded.disposition, "BLOCKED_HARD_GATE");
     }
 
     #[test]
