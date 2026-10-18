@@ -174,10 +174,7 @@ fn validate_mapping_profile(
             ));
             continue;
         };
-        let Some(category_id) = item
-            .get("ords_product_category_id")
-            .and_then(Value::as_u64)
-        else {
+        let Some(category_id) = item.get("ords_product_category_id").and_then(Value::as_u64) else {
             errors.push(format!(
                 "product_category_mappings[{index}] lacks a positive ORDS category ID"
             ));
@@ -243,7 +240,9 @@ fn validate_mapping_profile(
             .filter_map(Value::as_str)
         {
             if !status_aliases.insert(normalize_key(alias)) {
-                errors.push(format!("overlapping normalized ORDS repair-status alias {alias:?}"));
+                errors.push(format!(
+                    "overlapping normalized ORDS repair-status alias {alias:?}"
+                ));
             }
         }
     }
@@ -287,7 +286,9 @@ fn validate_mapping_profile(
             .filter_map(Value::as_str)
         {
             if !barrier_aliases.insert(normalize_key(alias)) {
-                errors.push(format!("overlapping normalized ORDS repair-barrier alias {alias:?}"));
+                errors.push(format!(
+                    "overlapping normalized ORDS repair-barrier alias {alias:?}"
+                ));
             }
         }
     }
@@ -957,8 +958,14 @@ mod tests {
         assert_eq!(record["raw_fields"].get("product_category"), None);
         assert_eq!(record["raw_fields"].get("problem"), None);
         assert_eq!(record["repair_status"]["normalized_value"], "unknown");
-        assert_eq!(record["product_category_mapping"]["mapping_status"], "unmapped");
-        assert_eq!(record["product_category_mapping"]["mapping_match_method"], "unmapped");
+        assert_eq!(
+            record["product_category_mapping"]["mapping_status"],
+            "unmapped"
+        );
+        assert_eq!(
+            record["product_category_mapping"]["mapping_match_method"],
+            "unmapped"
+        );
     }
 
     #[test]
@@ -967,7 +974,10 @@ mod tests {
         let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
         assert_eq!(summary.accepted_row_count, 1);
         let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
-        assert_eq!(record["product_category_mapping"]["mapping_status"], "candidate");
+        assert_eq!(
+            record["product_category_mapping"]["mapping_status"],
+            "candidate"
+        );
         assert_eq!(
             record["product_category_mapping"]["mapping_match_method"],
             "normalized_label_fallback"
@@ -980,7 +990,10 @@ mod tests {
         let (summary, output) = run_fixture(SCHEMA, PROFILE, csv);
         assert_eq!(summary.accepted_row_count, 1);
         let record: Value = serde_json::from_str(output.lines().next().unwrap()).unwrap();
-        assert_eq!(record["product_category_mapping"]["mapping_status"], "unmapped");
+        assert_eq!(
+            record["product_category_mapping"]["mapping_status"],
+            "unmapped"
+        );
         assert_eq!(
             record["product_category_mapping"]["mapping_match_method"],
             "unmapped_product_category_id"
@@ -990,11 +1003,20 @@ mod tests {
     #[test]
     fn category_id_label_disagreement_is_quarantined() {
         let source = String::from_utf8(CSV.to_vec()).unwrap();
-        let changed = source.replace("r-004,Kitchen toaster,Toaster,31,HeatHaus", "r-004,Kitchen toaster,Coffee maker,31,HeatHaus");
-        assert_ne!(source, changed, "mutation must change the synthetic category label");
+        let changed = source.replace(
+            "r-004,Kitchen toaster,Toaster,31,HeatHaus",
+            "r-004,Kitchen toaster,Coffee maker,31,HeatHaus",
+        );
+        assert_ne!(
+            source, changed,
+            "mutation must change the synthetic category label"
+        );
         let (summary, output) = run_fixture(SCHEMA, PROFILE, changed.as_bytes());
         assert_eq!(summary.category_id_label_mismatch_row_count, 1);
-        let records: Vec<Value> = output.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+        let records: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
         let mismatched = records
             .iter()
             .find(|record| record["source_provenance"]["source_record_id_raw"] == "r-004")
@@ -1014,7 +1036,11 @@ mod tests {
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
             .expect_err("ORDS Fixed status code cannot be reassigned");
-        assert!(errors.iter().any(|error| error.contains("ORDS repair status code \"1\" must map to fixed")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("ORDS repair status code \"1\" must map to fixed"))
+        );
     }
 
     #[test]
@@ -1025,18 +1051,27 @@ mod tests {
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
             .expect_err("ORDS barrier code cannot be reassigned");
-        assert!(errors.iter().any(|error| error.contains("ORDS repair barrier code \"1\" must map to spare_parts_unavailable")));
+        assert!(errors.iter().any(|error| {
+            error.contains("ORDS repair barrier code \"1\" must map to spare_parts_unavailable")
+        }));
     }
 
     #[test]
     fn overlapping_status_aliases_are_rejected() {
         let mut profile: Value = serde_json::from_str(PROFILE).unwrap();
-        profile["repair_status_mappings"][0]["raw_values"].as_array_mut().unwrap().push(json!("1"));
+        profile["repair_status_mappings"][0]["raw_values"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("1"));
         let profile_raw = serde_json::to_string(&profile).unwrap();
         let mut output = Vec::new();
         let errors = audit_csv_to_writer(SCHEMA, &profile_raw, CSV, &mut output)
             .expect_err("overlapping status aliases must fail closed");
-        assert!(errors.iter().any(|error| error.contains("overlapping normalized ORDS repair-status alias")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("overlapping normalized ORDS repair-status alias"))
+        );
     }
 
     #[test]
