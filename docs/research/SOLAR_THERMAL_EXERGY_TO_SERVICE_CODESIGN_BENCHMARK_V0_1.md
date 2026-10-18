@@ -286,6 +286,19 @@ The acceptance artifact is not just an aggregate weighted utility. Preserve each
 
 This gives us a public multi-period input corpus while the industrial solar-storage paper's complete plant time series remain unavailable. The two references answer different questions: OpenPinch qualifies period-specific process integration; Falch et al. is a storage-utilization study with its own idealized storage assumptions.
 
+### 8.2 Independent measured PVT/exergy-control dataset (different storage physics)
+
+A complementary empirical candidate is the August 18, 2026 Zenodo release [“Perfect-Foresight Flow-Rate Control of a Photovoltaic–Thermal Collector for Thermochemical Storage: An Exergy Upper Bound”](https://doi.org/10.5281/zenodo.20713009). Its record describes measured rooftop/PVT prototype data, a held-out 19 September 2024 validation day, measured controller-comparison days on 10 and 24 September 2024, and released outputs for Cases A–D plus the horizon sweep. The released simulation script is Python 3.11; it can serve as a reference oracle while all new production implementation remains Rust-first.
+
+This is **not** the same device model as the current sensible store: the published study concerns a PVT collector and SrCl₂/NH₃ thermochemical storage. Its perfect-foresight controller is explicitly an exergy upper bound, not a feasible causal controller. Therefore:
+1. Pin the exact Zenodo record version and archive digest, inspect the archive README and confirm dataset reuse rights before vendoring or redistributing raw files. The public record does not expose a clear license value in the metadata currently reviewed.
+2. Reproduce the released Case A–D outputs under a pinned environment and retain the 19 September validation day as a holdout; do not tune model parameters or dispatch policy on it.
+3. Build a typed Rust adapter for only the measured collector/exergy boundary first, after confirming units and column definitions. Validate against the measured comparator days and the released results independently.
+4. Compare any online policy to causal baselines using only information available at that timestamp; report the perfect-foresight solution separately as an upper bound.
+5. Connect this component benchmark to dispatch only after its boundary-level validation passes. Do not claim cross-chemistry parity with the industrial sensible-storage or OpenPinch cases.
+
+The industrial paper, OpenPinch input corpus, and PVT dataset are deliberately separate benchmark families: ideal storage sizing, period-specific process integration, and measured collector/exergy control respectively. Combining them into one score before the boundaries and physics align would make the benchmark less scientifically useful, not more.
+
 ## 9. Outcomes and benchmark targets
 
 Report a Pareto table instead of one opaque score. Primary metrics must be predeclared for each end use.
