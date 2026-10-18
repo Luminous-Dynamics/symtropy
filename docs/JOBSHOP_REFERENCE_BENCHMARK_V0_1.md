@@ -73,7 +73,9 @@ and all constraint violations; never use only the best case.
 ## Next extensions (not in this PR)
 
 - Add a separate FJSP parser only after machine-alternative semantics are tested.
-- Add independently auditable feasible schedules, not just makespan numbers.
+- Add a canonical result receipt binding source commit/path and input digest to
+  parser/model version, method/config, resource budget, schedule, verifier result,
+  and the distinction between proved-optimal and heuristic outcomes.
 - Introduce setup times, releases, deadlines, disruptions, and rolling-horizon
   replanning as distinct benchmark tracks.
 - Compose schedulers with industrial-coupling and telemetry evidence through
