@@ -1077,13 +1077,6 @@ fn project_world_position(position: [f64; 3]) -> Result<[f32; 3], String> {
     Ok(projected)
 }
 
-fn validate_finite_position(position: [f64; 3]) -> Result<(), String> {
-    if position.iter().all(|value| value.is_finite()) {
-        Ok(())
-    } else {
-        Err("spectrum profile has a non-finite position".to_owned())
-    }
-}
 
 /// Optional read-only renderer. Input layers are producer-supplied observations;
 /// the plugin never simulates or modifies their values.
@@ -1493,13 +1486,15 @@ mod tests {
     fn spectrum_plot_respects_bin_budget_and_range() {
         let profile = spectrum_profile();
         let mut settings = test_spectrum_plot_settings();
+        let points = extract_spectrum_plot_points(&profile, &settings, 2)
+            .expect("bin budget should truncate the curve");
+        assert_eq!(points.len(), 2);
+
         settings.wavelength_band = WavelengthBand {
             min_wavelength_m: 500.0e-9,
             max_wavelength_m: 600.0e-9,
         };
-        let points = extract_spectrum_plot_points(&profile, &settings, 2)
-            .expect("one middle bin only? should be rejected");
-        assert!(points.len() >= 2);
+        assert!(extract_spectrum_plot_points(&profile, &settings, 2).is_err());
     }
 
     #[test]
