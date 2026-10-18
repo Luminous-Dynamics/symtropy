@@ -771,6 +771,40 @@ mod tests {
     }
 
     #[test]
+    fn serialized_report_contains_one_result_per_source_requirement() {
+        let (manifest, raw) = fixture();
+        let report = build_report(&manifest, &raw);
+        let value = serde_json::to_value(&report).expect("full report serializes");
+        let rows = value["scenario_results"]
+            .as_array()
+            .expect("scenario_results is an array");
+        assert_eq!(rows.len(), manifest.cases.len());
+
+        for row in rows {
+            let case_id = row["case_id"].as_str().expect("case ID is serialized");
+            let source_case = manifest
+                .cases
+                .iter()
+                .find(|case| case.case_id == case_id)
+                .expect("report scenario maps to a source case");
+            let properties = row["requirement_results"]
+                .as_array()
+                .expect("structured requirement results are serialized");
+            assert_eq!(properties.len(), source_case.requirements.len());
+            for requirement in &source_case.requirements {
+                let property = properties
+                    .iter()
+                    .find(|property| property["requirement_id"] == requirement.requirement_id)
+                    .expect("every source requirement has a structured result");
+                assert_eq!(property["source_object_id"], requirement.object_id);
+                assert_eq!(property["property_key"], requirement.property_key);
+                assert!(property["diagnostic_codes"].is_array());
+                assert!(property["outcome"].is_string());
+            }
+        }
+    }
+
+    #[test]
     fn structured_transform_result_retains_rule_and_source_target_units() {
         let (manifest, _) = fixture();
         let case = manifest
