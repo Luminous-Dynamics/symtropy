@@ -17,7 +17,7 @@ It then checks the parsed `Name` of every applicable `IFCWALL` against that IDS 
 
 The published [OpenBIM.rs IDS status page](https://github.com/openbimrs/ids#status) says that IDS 1.0 reading/writing and IDS-document-vs-IFC-schema audit exist, but **checking an IFC model against IDS has not been implemented upstream**. This crate therefore evaluates only its declared subset. Extra properties, classifications, materials, `partOf`, restrictions/patterns, extra specifications, optional/prohibited cardinalities, version conflicts, and unknown attributes produce explicit blocked/unresolved results instead of being silently treated as passing.
 
-`Conformant` does not mean the IFC is normatively valid, a building is structurally safe, a permit condition is met, a product is qualified, or manufacturing can proceed.
+`SubsetConformant` does not mean the IFC is normatively valid, a building is structurally safe, a permit condition is met, a product is qualified, or manufacturing can proceed.
 
 ## Exact crate pins and license boundary
 
@@ -42,7 +42,7 @@ The default run consumes the two synthetic files in `fixtures/`. Pass explicit I
 
 ## Outcomes
 
-- `Conformant`: all declared profile conditions match and each applicable IFC wall has exactly the required literal `Name`.
+- `SubsetConformant`: all declared profile conditions match and each applicable IFC wall has exactly the required literal `Name`.
 - `Blocked`: schema/profile mismatch, no required applicable wall, a missing Name, or a value mismatch.
 - `Unresolved`: IDS version is inferred rather than explicitly declared, the parsed spec is outside the implemented subset, or another prerequisite is unknown/unsupported.
 - Malformed IFC STEP or malformed IDS XML is a parse error and a nonzero CLI exit, not a usable partial pass.
