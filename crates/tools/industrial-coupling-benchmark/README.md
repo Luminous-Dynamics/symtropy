@@ -22,7 +22,7 @@ For each feasible integer-kWh transfer quantity, the evaluator calculates:
 - source heat opportunity cost;
 - real variable and fixed exchange costs;
 - net network surplus;
-- an explicitly declared split of positive surplus between the two participants.
+- an explicitly declared split of positive network surplus between the two participants, after satisfying each participant's minimum reservation benefit.
 
 Internal participant allocation is not added again as a social cost. The independent verifier recomputes the ledger and rescans the finite candidate domain to reject tampering, infeasibility, or non-optimal results. Zero exchange is always the baseline and is retained when the link is incompatible or destroys value.
 
@@ -59,11 +59,11 @@ These are exact arithmetic outputs for the authored synthetic fixtures, not evid
 - explicit temperature-grade precondition;
 - integer energy balance: input = delivered + transfer loss;
 - recomputed cost and net-surplus accounting;
-- participant allocation sums exactly to positive surplus;
+- participant allocation sums exactly to positive surplus and meets both reservation floors;
 - independent finite-domain scan for optimality;
 - checked arithmetic with overflow rejection;
 - search bound fail-closed behavior;
-- negative controls and tamper tests.
+- negative controls for grade incompatibility, uneconomic exchange, zero capacity and unmet participation floors, plus tamper tests.
 
 ## Next steps
 
