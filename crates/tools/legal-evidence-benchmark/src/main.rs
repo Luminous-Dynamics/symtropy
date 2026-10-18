@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use sha2::{Digest, Sha256};
 use std::{env, fs, process};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -80,6 +81,7 @@ struct CandidateResult {
 struct ValidationReport {
     status: &'static str,
     dataset_kind: String,
+    corpus_sha256: String,
     authority_count: usize,
     case_count: usize,
     claim_ceiling: &'static str,
@@ -88,7 +90,10 @@ struct ValidationReport {
 #[derive(Debug, Serialize)]
 struct EvaluationReport {
     report_version: &'static str,
+    evaluator_version: &'static str,
     dataset_kind: String,
+    corpus_sha256: String,
+    submission_sha256: String,
     system_id: String,
     total_cases: usize,
     provided_results: usize,
@@ -134,11 +139,12 @@ fn run() -> Result<bool, String> {
             if args.next().is_some() {
                 return Err(usage());
             }
-            let benchmark: Benchmark = read_json(&corpus_path)?;
+            let (benchmark, corpus_sha256): (Benchmark, String) = read_json(&corpus_path)?;
             validate_benchmark(&benchmark)?;
             let report = ValidationReport {
                 status: "VALID",
                 dataset_kind: benchmark.dataset_kind.clone(),
+                corpus_sha256,
                 authority_count: benchmark.authorities.len(),
                 case_count: benchmark.cases.len(),
                 claim_ceiling: "Dataset structure only; not legal correctness or model performance.",
@@ -156,9 +162,9 @@ fn run() -> Result<bool, String> {
             if args.next().is_some() {
                 return Err(usage());
             }
-            let benchmark: Benchmark = read_json(&corpus_path)?;
+            let (benchmark, corpus_sha256): (Benchmark, String) = read_json(&corpus_path)?;
             validate_benchmark(&benchmark)?;
-            let submission: Submission = read_json(&submission_path)?;
+            let (submission, submission_sha256): (Submission, String) = read_json(&submission_path)?;
             if submission.schema_version != "0.1.0" {
                 return Err(format!(
                     "unsupported submission schema version: {}",
@@ -168,7 +174,12 @@ fn run() -> Result<bool, String> {
             if submission.system_id.trim().is_empty() {
                 return Err("submission system_id must not be empty".to_string());
             }
-            let report = evaluate(&benchmark, &submission)?;
+            let report = evaluate_with_digests(
+                &benchmark,
+                &submission,
+                corpus_sha256,
+                submission_sha256,
+            )?;
             let passed = report.fixture_gate_passed;
             println!(
                 "{}",
@@ -189,9 +200,19 @@ fn usage() -> String {
     .join("\n")
 }
 
-fn read_json<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {
+fn read_json<T: for<'de> Deserialize<'de>>(path: &str) -> Result<(T, String), String> {
     let raw = fs::read_to_string(path).map_err(|e| format!("cannot read {path}: {e}"))?;
-    serde_json::from_str(&raw).map_err(|e| format!("{path} is invalid JSON: {e}"))
+    let digest = sha256_hex(raw.as_bytes());
+    let value =
+        serde_json::from_str(&raw).map_err(|e| format!("{path} is invalid JSON: {e}"))?;
+    Ok((value, digest))
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn validate_benchmark(benchmark: &Benchmark) -> Result<(), String> {
@@ -512,6 +533,24 @@ fn percent(numerator: usize, denominator: usize) -> f64 {
 }
 
 fn evaluate(benchmark: &Benchmark, submission: &Submission) -> Result<EvaluationReport, String> {
+    let corpus_bytes = serde_json::to_vec(benchmark)
+        .map_err(|e| format!("cannot serialize benchmark for digest: {e}"))?;
+    let submission_bytes = serde_json::to_vec(submission)
+        .map_err(|e| format!("cannot serialize submission for digest: {e}"))?;
+    evaluate_with_digests(
+        benchmark,
+        submission,
+        sha256_hex(&corpus_bytes),
+        sha256_hex(&submission_bytes),
+    )
+}
+
+fn evaluate_with_digests(
+    benchmark: &Benchmark,
+    submission: &Submission,
+    corpus_sha256: String,
+    submission_sha256: String,
+) -> Result<EvaluationReport, String> {
     if submission.schema_version != "0.1.0" {
         return Err(format!(
             "unsupported submission schema version {}",
@@ -697,7 +736,10 @@ fn evaluate(benchmark: &Benchmark, submission: &Submission) -> Result<Evaluation
 
     Ok(EvaluationReport {
         report_version: "0.1.0",
+        evaluator_version: env!("CARGO_PKG_VERSION"),
         dataset_kind: benchmark.dataset_kind.clone(),
+        corpus_sha256,
+        submission_sha256,
         system_id: submission.system_id.clone(),
         total_cases: benchmark.cases.len(),
         provided_results: submission.results.len(),
