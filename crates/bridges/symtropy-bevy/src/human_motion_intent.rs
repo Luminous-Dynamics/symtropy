@@ -54,6 +54,16 @@ pub enum IntentSource {
     SyntheticTestFixture,
 }
 
+/// Coordinate convention shared by target positions and planar velocity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotionIntentCoordinateFrame {
+    pub length_unit: String,
+    pub up_axis: String,
+    pub forward_axis: String,
+    pub position_space: String,
+}
+
 /// Optional geometric or entity target in the declared world coordinate system.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -93,6 +103,7 @@ pub struct SemanticMotionIntent {
     /// Opaque, non-identifying in-simulation actor reference.
     pub actor_ref: String,
     pub intent_kind: MotionIntentKind,
+    pub coordinate_frame: MotionIntentCoordinateFrame,
     /// Simulation-clock timestamp in seconds, not wall-clock time.
     pub issued_at_sec: f64,
     /// Optional exclusive expiration time on the same simulation clock.
@@ -122,6 +133,7 @@ pub enum IntentValidationError {
     UnsupportedSchemaVersion,
     EmptyIntentId,
     EmptyActorRef,
+    InvalidCoordinateFrame,
     InvalidIssuedTime,
     InvalidEvaluationTime,
     InvalidValidityWindow,
@@ -150,6 +162,7 @@ impl fmt::Display for IntentValidationError {
             Self::UnsupportedSchemaVersion => "unsupported semantic motion intent schema version",
             Self::EmptyIntentId => "intent_id must not be empty",
             Self::EmptyActorRef => "actor_ref must not be empty",
+            Self::InvalidCoordinateFrame => "coordinate frame must be metres, +Y up, +Z or -Z forward, in world space",
             Self::InvalidIssuedTime => "issued_at_sec must be finite and non-negative",
             Self::InvalidEvaluationTime => "evaluation time must be finite and non-negative",
             Self::InvalidValidityWindow => "valid_until_sec must be finite and greater than issued_at_sec",
@@ -188,6 +201,14 @@ impl SemanticMotionIntent {
         }
         if self.actor_ref.trim().is_empty() {
             return Err(IntentValidationError::EmptyActorRef);
+        }
+        let frame = &self.coordinate_frame;
+        if frame.length_unit != "metre"
+            || frame.up_axis != "+Y"
+            || !matches!(frame.forward_axis.as_str(), "+Z" | "-Z")
+            || frame.position_space != "world"
+        {
+            return Err(IntentValidationError::InvalidCoordinateFrame);
         }
         if !self.issued_at_sec.is_finite() || self.issued_at_sec < 0.0 {
             return Err(IntentValidationError::InvalidIssuedTime);
