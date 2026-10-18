@@ -82,10 +82,18 @@ impl PinchProblem {
         // temperatures. This rejects impossible ΔTmin shifts near absolute zero.
         let half = minimum_approach.value() / 2.0;
         for stream in &hot_streams {
+            if stream.supply_temperature.value() <= stream.target_temperature.value() {
+                return Err(ModelError::InvalidHotStreamOrder);
+            }
+            positive(stream.available_heat.value(), "hot_stream_available_heat_j")?;
             Kelvin::new(stream.supply_temperature.value() - half)?;
             Kelvin::new(stream.target_temperature.value() - half)?;
         }
         for stream in &cold_streams {
+            if stream.target_temperature.value() <= stream.supply_temperature.value() {
+                return Err(ModelError::InvalidColdStreamOrder);
+            }
+            positive(stream.required_heat.value(), "cold_stream_required_heat_j")?;
             Kelvin::new(stream.supply_temperature.value() + half)?;
             Kelvin::new(stream.target_temperature.value() + half)?;
         }
