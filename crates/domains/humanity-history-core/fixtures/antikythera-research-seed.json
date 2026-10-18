@@ -784,5 +784,37 @@
       "dependence_note": "All vs trimmed data are sensitivity variants of the same source analysis, not independent samples.",
       "interpretation_limit": "The delta is a difference between rounded source-reported posterior probabilities, not a recalculation or an independent replication."
     }
+  ],
+  "analysis_runs": [
+    {
+      "id": "antikythera:run-independent-posterior-replication",
+      "purpose": "Reproduce the published full-data and trimmed-data calendar-ring posterior summaries using the original measured hole-position data and a versioned independent implementation.",
+      "status": "planned",
+      "model_spec_version": "antikythera-calendar-ring-2024-transcription-v0.1",
+      "code_revision": null,
+      "command": null,
+      "environment_fingerprint": null,
+      "input_manifest_sha256": null,
+      "input_artifacts": [],
+      "output_artifacts": [],
+      "random_seed": null,
+      "target_estimate_ids": [
+        "antikythera:estimate-woan-bayley-all-points",
+        "antikythera:estimate-woan-bayley-exclude-fractures",
+        "antikythera:posterior-all-354",
+        "antikythera:posterior-all-355",
+        "antikythera:posterior-all-356",
+        "antikythera:posterior-trim-354",
+        "antikythera:posterior-trim-355",
+        "antikythera:posterior-trim-356"
+      ],
+      "comparison_source_id": "antikythera:src-woan-bayley-2024",
+      "result_summary": null,
+      "limitations": [
+        "This run is planned only; no measurement data have been downloaded or independently analyzed by this project.",
+        "The Harvard Dataverse file inventory and exact data reuse terms have not been verified.",
+        "Published values currently stored in the research seed are source transcriptions, not outputs from this planned run."
+      ]
+    }
   ]
 }
