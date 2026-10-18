@@ -36,9 +36,22 @@ Required evidence domains: site geometry, completed service output, capital cost
 - Missing, stale, conflicting, duplicated, malformed, or absent evidence blocks the output.
 - A structurally calculated cost is not a validated service outcome or ROI.
 
+## Provider service coverage — bounded extension
+
+The separate `provider_coverage` module calls the existing `field_robot_cost` kernel and adds no duplicate cost equation or cross-candidate optimizer. It compares an explicitly scoped provider-wide annual cost envelope with:
+- primary-service receipts calculated from **paid completed units × the declared fee per unit**;
+- receipts from other service lines, recorded separately so transport or another activity cannot silently disappear into one number;
+- total declared receipts, modeled annual cost, difference, and unpaid completed primary-service units.
+
+Hard gates bind scenario, scope, period, currency and primary paid units to the canonical cost input. Missing, stale, conflicting or malformed revenue evidence blocks the result. Arithmetic uses checked integer operations and exact decimal-string serialization. A separate verifier validates the independent 15-case inventory and test-function names, without calling either evaluator.
+
+**Cost-boundary rule:** the cost input must cover the same provider/asset annual envelope as all receipt streams being counted. Do not compare multiple-service receipts against a cost model that includes only one task; this module does not allocate shared costs or deduce the cost of each service line. Other-service receipts are not profit, subsidy treatment is not implemented, and this is not a liquidity, affordability, price-fairness, ROI or business-viability assessment. Source references and digest shape are not authenticated here. All included examples are synthetic.
+
 ## Benchmark inventory
 
-The frozen synthetic case inventory is `fixtures/field_robot_cost_cases.v1.tsv` (25 test-case IDs). The Rust tests include a hand-calculated baseline, route-distance sensitivity, no-robot baseline, exact ceiling arithmetic, currency/schema/time/output blockers, evidence-quality controls, overflow controls, multi-operator labor, and JSON exact-integer round-trip. A separate `verify-field-robot-cost-manifest` binary does not import or call the cost evaluator; it checks row structure, unique IDs, allowed dispositions, required rationales, and the existence of a corresponding Rust test function for each manifest entry. The verifier emits `STRUCTURE_VALID_ONLY`, not a test/economic result. The TSV is a synthetic test inventory, not field data.
+The frozen field-robot cost inventory is `fixtures/field_robot_cost_cases.v1.tsv` (25 cases). The Rust tests include a hand-calculated baseline, route-distance sensitivity, no-robot baseline, exact ceiling arithmetic, currency/schema/time/output blockers, evidence-quality controls, overflow controls, multi-operator labor, and exact-integer JSON round-trip. Its independent verifier does not import or invoke the cost evaluator and emits `STRUCTURE_VALID_ONLY`, not an economic result.
+
+The provider-coverage inventory is `fixtures/provider_coverage_cases.v1.tsv` (15 cases) with a distinct integration-test file and independent structural verifier. Its oracle cases include exact coverage and shortfall arithmetic, unpaid completed units, ancillary-revenue separation, identity/scope/period/currency mismatch, stale/missing/malformed evidence, blocked cost input, and overflow. The manifest check only binds IDs to test names; the test suite must run separately. Both inventories are synthetic test inputs, not field data.
 
 ## Target metrics
 

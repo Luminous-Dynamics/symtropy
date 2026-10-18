@@ -1,0 +1,17 @@
+# PROVIDER-COVERAGE-BENCH-V1
+case_id	expected_result	rationale
+positive_provider_coverage_matches_hand_calculated_receipt_oracle	REVENUE_COVERS_COST	Hand-calculated receipts 550000 cover modeled annual costs 388000
+revenue_shortfall_is_reported_exactly	REVENUE_BELOW_COST	Receipts 50000 remain below modeled annual costs 388000
+other_service_revenue_is_separate_and_cannot_imply_primary_service_affordability	REVENUE_COVERS_COST	Other service receipts cover the envelope while zero primary units were paid; primary affordability remains unknown
+paid_units_above_completed_units_blocks	BLOCKED	Paid primary-service units cannot exceed completed output
+scenario_mismatch_blocks	BLOCKED	Scenario IDs must match the canonical cost input
+scope_mismatch_blocks	BLOCKED	Cost and receipt scope must be identical
+period_mismatch_blocks	BLOCKED	Cost and receipt period must be identical
+currency_mismatch_blocks	BLOCKED	Cost and receipt currency must be identical
+blocked_cost_input_blocks_provider_coverage	BLOCKED	A blocked canonical cost calculation cannot enter provider coverage
+stale_primary_revenue_evidence_blocks	BLOCKED	Stale primary receipts block current-period assessment
+missing_other_service_evidence_blocks	BLOCKED	Other service revenue cannot silently be assumed complete
+malformed_source_digest_blocks_revenue	BLOCKED	Malformed source receipt digest blocks source-referenced evidence
+fee_revenue_overflow_blocks_without_partial_output	BLOCKED	Paid units times fee must use checked arithmetic
+revenue_total_overflow_blocks_without_partial_output	BLOCKED	Summed receipt streams must not wrap
+source_referenced_inputs_are_declared_but_not_authenticated	REVENUE_COVERS_COST	A source-shaped reference is labeled as declared provenance only; authenticity and viability are not evaluated
