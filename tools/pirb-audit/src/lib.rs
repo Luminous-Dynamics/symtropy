@@ -1411,7 +1411,7 @@ mod tests {
 
     #[test]
     fn malformed_schema_fails_closed() {
-        let invalid_schema = SCHEMA.replace("\\"type\\": \\"object\\"", "\\"type\\": \\"not-a-json-schema-type\\"");
+        let invalid_schema = SCHEMA.replacen(r#""type": "object""#, r#""type": "not-a-json-schema-type""#, 1);
         let errors = validate_corpus_schema(&invalid_schema, FIXTURE)
             .expect_err("invalid schema must not be used");
         assert!(!errors.is_empty());
