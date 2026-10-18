@@ -1228,12 +1228,9 @@ mod tests {
     fn infeasible_high_reward_strategy_is_excluded_from_both_regime_rankings() {
         let receipt = run(&corpus());
         assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
-        assert!(receipt
-            .criteria_regime_rankings
-            .values()
-            .all(|ranked| {
-                !ranked.contains(&"constraint-violating-high-yield-shortcut".to_string())
-            }));
+        assert!(receipt.criteria_regime_rankings.values().all(|ranked| {
+            !ranked.contains(&"constraint-violating-high-yield-shortcut".to_string())
+        }));
     }
 
     #[test]
