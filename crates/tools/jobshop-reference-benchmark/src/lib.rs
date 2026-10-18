@@ -506,4 +506,188 @@ mod tests {
             Err(BenchmarkError::ArithmeticOverflow)
         ));
     }
+    #[test]
+    fn exact_oracle_matches_independent_machine_order_enumeration_on_twenty_cases() {
+        for case_index in 0..20 {
+            let machine_count = if case_index % 3 == 0 { 2 } else { 3 };
+            let job_count = if case_index % 2 == 0 { 2 } else { 3 };
+            let mut jobs = Vec::with_capacity(job_count);
+
+            for job_index in 0..job_count {
+                let mut route: Vec<usize> = (0..machine_count).collect();
+                route.rotate_left((case_index + job_index) % machine_count);
+                if (case_index + job_index) % 2 == 1 {
+                    route.reverse();
+                }
+                let job = route
+                    .into_iter()
+                    .enumerate()
+                    .map(|(operation_index, machine)| Operation {
+                        machine,
+                        duration: ((case_index * 7 + job_index * 5 + operation_index * 3) % 9
+                            + 1) as u64,
+                    })
+                    .collect();
+                jobs.push(job);
+            }
+
+            let instance = Instance {
+                machine_count,
+                jobs,
+            };
+            let expected = independent_machine_order_oracle(&instance);
+            let actual = solve_exact(&instance).expect("bounded exact solver succeeds");
+            assert_eq!(
+                actual.makespan, expected,
+                "disagreement on generated tiny case {case_index}"
+            );
+        }
+    }
+
+    // Independent reference formulation: enumerate each machine's operation
+    // order, build job-precedence and machine-precedence edges, reject cyclic
+    // combinations, and compute the longest path through the resulting DAG.
+    // The production oracle instead enumerates job-ready serial decisions.
+    fn independent_machine_order_oracle(instance: &Instance) -> u64 {
+        use std::collections::VecDeque;
+
+        fn enumerate_permutations(
+            values: &mut Vec<usize>,
+            start: usize,
+            output: &mut Vec<Vec<usize>>,
+        ) {
+            if start == values.len() {
+                output.push(values.clone());
+                return;
+            }
+            for index in start..values.len() {
+                values.swap(start, index);
+                enumerate_permutations(values, start + 1, output);
+                values.swap(start, index);
+            }
+        }
+
+        fn add_edge(
+            from: usize,
+            to: usize,
+            successors: &mut [Vec<usize>],
+            indegree: &mut [usize],
+        ) {
+            successors[from].push(to);
+            indegree[to] += 1;
+        }
+
+        fn evaluate_machine_orders(
+            instance: &Instance,
+            machine_orders: &[Vec<usize>],
+        ) -> Option<u64> {
+            let operation_count: usize = instance.jobs.iter().map(Vec::len).sum();
+            let mut offsets = Vec::with_capacity(instance.jobs.len() + 1);
+            let mut durations = Vec::with_capacity(operation_count);
+            let mut successors = vec![Vec::new(); operation_count];
+            let mut indegree = vec![0_usize; operation_count];
+            let mut cursor = 0_usize;
+
+            for job in &instance.jobs {
+                offsets.push(cursor);
+                for operation in job {
+                    durations.push(operation.duration);
+                    cursor += 1;
+                }
+            }
+            offsets.push(cursor);
+
+            for (job_index, job) in instance.jobs.iter().enumerate() {
+                let first = offsets[job_index];
+                for operation_index in 0..job.len().saturating_sub(1) {
+                    add_edge(
+                        first + operation_index,
+                        first + operation_index + 1,
+                        &mut successors,
+                        &mut indegree,
+                    );
+                }
+            }
+
+            for order in machine_orders {
+                for pair in order.windows(2) {
+                    add_edge(
+                        pair[0],
+                        pair[1],
+                        &mut successors,
+                        &mut indegree,
+                    );
+                }
+            }
+
+            let mut ready = VecDeque::new();
+            for (operation, degree) in indegree.iter().enumerate() {
+                if *degree == 0 {
+                    ready.push_back(operation);
+                }
+            }
+            let mut start_time = vec![0_u64; operation_count];
+            let mut visited = 0_usize;
+            let mut makespan = 0_u64;
+            while let Some(operation) = ready.pop_front() {
+                visited += 1;
+                let finish = start_time[operation].checked_add(durations[operation])?;
+                makespan = makespan.max(finish);
+                for successor in &successors[operation] {
+                    start_time[*successor] = start_time[*successor].max(finish);
+                    indegree[*successor] -= 1;
+                    if indegree[*successor] == 0 {
+                        ready.push_back(*successor);
+                    }
+                }
+            }
+            (visited == operation_count).then_some(makespan)
+        }
+
+        fn visit_machine(
+            machine_index: usize,
+            instance: &Instance,
+            permutations: &[Vec<Vec<usize>>],
+            selected: &mut Vec<Vec<usize>>,
+            best: &mut Option<u64>,
+        ) {
+            if machine_index == permutations.len() {
+                if let Some(candidate) = evaluate_machine_orders(instance, selected) {
+                    if best.is_none_or(|known| candidate < known) {
+                        *best = Some(candidate);
+                    }
+                }
+                return;
+            }
+            for order in &permutations[machine_index] {
+                selected.push(order.clone());
+                visit_machine(machine_index + 1, instance, permutations, selected, best);
+                selected.pop();
+            }
+        }
+
+        let operation_count: usize = instance.jobs.iter().map(Vec::len).sum();
+        let mut machine_members = vec![Vec::new(); instance.machine_count];
+        let mut operation_id = 0_usize;
+        for job in &instance.jobs {
+            for operation in job {
+                machine_members[operation.machine].push(operation_id);
+                operation_id += 1;
+            }
+        }
+        assert_eq!(operation_count, operation_id);
+
+        let permutations: Vec<Vec<Vec<usize>>> = machine_members
+            .into_iter()
+            .map(|mut members| {
+                let mut output = Vec::new();
+                enumerate_permutations(&mut members, 0, &mut output);
+                output
+            })
+            .collect();
+        let mut best = None;
+        visit_machine(0, instance, &permutations, &mut Vec::new(), &mut best);
+        best.expect("at least one acyclic machine ordering exists")
+    }
+
 }
