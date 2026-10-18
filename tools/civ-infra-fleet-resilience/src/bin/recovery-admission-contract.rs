@@ -1096,6 +1096,23 @@ fn build_scenarios(contract: &Contract) -> Result<Vec<Scenario>, String> {
         proposal: declined_approval,
     });
 
+    let mut approval_not_required_bypass = make_proposal(
+        contract,
+        "global-approval-not-required-bypass",
+        "trench-segment-01",
+        TaskState::Ready,
+        Action::Start,
+        1,
+        Some("excavator-01".to_string()),
+    );
+    approval_not_required_bypass.gates.authorization = Authorization::NotRequired;
+    scenarios.push(Scenario {
+        scenario_id: "global-approval-not-required-bypass".to_string(),
+        case_id: None,
+        expected_admitted: false,
+        proposal: approval_not_required_bypass,
+    });
+
     let mut missing_acceptance = make_proposal(
         contract,
         "global-missing-acceptance-evidence",
