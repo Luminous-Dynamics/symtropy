@@ -82,8 +82,8 @@ jobs:
             and .disposition_counts.REASSESS_SCOPE == 756
             and .disposition_counts.BLOCKED_HARD_GATE == 18
             and .disposition_counts.REPLAN_TOO_LATE == 6
-            and .lock_in_warning_counts.true == 432
-            and .lock_in_warning_counts.false == 432
+            and .lock_in_warning_counts["true"] == 432
+            and .lock_in_warning_counts["false"] == 432
             and (.case_results | length) == 864
             and (.errors | length) == 0
           ' recovery-multiaxis-pathway-receipt.json
