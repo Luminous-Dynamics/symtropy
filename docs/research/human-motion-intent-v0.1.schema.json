@@ -10,6 +10,7 @@
     "intent_id",
     "actor_ref",
     "intent_kind",
+    "coordinate_frame",
     "issued_at_sec",
     "urgency",
     "confidence",
@@ -87,7 +88,8 @@
       "maxItems": 2,
       "items": {
         "type": "number"
-      }
+      },
+      "description": "World X/Z velocity vector [vx, vz] in metres per second."
     },
     "target": {
       "type": [
@@ -101,7 +103,8 @@
           "minLength": 1
         },
         "position_world_m": {
-          "$ref": "#/$defs/position"
+          "$ref": "#/$defs/position",
+          "description": "Target point in world coordinates in metres."
         },
         "orientation_xyzw": {
           "type": "array",
@@ -206,6 +209,33 @@
             "null"
           ],
           "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length_unit",
+        "up_axis",
+        "forward_axis",
+        "position_space"
+      ],
+      "properties": {
+        "length_unit": {
+          "const": "metre"
+        },
+        "up_axis": {
+          "const": "+Y"
+        },
+        "forward_axis": {
+          "enum": [
+            "+Z",
+            "-Z"
+          ]
+        },
+        "position_space": {
+          "const": "world"
         }
       }
     }
