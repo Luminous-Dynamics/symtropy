@@ -33,6 +33,9 @@ External references:
   processing duration, job precedence, machine exclusivity, and reported makespan.
 - Twenty deterministic tiny instances cross-checked against a separate machine-order
   permutation oracle that rejects precedence cycles and evaluates longest paths.
+- Three deterministic dispatch rules (shortest processing time, most work remaining,
+  most operations remaining) produce independently audited feasible schedules on both
+  pinned larger instances without claiming optimality.
 - Negative controls for malformed token counts, non-integer/negative values,
   zero durations, invalid machine IDs, overflow, and attempts to run the exact
   oracle above its limit.
