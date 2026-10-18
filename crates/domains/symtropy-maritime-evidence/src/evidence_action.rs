@@ -256,12 +256,10 @@ pub fn decide(policy: EvidencePolicy, input: &EvidenceDecisionInput) -> Evidence
                 return decision(policy, DecisionMode::Abstain, None, Vec::new(), &report);
             };
             let ids = match resolution {
-                super::ObservationResolution::Consistent { candidates, .. } => {
-                    candidates
-                        .iter()
-                        .map(|item| item.observation_id.clone())
-                        .collect()
-                }
+                super::ObservationResolution::Consistent { candidates, .. } => candidates
+                    .iter()
+                    .map(|item| item.observation_id.clone())
+                    .collect(),
                 super::ObservationResolution::Conflict { .. } => Vec::new(),
             };
             decision(
@@ -500,20 +498,8 @@ mod tests {
     #[test]
     fn latest_ingestion_can_have_high_regret_while_robust_policy_uses_the_evidence_envelope() {
         let input = input(vec![
-            observation(
-                "OBS-13",
-                "SOURCE-A",
-                "2026-10-18T13:00:00Z",
-                10,
-                5,
-            ),
-            observation(
-                "OBS-12",
-                "SOURCE-B",
-                "2026-10-18T12:00:00Z",
-                30,
-                1,
-            ),
+            observation("OBS-13", "SOURCE-A", "2026-10-18T13:00:00Z", 10, 5),
+            observation("OBS-12", "SOURCE-B", "2026-10-18T12:00:00Z", 30, 1),
         ]);
         let truth = EvaluationTruth {
             actual_arrival_utc_nanos: utc("2026-10-18T12:50:00Z"),
@@ -540,11 +526,20 @@ mod tests {
             decide(EvidencePolicy::BoundedWorstCaseContingency, &input),
         );
 
-        assert_eq!(latest.decision.chosen_window_id.as_deref(), Some("WINDOW-12"));
+        assert_eq!(
+            latest.decision.chosen_window_id.as_deref(),
+            Some("WINDOW-12")
+        );
         assert_eq!(latest.service_cost_minutes, 150);
         assert!(latest.actionable_despite_evidence_issue);
-        assert_eq!(freshest.decision.chosen_window_id.as_deref(), Some("WINDOW-13"));
-        assert_eq!(robust.decision.chosen_window_id.as_deref(), Some("WINDOW-13"));
+        assert_eq!(
+            freshest.decision.chosen_window_id.as_deref(),
+            Some("WINDOW-13")
+        );
+        assert_eq!(
+            robust.decision.chosen_window_id.as_deref(),
+            Some("WINDOW-13")
+        );
         assert_eq!(robust.service_cost_minutes, 10);
         assert_eq!(robust.regret_minutes, 0);
         assert!(fail_closed.decision.abstained());
@@ -555,20 +550,8 @@ mod tests {
     #[test]
     fn fail_closed_still_assigns_when_sources_agree_and_are_current() {
         let input = input(vec![
-            observation(
-                "OBS-CLEAN-A",
-                "SOURCE-A",
-                "2026-10-18T12:00:00Z",
-                10,
-                5,
-            ),
-            observation(
-                "OBS-CLEAN-B",
-                "SOURCE-B",
-                "2026-10-18T12:00:00Z",
-                12,
-                4,
-            ),
+            observation("OBS-CLEAN-A", "SOURCE-A", "2026-10-18T12:00:00Z", 10, 5),
+            observation("OBS-CLEAN-B", "SOURCE-B", "2026-10-18T12:00:00Z", 12, 4),
         ]);
         let decision = decide(EvidencePolicy::FailClosedUncontestedOnly, &input);
         assert_eq!(decision.chosen_window_id.as_deref(), Some("WINDOW-12"));
@@ -594,20 +577,8 @@ mod tests {
     #[test]
     fn robust_policy_abstains_when_every_candidate_exceeds_abstention_cost() {
         let input = input(vec![
-            observation(
-                "OBS-EARLY",
-                "SOURCE-A",
-                "2026-10-18T10:00:00Z",
-                10,
-                5,
-            ),
-            observation(
-                "OBS-LATE",
-                "SOURCE-B",
-                "2026-10-18T16:00:00Z",
-                12,
-                4,
-            ),
+            observation("OBS-EARLY", "SOURCE-A", "2026-10-18T10:00:00Z", 10, 5),
+            observation("OBS-LATE", "SOURCE-B", "2026-10-18T16:00:00Z", 12, 4),
         ]);
         let decision = decide(EvidencePolicy::BoundedWorstCaseContingency, &input);
         assert!(decision.abstained());
@@ -616,20 +587,8 @@ mod tests {
 
     #[test]
     fn conflicting_vessel_identity_blocks_robust_and_fail_closed_decisions() {
-        let a = observation(
-            "OBS-IDENTITY-A",
-            "SOURCE-A",
-            "2026-10-18T12:00:00Z",
-            10,
-            5,
-        );
-        let mut b = observation(
-            "OBS-IDENTITY-B",
-            "SOURCE-B",
-            "2026-10-18T13:00:00Z",
-            12,
-            4,
-        );
+        let a = observation("OBS-IDENTITY-A", "SOURCE-A", "2026-10-18T12:00:00Z", 10, 5);
+        let mut b = observation("OBS-IDENTITY-B", "SOURCE-B", "2026-10-18T13:00:00Z", 12, 4);
         b.ship_imo_number = "IMO-SYNTHETIC-002".to_owned();
         let input = input(vec![a, b]);
         assert!(decide(EvidencePolicy::FailClosedUncontestedOnly, &input).abstained());
@@ -638,20 +597,8 @@ mod tests {
 
     #[test]
     fn location_context_conflict_is_not_reduced_to_a_timing_uncertainty_set() {
-        let a = observation(
-            "OBS-PBP-A",
-            "SOURCE-A",
-            "2026-10-18T12:00:00Z",
-            10,
-            5,
-        );
-        let mut b = observation(
-            "OBS-PBP-B",
-            "SOURCE-B",
-            "2026-10-18T12:00:00Z",
-            12,
-            4,
-        );
+        let a = observation("OBS-PBP-A", "SOURCE-A", "2026-10-18T12:00:00Z", 10, 5);
+        let mut b = observation("OBS-PBP-B", "SOURCE-B", "2026-10-18T12:00:00Z", 12, 4);
         b.location_context = Some("PBP-SYNTHETIC-B".to_owned());
         let input = input(vec![a, b]);
         let robust = decide(EvidencePolicy::BoundedWorstCaseContingency, &input);
@@ -661,20 +608,8 @@ mod tests {
 
     #[test]
     fn equivalent_input_permutations_keep_decisions_identical() {
-        let a = observation(
-            "OBS-13",
-            "SOURCE-A",
-            "2026-10-18T13:00:00Z",
-            10,
-            5,
-        );
-        let b = observation(
-            "OBS-12",
-            "SOURCE-B",
-            "2026-10-18T12:00:00Z",
-            30,
-            1,
-        );
+        let a = observation("OBS-13", "SOURCE-A", "2026-10-18T13:00:00Z", 10, 5);
+        let b = observation("OBS-12", "SOURCE-B", "2026-10-18T12:00:00Z", 30, 1);
         let first = input(vec![a.clone(), b.clone()]);
         let second = input(vec![b, a]);
         for policy in [
@@ -786,8 +721,9 @@ mod tests {
                             input.missed_window_penalty_minutes = missed_penalty;
                             input.abstention_cost_minutes = abstention_cost;
 
-                            let actual = decide(EvidencePolicy::BoundedWorstCaseContingency, &input)
-                                .chosen_window_id;
+                            let actual =
+                                decide(EvidencePolicy::BoundedWorstCaseContingency, &input)
+                                    .chosen_window_id;
                             let expected = independent_robust_oracle(
                                 &windows,
                                 &[
