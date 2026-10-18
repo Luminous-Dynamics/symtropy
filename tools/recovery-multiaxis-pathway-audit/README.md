@@ -14,6 +14,7 @@ Run formatting and tests with Cargo using this crate manifest, then run the audi
 - Remaining lead time vs reversible and irreversible action requirements.
 - Non-compensatory PASS/BLOCK/UNKNOWN gates, scope precedence and explicit lock-in warning.
 - Input-order invariance, duplicate identities, false labels, invalid lead time and the zero-actuation ceiling.
+- A two-future temporal trace: shared observed prefix must have identical actions; future evidence may not be referenced before its available day. Mutation tests intentionally violate both rules.
 
 The corpus is synthetic. Passing establishes only finite contract conformance, not field safety, predicted performance, legal compliance, or authorization to perform work.
 
