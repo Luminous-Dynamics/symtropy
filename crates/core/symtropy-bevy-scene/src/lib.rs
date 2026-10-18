@@ -245,6 +245,43 @@ mod tests {
     }
 
     #[test]
+    fn configured_shadow_setting_reaches_spawned_sun() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.add_plugins(bevy::asset::AssetPlugin::default());
+        app.add_plugins(SymtropyScenePlugin::with_config(SymtropySceneConfig {
+            sun_shadow_maps_enabled: false,
+            ..default()
+        }));
+        app.update();
+
+        let world = app.world_mut();
+        let mut query = world.query::<&DirectionalLight>();
+        let sun = query.iter(world).next().expect("configured sun should spawn");
+        assert!(!sun.shadow_maps_enabled);
+    }
+
+    #[test]
+    fn fixed_light_shadow_helper_preserves_requested_mode() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(fixed_light_with_shadows(
+                4_000.0,
+                Color::WHITE,
+                Vec3::ZERO,
+                true,
+            ));
+        });
+        app.update();
+
+        let world = app.world_mut();
+        let mut query = world.query::<&DirectionalLight>();
+        let light = query.iter(world).next().expect("secondary light should spawn");
+        assert!(light.shadow_maps_enabled);
+    }
+
+    #[test]
     fn explicit_low_power_profile_disables_sun_shadows() {
         let cfg = SymtropySceneConfig {
             sun_shadow_maps_enabled: false,
