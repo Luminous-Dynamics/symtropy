@@ -43,9 +43,9 @@ Datasets may include `estimates`, `reconstruction_models`, and `model_comparison
 - Each estimate declares a quantity, unit, method, assumptions, source evidence, and (when applicable) an interval kind, coverage percentage, and conditioning note.
 - Credible and confidence intervals require an explicit coverage percentage. Bounds must be finite and ordered. The validator does not recompute the source analysis.
 - Reconstruction records name the claim IDs and estimate IDs they depend on, and declare whether they describe a published interpretation, a published candidate design, or a hypothesis.
-- A comparison group must reference at least two distinct models and list explicit evaluation axes and a decision rule. The schema does not infer a single winner or aggregate incomparable evidence into a score.
+- A comparison group must reference at least two distinct models and list explicit evaluation axes and a declared decision rule. Per-model/per-axis assessments distinguish `source_reported`, `independently_reproduced`, `hypothesis`, and `not_evaluated`. Independently reproduced results must include a versioned validation artifact; a paper's report cannot be relabeled as our reproduction. The schema does not infer a single winner or aggregate incomparable evidence into a score.
 
-The Antikythera seed now contains four estimate records: the 365-hole parameter from a 2008 reconstruction, the 354-hole parameter from a later interpretation, and two 68% credible estimates from a 2024 analysis under different handling of fracture-adjacent measurements. The two 2024 estimates share a measurement basis and are sensitivity variants, not independent replications. It also includes three reconstruction-model records and one explicit comparison group.
+The Antikythera seed now contains four estimate records: the 365-hole parameter from a 2008 reconstruction, the 354-hole parameter from a later interpretation, and two 68% credible estimates from a 2024 analysis under different handling of fracture-adjacent measurements. The two 2024 estimates share a measurement basis and are sensitivity variants, not independent replications. It also includes three reconstruction-model records and one explicit comparison group with per-model/per-axis assessments.
 
 Run against this case study:
 
