@@ -214,7 +214,10 @@ fn validate_scenario(scenario: &Scenario, actual_design_basis_sha256: &str) -> C
     for (name, value) in [
         ("case_id", scenario.case_id.as_str()),
         ("claim_boundary", scenario.claim_boundary.as_str()),
-        ("resource_process.process_id", scenario.resource_process.process_id.as_str()),
+        (
+            "resource_process.process_id",
+            scenario.resource_process.process_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(format!("{name} must not be blank"));
@@ -227,7 +230,10 @@ fn validate_scenario(scenario: &Scenario, actual_design_basis_sha256: &str) -> C
         ));
     }
     if scenario.design_basis_sha256.len() != 64
-        || !scenario.design_basis_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+        || !scenario
+            .design_basis_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
     {
         return Err("design_basis_sha256 must be 64 hexadecimal characters".to_owned());
     }
@@ -270,8 +276,14 @@ fn validate_scenario(scenario: &Scenario, actual_design_basis_sha256: &str) -> C
         return Err("process batch energy and feed mass must be positive".to_owned());
     }
     for (name, fraction) in [
-        ("contained_water_fraction_ppm", process.contained_water_fraction_ppm),
-        ("water_recovery_fraction_ppm", process.water_recovery_fraction_ppm),
+        (
+            "contained_water_fraction_ppm",
+            process.contained_water_fraction_ppm,
+        ),
+        (
+            "water_recovery_fraction_ppm",
+            process.water_recovery_fraction_ppm,
+        ),
     ] {
         if fraction > PPM {
             return Err(format!("resource_process.{name} must not exceed {PPM}"));
@@ -342,8 +354,7 @@ fn future_critical_reserve_wh(scenario: &Scenario, start_index: usize) -> Check<
             };
         } else {
             let surplus_wh = generation - interval.critical_load_wh;
-            let charge_input_wh =
-                surplus_wh.min(battery.max_charge_input_wh_per_interval);
+            let charge_input_wh = surplus_wh.min(battery.max_charge_input_wh_per_interval);
             let stored_wh = mul_div_floor(
                 charge_input_wh,
                 battery.charge_efficiency_ppm,
@@ -369,20 +380,11 @@ fn draw_battery(
         return Ok((0, 0));
     }
     let available_withdrawal_wh = state_of_charge_wh.min(max_withdrawal_remaining_wh);
-    let available_delivered_wh = mul_div_floor(
-        available_withdrawal_wh,
-        discharge_efficiency_ppm,
-        PPM,
-        at,
-    )?;
+    let available_delivered_wh =
+        mul_div_floor(available_withdrawal_wh, discharge_efficiency_ppm, PPM, at)?;
     if available_delivered_wh >= target_delivered_wh {
-        let withdrawal_wh = mul_div_ceil(
-            target_delivered_wh,
-            PPM,
-            discharge_efficiency_ppm,
-            at,
-        )?
-        .min(available_withdrawal_wh);
+        let withdrawal_wh = mul_div_ceil(target_delivered_wh, PPM, discharge_efficiency_ppm, at)?
+            .min(available_withdrawal_wh);
         let delivered_wh = mul_div_floor(withdrawal_wh, discharge_efficiency_ppm, PPM, at)?
             .min(target_delivered_wh);
         if delivered_wh < target_delivered_wh {
@@ -512,7 +514,10 @@ fn run_controller(scenario: &Scenario, controller: Controller) -> Check<RunRepor
                         state_of_charge_wh = state_of_charge_wh
                             .checked_sub(withdrawal_wh)
                             .ok_or_else(|| {
-                                format!("{}: battery SOC underflow after process batch", interval.id)
+                                format!(
+                                    "{}: battery SOC underflow after process batch",
+                                    interval.id
+                                )
                             })?;
                         battery_energy_withdrawn_wh = checked_add(
                             battery_energy_withdrawn_wh,
@@ -746,7 +751,7 @@ fn run_controller(scenario: &Scenario, controller: Controller) -> Check<RunRepor
     })
 }
 
-fn sum_checked(values: impl Iterator<Item = u64>, at: &str) -> Check<u64> {
+fn sum_checked(mut values: impl Iterator<Item = u64>, at: &str) -> Check<u64> {
     values.try_fold(0_u64, |sum, value| checked_add(sum, value, at))
 }
 
@@ -769,10 +774,15 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         .enumerate()
     {
         if step.battery_soc_before_wh != expected_soc_before_wh {
-            return Err(format!("verifier {}: SOC does not continue from prior interval", input.id));
+            return Err(format!(
+                "verifier {}: SOC does not continue from prior interval",
+                input.id
+            ));
         }
         if step.interval_id != input.id {
-            return Err(format!("verifier: interval identity mismatch at index {index}"));
+            return Err(format!(
+                "verifier: interval identity mismatch at index {index}"
+            ));
         }
         let generation = generation_wh(input)?;
         if step.generation_wh != generation {
@@ -791,7 +801,10 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
                 0
             }
         {
-            return Err(format!("verifier {}: batch energy demand mismatch", input.id));
+            return Err(format!(
+                "verifier {}: batch energy demand mismatch",
+                input.id
+            ));
         }
         let critical_reconciled_wh = checked_add(
             step.critical_served_wh,
@@ -801,10 +814,16 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         if critical_reconciled_wh != step.critical_demand_wh
             || step.critical_served_wh > step.critical_demand_wh
         {
-            return Err(format!("verifier {}: critical demand does not reconcile", input.id));
+            return Err(format!(
+                "verifier {}: critical demand does not reconcile",
+                input.id
+            ));
         }
         if step.critical_generation_wh != generation.min(input.critical_load_wh) {
-            return Err(format!("verifier {}: critical generation priority mismatch", input.id));
+            return Err(format!(
+                "verifier {}: critical generation priority mismatch",
+                input.id
+            ));
         }
         let critical_source_split_wh = checked_add(
             step.critical_generation_wh,
@@ -812,14 +831,20 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             &format!("verifier {}.critical_source_split", input.id),
         )?;
         if step.critical_served_wh != critical_source_split_wh {
-            return Err(format!("verifier {}: critical load source split mismatch", input.id));
+            return Err(format!(
+                "verifier {}: critical load source split mismatch",
+                input.id
+            ));
         }
         if step.process_batch_ran {
             if !step.process_batch_available
                 || step.process_energy_served_wh != scenario.resource_process.batch_energy_wh
                 || step.process_feed_processed_g != input.process_batch_feed_g
             {
-                return Err(format!("verifier {}: incomplete batch credited as complete", input.id));
+                return Err(format!(
+                    "verifier {}: incomplete batch credited as complete",
+                    input.id
+                ));
             }
         } else if step.process_energy_served_wh != 0
             || step.process_feed_processed_g != 0
@@ -830,7 +855,10 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             || step.process_generation_wh != 0
             || step.process_battery_delivered_wh != 0
         {
-            return Err(format!("verifier {}: deferred batch consumed energy or feed", input.id));
+            return Err(format!(
+                "verifier {}: deferred batch consumed energy or feed",
+                input.id
+            ));
         }
         if step.process_batch_ran {
             let process_source_split_wh = checked_add(
@@ -839,7 +867,10 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
                 &format!("verifier {}.process_source_split", input.id),
             )?;
             if step.process_energy_served_wh != process_source_split_wh {
-                return Err(format!("verifier {}: process energy sources do not reconcile", input.id));
+                return Err(format!(
+                    "verifier {}: process energy sources do not reconcile",
+                    input.id
+                ));
             }
         }
 
@@ -849,11 +880,17 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             &format!("verifier {}.generation_allocation", input.id),
         )?;
         if generation_allocated_wh > generation {
-            return Err(format!("verifier {}: generation allocated more than once", input.id));
+            return Err(format!(
+                "verifier {}: generation allocated more than once",
+                input.id
+            ));
         }
         let expected_reserve = future_critical_reserve_wh(scenario, index + 1)?;
         if step.future_critical_reserve_wh != expected_reserve {
-            return Err(format!("verifier {}: future reserve claim mismatch", input.id));
+            return Err(format!(
+                "verifier {}: future reserve claim mismatch",
+                input.id
+            ));
         }
 
         let battery = &scenario.battery;
@@ -866,16 +903,25 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             || step.battery_soc_after_wh > battery.capacity_wh
             || step.battery_soc_before_wh > battery.capacity_wh
         {
-            return Err(format!("verifier {}: battery state transition invalid", input.id));
+            return Err(format!(
+                "verifier {}: battery state transition invalid",
+                input.id
+            ));
         }
         expected_soc_before_wh = step.battery_soc_after_wh;
         if step.battery_energy_withdrawn_wh > battery.max_discharge_withdrawal_wh_per_interval
             || step.battery_charge_input_wh > battery.max_charge_input_wh_per_interval
         {
-            return Err(format!("verifier {}: battery power limit exceeded", input.id));
+            return Err(format!(
+                "verifier {}: battery power limit exceeded",
+                input.id
+            ));
         }
         if step.battery_energy_withdrawn_wh > step.battery_soc_before_wh {
-            return Err(format!("verifier {}: battery withdrawal exceeds SOC", input.id));
+            return Err(format!(
+                "verifier {}: battery withdrawal exceeds SOC",
+                input.id
+            ));
         }
         let physical_discharge_output = mul_div_floor(
             step.battery_energy_withdrawn_wh,
@@ -886,11 +932,19 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         let expected_discharge_loss = step
             .battery_energy_withdrawn_wh
             .checked_sub(step.battery_energy_delivered_wh)
-            .ok_or_else(|| format!("verifier {}: battery delivered more than withdrawn", input.id))?;
+            .ok_or_else(|| {
+                format!(
+                    "verifier {}: battery delivered more than withdrawn",
+                    input.id
+                )
+            })?;
         if step.battery_energy_delivered_wh > physical_discharge_output
             || step.battery_discharge_loss_wh != expected_discharge_loss
         {
-            return Err(format!("verifier {}: discharge accounting invalid", input.id));
+            return Err(format!(
+                "verifier {}: discharge accounting invalid",
+                input.id
+            ));
         }
         let allocated_battery_delivery_wh = checked_add(
             step.critical_battery_delivered_wh,
@@ -898,7 +952,10 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             &format!("verifier {}.battery_delivery_allocation", input.id),
         )?;
         if step.battery_energy_delivered_wh != allocated_battery_delivery_wh {
-            return Err(format!("verifier {}: battery delivery allocation mismatch", input.id));
+            return Err(format!(
+                "verifier {}: battery delivery allocation mismatch",
+                input.id
+            ));
         }
         let physical_charge_storage = mul_div_floor(
             step.battery_charge_input_wh,
@@ -915,16 +972,25 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         {
             return Err(format!("verifier {}: charge accounting invalid", input.id));
         }
-        let generation_surplus_wh = generation
-            .checked_sub(generation_allocated_wh)
-            .ok_or_else(|| format!("verifier {}: generation load allocation exceeds source", input.id))?;
+        let generation_surplus_wh =
+            generation
+                .checked_sub(generation_allocated_wh)
+                .ok_or_else(|| {
+                    format!(
+                        "verifier {}: generation load allocation exceeds source",
+                        input.id
+                    )
+                })?;
         let accounted_generation_surplus_wh = checked_add(
             step.curtailed_generation_wh,
             step.battery_charge_input_wh,
             &format!("verifier {}.generation_surplus", input.id),
         )?;
         if accounted_generation_surplus_wh != generation_surplus_wh {
-            return Err(format!("verifier {}: generation surplus does not reconcile", input.id));
+            return Err(format!(
+                "verifier {}: generation surplus does not reconcile",
+                input.id
+            ));
         }
 
         let contained = mul_div_floor(
@@ -941,10 +1007,17 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         )?;
         let tailings = step.process_feed_processed_g - contained;
         let unrecovered = contained - recovered;
-        if (step.contained_water_g, step.recovered_water_g, step.tailings_g, step.unrecovered_water_g)
-            != (contained, recovered, tailings, unrecovered)
+        if (
+            step.contained_water_g,
+            step.recovered_water_g,
+            step.tailings_g,
+            step.unrecovered_water_g,
+        ) != (contained, recovered, tailings, unrecovered)
         {
-            return Err(format!("verifier {}: resource transformation mismatch", input.id));
+            return Err(format!(
+                "verifier {}: resource transformation mismatch",
+                input.id
+            ));
         }
         let mass_accounted = checked_add(
             checked_add(tailings, recovered, "verifier mass balance")?,
@@ -953,10 +1026,17 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         )?;
         let mass_residual = step.process_feed_processed_g.abs_diff(mass_accounted);
         if mass_residual != step.mass_balance_residual_g {
-            return Err(format!("verifier {}: reported mass residual was tampered", input.id));
+            return Err(format!(
+                "verifier {}: reported mass residual was tampered",
+                input.id
+            ));
         }
 
-        let source_energy = checked_add(generation, step.battery_soc_before_wh, "verifier energy balance")?;
+        let source_energy = checked_add(
+            generation,
+            step.battery_soc_before_wh,
+            "verifier energy balance",
+        )?;
         let delivered_load = checked_add(
             step.critical_served_wh,
             step.process_energy_served_wh,
@@ -970,19 +1050,33 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
             step.battery_discharge_loss_wh,
         ]
         .into_iter()
-        .try_fold(0_u64, |sum, value| checked_add(sum, value, "verifier energy balance"))?;
+        .try_fold(0_u64, |sum, value| {
+            checked_add(sum, value, "verifier energy balance")
+        })?;
         let energy_residual = source_energy.abs_diff(energy_accounted);
         if energy_residual != step.energy_balance_residual_wh {
-            return Err(format!("verifier {}: reported energy residual was tampered", input.id));
+            return Err(format!(
+                "verifier {}: reported energy residual was tampered",
+                input.id
+            ));
         }
 
         totals.generation_wh = checked_add(totals.generation_wh, generation, "verifier totals")?;
-        totals.critical_demand_wh =
-            checked_add(totals.critical_demand_wh, step.critical_demand_wh, "verifier totals")?;
-        totals.critical_served_wh =
-            checked_add(totals.critical_served_wh, step.critical_served_wh, "verifier totals")?;
-        totals.critical_unserved_wh =
-            checked_add(totals.critical_unserved_wh, step.critical_unserved_wh, "verifier totals")?;
+        totals.critical_demand_wh = checked_add(
+            totals.critical_demand_wh,
+            step.critical_demand_wh,
+            "verifier totals",
+        )?;
+        totals.critical_served_wh = checked_add(
+            totals.critical_served_wh,
+            step.critical_served_wh,
+            "verifier totals",
+        )?;
+        totals.critical_unserved_wh = checked_add(
+            totals.critical_unserved_wh,
+            step.critical_unserved_wh,
+            "verifier totals",
+        )?;
         totals.batches_available += if step.process_batch_available { 1 } else { 0 };
         totals.batches_run += if step.process_batch_ran { 1 } else { 0 };
         totals.feed_processed_g = checked_add(
@@ -997,10 +1091,14 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         )?;
         totals.recovered_water_g =
             checked_add(totals.recovered_water_g, recovered, "verifier totals")?;
-        totals.energy_residual_wh =
-            checked_add(totals.energy_residual_wh, energy_residual, "verifier totals")?;
+        totals.energy_residual_wh = checked_add(
+            totals.energy_residual_wh,
+            energy_residual,
+            "verifier totals",
+        )?;
         totals.max_energy_residual_wh = totals.max_energy_residual_wh.max(energy_residual);
-        totals.mass_residual_g = checked_add(totals.mass_residual_g, mass_residual, "verifier totals")?;
+        totals.mass_residual_g =
+            checked_add(totals.mass_residual_g, mass_residual, "verifier totals")?;
     }
 
     if report.total_generation_wh != totals.generation_wh
@@ -1008,12 +1106,17 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         || report.total_critical_served_wh != totals.critical_served_wh
         || report.total_critical_unserved_wh != totals.critical_unserved_wh
         || report.critical_unserved_intervals
-            != report.steps.iter().filter(|step| step.critical_unserved_wh > 0).count()
+            != report
+                .steps
+                .iter()
+                .filter(|step| step.critical_unserved_wh > 0)
+                .count()
         || report.process_batches_available != totals.batches_available
         || report.process_batches_run != totals.batches_run
         || report.process_batches_deferred != totals.batches_available - totals.batches_run
         || report.total_process_feed_processed_g != totals.feed_processed_g
-        || report.total_process_feed_unprocessed_g != totals.feed_available_g - totals.feed_processed_g
+        || report.total_process_feed_unprocessed_g
+            != totals.feed_available_g - totals.feed_processed_g
         || report.total_recovered_water_g != totals.recovered_water_g
         || report.total_energy_balance_residual_wh != totals.energy_residual_wh
         || report.max_energy_balance_residual_wh != totals.max_energy_residual_wh
@@ -1021,7 +1124,9 @@ fn verify_run(scenario: &Scenario, report: &RunReport) -> Check<()> {
         || report.all_accounting_balanced
             != (totals.energy_residual_wh == 0 && totals.mass_residual_g == 0)
     {
-        return Err("verifier: aggregate summary does not match independently recomputed trace".to_owned());
+        return Err(
+            "verifier: aggregate summary does not match independently recomputed trace".to_owned(),
+        );
     }
     Ok(())
 }
@@ -1049,7 +1154,9 @@ fn make_receipt(
 ) -> Check<BenchmarkReceipt> {
     if let Some(commit) = &source_commit {
         if commit.len() != 40 || !commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err("--source-commit must be a full 40-character hexadecimal commit SHA".to_owned());
+            return Err(
+                "--source-commit must be a full 40-character hexadecimal commit SHA".to_owned(),
+            );
         }
     }
     let design_basis_sha256 = sha256_hex(DESIGN_BASIS.as_bytes());
@@ -1135,8 +1242,10 @@ mod tests {
     use super::*;
 
     fn fixture_scenario() -> Scenario {
-        serde_json::from_str(include_str!("../fixtures/lunar_seed_utility_case_v0_1.json"))
-            .expect("checked-in synthetic fixture should deserialize")
+        serde_json::from_str(include_str!(
+            "../fixtures/lunar_seed_utility_case_v0_1.json"
+        ))
+        .expect("checked-in synthetic fixture should deserialize")
     }
 
     #[test]
@@ -1173,10 +1282,21 @@ mod tests {
         for controller in [Controller::GreedyImmediate, Controller::ForecastReserve] {
             let report = run_controller(&scenario, controller).expect("run");
             verify_run(&scenario, &report).expect("independent verifier");
-            assert!(report.steps.iter().all(|step| step.energy_balance_residual_wh == 0));
-            assert!(report.steps.iter().all(|step| step.mass_balance_residual_g == 0));
+            assert!(
+                report
+                    .steps
+                    .iter()
+                    .all(|step| step.energy_balance_residual_wh == 0)
+            );
+            assert!(
+                report
+                    .steps
+                    .iter()
+                    .all(|step| step.mass_balance_residual_g == 0)
+            );
             assert!(report.steps.iter().all(|step| {
-                step.process_batch_ran || (step.process_feed_processed_g == 0 && step.recovered_water_g == 0)
+                step.process_batch_ran
+                    || (step.process_feed_processed_g == 0 && step.recovered_water_g == 0)
             }));
         }
     }
@@ -1191,7 +1311,12 @@ mod tests {
         assert!(report.all_accounting_balanced);
         assert_eq!(report.total_energy_balance_residual_wh, 0);
         assert_eq!(report.total_mass_balance_residual_g, 0);
-        assert!(report.steps.iter().any(|step| step.critical_unserved_wh > 0));
+        assert!(
+            report
+                .steps
+                .iter()
+                .any(|step| step.critical_unserved_wh > 0)
+        );
     }
 
     #[test]
@@ -1225,8 +1350,12 @@ mod tests {
         assert!(verify_run(&scenario, &report).is_err());
 
         let mut invalid_fraction = fixture_scenario();
-        invalid_fraction.resource_process.contained_water_fraction_ppm = PPM + 1;
-        assert!(validate_scenario(&invalid_fraction, &sha256_hex(DESIGN_BASIS.as_bytes())).is_err());
+        invalid_fraction
+            .resource_process
+            .contained_water_fraction_ppm = PPM + 1;
+        assert!(
+            validate_scenario(&invalid_fraction, &sha256_hex(DESIGN_BASIS.as_bytes())).is_err()
+        );
     }
 
     #[test]
