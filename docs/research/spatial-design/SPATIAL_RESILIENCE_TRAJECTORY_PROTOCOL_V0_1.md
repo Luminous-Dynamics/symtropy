@@ -215,3 +215,34 @@ Additional decision-impact negative controls inject duplicate state membership w
 
 
 The planner reports three separate forms of decision impact: a change to the hard-feasible candidate set, a change to the Pareto set, and a change to the set of unresolved critical blockers. An action that clears one blocker may be the correct next step in a staged survey plan even when another blocker keeps the robust-feasible set empty. The output marks that blocker-set change explicitly; it must not mislabel the candidate as feasible or Pareto-admitted until all critical blockers are resolved.
+
+
+## Adaptive measurement policies — conditional follow-up and explicit stopping
+
+The next extension, [SPATIAL-ADAPTIVE-001 #1922](https://github.com/Luminous-Dynamics/symtropy/issues/1922), upgrades a ranked list of possible measurements to an auditable policy tree: **observe → recompute the decision → select a conditional next action or stop/escalate**. It composes the finite-state evaluator above and does not introduce a second generic value-of-information engine.
+
+This is supported as a research direction by two recent strands of literature:
+
+- Quesada-Allerhand et al. (2025), *A combined approach to Measurement-System-Design and system identification in building energy retrofits*, *Energy and Buildings* 338, 115711, https://doi.org/10.1016/j.enbuild.2025.115711, jointly considers measurement type, location and timing; its case study reports useful system identification with half of the available measurements.
+- A July 2026 *Energy and Buildings* study, *Informative yet compact monitoring for building retrofits: Joint information entropy–based measurement system design applied to a real office building*, https://doi.org/10.1016/j.enbuild.2026.117546, reports comparable identification with 45% of available measurement devices for its particular office-building case.
+- Cheng & Huan (2025, revised June 2026), *Optimal stopping for sequential Bayesian experimental design*, https://arxiv.org/abs/2509.21734, treats next-experiment selection and stopping as coupled decisions. Its probabilistic framing motivates the policy-tree shape; this v0.1 implementation deliberately does not use probabilities.
+
+These findings are case-specific, not universal savings estimates. The benchmark's own synthetic cost ratios are mechanics fixtures only.
+
+### v0.1 tree contract
+
+Every bounded, acyclic policy has stable nodes. A measurement node references a declared action with valid source revision and cost/duration basis IDs. For every outcome that remains possible after the parent branch, the tree must provide exactly one child. A child cannot branch on an outcome whose compatible states were already eliminated. Every node must be reachable, and the declared depth/action/cost/duration budgets are hard constraints.
+
+Terminal dispositions are explicit:
+
+- **stop_decision_stable**: no critical blocker remains, at least one robust-feasible candidate exists, and each remaining possible state yields the same robust-feasible and Pareto sets;
+- **reopen_design**: no critical blocker remains and no robust-feasible candidate exists;
+- **escalate_blocker**: a declared critical blocker remains unresolved.
+
+A failed stop condition is not converted into a probability or a confidence score. It is a rejected policy. Worst-case cumulative cost and duration are evaluated over all reachable branches; no expected or average costs are invented.
+
+### Initial known-answer policy benchmark
+
+The frozen adaptive corpus includes a two-step policy that pays for a cheap clearance survey first and requests a structure probe only on the branch where it can change the robust/Pareto decision. On identical synthetic state/candidate obligations, its worst-case cost is 5 arbitrary cost units and duration is 3 ticks, versus 10 units and 4 ticks for a universal scan. It also includes (1) a policy that tries to stop while a critical fire-separation blocker remains, and (2) a child branch that references an outcome excluded by its parent. The latter two must be rejected or escalated, never silently accepted.
+
+Acceptance targets are 100% agreement with an independent exhaustive tree oracle across frozen worlds, 100% rejection of malformed or unreachable branches, zero decision-stable leaves with unresolved critical blockers, deterministic outputs under input-order permutations, and exact accounting against per-path budgets. Next scale target: at least 100 adaptive worlds and 10,000 policy-node visits before any performance/generalization claim. Probabilistic expected VoI remains a separate future contract that needs justified priors, observation likelihoods, calibration and applicability scope.
