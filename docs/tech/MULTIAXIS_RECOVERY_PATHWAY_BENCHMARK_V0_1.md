@@ -30,7 +30,7 @@ Evaluate complete combinations of:
 - five, three, or one day of remaining adaptation lead time;
 - reversible staged action vs irreversible commitment.
 
-The frozen matrix has 864 unique synthetic cases. The independent Rust evaluator recalculates every status rather than trusting expected labels, then compares those outputs to the frozen fixture.
+The core factorial matrix has 864 unique synthetic cases; four additional singleton-hazard controls make 868 audited cases in total. The independent Rust evaluator recalculates every status rather than trusting expected labels, then compares those outputs to the frozen fixture.
 
 ### Treat criteria as a versioned regime
 
@@ -47,6 +47,8 @@ The contract keeps applicability, evidence sufficiency, hard-gate status, timing
 ## Frozen synthetic model
 
 Source fixture: `docs/tech/recovery-multiaxis-pathway-corpus-v0.1.json`.
+
+Four targeted controls isolate the two constituents of the capacity-sensitive pair: habitat-conflict alone and route-capacity alone, each under normal and degraded capacity. On normal capacity, both standalone cases yield PASS; degraded capacity alone yields UNKNOWN for either single hazard, while the pair under degraded capacity yields BLOCK. This creates explicit counterfactual controls for the interaction instead of merely encoding a pairwise rule.
 
 | Dimension | Values |
 |---|---|
@@ -77,17 +79,17 @@ The frozen fixture records the following expected totals:
 
 | Measure | Expected count |
 |---|---:|
-| Cases | 864 |
-| In scope / out of scope | 108 / 756 |
-| Evidence sufficient / insufficient | 288 / 576 |
-| Hard gate PASS / UNKNOWN / BLOCK | 216 / 540 / 108 |
-| Timing adequate / too late | 432 / 432 |
-| Review-only candidate | 6 |
-| Hold for evidence | 78 |
+| Core factorial cases + singleton controls | 864 + 4 = 868 |
+| In scope / out of scope | 112 / 756 |
+| Evidence sufficient / insufficient | 292 / 576 |
+| Hard gate PASS / UNKNOWN / BLOCK | 218 / 542 / 108 |
+| Timing adequate / too late | 436 / 432 |
+| Review-only candidate | 8 |
+| Hold for evidence | 80 |
 | Reassess scope | 756 |
 | Hard-gate blocked | 18 |
 | Replan because lead time is too short | 6 |
-| Lock-in warnings: false / true | 432 / 432 |
+| Lock-in warnings: false / true | 436 / 432 |
 
 The evaluator computes these totals from actual case inputs, checks each expected field and then checks the aggregate counts. If generated labels disagree with actual semantics, the audit fails. The totals are counts of synthetic combinations, not a prediction of field prevalence, safety, or policy.
 
