@@ -356,13 +356,10 @@ fn metrics(scenario: &Scenario, placements: &[Placement]) -> Check<Metrics> {
 
 fn independently_validate_schedule(scenario: &Scenario, placements: &[Placement]) -> Check<()> {
     let mut seen = BTreeSet::new();
-    let mut ordered = placements.to_vec();
-    ordered.sort_by(|left, right| {
-        (left.start_hour, &left.batch_id, &left.kiln_id)
-            .cmp(&(right.start_hour, &right.batch_id, &right.kiln_id))
-    });
-    let mut prior: Vec<Placement> = Vec::new();
-    for placement in ordered {
+    let mut checked: Vec<Placement> = Vec::new();
+    let mut power_events: BTreeMap<u32, i128> = BTreeMap::new();
+
+    for placement in placements {
         if !seen.insert(placement.batch_id.clone()) {
             return Err(format!("duplicate batch scheduled: {}", placement.batch_id));
         }
@@ -370,14 +367,49 @@ fn independently_validate_schedule(scenario: &Scenario, placements: &[Placement]
             .ok_or_else(|| format!("unknown batch scheduled: {}", placement.batch_id))?;
         let kiln = kiln_by_id(scenario, &placement.kiln_id)
             .ok_or_else(|| format!("unknown kiln scheduled: {}", placement.kiln_id))?;
+
+        if !gate_reasons(scenario, batch).is_empty() {
+            return Err(format!("quality-gated batch scheduled: {}", placement.batch_id));
+        }
+        if !kiln.supported_profiles.contains(&batch.profile_id)
+            || kiln.capacity_volume_units < batch.dry_volume_units
+            || kiln.max_power_kw < batch.heat_demand_kw
+        {
+            return Err(format!("kiln is incompatible with batch {}", placement.batch_id));
+        }
+        if placement.start_hour < batch.ready_hour
+            || placement.finish_hour > scenario.horizon_hours
+            || placement.start_hour >= placement.finish_hour
+        {
+            return Err(format!("batch outside release/horizon window: {}", placement.batch_id));
+        }
         let expected_finish = placement.start_hour.checked_add(batch.duration_hours)
             .ok_or_else(|| "schedule time overflow".to_owned())?;
-        if expected_finish != placement.finish_hour
-            || !can_place(scenario, batch, kiln, placement.start_hour, &prior)
-        {
-            return Err(format!("invalid placement for batch {}", placement.batch_id));
+        if expected_finish != placement.finish_hour {
+            return Err(format!("finish time mismatches duration: {}", placement.batch_id));
         }
-        prior.push(placement);
+
+        for previous in &checked {
+            if previous.kiln_id == placement.kiln_id
+                && placement.start_hour < previous.finish_hour
+                && previous.start_hour < placement.finish_hour
+            {
+                return Err(format!("kiln reservation overlap: {}", placement.batch_id));
+            }
+        }
+
+        let power = i128::from(batch.heat_demand_kw);
+        *power_events.entry(placement.start_hour).or_default() += power;
+        *power_events.entry(placement.finish_hour).or_default() -= power;
+        checked.push(placement.clone());
+    }
+
+    let mut active_power_kw = 0_i128;
+    for (hour, delta_kw) in power_events {
+        active_power_kw += delta_kw;
+        if active_power_kw < 0 || active_power_kw > i128::from(scenario.shared_power_limit_kw) {
+            return Err(format!("shared power envelope violated at hour {hour}"));
+        }
     }
     Ok(())
 }
