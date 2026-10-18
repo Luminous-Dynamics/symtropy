@@ -14,3 +14,4 @@ publish = false
 # allowing the executable corpus tests to validate the pinned fixture files.
 [dev-dependencies]
 serde_json = "1"
+sha2 = "0.10"
