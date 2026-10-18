@@ -34,7 +34,7 @@ struct ExpectedCounts {
     block_count: usize,
     precedence_rows: usize,
     precedence_edges: usize,
-    objective_sum_scaled: i64,
+    audit_sum_scaled: i64,
     expected_block_ids: Vec<usize>,
 }
 
@@ -50,8 +50,8 @@ struct Manifest {
     block_file: String,
     precedence_file: String,
     attribute_columns: Vec<AttributeColumn>,
-    benchmark_objective_attribute: String,
-    benchmark_objective_scale: u32,
+    audit_sum_attribute: String,
+    audit_sum_scale: u32,
     expected: ExpectedCounts,
 }
 
@@ -67,7 +67,7 @@ struct ParseSummary {
     blocks: Vec<ParsedBlock>,
     precedence: BTreeMap<usize, Vec<usize>>,
     precedence_edges: usize,
-    objective_sum_scaled: i64,
+    audit_sum_scaled: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -84,9 +84,9 @@ struct Receipt {
     precedence_rows: usize,
     precedence_edges: usize,
     expected_block_ids: Vec<usize>,
-    benchmark_objective_attribute: String,
-    benchmark_objective_scale: u32,
-    objective_sum_scaled: i64,
+    audit_sum_attribute: String,
+    audit_sum_scale: u32,
+    audit_sum_scaled: i64,
     claim_ceiling: String,
 }
 
@@ -149,13 +149,13 @@ fn validate_manifest(manifest: &Manifest) -> Check<()> {
     let objective_column = manifest
         .attribute_columns
         .iter()
-        .find(|column| column.name == manifest.benchmark_objective_attribute)
+        .find(|column| column.name == manifest.audit_sum_attribute)
         .ok_or_else(|| "benchmark objective attribute is absent from block schema".to_owned())?;
     if objective_column.kind == AttributeKind::FixedDecimal {
-        if objective_column.scale != Some(manifest.benchmark_objective_scale) {
+        if objective_column.scale != Some(manifest.audit_sum_scale) {
             return Err("objective scale differs from declared attribute scale".to_owned());
         }
-    } else if manifest.benchmark_objective_scale != 0 {
+    } else if manifest.audit_sum_scale != 0 {
         return Err("integer objective attribute must use scale zero".to_owned());
     }
     Ok(())
@@ -174,7 +174,7 @@ fn tokens(line: &str) -> Vec<String> {
 }
 
 fn parse_fixed_decimal(raw: &str, scale: u32) -> Check<i64> {
-    if raw.is_empty() || raw.starts_with('+') || raw.contains(['e', 'E']) {
+    if raw.is_empty() || raw.starts_with('+') || raw.bytes().any(|byte| byte == b'e' || byte == b'E') {
         return Err(format!("invalid fixed-decimal literal: {raw}"));
     }
     let (negative, unsigned) = match raw.strip_prefix('-') {
@@ -322,7 +322,8 @@ fn parse_precedence(input: &str, block_ids: &BTreeSet<usize>) -> Check<(BTreeMap
         let predecessor_count = row[1]
             .parse::<usize>()
             .map_err(|_| format!("precedence line {}: invalid predecessor count", line_index + 1))?;
-        if row.len() != predecessor_count + 2 {
+        let declared_columns = predecessor_count.checked_add(2).ok_or_else(|| format!("precedence line {}: predecessor count overflows", line_index + 1))?;
+        if row.len() != declared_columns {
             return Err(format!(
                 "precedence line {}: declares {predecessor_count} predecessors but provides {}",
                 line_index + 1,
@@ -402,10 +403,10 @@ fn analyze(manifest: &Manifest, block_input: &str, precedence_input: &str) -> Ch
     let blocks = parse_block_model(block_input, &manifest.attribute_columns)?;
     let block_ids: BTreeSet<usize> = blocks.iter().map(|block| block.id).collect();
     let (precedence, precedence_edges) = parse_precedence(precedence_input, &block_ids)?;
-    let objective_sum_scaled = blocks.iter().try_fold(0_i64, |sum, block| {
+    let audit_sum_scaled = blocks.iter().try_fold(0_i64, |sum, block| {
         let value = block
             .attributes
-            .get(&manifest.benchmark_objective_attribute)
+            .get(&manifest.audit_sum_attribute)
             .ok_or_else(|| "objective attribute missing after schema parse".to_owned())?;
         sum.checked_add(*value)
             .ok_or_else(|| "objective attribute sum overflows i64".to_owned())
@@ -414,7 +415,7 @@ fn analyze(manifest: &Manifest, block_input: &str, precedence_input: &str) -> Ch
     if blocks.len() != manifest.expected.block_count
         || precedence.len() != manifest.expected.precedence_rows
         || precedence_edges != manifest.expected.precedence_edges
-        || objective_sum_scaled != manifest.expected.objective_sum_scaled
+        || audit_sum_scaled != manifest.expected.audit_sum_scaled
         || blocks.iter().map(|block| block.id).collect::<Vec<_>>()
             != manifest.expected.expected_block_ids
     {
@@ -424,7 +425,7 @@ fn analyze(manifest: &Manifest, block_input: &str, precedence_input: &str) -> Ch
         blocks,
         precedence,
         precedence_edges,
-        objective_sum_scaled,
+        audit_sum_scaled,
     })
 }
 
@@ -484,9 +485,9 @@ fn run() -> Check<ExitCode> {
         precedence_rows: summary.precedence.len(),
         precedence_edges: summary.precedence_edges,
         expected_block_ids: summary.blocks.iter().map(|block| block.id).collect(),
-        benchmark_objective_attribute: manifest.benchmark_objective_attribute,
-        benchmark_objective_scale: manifest.benchmark_objective_scale,
-        objective_sum_scaled: summary.objective_sum_scaled,
+        audit_sum_attribute: manifest.audit_sum_attribute,
+        audit_sum_scale: manifest.audit_sum_scale,
+        audit_sum_scaled: summary.audit_sum_scaled,
         claim_ceiling: manifest.claim_ceiling,
     };
     println!(
@@ -531,7 +532,7 @@ mod tests {
             .expect("known-answer fixture should parse");
         assert_eq!(EXPECTED_FIXTURE_BLOCKS, summary.blocks.len());
         assert_eq!(EXPECTED_FIXTURE_EDGES, summary.precedence_edges);
-        assert_eq!(25_000_050, summary.objective_sum_scaled);
+        assert_eq!(25_000_050, summary.audit_sum_scaled);
         assert_eq!(vec![0, 1, 2, 3, 4], summary.blocks.iter().map(|block| block.id).collect::<Vec<_>>());
         assert_eq!(1_250, summary.blocks[0].attributes["grade_gpt"]);
         assert_eq!(150_000_00, summary.blocks[0].attributes["block_value_usd"]);
