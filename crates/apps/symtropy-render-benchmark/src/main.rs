@@ -55,6 +55,7 @@ struct FrameTimeContext {
 struct FrameTimeReport {
     schema_version: u32,
     fixture_id: &'static str,
+    camera_id: &'static str,
     renderer: String,
     profile: String,
     object_count: usize,
@@ -281,6 +282,7 @@ fn build_frame_time_report(
     FrameTimeReport {
         schema_version: 1,
         fixture_id: FIXTURE_ID,
+        camera_id: CAMERA_ID,
         renderer: context
             .renderer_version
             .clone()
