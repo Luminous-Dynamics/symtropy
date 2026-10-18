@@ -135,11 +135,7 @@ fn governance_event_history_must_be_chronological() {
     let mut value = example_contract();
     value["governance_events"][3]["event_at"] = json!("2026-09-20T00:00:00Z");
     let errors = semantic_errors(&value);
-    assert!(
-        errors
-            .iter()
-            .any(|error| error.contains("moves backward"))
-    );
+    assert!(errors.iter().any(|error| error.contains("moves backward")));
 }
 
 #[test]
