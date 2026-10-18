@@ -2145,6 +2145,21 @@ mod tests {
     }
 
     #[test]
+    fn reproduced_run_requires_preregistered_comparison_rule() {
+        let mut data = fixture();
+        data.estimates = vec![estimate_for_fixture("fixture:estimate-a", "fixture:claim-a")];
+        let mut run = run_for_fixture(AnalysisRunStatus::Reproduced);
+        run.comparison_rule = None;
+        data.analysis_runs.push(run);
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:run-1"
+                && item.code == ValidationCode::EmptyField
+                && item.message.contains("preregistered comparison rule")
+        }));
+    }
+
+    #[test]
     fn valid_reproduced_run_is_linked_to_source_inputs_outputs_and_targets() {
         let mut data = fixture();
         data.estimates = vec![estimate_for_fixture("fixture:estimate-a", "fixture:claim-a")];
