@@ -13,6 +13,8 @@ This initial commit is metadata-only. It does not ship mine data, parse MineLib 
 
 The 2026 scheduling study uses a 602-block, 12-period synthetic case and reports a public artifact record. Its metrics are not evidence of actual mine performance. A paper's license does not automatically grant rights for a separate dataset. Specific dataset rights stay unverified until separately checked.
 
+**Published-result comparability caveat:** the paper's main synthetic schedule reports an NPV of about USD 674.83 million, while a separate environmental-penalty table presents normalized/subset scenarios around USD 3.99–4.11 million. The authors state those absolute figures are not directly comparable. Do not hardcode either headline as a universal known answer: align the exact input, valuation basis, discounting, constraints and solver settings before attempting reproduction.
+
 ## Invariants
 
 - Every source has a unique ID, canonical URL, citation, upstream-version field, license status, redistribution flag, access state and review note.
