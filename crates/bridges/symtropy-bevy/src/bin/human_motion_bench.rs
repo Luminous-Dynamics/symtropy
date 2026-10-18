@@ -504,6 +504,18 @@ fn interpolate_position(
     ]
 }
 
+fn euclidean_position_error_m(a: [f64; 3], b: [f64; 3]) -> Result<f64, BenchError> {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    let error = (dx * dx + dy * dy + dz * dz).sqrt();
+    if error.is_finite() {
+        Ok(error)
+    } else {
+        fail("endpoint displacement error overflowed")
+    }
+}
+
 fn sample_contact_nearest(
     source_times: &[f64],
     contacts: &[bool],
@@ -635,6 +647,21 @@ fn evaluate(
     let root = trajectory_errors(&prediction_root, &reference_root)
         .map_err(|error| BenchError(format!("root trajectory metric failed: {error}")))?;
 
+    // ADE/max error use the uniform common grid; FDE is interpolated at the exact end
+    // of the shared time interval even when the requested grid step does not divide it.
+    let reference_endpoint = interpolate_position(
+        &reference.timestamps_sec,
+        &reference.root_world_m,
+        grid.overlap_end_sec,
+    );
+    let prediction_endpoint = interpolate_position(
+        &prediction.timestamps_sec,
+        &prediction.root_world_m,
+        grid.overlap_end_sec,
+    );
+    let endpoint_error_m =
+        euclidean_position_error_m(prediction_endpoint, reference_endpoint)?;
+
     let left_foot = interpolate_positions(
         &prediction.timestamps_sec,
         &prediction.left_foot_world_m,
@@ -671,6 +698,7 @@ fn evaluate(
         "Low-level trajectory and stance-foot metrics do not prove visual, biomechanical, or behavioral realism.",
         "Foot drift is measured only over predicted contact intervals; false contact labels can make this metric misleading.",
         "Root jerk is noise-sensitive. Interpret it with tracking error and task success, never as a standalone quality score.",
+        "ADE and maximum error use the common uniform grid; FDE is evaluated at the exact overlap end by position interpolation.",
         "Configuration hashes may differ between methods by design; both are recorded so the comparison is auditable.",
     ];
     let validity = if synthetic {
@@ -709,7 +737,7 @@ fn evaluate(
         root_trajectory_error: RootTrajectoryReport {
             samples: root.samples,
             mean_displacement_error_m: root.mean_displacement_error_m,
-            final_displacement_error_m: root.final_displacement_error_m,
+            final_displacement_error_m: endpoint_error_m,
             max_displacement_error_m: root.max_displacement_error_m,
         },
         left_stance_foot_drift: FootDriftReport {
@@ -857,6 +885,33 @@ mod tests {
         assert!((report.root_trajectory_error.mean_displacement_error_m - 0.05).abs() < 1e-9);
         assert!((report.root_trajectory_error.final_displacement_error_m - 0.05).abs() < 1e-9);
         assert!((report.root_trajectory_error.max_displacement_error_m - 0.05).abs() < 1e-9);
+    }
+
+    #[test]
+    fn final_displacement_error_uses_exact_overlap_endpoint() {
+        let mut reference = fixture();
+        let mut prediction = fixture();
+        let times = vec![0.0, 0.1, 0.2, 0.3, 0.35];
+
+        reference.timestamps_sec = times.clone();
+        prediction.timestamps_sec = times.clone();
+        reference.root_world_m = times.iter().map(|time| [*time, 0.0, 0.0]).collect();
+        prediction.root_world_m = reference.root_world_m.clone();
+        prediction.root_world_m[4][0] += 0.05;
+
+        for trace in [&mut reference, &mut prediction] {
+            trace.left_foot_world_m = vec![[0.0, 0.0, 0.0]; 5];
+            trace.right_foot_world_m = vec![[0.0, 0.0, 0.0]; 5];
+            trace.left_foot_contact = vec![true; 5];
+            trace.right_foot_contact = vec![true; 5];
+        }
+
+        let report = evaluate(&reference, &prediction, None)
+            .expect("valid traces with a 350 ms interval should compare");
+        assert_eq!(report.alignment.samples, 4);
+        assert_eq!(report.root_trajectory_error.mean_displacement_error_m, 0.0);
+        assert_eq!(report.root_trajectory_error.max_displacement_error_m, 0.0);
+        assert!((report.root_trajectory_error.final_displacement_error_m - 0.05).abs() < 1e-9);
     }
 
     #[test]
