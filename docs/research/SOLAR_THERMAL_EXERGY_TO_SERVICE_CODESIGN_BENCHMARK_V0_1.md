@@ -346,6 +346,7 @@ All following are proposed experimental gates, not standards or demonstrated res
 6. **Ablation evidence:** the claimed Symthaea mechanism must contribute measurable incremental value versus the strongest non-Symthaea design/control search at equal budgets.
 7. **Engineering cost:** include model-build, simulator-call, compute and human-review effort. A small gain requiring disproportionate engineering or unrealistic sensors is not automatically useful.
 8. **External evidence:** hardware or field performance, component durability, safety and real cost remain separate gates requiring their own measurements and review.
+9. **Numerical resolution:** compare loss integration with a closed-form constant-cp reference; demonstrate timestep-refinement convergence for variable cp(T); bind integrator/version/tolerance/step settings into receipts, and reject or explicitly flag trajectories outside the error budget ([THERMAL-LOSS-001](https://github.com/Luminous-Dynamics/symtropy/issues/1947)). Energy closure alone does not establish trajectory accuracy.
 
 A single impossible command, invalid balance, unacknowledged model extrapolation, or hard service-floor breach can block qualification even when averages are attractive.
 
