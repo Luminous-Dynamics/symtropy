@@ -164,19 +164,23 @@ fn headless_capture(
             CaptureMetadata::from_env(),
         );
         let image_capture_complete = receipt.capture_complete;
-        match write_capture_receipt(&sched.dir, &sched.stem, &receipt) {
-            Ok(path) => info!(
-                "symtropy-demo-capture: wrote receipt {} ({}, {})",
-                path.display(),
-                receipt.capture_status,
-                receipt.qualification_status
-            ),
-            Err(error) => error!(
-                "symtropy-demo-capture: failed to write capture receipt: {error}"
-            ),
-        }
+        let receipt_written = match write_capture_receipt(&sched.dir, &sched.stem, &receipt) {
+            Ok(path) => {
+                info!(
+                    "symtropy-demo-capture: wrote receipt {} ({}, {})",
+                    path.display(),
+                    receipt.capture_status,
+                    receipt.qualification_status
+                );
+                true
+            }
+            Err(error) => {
+                error!("symtropy-demo-capture: failed to write capture receipt: {error}");
+                false
+            }
+        };
 
-        if captures_on_disk && image_capture_complete {
+        if captures_on_disk && image_capture_complete && receipt_written {
             info!("symtropy-demo-capture: all expected PNGs verified — exiting");
             exit.write(AppExit::Success);
         } else {
