@@ -359,7 +359,10 @@ mod tests {
                             assert_eq!(
                                 actual,
                                 expected,
-                                "oracle mismatch {forecast_minute}/{grace}/{missed_penalty}/{abstention_cost}"
+                                "oracle mismatch {minute}/{grace}/{miss}/{abstain}",
+                                minute = forecast_minute,
+                                miss = missed_penalty,
+                                abstain = abstention_cost
                             );
                             configurations += 1;
                         }
