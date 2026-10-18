@@ -1035,7 +1035,10 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
     let expected_claim = scenario
         .pointer("/expected/improvement_claim")
         .and_then(Value::as_str);
-    if worsened_group && after_total < before_total && expected_claim != Some("qualified_with_displacement") {
+    if worsened_group
+        && after_total < before_total
+        && expected_claim != Some("qualified_with_displacement")
+    {
         findings.push(finding(
             "PIRB_DISTRIBUTIONAL_HARM_HIDDEN",
             &format!("{path}.expected.improvement_claim"),
