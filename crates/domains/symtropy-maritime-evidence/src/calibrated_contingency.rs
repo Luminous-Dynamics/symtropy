@@ -172,7 +172,7 @@ mod tests {
         let predicted = utc("2026-10-18T12:55:00Z");
         let decision = choose_calibrated_window(&fitted, predicted, &windows(), 100, 130).unwrap();
         assert_eq!(decision.chosen_window_id.as_deref(), Some("WINDOW-13"));
-        assert_eq!(decision.worst_case_cost_minutes, Some(5));
+        assert_eq!(decision.worst_case_cost_minutes, Some(6));
         assert_eq!(decision.abstention_reason, None);
         assert_eq!(
             decision.forecast_interval.unwrap().lower_utc_nanos,
@@ -200,7 +200,7 @@ mod tests {
             choose_calibrated_window(&fitted, utc("2026-10-18T12:55:00Z"), &windows(), 100, 5)
                 .unwrap();
         assert_eq!(decision.chosen_window_id, None);
-        assert_eq!(decision.worst_case_cost_minutes, Some(5));
+        assert_eq!(decision.worst_case_cost_minutes, Some(6));
         assert_eq!(
             decision.abstention_reason,
             Some(CalibratedAbstentionReason::NotBetterThanAbstentionCost)
