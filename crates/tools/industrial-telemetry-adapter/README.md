@@ -26,12 +26,12 @@ Expected blob output is `aa5e49ad87a787573259c4318b1516196e8b349a`. The CLI prin
 From the repository root, after downloading and verifying the source file:
 
 ```sh
-cargo test --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml
-cargo run --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- summarize /tmp/Box-OP1-Hurco02-01of20.txt
-cargo run --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- verify-nist-reference /tmp/Box-OP1-Hurco02-01of20.txt
+cargo test --locked --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml
+cargo run --locked --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- summarize /tmp/Box-OP1-Hurco02-01of20.txt
+cargo run --locked --offline --manifest-path crates/tools/industrial-telemetry-adapter/Cargo.toml -- verify-nist-reference /tmp/Box-OP1-Hurco02-01of20.txt
 ```
 
-The crate has no external dependencies and defines its own Cargo workspace to avoid compiling the full Symtropy workspace. Parsing and tests require no network access. The runtime CLI reads a local file only.
+The crate has no external dependencies and defines its own Cargo workspace to avoid compiling the full Symtropy workspace. Parsing and tests require no network access. The runtime CLI reads a local file only. A dedicated [CI workflow](../../../.github/workflows/industrial-telemetry-adapter.yml) checks formatting, runs the standalone tests and Clippy offline, and smoke-tests the CLI against the pinned six-row source excerpt in `fixtures/nist_mtc_operation_excerpt.txt`.
 
 ## Source profile recorded during exploration
 
@@ -80,6 +80,6 @@ These numbers are from an independent high-precision scan of the pinned source, 
 
 ## Qualification gates
 
-The ten authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, UTC epoch conversion, single-timestamp gaps and blank values. They are authored but have **not been executed in this environment** because a Rust/Cargo toolchain is unavailable.
+The ten authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, UTC epoch conversion, single-timestamp gaps and blank values. The dedicated workflow exists specifically because Symtropy's top-level test job does not explicitly build this nested standalone crate. The tests must be considered unverified until that workflow completes successfully on the current exact head.
 
 Next steps: execute the offline suite; run on the exact pinned source and compare all counts/first-last timestamps with the exploratory profile; record actual byte digest, exact maximum gap and runtime; then add a downstream schedule-admission test that fails closed when a requested interval crosses an unobserved gap.
