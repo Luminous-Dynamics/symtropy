@@ -51,7 +51,8 @@
       "acceptance_decision_mode": "farmer_direct",
       "acceptance_authority_ref": null,
       "useful_window_evidence_ref": "evt-study-001-window",
-      "outcome_evidence_ref": "evt-study-001-outcome"
+      "outcome_evidence_ref": "evt-study-001-outcome",
+      "outcome_evidence_kind": "farmer_decision_event"
     },
     {
       "request_ref": "req-study-002",
@@ -64,7 +65,8 @@
       "acceptance_decision_mode": "farmer_direct",
       "acceptance_authority_ref": null,
       "useful_window_evidence_ref": "evt-study-002-window",
-      "outcome_evidence_ref": "evt-study-002-outcome"
+      "outcome_evidence_ref": "evt-study-002-outcome",
+      "outcome_evidence_kind": "farmer_decision_event"
     },
     {
       "request_ref": "req-study-003",
@@ -78,7 +80,8 @@
       "acceptance_decision_mode": null,
       "acceptance_authority_ref": null,
       "useful_window_evidence_ref": "evt-study-003-window",
-      "outcome_evidence_ref": "evt-study-003-outcome"
+      "outcome_evidence_ref": "evt-study-003-outcome",
+      "outcome_evidence_kind": "provider_availability_check"
     },
     {
       "request_ref": "req-study-004",
@@ -92,7 +95,8 @@
       "acceptance_decision_mode": null,
       "acceptance_authority_ref": null,
       "useful_window_evidence_ref": "evt-study-004-window",
-      "outcome_evidence_ref": "evt-study-004-outcome"
+      "outcome_evidence_ref": "evt-study-004-outcome",
+      "outcome_evidence_kind": "provider_completion_event"
     },
     {
       "request_ref": "req-study-005",
@@ -106,7 +110,8 @@
       "acceptance_decision_mode": null,
       "acceptance_authority_ref": null,
       "useful_window_evidence_ref": "evt-study-005-window",
-      "outcome_evidence_ref": "evt-study-005-outcome"
+      "outcome_evidence_ref": "evt-study-005-outcome",
+      "outcome_evidence_kind": "dispute_or_rework_event"
     },
     {
       "request_ref": "req-study-006",
@@ -119,7 +124,8 @@
       "acceptance_decision_mode": null,
       "acceptance_authority_ref": null,
       "useful_window_evidence_ref": "evt-study-006-window",
-      "outcome_evidence_ref": "evt-study-006-outcome"
+      "outcome_evidence_ref": "evt-study-006-outcome",
+      "outcome_evidence_kind": "reconciliation_attempt"
     }
   ]
 }
