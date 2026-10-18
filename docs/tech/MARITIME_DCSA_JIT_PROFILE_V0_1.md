@@ -30,7 +30,7 @@ Location constraints are deliberate:
 - If a field is duplicated in modern and legacy positions, the values must agree; conflicting vessel IMO or UN location codes fail closed.
 - `eventDateTime` is parsed as a timezone-qualified timestamp. Source update time, ingest time and validity window come from caller-supplied `DcsaIngestContext`, never from the event timestamp.
 
-The parsed type retains the DCSA classifier, operation, facility/location semantics, codes, location name, vessel identifier, optional publication/voyage fields, source profile label, context version and parsed timestamp. It does not map every DCSA message to PCO automatically.
+The parsed type retains the DCSA classifier, operation, facility/location semantics, codes, location name, vessel identifier, optional publication/voyage fields, source profile label, context version and parsed timestamp. The shared RFC 3339 parser distinguishes `Z`, explicit `+00:00`, and `-00:00` (UTC timestamp with unknown local offset) while preserving source text. It does not map every DCSA message to PCO automatically.
 
 ## Explicit cross-profile candidates
 
