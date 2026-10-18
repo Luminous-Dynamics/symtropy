@@ -31,7 +31,7 @@ Each scenario report now includes `requirement_results`. Every source requiremen
 - requirement outcome (`Preserved`, `Transformed`, `Blocked`, or `Unresolved`);
 - stable diagnostic codes such as `NO_TARGET_OBSERVATION`, `OBJECT_IDENTITY_MISMATCH`, `PRESERVED_VALUE_OR_UNIT_MISMATCH`, `MISSING_OR_DUPLICATE_TRANSFORM_RULE`, and `DECLARED_TRANSFORM_RESULT_MISMATCH`.
 
-Consumers should use these fields rather than parsing human-readable issue strings. Diagnostic codes are a closed, serialized Rust enum in `SCREAMING_SNAKE_CASE` and are enumerated by the output schema; unknown spellings are contract changes, not informal text. Global malformed/orphan-record diagnostics remain in the scenario-level `issues` array. The report contract is defined in [report-v0.1.schema.json](report-v0.1.schema.json); the input manifest contract remains [semantic-loss-v0.1.schema.json](semantic-loss-v0.1.schema.json).
+Consumers should use these fields rather than parsing human-readable issue strings. Diagnostic codes are a closed, serialized Rust enum in `SCREAMING_SNAKE_CASE` and are enumerated by the output schema; unknown spellings are contract changes, not informal text. Global malformed/orphan-record diagnostics remain in the scenario-level `issues` array. The Rust test suite uses the pinned `jsonschema` 0.58.6 crate to validate the synthetic manifest and serialized report against [semantic-loss-v0.1.schema.json](semantic-loss-v0.1.schema.json) and [report-v0.1.schema.json](report-v0.1.schema.json), and includes a negative control proving that an unlisted diagnostic code is rejected.
 
 ## Loss taxonomy
 
