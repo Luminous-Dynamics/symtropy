@@ -1,58 +1,70 @@
-# MINE-REFERENCE-PARSER-001 — synthetic parser conformance v0.1
+# MINE-REFERENCE-PARSER-001 — parser and tiny UPIT oracle v0.1
 
-## What this is
+## Scope
 
-A standalone Rust parser contract for two linked MineLib v1 input forms:
+A standalone Rust conformance profile for three linked MineLib v1 input forms:
 
-1. block-model descriptor rows: `id x y z attributes...`;
-2. precedence rows: `block_id predecessor_count predecessor_ids...`.
+1. Block-model descriptor rows: block ID, x/y/z integer coordinates, then typed attributes declared by a separate manifest.
+2. Block-precedence rows: block ID, predecessor count, and predecessor IDs.
+3. A restricted optimization-model descriptor for UPIT: NAME, TYPE, NBLOCKS, DISCOUNT RATE, and OBJECTIVE FUNCTION rows.
 
-The reference format says records are ASCII, comments begin with `%`, fields may be separated by spaces, tabs, or colons, block IDs begin at zero, and each precedence row identifies one block and its predecessor set. The official specification describes the block model, precedence, and optimization-model descriptor as three distinct files. See the [MineLib v1 format specification](https://minelib.org/v1/minelib_format.pdf), especially §§2–4 and §5.2.
+The [official MineLib v1 format specification](https://minelib.org/v1/minelib_format.pdf) describes the block model, precedence descriptor, and optimization-model descriptor as separate files. It specifies percent-sign comment lines, space/tab/colon separators, zero-based block IDs, predecessor lists, and sections for model types, objective rows, period/resource constraints, and general constraints.
 
-This v0.1 parser is intentionally a **strict conformance profile**, not a complete implementation of that full specification. It accepts only contiguous zero-based block IDs in its test profile. It does not parse the optimization-model descriptor, resource coefficients, period limits, general side constraints, UPIT/CPIT/PCPSP objectives, or solve a mine-planning problem.
+This v0.1 implementation deliberately parses only a strict subset of the complete standard. It rejects CPIT/PCPSP and unknown model sections; it does not parse resource coefficients, resource limits, destinations, or general side constraints. It does not pretend to be a general MineLib loader.
 
 ## Paradigm shift
 
-Treat parsing as a scientific claim requiring evidence, not an unexamined preprocessing step. A valid-looking result can be wrong if a grade attribute is misidentified, resource limits are confused, or precedence edges are reversed. The contract therefore separates:
-- raw-file identity (SHA-256),
-- declared schema for otherwise user-defined block attributes,
-- syntax and typed numeric interpretation,
-- block/predecessor graph integrity,
-- a small audit checksum from any optimization objective,
-- eventual solver correctness and operational validity.
+Treat parsing and model assembly as claims that require independent evidence. A syntactically valid file is not enough: a block attribute can be mistaken for an objective coefficient, IDs can drift across files, and precedence can be reversed. The contract therefore binds raw-file identity, declared block attribute schema, graph integrity, model-objective row identity, exact decimal semantics, and exhaustive small-instance feasibility.
 
-The named `block_value_usd` sum in this fixture is an arithmetic audit value only. It must not be called NPV, discounted objective, or solver objective. MineLib stores optimization objective values and other model coefficients in its separate optimization-model descriptor; reproducing an NPV requires the correct problem type, discount rate, period and objective semantics.
+A **tiny UPIT exhaustive oracle** enumerates every block subset (with an explicit maximum of 20 blocks), applies the closure/precedence constraint, and maximizes exact scaled integer objective values. A separately implemented verifier checks the winning subset and recomputes its objective. Beyond the limit, the tool returns an indeterminate-limit error rather than claiming an optimum. This is a correctness oracle, not a production optimizer.
+
+The fixture's block_value_usd sum is an audit sum only, not NPV. The UPIT objective is read from the separate model descriptor; no discounting is applied to the supplied coefficients by this toy oracle. In this authored fixture, those descriptor coefficients are intentionally required to match the similarly named block attribute, so cross-file mismatches are caught.
 
 ## Frozen synthetic fixture
 
-Files in this repo are authored for this benchmark; they are not downloaded MineLib instances and do not represent a real deposit:
-- five synthetic block rows with coordinates, tonnage, grade, and a signed fixed-decimal block value;
+All inputs are authored for this benchmark; they are not downloaded MineLib instances or site data:
+- five synthetic block rows, IDs 0–4, with integer coordinates, declared tonnage, grade and signed fixed-decimal block values;
 - five precedence rows and three directed predecessor edges;
-- a manifest that declares each attribute's type and scale;
-- expected block IDs `[0,1,2,3,4]`, row and edge counts, and exact scaled-integer sum `25,000,050` cents.
+- a UPIT descriptor with one objective coefficient per block;
+- an explicit manifest defining the attribute columns and fixed decimal scales.
 
-The parser binds the manifest and both raw files to SHA-256 hashes in a receipt, plus the exact source commit. Paths must be local relative paths without traversal. No external network retrieval occurs at run time.
+Known answers:
+- 5 blocks, IDs [0,1,2,3,4];
+- 5 precedence rows, 3 precedence edges;
+- 32 possible subsets, of which 12 satisfy precedence;
+- exact block-attribute audit sum: 25,000,050 cents;
+- model objective coefficient sum: 25,000,050 cents;
+- unique optimum selected IDs: [0,1,3,4];
+- optimum objective: 25,500,050 cents (USD 255,000.50);
+- dependent block 2 has negative objective contribution and is correctly excluded.
 
-## Current validation targets
+The receipt binds the exact raw manifest, block, precedence and model bytes by SHA-256, plus the exact source commit.
 
-- Exact synthetic answer: 5 blocks, IDs 0–4, 5 precedence rows, 3 precedence edges, exact attribute sum.
-- 0 duplicate / missing block IDs admitted.
-- 0 dangling, duplicate, self-referential, duplicated-row, or cyclic precedence relations admitted.
-- 0 incorrect field counts or misdeclared attribute types admitted.
-- Fixed decimals use exact scaled integers: no exponent notation, no floating-point conversion, and no silent rounding beyond the declared scale.
-- 100% strict-schema match, manifest/file SHA-256 coverage, and exact-head receipt.
-- Any malformed or unsupported field fails closed rather than being guessed.
-- Identical files + manifest + commit produce an identical receipt.
+## Acceptance gates
+
+- 100% known-answer match to row counts, block IDs, precedence edges, audit sum, model objective rows and exhaustive UPIT output.
+- 0 duplicate/gapped block IDs, duplicate/missing precedence rows, dangling/self/duplicate predecessors, or precedence cycles admitted.
+- 0 duplicate/missing objective rows, unknown model sections, wrong problem type, objective schema mismatches, or unsupported numeric precision admitted.
+- 100% independent selected-subset feasibility and objective recomputation agreement.
+- 0 floating-point drift for declared fixed-decimal fields.
+- The exact oracle must refuse inputs above the size limit with an explicit indeterminate disposition.
+- 100% manifest/file SHA coverage and exact-commit receipt binding.
+- Replays over identical bytes/config/commit are deterministic.
+
+## Research / data rights
+
+The official MineLib site states the library is licensed under CC BY-SA 3.0 Unported: https://minelib.org/v1/. Follow attribution and ShareAlike requirements, and check individual instance records for any additional notices before redistributing data. This PR includes no third-party dataset.
+
+Lotsu, Bimpong & Boakye (2026) publish an open-source scheduling study using a synthetic 602-block / 12-period case: https://doi.org/10.3389/frai.2026.1759758. That is a candidate external method comparator only; neither its NPV nor its artifacts are part of this synthetic fixture. The separate artifact record's rights are tracked distinctly in [MINE-REFERENCE-001 #2015](https://github.com/Luminous-Dynamics/symtropy/issues/2015).
 
 ## Next ladder
 
-1. v0.1: block rows and precedence graph; synthetic known answers only.
-2. v0.2: read-only parser for the MineLib optimization-model descriptor (problem type, block/period/destination/resource counts, discount rate, objective rows, resource coefficients and limits, side constraints); strict typed sections and file-to-file referential checks.
-3. v0.3: licensed, source-pinned external instances; reproduce parser statistics without committing data until exact license and attribution obligations are verified.
-4. v0.4: hand-checkable UPIT fixtures with exhaustive optimal solution and an independent feasibility checker.
-5. v0.5: CPIT/PCPSP semantics and tiny enumerated schedule oracles; objective values only compared when discounting and formulation match exactly.
-6. v1: external baseline comparison with a signed run manifest, feasible objective, best bound, optimality gap, environment and independent validation.
+1. v0.1: strict block / precedence / UPIT descriptor profile and exhaustive oracle for tiny inputs.
+2. v0.2: CPIT/PCPSP descriptor sections, destinations, per-period resource coefficients and bounds, strict unit/period semantics.
+3. v0.3: source-pinned external MineLib instance validation after rights review; no raw data copied without checked terms.
+4. v0.4: independently compare against a published solver on exact same model formulation, discounting and constraints.
+5. v1: external baseline tournament that reports feasible objective, valid bound, gap, runtime, resource use and reproducibility receipt.
 
 ## Boundaries
 
-No solver is shipped in v0.1. A successful parse does not prove the mathematical model is correctly formulated, a feasible plan is optimal, a reserve is certified, or any real mine operation is safe or profitable. This work composes with [MINE-SYSTEM-001 #1933](https://github.com/Luminous-Dynamics/symtropy/issues/1933) and [MINE-REFERENCE-001 #2015](https://github.com/Luminous-Dynamics/symtropy/issues/2015), rather than duplicating the campaign evaluator.
+A successful parse and tiny oracle do not establish that a real mine model is correct, a large schedule is optimal, reserves are certified, or operations are safe/profitable. This work composes with [MINE-SYSTEM-001 #1933](https://github.com/Luminous-Dynamics/symtropy/issues/1933) and [MINE-REFERENCE-001 #2015](https://github.com/Luminous-Dynamics/symtropy/issues/2015).
