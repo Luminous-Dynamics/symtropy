@@ -7,14 +7,13 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use symtropy_garden_sim::field_eval_report::{
-    FieldStudyManifestV1, FieldEvalPreflightStatusV1, preflight_field_study_v1,
+    FieldEvalPreflightStatusV1, FieldStudyManifestV1, preflight_field_study_v1,
 };
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let input = args.next().map(PathBuf::from).unwrap_or_else(|| {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("fixtures/field_eval_report.v1.json")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/field_eval_report.v1.json")
     });
     if args.next().is_some() {
         eprintln!("usage: verify-field-eval-report [MANIFEST.json]");
