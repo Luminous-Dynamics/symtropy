@@ -44,6 +44,15 @@ pub struct ExactResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScheduledOperation {
+    pub job_index: usize,
+    pub operation_index: usize,
+    pub machine: usize,
+    pub start_time: u64,
+    pub finish_time: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchmarkError {
     InvalidInteger {
         token_index: usize,
@@ -66,6 +75,7 @@ pub enum BenchmarkError {
         operation: usize,
     },
     InvalidInstance(&'static str),
+    InvalidSchedule(&'static str),
     ArithmeticOverflow,
     ExactOperationLimit {
         count: usize,
@@ -105,6 +115,7 @@ impl fmt::Display for BenchmarkError {
                 write!(f, "job {job}, operation {operation} has zero duration")
             }
             Self::InvalidInstance(message) => write!(f, "invalid instance: {message}"),
+            Self::InvalidSchedule(message) => write!(f, "invalid schedule: {message}"),
             Self::ArithmeticOverflow => write!(f, "integer scheduling arithmetic overflow"),
             Self::ExactOperationLimit { count, maximum } => write!(
                 f,
@@ -296,24 +307,135 @@ pub fn solve_exact(instance: &Instance) -> Result<ExactResult, BenchmarkError> {
         total_operations: summary.operation_count,
         expanded_nodes: 0,
         best_makespan: None,
+        best_schedule: Vec::new(),
     };
     let mut next_operation = vec![0_usize; instance.jobs.len()];
     let mut job_ready = vec![0_u64; instance.jobs.len()];
     let mut machine_ready = vec![0_u64; instance.machine_count];
+    let mut current_schedule = Vec::with_capacity(summary.operation_count);
     search.descend(
         &mut next_operation,
         &mut job_ready,
         &mut machine_ready,
+        &mut current_schedule,
         0,
         0,
     )?;
 
     let makespan = search.best_makespan.ok_or(BenchmarkError::NoSchedule)?;
+    let schedule = search.best_schedule;
+    let audited_makespan = verify_schedule(instance, &schedule)?;
+    if audited_makespan != makespan {
+        return Err(BenchmarkError::InvalidSchedule(
+            "independent verifier disagrees with the optimizer makespan",
+        ));
+    }
     Ok(ExactResult {
         makespan,
         lower_bound_makespan: summary.lower_bound_makespan,
         expanded_nodes: search.expanded_nodes,
+        schedule,
     })
+}
+
+
+/// Independently audit a concrete operation-level schedule. The verifier
+/// rechecks operation identity, machine assignment, duration, job precedence,
+/// machine exclusivity, completeness, and the final makespan.
+pub fn verify_schedule(
+    instance: &Instance,
+    schedule: &[ScheduledOperation],
+) -> Result<u64, BenchmarkError> {
+    let summary = summarize(instance)?;
+    if schedule.len() != summary.operation_count {
+        return Err(BenchmarkError::InvalidSchedule(
+            "schedule does not contain exactly one record per operation",
+        ));
+    }
+
+    let mut seen: Vec<Vec<bool>> = instance
+        .jobs
+        .iter()
+        .map(|job| vec![false; job.len()])
+        .collect();
+    let mut times: Vec<Vec<Option<(u64, u64)>>> = instance
+        .jobs
+        .iter()
+        .map(|job| vec![None; job.len()])
+        .collect();
+    let mut machine_intervals = vec![Vec::<(u64, u64)>::new(); instance.machine_count];
+    let mut makespan = 0_u64;
+
+    for scheduled in schedule {
+        let Some(job) = instance.jobs.get(scheduled.job_index) else {
+            return Err(BenchmarkError::InvalidSchedule("job index is out of range"));
+        };
+        let Some(operation) = job.get(scheduled.operation_index) else {
+            return Err(BenchmarkError::InvalidSchedule(
+                "operation index is out of range",
+            ));
+        };
+        if seen[scheduled.job_index][scheduled.operation_index] {
+            return Err(BenchmarkError::InvalidSchedule(
+                "an operation appears more than once",
+            ));
+        }
+        if scheduled.machine != operation.machine {
+            return Err(BenchmarkError::InvalidSchedule(
+                "scheduled machine differs from the instance assignment",
+            ));
+        }
+        let expected_finish = scheduled
+            .start_time
+            .checked_add(operation.duration)
+            .ok_or(BenchmarkError::ArithmeticOverflow)?;
+        if scheduled.finish_time != expected_finish {
+            return Err(BenchmarkError::InvalidSchedule(
+                "finish time does not equal start time plus declared duration",
+            ));
+        }
+
+        seen[scheduled.job_index][scheduled.operation_index] = true;
+        times[scheduled.job_index][scheduled.operation_index] =
+            Some((scheduled.start_time, scheduled.finish_time));
+        machine_intervals[scheduled.machine]
+            .push((scheduled.start_time, scheduled.finish_time));
+        makespan = makespan.max(scheduled.finish_time);
+    }
+
+    if seen.iter().any(|job| job.iter().any(|present| !present)) {
+        return Err(BenchmarkError::InvalidSchedule(
+            "one or more required operations are missing",
+        ));
+    }
+
+    for job_times in &times {
+        for pair in job_times.windows(2) {
+            let (_, previous_finish) = pair[0].ok_or(BenchmarkError::InvalidSchedule(
+                "job operation is missing during precedence audit",
+            ))?;
+            let (next_start, _) = pair[1].ok_or(BenchmarkError::InvalidSchedule(
+                "job operation is missing during precedence audit",
+            ))?;
+            if previous_finish > next_start {
+                return Err(BenchmarkError::InvalidSchedule(
+                    "job precedence constraint is violated",
+                ));
+            }
+        }
+    }
+
+    for intervals in &mut machine_intervals {
+        intervals.sort_unstable_by_key(|interval| interval.0);
+        for pair in intervals.windows(2) {
+            if pair[0].1 > pair[1].0 {
+                return Err(BenchmarkError::InvalidSchedule(
+                    "two operations overlap on the same machine",
+                ));
+            }
+        }
+    }
+    Ok(makespan)
 }
 
 struct Search<'a> {
@@ -321,6 +443,7 @@ struct Search<'a> {
     total_operations: usize,
     expanded_nodes: u64,
     best_makespan: Option<u64>,
+    best_schedule: Vec<ScheduledOperation>,
 }
 
 impl Search<'_> {
@@ -329,6 +452,7 @@ impl Search<'_> {
         next_operation: &mut [usize],
         job_ready: &mut [u64],
         machine_ready: &mut [u64],
+        current_schedule: &mut Vec<ScheduledOperation>,
         completed: usize,
         current_makespan: u64,
     ) -> Result<(), BenchmarkError> {
@@ -348,6 +472,7 @@ impl Search<'_> {
                 .is_none_or(|best| current_makespan < best)
             {
                 self.best_makespan = Some(current_makespan);
+                self.best_schedule = current_schedule.clone();
             }
             return Ok(());
         }
@@ -375,13 +500,22 @@ impl Search<'_> {
             job_ready[job_index] = finish;
             machine_ready[operation.machine] = finish;
 
+            current_schedule.push(ScheduledOperation {
+                job_index,
+                operation_index,
+                machine: operation.machine,
+                start_time: start,
+                finish_time: finish,
+            });
             let nested = self.descend(
                 next_operation,
                 job_ready,
                 machine_ready,
+                current_schedule,
                 completed + 1,
                 current_makespan.max(finish),
             );
+            current_schedule.pop();
 
             next_operation[job_index] -= 1;
             job_ready[job_index] = old_job_ready;
@@ -414,6 +548,11 @@ mod tests {
         assert_eq!(result.makespan, 3);
         assert_eq!(result.lower_bound_makespan, 3);
         assert!(result.expanded_nodes > 0);
+        assert_eq!(result.schedule.len(), 4);
+        assert_eq!(
+            verify_schedule(&instance, &result.schedule).expect("independent audit succeeds"),
+            result.makespan
+        );
     }
 
     #[test]
@@ -688,6 +827,65 @@ mod tests {
         let mut best = None;
         visit_machine(0, instance, &permutations, &mut Vec::new(), &mut best);
         best.expect("at least one acyclic machine ordering exists")
+    }
+
+    #[test]
+    fn schedule_verifier_rejects_machine_overlap_even_when_job_order_is_valid() {
+        let instance = parse_classic_pair_format(TINY).expect("fixture parses");
+        let overlapping = vec![
+            ScheduledOperation {
+                job_index: 0,
+                operation_index: 0,
+                machine: 0,
+                start_time: 1,
+                finish_time: 3,
+            },
+            ScheduledOperation {
+                job_index: 0,
+                operation_index: 1,
+                machine: 1,
+                start_time: 3,
+                finish_time: 4,
+            },
+            ScheduledOperation {
+                job_index: 1,
+                operation_index: 0,
+                machine: 1,
+                start_time: 0,
+                finish_time: 2,
+            },
+            ScheduledOperation {
+                job_index: 1,
+                operation_index: 1,
+                machine: 0,
+                start_time: 2,
+                finish_time: 3,
+            },
+        ];
+        assert!(matches!(
+            verify_schedule(&instance, &overlapping),
+            Err(BenchmarkError::InvalidSchedule(
+                "two operations overlap on the same machine"
+            ))
+        ));
+    }
+
+    #[test]
+    fn schedule_verifier_rejects_missing_and_tampered_operations() {
+        let instance = parse_classic_pair_format(TINY).expect("fixture parses");
+        let mut schedule = solve_exact(&instance).expect("solver succeeds").schedule;
+        schedule.pop();
+        assert!(matches!(
+            verify_schedule(&instance, &schedule),
+            Err(BenchmarkError::InvalidSchedule(_))
+        ));
+
+        let mut tampered = solve_exact(&instance).expect("solver succeeds").schedule;
+        tampered[0].finish_time += 1;
+        assert!(matches!(
+            verify_schedule(&instance, &tampered),
+            Err(BenchmarkError::InvalidSchedule(_))
+        ));
     }
 
 }
