@@ -33,6 +33,7 @@ struct ScopeProfile {
     domain: String,
     profile_version: String,
     criteria_regime: String,
+    family_taxonomy_version: String,
     covered_failure_families: Vec<String>,
     required_evidence_tags: Vec<String>,
     max_evidence_age_days: u64,
@@ -45,6 +46,10 @@ struct ScenarioCase {
     domain: String,
     profile_version: String,
     criteria_regime: String,
+    family_taxonomy_version: String,
+    classification_review_status: String,
+    #[serde(default)]
+    classification_record_ref: Option<String>,
     family_classification: String,
     observed_failure_families: Vec<String>,
     #[serde(default)]
@@ -178,6 +183,7 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             ("domain", profile.domain.as_str()),
             ("profile_version", profile.profile_version.as_str()),
             ("criteria_regime", profile.criteria_regime.as_str()),
+            ("family_taxonomy_version", profile.family_taxonomy_version.as_str()),
         ] {
             if !is_nonempty(value) {
                 errors.push(format!(
@@ -216,6 +222,7 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             ("domain", case.domain.as_str()),
             ("profile_version", case.profile_version.as_str()),
             ("criteria_regime", case.criteria_regime.as_str()),
+            ("family_taxonomy_version", case.family_taxonomy_version.as_str()),
         ] {
             if !is_nonempty(value) {
                 errors.push(format!(
@@ -230,6 +237,12 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             "COMPLETE" | "INCOMPLETE" | "UNKNOWN"
         ) {
             errors.push(format!("FAMILY_CLASSIFICATION_INVALID:{}", case.case_id));
+        }
+        if !matches!(
+            case.classification_review_status.as_str(),
+            "REVIEWED" | "UNREVIEWED" | "UNKNOWN"
+        ) {
+            errors.push(format!("CLASSIFICATION_REVIEW_STATUS_INVALID:{}", case.case_id));
         }
         validate_string_list(
             &case.observed_failure_families,
@@ -301,6 +314,16 @@ fn evaluate_case(case: &ScenarioCase, profiles: &[ScopeProfile]) -> CaseResult {
             case.domain == profile.domain
                 && case.profile_version == profile.profile_version
                 && case.criteria_regime == profile.criteria_regime
+                && case.family_taxonomy_version == profile.family_taxonomy_version
+                && case.classification_review_status == "REVIEWED"
+                && case
+                    .classification_record_ref
+                    .as_deref()
+                    .map(|reference| {
+                        is_nonempty(reference)
+                            && reference.starts_with("synthetic://classification-review/")
+                    })
+                    .unwrap_or(false)
                 && case.family_classification == "COMPLETE"
                 && !case.observed_failure_families.is_empty()
                 && case
@@ -835,8 +858,11 @@ mod tests {
             for family_is_known in [true, false] {
                 for classification in ["COMPLETE", "INCOMPLETE"] {
                     for regime_matches in [true, false] {
-                        for evidence_mode in ["FRESH", "STALE", "MISSING_TAG"] {
-                            for gate in ["PASS", "BLOCK", "UNKNOWN"] {
+                        for taxonomy_matches in [true, false] {
+                            for review_status in ["REVIEWED", "UNREVIEWED"] {
+                                for record_is_valid in [true, false] {
+                                    for evidence_mode in ["FRESH", "STALE", "MISSING_TAG"] {
+                                        for gate in ["PASS", "BLOCK", "UNKNOWN"] {
                                 let observed_family = if family_is_known {
                                     profile.covered_failure_families[0].clone()
                                 } else {
@@ -855,6 +881,9 @@ mod tests {
                                 let expected_scope = if family_is_known
                                     && classification == "COMPLETE"
                                     && regime_matches
+                                    && taxonomy_matches
+                                    && review_status == "REVIEWED"
+                                    && record_is_valid
                                 {
                                     "IN_SCOPE"
                                 } else {
@@ -896,6 +925,20 @@ mod tests {
                                     } else {
                                         format!("{}-changed", profile.criteria_regime)
                                     },
+                                    family_taxonomy_version: if taxonomy_matches {
+                                        profile.family_taxonomy_version.clone()
+                                    } else {
+                                        format!("{}-changed", profile.family_taxonomy_version)
+                                    },
+                                    classification_review_status: review_status.to_string(),
+                                    classification_record_ref: if record_is_valid {
+                                        Some(format!(
+                                            "synthetic://classification-review/matrix/{}",
+                                            profile.profile_id
+                                        ))
+                                    } else {
+                                        None
+                                    },
                                     family_classification: classification.to_string(),
                                     observed_failure_families: vec![observed_family],
                                     evidence_age_days,
@@ -913,7 +956,10 @@ mod tests {
                                 assert!(result.expected_outcome_matches);
                                 assert!(result.review_only);
                                 assert!(!result.actuation_authorized);
-                                combinations += 1;
+                                            combinations += 1;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -921,6 +967,79 @@ mod tests {
             }
         }
 
-        assert_eq!(combinations, 216);
+        assert_eq!(combinations, 1728);
     }
+
+    #[test]
+    fn missing_classification_record_forces_scope_reassessment() {
+        let mut value = corpus();
+        let case = find_case_mut(&mut value, "forest-known-family-complete-evidence");
+        case.classification_record_ref = None;
+        case.expected_scope_status = "OUT_OF_SCOPE".to_string();
+        case.expected_disposition = "REASSESS_SCOPE".to_string();
+        let receipt = run(&value);
+        let result = result_for(&receipt, "forest-known-family-complete-evidence");
+        assert_eq!(result.scope_status, "OUT_OF_SCOPE");
+        assert_eq!(result.disposition, "REASSESS_SCOPE");
+        assert!(receipt.expected_outcomes_match);
+    }
+
+    #[test]
+    fn unreviewed_classification_forces_scope_reassessment() {
+        let mut value = corpus();
+        let case = find_case_mut(&mut value, "forest-known-family-complete-evidence");
+        case.classification_review_status = "UNREVIEWED".to_string();
+        case.expected_scope_status = "OUT_OF_SCOPE".to_string();
+        case.expected_disposition = "REASSESS_SCOPE".to_string();
+        let receipt = run(&value);
+        assert_eq!(
+            result_for(&receipt, "forest-known-family-complete-evidence").disposition,
+            "REASSESS_SCOPE"
+        );
+        assert!(receipt.expected_outcomes_match);
+    }
+
+    #[test]
+    fn taxonomy_version_mismatch_forces_scope_reassessment() {
+        let mut value = corpus();
+        let case = find_case_mut(&mut value, "forest-known-family-complete-evidence");
+        case.family_taxonomy_version = "forest-hazard-taxonomy-v2".to_string();
+        case.expected_scope_status = "OUT_OF_SCOPE".to_string();
+        case.expected_disposition = "REASSESS_SCOPE".to_string();
+        let receipt = run(&value);
+        assert_eq!(
+            result_for(&receipt, "forest-known-family-complete-evidence").scope_status,
+            "OUT_OF_SCOPE"
+        );
+        assert!(receipt.expected_outcomes_match);
+    }
+
+    #[test]
+    fn non_synthetic_classification_reference_is_out_of_scope() {
+        let mut value = corpus();
+        let case = find_case_mut(&mut value, "forest-known-family-complete-evidence");
+        case.classification_record_ref = Some("https://unverified.example/classification".to_string());
+        case.expected_scope_status = "OUT_OF_SCOPE".to_string();
+        case.expected_disposition = "REASSESS_SCOPE".to_string();
+        let receipt = run(&value);
+        assert_eq!(
+            result_for(&receipt, "forest-known-family-complete-evidence").disposition,
+            "REASSESS_SCOPE"
+        );
+        assert!(receipt.expected_outcomes_match);
+    }
+
+    #[test]
+    fn unknown_classification_review_enum_fails_closed() {
+        let mut value = corpus();
+        find_case_mut(&mut value, "forest-known-family-complete-evidence")
+            .classification_review_status = "TRUST_ME".to_string();
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.contains("CLASSIFICATION_REVIEW_STATUS_INVALID")));
+    }
+
 }
