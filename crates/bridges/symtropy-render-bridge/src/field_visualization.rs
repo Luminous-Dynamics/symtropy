@@ -828,6 +828,7 @@ pub fn validate_field_frame(frame: &FieldFrame) -> Result<(), String> {
     }
     if frame.scalar_layers.len() > MAX_FIELD_LAYERS
         || frame.vector_layers.len() > MAX_FIELD_LAYERS
+        || frame.scalar_grids.len() > MAX_FIELD_LAYERS
         || frame.spectra.len() > MAX_FIELD_LAYERS
     {
         return Err(format!(
@@ -904,6 +905,22 @@ pub fn validate_field_frame(frame: &FieldFrame) -> Result<(), String> {
                     layer.metadata.id
                 ));
             }
+        }
+    }
+
+    let mut grid_observation_count = 0_usize;
+    for grid in &frame.scalar_grids {
+        let count = validate_regular_scalar_grid(grid)?;
+        if !ids.insert(grid.metadata.id.as_str()) {
+            return Err(format!("duplicate field layer id {:?}", grid.metadata.id));
+        }
+        grid_observation_count = grid_observation_count
+            .checked_add(count)
+            .ok_or_else(|| "regular grid observation count overflow".to_owned())?;
+        if grid_observation_count > MAX_GRID_SAMPLES_PER_FRAME {
+            return Err(format!(
+                "field frame exceeds the {MAX_GRID_SAMPLES_PER_FRAME}-grid-sample limit"
+            ));
         }
     }
 
@@ -1872,6 +1889,7 @@ mod tests {
                     magnitude_uncertainty: Some(0.3),
                 }],
             }],
+            scalar_grids: Vec::new(),
             spectra: vec![spectrum_profile()],
         }
     }
