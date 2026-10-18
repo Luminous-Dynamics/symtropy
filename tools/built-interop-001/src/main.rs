@@ -658,16 +658,13 @@ mod tests {
 
     #[test]
     fn synthetic_manifest_passes_its_pinned_json_schema() {
-        let schema: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../semantic-loss-v0.1.schema.json"
-        ))
-        .expect("input JSON Schema parses");
-        let validator = jsonschema::validator_for(&schema)
-            .expect("input JSON Schema compiles");
-        let instance: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../fixtures/panel-exchange-v0.1.json"
-        ))
-        .expect("fixture manifest parses");
+        let schema: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../semantic-loss-v0.1.schema.json"))
+                .expect("input JSON Schema parses");
+        let validator = jsonschema::validator_for(&schema).expect("input JSON Schema compiles");
+        let instance: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../fixtures/panel-exchange-v0.1.json"))
+                .expect("fixture manifest parses");
         let errors: Vec<String> = validator
             .iter_errors(&instance)
             .map(|error| error.to_string())
@@ -691,12 +688,10 @@ mod tests {
         let (manifest, raw) = fixture();
         let report = build_report(&manifest, &raw);
         let instance = serde_json::to_value(&report).expect("report serializes");
-        let schema: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../report-v0.1.schema.json"
-        ))
-        .expect("report JSON Schema parses");
-        let validator = jsonschema::validator_for(&schema)
-            .expect("report JSON Schema compiles");
+        let schema: serde_json::Value =
+            serde_json::from_slice(include_bytes!("../report-v0.1.schema.json"))
+                .expect("report JSON Schema parses");
+        let validator = jsonschema::validator_for(&schema).expect("report JSON Schema compiles");
         let errors: Vec<String> = validator
             .iter_errors(&instance)
             .map(|error| error.to_string())
