@@ -353,7 +353,7 @@ mod tests {
             baseline_receipt_sha256: "a".repeat(64),
             treatment_receipt_sha256: "b".repeat(64),
             comparison_contract_sha256: "c".repeat(64),
-            category_manifest_sha256: "d".repeat(64),
+            category_manifest_sha256: "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a".to_owned(),
             required_category_ids: vec!["fuel".to_owned(), "coordination".to_owned()],
             baseline_fuel_grams: 100_000,
             treatment_fuel_grams: 90_000,
@@ -399,6 +399,25 @@ mod tests {
             baseline_cost_minor: baseline,
             treatment_cost_minor: treatment,
         }
+    }
+
+    #[test]
+    fn synthetic_category_manifest_is_exactly_pinned() {
+        assert_eq!(
+            include_str!("../fixtures/cost-categories-v0.1.json"),
+            "{\\"schema_version\\":\\"port-call-cost-categories-v0.1\\",\\"currency_minor_unit\\":\\"USD-cent\\",\\"required_category_ids\\":[\\"coordination\\",\\"fuel\\"]}\\n"
+        );
+        let case = input();
+        assert_eq!(case.category_manifest_sha256, "e1d3d64b7b43430a9d8b19f6a11e9f9b1259e8f4b27d6559abc9044229f1960a");
+        let categories = case
+            .required_category_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            categories,
+            BTreeSet::from(["coordination".to_owned(), "fuel".to_owned()])
+        );
     }
 
     #[test]
