@@ -942,6 +942,7 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(report.baseline_count, 2);
+        assert_eq!(report.evidence_tier, EvidenceTier::Synthetic);
         assert_eq!(report.worst_case_total_gross_benefit_minor, -4_000);
         assert_eq!(report.best_case_total_gross_benefit_minor, 6_000);
         assert_eq!(report.worst_case_fuel_reduction_grams, 5_000);
