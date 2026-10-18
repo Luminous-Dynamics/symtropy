@@ -1041,7 +1041,7 @@ mod tests {
 
     #[test]
     fn strict_dominance_is_irreflexive_and_asymmetric() {
-        let definitions = vec![
+        let definitions = [
             objective(
                 "cost",
                 PortfolioObjectiveDirectionV1::Minimize,
@@ -1060,7 +1060,7 @@ mod tests {
 
     #[test]
     fn strict_dominance_is_transitive_for_mixed_objective_directions() {
-        let definitions = vec![
+        let definitions = [
             objective(
                 "cost",
                 PortfolioObjectiveDirectionV1::Minimize,
