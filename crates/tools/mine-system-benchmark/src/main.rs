@@ -33,6 +33,7 @@ fn main() {
             tolerance: 1e-9,
         },
         metrics: CandidateMetrics {
+            comparison_basis_id: "MS-001-SYNTHETIC-BASIS-V1",
             accepted_tonnes_per_shift: 42.0,
             lifecycle_cost_per_saleable_tonne: 80.0,
             energy_kwh_per_saleable_tonne: 12.0,
