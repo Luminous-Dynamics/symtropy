@@ -227,6 +227,9 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r5-displacement-not-net-impact-01" => {
                 audit_displacement(scenario, &path, &mut findings)
             }
+            "pirb-r5-warning-response-chain-01" => {
+                audit_warning_response_chain(scenario, &path, &mut findings)
+            }
             _ => findings.push(finding(
                 "PIRB_EVALUATOR_MISSING",
                 &format!("{path}.id"),
