@@ -268,7 +268,7 @@ fn verify_artifact(
             return result;
         }
     };
-    *total_bytes_reserved_for_reads = match total_bytes_reserved_for_reads.checked_add(read_limit) {
+    *total_bytes_reserved_for_reads = match (*total_bytes_reserved_for_reads).checked_add(read_limit) {
         Some(total) => total,
         None => {
             result.issues.push(ArtifactIssue::AggregateByteLimitExceeded);
