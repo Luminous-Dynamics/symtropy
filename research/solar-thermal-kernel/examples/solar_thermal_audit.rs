@@ -672,7 +672,7 @@ fn verify_report(json: &str) -> Result<(), String> {
     near("temporal global first-law closure",
         initial_energy + expected_charge,
         energy_final + period_0_loss + period_1_loss + expected_withdrawn)?;
-    near("temporal service balance", requested, expected_delivered + expected_unmet);
+    near("temporal service balance", requested, expected_delivered + expected_unmet)?;
 
     Ok(())
 }
