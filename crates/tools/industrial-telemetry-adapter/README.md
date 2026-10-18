@@ -64,7 +64,7 @@ Observed field counts from that exploration:
 | `Program_Status` | 2 |
 | `Part_Count` | 1 |
 
-These numbers are from an independent high-precision scan of the pinned source, **not yet output from a run of this crate**. The exact maximum gap is from `2017-02-02T16:37:08.9062500Z` to `2017-02-02T18:06:38.8437500Z`. The adapter's `verify-nist-reference` mode is designed to reproduce this profile once it is executed locally. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch.
+These numbers are from an independent high-precision scan of the pinned source, **not yet output from a run of this crate**. The exact maximum gap is from `2017-02-02T16:37:08.9062500Z` to `2017-02-02T18:06:38.8437500Z`. The adapter's `verify-nist-reference` mode is designed to reproduce this profile once it is executed locally. One-unique-timestamp inputs have no defined inter-event gap; the parser returns `None` instead of fabricating a zero-length gap at the Unix epoch.
 
 ## Safety and epistemic boundaries
 
@@ -80,6 +80,10 @@ These numbers are from an independent high-precision scan of the pinned source, 
 
 ## Qualification gates
 
-The ten authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, UTC epoch conversion, single-timestamp gaps and blank values. The dedicated workflow exists specifically because Symtropy's top-level test job does not explicitly build this nested standalone crate. The tests must be considered unverified until that workflow completes successfully on the current exact head.
+The fourteen authored unit tests cover fractional precision, source-shaped excerpt parsing, same-time event preservation, long gaps, non-monotonic timestamps, malformed rows, strict UTC/date checks, leap-year handling, UTC epoch conversion, single-timestamp gaps, blank values, and temporal coverage queries. A dedicated workflow explicitly builds this nested standalone crate. Treat tests as qualified only when that workflow passes on the exact current head.
 
-Next steps: execute the offline suite; run on the exact pinned source and compare all counts/first-last timestamps with the exploratory profile; record actual byte digest, exact maximum gap and runtime; then add a downstream schedule-admission test that fails closed when a requested interval crosses an unobserved gap.
+## Temporal coverage API
+
+`find_unobserved_intervals` accepts a requested time window and a caller-declared maximum event-silence threshold. It reports intersecting intervals before the first event, between events, after the last event, or across a trace with no events. For between-event gaps it preserves the full source-gap duration even when only part of that gap overlaps the requested window. Events are sorted and deduplicated for this calculation, but the original trace ordering remains preserved in the parsed data and summary.
+
+The API is deliberately **not** a scheduler admission approval: no reported large gap means only that this threshold detector found no long gap in the supplied window. It does not mean the machine was available, safe, idle, or productive. Downstream scheduling must combine it with separately qualified state/capacity evidence, and must fail closed when required evidence is absent. The tests include a proposed operation window that crosses the 89.498958333-minute gap and expects an explicit finding.
