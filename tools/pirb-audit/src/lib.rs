@@ -263,9 +263,7 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r5-warning-response-chain-01" => {
                 audit_warning_response_chain(scenario, &path, &mut findings)
             }
-            "pirb-r5-network-spillover-01" => {
-                audit_displacement(scenario, &path, &mut findings)
-            }
+            "pirb-r5-network-spillover-01" => audit_displacement(scenario, &path, &mut findings),
             "pirb-r5-adaptive-stop-rule-01" => {
                 audit_adaptive_stop_rules(scenario, &path, &mut findings)
             }
@@ -1059,7 +1057,6 @@ fn audit_displacement(scenario: &Value, path: &str, findings: &mut Vec<Finding>)
     }
 }
 
-
 fn audit_adaptive_stop_rules(scenario: &Value, path: &str, findings: &mut Vec<Finding>) {
     let Some(cases) = scenario.get("stop_rule_cases").and_then(Value::as_array) else {
         findings.push(finding(
@@ -1106,7 +1103,9 @@ fn audit_adaptive_stop_rules(scenario: &Value, path: &str, findings: &mut Vec<Fi
             ));
         }
 
-        let owner = case.get("accountable_owner_authorized").and_then(Value::as_bool);
+        let owner = case
+            .get("accountable_owner_authorized")
+            .and_then(Value::as_bool);
         if owner.is_none() {
             findings.push(finding(
                 "PIRB_STOP_RULE_AUTHORITY_UNKNOWN",
@@ -1180,7 +1179,9 @@ fn audit_adaptive_stop_rules(scenario: &Value, path: &str, findings: &mut Vec<Fi
             findings.push(finding(
                 "PIRB_STOP_RULE_TRANSITION_MISMATCH",
                 &format!("{case_path}.expected_transition"),
-                &format!("Computed safe transition is {computed}; the declared transition must match."),
+                &format!(
+                    "Computed safe transition is {computed}; the declared transition must match."
+                ),
             ));
         }
     }
@@ -1200,7 +1201,9 @@ fn audit_adaptive_stop_rules(scenario: &Value, path: &str, findings: &mut Vec<Fi
     if scenario
         .pointer("/expected/claim_ceiling")
         .and_then(Value::as_str)
-        != Some("Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator.")
+        != Some(
+            "Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator.",
+        )
     {
         findings.push(finding(
             "PIRB_STOP_RULE_CLAIM_CEILING_INVALID",
@@ -1987,7 +1990,9 @@ mod tests {
         assert!(report.passed, "{:#?}", report.findings);
         assert_eq!(report.scenario_count, 12);
         let value = corpus();
-        let cases = value["scenarios"][11]["stop_rule_cases"].as_array().unwrap();
+        let cases = value["scenarios"][11]["stop_rule_cases"]
+            .as_array()
+            .unwrap();
         assert_eq!(cases[0]["expected_transition"], json!("BLOCKED"));
         assert_eq!(cases[3]["expected_transition"], json!("REVIEW_REQUIRED"));
         assert_eq!(cases[6]["expected_transition"], json!("CONTINUE"));
