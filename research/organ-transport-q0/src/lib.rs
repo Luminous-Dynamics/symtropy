@@ -106,7 +106,7 @@ pub fn junction_residual_m3_per_s(
         if !flow.is_finite() {
             return Err(FlowError::NonFiniteInput("signed_flows_m3_per_s"));
         }
-        residual += flow;
+        residual += *flow;
         if !residual.is_finite() {
             return Err(FlowError::NumericalRange);
         }
