@@ -321,7 +321,7 @@ pub fn verify_schedule_report(
             PeriodAction::Charge { .. } => {
                 let action = match report.action {
                     PeriodActionReport::Charge(a) => a,
-                    PeriodActionReport::Discharge(_) =>
+                    PeriodActionReport::Discharge(_) | PeriodActionReport::Idle =>
                         return Err(ModelError::ReportMismatch("temporal.action_kind")),
                 };
                 action.accepted_input.value()
@@ -333,7 +333,7 @@ pub fn verify_schedule_report(
             PeriodAction::Discharge { .. } => {
                 let action = match report.action {
                     PeriodActionReport::Discharge(a) => a,
-                    PeriodActionReport::Charge(_) =>
+                    PeriodActionReport::Charge(_) | PeriodActionReport::Idle =>
                         return Err(ModelError::ReportMismatch("temporal.action_kind")),
                 };
                 -action.source_heat_withdrawn.value()
@@ -448,8 +448,10 @@ mod tests {
         assert_eq!(report.periods.len(), 3);
         assert_eq!(report.periods[2].action, PeriodActionReport::Idle);
         assert!((report.periods[2].standing_loss.heat_lost.value() - 19_233.6).abs() < 1.0e-6);
-        assert!(report.periods[2].state_after.temperature.value()
-            < report.periods[2].state_after_standing_loss.temperature.value() + 1.0e-12);
+        assert_eq!(
+            report.periods[2].state_after,
+            report.periods[2].state_after_standing_loss
+        );
         assert!((report.accepted_charge_heat.value() - 900_000.0).abs() < 1.0e-6);
         assert!((report.useful_heat_delivered.value() - 300_000.0).abs() < 1.0e-6);
         assert!(report.unmet_useful_heat.value() < 1.0e-6);
