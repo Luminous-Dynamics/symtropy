@@ -63,7 +63,7 @@ From the workspace root, run:
 cargo run -p symtropy-bevy-scene --example architectural_review_room
 ```
 
-The example creates an illustrative room with a floating-camera route; press Space to pause/resume. It is a visual prototype with synthetic geometry, not a real home model, collision-checked navigation, XR implementation, engineering simulation, or compliance check.
+The example creates an illustrative room with a floating-camera route; press Space to pause/resume and R to restart. It is a visual prototype with synthetic geometry, not a real home model, collision-checked navigation, XR implementation, engineering simulation, or compliance check.
 
 ## License
 
