@@ -33,14 +33,11 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: rustfmt, clippy
-      - name: Resolve exact direct pins and generate preliminary lockfile
-        run: |
-          cargo generate-lockfile --manifest-path tools/built-interop-002/Cargo.toml
-          sha256sum tools/built-interop-002/Cargo.lock
-          cat tools/built-interop-002/Cargo.lock
+      - name: Verify committed dependency lock
+        run: sha256sum tools/built-interop-002/Cargo.lock
       - name: Check formatting
         run: cargo fmt --manifest-path tools/built-interop-002/Cargo.toml -- --check
       - name: Run IFC/IDS synthetic contract tests
-        run: cargo test --manifest-path tools/built-interop-002/Cargo.toml
+        run: cargo test --locked --manifest-path tools/built-interop-002/Cargo.toml
       - name: Run Clippy with warnings denied
-        run: cargo clippy --manifest-path tools/built-interop-002/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/built-interop-002/Cargo.toml --all-targets -- -D warnings
