@@ -10,4 +10,4 @@ From repository root:
       docs/tech/ore-feed-blend-corpus-v0.1.json \
       --source-commit "$(git rev-parse HEAD)"
 
-The bounded exhaustive search is a small-instance reference oracle, not a production mine planner. All fixture values are synthetic; the crate does not predict real recovery, comminution, economics, or physical performance.
+The bounded exhaustive search is a small-instance reference oracle, not a production mine planner. Analyte IDs are exact: copper-grade evidence cannot satisfy a zinc target, and contaminant analytes cannot be silently substituted. All fixture values are synthetic; the crate does not predict real recovery, comminution, economics, or physical performance.
