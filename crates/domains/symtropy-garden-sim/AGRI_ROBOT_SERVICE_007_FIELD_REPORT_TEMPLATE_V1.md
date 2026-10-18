@@ -49,6 +49,26 @@
 
 **Gate:** Counts must reconcile to the frozen eligible cohort, including unresolved/missing states and documented exclusions. No implicit deletion, no partial denominator, no missing-as-zero assumption.
 
+## 2A. Restricted row-level preflight inputs
+
+Keep this reconciliation table in the approved study workspace, not in a public report when even opaque references could expose a participant or provider. Public reporting should use aggregate counts. Run the Rust preflight against the approved JSON manifest in the authorized environment; the committed sample fixture is synthetic only.
+
+| Reference / field | Required form or meaning |
+|---|---|
+| Screened request ref | Opaque `req-*` reference; each candidate exactly once |
+| Eligible vs excluded | Eligible enters fixed denominator; excluded needs reason code, preregistered rule ref and supporting event ref |
+| Preregistered rule inventory | Unique opaque `rule-*` identifiers referenced by exclusions; inventory is not proof of registration time |
+| Useful-window event ref | Opaque `evt-*` reference to the declared window evidence |
+| Useful-window deadline | Non-negative integer minutes from the same declared period origin as the canonical service-access record |
+| Outcome event ref | Opaque `evt-*` reference supporting the outcome label |
+| Outcome evidence kind | Typed kind appropriate to outcome: farmer decision, provider availability/decline/cancellation/no-show/completion, no acceptance at window close, dispute/rework, reconciliation attempt, or follow-up attempt |
+| Outcome class | Exactly one classification per eligible request, using the v1 Rust enum values |
+| Acceptance event ref / minute | Required for accepted outcomes; event ref must be opaque `evt-*`; minute must be consistent with the declared deadline |
+| Acceptance decision mode | Farmer-direct or authorized-intermediary-recorded; an intermediary record requires an opaque `mandate-*` reference |
+| Non-acceptance fields | Acceptance event/time/mode/mandate must be absent for outcomes that do not assert a recorded acceptance |
+
+The verifier checks identifier shape and cross-field consistency; it does not authenticate events, resolve provider records, prove consent, or prove when the rule inventory was preregistered. Preserve an immutable analysis-plan reference and archive it before outcome review. Never commit real participant manifests or event-level evidence into public fixtures.
+
 ## 3. Primary outcome and uncertainty
 
 - Confirmed in-window acceptances: _Not set_
