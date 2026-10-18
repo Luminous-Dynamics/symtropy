@@ -247,6 +247,7 @@ pub fn assess_advice_service_link_v1(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::Deserialize;
     use crate::field_robot_cost::ServiceUnitV1;
     use crate::service_access::{ServiceAccessEvidenceV1, TravelChargeTreatmentV1};
 
@@ -298,6 +299,113 @@ mod tests {
             observed_outcome_claim_refs: vec!["observed-flow-claim-001".to_owned()],
             source_ref: "synthetic-fixture:advice-service-link:001".to_owned(),
             recorded_at_epoch_seconds: 1_790_000_000,
+        }
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct LinkFixtureCorpus {
+        schema_version: u16,
+        status: String,
+        cases: Vec<LinkFixtureCase>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct LinkFixtureCase {
+        id: String,
+        mutation: String,
+        expected_disposition: String,
+        expected_blockers: Vec<String>,
+    }
+
+    fn apply_fixture_mutation(
+        mutation: &str,
+        link: &mut Option<AdviceServiceLinkV1>,
+    ) {
+        if mutation == "no_link" {
+            *link = None;
+            return;
+        }
+        let record = link.as_mut().expect("non-empty link mutation needs a link");
+        match mutation {
+            "valid_link" => {}
+            "scope_mismatch" => record.advice_scope_ref = "other-site".to_owned(),
+            "period_mismatch" => record.advice_period_ref = "other-season".to_owned(),
+            "task_mismatch" => record.advice_task_code = "harvest".to_owned(),
+            "request_reference_mismatch" => record.service_request_ref = "other-request".to_owned(),
+            "missing_authorization_ref" => record.authorization_ref = None,
+            "duplicate_outcome_ref" => record.observed_outcome_claim_refs.push(
+                record.observed_outcome_claim_refs[0].clone()
+            ),
+            "empty_outcome_ref" => record.observed_outcome_claim_refs.push(" ".to_owned()),
+            "stale_link" => record.state = AdviceServiceLinkStateV1::Stale,
+            "disputed_link" => record.state = AdviceServiceLinkStateV1::Disputed,
+            "unavailable_link" => record.state = AdviceServiceLinkStateV1::Unavailable,
+            "revoked_sharing" => record.state = AdviceServiceLinkStateV1::RevokedForFutureSharing,
+            "unsupported_schema" => record.schema_version = ADVICE_SERVICE_LINK_SCHEMA_VERSION_V1 + 1,
+            "empty_advice_episode_ref" => record.advice_episode_ref = " ".to_owned(),
+            "empty_source_ref" => record.source_ref = " ".to_owned(),
+            "empty_recorded_time" => record.recorded_at_epoch_seconds = 0,
+            "empty_decision_ref" => record.decision_ref = Some(" ".to_owned()),
+            "digest_shaped_source" => record.source_ref = format!("sha256:{}", "0".repeat(64)),
+            "pending_link" => record.state = AdviceServiceLinkStateV1::Pending,
+            other => panic!("unknown frozen fixture mutation: {other}"),
+        }
+    }
+
+    fn disposition_name(value: AdviceServiceLinkDispositionV1) -> &'static str {
+        match value {
+            AdviceServiceLinkDispositionV1::UnlinkedServiceRequest => "unlinked_service_request",
+            AdviceServiceLinkDispositionV1::LinkedReferenceValidated => "linked_reference_validated",
+            AdviceServiceLinkDispositionV1::RequiresResolution => "requires_resolution",
+            AdviceServiceLinkDispositionV1::SharingRevoked => "sharing_revoked",
+            AdviceServiceLinkDispositionV1::Blocked => "blocked",
+        }
+    }
+
+    #[test]
+    fn frozen_fixture_corpus_matches_exact_expected_dispositions_and_blockers() {
+        let corpus: LinkFixtureCorpus = serde_json::from_str(include_str!("../fixtures/advice_service_link_cases.v1.json"))
+            .expect("frozen advice-service-link fixture must parse");
+        assert_eq!(corpus.schema_version, ADVICE_SERVICE_LINK_SCHEMA_VERSION_V1);
+        assert_eq!(corpus.status, "synthetic_contract_cases");
+        assert_eq!(corpus.cases.len(), 20);
+
+        let ids: BTreeSet<_> = corpus.cases.iter().map(|case| case.id.as_str()).collect();
+        assert_eq!(ids.len(), corpus.cases.len(), "fixture IDs must be unique");
+
+        for case in corpus.cases {
+            let request = request();
+            let mut link = Some(link());
+            apply_fixture_mutation(&case.mutation, &mut link);
+            let result = assess_advice_service_link_v1(&request, link.as_ref());
+            let actual_blockers: Vec<_> = result.blockers.iter().map(|blocker| format!("{blocker:?}")).collect();
+            assert_eq!(
+                disposition_name(result.disposition),
+                case.expected_disposition,
+                "{} disposition mismatch",
+                case.id
+            );
+            assert_eq!(
+                actual_blockers,
+                case.expected_blockers,
+                "{} blocker mismatch",
+                case.id
+            );
+            assert!(
+                result.service_request_remains_valid,
+                "{}: link failure cannot invalidate the canonical service request",
+                case.id
+            );
+            assert!(
+                !result.disclosure_authorized_by_this_module,
+                "{}: reference validation cannot authorize disclosure",
+                case.id
+            );
+            assert!(
+                !result.causal_claim_permitted,
+                "{}: linked events cannot establish causality",
+                case.id
+            );
         }
     }
 
