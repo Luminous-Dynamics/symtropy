@@ -203,3 +203,6 @@ Passing Standard 140 cases is not equivalent to validating a specific building, 
 NIST AMS 100-85 (published 5 October 2026) recommends risk-proportionate credibility assessment based on model influence and decision consequence, and distinguishes variance propagation from distributional propagation: https://doi.org/10.6028/NIST.AMS.100-85. The design pipeline should therefore require stronger evidence when a prediction can change a consequential admission decision, and must disclose when a result lies outside the demonstrated model domain.
 
 This is why the v0.1 qualifier keeps synthetic known-answer mechanics, specialist solver outputs, professional review and real occupant studies as separate evidence layers.
+
+
+Decision-impact receipts bind each observation outcome to its exact compatible state IDs, rather than reporting only the number of remaining states. Action outputs retain action type, evidence status, source revision and the declared cost/duration basis identifiers. A frozen negative control changes a one-state outcome to another one-state outcome; the validator must detect the wrong membership even though the cardinality stays unchanged.
