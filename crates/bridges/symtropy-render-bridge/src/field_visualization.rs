@@ -708,6 +708,9 @@ pub struct FieldLayerSet {
     pub max_vector_glyphs_total: usize,
     pub scalar_layers: Vec<ScalarFieldLayer>,
     pub vector_layers: Vec<VectorFieldLayer>,
+    pub scalar_grids: Vec<RegularScalarGrid3D>,
+    /// Requested slices are render controls, not part of an imported source frame.
+    pub grid_slices: Vec<GridSliceRequest>,
     pub spectra: Vec<SpectrumProfile>,
     pub spectrum_plot: SpectrumPlotSettings,
 }
