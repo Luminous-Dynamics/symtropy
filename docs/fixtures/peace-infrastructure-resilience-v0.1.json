@@ -165,6 +165,106 @@
         "state": "not_active",
         "invariant": "Refusal or non-participation is not consent and cannot be rewritten as assent by an optimizer or simulation."
       }
+    },
+    {
+      "id": "pirb-r3-worst-case-frontier-01",
+      "track": "PIRB-3",
+      "domain": "fictional_essential_service_recovery",
+      "scenario_ids": [
+        "baseline",
+        "drought",
+        "supplier_disruption"
+      ],
+      "scenario_probabilities_assigned": false,
+      "options": [
+        {
+          "id": "repair_only",
+          "cost_ticks": 10,
+          "hard_gates": {
+            "civilian_safety": "pass",
+            "evidence_qualification": "pass"
+          },
+          "service_gap_by_scenario": {
+            "baseline": 2,
+            "drought": 8,
+            "supplier_disruption": 9
+          }
+        },
+        {
+          "id": "repair_plus_backup",
+          "cost_ticks": 18,
+          "hard_gates": {
+            "civilian_safety": "pass",
+            "evidence_qualification": "pass"
+          },
+          "service_gap_by_scenario": {
+            "baseline": 3,
+            "drought": 4,
+            "supplier_disruption": 5
+          }
+        },
+        {
+          "id": "unverified_shortcut",
+          "cost_ticks": 5,
+          "hard_gates": {
+            "civilian_safety": "unknown",
+            "evidence_qualification": "pass"
+          },
+          "service_gap_by_scenario": {
+            "baseline": 1,
+            "drought": 2,
+            "supplier_disruption": 2
+          }
+        }
+      ],
+      "expected": {
+        "feasible_options": [
+          "repair_only",
+          "repair_plus_backup"
+        ],
+        "excluded_by_hard_gate": [
+          "unverified_shortcut"
+        ],
+        "worst_case_service_gap": {
+          "repair_only": 9,
+          "repair_plus_backup": 5,
+          "unverified_shortcut": 2
+        },
+        "pareto_frontier": [
+          "repair_only",
+          "repair_plus_backup"
+        ],
+        "scenario_probabilities_assigned": false
+      }
+    },
+    {
+      "id": "pirb-r5-displacement-not-net-impact-01",
+      "track": "PIRB-5",
+      "domain": "fictional_essential_service_recovery",
+      "design_type": "before_after_only",
+      "causal_claim_requested": true,
+      "concurrent_factors": [
+        "region_wide_funding_change"
+      ],
+      "outcomes": [
+        {
+          "group": "target_area",
+          "service_gap_before": 10,
+          "service_gap_after": 3
+        },
+        {
+          "group": "neighbor_area",
+          "service_gap_before": 5,
+          "service_gap_after": 12
+        }
+      ],
+      "expected": {
+        "aggregate_gap_before": 15,
+        "aggregate_gap_after": 15,
+        "displacement_detected": true,
+        "claim_status": "descriptive_only",
+        "improvement_claim": "not_supported"
+      }
     }
   ]
 }
