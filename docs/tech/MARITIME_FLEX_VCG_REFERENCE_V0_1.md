@@ -67,6 +67,7 @@ The solver only selects a **proposed** allocation. It cannot accept/activate off
 
 The Rust module includes a test-only bit-mask oracle and cases for:
 - allocation and pivot-payment agreement;
+- multi-slot allocation with multiple winners and pivot payments checked against the independent subset oracle;
 - offer not accepted, revoked or expired;
 - missing/future acceptance receipt;
 - shift limit and deadline violations;
@@ -74,11 +75,12 @@ The Rust module includes a test-only bit-mask oracle and cases for:
 - baseline capacity overrun;
 - buyer-budget shortfall without a hidden allocation change;
 - exhaustive unilateral bid reports over a finite two-participant cost grid;
+- exhaustive unilateral bid reports over a three-participant, two-capacity-slot cost grid;
 - canonical input permutation;
 - search-budget exhaustion without a partial report;
 - duplicate candidate offers from one participant.
 
-The exhaustive truthfulness grid uses true costs and unilateral reports from 0 through 12 for each of two participants in a one-unit target-slot competition. A separate JavaScript check of the same simple single-slot payment algebra covered 4,394 unilateral-report comparisons with zero profitable deviations. That independent arithmetic check is not execution of the Rust source.
+The exhaustive truthfulness grid uses true costs and unilateral reports from 0 through 12 for each of two participants in a one-unit target-slot competition. A separate JavaScript check of the same simple single-slot payment algebra covered 4,394 unilateral-report comparisons with zero profitable deviations. That independent arithmetic check is not execution of the Rust source. A second independent JavaScript model of the three-participant, two-slot case covered 19,683 unilateral-report comparisons with zero profitable deviations; it also did not execute the Rust source.
 
 ## 6. Proposed qualification gates
 
