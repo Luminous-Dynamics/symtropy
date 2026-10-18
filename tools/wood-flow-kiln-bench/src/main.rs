@@ -677,7 +677,7 @@ mod tests {
     }
 
     #[test]
-    fn overlapping_shared_power_schedule_is_rejected() {
+    fn shared_power_envelope_breach_is_rejected() {
         let fixture = corpus();
         let scenario = fixture.scenarios.iter()
             .find(|scenario| scenario.scenario_id == "SHARED_POWER_FORCES_SERIAL")
@@ -685,6 +685,19 @@ mod tests {
         let bad = vec![
             Placement { batch_id:"BATCH_A".to_owned(), kiln_id:"KILN_A".to_owned(), start_hour:0, finish_hour:2 },
             Placement { batch_id:"BATCH_B".to_owned(), kiln_id:"KILN_B".to_owned(), start_hour:0, finish_hour:2 },
+        ];
+        assert!(independently_validate_schedule(scenario, &bad).is_err());
+    }
+
+    #[test]
+    fn same_kiln_overlap_is_rejected() {
+        let fixture = corpus();
+        let scenario = fixture.scenarios.iter()
+            .find(|scenario| scenario.scenario_id == "SHARED_POWER_FORCES_SERIAL")
+            .expect("shared-power fixture exists");
+        let bad = vec![
+            Placement { batch_id:"BATCH_A".to_owned(), kiln_id:"KILN_A".to_owned(), start_hour:0, finish_hour:2 },
+            Placement { batch_id:"BATCH_B".to_owned(), kiln_id:"KILN_A".to_owned(), start_hour:1, finish_hour:3 },
         ];
         assert!(independently_validate_schedule(scenario, &bad).is_err());
     }
