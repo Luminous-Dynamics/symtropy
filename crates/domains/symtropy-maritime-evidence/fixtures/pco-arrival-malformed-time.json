@@ -1,0 +1,9 @@
+{
+  "shipIMONumber": "9990001",
+  "shipStayReferenceNumber": "SYNTH-CALL-001",
+  "shipReportingSystemEntryPortCode": "ZZSYN",
+  "dateTimeArrivalPlanned": {
+    "pilotBoardingPlaceName": "SYNTH-PBP-01",
+    "plannedTimeOfArrival": "2026-10-19T12:00:00"
+  }
+}
