@@ -1,0 +1,41 @@
+name: Port-Call Value-Sharing Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/port-call-value-sharing-benchmark/**"
+      - "docs/research/PORT-CALL-VALUE-SHARING-BENCHMARK-V0_1.md"
+      - ".github/workflows/port-call-value-sharing-benchmark.yml"
+  push:
+    paths:
+      - "tools/port-call-value-sharing-benchmark/**"
+      - "docs/research/PORT-CALL-VALUE-SHARING-BENCHMARK-V0_1.md"
+      - ".github/workflows/port-call-value-sharing-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Counterfactual and value-sharing reference checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --check
+      - name: Run locked unit tests
+        run: cargo test --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Compare deterministic account receipt to frozen oracle
+        run: cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --json > /tmp/value-share-first.json
+      - name: Verify repeatability and exact receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/port-call-value-sharing-benchmark/Cargo.toml -- --json > /tmp/value-share-second.json
+          cmp /tmp/value-share-first.json /tmp/value-share-second.json
+          cmp /tmp/value-share-first.json tools/port-call-value-sharing-benchmark/fixtures/value-share-v0.1.expected.json
