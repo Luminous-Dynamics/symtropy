@@ -218,9 +218,8 @@ fn is_rfc3339(value: &str) -> bool {
         return false;
     }
 
-    let number = |start: usize, end: usize| -> u32 {
-        value[start..end].parse().unwrap_or(u32::MAX)
-    };
+    let number =
+        |start: usize, end: usize| -> u32 { value[start..end].parse().unwrap_or(u32::MAX) };
     let year = number(0, 4);
     let month = number(5, 7);
     let day = number(8, 10);
@@ -278,14 +277,20 @@ fn validate_gate(gate: &Gate) -> Result<(), String> {
         || gate.limitations.is_empty()
         || gate.limitations.iter().any(|text| text.trim().is_empty())
     {
-        return Err(format!("GATE_SCOPE_OR_LIMITATIONS_INVALID:{}", gate.gate_id.as_str()));
+        return Err(format!(
+            "GATE_SCOPE_OR_LIMITATIONS_INVALID:{}",
+            gate.gate_id.as_str()
+        ));
     }
     if let Some(tool) = &gate.tool {
         if tool.name.trim().is_empty()
             || tool.version.trim().is_empty()
             || !is_lower_hex_of_length(&tool.config_sha256, 64)
         {
-            return Err(format!("GATE_TOOL_IDENTITY_INVALID:{}", gate.gate_id.as_str()));
+            return Err(format!(
+                "GATE_TOOL_IDENTITY_INVALID:{}",
+                gate.gate_id.as_str()
+            ));
         }
     }
     let mut evidence_ids = BTreeSet::new();
@@ -303,12 +308,18 @@ fn validate_gate(gate: &Gate) -> Result<(), String> {
     match gate.status {
         GateStatus::Pass | GateStatus::Fail => {
             if gate.tool.is_none() || gate.evidence.is_empty() {
-                return Err(format!("EXECUTED_GATE_REQUIRES_TOOL_AND_EVIDENCE:{}", gate.gate_id.as_str()));
+                return Err(format!(
+                    "EXECUTED_GATE_REQUIRES_TOOL_AND_EVIDENCE:{}",
+                    gate.gate_id.as_str()
+                ));
             }
         }
         GateStatus::NotRun => {
             if gate.tool.is_some() || !gate.evidence.is_empty() {
-                return Err(format!("NOT_RUN_GATE_HAS_EXECUTION_CLAIM:{}", gate.gate_id.as_str()));
+                return Err(format!(
+                    "NOT_RUN_GATE_HAS_EXECUTION_CLAIM:{}",
+                    gate.gate_id.as_str()
+                ));
             }
         }
         GateStatus::Unresolved => {}
@@ -369,7 +380,10 @@ fn assemble_report(
     if !is_lower_hex_of_length(&args.source_commit_sha, 40) {
         return Err("INVALID_EVALUATOR_SOURCE_COMMIT_SHA".into());
     }
-    if args.ifc_schema.trim().is_empty() || args.supported_subset.trim().is_empty() || args.evaluator_name.trim().is_empty() {
+    if args.ifc_schema.trim().is_empty()
+        || args.supported_subset.trim().is_empty()
+        || args.evaluator_name.trim().is_empty()
+    {
         return Err("EVALUATION_PROFILE_OR_EVALUATOR_REQUIRED".into());
     }
 
@@ -384,11 +398,17 @@ fn assemble_report(
     let mut gates = Vec::with_capacity(GateId::ALL.len());
     let mut all_evidence_ids = BTreeSet::new();
     for gate_id in GateId::ALL {
-        let mut gate = by_id.remove(&gate_id).unwrap_or_else(|| not_run_gate(gate_id));
-        gate.evidence.sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
+        let mut gate = by_id
+            .remove(&gate_id)
+            .unwrap_or_else(|| not_run_gate(gate_id));
+        gate.evidence
+            .sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
         for evidence in &gate.evidence {
             if !all_evidence_ids.insert(evidence.evidence_id.clone()) {
-                return Err(format!("DUPLICATE_EVIDENCE_ID_ACROSS_GATES:{}", evidence.evidence_id));
+                return Err(format!(
+                    "DUPLICATE_EVIDENCE_ID_ACROSS_GATES:{}",
+                    evidence.evidence_id
+                ));
             }
         }
         validate_gate(&gate)?;
@@ -399,9 +419,24 @@ fn assemble_report(
     }
 
     let artifacts = vec![
-        artifact(ArtifactRole::SourceIfc, &args.source_ifc, "model/ifc", source_bytes),
-        artifact(ArtifactRole::RequirementsIds, &args.requirements_ids, "application/ids+xml", ids_bytes),
-        artifact(ArtifactRole::TargetIfc, &args.target_ifc, "model/ifc", target_bytes),
+        artifact(
+            ArtifactRole::SourceIfc,
+            &args.source_ifc,
+            "model/ifc",
+            source_bytes,
+        ),
+        artifact(
+            ArtifactRole::RequirementsIds,
+            &args.requirements_ids,
+            "application/ids+xml",
+            ids_bytes,
+        ),
+        artifact(
+            ArtifactRole::TargetIfc,
+            &args.target_ifc,
+            "model/ifc",
+            target_bytes,
+        ),
     ];
     let decision = overall_decision(&gates);
     let report = Report {
@@ -457,16 +492,30 @@ fn validate_report(report: &Report) -> Result<(), String> {
         ArtifactRole::TargetIfc,
     ];
     if report.artifacts.len() != expected_roles.len()
-        || report.artifacts.iter().map(|a| a.role).collect::<Vec<_>>().as_slice() != expected_roles.as_slice()
+        || report
+            .artifacts
+            .iter()
+            .map(|a| a.role)
+            .collect::<Vec<_>>()
+            .as_slice()
+            != expected_roles.as_slice()
         || report.artifacts.iter().any(|a| {
-            !is_lower_hex_of_length(&a.sha256, 64) || a.media_type.trim().is_empty() || a.locator.trim().is_empty()
+            !is_lower_hex_of_length(&a.sha256, 64)
+                || a.media_type.trim().is_empty()
+                || a.locator.trim().is_empty()
         })
     {
         return Err("ARTIFACT_SET_INVALID".into());
     }
 
     if report.gates.len() != GateId::ALL.len()
-        || report.gates.iter().map(|gate| gate.gate_id).collect::<Vec<_>>().as_slice() != GateId::ALL.as_slice()
+        || report
+            .gates
+            .iter()
+            .map(|gate| gate.gate_id)
+            .collect::<Vec<_>>()
+            .as_slice()
+            != GateId::ALL.as_slice()
     {
         return Err("GATE_SET_INVALID".into());
     }
@@ -486,14 +535,16 @@ fn validate_report(report: &Report) -> Result<(), String> {
 }
 
 fn parse_gate_file(path: &Path) -> Result<Gate, String> {
-    let bytes = fs::read(path).map_err(|error| format!("CANNOT_READ_GATE_JSON:{}:{error}", path.display()))?;
+    let bytes = fs::read(path)
+        .map_err(|error| format!("CANNOT_READ_GATE_JSON:{}:{error}", path.display()))?;
     let json: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("INVALID_GATE_JSON:{}:{error}", path.display()))?;
     let gate_value = json.get("gate").unwrap_or(&json).clone();
     let mut gate: Gate = serde_json::from_value(gate_value)
         .map_err(|error| format!("INVALID_TYPED_GATE:{}:{error}", path.display()))?;
     validate_gate(&gate)?;
-    gate.evidence.sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
+    gate.evidence
+        .sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
     Ok(gate)
 }
 
@@ -512,9 +563,16 @@ fn parse_args() -> Result<Option<CliArgs>, String> {
                 let value = args.next().ok_or("MISSING_VALUE:--gate-json")?;
                 gate_json.push(PathBuf::from(value));
             }
-            "--source-ifc" | "--ids" | "--target-ifc" | "--ifc-schema"
-            | "--supported-subset" | "--run-id" | "--reported-at"
-            | "--source-commit-sha" | "--evaluator-name" | "--output" => {
+            "--source-ifc"
+            | "--ids"
+            | "--target-ifc"
+            | "--ifc-schema"
+            | "--supported-subset"
+            | "--run-id"
+            | "--reported-at"
+            | "--source-commit-sha"
+            | "--evaluator-name"
+            | "--output" => {
                 let value = args.next().ok_or_else(|| format!("MISSING_VALUE:{flag}"))?;
                 if singleton.insert(flag.clone(), value).is_some() {
                     return Err(format!("DUPLICATE_ARGUMENT:{flag}"));
@@ -524,7 +582,10 @@ fn parse_args() -> Result<Option<CliArgs>, String> {
         }
     }
     let take = |key: &str| -> Result<String, String> {
-        singleton.get(key).cloned().ok_or_else(|| format!("MISSING_REQUIRED_ARGUMENT:{key}"))
+        singleton
+            .get(key)
+            .cloned()
+            .ok_or_else(|| format!("MISSING_REQUIRED_ARGUMENT:{key}"))
     };
     Ok(Some(CliArgs {
         source_ifc: PathBuf::from(take("--source-ifc")?),
@@ -550,18 +611,36 @@ fn run() -> Result<i32, String> {
         println!("{}", usage());
         return Ok(0);
     };
-    let source_bytes = fs::read(&args.source_ifc)
-        .map_err(|error| format!("CANNOT_READ_SOURCE_IFC:{}:{error}", args.source_ifc.display()))?;
-    let ids_bytes = fs::read(&args.requirements_ids)
-        .map_err(|error| format!("CANNOT_READ_IDS:{}:{error}", args.requirements_ids.display()))?;
-    let target_bytes = fs::read(&args.target_ifc)
-        .map_err(|error| format!("CANNOT_READ_TARGET_IFC:{}:{error}", args.target_ifc.display()))?;
+    let source_bytes = fs::read(&args.source_ifc).map_err(|error| {
+        format!(
+            "CANNOT_READ_SOURCE_IFC:{}:{error}",
+            args.source_ifc.display()
+        )
+    })?;
+    let ids_bytes = fs::read(&args.requirements_ids).map_err(|error| {
+        format!(
+            "CANNOT_READ_IDS:{}:{error}",
+            args.requirements_ids.display()
+        )
+    })?;
+    let target_bytes = fs::read(&args.target_ifc).map_err(|error| {
+        format!(
+            "CANNOT_READ_TARGET_IFC:{}:{error}",
+            args.target_ifc.display()
+        )
+    })?;
     let mut producer_gates = Vec::new();
     for gate_path in &args.gate_json {
         producer_gates.push(parse_gate_file(gate_path)?);
     }
 
-    let report = assemble_report(&args, &source_bytes, &ids_bytes, &target_bytes, producer_gates)?;
+    let report = assemble_report(
+        &args,
+        &source_bytes,
+        &ids_bytes,
+        &target_bytes,
+        producer_gates,
+    )?;
     let json = serde_json::to_vec_pretty(&report)
         .map_err(|error| format!("REPORT_SERIALIZATION_FAILED:{error}"))?;
     if let Some(output) = &args.output {
@@ -633,20 +712,33 @@ mod tests {
     }
 
     fn all_pass_gates() -> Vec<Gate> {
-        GateId::ALL.iter().enumerate()
+        GateId::ALL
+            .iter()
+            .enumerate()
             .map(|(index, id)| producer_gate(*id, GateStatus::Pass, &format!("evidence-{index}")))
             .collect()
     }
 
     fn assemble(gates: Vec<Gate>) -> Result<Report, String> {
-        assemble_report(&fixture_args(), b"source model bytes", b"ids requirements bytes", b"target model bytes", gates)
+        assemble_report(
+            &fixture_args(),
+            b"source model bytes",
+            b"ids requirements bytes",
+            b"target model bytes",
+            gates,
+        )
     }
 
     #[test]
     fn missing_gates_remain_not_run_and_cannot_qualify() {
         let report = assemble(Vec::new()).unwrap();
         assert_eq!(report.gates.len(), 8);
-        assert!(report.gates.iter().all(|gate| gate.status == GateStatus::NotRun));
+        assert!(
+            report
+                .gates
+                .iter()
+                .all(|gate| gate.status == GateStatus::NotRun)
+        );
         assert_eq!(report.overall_decision, OverallDecision::Unqualified);
     }
 
@@ -668,7 +760,11 @@ mod tests {
     #[test]
     fn unresolved_and_not_run_never_qualify() {
         let mut gates = all_pass_gates();
-        gates[2] = producer_gate(GateId::IfcSchemaConformance, GateStatus::Unresolved, "unused");
+        gates[2] = producer_gate(
+            GateId::IfcSchemaConformance,
+            GateStatus::Unresolved,
+            "unused",
+        );
         let report = assemble(gates).unwrap();
         assert_eq!(report.overall_decision, OverallDecision::Unqualified);
     }
@@ -684,21 +780,37 @@ mod tests {
     fn pass_without_tool_or_evidence_is_rejected() {
         let mut gate = producer_gate(GateId::StepSyntax, GateStatus::Pass, "evidence");
         gate.tool = None;
-        assert!(validate_gate(&gate).unwrap_err().starts_with("EXECUTED_GATE_REQUIRES_TOOL"));
+        assert!(
+            validate_gate(&gate)
+                .unwrap_err()
+                .starts_with("EXECUTED_GATE_REQUIRES_TOOL")
+        );
         gate.tool = Some(ToolIdentity {
             name: "producer".into(),
             version: "1".into(),
             config_sha256: "b".repeat(64),
         });
         gate.evidence.clear();
-        assert!(validate_gate(&gate).unwrap_err().starts_with("EXECUTED_GATE_REQUIRES_TOOL"));
+        assert!(
+            validate_gate(&gate)
+                .unwrap_err()
+                .starts_with("EXECUTED_GATE_REQUIRES_TOOL")
+        );
     }
 
     #[test]
     fn not_run_with_tool_or_evidence_is_rejected() {
         let mut gate = producer_gate(GateId::StepSyntax, GateStatus::NotRun, "unused");
-        gate.tool = Some(ToolIdentity { name: "producer".into(), version: "1".into(), config_sha256: "b".repeat(64) });
-        assert!(validate_gate(&gate).unwrap_err().starts_with("NOT_RUN_GATE_HAS_EXECUTION_CLAIM"));
+        gate.tool = Some(ToolIdentity {
+            name: "producer".into(),
+            version: "1".into(),
+            config_sha256: "b".repeat(64),
+        });
+        assert!(
+            validate_gate(&gate)
+                .unwrap_err()
+                .starts_with("NOT_RUN_GATE_HAS_EXECUTION_CLAIM")
+        );
     }
 
     #[test]
@@ -712,20 +824,38 @@ mod tests {
         assert!(serde_json::from_value::<Gate>(raw).is_err());
         let mut gate = producer_gate(GateId::StepSyntax, GateStatus::Pass, "evidence");
         gate.evidence[0].sha256 = "not-a-sha".into();
-        assert!(validate_gate(&gate).unwrap_err().starts_with("GATE_EVIDENCE_INVALID"));
+        assert!(
+            validate_gate(&gate)
+                .unwrap_err()
+                .starts_with("GATE_EVIDENCE_INVALID")
+        );
     }
 
     #[test]
     fn duplicate_evidence_id_across_gates_is_rejected() {
         let a = producer_gate(GateId::StepSyntax, GateStatus::Pass, "same-id");
         let b = producer_gate(GateId::IdsXsdValidity, GateStatus::Pass, "same-id");
-        assert!(assemble(vec![a, b]).unwrap_err().starts_with("DUPLICATE_EVIDENCE_ID_ACROSS_GATES"));
+        assert!(
+            assemble(vec![a, b])
+                .unwrap_err()
+                .starts_with("DUPLICATE_EVIDENCE_ID_ACROSS_GATES")
+        );
     }
 
     #[test]
     fn artifact_hashes_are_for_exact_bytes_and_change_when_bytes_change() {
-        let first = artifact(ArtifactRole::SourceIfc, Path::new("source.ifc"), "model/ifc", b"A");
-        let second = artifact(ArtifactRole::SourceIfc, Path::new("source.ifc"), "model/ifc", b"B");
+        let first = artifact(
+            ArtifactRole::SourceIfc,
+            Path::new("source.ifc"),
+            "model/ifc",
+            b"A",
+        );
+        let second = artifact(
+            ArtifactRole::SourceIfc,
+            Path::new("source.ifc"),
+            "model/ifc",
+            b"B",
+        );
         assert_ne!(first.sha256, second.sha256);
         assert_eq!(first.sha256, sha256_hex(b"A"));
         assert_eq!(first.byte_length, 1);
@@ -736,7 +866,10 @@ mod tests {
         let gates = all_pass_gates();
         let forward = assemble(gates.clone()).unwrap();
         let reverse = assemble(gates.into_iter().rev().collect()).unwrap();
-        assert_eq!(serde_json::to_vec(&forward).unwrap(), serde_json::to_vec(&reverse).unwrap());
+        assert_eq!(
+            serde_json::to_vec(&forward).unwrap(),
+            serde_json::to_vec(&reverse).unwrap()
+        );
     }
 
     #[test]
