@@ -1217,6 +1217,39 @@ mod tests {
             1
         );
 
+        let nominal_outside = vec![OperationDurationBounds {
+            operation_id: "cut".into(),
+            minimum_seconds: 3.0,
+            maximum_seconds: 4.0,
+        }];
+        let report = validate_schedule_with_duration_bounds(&operations, &nominal_outside);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::InvalidDurationBounds),
+            1
+        );
+
+        let malformed = vec![
+            OperationDurationBounds {
+                operation_id: "cut".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: f64::NAN,
+            },
+            OperationDurationBounds {
+                operation_id: " ".into(),
+                minimum_seconds: 1.0,
+                maximum_seconds: 2.0,
+            },
+        ];
+        let report = validate_schedule_with_duration_bounds(&operations, &malformed);
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::InvalidDurationBounds),
+            1
+        );
+        assert_eq!(
+            report.violation_count(ScheduleViolationCode::EmptyDurationBoundOperationId),
+            1
+        );
+
         let unknown = vec![
             OperationDurationBounds {
                 operation_id: "cut".into(),
