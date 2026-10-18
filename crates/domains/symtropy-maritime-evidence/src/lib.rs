@@ -893,7 +893,7 @@ mod tests {
             item.source_field_code,
             "dateTimeDeparturePlanned.plannedTimeOfDeparture"
         );
-        assert_eq!(item.port_call_id, "CALL-EXAMPLE-A");
+        assert_eq!(item.port_call_id, "SYNTH-CALL-001");
         assert!(validate_observation(&item, &policy()).is_ok());
     }
 
