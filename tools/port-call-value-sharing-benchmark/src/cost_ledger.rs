@@ -404,6 +404,10 @@ mod tests {
     #[test]
     fn category_ledger_reconciles_to_participant_account_totals() {
         let report = evaluate_component_ledger(&input()).unwrap();
+        assert_eq!(
+            report.to_json(),
+            include_str!("../fixtures/component-ledger-v0.1.expected.json").trim_end()
+        );
         assert_eq!(report.account_report.total_gross_benefit_minor, 6_000);
         assert_eq!(report.account_report.net_transfer_minor, 0);
         assert!(report.account_report.all_reservations_met);
@@ -479,9 +483,8 @@ mod tests {
         );
 
         let mut duplicate_participant = input();
-        duplicate_participant.participants.push(
-            duplicate_participant.participants[0].clone()
-        );
+        let duplicate_terms = duplicate_participant.participants[0].clone();
+        duplicate_participant.participants.push(duplicate_terms);
         assert_eq!(
             evaluate_component_ledger(&duplicate_participant),
             Err(CostLedgerError::DuplicateParticipant("PORT-OPS".to_owned()))
