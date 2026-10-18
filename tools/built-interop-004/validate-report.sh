@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-report="\${1:?Usage: validate-report.sh report.json}"
+report="${1:?Usage: validate-report.sh report.json}"
 command -v jq >/dev/null 2>&1 || { echo "MISSING_TOOL: jq" >&2; exit 2; }
 [[ -f "$report" ]] || { echo "MISSING_REPORT: $report" >&2; exit 2; }
 jq empty "$report" >/dev/null 2>&1 || { echo "REPORT_JSON_INVALID" >&2; exit 1; }
