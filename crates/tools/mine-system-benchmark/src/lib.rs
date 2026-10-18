@@ -138,9 +138,11 @@ impl CandidateMetrics {
         Ok(())
     }
 
-    /// Return true only when self is no worse in every declared objective
-    /// and strictly better in at least one. Exact finite comparisons are used;
-    /// there is no hidden tolerance or weighted aggregate score.
+    /// Metric-only dominance: call this only after both corresponding
+    /// CampaignCase evaluations return Eligible. This helper is not a safety
+    /// or admission authority. It returns true only when self is no worse in
+    /// every declared objective and strictly better in at least one. Exact
+    /// finite comparisons are used; there is no hidden tolerance or weighted score.
     pub fn dominates(self, other: Self) -> bool {
         if self.validate().is_err()
             || other.validate().is_err()
