@@ -603,13 +603,50 @@ mod tests {
     }
 
     #[test]
-    fn seeded_contract_oracles_match() {
+    fn seeded_contract_oracles_match_independent_pinned_dispositions() {
+        // These expectations are pinned in test code, not derived from the
+        // manifest. Editing both a fixture and its expected_decision must not
+        // make the suite agree with itself silently.
+        const EXPECTED: &[(&str, Decision)] = &[
+            ("01-complete-evidence-balanced", Decision::Eligible),
+            ("02-verified-payload-digest-mismatch", Decision::Blocked),
+            ("03-required-material-lot-missing", Decision::Unresolved),
+            ("04-mandatory-quality-gate-fails", Decision::Blocked),
+            ("05-mass-balance-out-of-tolerance", Decision::Blocked),
+            ("06-required-evidence-stale", Decision::Unresolved),
+            ("07-critical-evidence-wrong-unit", Decision::Blocked),
+            ("08-critical-evidence-contradictory", Decision::Blocked),
+            ("09-critical-evidence-scope-invalid", Decision::Blocked),
+            ("10-duplicate-evidence-record", Decision::Blocked),
+            ("11-unreferenced-evidence-record", Decision::Blocked),
+            ("12-mass-ledger-quantity-unknown", Decision::Unresolved),
+        ];
+
         let (manifest, raw) = fixture();
         validate_manifest(&manifest).expect("manifest contract should be valid");
         let report = build_report(&manifest, &raw);
-        assert_eq!(report.summary.case_count, 12);
-        assert_eq!(report.summary.oracle_matches, 12);
+        assert_eq!(report.summary.case_count, EXPECTED.len());
+        assert_eq!(report.summary.oracle_matches, EXPECTED.len());
         assert!(report.summary.suite_passed);
+        assert_eq!(report.case_results.len(), EXPECTED.len());
+
+        for result in &report.case_results {
+            let pinned = EXPECTED
+                .iter()
+                .find(|(case_id, _)| *case_id == result.case_id.as_str())
+                .map(|(_, decision)| *decision)
+                .expect("fixture contains only independently pinned case IDs");
+            assert_eq!(
+                result.computed_decision, pinned,
+                "computed disposition changed for {}",
+                result.case_id
+            );
+            assert_eq!(
+                result.expected_decision, pinned,
+                "fixture oracle changed for {}",
+                result.case_id
+            );
+        }
     }
 
     #[test]
