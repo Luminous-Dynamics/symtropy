@@ -589,15 +589,24 @@ fn write_json_atomically<T: Serialize>(path: &Path, value: &T) -> Result<(), Str
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    fs::create_dir_all(parent)
-        .map_err(|error| format!("cannot create output directory {}: {error}", parent.display()))?;
+    fs::create_dir_all(parent).map_err(|error| {
+        format!(
+            "cannot create output directory {}: {error}",
+            parent.display()
+        )
+    })?;
     let file_name = path
         .file_name()
         .ok_or_else(|| "output path must name a file".to_owned())?
         .to_string_lossy()
         .into_owned();
     let absolute_path = fs::canonicalize(parent)
-        .map_err(|error| format!("cannot resolve output directory {}: {error}", parent.display()))?
+        .map_err(|error| {
+            format!(
+                "cannot resolve output directory {}: {error}",
+                parent.display()
+            )
+        })?
         .join(file_name);
     let temporary = absolute_path.with_file_name(format!(
         ".{}.{}.tmp",
