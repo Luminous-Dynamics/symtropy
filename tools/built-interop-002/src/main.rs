@@ -59,7 +59,7 @@ struct Report {
     ifc_input_sha256: String,
     ids_input_sha256: String,
     parsed_entity_count: usize,
-    applicable_wall_count: usize,
+    applicable_wall_count: Option<usize>,
     observations: Vec<PropertyObservation>,
     diagnostics: Vec<String>,
     semantic_result_sha256: String,
@@ -122,7 +122,7 @@ fn unsupported_report(
         ifc_schema_token: &schema_token,
         ids_version_evidence: &ids_version_evidence,
         parsed_entity_count,
-        applicable_wall_count: 0,
+        applicable_wall_count: None,
         observations: &[],
         diagnostics: &diagnostics,
     };
@@ -331,24 +331,40 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
             .text(0)
             .map(str::to_string)
             .unwrap_or_else(|| format!("STEP:{entity_id:?}"));
-        let observed_value = wall.text(IFC4_WALL_NAME_ATTRIBUTE_INDEX).map(str::to_string);
-        let (outcome, diagnostic_code) = match observed_value.as_deref() {
-            None => {
-                decision = Decision::Blocked;
-                diagnostics.push(format!(
-                    "MISSING_TARGET_PROPERTY:{requirement_id}:{stable_id}"
-                ));
-                (PropertyOutcome::Missing, Some("MISSING_TARGET_PROPERTY".to_string()))
-            }
-            Some(value) if value != expected_value => {
-                decision = Decision::Blocked;
-                diagnostics.push(format!(
-                    "CHANGED_TARGET_PROPERTY:{requirement_id}:{stable_id}"
-                ));
-                (PropertyOutcome::Changed, Some("CHANGED_TARGET_PROPERTY".to_string()))
-            }
-            Some(_) => (PropertyOutcome::Preserved, None),
+        let (outcome, diagnostic_code, observed_value) = if wall.attributes.len() != 9 {
+            decision = Decision::Blocked;
+            diagnostics.push(format!(
+                "IFCWALL_ATTRIBUTE_ARITY_MISMATCH:{requirement_id}:{stable_id}"
+            ));
+            (
+                PropertyOutcome::NotEvaluated,
+                Some("IFCWALL_ATTRIBUTE_ARITY_MISMATCH".to_string()),
+                None,
+            )
+        } else {
+            let value = wall
+                .text(IFC4_WALL_NAME_ATTRIBUTE_INDEX)
+                .map(str::to_string);
+            let (outcome, diagnostic_code) = match value.as_deref() {
+                None => {
+                    decision = Decision::Blocked;
+                    diagnostics.push(format!(
+                        "MISSING_TARGET_PROPERTY:{requirement_id}:{stable_id}"
+                    ));
+                    (PropertyOutcome::Missing, Some("MISSING_TARGET_PROPERTY".to_string()))
+                }
+                Some(value) if value != expected_value => {
+                    decision = Decision::Blocked;
+                    diagnostics.push(format!(
+                        "CHANGED_TARGET_PROPERTY:{requirement_id}:{stable_id}"
+                    ));
+                    (PropertyOutcome::Changed, Some("CHANGED_TARGET_PROPERTY".to_string()))
+                }
+                Some(_) => (PropertyOutcome::Preserved, None),
+            };
+            (outcome, diagnostic_code, value)
         };
+
         observations.push(PropertyObservation {
             requirement_id: requirement_id.clone(),
             source_object_id: stable_id,
@@ -371,7 +387,7 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
         ifc_schema_token: &schema_token,
         ids_version_evidence: &ids_version_evidence,
         parsed_entity_count: model.len(),
-        applicable_wall_count: walls.len(),
+        applicable_wall_count: Some(walls.len()),
         observations: &observations,
         diagnostics: &diagnostics,
     };
@@ -480,7 +496,7 @@ mod tests {
         assert_eq!(report.decision, Decision::Conformant);
         assert_eq!(report.ifc_schema_token.as_deref(), Some("IFC4"));
         assert_eq!(report.ids_version_evidence, "Declared:IDS1.0");
-        assert_eq!(report.applicable_wall_count, 1);
+        assert_eq!(report.applicable_wall_count, Some(1));
         assert_eq!(report.observations.len(), 1);
         assert_eq!(report.observations[0].expected_value, "Panel 001");
         assert_eq!(report.observations[0].observed_value.as_deref(), Some("Panel 001"));
@@ -517,6 +533,22 @@ mod tests {
             report.observations[0].diagnostic_code.as_deref(),
             Some("MISSING_TARGET_PROPERTY")
         );
+    }
+
+    #[test]
+    fn wrong_ifcwall_attribute_arity_blocks_instead_of_guessing_slots() {
+        let (ifc, ids) = fixtures();
+        let shortened = String::from_utf8(ifc)
+            .expect("fixture is UTF-8")
+            .replace("'Panel 001',$,$,$,$,$,.NOTDEFINED.", "'Panel 001',$,$,$");
+        let report = evaluate(shortened.as_bytes(), &ids)
+            .expect("syntactically valid shortened record reaches profile guard");
+        assert_eq!(report.decision, Decision::Blocked);
+        assert_eq!(
+            report.observations[0].diagnostic_code.as_deref(),
+            Some("IFCWALL_ATTRIBUTE_ARITY_MISMATCH")
+        );
+        assert_eq!(report.observations[0].outcome, PropertyOutcome::NotEvaluated);
     }
 
     #[test]
