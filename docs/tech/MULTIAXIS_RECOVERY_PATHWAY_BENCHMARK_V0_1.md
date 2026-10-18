@@ -91,6 +91,18 @@ The frozen fixture records the following expected totals:
 
 The evaluator computes these totals from actual case inputs, checks each expected field and then checks the aggregate counts. If generated labels disagree with actual semantics, the audit fails. The totals are counts of synthetic combinations, not a prediction of field prevalence, safety, or policy.
 
+## Temporal pathway and non-anticipativity contract
+
+In addition to the 864-case state matrix, the fixture contains a four-decision, two-future temporal trace. The two futures share the same stage-0 visible-history ID and must take the same review-only action. At stage 1, each future has a different *observable* history: one remains under the current criteria, while the other records a criteria-shift signpost. Only after that observation may the policy choose different review/replanning actions.
+
+Every decision names its observed history, decision day, and evidence references. The auditor rejects:
+- a decision referencing evidence whose observed or available day is later than the decision day;
+- different actions for the same policy, stage, and visible-history ID (non-anticipativity violation);
+- missing or duplicate evidence/decision identities;
+- any temporal action that declares operation authority.
+
+Expected temporal counts are 3 synthetic evidence records, 4 decisions, 3 visible-history groups, zero non-anticipativity violations, zero future-evidence violations, zero missing references, and zero actuation-authorized decisions. Mutation tests deliberately diverge the shared-prefix actions and inject a day-5 signpost into the day-0 decision. This is a finite trace contract—not proof that an arbitrary deployed controller did not use undeclared information.
+
 ## Independent auditor contract
 
 The Rust tool validates corpus/schema identities, claim ceiling, profile/family-set/commitment definitions, exact case count, uniqueness of case IDs, valid enum values, non-empty families and time ranges. For each case it independently recomputes:
@@ -115,6 +127,8 @@ The receipt reports a canonical corpus digest and exact source commit, sorted pe
 | Criteria changed or reverted-new-version promoted | 0 | Version-bound profile logic |
 | Input permutation | Byte-identical canonical receipt | Determinism |
 | Independent finite oracle | 100% | Tiny-case exact correctness |
+| Future-evidence leakage into earlier decisions | 0 | Declared temporal evidence references only |
+| Different actions for identical policy/stage/visible-history | 0 | Frozen non-anticipativity groups only |
 | Operation-authorized outputs | 0 | Output contract, not runtime enforcement |
 | Scalability | 10 / 100 / 1,000 / 10,000 cases | Measure p50/p95, throughput, memory and completeness |
 
