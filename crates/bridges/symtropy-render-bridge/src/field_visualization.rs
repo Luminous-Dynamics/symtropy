@@ -8,7 +8,11 @@
 //! It does not simulate electromagnetism, infer temperature from RGB, calibrate
 //! sensors, or upgrade caller-declared provenance into measurement evidence.
 
-use bevy::prelude::*;
+use bevy::{
+    asset::RenderAssetUsages,
+    mesh::{Indices, PrimitiveTopology},
+    prelude::*,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -1443,7 +1447,82 @@ pub struct FieldVisualizationPlugin;
 impl Plugin for FieldVisualizationPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<FieldLayerSet>()
-            .add_systems(Update, draw_field_layers);
+            .add_systems(Update, (draw_field_layers, sync_regular_grid_slices));
+    }
+}
+
+#[derive(Component)]
+struct RegularGridSliceMeshEntity;
+
+fn sync_regular_grid_slices(
+    mut commands: Commands,
+    layers: Res<FieldLayerSet>,
+    existing: Query<Entity, With<RegularGridSliceMeshEntity>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    if !layers.is_changed() {
+        return;
+    }
+    for entity in &existing {
+        commands.entity(entity).despawn();
+    }
+    if !layers.enabled
+        || layers.scalar_grids.len() > MAX_FIELD_LAYERS
+        || layers.grid_slices.len() > MAX_GRID_SLICES_RENDERED
+    {
+        return;
+    }
+
+    let mut material_handle = None;
+    let mut rendered_slices = 0_usize;
+    let mut total_vertices = 0_usize;
+    for request in layers.grid_slices.iter().filter(|request| request.enabled) {
+        if rendered_slices >= MAX_GRID_SLICES_RENDERED
+            || total_vertices >= MAX_GRID_SLICE_VERTICES_TOTAL
+        {
+            break;
+        }
+        let matches: Vec<&RegularScalarGrid3D> = layers
+            .scalar_grids
+            .iter()
+            .filter(|grid| grid.metadata.id == request.grid_id && grid.enabled)
+            .collect();
+        if matches.len() != 1 {
+            continue;
+        }
+        let remaining = MAX_GRID_SLICE_VERTICES_TOTAL.saturating_sub(total_vertices);
+        let vertex_budget = MAX_GRID_SLICE_VERTICES.min(remaining);
+        let geometry = match extract_grid_slice(matches[0], request, vertex_budget) {
+            Ok(geometry) => geometry,
+            Err(_) => continue,
+        };
+
+        let mut mesh = Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        );
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, geometry.positions);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, geometry.normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, geometry.colors);
+        mesh.insert_indices(Indices::U32(geometry.indices));
+        let handle = meshes.add(mesh);
+
+        let material = material_handle.get_or_insert_with(|| {
+            materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                unlit: true,
+                cull_mode: None,
+                ..default()
+            })
+        });
+        commands.spawn((
+            Mesh3d(handle),
+            MeshMaterial3d(material.clone()),
+            RegularGridSliceMeshEntity,
+        ));
+        total_vertices += (geometry.width as usize) * (geometry.height as usize);
+        rendered_slices += 1;
     }
 }
 
@@ -1451,6 +1530,8 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
     if !layers.enabled
         || layers.scalar_layers.len() > MAX_FIELD_LAYERS
         || layers.vector_layers.len() > MAX_FIELD_LAYERS
+        || layers.scalar_grids.len() > MAX_FIELD_LAYERS
+        || layers.grid_slices.len() > MAX_GRID_SLICES_RENDERED
         || layers.spectra.len() > MAX_FIELD_LAYERS
     {
         return;
