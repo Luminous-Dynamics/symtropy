@@ -8,7 +8,7 @@
 
 Build a measurable human-simulation stack by separating appearance, motion, motor control, cognition, and population/social behavior. These layers interact through explicit data contracts; they must not be collapsed into one “human-like” score.
 
-The first increment adds an opt-in Bevy skeletal-animation driver for licensed glTF/GLB avatars. It maps semantic motion intent (idle/walk/run/talk) to animation-graph clips and cross-fades between them. It does **not** provide a human mesh, facial animation, inverse kinematics, root-motion extraction, or evidence of realistic human behavior. Those remain explicit follow-on work.
+The first increment adds an opt-in Bevy skeletal-animation driver for user-supplied glTF/GLB avatars. It maps semantic motion states to animation-graph clips, adds a desired-velocity-to-state adapter with hysteresis, and provides an asset-backed smoke-scene example. Small motion-quality metric functions now measure aligned root-trajectory error, stance-foot drift, and discrete jerk. It does **not** bundle a human mesh, provide facial animation, inverse kinematics or root-motion extraction, or demonstrate realistic rendered output. Those remain explicit follow-on work.
 
 ## Source audit
 
