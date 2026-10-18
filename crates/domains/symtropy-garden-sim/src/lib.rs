@@ -13,6 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub mod field_robot_cost;
 pub mod portfolio;
 pub mod provider_coverage;
+pub mod repair_recovery;
 pub mod service_access;
 
 /// Serialize exact integers as decimal strings so JSON consumers that use

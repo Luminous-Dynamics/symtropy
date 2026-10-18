@@ -1,0 +1,30 @@
+# REPAIR-RECOVERY-BENCH-V1
+case_id	expected_result	rationale
+repair_restore_and_parts_wait_percentiles_match_oracle	CALCULATED	Closed breakdowns produce exact restoration and completed part-lead percentiles
+open_breakdown_and_parts_wait_remain_open	CALCULATED	Unreceived required part and absent verification remain open rather than zero duration
+missing_breakdown_failure_timestamp_blocks	BLOCKED	Breakdown requires explicit failure detection
+non_machine_outage_cannot_claim_repair_events	BLOCKED	Weather/site-access interruption cannot be misclassified as machine repair
+part_receipt_requires_order	BLOCKED	Part received must follow a recorded part order
+repair_start_requires_diagnosis	BLOCKED	Repair work requires a diagnosis-complete timestamp
+repair_completion_requires_start	BLOCKED	Repair completion cannot exist without repair start
+breakdown_restore_requires_repair_completion	BLOCKED	Machine restoration requires recorded repair completion
+verification_requires_service_restoration	BLOCKED	Availability verification requires service-restored event
+future_timestamp_blocks	BLOCKED	No event may be after the as-of boundary
+non_monotone_event_order_blocks	BLOCKED	Event chronology must be monotone
+duplicate_episode_id_blocks	BLOCKED	Repair episode IDs must be unique
+unknown_affected_request_blocks	BLOCKED	Every affected request must join to canonical service-access identity
+duplicate_affected_request_link_within_episode_blocks	BLOCKED	An affected request cannot be duplicated within one episode
+scope_mismatch_blocks	BLOCKED	Repair and canonical service-access scopes must match
+period_mismatch_blocks	BLOCKED	Repair and canonical service-access periods must match
+currency_mismatch_blocks	BLOCKED	Repair event currency must match the declared assessment
+missing_asset_configuration_blocks	BLOCKED	Asset configuration identity is required
+stale_evidence_blocks	BLOCKED	Stale repair event evidence blocks the summary
+malformed_evidence_digest_blocks	BLOCKED	Malformed evidence digest shape blocks
+source_referenced_events_are_not_called_authenticated	CALCULATED	Source references preserve provenance but do not authenticate artifacts
+incomplete_log_keeps_coverage_flag_false	CALCULATED	Partial-log declaration remains visible in output
+zero_episodes_does_not_claim_no_incidents_when_log_is_partial	CALCULATED	Empty partial log does not imply zero real-world incidents
+external_interruption_is_not_classified_as_breakdown	CALCULATED	Weather interruption duration remains separate from repair restore time
+scheduled_maintenance_is_reported_separately_from_breakdown	CALCULATED	Scheduled maintenance cannot inflate breakdown count
+required_part_needs_requirement_timestamp	BLOCKED	A required part must have a timestamp
+repair_cannot_start_before_required_part_arrives	BLOCKED	Repair cannot start while a declared required part is absent
+exact_timestamps_serialize_as_decimal_strings	CALCULATED	Exact event timestamps remain decimal strings for JSON consumers
