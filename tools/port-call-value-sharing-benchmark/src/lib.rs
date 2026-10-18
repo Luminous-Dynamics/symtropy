@@ -198,6 +198,7 @@ pub struct ParticipantSensitivityOutcome {
 pub struct CounterfactualSensitivityReport {
     pub case_id: String,
     pub currency_code: String,
+    pub evidence_tier: EvidenceTier,
     pub treatment_receipt_sha256: String,
     pub comparison_contract_sha256: String,
     pub baseline_count: usize,
@@ -219,9 +220,10 @@ impl CounterfactualSensitivityReport {
         let mut output = String::new();
         write!(
             &mut output,
-            "{{\"case_id\":\"{}\",\"currency_code\":\"{}\",\"treatment_receipt_sha256\":\"{}\",\"comparison_contract_sha256\":\"{}\",\"baseline_count\":{},\"worst_case_total_gross_benefit_minor\":{},\"best_case_total_gross_benefit_minor\":{},\"worst_case_fuel_reduction_grams\":{},\"best_case_fuel_reduction_grams\":{},\"worst_case_emissions_reduction_grams\":{},\"best_case_emissions_reduction_grams\":{},\"all_reservations_met_in_all_baselines\":{},\"baselines\":[",
+            "{{\"case_id\":\"{}\",\"currency_code\":\"{}\",\"evidence_tier\":\"{}\",\"treatment_receipt_sha256\":\"{}\",\"comparison_contract_sha256\":\"{}\",\"baseline_count\":{},\"worst_case_total_gross_benefit_minor\":{},\"best_case_total_gross_benefit_minor\":{},\"worst_case_fuel_reduction_grams\":{},\"best_case_fuel_reduction_grams\":{},\"worst_case_emissions_reduction_grams\":{},\"best_case_emissions_reduction_grams\":{},\"all_reservations_met_in_all_baselines\":{},\"baselines\":[",
             self.case_id,
             self.currency_code,
+            self.evidence_tier.as_str(),
             self.treatment_receipt_sha256,
             self.comparison_contract_sha256,
             self.baseline_count,
@@ -592,6 +594,7 @@ pub fn evaluate_counterfactual_sensitivity(
     Ok(CounterfactualSensitivityReport {
         case_id: reference.basis.case_id.clone(),
         currency_code: reference.basis.currency_code.clone(),
+        evidence_tier: reference.basis.evidence_tier,
         treatment_receipt_sha256: reference.basis.treatment_receipt_sha256.clone(),
         comparison_contract_sha256: reference.basis.comparison_contract_sha256.clone(),
         baseline_count: baselines.len(),
