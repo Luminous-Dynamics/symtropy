@@ -83,9 +83,9 @@ fn is_valid_ifc_global_id(value: &str) -> bool {
     let bytes = value.as_bytes();
     bytes.len() == 22
         && matches!(bytes[0], b'0'..=b'3')
-        && bytes.iter().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(*byte, b'_' | b'$')
-        })
+        && bytes
+            .iter()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(*byte, b'_' | b'$'))
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -342,10 +342,7 @@ fn evaluate(ifc_bytes: &[u8], ids_bytes: &[u8]) -> Result<Report, String> {
     let mut decision = Decision::SubsetConformant;
     let mut global_id_counts = BTreeMap::<String, usize>::new();
     for (_, wall) in &walls {
-        if let Some(id) = wall
-            .text(0)
-            .filter(|value| !value.trim().is_empty())
-        {
+        if let Some(id) = wall.text(0).filter(|value| !value.trim().is_empty()) {
             *global_id_counts.entry(id.to_string()).or_insert(0) += 1;
         }
     }
@@ -654,12 +651,8 @@ mod tests {
         ];
         for invalid_id in invalid_ids {
             let source = String::from_utf8(ifc.clone()).expect("fixture is UTF-8");
-            let mutated = source.replace(
-                "'0000000000000000000000'",
-                &format!("'{invalid_id}'"),
-            );
-            let report =
-                evaluate(mutated.as_bytes(), &ids).expect("synthetic IFC still parses");
+            let mutated = source.replace("'0000000000000000000000'", &format!("'{invalid_id}'"));
+            let report = evaluate(mutated.as_bytes(), &ids).expect("synthetic IFC still parses");
             assert_eq!(report.decision, Decision::Blocked, "ID={invalid_id}");
             assert_eq!(
                 report.observations[0].outcome,
@@ -706,12 +699,10 @@ mod tests {
             2,
             "every member of a duplicate-identity set must be marked ambiguous"
         );
-        assert!(
-            report.observations.iter().all(|observation| {
-                observation.diagnostic_code.as_deref() == Some("DUPLICATE_GLOBAL_ID")
-                    && observation.outcome == PropertyOutcome::NotEvaluated
-            })
-        );
+        assert!(report.observations.iter().all(|observation| {
+            observation.diagnostic_code.as_deref() == Some("DUPLICATE_GLOBAL_ID")
+                && observation.outcome == PropertyOutcome::NotEvaluated
+        }));
     }
 
     #[test]
