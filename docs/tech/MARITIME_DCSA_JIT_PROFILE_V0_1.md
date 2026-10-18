@@ -42,7 +42,7 @@ This helper does not construct a PCO observation or resolve canonical port/call 
 
 ## Frozen synthetic fixtures and tests
 
-The module has seven authored Rust tests and uses four frozen JSON fixtures:
+The module has nine authored Rust tests, including an explicit classifier × operation × facility matrix with 12 accepted cases and four PBPL-departure rejections, and uses four frozen JSON fixtures:
 - `dcsa-jit-eta-berth.json` — estimated berth arrival; negative control for accidental PCO conversion.
 - `dcsa-jit-pta-pbp.json` — planned pilot boarding place arrival.
 - `dcsa-jit-ptd-berth.json` — planned berth departure.
