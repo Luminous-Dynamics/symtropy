@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -191,7 +194,11 @@ pub fn audit_corpus(corpus: &Value) -> AuditReport {
             "pirb-r4-personal-data-boundary-01" => audit_privacy_boundary(scenario, &path, &mut findings),
             "pirb-r3-no-lookahead-01" => audit_no_lookahead(scenario, &path, &mut findings),
             "pirb-r1-refused-participation-01" => audit_refusal(scenario, &path, &mut findings),
-            _ => unreachable!("known scenario set is exhaustive"),
+            _ => findings.push(finding(
+                "PIRB_EVALUATOR_MISSING",
+                &format!("{path}.id"),
+                "Known scenario has no evaluator; refusing to treat it as verified.",
+            )),
         }
     }
 
