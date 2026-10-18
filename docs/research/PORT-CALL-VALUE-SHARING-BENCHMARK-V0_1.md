@@ -47,7 +47,9 @@ Every comparison must bind:
 - baseline and treatment fuel/emissions evidence and their scope; and
 - evidence tier: synthetic, qualified historical replay, or unqualified.
 
-Hashes bind artifacts, not their truth. A synthetic fixture is qualified only for its declared arithmetic and accounting contract. Real historical or live operation data require separate rights, source lineage, coverage, model applicability, calibration, and reviewer gates. A digest alone cannot promote evidence.
+The caller supplies SHA-256 digests. This v0.1 evaluator validates their syntax and carries them into its canonical report; it does not read or re-hash source bytes. An upstream receipt verifier must prove that each digest matches the referenced artifact. Even a verified hash establishes artifact identity, not truth. A synthetic fixture is qualified only for its declared arithmetic and accounting contract. Real historical or live operation data require separate rights, source lineage, coverage, model applicability, calibration, and reviewer gates. A digest alone cannot promote evidence.
+
+The cost-boundary completeness flag is also a caller declaration in v0.1, not an independent line-item audit. Before real use, the cost boundary must be backed by a category-level manifest and complete baseline/treatment account rows.
 
 Reject a comparison when delivered service differs, the cost boundary is incomplete, the evidence is unqualified, or receipts are malformed. Do not price carbon and then also claim the identical carbon value as an additional independent saving unless the accounting contract explicitly models the external payment and its counterparty.
 
@@ -86,7 +88,9 @@ A future full tournament should compare, on identical basis and bounded informat
 - **B5 — exact enumeration on small bounded transfer sets** as an independent oracle;
 - **B6 — an optional Symthaea-guided policy ranking** at a matched compute/information budget, with no prior assumption of superiority.
 
-This first reference evaluator only checks a proposed account allocation. It is deliberately not an allocation optimizer or bargaining agent. A subsequent tournament can add independent policy generators after the ledger contract is qualified.
+The reference evaluator checks a proposed account allocation and now supports a **counterfactual sensitivity ensemble**: the same treatment receipt, comparison contract, participant set, treatment costs, transfer proposal, and reservation thresholds are tested against multiple distinct baseline receipts. It reports worst/best total benefit, fuel reduction, CO₂ reduction, and each participant's worst/best net benefit. It does not assign probabilities to the baselines or collapse them into a fabricated expected saving. An empty ensemble, repeated baseline receipt, changed treatment receipt, changed transfer proposal, changed participant contract, or inconsistent treatment quantities rejects explicitly.
+
+This remains a verifier, not an allocation optimizer or bargaining agent. A subsequent tournament can add independent policy generators and a category-level cost ledger after these contracts are qualified.
 
 ## Required adversarial controls
 
@@ -115,6 +119,7 @@ Include:
 - **100%** participant-level acceptance reporting; aggregate benefit must never mask a participant shortfall.
 - **100%** separate reporting of physical emissions reduction and monetary value; zero double-counting in the frozen negative controls.
 - **100%** of reported treatment savings identify the exact baseline, scope, delivered-service contract, and evidence tier.
+- **100%** of baseline-sensitivity ensembles preserve the fixed treatment/participant contract and report worst/best participant outcomes without inventing scenario probabilities.
 - For the later allocation tournament, **100%** agreement with an independent exact oracle on small bounded action sets; report Pareto feasibility, minimum normalized surplus, total surplus, allocation sensitivity, and computation cost separately.
 
 No percentage emissions target is prescribed here. The 2026 pilot shows that waiting time and vessel envelope determine the opportunity; a case with no absorbable idle time can have no additional saving. Targets must be preregistered by a supported case family.
