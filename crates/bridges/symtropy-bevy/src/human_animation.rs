@@ -98,6 +98,12 @@ struct HumanAnimationRuntime {
 pub struct HumanLocomotionIntent {
     /// Desired world-space planar velocity (x, z), in metres per second.
     pub desired_planar_velocity_mps: Vec2,
+    /// Optional physics feedback. When present, animation follows realized rather than
+    /// requested movement, preventing walk/run cycles while a body is blocked.
+    pub observed_planar_velocity_mps: Option<Vec2>,
+    /// Explicit semantic state such as Idle or Talk. This takes precedence over velocity.
+    /// Set to None to let locomotion hysteresis select Idle/Walk/Run.
+    pub motion_override: Option<HumanMotion>,
 }
 
 /// Error from translating a high-level semantic intent to this controller's
@@ -128,16 +134,10 @@ impl Error for SemanticIntentAdapterError {}
 ///
 /// Only idle and locomote are implemented in this first adapter. Richer actions such as
 /// reach/grasp/sit/yield fail explicitly instead of being silently mapped to an unrelated clip.
-#[derive(Debug, Clone, Copy)]
-pub struct AdaptedHumanMotionIntent {
-    pub locomotion: HumanLocomotionIntent,
-    pub motion_override: Option<HumanMotion>,
-}
-
 pub fn adapt_semantic_intent_to_locomotion_at(
     intent: &SemanticMotionIntent,
     now_sec: f64,
-) -> Result<AdaptedHumanMotionIntent, SemanticIntentAdapterError> {
+) -> Result<HumanLocomotionIntent, SemanticIntentAdapterError> {
     intent
         .validate_at(now_sec)
         .map_err(SemanticIntentAdapterError::InvalidIntent)?;
@@ -159,10 +159,9 @@ pub fn adapt_semantic_intent_to_locomotion_at(
         }
     };
 
-    Ok(AdaptedHumanMotionIntent {
-        locomotion: HumanLocomotionIntent {
-            desired_planar_velocity_mps,
-        },
+    Ok(HumanLocomotionIntent {
+        desired_planar_velocity_mps,
+        observed_planar_velocity_mps: None,
         motion_override,
     })
 }
@@ -216,9 +215,25 @@ fn derive_human_motion_from_intent(
     mut query: Query<(&HumanLocomotionIntent, &mut HumanAnimationController)>,
 ) {
     for (intent, mut controller) in &mut query {
-        let speed = intent.desired_planar_velocity_mps.length();
-        controller.motion = select_locomotion_motion(speed, controller.motion, *config);
+        controller.motion = motion_for_locomotion_intent(intent, controller.motion, *config);
     }
+}
+
+/// Prefer an explicit semantic-state override, then realized velocity feedback, then requested
+/// velocity. The intent-only fallback keeps the adapter usable before physics feedback is wired.
+fn motion_for_locomotion_intent(
+    intent: &HumanLocomotionIntent,
+    current: HumanMotion,
+    config: HumanLocomotionConfig,
+) -> HumanMotion {
+    if let Some(override_motion) = intent.motion_override {
+        return override_motion;
+    }
+
+    let velocity = intent
+        .observed_planar_velocity_mps
+        .unwrap_or(intent.desired_planar_velocity_mps);
+    select_locomotion_motion(velocity.length(), current, config)
 }
 
 /// Select a clip state using explicit thresholds and hysteresis to prevent state chatter.
@@ -403,16 +418,59 @@ mod tests {
         let intent = semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.8, -0.2]), None);
         let adapted = adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap();
         assert!(adapted.motion_override.is_none());
-        assert!((adapted.locomotion.desired_planar_velocity_mps.x - 0.8).abs() < 1e-6);
-        assert!((adapted.locomotion.desired_planar_velocity_mps.y + 0.2).abs() < 1e-6);
+        assert!(adapted.observed_planar_velocity_mps.is_none());
+        assert!((adapted.desired_planar_velocity_mps.x - 0.8).abs() < 1e-6);
+        assert!((adapted.desired_planar_velocity_mps.y + 0.2).abs() < 1e-6);
     }
 
     #[test]
     fn semantic_idle_maps_to_zero_velocity() {
         let intent = semantic_intent_for_test(MotionIntentKind::Idle, None, None);
-        let adapted = adapt_semantic_intent_to_locomotion(&intent).unwrap();
-        assert_eq!(adapted.locomotion.desired_planar_velocity_mps, Vec2::ZERO);
+        let adapted = adapt_semantic_intent_to_locomotion_at(&intent, 0.5).unwrap();
+        assert_eq!(adapted.desired_planar_velocity_mps, Vec2::ZERO);
         assert_eq!(adapted.motion_override, Some(HumanMotion::Idle));
+        assert_eq!(
+            motion_for_locomotion_intent(&adapted, HumanMotion::Talk, HumanLocomotionConfig::default()),
+            HumanMotion::Idle
+        );
+    }
+
+    #[test]
+    fn observed_velocity_prevents_walking_animation_when_body_is_blocked() {
+        let mut intent =
+            adapt_semantic_intent_to_locomotion_at(
+                &semantic_intent_for_test(MotionIntentKind::Locomote, Some([2.0, 0.0]), None),
+                0.5,
+            )
+            .unwrap();
+        intent.observed_planar_velocity_mps = Some(Vec2::ZERO);
+        assert_eq!(
+            motion_for_locomotion_intent(
+                &intent,
+                HumanMotion::Walk,
+                HumanLocomotionConfig::default()
+            ),
+            HumanMotion::Idle
+        );
+    }
+
+    #[test]
+    fn observed_velocity_can_trigger_motion_when_requested_speed_is_zero() {
+        let mut intent =
+            adapt_semantic_intent_to_locomotion_at(
+                &semantic_intent_for_test(MotionIntentKind::Locomote, Some([0.0, 0.0]), None),
+                0.5,
+            )
+            .unwrap();
+        intent.observed_planar_velocity_mps = Some(Vec2::new(0.4, 0.0));
+        assert_eq!(
+            motion_for_locomotion_intent(
+                &intent,
+                HumanMotion::Idle,
+                HumanLocomotionConfig::default()
+            ),
+            HumanMotion::Walk
+        );
     }
 
     #[test]
