@@ -279,6 +279,12 @@ fn motion_for_locomotion_intent(
     config: HumanLocomotionConfig,
 ) -> HumanMotion {
     if let Some(override_motion) = intent.motion_override {
+        if let Some(observed_velocity) = intent.observed_planar_velocity_mps {
+            let observed_speed = observed_velocity.length();
+            if observed_speed.is_finite() && observed_speed > config.stop_exit_speed_mps {
+                return select_locomotion_motion(observed_speed, current, config);
+            }
+        }
         return override_motion;
     }
 
@@ -527,6 +533,24 @@ mod tests {
         assert_eq!(intent.desired_planar_velocity_mps, Vec2::ZERO);
         assert_eq!(intent.motion_override, None);
         assert_eq!(intent.observed_planar_velocity_mps, Some(Vec2::new(0.6, 0.0)));
+    }
+
+    #[test]
+    fn observed_motion_overrides_stationary_semantic_state_while_body_is_moving() {
+        let mut intent = adapt_semantic_intent_to_locomotion_at(
+            &semantic_intent_for_test(MotionIntentKind::Idle, None, None),
+            0.5,
+        )
+        .unwrap();
+        intent.observed_planar_velocity_mps = Some(Vec2::new(0.8, 0.0));
+        assert_eq!(
+            motion_for_locomotion_intent(
+                &intent,
+                HumanMotion::Idle,
+                HumanLocomotionConfig::default()
+            ),
+            HumanMotion::Walk
+        );
     }
 
     #[test]
