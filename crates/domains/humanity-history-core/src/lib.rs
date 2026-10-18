@@ -246,6 +246,9 @@ pub struct AnalysisRun {
     pub target_estimate_ids: Vec<String>,
     #[serde(default)]
     pub comparison_source_id: Option<String>,
+    /// Preregistered quantitative or qualitative rule used to compare this run with its target.
+    #[serde(default)]
+    pub comparison_rule: Option<String>,
     #[serde(default)]
     pub result_summary: Option<String>,
     pub limitations: Vec<String>,
@@ -1443,6 +1446,12 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
                     "reproduced runs must identify the target estimate records being reproduced",
                 );
             }
+            require_nonempty(
+                run.comparison_rule.as_deref().unwrap_or(""),
+                &run.id,
+                "preregistered comparison rule",
+                &mut issues,
+            );
         }
 
         for target_id in &run.target_estimate_ids {
@@ -1780,6 +1789,8 @@ mod tests {
             },
             comparison_source_id: (status == AnalysisRunStatus::Reproduced)
                 .then(|| "fixture:source-1".to_owned()),
+            comparison_rule: (status == AnalysisRunStatus::Reproduced)
+                .then(|| "Synthetic comparison rule".to_owned()),
             result_summary: executed.then(|| "Synthetic run result only".to_owned()),
             limitations: vec!["Synthetic fixture; not a scientific result".to_owned()],
         }
