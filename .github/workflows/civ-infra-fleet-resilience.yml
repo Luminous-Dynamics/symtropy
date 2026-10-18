@@ -154,6 +154,7 @@ jobs:
           fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
           expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
           report="$RUNNER_TEMP/civ-infra-recovery-admission-report.json"
+          echo "CIV_INFRA_ADMISSION_REPORT=$report" >> "$GITHUB_ENV"
           cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-contract > "$report"
           jq -e --arg expected_sha "$expected_sha" '
             .schema_version == "luminous.civ_infra.recovery_admission_contract.v0.1" and
@@ -179,3 +180,77 @@ jobs:
             ([.scenario_results[] | select(.scenario_id == "R-008-future-observation-reference" and .admitted == false and (.reason_codes | index("observation_not_yet_visible:R-008") != null))] | length) == 1 and
             ([.scenario_results[] | select(.scenario_id == "global-protective-stop-before-observation" and .admitted == true and .next_state == "interrupted")] | length) == 1
           ' "$report"
+
+      - name: Emit exact-checkout reproducibility receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          lock="tools/civ-infra-fleet-resilience/Cargo.lock"
+          report="${CIV_INFRA_ADMISSION_REPORT:-}"
+          rustc_version="$(rustc -Vv 2>&1 || true)"
+          cargo_version="$(cargo -V 2>&1 || true)"
+          toolchain="$(rustup show active-toolchain 2>&1 || true)"
+          source_sha="$(git rev-parse HEAD)"
+          source_tree_sha="$(git rev-parse 'HEAD^{tree}')"
+          fixture_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          lock_sha="$(sha256sum "$lock" | awk '{print $1}')"
+          report_present=false
+          report_sha=""
+          if [[ -n "$report" && -f "$report" ]]; then
+            report_present=true
+            report_sha="$(sha256sum "$report" | awk '{print $1}')"
+          fi
+          jq -n \
+            --arg schema "luminous.civ_infra.run_provenance.v0.1" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg source_sha "$source_sha" \
+            --arg source_tree_sha "$source_tree_sha" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg workflow_ref "$GITHUB_WORKFLOW_REF" \
+            --arg workflow_sha "$GITHUB_WORKFLOW_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg runner_os "$RUNNER_OS" \
+            --arg architecture "$RUNNER_ARCH" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            --arg toolchain "$toolchain" \
+            --arg fixture_sha256 "$fixture_sha" \
+            --arg cargo_lock_sha256 "$lock_sha" \
+            --arg decision_report_sha256 "$report_sha" \
+            --argjson decision_report_present "$report_present" \
+            '{
+              schema_version: $schema,
+              repository: $repository,
+              source_commit: $source_sha,
+              source_tree: $source_tree_sha,
+              workflow: $workflow,
+              workflow_ref: $workflow_ref,
+              workflow_definition_commit: $workflow_sha,
+              run_id: $run_id,
+              run_attempt: $run_attempt,
+              runner_os: $runner_os,
+              runner_architecture: $architecture,
+              rustc_version_verbose: $rustc_version,
+              cargo_version: $cargo_version,
+              active_toolchain: $toolchain,
+              fixture_sha256: $fixture_sha256,
+              cargo_lock_sha256: $cargo_lock_sha256,
+              decision_report_present: $decision_report_present,
+              decision_report_sha256: (if $decision_report_present then $decision_report_sha256 else null end),
+              evidence_scope: "run provenance only; does not authenticate observations, signatures, physical state, or dispatch authority"
+            }' > "$RUNNER_TEMP/civ-infra-recovery-run-receipt.json"
+          jq -e '.schema_version == "luminous.civ_infra.run_provenance.v0.1" and (.source_commit | test("^[0-9a-f]{40}$")) and (.source_tree | test("^[0-9a-f]{40}$")) and (.fixture_sha256 | test("^[0-9a-f]{64}$")) and (.cargo_lock_sha256 | test("^[0-9a-f]{64}$"))' "$RUNNER_TEMP/civ-infra-recovery-run-receipt.json"
+
+      - name: Upload recovery contract and provenance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: civ-infra-recovery-admission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/civ-infra-recovery-admission-report.json
+            ${{ runner.temp }}/civ-infra-recovery-run-receipt.json
+          if-no-files-found: warn
+          retention-days: 90
