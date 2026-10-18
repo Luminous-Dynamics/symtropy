@@ -266,6 +266,15 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     let mut required = BTreeSet::new();
     for id in &case.required_evidence_ids {
+        if id.trim().is_empty() {
+            add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                "empty_required_evidence_id".to_string(),
+            );
+        }
         if !required.insert(id.clone()) {
             add_issue(
                 &mut issues,
@@ -280,6 +289,15 @@ fn evaluate_case(case: &Case) -> CaseResult {
     let mut evidence_counts = std::collections::BTreeMap::<String, usize>::new();
     for record in &case.evidence {
         *evidence_counts.entry(record.evidence_id.clone()).or_insert(0) += 1;
+        if record.evidence_id.trim().is_empty() {
+            add_issue(
+                &mut issues,
+                &mut blocked,
+                &mut unresolved,
+                Severity::Blocked,
+                "empty_evidence_id".to_string(),
+            );
+        }
         if !required.contains(&record.evidence_id) {
             add_issue(
                 &mut issues,
@@ -758,11 +776,31 @@ mod tests {
     }
 
     #[test]
-    fn missing_required_evidence_is_not_eligible() {
+    fn missing_required_evidence_remains_unresolved() {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
         case.required_evidence_ids.push("missing-critical-record".to_string());
         assert_eq!(evaluate_case(&case).computed_decision, Decision::Unresolved);
+    }
+
+    #[test]
+    fn blank_required_evidence_id_blocks() {
+        let (manifest, _) = fixture();
+        let mut case = manifest.cases[0].clone();
+        case.required_evidence_ids.push("   ".to_string());
+        assert_eq!(evaluate_case(&case).computed_decision, Decision::Blocked);
+    }
+
+    #[test]
+    fn blank_evidence_record_id_blocks() {
+        let (manifest, _) = fixture();
+        let mut case = manifest.cases[0].clone();
+        let mut record = case.evidence[0].clone();
+        record.evidence_id = " ".to_string();
+        record.payload = Some("x".to_string());
+        record.sha256 = Some("2d711642b726b04401627ca9fbac32f5da7e5c8530fb1903cc4db02258717921".to_string());
+        case.evidence.push(record);
+        assert_eq!(evaluate_case(&case).computed_decision, Decision::Blocked);
     }
 
     #[test]
@@ -774,7 +812,7 @@ mod tests {
     }
 
     #[test]
-    fn mandatory_gate_failure_blocks_even_with_balanced_mass() {
+    fn mandatory_gate_failure_blocks_even_with_complete_evidence() {
         let (manifest, _) = fixture();
         let mut case = manifest.cases[0].clone();
         case.mandatory_gates[0].status = GateStatus::Fail;
