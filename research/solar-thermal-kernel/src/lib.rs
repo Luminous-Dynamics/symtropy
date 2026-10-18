@@ -10,6 +10,7 @@ use std::{error::Error, fmt, fmt::Write as _};
 
 pub mod cascade;
 pub mod pinch;
+pub mod temporal;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModelError {
@@ -30,6 +31,8 @@ pub enum ModelError {
     InvalidHotStreamOrder,
     InvalidColdStreamOrder,
     NoProcessStreams,
+    EmptyTemporalSchedule,
+    PeriodDurationMismatch,
 }
 
 impl fmt::Display for ModelError {
@@ -52,6 +55,8 @@ impl fmt::Display for ModelError {
             Self::InvalidHotStreamOrder => write!(f, "hot stream supply temperature must exceed target temperature"),
             Self::InvalidColdStreamOrder => write!(f, "cold stream target temperature must exceed supply temperature"),
             Self::NoProcessStreams => write!(f, "pinch analysis requires at least one hot and one cold process stream"),
+            Self::EmptyTemporalSchedule => write!(f, "temporal schedule must contain at least one period"),
+            Self::PeriodDurationMismatch => write!(f, "discharge request duration must match its containing period"),
         }
     }
 }
