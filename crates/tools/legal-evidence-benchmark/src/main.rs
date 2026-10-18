@@ -183,7 +183,11 @@ fn run() -> Result<bool, String> {
 }
 
 fn usage() -> String {
-    "usage: legal-evidence-benchmark validate <corpus.json>\n       legal-evidence-benchmark evaluate <corpus.json> <submission.json>".to_string()
+    [
+        "usage: legal-evidence-benchmark validate <corpus.json>",
+        "       legal-evidence-benchmark evaluate <corpus.json> <submission.json>",
+    ]
+    .join("\n")
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &str) -> Result<T, String> {
