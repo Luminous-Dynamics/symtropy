@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use industrial_coupling_benchmark::{
-    evaluate, evaluate_robust, verify_optimal_plan, verify_robust_plan, Scenario,
+    Scenario, evaluate, evaluate_robust, verify_optimal_plan, verify_robust_plan,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
