@@ -177,8 +177,7 @@ fn validate_schedule_internal(
                 vec![operation.id.clone()],
                 "start plus duration must produce a finite end time",
             );
-        }
-        else if operation.start_seconds.is_finite()
+        } else if operation.start_seconds.is_finite()
             && operation.start_seconds >= 0.0
             && (operation.start_seconds + operation.duration_seconds).is_finite()
             && operation.start_seconds + operation.duration_seconds <= operation.start_seconds
