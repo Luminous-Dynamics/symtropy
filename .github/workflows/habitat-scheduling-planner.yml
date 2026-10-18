@@ -83,7 +83,16 @@ jobs:
               .robust_status) == $robust_status) and
             ((.case_results[] |
               select(.case_id == "priority_rules_miss_feasible_schedule") |
-              .nominal.status) == "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY") and
+              .nominal.priority_only_status) == "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY") and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.status) == "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL") and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.makespan) == 19) and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.fallback_search_complete) == true) and
             ((.case_results[] |
               select(.case_id == "priority_rules_miss_feasible_schedule") |
               .optimality_claim) == "NOT_PROVEN")
