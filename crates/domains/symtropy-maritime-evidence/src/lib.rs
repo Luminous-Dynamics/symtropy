@@ -199,7 +199,7 @@ impl ObservationReport {
             .resolutions
             .iter()
             .filter_map(|resolution| match resolution {
-                ObservationResolution::Consistent { key, .. } => Some(key.clone()),
+                ObservationResolution::Consistent { key, .. } => Some((*key).clone()),
                 ObservationResolution::Conflict { .. } => None,
             })
             .collect::<BTreeSet<_>>();
