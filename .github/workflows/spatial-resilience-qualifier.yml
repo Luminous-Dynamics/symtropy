@@ -52,6 +52,9 @@ jobs:
       - name: Execute decision-impact measurement corpus
         run: cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked -- --decision-impact-check --json > spatial-resilience-decision-impact-receipt.json
 
+      - name: Execute adaptive measurement policy corpus
+        run: cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked -- --adaptive-policy-check --json > spatial-resilience-adaptive-policy-receipt.json
+
       - name: Bind receipts to exact files and resolved dependency lock
         run: |
           sha256sum \
@@ -63,6 +66,8 @@ jobs:
             docs/research/spatial-design/SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.schema.json \
             docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.json \
             docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.schema.json \
+            docs/research/spatial-design/SPATIAL_RESILIENCE_ADAPTIVE_POLICIES_V0_1.json \
+            docs/research/spatial-design/SPATIAL_RESILIENCE_ADAPTIVE_POLICIES_V0_1.schema.json \
             docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_PROTOCOL_V0_1.md \
             tools/spatial-resilience-qualifier/README.md \
             tools/spatial-resilience-qualifier/Cargo.toml \
@@ -70,11 +75,13 @@ jobs:
             tools/spatial-resilience-qualifier/src/main.rs \
             tools/spatial-resilience-qualifier/src/outcomes.rs \
             tools/spatial-resilience-qualifier/src/decision_impact.rs \
+            tools/spatial-resilience-qualifier/src/adaptive_policy.rs \
             tools/spatial-resilience-qualifier/Cargo.lock \
             spatial-resilience-qualifier-receipt.json \
             spatial-resilience-timeline-receipt.json \
             spatial-resilience-outcome-receipt.json \
-            spatial-resilience-decision-impact-receipt.json > spatial-resilience-qualifier-receipt.sha256
+            spatial-resilience-decision-impact-receipt.json \
+            spatial-resilience-adaptive-policy-receipt.json > spatial-resilience-qualifier-receipt.sha256
           git rev-parse HEAD > spatial-resilience-qualifier-commit.txt
 
       - name: Upload exact-head receipts and dependency lock
@@ -87,6 +94,7 @@ jobs:
             spatial-resilience-timeline-receipt.json
             spatial-resilience-outcome-receipt.json
             spatial-resilience-decision-impact-receipt.json
+            spatial-resilience-adaptive-policy-receipt.json
             spatial-resilience-qualifier-receipt.sha256
             spatial-resilience-qualifier-commit.txt
             tools/spatial-resilience-qualifier/Cargo.lock
