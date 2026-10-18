@@ -52,7 +52,7 @@ struct EvidenceRecord {
     sha256: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 enum EvidenceStatus {
     Verified,
     Missing,
@@ -71,7 +71,7 @@ struct MandatoryGate {
     status: GateStatus,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 enum GateStatus {
     Pass,
     Fail,
@@ -159,8 +159,18 @@ fn normalize_manifest(manifest: &mut Manifest) {
     manifest.cases.sort_by(|a, b| a.case_id.cmp(&b.case_id));
     for case in &mut manifest.cases {
         case.required_evidence_ids.sort();
-        case.evidence.sort_by(|a, b| a.evidence_id.cmp(&b.evidence_id));
-        case.mandatory_gates.sort_by(|a, b| a.name.cmp(&b.name));
+        case.evidence.sort_by(|a, b| {
+            a.evidence_id
+                .cmp(&b.evidence_id)
+                .then_with(|| a.status.cmp(&b.status))
+                .then_with(|| a.payload.cmp(&b.payload))
+                .then_with(|| a.sha256.cmp(&b.sha256))
+        });
+        case.mandatory_gates.sort_by(|a, b| {
+            a.name
+                .cmp(&b.name)
+                .then_with(|| a.status.cmp(&b.status))
+        });
     }
 }
 
@@ -608,6 +618,11 @@ mod tests {
         let first = build_report(&manifest, &raw);
         let mut permuted = manifest.clone();
         permuted.cases.reverse();
+        for case in &mut permuted.cases {
+            case.required_evidence_ids.reverse();
+            case.evidence.reverse();
+            case.mandatory_gates.reverse();
+        }
         let permuted_raw = serde_json::to_vec(&permuted).expect("serialize permutation");
         let second = build_report(&permuted, &permuted_raw);
         assert_eq!(first.canonical_input_sha256, second.canonical_input_sha256);
