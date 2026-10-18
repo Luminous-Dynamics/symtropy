@@ -197,8 +197,7 @@ fn product_bounds(block: &ProductBlock) -> Option<([u64; 3], [u64; 3])> {
 }
 
 fn boxes_overlap(a: &ProductBlock, b: &ProductBlock) -> bool {
-    let (Some((a_start, a_end)), Some((b_start, b_end))) =
-        (product_bounds(a), product_bounds(b))
+    let (Some((a_start, a_end)), Some((b_start, b_end))) = (product_bounds(a), product_bounds(b))
     else {
         return false;
     };
@@ -358,10 +357,7 @@ fn validate_corpus(corpus: &Corpus, corpus_sha256: String, source_commit: String
         if scenario.scenario_id.trim().is_empty() || !ids.insert(scenario.scenario_id.clone()) {
             duplicate_id = true;
         }
-        scenarios.push(evaluate_scenario(
-            scenario,
-            corpus.accounting_tolerance_ppm,
-        ));
+        scenarios.push(evaluate_scenario(scenario, corpus.accounting_tolerance_ppm));
     }
 
     let expected_controls_matched = scenarios
@@ -414,8 +410,8 @@ fn run() -> Check<()> {
 
     let bytes = fs::read(&args[0]).map_err(|error| format!("cannot read corpus: {error}"))?;
     let digest = format!("{:x}", Sha256::digest(&bytes));
-    let corpus: Corpus = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("invalid corpus JSON: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(&bytes).map_err(|error| format!("invalid corpus JSON: {error}"))?;
     let receipt = validate_corpus(&corpus, digest, source_commit);
     println!(
         "{}",
