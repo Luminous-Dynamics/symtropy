@@ -9,7 +9,10 @@
 //! create an XR session, or assert that a design is safe or code-compliant.
 //! Callers retain control of input, pausing, and comfort settings.
 
-use bevy::prelude::{Component, Transform, Vec3};
+use bevy::input::mouse::AccumulatedMouseMotion;
+use bevy::prelude::{
+    ButtonInput, Component, KeyCode, MouseButton, Quat, Res, Time, Transform, Vec3,
+};
 
 const POSE_EPSILON: f32 = 1.0e-4;
 
@@ -533,6 +536,138 @@ impl ReviewRoutePlayback {
     }
 }
 
+/// Optional user-controlled desktop floating camera. It moves the camera
+/// relative to the model's declared local frame; it is not collision-aware and
+/// must not be used as an accessibility or code-compliance check.
+#[derive(Component, Clone, Debug)]
+pub struct ReviewFreeCameraController {
+    enabled: bool,
+    yaw_radians: f32,
+    pitch_radians: f32,
+    /// Normal movement speed in model-space metres per second.
+    pub speed_mps: f32,
+    /// Multiplier while either Shift key is held.
+    pub fast_multiplier: f32,
+    /// Mouse rotation sensitivity in radians per pixel.
+    pub mouse_sensitivity: f32,
+    /// Maximum absolute camera pitch; keeping this below PI/2 avoids pole flips.
+    pub max_pitch_radians: f32,
+}
+
+impl ReviewFreeCameraController {
+    /// Create a controller initialized from an existing camera transform.
+    /// It starts disabled so it never unexpectedly fights a guided route.
+    pub fn from_transform(transform: &Transform) -> Self {
+        let forward = transform.forward().as_vec3();
+        let yaw_radians = (-forward.x).atan2(-forward.z);
+        let pitch_radians = forward.y.clamp(-1.0, 1.0).asin();
+        Self {
+            enabled: false,
+            yaw_radians,
+            pitch_radians,
+            speed_mps: 1.2,
+            fast_multiplier: 2.5,
+            mouse_sensitivity: 0.002,
+            max_pitch_radians: 1.45,
+        }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    /// Toggle between route playback and direct desktop camera control.
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
+    pub fn settings_are_valid(&self) -> bool {
+        self.speed_mps.is_finite()
+            && self.speed_mps > 0.0
+            && self.fast_multiplier.is_finite()
+            && self.fast_multiplier >= 1.0
+            && self.mouse_sensitivity.is_finite()
+            && self.mouse_sensitivity > 0.0
+            && self.max_pitch_radians.is_finite()
+            && self.max_pitch_radians > 0.0
+            && self.max_pitch_radians < std::f32::consts::FRAC_PI_2
+            && self.yaw_radians.is_finite()
+            && self.pitch_radians.is_finite()
+    }
+}
+
+/// Free-camera controls: toggle with F; hold right mouse to look; WASD to
+/// move horizontally; E/Q to rise/descend; Shift to move faster. Enabling free
+/// control pauses any attached guided route. Invalid controller settings result
+/// in no camera movement. The system deliberately does not lock or capture the
+/// cursor, so the host app can choose its own accessible pointer behavior.
+pub fn drive_free_review_camera(
+    time: Res<Time>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mouse_buttons: Res<ButtonInput<MouseButton>>,
+    mouse_motion: Res<AccumulatedMouseMotion>,
+    mut query: bevy::prelude::Query<(
+        &mut Transform,
+        &mut ReviewFreeCameraController,
+        Option<&mut ReviewRoutePlayback>,
+    )>,
+) {
+    for (mut transform, mut controller, playback) in &mut query {
+        if keys.just_pressed(KeyCode::KeyF) {
+            controller.enabled = !controller.enabled;
+            if controller.enabled {
+                if let Some(mut playback) = playback {
+                    playback.set_playing(false);
+                }
+            }
+        }
+        if !controller.enabled || !controller.settings_are_valid() {
+            continue;
+        }
+
+        if mouse_buttons.pressed(MouseButton::Right) {
+            controller.yaw_radians -= mouse_motion.delta.x * controller.mouse_sensitivity;
+            controller.pitch_radians = (controller.pitch_radians
+                - mouse_motion.delta.y * controller.mouse_sensitivity)
+                .clamp(-controller.max_pitch_radians, controller.max_pitch_radians);
+        }
+        transform.rotation = Quat::from_rotation_y(controller.yaw_radians)
+            * Quat::from_rotation_x(controller.pitch_radians);
+
+        let forward = transform.rotation * -Vec3::Z;
+        let right = transform.rotation * Vec3::X;
+        let forward = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
+        let right = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
+        let mut movement = Vec3::ZERO;
+        if keys.pressed(KeyCode::KeyW) {
+            movement += forward;
+        }
+        if keys.pressed(KeyCode::KeyS) {
+            movement -= forward;
+        }
+        if keys.pressed(KeyCode::KeyD) {
+            movement += right;
+        }
+        if keys.pressed(KeyCode::KeyA) {
+            movement -= right;
+        }
+        if keys.pressed(KeyCode::KeyE) {
+            movement += Vec3::Y;
+        }
+        if keys.pressed(KeyCode::KeyQ) {
+            movement -= Vec3::Y;
+        }
+
+        let speed = controller.speed_mps
+            * if keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
+                controller.fast_multiplier
+            } else {
+                1.0
+            };
+        transform.translation += movement.normalize_or_zero() * speed * time.delta_secs();
+    }
+}
+
 /// Advance camera-route players. On invalid runtime poses, playback pauses and
 /// leaves the last valid Transform unchanged (a safe static fallback).
 pub fn advance_architectural_review_routes(
@@ -801,6 +936,24 @@ mod tests {
         assert!(validate_review_route(&route).unwrap_err().iter().any(|issue| {
             matches!(issue, ReviewRouteIssue::DegenerateLookDirection { waypoint_id } if waypoint_id == "kitchen")
         }));
+    }
+
+    #[test]
+    fn free_camera_controller_starts_disabled_and_inherits_current_view() {
+        let transform = Transform::from_xyz(0.0, 1.6, 3.0)
+            .looking_at(Vec3::new(0.0, 1.4, 0.0), Vec3::Y);
+        let controller = ReviewFreeCameraController::from_transform(&transform);
+        assert!(!controller.is_enabled());
+        assert!(controller.settings_are_valid());
+        assert!(controller.pitch_radians < 0.0);
+    }
+
+    #[test]
+    fn invalid_free_camera_settings_are_rejected_by_runtime_guard() {
+        let mut controller = ReviewFreeCameraController::from_transform(&Transform::IDENTITY);
+        assert!(controller.settings_are_valid());
+        controller.speed_mps = f32::NAN;
+        assert!(!controller.settings_are_valid());
     }
 
     #[test]
