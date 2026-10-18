@@ -29,12 +29,14 @@
     {
       "request_ref": "req-study-007",
       "reason_code": "outside_declared_scope",
-      "preregistered_rule_ref": "rule-scope-eligibility"
+      "preregistered_rule_ref": "rule-scope-eligibility",
+      "exclusion_evidence_ref": "evt-study-007-exclusion"
     },
     {
       "request_ref": "req-study-008",
       "reason_code": "ineligible_service_task",
-      "preregistered_rule_ref": "rule-task-eligibility"
+      "preregistered_rule_ref": "rule-task-eligibility",
+      "exclusion_evidence_ref": "evt-study-008-exclusion"
     }
   ],
   "outcome_records": [
@@ -47,7 +49,9 @@
       "acceptance_at_minute": "80",
       "acceptance_evidence_ref": "evt-study-001-acceptance",
       "acceptance_decision_mode": "farmer_direct",
-      "acceptance_authority_ref": null
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-001-window",
+      "outcome_evidence_ref": "evt-study-001-outcome"
     },
     {
       "request_ref": "req-study-002",
@@ -58,7 +62,9 @@
       "acceptance_at_minute": "120",
       "acceptance_evidence_ref": "evt-study-002-acceptance",
       "acceptance_decision_mode": "farmer_direct",
-      "acceptance_authority_ref": null
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-002-window",
+      "outcome_evidence_ref": "evt-study-002-outcome"
     },
     {
       "request_ref": "req-study-003",
@@ -70,7 +76,9 @@
       "acceptance_at_minute": null,
       "acceptance_evidence_ref": null,
       "acceptance_decision_mode": null,
-      "acceptance_authority_ref": null
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-003-window",
+      "outcome_evidence_ref": "evt-study-003-outcome"
     },
     {
       "request_ref": "req-study-004",
@@ -82,7 +90,9 @@
       "acceptance_at_minute": null,
       "acceptance_evidence_ref": null,
       "acceptance_decision_mode": null,
-      "acceptance_authority_ref": null
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-004-window",
+      "outcome_evidence_ref": "evt-study-004-outcome"
     },
     {
       "request_ref": "req-study-005",
@@ -94,7 +104,9 @@
       "acceptance_at_minute": null,
       "acceptance_evidence_ref": null,
       "acceptance_decision_mode": null,
-      "acceptance_authority_ref": null
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-005-window",
+      "outcome_evidence_ref": "evt-study-005-outcome"
     },
     {
       "request_ref": "req-study-006",
@@ -105,7 +117,9 @@
       "acceptance_at_minute": null,
       "acceptance_evidence_ref": null,
       "acceptance_decision_mode": null,
-      "acceptance_authority_ref": null
+      "acceptance_authority_ref": null,
+      "useful_window_evidence_ref": "evt-study-006-window",
+      "outcome_evidence_ref": "evt-study-006-outcome"
     }
   ]
 }
