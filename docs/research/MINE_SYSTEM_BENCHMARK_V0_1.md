@@ -272,7 +272,9 @@ Include the following end-to-end questions:
 - Do two purportedly redundant channels share a common cable, power feed, tunnel, relay or water exposure that invalidates independence?
 - When all paths fail, does the benchmark report no route/unacknowledged delivery instead of a healthy or successful state?
 
-Report per-message-class delivery outcome, event timestamps, time to first receiver acknowledgement, outage duration, energy and evidence age. The current Symthaea Rust slice is synthetic and does not model packet loss statistics, network queues/airtime, or RF/TTE propagation; those capabilities must be added and calibrated before making communications-performance claims.
+Report per-message-class delivery outcome, event timestamps, time to first receiver acknowledgement, outage duration, energy and evidence age. The current Symthaea Rust slice now includes a synthetic single-channel airtime queue with explicit bitrate, framing overhead, propagation delay, bounded injected attempt outcomes and expiry, but still does not model stochastic packet loss, channel contention/backoff, receiver acknowledgement airtime, multi-hop queueing or RF/TTE propagation. It must be calibrated against physical evidence before communications-performance claims.
+
+The physical measurement programme is [Symthaea MINE-TTE-CHAR-001 #8047](https://github.com/Luminous-Dynamics/symthaea/issues/8047). It defines calibrated bench and test-corridor observations and held-out validation; synthetic service profiles are not a substitute.
 
 ## 11. Implementation sequence
 

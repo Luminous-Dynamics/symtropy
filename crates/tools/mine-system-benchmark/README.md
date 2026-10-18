@@ -47,3 +47,6 @@ The MINE-SYSTEM-001 spec now includes [MS-014 Communications degradation](../../
 ## Rock-breakage research
 
 The specialized [ROCK-BREAKAGE-TOURNAMENT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1952) work compares mechanical, hybrid and non-mechanical approaches using explicit evidence tiers and full-cycle output boundaries.
+
+
+Physical through-the-earth (TTE) characterization and held-out test traces are tracked in [Symthaea MINE-TTE-CHAR-001 #8047](https://github.com/Luminous-Dynamics/symthaea/issues/8047). These are required before synthetic TTE scenarios can support stronger physical claims.
