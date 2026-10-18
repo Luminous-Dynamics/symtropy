@@ -83,3 +83,43 @@ cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -
 It recalculates the byte digest, event case records, delay counts, evaluator-side hidden/injected sets and policy-visible observation frames, and rejects unknown report fields or a false claim that the timeline tool simulated policies. CI now runs it against the first binary's actual JSON output. This is a separately implemented checker in the same project, not an independent third-party audit. Its eight unit tests inject early visibility, a forbidden injection-time field, an input-digest mismatch, false policy-simulation claims, changed frozen case identity, input-array permutation, and unknown report fields.
 
 The policy observation surface is implemented as a cursor in a private Rust module: its caller can only `advance_one_tick()` to receive the next frame. There is no API to request tick N or inspect the queued future observations; the frame's schema omits event injection time and hidden evaluator state. The full timeline in the audit report is an artifact for review, not a policy input. A separate `event-timeline-check` executable reconstructs and verifies that artifact.
+
+
+## Typed recovery-admission contract
+
+Run the typed synthetic contract suite from the repository root:
+
+```sh
+cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-contract
+```
+
+This contract introduces explicit task states and allowed actions, then checks whether an action is admissible against the policy-visible observation prefix, task-predecessor receipts, resource/capacity gates, current capability and calibration, localization, communication, energy reserve, utility-envelope status, authorization, inspection outcome, and current recovery/acceptance evidence. It distinguishes an immediate protective stop from a replanning decision: a stop can be admitted before the planner can observe the cause, while resumption and acceptance cannot use future observations.
+
+The suite derives observation records from the same 13-case frozen fixture using `observable_tick`; injection timestamps are not exposed in the policy-facing projection. It includes positive and negative cases for every disturbance, plus controls for stale capability, unknown utility, declined approval, overcommitment, missing predecessors/evidence, future-dated evidence, failed inspection, terminal-task restart, duplicate observation references, and invalid reassignment. Failed inspection remains rejected until explicit rework and later successful reinspection evidence supports acceptance.
+
+The report is explicitly `synthetic_only` and sets `policy_simulation_executed: false`, `policy_runs_performed: 0`, `physical_control_executed: false`, and `dispatch_authorized: false`. This tests an admission contract; it is **not** a B0/B1/B2 rollout, a live dispatch path, a field-safety result, or a productivity benchmark. Rust formatting, compile, tests and the report assertions must pass on the exact commit before this slice is qualified.
+
+
+**Trust boundary:** the gate snapshot booleans and predecessor receipts in this slice are synthetic caller-supplied assertions. The contract reports `input_receipts_cryptographically_verified: false` and `immutable_history_store_executed: false`; it does not verify signatures, real sensor provenance, or durable append-only history. A later integration must validate content-addressed/version-bound evidence through an independent receipt verifier before using these types to authorize any real operation.
+
+
+Each emitted scenario now includes its full normalized synthetic proposal, a SHA-256 of that proposal, a SHA-256 of the normalized decision (admission, next state and sorted reason codes), and the report-level digest over the ordered scenario set. These hashes support replay and tamper detection for the emitted report; they do **not** authenticate caller-supplied evidence or establish code identity on their own.
+
+
+### Recovery-admission contract: semantics and limits
+
+The `recovery-admission-contract` report includes normalized synthetic proposals, input/decision digests and an ordered scenario-set digest. CI separately emits a run receipt binding the decision report to the source commit/tree, fixture and lockfile hashes, toolchain, and workflow run. These digests aid replay and tamper detection; they do not authenticate caller-supplied evidence or prove physical truth.
+
+The admission model now requires `Authorization::Granted` when a visible R-012 approval gate is active and an action advances the task; `NotRequired` is not a bypass. A visible R-011 utility risk blocks acceptance until the utility gate is resolved. Protective-stop and abort transitions do not consume policy observation references, and future/unknown references or exhaustion of the planner's bounded tick horizon must not veto a protective stop.
+
+These are semantic guarantees being tested in a synthetic harness—not a guarantee that a physical robot, actuator, or site-level safety circuit will actually stop. Live integration still requires an authoritative task/resource state source, verified evidence envelopes, replay-safe history, and independent safety validation. See [CIV-INFRA-ROLLOUT-003](https://github.com/Luminous-Dynamics/symtropy/issues/1923), [CIV-INFRA-ROLLOUT-004](https://github.com/Luminous-Dynamics/symtropy/issues/1939), and the [benchmark protocol](https://github.com/Luminous-Dynamics/symtropy/blob/feat/civ-infra-recovery-admission-contract-v0-1/docs/research/civ-infra-resilience/RECOVERY_ADMISSION_BENCHMARK_PROTOCOL_V0_1.md).
+
+
+### Independent admission oracle
+
+The standalone recovery-admission-oracle binary reads the exact frozen fixture and a candidate admission report, recomputes each proposal's expected state/action decision through a separate implementation, and compares admission, next state, and sorted reason codes. It also counts the 81 pairs in the declared 9-state by 9-action transition space. A mismatch fails the workflow and the per-scenario oracle report is retained when available.
+
+This is an **independent implementation cross-check over the report's current scenario corpus**, not yet an exhaustive oracle over all resource/evidence combinations and not a proof of physical safety. The benchmark protocol's full qualification bar still requires exhaustive bounded-state differential tests, deterministic adversarial mutation, paired B0/B1/B2 rollouts, and explicit denominator reporting. The current candidate report must remain synthetic_only.
+
+
+The admission binary's seeded property test now authors 10,000 deterministic gate mutations across nine safety gates, checking fail-closed behavior and byte-stable decision/reason replay for every mutation. This is a test target in the source; report it as exercised only after the exact-head test step passes.

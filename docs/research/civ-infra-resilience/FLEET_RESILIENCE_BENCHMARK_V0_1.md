@@ -242,3 +242,43 @@ Use *paired scenario comparisons*, not separate random samples: B0, B1 and B2 re
 For the proposed 10% median time-to-accepted-work improvement goal, require (a) the point estimate reaches 10%, (b) a predeclared paired uncertainty interval supports an improvement rather than a noise-only result, (c) hard safety/evidence gates have zero regressions, and (d) rejected, aborted, unsupported and missing outcomes remain visible in the denominator. Choose the uncertainty procedure and confidence level before the run; for example, use a paired bootstrap interval for time deltas and binomial uncertainty intervals for per-case acceptance/rejection rates. Do not calculate recovery-time quantiles on strata with inadequate observations or describe synthetic confidence intervals as field-reliability evidence.
 
 Before expanding to simulation, freeze the policy versions and metric definitions. During the 1,000-rollout stage, publish scenario counts and outcomes by stratum plus the exact seed range and generator revision. Larger scenario counts are useful for tail exploration but cannot replace calibrated physical measurements or a supervised field study.
+
+
+## 18. Admissibility before optimization: typed recovery contract
+
+The next architectural step is to make task admission a separate, inspectable contract rather than treating a planner's proposed schedule or scalar score as proof that work may proceed. A task transition is admissible only when the current policy-visible observation prefix, task dependencies, resource capacity and qualification, hazard/utility envelope, authorization, inspection state and required evidence all support it. Immediate protective stop is deliberately a distinct transition that does not wait for the planner to identify or observe the cause.
+
+The `recovery-admission-contract` executable consumes the frozen synthetic manifest and projects observations using their declared `observable_tick`; evaluator injection timestamps do not enter the policy-facing observation type. Its scenario suite checks positive post-recovery admission and adversarial rejection across all 13 disturbance families. It is an admission-semantics contract, not yet a policy rollout. The next extension is to call the same admission contract from B0/B1/B2 rollouts, so the policies cannot each quietly define their own rules for what is safe or accepted.
+
+### Qualification targets (proposed; not achieved results)
+
+| Measure | Required invariant or target | Evidence required |
+|---|---|---|
+| Causal observability | Zero decisions consume an event before `observable_tick` | Negative controls and generated histories; retain hidden-event denominators |
+| Task acceptance | Zero accepted tasks without accepted predecessors, current required receipts, and successful required inspection | Missing, stale, duplicated, forged and future-dated evidence controls |
+| Authorization | Zero execution admissions after a required approval is declined or remains pending | Approval-declined and missing-authorization cases |
+| Capacity and capability | Zero resource overcommitment; zero starts with stale capability, calibration, localization, communication state or infeasible return reserve | Per-gate adversarial controls and independent schedule oracle for tiny cases |
+| Unknown hazards | Unknown utility is never equivalent to clear; approved alternative or investigation evidence must be explicit | Unknown/unbounded envelopes plus approved-alternative and unresolved controls |
+| Determinism | 100% normalized replay agreement for identical fixture bytes, seed, configuration and code revision | Exact input digest, replay digest and input-order permutation controls |
+| Reference solver | 100% agreement with independent exhaustive oracle on the frozen tiny cases | Separate implementation and mutation tests |
+| Policy-rollout denominator | At least 1,000 paired synthetic rollouts before aggregate resilience claims; stratify every disturbance family, delay, repairability, redundancy and DAG shape | B0/B1/B2 share byte-identical initial state, task graph, resources, event timeline, budgets and seeds |
+| Operational outcomes | Report accepted synthetic work, protective stops/aborts, time-to-detect, time-to-restore, makespan-to-acceptance, lost work, reassignments, rework, rejected inspections and missing/unsupported/timeout runs | Per-policy/per-case results plus complete denominator; no single reward scalar |
+| Comparative improvement | Candidate target: at least 10% lower paired median makespan-to-acceptance in a predeclared recoverable stratum, with uncertainty interval supporting improvement and no hard-gate regression | Held-out cases/seeds, paired bootstrap interval for time deltas, and appropriate binomial intervals for acceptance; declare the target before the run |
+
+The 10% comparison target is an experiment design choice, not a fact about current B2 performance. If B2 does not meet it, the evidence should say so; safe-stop and unresolved outcomes remain visible rather than being assigned a convenient zero cost. B3 remains a finite-instance reference bound only and is not a deployable policy.
+
+### External measurement tracks and rights boundary
+
+NIST's robotics-agility work is a useful pattern: define task metrics, test methods, information models and datasets; exercise unexpected events in a combined virtual/real testbed before making operational claims. Keep construction-site localization separate from recovery-policy outcomes. The 2026 Hilti–Trimble–Oxford dataset can support a separately versioned localization adapter, but its published CC BY-NC-SA 3.0 terms must be treated as non-commercial/share-alike constraints; do not vendor the corpus or integrate it into commercial distributions without an explicit rights review. Inspection segmentation must likewise keep dataset terms separate from code-repository licensing.
+
+
+### Trust boundary and next architecture step
+
+The current admission harness deliberately treats gate snapshots and predecessor receipts as synthetic, caller-supplied assertions. It does **not** verify cryptographic receipt authenticity, bind a receipt to a signed resource/calibration revision, or implement durable immutable history. Its report states those limits explicitly. The paradigm shift is to make planner output non-authoritative: the planner proposes; a separate evidence verifier validates content-addressed receipts and revisions; a deterministic admission kernel emits a reason-coded admission decision over the policy-visible observation prefix; only a downstream, separately authorized controller could consume such a decision. The current PR implements only the synthetic semantics layer, not that complete architecture.
+
+Before any live-system integration, add signed or otherwise authenticated evidence envelopes with issuer identity, subject/resource revision, validity interval, observation tick, causal parent digest, and revocation/supersession link. Preserve old inspection failures and receipts as immutable records; a corrective-work event adds new evidence rather than editing historical records. The verifier must independently reject forged or mismatched issuer/subject/revision fields, stale evidence, replayed receipts, and broken causal ancestry.
+
+
+### Replayable decision artifacts
+
+The admission contract emits each synthetic proposal alongside its input digest and normalized decision digest. The report-level scenario-set digest binds the ordered set of proposals, expected outcomes, actual decisions and reason codes. Repeated execution with identical fixture bytes and scenario construction must yield identical normalized JSON and digests. This protects reproducibility and makes mutations reviewable; it is not a cryptographic signature, does not authenticate the asserted evidence, and does not replace source-revision provenance. Release-grade reports should additionally bind the exact source commit, toolchain, dependency-lock digest and build profile in an independently captured run receipt.

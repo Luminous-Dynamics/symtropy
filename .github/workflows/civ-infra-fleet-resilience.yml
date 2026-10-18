@@ -8,7 +8,7 @@ on:
       - "docs/research/civ-infra-resilience/**"
       - ".github/workflows/civ-infra-fleet-resilience.yml"
   pull_request:
-    branches: ["main", "docs/civ-infra-fleet-resilience-v0-1"]
+    branches: ["main", "docs/civ-infra-fleet-resilience-v0-1", "feat/civ-infra-event-timeline-audit-clean"]
     paths:
       - "tools/civ-infra-fleet-resilience/**"
       - "docs/research/civ-infra-resilience/**"
@@ -26,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -145,3 +147,196 @@ jobs:
             .timeline_tick_count == 8 and
             .policy_simulation_executed == false
           ' "$checker_report"
+
+      - name: Execute typed recovery-admission contract
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/recovery-admission-contract.rs') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          expected_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          report="$RUNNER_TEMP/civ-infra-recovery-admission-report.json"
+          echo "CIV_INFRA_ADMISSION_REPORT=$report" >> "$GITHUB_ENV"
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-contract > "$report"
+          jq -e --arg expected_sha "$expected_sha" '
+            .schema_version == "luminous.civ_infra.recovery_admission_contract.v0.1" and
+            .fixture_id == "civ-infra-fleet-resilience-synthetic-001" and
+            .fixture_sha256 == $expected_sha and
+            .classification == "synthetic_only" and
+            .validation_status == "typed_task_admission_contract_checked" and
+            .contract_suite_executed == true and
+            .scenario_count >= 40 and
+            .expectation_mismatch_count == 0 and
+            .all_expected_decisions_match == true and
+            (.scenario_set_sha256 | test("^[0-9a-f]{64}$")) and
+            (.scenario_results | all(.[]; (.input_sha256 | test("^[0-9a-f]{64}$")) and (.decision_sha256 | test("^[0-9a-f]{64}$")))) and
+            .policy_simulation_executed == false and
+            .policy_runs_performed == 0 and
+            .physical_control_executed == false and
+            .dispatch_authorized == false and
+            .input_receipts_cryptographically_verified == false and
+            .immutable_history_store_executed == false and
+            .gate_inputs_are_synthetic_assertions == true and
+            ([.scenario_results[] | select((.scenario_id | test("^R-[0-9]{3}-accept-after-recovery$")) and .admitted == true)] | length) == 13 and
+            ([.scenario_results[] | select((.scenario_id | test("^R-[0-9]{3}-missing-recovery-evidence$")) and .admitted == false)] | length) == 13 and
+            ([.scenario_results[] | select(.scenario_id == "R-008-future-observation-reference" and .admitted == false and (.reason_codes | index("observation_not_yet_visible:R-008") != null))] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-approval-not-required-bypass" and .admitted == false and (.reason_codes | index("visible_approval_gate_requires_granted_authorization:R-012") != null))] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-unknown-utility-at-acceptance" and .admitted == false and (.reason_codes | index("visible_utility_gate_must_be_resolved:R-011") != null))] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-protective-stop-with-future-reference" and .admitted == true and .next_state == "interrupted")] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-protective-stop-beyond-contract-horizon" and .admitted == true and .next_state == "interrupted")] | length) == 1 and
+            ([.scenario_results[] | select(.scenario_id == "global-protective-stop-before-observation" and .admitted == true and .next_state == "interrupted")] | length) == 1
+          ' "$report"
+
+      - name: Differentially verify recovery-admission decisions
+        if: ${{ hashFiles('tools/civ-infra-fleet-resilience/src/bin/recovery-admission-oracle.rs') != '' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          candidate_report="$RUNNER_TEMP/civ-infra-recovery-admission-report.json"
+          oracle_report="$RUNNER_TEMP/civ-infra-recovery-admission-oracle-report.json"
+          echo "CIV_INFRA_ORACLE_REPORT=$oracle_report" >> "$GITHUB_ENV"
+          set +e
+          cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin recovery-admission-oracle -- "$fixture" "$candidate_report" > "$oracle_report"
+          oracle_status=$?
+          set -e
+          jq -e '
+            .schema_version == "luminous.civ_infra.recovery_admission_oracle.v0.1" and
+            .classification == "synthetic_only" and
+            .scenarios_checked >= 40 and
+            .state_action_pairs_enumerated == 81 and
+            .all_candidate_decisions_match == true and
+            .all_candidate_admissions_are_oracle_admissible == true and
+            .false_admission_count == 0 and
+            .false_block_count == 0 and
+            .full_decision_mismatch_count == 0 and
+            .fixture_label_mismatch_count == 0 and
+            (.fail_closed_mutations_checked > 0) and
+            .fail_closed_mutation_violation_count == 0 and
+            (.fail_closed_mutation_digest_sha256 | test("^[0-9a-f]{64}$")) and
+            .all_fail_closed_mutations_rejected == true and
+            (.protective_stop_override_checks >= 2) and
+            .protective_stop_override_violations == 0
+          ' "$oracle_report"
+          test "$oracle_status" -eq 0
+
+      - name: Emit exact-checkout reproducibility receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+          lock="tools/civ-infra-fleet-resilience/Cargo.lock"
+          report="${CIV_INFRA_ADMISSION_REPORT:-}"
+          oracle_report="${CIV_INFRA_ORACLE_REPORT:-}"
+          rustc_version="$(rustc -Vv 2>&1 || true)"
+          cargo_version="$(cargo -V 2>&1 || true)"
+          toolchain="$(rustup show active-toolchain 2>&1 || true)"
+          source_sha="$(git rev-parse HEAD)"
+          source_tree_sha="$(git rev-parse 'HEAD^{tree}')"
+          checkout_parent_shas="$(git rev-list --parents -n 1 HEAD | cut -d' ' -f2-)"
+          event_sha="$GITHUB_SHA"
+          pull_request_head_sha="${{ github.event.pull_request.head.sha || '' }}"
+          pull_request_base_event_sha="${{ github.event.pull_request.base.sha || '' }}"
+          is_pull_request="${{ github.event_name == 'pull_request' }}"
+          fixture_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+          lock_sha="$(sha256sum "$lock" | awk '{print $1}')"
+          report_present=false
+          report_sha=""
+          if [[ -n "$report" && -f "$report" ]]; then
+            report_present=true
+            report_sha="$(sha256sum "$report" | awk '{print $1}')"
+          fi
+          oracle_report_present=false
+          oracle_report_sha=""
+          if [[ -n "$oracle_report" && -f "$oracle_report" ]]; then
+            oracle_report_present=true
+            oracle_report_sha="$(sha256sum "$oracle_report" | awk '{print $1}')"
+          fi
+          jq -n \
+            --arg schema "luminous.civ_infra.run_provenance.v0.1" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg source_sha "$source_sha" \
+            --arg source_tree_sha "$source_tree_sha" \
+            --arg event_sha "$event_sha" \
+            --arg checkout_parent_shas "$checkout_parent_shas" \
+            --arg pull_request_head_sha "$pull_request_head_sha" \
+            --arg pull_request_base_event_sha "$pull_request_base_event_sha" \
+            --argjson is_pull_request "$is_pull_request" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg workflow_ref "$GITHUB_WORKFLOW_REF" \
+            --arg workflow_sha "$GITHUB_WORKFLOW_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg runner_os "$RUNNER_OS" \
+            --arg architecture "$RUNNER_ARCH" \
+            --arg rustc_version "$rustc_version" \
+            --arg cargo_version "$cargo_version" \
+            --arg toolchain "$toolchain" \
+            --arg fixture_sha256 "$fixture_sha" \
+            --arg cargo_lock_sha256 "$lock_sha" \
+            --arg decision_report_sha256 "$report_sha" \
+            --arg oracle_report_sha256 "$oracle_report_sha" \
+            --argjson oracle_report_present "$oracle_report_present" \
+            --argjson decision_report_present "$report_present" \
+            '{
+              schema_version: $schema,
+              repository: $repository,
+              source_commit: $source_sha,
+              source_tree: $source_tree_sha,
+              event_sha: $event_sha,
+              checked_out_parent_shas: ($checkout_parent_shas | split(" ") | map(select(length > 0))),
+              is_pull_request: $is_pull_request,
+              pull_request_head_sha: (if $is_pull_request then $pull_request_head_sha else null end),
+              pull_request_base_event_sha: (if $is_pull_request then $pull_request_base_event_sha else null end),
+              integration_base_sha: (if $is_pull_request then (($checkout_parent_shas | split(" ") | map(select(length > 0)))[0]) else null end),
+              workflow: $workflow,
+              workflow_ref: $workflow_ref,
+              workflow_definition_commit: $workflow_sha,
+              run_id: $run_id,
+              run_attempt: $run_attempt,
+              runner_os: $runner_os,
+              runner_architecture: $architecture,
+              rustc_version_verbose: $rustc_version,
+              cargo_version: $cargo_version,
+              active_toolchain: $toolchain,
+              fixture_sha256: $fixture_sha256,
+              cargo_lock_sha256: $cargo_lock_sha256,
+              decision_report_present: $decision_report_present,
+              decision_report_sha256: (if $decision_report_present then $decision_report_sha256 else null end),
+              independent_oracle_report_present: $oracle_report_present,
+              independent_oracle_report_sha256: (if $oracle_report_present then $oracle_report_sha256 else null end),
+              evidence_scope: "run provenance only; does not authenticate observations, signatures, physical state, or dispatch authority"
+            }' > "$RUNNER_TEMP/civ-infra-recovery-run-receipt.json"
+          jq -e '
+            .schema_version == "luminous.civ_infra.run_provenance.v0.1" and
+            (.source_commit | test("^[0-9a-f]{40}$")) and
+            (.source_tree | test("^[0-9a-f]{40}$")) and
+            .event_sha == .source_commit and
+            (.checked_out_parent_shas | type == "array") and
+            (if .is_pull_request then
+              (.pull_request_head_sha | test("^[0-9a-f]{40}$")) and
+              (.pull_request_base_event_sha | test("^[0-9a-f]{40}$")) and
+              (.checked_out_parent_shas | length) == 2 and
+              .pull_request_head_sha == .checked_out_parent_shas[1] and
+              .integration_base_sha == .checked_out_parent_shas[0]
+             else
+              .pull_request_head_sha == null and
+              .pull_request_base_event_sha == null and
+              .integration_base_sha == null
+             end) and
+            (.fixture_sha256 | test("^[0-9a-f]{64}$")) and
+            (.cargo_lock_sha256 | test("^[0-9a-f]{64}$"))
+          ' "$RUNNER_TEMP/civ-infra-recovery-run-receipt.json"
+
+      - name: Upload recovery contract and provenance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: civ-infra-recovery-admission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/civ-infra-recovery-admission-report.json
+            ${{ runner.temp }}/civ-infra-recovery-admission-oracle-report.json
+            ${{ runner.temp }}/civ-infra-recovery-run-receipt.json
+          if-no-files-found: warn
+          retention-days: 90
