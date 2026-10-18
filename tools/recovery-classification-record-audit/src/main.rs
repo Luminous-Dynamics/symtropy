@@ -525,6 +525,12 @@ fn audit(
     }
     case_results.sort_by(|a, b| a.case_id.cmp(&b.case_id));
 
+    if !errors.is_empty() {
+        for result in &mut case_results {
+            result.synthetic_review_candidate = false;
+        }
+    }
+
     let mut integrity_counts = BTreeMap::new();
     let mut binding_counts = BTreeMap::new();
     let mut scope_counts = BTreeMap::new();
