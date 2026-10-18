@@ -183,7 +183,10 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             ("domain", profile.domain.as_str()),
             ("profile_version", profile.profile_version.as_str()),
             ("criteria_regime", profile.criteria_regime.as_str()),
-            ("family_taxonomy_version", profile.family_taxonomy_version.as_str()),
+            (
+                "family_taxonomy_version",
+                profile.family_taxonomy_version.as_str(),
+            ),
         ] {
             if !is_nonempty(value) {
                 errors.push(format!(
@@ -222,7 +225,10 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             ("domain", case.domain.as_str()),
             ("profile_version", case.profile_version.as_str()),
             ("criteria_regime", case.criteria_regime.as_str()),
-            ("family_taxonomy_version", case.family_taxonomy_version.as_str()),
+            (
+                "family_taxonomy_version",
+                case.family_taxonomy_version.as_str(),
+            ),
         ] {
             if !is_nonempty(value) {
                 errors.push(format!(
@@ -242,7 +248,10 @@ fn validate_corpus(corpus: &Corpus, source_commit: Option<&str>, errors: &mut Ve
             case.classification_review_status.as_str(),
             "REVIEWED" | "UNREVIEWED" | "UNKNOWN"
         ) {
-            errors.push(format!("CLASSIFICATION_REVIEW_STATUS_INVALID:{}", case.case_id));
+            errors.push(format!(
+                "CLASSIFICATION_REVIEW_STATUS_INVALID:{}",
+                case.case_id
+            ));
         }
         validate_string_list(
             &case.observed_failure_families,
@@ -868,13 +877,17 @@ mod tests {
                                             } else {
                                                 format!("held-out-family-{}", profile.profile_id)
                                             };
-                                            let evidence_age_days = Some(if evidence_mode == "STALE" {
-                                                profile.max_evidence_age_days.saturating_add(1)
-                                            } else {
-                                                0
-                                            });
-                                            let mut evidence_tags = profile.required_evidence_tags.clone();
-                                            if evidence_mode == "MISSING_TAG" && !evidence_tags.is_empty() {
+                                            let evidence_age_days =
+                                                Some(if evidence_mode == "STALE" {
+                                                    profile.max_evidence_age_days.saturating_add(1)
+                                                } else {
+                                                    0
+                                                });
+                                            let mut evidence_tags =
+                                                profile.required_evidence_tags.clone();
+                                            if evidence_mode == "MISSING_TAG"
+                                                && !evidence_tags.is_empty()
+                                            {
                                                 evidence_tags.remove(0);
                                             }
 
@@ -894,15 +907,18 @@ mod tests {
                                             } else {
                                                 "INSUFFICIENT"
                                             };
-                                            let expected_disposition = if expected_scope == "OUT_OF_SCOPE" {
-                                                "REASSESS_SCOPE"
-                                            } else if gate == "BLOCK" {
-                                                "BLOCKED_HARD_GATE"
-                                            } else if gate == "UNKNOWN" || expected_evidence == "INSUFFICIENT" {
-                                                "HOLD_EVIDENCE"
-                                            } else {
-                                                "REVIEW_ONLY_CANDIDATE"
-                                            };
+                                            let expected_disposition =
+                                                if expected_scope == "OUT_OF_SCOPE" {
+                                                    "REASSESS_SCOPE"
+                                                } else if gate == "BLOCK" {
+                                                    "BLOCKED_HARD_GATE"
+                                                } else if gate == "UNKNOWN"
+                                                    || expected_evidence == "INSUFFICIENT"
+                                                {
+                                                    "HOLD_EVIDENCE"
+                                                } else {
+                                                    "REVIEW_ONLY_CANDIDATE"
+                                                };
 
                                             let case = ScenarioCase {
                                                 case_id: format!(
@@ -932,9 +948,13 @@ mod tests {
                                                 family_taxonomy_version: if taxonomy_matches {
                                                     profile.family_taxonomy_version.clone()
                                                 } else {
-                                                    format!("{}-changed", profile.family_taxonomy_version)
+                                                    format!(
+                                                        "{}-changed",
+                                                        profile.family_taxonomy_version
+                                                    )
                                                 },
-                                                classification_review_status: review_status.to_string(),
+                                                classification_review_status: review_status
+                                                    .to_string(),
                                                 classification_record_ref: if record_is_valid {
                                                     Some(format!(
                                                         "synthetic://classification-review/matrix/{}",
@@ -949,11 +969,14 @@ mod tests {
                                                 observed_evidence_tags: evidence_tags,
                                                 hard_gate_status: gate.to_string(),
                                                 expected_scope_status: expected_scope.to_string(),
-                                                expected_evidence_status: expected_evidence.to_string(),
-                                                expected_disposition: expected_disposition.to_string(),
+                                                expected_evidence_status: expected_evidence
+                                                    .to_string(),
+                                                expected_disposition: expected_disposition
+                                                    .to_string(),
                                             };
 
-                                            let result = evaluate_case(&case, std::slice::from_ref(profile));
+                                            let result =
+                                                evaluate_case(&case, std::slice::from_ref(profile));
                                             assert_eq!(result.scope_status, expected_scope);
                                             assert_eq!(result.evidence_status, expected_evidence);
                                             assert_eq!(result.disposition, expected_disposition);
@@ -1022,7 +1045,8 @@ mod tests {
     fn non_synthetic_classification_reference_is_out_of_scope() {
         let mut value = corpus();
         let case = find_case_mut(&mut value, "forest-known-family-complete-evidence");
-        case.classification_record_ref = Some("https://unverified.example/classification".to_string());
+        case.classification_record_ref =
+            Some("https://unverified.example/classification".to_string());
         case.expected_scope_status = "OUT_OF_SCOPE".to_string();
         case.expected_disposition = "REASSESS_SCOPE".to_string();
         let receipt = run(&value);
@@ -1045,5 +1069,4 @@ mod tests {
             .iter()
             .any(|error| error.contains("CLASSIFICATION_REVIEW_STATUS_INVALID")));
     }
-
 }
