@@ -28,7 +28,7 @@ The direct IFC/IDS crate versions are exact in `Cargo.toml`:
 - `openbim-core = 0.1.0`
 - `openbim-ids = 0.2.2`
 
-The first two are AGPL-3.0-or-later. `openbim-ids` is MIT with default features; this crate intentionally enables **no** IDS audit feature. In particular, it does not enable the `audit` feature whose standard template data is documented as CC BY-ND 4.0. All direct dependencies are version-pinned, but a reviewed `Cargo.lock` must be generated and committed before calling the dependency graph reproducible. CI currently generates the lockfile transiently because Cargo is not installed in the editing environment; this is an explicit pre-merge task, not a claimed completed pin.
+The first two are AGPL-3.0-or-later. `openbim-ids` is MIT with default features; this crate intentionally enables **no** IDS audit feature. In particular, it does not enable the `audit` feature whose standard template data is documented as CC BY-ND 4.0. All direct dependencies are version-pinned and `tools/built-interop-002/Cargo.lock` is committed from the exact Rust 1.96.0 CI resolver output. The focused workflow checks the lockfile SHA-256 and uses `cargo test --locked` / `cargo clippy --locked`, so an accidental dependency re-resolution fails instead of silently changing the test environment.
 
 ## Run
 
