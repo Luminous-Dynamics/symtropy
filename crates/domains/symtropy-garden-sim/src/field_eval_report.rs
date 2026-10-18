@@ -236,16 +236,6 @@ fn push_blocker(
     });
 }
 
-fn outcome_is_within_window_acceptance(outcome: &RequestOutcomeClassV1) -> bool {
-    matches!(
-        outcome,
-        RequestOutcomeClassV1::AcceptedWithinUsefulWindow
-            | RequestOutcomeClassV1::DisputedOrRework {
-                resolution: DisputeResolutionV1::AcceptedWithinUsefulWindow
-            }
-    )
-}
-
 /// Returns true only for a record that can plausibly contain an unobserved
 /// in-window acceptance at the declared report cut-off. Known late, no-provider,
 /// cancelled, no-show and resolved non-acceptance cases never enter this set.
@@ -614,7 +604,6 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
             }
             RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision { .. } => {
                 counts.provider_completion_awaiting_decision += 1;
-                genuinely_unascertainable += 1;
             }
             RequestOutcomeClassV1::DisputedOrRework { resolution } => {
                 counts.disputed_or_rework += 1;
@@ -632,18 +621,18 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                     }
                     DisputeResolutionV1::Unresolved => {
                         counts.dispute_resolutions.unresolved += 1;
-                        genuinely_unascertainable += 1;
                     }
                 }
             }
             RequestOutcomeClassV1::OutcomeUnknown => {
                 counts.outcome_unknown += 1;
-                genuinely_unascertainable += 1;
             }
             RequestOutcomeClassV1::FollowUpMissingOrInaccessible => {
                 counts.follow_up_missing_or_inaccessible += 1;
-                genuinely_unascertainable += 1;
             }
+        }
+        if outcome_is_genuinely_unascertainable(&record.outcome) {
+            genuinely_unascertainable += 1;
         }
     }
     counts.genuinely_unascertainable_for_upper_bound = genuinely_unascertainable;
