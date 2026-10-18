@@ -14,6 +14,10 @@ use serde::{Deserialize, Serialize};
 const SPEED_OF_LIGHT_M_PER_S: f64 = 299_792_458.0;
 const MAX_FIELD_SAMPLES: usize = 100_000;
 const MAX_FIELD_LAYERS: usize = 256;
+const MAX_SCALAR_MARKERS_PER_LAYER: usize = 2_048;
+const MAX_VECTOR_GLYPHS_PER_LAYER: usize = 1_024;
+const MAX_SCALAR_MARKERS_TOTAL: usize = 8_192;
+const MAX_VECTOR_GLYPHS_TOTAL: usize = 4_096;
 
 /// A physical quantity with a corresponding display unit.
 ///
@@ -328,6 +332,12 @@ impl FieldLayerMetadata {
             && (!frequency.is_finite() || frequency <= 0.0)
         {
             return Err("frequency_hz must be finite and positive".to_owned());
+        }
+        if let (Some(frequency), Some(band)) = (self.frequency_hz, self.wavelength_band) {
+            let (minimum_frequency, maximum_frequency) = band.frequency_range_hz()?;
+            if frequency < minimum_frequency || frequency > maximum_frequency {
+                return Err("frequency_hz falls outside the declared wavelength band".to_owned());
+            }
         }
         if self.quantity == PhysicalQuantity::SpectralRadiance
             && self.wavelength_band.is_none()
@@ -709,17 +719,21 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
         return;
     }
 
+    let scalar_total_budget = layers
+        .max_scalar_markers_total
+        .min(MAX_SCALAR_MARKERS_TOTAL);
     let mut total_scalar_markers = 0;
     for layer in layers.scalar_layers.iter().filter(|layer| layer.enabled) {
-        let remaining = layers
-            .max_scalar_markers_total
-            .saturating_sub(total_scalar_markers);
+        let remaining = scalar_total_budget.saturating_sub(total_scalar_markers);
         if remaining == 0 {
             break;
         }
         let glyphs = match extract_scalar_glyphs(
             layer,
-            layers.max_scalar_markers_per_layer.min(remaining),
+            layers
+                .max_scalar_markers_per_layer
+                .min(MAX_SCALAR_MARKERS_PER_LAYER)
+                .min(remaining),
         ) {
             Ok(glyphs) => glyphs,
             Err(_) => continue,
@@ -738,17 +752,21 @@ fn draw_field_layers(mut gizmos: Gizmos, layers: Res<FieldLayerSet>) {
         }
     }
 
+    let vector_total_budget = layers
+        .max_vector_glyphs_total
+        .min(MAX_VECTOR_GLYPHS_TOTAL);
     let mut total_vector_glyphs = 0;
     for layer in layers.vector_layers.iter().filter(|layer| layer.enabled) {
-        let remaining = layers
-            .max_vector_glyphs_total
-            .saturating_sub(total_vector_glyphs);
+        let remaining = vector_total_budget.saturating_sub(total_vector_glyphs);
         if remaining == 0 {
             break;
         }
         let glyphs = match extract_vector_glyphs(
             layer,
-            layers.max_vector_glyphs_per_layer.min(remaining),
+            layers
+                .max_vector_glyphs_per_layer
+                .min(MAX_VECTOR_GLYPHS_PER_LAYER)
+                .min(remaining),
         ) {
             Ok(glyphs) => glyphs,
             Err(_) => continue,
@@ -894,6 +912,23 @@ mod tests {
         assert!(meta.validate().is_err());
         meta.calibration_reference = Some("blackbody calibrator certificate REF-001".to_owned());
         assert!(meta.validate().is_ok());
+    }
+
+    #[test]
+    fn harmonic_frequency_must_agree_with_declared_spectral_band() {
+        let mut meta = metadata(
+            PhysicalQuantity::ElectricFieldVector,
+            FieldUnit::VoltPerMeter,
+            DisplayRange { min: 0.0, max: 100.0 },
+        );
+        meta.frequency_hz = Some(2.4e9);
+        meta.wavelength_band = Some(WavelengthBand {
+            min_wavelength_m: 0.12,
+            max_wavelength_m: 0.13,
+        });
+        assert!(meta.validate().is_ok());
+        meta.frequency_hz = Some(1.0e12);
+        assert!(meta.validate().is_err());
     }
 
     #[test]
