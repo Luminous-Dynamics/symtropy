@@ -40,7 +40,7 @@ These references motivate future work; no paper implementation, maritime forecas
 
 ## Current executable slice
 
-Eleven Rust tests cover:
+Twelve Rust tests cover:
 1. exact finite-sample rank for nine synthetic residuals at 10% nominal miscoverage;
 2. insufficient sample size producing an infinite/unavailable radius;
 3. invalid target levels and empty calibration;
@@ -51,7 +51,8 @@ Eleven Rust tests cover:
 8. explicit abstention accounting when the radius is unbounded;
 9. calibration output invariance under input permutation;
 10. held-out forecast and actual-observation cutoffs that reject evaluation leakage;
-11. a synthetic regime shift where baseline empirical coverage is 95% but shifted coverage collapses to 0% for the same fixed radius.
+11. a synthetic regime shift where baseline empirical coverage is 95% but shifted coverage collapses to 0% for the same fixed radius;
+12. per-stratum coverage reporting that prevents an overall metric from hiding the synthetic regime failure.
 
 All timestamps and residuals in the tests are synthetic. The test timestamps are deliberately constructed so forecasts precede event times and actuals are observed before the calibration cutoff unless a negative control intentionally violates that rule.
 
@@ -60,7 +61,7 @@ All timestamps and residuals in the tests are synthetic. The test timestamps are
 - Exact order-statistic agreement with an independent integer-arithmetic oracle across alpha values and sample counts, including ranks that require an infinite interval.
 - Zero calibration leakage across randomized cutoffs and chronological holdouts.
 - Report empirical coverage, interval width, issuance rate and abstention separately at 90%, 95%, and 99% nominal coverage.
-- Report the same metrics stratified by port, source, vessel class, forecast lead-time, day/night, season and regime—only where sample sizes justify it.
+- Use the per-stratum evaluator to report the same metrics by port, source, vessel class, forecast lead-time, day/night, season and regime—only where sample sizes justify it.
 - Detect and report coverage decay after distribution shifts. A deliberately shifted synthetic negative control now demonstrates that a fixed calibration can move from 95% to 0% empirical coverage. Do not silently re-fit using evaluation labels before they are observed.
 - Benchmark against point ETA, fixed-width intervals, historical quantiles and split-conformal intervals on the same chronological holdout.
 - No cross-port generalization claim without a held-out-port experiment; no operational claim without rights-cleared historical or shadow-mode data.
