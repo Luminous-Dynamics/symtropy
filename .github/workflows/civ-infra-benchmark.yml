@@ -31,14 +31,6 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt
 
-      - name: TEMP format and emit corridor verifier source
-        run: |
-          cargo fmt --manifest-path tools/civ-infra-benchmark/Cargo.toml
-          echo "FILE_BEGIN:tools/civ-infra-benchmark/src/lib.rs"
-          base64 -w0 tools/civ-infra-benchmark/src/lib.rs
-          echo
-          echo "FILE_END:tools/civ-infra-benchmark/src/lib.rs"
-
       - name: Check formatting
         run: cargo fmt --manifest-path tools/civ-infra-benchmark/Cargo.toml -- --check
 
