@@ -69,6 +69,17 @@ For an identical frozen manifest, compare:
 
 Symthaea-guided candidate ranking may be evaluated as an optional matched-budget arm; it is not assumed to outperform a conventional heuristic. The renderer and Sol Atlas projection must not decide whether a dependency or schedule is physically valid.
 
+### Causal attribution contract
+
+Every delayed operation should expose its *binding causal drivers*, not merely its final delay total:
+- a direct shock is a driver only when the shock-adjusted scheduled start is binding and increases the operation's start relative to baseline;
+- a delayed predecessor is a driver only when its finish-plus-lag constraint binds the scenario start and is later than that same constraint in the baseline;
+- if two or more predecessor constraints tie at the scenario start and each is later than baseline, preserve all binding drivers;
+- a shared-resource overlap is a distinct conflict fact and must not be mislabeled as a precedence cause unless a separate explicit capacity/precedence rule establishes that relationship;
+- unaffected operations have no shock-attribution path merely because they share a resource or appear later in the schedule.
+
+The receipt must allow an auditor to walk from a downstream delay backward through predecessor IDs to the originating shock. Causal attribution is conditional on the declared dependency graph and fixed-schedule replay; it is not a claim that the graph itself captures all real-world causes.
+
 The first implementation should be an offline deterministic reference model, not a live integration. A result is a proposed counterfactual, not an instruction or reservation.
 
 ## Metrics
@@ -110,6 +121,7 @@ The exact oracle may share data types only where needed; it must not call the pr
 These are **targets to test, not measured results**:
 
 - **100%** agreement with independent exhaustive enumeration on the frozen tiny corpus: affected set, feasible times, conflicts, served/unserved obligations, and metric vector.
+- **100%** correct causal-driver attribution on frozen chains and fan-in ties: no missing binding cause, no non-binding shock, and no resource overlap misreported as precedence causality.
 - **Zero** false-negative propagated dependencies and **zero** phantom impacts across the independent planted positive/negative graph controls.
 - **Zero** admitted capacity overcommitments for every canonical physical resource, including alias/revision cases.
 - **100/100** deterministic replay and input-order permutations produce byte-identical canonical receipts for an identical manifest.
