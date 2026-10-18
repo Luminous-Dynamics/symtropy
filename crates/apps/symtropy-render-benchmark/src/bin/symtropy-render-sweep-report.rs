@@ -517,7 +517,7 @@ mod tests {
             over_16_67_ms_fraction: Some(0.03),
             over_33_3_ms_fraction: Some(0.0),
             measurement_status: "measured_metadata_qualified".to_owned(),
-            claim_ceiling: "test-only".to_owned(),
+            claim_ceiling: "observed-real-frame-intervals-and-caller-declared-metadata-only; not-gpu-timestamp-or-visual-or-physical-validation".to_owned(),
         }
     }
 
@@ -535,6 +535,12 @@ mod tests {
         let mut second = test_report(256);
         second.gpu_driver = Some("different-driver".to_owned());
         assert!(validate_comparable_context(&[first, second]).is_err());
+    }
+
+    #[test]
+    fn a_qualified_frame_time_report_passes_the_input_contract() {
+        let report = test_report(64);
+        assert!(validate_report(&report, Path::new("valid.json")).is_ok());
     }
 
     #[test]
