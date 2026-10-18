@@ -4,7 +4,7 @@ Tracking issue: https://github.com/Luminous-Dynamics/symtropy/issues/1984
 
 ## v0.1 scope
 
-This first software slice is a **synthetic contract evaluator**, not a product design optimizer and not an engineering approval system. It verifies required evidence dispositions, non-compensable gates, and exact external reference-role bindings. Mycelix remains authoritative for lifecycle events, custody semantics, and material-flow accounts; this harness does not duplicate quantities or those domain records.
+This first software slice is a **synthetic contract evaluator**, not a product design optimizer and not an engineering approval system. It verifies required evidence dispositions, non-compensable gates, and exact external reference authority/identifier/role bindings. Mycelix remains authoritative for lifecycle events, custody semantics, and material-flow accounts; this harness does not duplicate quantities or those domain records.
 
 `Eligible` means only “eligible to proceed to the next controlled benchmark stage.” It does **not** mean that a manufactured unit is qualified, a building meets code, an environmental claim is substantiated, or a safety-critical design is approved.
 
@@ -29,18 +29,18 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 ## Contract semantics
 
 - A missing required record, stale evidence, unresolved gate, or missing required external reference yields `Unresolved`.
-- A digest mismatch, contradictory evidence, wrong unit, scope-invalid evidence, failed mandatory gate, external-reference role mismatch, or duplicate reference binding yields `Blocked`.
+- A digest mismatch, contradictory evidence, wrong unit, scope-invalid evidence, failed mandatory gate, external-reference authority/role mismatch, or duplicate reference binding yields `Blocked`.
 - No mandatory gate can be compensated for by cost, circularity or another favorable metric.
 - Every listed evidence record and external reference must bind to a declared requirement exactly once; unreferenced/duplicate records fail closed.
 - Evidence marked `Verified` must include a payload whose SHA-256 matches the declared digest.
-- External references are checked for exact identifier and declared role only. The target record is not dereferenced or qualified by this tool. Its source owner must validate target integrity, accounting boundary, custody strategy, and physical meaning.
+- External references are checked for exact authority, identifier and declared role only. The target record is not dereferenced or qualified by this tool. Its source owner must validate target integrity, accounting boundary, custody strategy, and physical meaning.
 - Expected dispositions are test oracles only. They are not passed into any optimizer/policy as candidate guidance.
 
 ## Initial adversarial cases
 
 | Fixture | Expected disposition | Control |
 |---|---|---|
-| `01-complete-evidence-and-external-bindings` | Eligible | complete hashes, gates pass and required external references match roles |
+| `01-complete-evidence-and-external-bindings` | Eligible | complete hashes, gates pass and required external authority/identifier/role bindings match |
 | `02-verified-payload-digest-mismatch` | Blocked | digest mismatch must not be accepted |
 | `03-required-material-lot-missing` | Unresolved | unknown provenance is not assumed nominal |
 | `04-mandatory-quality-gate-fails` | Blocked | failed hard gate dominates other metrics |
@@ -53,6 +53,7 @@ The current manifest accepts `evidence_class: Synthetic` only. Measured or model
 | `11-unreferenced-evidence-record` | Blocked | undeclared evidence does not silently enter a decision |
 | `12-custody-reference-role-mismatch` | Blocked | a custody reference cannot substitute for a material-flow account or vice versa |
 | `13-duplicate-custody-reference` | Blocked | duplicate lifecycle reference bindings fail closed |
+| `14-external-reference-authority-mismatch` | Blocked | an identifier from another owning system cannot satisfy the reference |
 
 All cases are synthetic. They are not evidence of the frequency of real production defects or material loss.
 
@@ -79,6 +80,6 @@ All cases are synthetic. They are not evidence of the frequency of real producti
 
 - The evaluator is a small fixture contract, not a general JSON Schema engine. Run a Draft 2020-12 schema validator separately when validating arbitrary manifest files.
 - SHA-256 proves byte consistency with the declared payload, not source truth, signer identity, physical measurement accuracy or source authorization.
-- External-reference presence and role agreement do not prove that the referenced records are true or qualified. The harness deliberately does not copy material-flow quantities from Mycelix's accounting owner.
+- External-reference presence, authority and role agreement do not prove that the referenced records are true or qualified. The harness deliberately does not copy material-flow quantities from Mycelix's accounting owner.
 - No engineering simulation, structural analysis, IFC round trip, machine actuation, life-cycle assessment, or physical trial is implemented here.
 - Local compilation/test status must be reported separately from workflow status. Queued, skipped, stale or absent CI is not a pass.
