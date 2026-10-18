@@ -1,6 +1,6 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Headless screenshot scheduler shared across the symtropy demo crates.
+//! Automated screenshot scheduler shared across the symtropy demo crates.
 //!
 //! Usage inside a demo's `main.rs`:
 //!
@@ -54,7 +54,7 @@ struct CaptureSchedule {
     finished: bool,
 }
 
-/// Plugin that wires up headless capture when
+/// Plugin that wires up automated screenshot capture when
 /// `SYMTROPY_DEMO_CAPTURE_DIR` is set in the environment. No-op otherwise.
 pub struct CapturePlugin {
     stem: String,
