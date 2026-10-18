@@ -156,7 +156,7 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
             candidate_conflicts += 1;
         }
 
-        let gap = if reference.feasible && has_candidate {
+        let gap = if reference.feasible && candidate_validated {
             let exact = reference
                 .nominal_optimal_makespan
                 .ok_or_else(|| format!("{}: feasible oracle case has no optimum", reference.case_id))?;
