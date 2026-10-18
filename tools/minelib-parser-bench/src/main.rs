@@ -641,7 +641,7 @@ fn solve_upit_exhaustive(
         let selected: BTreeSet<usize> = ids
             .iter()
             .copied()
-            .filter(|id| (mask & (1_usize << id)) != 0)
+            .filter(|id| (mask & (1_usize << *id)) != 0)
             .collect();
         if !precedence_feasible(&selected, precedence) {
             continue;
