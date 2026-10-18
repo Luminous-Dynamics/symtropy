@@ -497,7 +497,10 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                 "outcome classification conflicts with its useful-window state",
             );
         }
-        if outcomes.insert(record.request_ref.clone(), record).is_some() {
+        if outcomes
+            .insert(record.request_ref.clone(), record)
+            .is_some()
+        {
             push_blocker(
                 &mut blockers,
                 FieldEvalBlockerCodeV1::DuplicateOutcomeRecord,
@@ -660,7 +663,9 @@ pub fn preflight_field_study_v1(manifest: &FieldStudyManifestV1) -> FieldEvalPre
                         counts.dispute_resolutions.accepted_late += 1;
                     }
                     DisputeResolutionV1::ResolvedWithoutInWindowAcceptance => {
-                        counts.dispute_resolutions.resolved_without_in_window_acceptance += 1;
+                        counts
+                            .dispute_resolutions
+                            .resolved_without_in_window_acceptance += 1;
                     }
                     DisputeResolutionV1::Unresolved => {
                         counts.dispute_resolutions.unresolved += 1;
@@ -810,7 +815,10 @@ mod tests {
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Calculated);
         assert!(report.blockers.is_empty());
         assert_eq!(report.eligible_denominator, 6);
-        let counts = report.outcome_counts.as_ref().expect("typed outcome counts");
+        let counts = report
+            .outcome_counts
+            .as_ref()
+            .expect("typed outcome counts");
         assert_eq!(counts.known_non_acceptance_reasons.no_provider_available, 1);
         assert_eq!(counts.known_non_acceptance_reasons.provider_no_show, 0);
         assert_eq!(counts.dispute_resolutions.unresolved, 1);
@@ -892,9 +900,12 @@ mod tests {
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
         assert!(report.evidence_confirmed_lower_bound.is_none());
         assert!(report.missingness_upper_identification_bound.is_none());
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::MissingOutcomeRecord
-        }));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|blocker| { blocker.code == FieldEvalBlockerCodeV1::MissingOutcomeRecord })
+        );
     }
 
     #[test]
@@ -903,36 +914,52 @@ mod tests {
         manifest.exclusions.pop();
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::MissingExclusion
-        }));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|blocker| { blocker.code == FieldEvalBlockerCodeV1::MissingExclusion })
+        );
         assert!(report.evidence_confirmed_lower_bound.is_none());
     }
 
     #[test]
     fn duplicate_and_unscreened_references_block_report() {
         let mut manifest = valid_manifest();
-        manifest.screened_request_refs.push("req-study-001".to_owned());
-        manifest.eligible_request_refs.push("req-unscreened-01".to_owned());
+        manifest
+            .screened_request_refs
+            .push("req-study-001".to_owned());
+        manifest
+            .eligible_request_refs
+            .push("req-unscreened-01".to_owned());
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::DuplicateScreenedRequest
-        }));
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::EligibleRequestNotScreened
-        }));
+        assert!(
+            report.blockers.iter().any(|blocker| {
+                blocker.code == FieldEvalBlockerCodeV1::DuplicateScreenedRequest
+            })
+        );
+        assert!(
+            report.blockers.iter().any(|blocker| {
+                blocker.code == FieldEvalBlockerCodeV1::EligibleRequestNotScreened
+            })
+        );
     }
 
     #[test]
     fn duplicate_outcome_is_not_silently_double_counted() {
         let mut manifest = valid_manifest();
-        manifest.outcome_records.push(manifest.outcome_records[0].clone());
+        manifest
+            .outcome_records
+            .push(manifest.outcome_records[0].clone());
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::DuplicateOutcomeRecord
-        }));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|blocker| { blocker.code == FieldEvalBlockerCodeV1::DuplicateOutcomeRecord })
+        );
     }
 
     #[test]
@@ -957,9 +984,11 @@ mod tests {
             .push("rule-scope-eligibility".to_owned());
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::DuplicatePreregisteredRule
-        }));
+        assert!(
+            report.blockers.iter().any(|blocker| {
+                blocker.code == FieldEvalBlockerCodeV1::DuplicatePreregisteredRule
+            })
+        );
     }
 
     #[test]
@@ -970,16 +999,18 @@ mod tests {
             .iter_mut()
             .find(|record| record.request_ref == "req-study-004")
             .expect("pending farmer decision record");
-        record.outcome =
-            RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision {
-                useful_window_status: UsefulWindowStatusV1::Closed,
-            };
+        record.outcome = RequestOutcomeClassV1::ProviderCompletionAwaitingFarmerDecision {
+            useful_window_status: UsefulWindowStatusV1::Closed,
+        };
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
         assert!(report.evidence_confirmed_lower_bound.is_none());
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::InvalidOutcomeShape
-        }));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|blocker| { blocker.code == FieldEvalBlockerCodeV1::InvalidOutcomeShape })
+        );
     }
 
     #[test]
@@ -1046,8 +1077,11 @@ mod tests {
         let report = preflight_field_study_v1(&manifest);
         assert_eq!(report.status, FieldEvalPreflightStatusV1::Blocked);
         assert!(report.evidence_confirmed_lower_bound.is_none());
-        assert!(report.blockers.iter().any(|blocker| {
-            blocker.code == FieldEvalBlockerCodeV1::EmptyEligibleCohort
-        }));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|blocker| { blocker.code == FieldEvalBlockerCodeV1::EmptyEligibleCohort })
+        );
     }
 }
