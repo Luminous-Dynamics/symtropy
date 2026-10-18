@@ -1,6 +1,6 @@
 use energyplus_qualifier::{
     validate_fixture_corpus_bytes, validate_receipt_bytes, validate_spec_bytes,
-    EMBEDDED_FIXTURE_CORPUS, EMBEDDED_FIXTURE_SCHEMA, EMBEDDED_RECEIPT_SCHEMA,
+    verify_package_file, EMBEDDED_FIXTURE_CORPUS, EMBEDDED_FIXTURE_SCHEMA, EMBEDDED_RECEIPT_SCHEMA,
     EMBEDDED_SPEC, EMBEDDED_SPEC_SCHEMA,
 };
 use serde_json::Value;
@@ -13,6 +13,7 @@ fn usage() -> &'static str {
     concat!(
         "Usage: energyplus-qualifier --check-spec [--json] | ",
         "--check-fixtures [--json] | ",
+        "--verify-package INSTALLER_FILE [--json] | ",
         "--validate-receipt RECEIPT.json EVIDENCE_ROOT [--json]"
     )
 }
@@ -97,6 +98,36 @@ fn emit_fixtures(summary: &energyplus_qualifier::FixtureValidationSummary, json_
     }
 }
 
+fn emit_package(result: &energyplus_qualifier::PackageVerification, json_output: bool) {
+    if json_output {
+        match serde_json::to_string_pretty(result) {
+            Ok(serialized) => println!("{serialized}"),
+            Err(error) => {
+                eprintln!("REPORT_SERIALIZATION_FAILED: {error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
+
+    let state = if result.passed { "PASS" } else { "FAIL" };
+    println!("{state}: pinned EnergyPlus installer identity");
+    println!("artifact_path={}", result.artifact_path);
+    println!("expected_sha256={}", result.expected_sha256);
+    println!(
+        "actual_sha256={}",
+        result.actual_sha256.as_deref().unwrap_or("unavailable")
+    );
+    println!(
+        "expected_size_bytes={} actual_size_bytes={:?}",
+        result.expected_size_bytes, result.actual_size_bytes
+    );
+    if let Some(error) = &result.error {
+        println!("error={error}");
+    }
+    println!("claim_ceiling=installer identity only; the package is not executed");
+}
+
 fn emit_gate(result: &energyplus_qualifier::GateResult, json_output: bool) {
     if json_output {
         match serde_json::to_string_pretty(result) {
@@ -167,6 +198,22 @@ fn main() {
             );
             emit_fixtures(&summary, true);
             if !summary.passed {
+                process::exit(1);
+            }
+        }
+        [mode, installer_path] if mode == "--verify-package" => {
+            let result = verify_package_file(Path::new(installer_path));
+            emit_package(&result, false);
+            if !result.passed {
+                process::exit(1);
+            }
+        }
+        [mode, installer_path, flag]
+            if mode == "--verify-package" && flag == "--json" =>
+        {
+            let result = verify_package_file(Path::new(installer_path));
+            emit_package(&result, true);
+            if !result.passed {
                 process::exit(1);
             }
         }
