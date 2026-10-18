@@ -76,6 +76,7 @@ struct RevocationEntry {
     record_id: String,
     status: String,
     recorded_day: u64,
+    policy_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -239,6 +240,9 @@ fn validate_packet(packet: &Packet, source_commit: Option<&str>, errors: &mut Ve
     for entry in &packet.revocation_entries {
         if !is_nonempty(&entry.record_id) {
             errors.push("REVOCATION_RECORD_ID_EMPTY".to_string());
+        }
+        if !is_nonempty(&entry.policy_id) {
+            errors.push(format!("REVOCATION_POLICY_ID_EMPTY:{}", entry.record_id));
         }
         if !revocation_ids.insert(&entry.record_id) {
             errors.push(format!("DUPLICATE_REVOCATION_ENTRY:{}", entry.record_id));
@@ -437,7 +441,10 @@ fn evaluate_case(
         errors.push(format!("REVOCATION_CARDINALITY_INVALID:{}", case.case_id));
     } else {
         let revocation = matching_revocations[0];
-        if revocation.status == "REVOKED" {
+        if revocation.policy_id != payload.revocation_policy_id {
+            result.lifecycle_status = "REVOCATION_POLICY_MISMATCH".to_string();
+            errors.push(format!("REVOCATION_POLICY_MISMATCH:{}", case.case_id));
+        } else if revocation.status == "REVOKED" {
             result.lifecycle_status = "REVOKED".to_string();
             errors.push(format!("RECORD_REVOKED:{}", case.case_id));
         } else if revocation.status != "ACTIVE" {
@@ -937,6 +944,19 @@ mod tests {
             .case_results
             .iter()
             .all(|result| result.authenticity_status == "UNVERIFIED_SYNTHETIC"));
+    }
+
+    #[test]
+    fn revocation_policy_must_match_the_record_policy() {
+        let mut value = packet();
+        value.revocation_entries[0].policy_id = "different-policy-v9".to_string();
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert_eq!(receipt.synthetic_review_candidate_count, 0);
+        assert!(receipt
+            .errors
+            .iter()
+            .any(|error| error.starts_with("REVOCATION_POLICY_MISMATCH")));
     }
 
     #[test]
