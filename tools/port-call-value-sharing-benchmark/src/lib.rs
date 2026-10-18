@@ -34,9 +34,11 @@ pub struct CounterfactualBasis {
     pub evidence_tier: EvidenceTier,
     /// A reviewed, common service/horizon contract must apply to both cases.
     pub same_delivered_service: bool,
-    /// Every in-scope cost/benefit account must use the same declared boundary.
+    /// Caller assertion that every in-scope account uses the same boundary.
+    /// This v0.1 evaluator rejects false, but does not audit line-item completeness.
     pub cost_boundary_complete: bool,
-    /// Digests identify the frozen source receipts; they do not establish truth.
+    /// Caller-supplied source receipt digests. Syntax is checked here; an upstream
+    /// receipt verifier must prove the digests match source bytes. They do not prove truth.
     pub baseline_receipt_sha256: String,
     pub treatment_receipt_sha256: String,
     pub comparison_contract_sha256: String,
@@ -574,4 +576,51 @@ mod tests {
             Err(ValueShareError::InvalidCurrencyCode("usd".to_owned()))
         );
     }
+    #[test]
+    fn bounded_transfer_grid_matches_independent_accounting_oracle() {
+        let mut configurations = 0usize;
+        for transfer_a in -2_i64..=2 {
+            for transfer_b in -2_i64..=2 {
+                let transfer_c = -transfer_a - transfer_b;
+                let case = ScenarioInput {
+                    basis: basis(),
+                    baseline_fuel_grams: 100,
+                    treatment_fuel_grams: 100,
+                    baseline_co2_grams: 300,
+                    treatment_co2_grams: 300,
+                    participants: vec![
+                        account("A", 10, 6, transfer_a, 0),
+                        account("B", 7, 10, transfer_b, 0),
+                        account("C", 8, 6, transfer_c, 0),
+                    ],
+                };
+                let report = evaluate_value_share(&case).unwrap();
+                let expected = [
+                    ("A", 4_i128 + i128::from(transfer_a)),
+                    ("B", -3_i128 + i128::from(transfer_b)),
+                    ("C", 2_i128 + i128::from(transfer_c)),
+                ];
+
+                assert_eq!(report.total_gross_benefit_minor, 3);
+                assert_eq!(report.net_transfer_minor, 0);
+                assert_eq!(
+                    report.all_reservations_met,
+                    expected.iter().all(|(_, benefit)| *benefit >= 0)
+                );
+                for outcome in &report.participants {
+                    let expected_benefit = expected
+                        .iter()
+                        .find(|(id, _)| *id == outcome.participant_id)
+                        .expect("oracle has every fixed participant")
+                        .1;
+                    assert_eq!(outcome.net_benefit_minor, expected_benefit);
+                    assert_eq!(outcome.meets_reservation, expected_benefit >= 0);
+                }
+                configurations += 1;
+            }
+        }
+        assert_eq!(configurations, 25);
+    }
+
+
 }
