@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
 use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 use std::{env, fs, process};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -164,7 +164,8 @@ fn run() -> Result<bool, String> {
             }
             let (benchmark, corpus_sha256): (Benchmark, String) = read_json(&corpus_path)?;
             validate_benchmark(&benchmark)?;
-            let (submission, submission_sha256): (Submission, String) = read_json(&submission_path)?;
+            let (submission, submission_sha256): (Submission, String) =
+                read_json(&submission_path)?;
             if submission.schema_version != "0.1.0" {
                 return Err(format!(
                     "unsupported submission schema version: {}",
@@ -174,12 +175,8 @@ fn run() -> Result<bool, String> {
             if submission.system_id.trim().is_empty() {
                 return Err("submission system_id must not be empty".to_string());
             }
-            let report = evaluate_with_digests(
-                &benchmark,
-                &submission,
-                corpus_sha256,
-                submission_sha256,
-            )?;
+            let report =
+                evaluate_with_digests(&benchmark, &submission, corpus_sha256, submission_sha256)?;
             let passed = report.fixture_gate_passed;
             println!(
                 "{}",
@@ -203,8 +200,7 @@ fn usage() -> String {
 fn read_json<T: for<'de> Deserialize<'de>>(path: &str) -> Result<(T, String), String> {
     let raw = fs::read_to_string(path).map_err(|e| format!("cannot read {path}: {e}"))?;
     let digest = sha256_hex(raw.as_bytes());
-    let value =
-        serde_json::from_str(&raw).map_err(|e| format!("{path} is invalid JSON: {e}"))?;
+    let value = serde_json::from_str(&raw).map_err(|e| format!("{path} is invalid JSON: {e}"))?;
     Ok((value, digest))
 }
 
