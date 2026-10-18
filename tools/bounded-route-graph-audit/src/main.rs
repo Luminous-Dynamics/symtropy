@@ -778,7 +778,8 @@ fn audit(input: &Value) -> Result<Value, String> {
     }
 
     let mut environment_summaries = Vec::new();
-    for environment_id in environment_ids {
+    let environment_count = environment_ids.len();
+    for environment_id in &environment_ids {
         let summaries: Vec<&Value> = mission_summaries
             .iter()
             .filter(|summary| summary["environment_id"].as_str() == Some(environment_id.as_str()))
@@ -821,7 +822,7 @@ fn audit(input: &Value) -> Result<Value, String> {
         "claim_ceiling": CLAIM_CEILING,
         "provenance_kind": "synthetic_only",
         "mission_count": mission_count,
-        "environment_count": environment_ids.len(),
+        "environment_count": environment_count,
         "node_count": node_map.len(),
         "edge_count": edge_map.len(),
         "topological_route_count": total_topological_route_count,
@@ -1082,7 +1083,7 @@ mod tests {
             input["missions"][mission_index]["requirements"][field] = json!(true);
         }
         let mission = &input["missions"][mission_index];
-        let mut nodes: BTreeMap<String, Value> = input["nodes"].as_array().unwrap().iter()
+        let nodes: BTreeMap<String, Value> = input["nodes"].as_array().unwrap().iter()
             .map(|node| (node["node_id"].as_str().unwrap().to_string(), node.clone())).collect();
         let mut edges: BTreeMap<String, Value> = input["edges"].as_array().unwrap().iter()
             .map(|edge| (edge["edge_id"].as_str().unwrap().to_string(), edge.clone())).collect();
