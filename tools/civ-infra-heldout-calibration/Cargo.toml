@@ -1,0 +1,15 @@
+[package]
+name = "civ-infra-heldout-calibration"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Synthetic held-out discrepancy-envelope qualification benchmark"
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
