@@ -17,6 +17,8 @@ const CLAIM_CEILING: &str = "The generated file bytes and code-level raster are 
 const SCHEMA_DRAFT: &str = "https://json-schema.org/draft/2020-12/schema";
 const MAX_DIMENSION: u64 = 4096;
 const MAX_RASTER_BYTES: u64 = 64 * 1024 * 1024;
+const REPORT_SCHEMA_TEXT: &str =
+    include_str!("../../../docs/visual-technology/display-stimulus-report.schema.json");
 
 const SUPPORTED_CASES: [(&str, &str, &str); 4] = [
     (
@@ -466,10 +468,34 @@ pub fn generate_stimulus(
         "evidence_class": "SYNTHETIC_STIMULUS",
         "status": "UNQUALIFIED",
         "physical_output_validation": "NOT_PERFORMED",
+        "global_claim_ceiling": CLAIM_CEILING,
         "claim_ceiling": stimulus.get("claim_limit").and_then(Value::as_str).unwrap_or("No claim ceiling supplied.")
     });
 
+    validate_report(&report)?;
+
     Ok(GeneratedStimulus { bytes, report })
+}
+
+fn validate_report(report: &Value) -> Result<(), StimulusError> {
+    let schema: Value = serde_json::from_str(REPORT_SCHEMA_TEXT)
+        .map_err(|error| StimulusError(format!("report schema JSON parse error: {error}")))?;
+    if schema.get("$schema").and_then(Value::as_str) != Some(SCHEMA_DRAFT) {
+        return Err(StimulusError(
+            "generated report schema must declare JSON Schema Draft 2020-12".to_owned(),
+        ));
+    }
+    let validator = jsonschema::draft202012::new(&schema)
+        .map_err(|error| StimulusError(format!("report schema compilation failed: {error}")))?;
+    let errors: Vec<String> = validator
+        .iter_errors(report)
+        .map(|error| format!("generated report schema violation: {error}"))
+        .collect();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(StimulusError(errors.join("\\n")))
+    }
 }
 
 fn raster_capacity(spec: RasterSpec) -> Result<usize, StimulusError> {
