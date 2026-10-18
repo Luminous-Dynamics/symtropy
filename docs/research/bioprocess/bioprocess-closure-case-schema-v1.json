@@ -154,6 +154,7 @@
           "items": {
             "type": "object",
             "required": [
+              "stream_id",
               "resource",
               "unit",
               "inflow",
@@ -165,6 +166,10 @@
             ],
             "additionalProperties": false,
             "properties": {
+              "stream_id": {
+                "type": "string",
+                "minLength": 1
+              },
               "resource": {
                 "enum": [
                   "mass",
