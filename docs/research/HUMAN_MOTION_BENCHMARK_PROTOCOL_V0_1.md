@@ -81,6 +81,21 @@ Use the targets as initial engineering gates, not as a statement of present capa
 
 Before promoting any target to a release gate, record baseline performance and perform a power/sensitivity analysis. If a target is too strict for the first avatar, report the gap instead of silently moving the threshold.
 
+## Running the Rust benchmark CLI
+
+The renderer-free Rust CLI is implemented at `crates/bridges/symtropy-bevy/src/bin/human_motion_bench.rs`. Once the branch compiles, compare the synthetic fixture with itself to validate trace loading, interpolation and the JSON report:
+
+```sh
+cargo test -p symtropy-bevy --bin human-motion-bench
+cargo run -p symtropy-bevy --bin human-motion-bench -- \
+  docs/research/fixtures/human-motion-trace-synthetic-v0.1.json \
+  docs/research/fixtures/human-motion-trace-synthetic-v0.1.json
+```
+
+For actual traces, provide the reference and candidate JSON paths; use `--step-sec 0.033333` to explicitly set a common 30 Hz grid, and `--output report.json` to save the machine-readable report. The default common grid uses the coarser median sample interval, is bounded to one million samples, interpolates positions linearly and samples contact booleans by nearest neighbour. Both traces must overlap in time and share the same coordinate frame, canonical skeleton signature and retarget-map hash. Model/config/asset hashes are both recorded and may differ as part of the experiment.
+
+The CLI rejects malformed JSON, incomplete required fields, wrong sample counts, non-finite coordinates, non-increasing time, incomplete asset/license provenance, and incompatible skeleton/retarget metadata. Invalid samples are rejected rather than silently dropped. The report is marked `synthetic_fixture_only` when either side is synthetic. The current implementation measures metric-computation time but does not yet provide peak-memory accounting, renderer frame-time capture, visual preference study orchestration, or a real-avatar smoke screenshot.
+
 ## Experimental protocol
 
 1. Pin one rig and at least four motion conditions: stationary, steady walk, speed transition, and curved path. Add interaction scenes after the pipeline is reliable.
