@@ -1225,6 +1225,40 @@ mod tests {
     }
 
     #[test]
+    fn infeasible_high_reward_strategy_is_excluded_from_both_regime_rankings() {
+        let receipt = run(&corpus());
+        assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
+        assert!(receipt
+            .criteria_regime_rankings
+            .values()
+            .all(|ranked| !ranked.contains(&"constraint-violating-high-yield-shortcut".to_string())));
+    }
+
+    #[test]
+    fn weakening_a_hard_constraint_exposes_the_inadmissible_strategy_and_fails() {
+        let mut value = corpus();
+        for regime in &mut value.criteria_sensitivity_control.regimes {
+            let constraint = regime
+                .admissibility_constraints
+                .iter_mut()
+                .find(|constraint| constraint.metric == "habitat_disturbance")
+                .expect("habitat constraint exists");
+            constraint.threshold = 99;
+            regime.expected_ranked_strategy_ids =
+                vec!["constraint-violating-high-yield-shortcut".to_string(),
+                     if regime.criteria_regime == "protect-habitat-and-recover-material-v1" {
+                         "rapid_material_recovery".to_string()
+                     } else {
+                         "retain_inspect_replan".to_string()
+                     }];
+        }
+        let receipt = run(&value);
+        assert_eq!(receipt.result, "fail");
+        assert!(!receipt.criteria_sensitivity_control_matches);
+        assert!(receipt.errors.iter().any(|error| error.starts_with("CRITERIA_RANKING_MISMATCH")));
+    }
+
+    #[test]
     fn ranking_reverses_when_the_declared_criteria_priority_changes() {
         let receipt = run(&corpus());
         assert_eq!(receipt.result, "pass", "{:?}", receipt.errors);
