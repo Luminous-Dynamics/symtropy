@@ -35,7 +35,7 @@ The timestamp parser accepts a strict RFC 3339 subset: YYYY-MM-DDTHH:MM:SS[.1-9 
 
 Observations are grouped by port, port call, field and time meaning. Thus planned and actual arrival are separate groups; they do not conflict merely because the instants differ. Same-semantic observations from distinct offsets are consistent when their normalized UTC instant agrees. Different values for the same semantic key produce an explicit conflict with all source candidates preserved. The crate never applies last-write-wins or source ranking.
 
-An observation with an unknown terminal/berth identifier, malformed field/value pairing, duplicate observation ID, stale source event, future-dated source/ingestion metadata, invalid validity window or expired validity is rejected with a reason. A future timestamp inside a planned event value is allowed: future plans are normal. Master-data registries are explicit policy inputs; empty registries reject all terminal/berth references.
+An observation with an unknown terminal/berth identifier, malformed field/value pairing, duplicate observation ID, stale source event, future-dated source/ingestion metadata, invalid validity window or expired validity is rejected with a reason. A future timestamp inside a planned/requested/estimated/forecast payload is allowed when the source metadata is fresh; future actual-event values beyond allowed clock skew are rejected. Master-data registries are explicit policy inputs; empty registries reject all terminal/berth references. Parsed timestamp fields are private and can only be created by the parser, so callers cannot construct a mismatched source string/UTC instant pair through a struct literal.
 
 ## Frozen synthetic tests
 
