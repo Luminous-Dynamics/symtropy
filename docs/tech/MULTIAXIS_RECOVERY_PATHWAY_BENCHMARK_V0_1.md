@@ -44,6 +44,20 @@ Remaining lead time is checked against each commitment's response lead. When the
 
 The contract keeps applicability, evidence sufficiency, hard-gate status, timing and lock-in as separate axes. A severe or unknown interaction cannot be averaged away by low cost or high material yield. There are no invented scenario probabilities or expected values.
 
+## Criteria-regime ranking reversal control
+
+The corpus also includes a two-strategy sensitivity control with explicit feasibility constraints and a lexicographic (not weighted-sum) priority order. All metric values are synthetic ordinal test values, not measured recovery performance.
+
+| Metric | `rapid_material_recovery` | `retain_inspect_replan` |
+|---|---:|---:|
+| Material yield (maximize when prioritized) | 8 | 3 |
+| Biosecurity exposure (minimize when prioritized) | 5 | 1 |
+| Habitat disturbance (must be ≤ 3) | 2 | 0 |
+
+Both strategies satisfy the fixture's constraints. Under the current profile's material-recovery-first regime, the rapid option ranks first. Under a proposed biosecurity-first regime, retain/inspect/replan ranks first. That ranking reversal is a sensitivity control demonstrating that priority changes matter; it is not evidence that either option is actually safer or preferable in a real forest.
+
+The proposed regime is explicitly not adopted by the current profile. Ranking under a proposed regime does not confer applicability, permission or authority. The current profile continues to require an explicit versioned adoption/reassessment before using that regime in real decisions.
+
 ## Frozen synthetic model
 
 Source fixture: `docs/tech/recovery-multiaxis-pathway-corpus-v0.1.json`.
@@ -145,6 +159,7 @@ The receipt reports a canonical corpus digest and exact source commit, sorted pe
 | Independent finite oracle | 100% | Tiny-case exact correctness |
 | Future-evidence leakage into earlier decisions | 0 | Declared temporal evidence references only |
 | Different actions for identical policy/stage/visible-history | 0 | Frozen non-anticipativity groups only |
+| Criteria-priority ranking reversal | 1 explicit sensitivity control | Shows regime changes can alter ordering; not field performance |
 | Operation-authorized outputs | 0 | Output contract, not runtime enforcement |
 | Scalability | 10 / 100 / 1,000 / 10,000 cases | Measure p50/p95, throughput, memory and completeness |
 
