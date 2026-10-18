@@ -55,7 +55,7 @@ fn check(
 
 /// Run the bounded v0.1 qualification suite in stable, deterministic order.
 pub fn run_suite() -> Vec<ExperimentCheck> {
-    let mut checks = Vec::with_capacity(14);
+    let mut checks = Vec::with_capacity(19);
 
     // Galileo: ideal no-friction motion down a 30-degree incline. This is a
     // modern SI model, not a claim to reconstruct Galileo's original apparatus.
@@ -154,6 +154,31 @@ pub fn run_suite() -> Vec<ExperimentCheck> {
         "Noiseless synthetic stopping potentials; real work needs measured points, uncertainty and apparatus calibration.",
     ));
 
+    // Millikan oil-drop charge quantization: synthetic observations in units
+    // of 1e-19 C, with unknown integer charge counts and small measurement noise.
+    // This tests a simple lattice estimator; it is not Millikan's historical data.
+    let observations = synthetic_millikan_observations();
+    let estimated_e = estimate_elementary_charge(&observations).unwrap_or(f64::NAN);
+    let rms_residual = lattice_rms_residual(&observations, estimated_e).unwrap_or(f64::NAN);
+    checks.push(check(
+        "millikan_oil_drop",
+        "estimated_elementary_charge_1e_minus19_c",
+        estimated_e,
+        1.602_176_634,
+        1.0e-4,
+        "synthetic_parameter_recovery",
+        "Synthetic charge lattice with noise; not a digitization or reevaluation of Millikan's historical measurements.",
+    ));
+    checks.push(check(
+        "millikan_oil_drop",
+        "rms_charge_lattice_residual_1e_minus19_c",
+        rms_residual,
+        0.0,
+        1.5e-3,
+        "synthetic_residual_check",
+        "RMS residual to nearest integer charge multiples; viscosity, drag correction and apparatus calibration are omitted.",
+    ));
+
     // Michelson-Morley: compare idealized predictions. The classical value is
     // a counterfactual model prediction, not a historical observed shift.
     let c = 299_792_458.0;
@@ -237,6 +262,38 @@ pub fn run_suite() -> Vec<ExperimentCheck> {
         "Ideal spin-1/2 measurement; probability follows the declared prepared state and measurement axis.",
     ));
 
+    // Foucault pendulum: signed rotation of the swing plane in the Earth frame.
+    // Convention: negative angle is clockwise viewed from above; northern latitudes
+    // therefore produce a negative signed rate. Small-angle, ideal-pendulum limit.
+    checks.push(check(
+        "foucault_pendulum",
+        "equatorial_precession_deg_per_hour",
+        foucault_precession_rate_deg_per_hour(0.0),
+        0.0,
+        1.0e-12,
+        "analytic_reference",
+        "Ideal Foucault precession vanishes at the equator; amplitude-dependent real-world drift is omitted.",
+    ));
+    checks.push(check(
+        "foucault_pendulum",
+        "north_pole_precession_deg_per_hour",
+        foucault_precession_rate_deg_per_hour(90.0),
+        -15.041_066_876_065_45,
+        1.0e-10,
+        "analytic_reference",
+        "Uses the declared sidereal Earth rotation rate; sign is clockwise viewed from above.",
+    ));
+    checks.push(check(
+        "foucault_pendulum",
+        "hemisphere_sign_reversal_deg_per_hour",
+        foucault_precession_rate_deg_per_hour(45.0)
+            + foucault_precession_rate_deg_per_hour(-45.0),
+        0.0,
+        1.0e-12,
+        "model_invariant",
+        "Opposite latitudes have equal-and-opposite ideal precession rates under the stated sign convention.",
+    ));
+
     // Rutherford: repulsive, unscreened Coulomb scattering. Check the invariant
     // b * tan(theta/2) = k/(2E), rather than confusing a visual trajectory
     // with the actual scattering-angle observable.
@@ -272,6 +329,68 @@ fn semi_implicit_displacement(acceleration: f64, duration: f64, dt: f64) -> f64 
         position += velocity * dt;
     }
     position
+}
+
+fn synthetic_millikan_observations() -> Vec<f64> {
+    let elementary_charge = 1.602_176_634_f64;
+    let multiplicities = [2.0, 3.0, 5.0, 4.0, 7.0, 6.0, 9.0, 8.0, 11.0, 10.0];
+    let noise = [
+        0.0008, -0.0012, 0.0004, -0.0006, 0.0011, -0.0003, 0.0002, -0.0010, 0.0005,
+        -0.0002,
+    ];
+    multiplicities
+        .iter()
+        .zip(noise.iter())
+        .map(|(multiple, error)| multiple * elementary_charge + error)
+        .collect()
+}
+
+/// Fit a common charge unit by grid-searching the least-squares distance from
+/// each observation to its nearest allowed integer multiple. Observations use
+/// units of 1e-19 C; a declared search interval prevents trivial scale aliases.
+fn estimate_elementary_charge(observations: &[f64]) -> Option<f64> {
+    if observations.len() < 3 || observations.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        return None;
+    }
+    let mut best_charge = f64::NAN;
+    let mut best_sse = f64::INFINITY;
+    for step in 0..=20_000 {
+        let candidate = 1.5 + step as f64 * 1.0e-5;
+        let mut sse = 0.0;
+        for observation in observations {
+            let multiple = (observation / candidate).round().clamp(1.0, 12.0);
+            let residual = observation - multiple * candidate;
+            sse += residual * residual;
+        }
+        if sse < best_sse {
+            best_sse = sse;
+            best_charge = candidate;
+        }
+    }
+    best_charge.is_finite().then_some(best_charge)
+}
+
+fn lattice_rms_residual(observations: &[f64], elementary_charge: f64) -> Option<f64> {
+    if observations.is_empty()
+        || !elementary_charge.is_finite()
+        || elementary_charge <= 0.0
+        || observations.iter().any(|value| !value.is_finite() || *value <= 0.0)
+    {
+        return None;
+    }
+    let squared_error = observations
+        .iter()
+        .map(|observation| {
+            let multiple = (observation / elementary_charge).round().clamp(1.0, 12.0);
+            (observation - multiple * elementary_charge).powi(2)
+        })
+        .sum::<f64>();
+    Some((squared_error / observations.len() as f64).sqrt())
+}
+
+fn foucault_precession_rate_deg_per_hour(latitude_deg: f64) -> f64 {
+    const EARTH_ROTATION_RAD_PER_SECOND: f64 = 7.292_115_0e-5;
+    -EARTH_ROTATION_RAD_PER_SECOND * latitude_deg.to_radians().sin() * 180.0 / PI * 3600.0
 }
 
 fn newtonian_force(mass_a: f64, mass_b: f64, separation_m: f64) -> f64 {
@@ -416,7 +535,7 @@ mod tests {
     fn suite_is_deterministic_and_all_reference_checks_pass() {
         let first = run_suite();
         let second = run_suite();
-        assert_eq!(first.len(), 14);
+        assert_eq!(first.len(), 19);
         assert!(first.iter().all(|entry| entry.passed));
         assert_eq!(json_report(&first), json_report(&second));
     }
@@ -439,6 +558,29 @@ mod tests {
             .expect("photoelectric check exists");
         assert!(slope.passed);
         assert!((slope.value - 4.135_667_696e-15).abs() <= 1.0e-27);
+    }
+
+    #[test]
+    fn millikan_synthetic_charge_lattice_recovers_elementary_charge() {
+        let observations = synthetic_millikan_observations();
+        let estimate = estimate_elementary_charge(&observations).unwrap();
+        assert!((estimate - 1.602_176_634).abs() < 1.0e-4);
+        assert!(lattice_rms_residual(&observations, estimate).unwrap() < 1.5e-3);
+    }
+
+    #[test]
+    fn millikan_estimator_rejects_invalid_observations() {
+        assert!(estimate_elementary_charge(&[]).is_none());
+        assert!(estimate_elementary_charge(&[1.0, f64::NAN, 3.0]).is_none());
+        assert!(lattice_rms_residual(&[1.0, 2.0], 0.0).is_none());
+    }
+
+    #[test]
+    fn foucault_precession_matches_latitude_and_hemisphere_controls() {
+        assert!(foucault_precession_rate_deg_per_hour(0.0).abs() < 1.0e-12);
+        assert!((foucault_precession_rate_deg_per_hour(90.0) + 15.041_066_876_065_45).abs() < 1.0e-10);
+        assert!((foucault_precession_rate_deg_per_hour(45.0)
+            + foucault_precession_rate_deg_per_hour(-45.0)).abs() < 1.0e-12);
     }
 
     #[test]
@@ -493,6 +635,6 @@ mod tests {
         let output = json_report(&run_suite());
         assert!(output.contains("\"suite_id\":\"physics-experiment-atlas-v0.1\""));
         assert!(output.contains("no historical raw-data reproduction"));
-        assert!(output.contains("\"check_count\":14"));
+        assert!(output.contains("\"check_count\":19"));
     }
 }
