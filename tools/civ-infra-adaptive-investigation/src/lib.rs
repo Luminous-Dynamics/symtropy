@@ -357,12 +357,15 @@ fn make_leaf(
         *class_counts.entry(state.signature_key.clone()).or_insert(0) += 1;
     }
 
-    let state_count = u64::try_from(state_ids.len())
-        .map_err(|_| "state count conversion overflow".to_owned())?;
+    let state_count =
+        u64::try_from(state_ids.len()).map_err(|_| "state count conversion overflow".to_owned())?;
     let all_pairs = choose_two(state_count)?;
-    let same_class_pairs = class_counts.values().try_fold(0_u64, |total, count| {
-        total.checked_add(choose_two(*count).ok()?)
-    }).ok_or_else(|| "same-signature pair count overflow".to_owned())?;
+    let same_class_pairs = class_counts
+        .values()
+        .try_fold(0_u64, |total, count| {
+            total.checked_add(choose_two(*count).ok()?)
+        })
+        .ok_or_else(|| "same-signature pair count overflow".to_owned())?;
     let discordant_pairs = all_pairs
         .checked_sub(same_class_pairs)
         .ok_or_else(|| "decision-discordant pair accounting underflow".to_owned())?;
@@ -396,7 +399,10 @@ fn path_key(path: &[PolicyStep]) -> String {
 
 fn validate_input(input: &PolicyInput) -> Result<(), String> {
     if input.schema_version != SCHEMA_VERSION {
-        return Err(format!("unsupported schema_version {:?}", input.schema_version));
+        return Err(format!(
+            "unsupported schema_version {:?}",
+            input.schema_version
+        ));
     }
     validate_name(&input.world_id, "world_id")?;
     if input.claim_ceiling != CLAIM_CEILING {
@@ -405,7 +411,9 @@ fn validate_input(input: &PolicyInput) -> Result<(), String> {
 
     let candidates = unique_name_set(&input.candidate_ids, "candidate_ids")?;
     if candidates.is_empty() || candidates.len() > MAX_CANDIDATES {
-        return Err(format!("candidate count must be within 1..={MAX_CANDIDATES}"));
+        return Err(format!(
+            "candidate count must be within 1..={MAX_CANDIDATES}"
+        ));
     }
     if input.state_signatures.is_empty() || input.state_signatures.len() > MAX_STATES {
         return Err(format!("state count must be within 1..={MAX_STATES}"));
@@ -453,7 +461,10 @@ fn validate_input(input: &PolicyInput) -> Result<(), String> {
                 return Err(format!("duplicate outcome_id {:?}", outcome.outcome_id));
             }
             if outcome.compatible_state_ids.is_empty() {
-                return Err(format!("empty compatibility outcome {:?}", outcome.outcome_id));
+                return Err(format!(
+                    "empty compatibility outcome {:?}",
+                    outcome.outcome_id
+                ));
             }
             let mut local = BTreeSet::new();
             for state_id in &outcome.compatible_state_ids {
@@ -484,7 +495,10 @@ fn validate_input(input: &PolicyInput) -> Result<(), String> {
     let policy = &input.candidate_policy;
     validate_name(&policy.root_action_id, "root_action_id")?;
     if !action_ids.contains(&policy.root_action_id) {
-        return Err(format!("unknown root_action_id {:?}", policy.root_action_id));
+        return Err(format!(
+            "unknown root_action_id {:?}",
+            policy.root_action_id
+        ));
     }
     if !(1..=MAX_POLICY_DEPTH).contains(&policy.max_supported_action_depth) {
         return Err(format!(
@@ -506,9 +520,16 @@ fn validate_input(input: &PolicyInput) -> Result<(), String> {
         validate_name(&branch.outcome_id, "branch outcome_id")?;
         validate_name(&branch.next_action_id, "branch next_action_id")?;
         if !action_map.contains_key(branch.next_action_id.as_str()) {
-            return Err(format!("branch references unknown next action {:?}", branch.next_action_id));
+            return Err(format!(
+                "branch references unknown next action {:?}",
+                branch.next_action_id
+            ));
         }
-        if !action.outcomes.iter().any(|outcome| outcome.outcome_id == branch.outcome_id) {
+        if !action
+            .outcomes
+            .iter()
+            .any(|outcome| outcome.outcome_id == branch.outcome_id)
+        {
             return Err(format!(
                 "branch references unknown outcome {:?} for action {:?}",
                 branch.outcome_id, branch.at_action_id
@@ -529,7 +550,11 @@ fn validate_input(input: &PolicyInput) -> Result<(), String> {
     if policy.support_failure_terminal != SupportFailureTerminal::ReviewRequired {
         return Err("unsupported support_failure_terminal".to_owned());
     }
-    validate_policy_graph(&policy.root_action_id, policy.max_supported_action_depth, &adjacency)
+    validate_policy_graph(
+        &policy.root_action_id,
+        policy.max_supported_action_depth,
+        &adjacency,
+    )
 }
 
 fn validate_policy_graph(
@@ -593,7 +618,10 @@ fn validate_signature(
         .chain(unknown.iter().cloned())
         .collect::<BTreeSet<_>>();
     if classified != *candidates {
-        let missing = candidates.difference(&classified).cloned().collect::<Vec<_>>();
+        let missing = candidates
+            .difference(&classified)
+            .cloned()
+            .collect::<Vec<_>>();
         return Err(format!(
             "every candidate must be classified exactly once; missing {:?}",
             missing

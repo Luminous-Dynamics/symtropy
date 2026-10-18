@@ -1,8 +1,7 @@
-use civ_infra_adaptive_investigation::{evaluate_bytes, LeafTerminal, PolicyInput};
+use civ_infra_adaptive_investigation::{LeafTerminal, PolicyInput, evaluate_bytes};
 use std::collections::BTreeSet;
 
-const FIXTURE: &[u8] =
-    include_bytes!("../fixtures/adaptive-investigation-v0.1.json");
+const FIXTURE: &[u8] = include_bytes!("../fixtures/adaptive-investigation-v0.1.json");
 
 fn report_from(bytes: &[u8]) -> civ_infra_adaptive_investigation::PolicyReport {
     evaluate_bytes(bytes).expect("fixture should satisfy the declared synthetic contract")
@@ -15,7 +14,10 @@ fn input_from(bytes: &[u8]) -> PolicyInput {
 #[test]
 fn evaluates_the_declared_adaptive_policy_and_emits_support_failure_leaves() {
     let report = report_from(FIXTURE);
-    assert_eq!(report.world_id, "synthetic-rail-bridge-tunnel-adaptive-v0.1");
+    assert_eq!(
+        report.world_id,
+        "synthetic-rail-bridge-tunnel-adaptive-v0.1"
+    );
     assert_eq!(report.state_count, 5);
     assert_eq!(report.candidate_count, 3);
     assert_eq!(report.action_count, 3);
@@ -35,9 +37,11 @@ fn evaluates_the_declared_adaptive_policy_and_emits_support_failure_leaves() {
             && leaf.path[0].outcome_id == "out_of_model_support"
             && leaf.state_count == 5
     }));
-    assert!(failures
-        .iter()
-        .all(|leaf| leaf.state_count > 0 && leaf.decision_signature_class_count > 0));
+    assert!(
+        failures
+            .iter()
+            .all(|leaf| leaf.state_count > 0 && leaf.decision_signature_class_count > 0)
+    );
     assert!(report.claim_ceiling.contains("no_physical_measurement"));
 }
 
@@ -52,7 +56,10 @@ fn overlapping_outcomes_preserve_marginal_and_unresolved_worlds_on_both_branches
                 && leaf.path.iter().any(|step| {
                     step.action_id == "bridge-screen" && step.outcome_id == "bridge-clear"
                 })
-                && leaf.path.iter().any(|step| step.action_id == "tunnel-borehole")
+                && leaf
+                    .path
+                    .iter()
+                    .any(|step| step.action_id == "tunnel-borehole")
                 && leaf.path.iter().any(|step| step.outcome_id == "tunnel-dry")
         })
         .expect("clear/dry leaf should exist");
@@ -64,13 +71,21 @@ fn overlapping_outcomes_preserve_marginal_and_unresolved_worlds_on_both_branches
                 && leaf.path.iter().any(|step| {
                     step.action_id == "bridge-screen" && step.outcome_id == "bridge-concern"
                 })
-                && leaf.path.iter().any(|step| step.outcome_id == "bridge-indicator")
+                && leaf
+                    .path
+                    .iter()
+                    .any(|step| step.outcome_id == "bridge-indicator")
         })
         .expect("concern/indicator leaf should exist");
     assert!(clear.state_ids.iter().any(|id| id == "marginal-ground"));
     assert!(clear.state_ids.iter().any(|id| id == "unresolved-geology"));
     assert!(concern.state_ids.iter().any(|id| id == "marginal-ground"));
-    assert!(concern.state_ids.iter().any(|id| id == "unresolved-geology"));
+    assert!(
+        concern
+            .state_ids
+            .iter()
+            .any(|id| id == "unresolved-geology")
+    );
     assert!(clear.decision_signature_class_count > 1);
     assert!(concern.decision_signature_class_count > 1);
 }
@@ -122,13 +137,14 @@ fn duplicate_edge_inside_one_outcome_is_rejected_but_cross_outcome_overlap_is_al
 #[test]
 fn policy_cycle_is_rejected() {
     let mut input = input_from(FIXTURE);
-    input.candidate_policy.branches.push(
-        civ_infra_adaptive_investigation::PolicyBranch {
+    input
+        .candidate_policy
+        .branches
+        .push(civ_infra_adaptive_investigation::PolicyBranch {
             at_action_id: "tunnel-borehole".to_owned(),
             outcome_id: "tunnel-dry".to_owned(),
             next_action_id: "bridge-screen".to_owned(),
-        },
-    );
+        });
     let bytes = serde_json::to_vec(&input).expect("serialize changed input");
     let error = evaluate_bytes(&bytes).expect_err("cycle must fail closed");
     assert!(error.contains("cycle"), "{error}");
@@ -151,7 +167,10 @@ fn leaf_discordant_pair_count_matches_independent_small_case_oracle() {
         .iter()
         .find(|leaf| {
             leaf.terminal == LeafTerminal::DecisionLeaf
-                && leaf.path.iter().any(|step| step.outcome_id == "bridge-indicator")
+                && leaf
+                    .path
+                    .iter()
+                    .any(|step| step.outcome_id == "bridge-indicator")
         })
         .expect("bridge-indicator leaf");
     let input = input_from(FIXTURE);
@@ -160,13 +179,16 @@ fn leaf_discordant_pair_count_matches_independent_small_case_oracle() {
         .iter()
         .map(|state| (state.state_id.as_str(), &state.signature))
         .collect::<std::collections::BTreeMap<_, _>>();
-    let ids = leaf.state_ids.iter().map(String::as_str).collect::<Vec<_>>();
+    let ids = leaf
+        .state_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
     let mut signatures = BTreeSet::new();
     let mut discordant_pairs = 0_u64;
     for i in 0..ids.len() {
         signatures.insert(
-            serde_json::to_string(state_map.get(ids[i]).expect("state"))
-                .expect("signature"),
+            serde_json::to_string(state_map.get(ids[i]).expect("state")).expect("signature"),
         );
         for j in i + 1..ids.len() {
             let left = state_map.get(ids[i]).expect("left state");

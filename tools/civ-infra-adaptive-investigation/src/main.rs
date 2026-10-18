@@ -5,9 +5,7 @@ use std::fs;
 fn run() -> Result<(), String> {
     let args = env::args().collect::<Vec<_>>();
     if !(2..=3).contains(&args.len()) {
-        return Err(
-            "usage: civ-infra-adaptive-investigation INPUT.json [REPORT.json]".to_owned(),
-        );
+        return Err("usage: civ-infra-adaptive-investigation INPUT.json [REPORT.json]".to_owned());
     }
     let input_path = &args[1];
     let bytes = fs::read(input_path)
