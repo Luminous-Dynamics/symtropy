@@ -7,6 +7,8 @@
 
 The morphology list has several promising patterns—service spine, small justified repair unit, and evidence-guided diagnosis—but their value may be interactive. Access can be easy while the repair unit is uneconomic; a small part can be cheap but hard to diagnose; better diagnostics may prevent unnecessary large-assembly replacement. Selecting each pattern independently risks missing that design-space structure.
 
+The access factor must use a time-based protocol, not just fastener/step counts. Dangal et al.'s 2026 DaRT study reports validation against independent disassembly data for vacuum cleaners, washing machines and smart TVs, with better performance than simpler step-count methods ([doi:10.1007/s44498-026-00150-9](https://doi.org/10.1007/s44498-026-00150-9)). Record disassembly and reassembly separately, including tool changes, retries, handling, and errors; this method still does not prove restoration or recurrence. A 2025 observational study with 26 participants found mismatches between calculated indices and perceived repairability for two small appliances, highlighting access and fault-identification friction ([doi:10.1016/j.spc.2025.05.024](https://doi.org/10.1016/j.spc.2025.05.024)). Thus, the trial must separate timed technician service tasks from safe user-level task completion/referral and must not project a small user study's numerical differences to other products.
+
 This proposal uses a **2×2×2 full factorial** on a common *unpowered service mock-up* to estimate the main effect of each factor and their interactions:
 
 | Factor | Level 0 | Level 1 | Primary question |
