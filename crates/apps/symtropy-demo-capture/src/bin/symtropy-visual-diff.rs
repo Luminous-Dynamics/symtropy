@@ -418,18 +418,18 @@ fn validate_context(
     allow_renderer_version_change: bool,
 ) -> Result<MatchedContext, String> {
     let text_fields = [
-        ("fixture_id", baseline.fixture_id.as_ref(), candidate.fixture_id.as_ref()),
-        ("fixture_sha256", baseline.fixture_sha256.as_ref(), candidate.fixture_sha256.as_ref()),
-        ("simulation_seed", baseline.simulation_seed.as_ref(), candidate.simulation_seed.as_ref()),
-        ("simulation_tick", baseline.simulation_tick.as_ref(), candidate.simulation_tick.as_ref()),
-        ("quality_profile", baseline.quality_profile.as_ref(), candidate.quality_profile.as_ref()),
-        ("camera_id", baseline.camera_id.as_ref(), candidate.camera_id.as_ref()),
-        ("render_settings_sha256", baseline.render_settings_sha256.as_ref(), candidate.render_settings_sha256.as_ref()),
-        ("gpu_adapter", baseline.gpu_adapter.as_ref(), candidate.gpu_adapter.as_ref()),
-        ("gpu_driver", baseline.gpu_driver.as_ref(), candidate.gpu_driver.as_ref()),
-        ("render_backend", baseline.render_backend.as_ref(), candidate.render_backend.as_ref()),
-        ("operating_system", baseline.operating_system.as_ref(), candidate.operating_system.as_ref()),
-        ("rustc_version", baseline.rustc_version.as_ref(), candidate.rustc_version.as_ref()),
+        ("fixture_id", &baseline.fixture_id, &candidate.fixture_id),
+        ("fixture_sha256", &baseline.fixture_sha256, &candidate.fixture_sha256),
+        ("simulation_seed", &baseline.simulation_seed, &candidate.simulation_seed),
+        ("simulation_tick", &baseline.simulation_tick, &candidate.simulation_tick),
+        ("quality_profile", &baseline.quality_profile, &candidate.quality_profile),
+        ("camera_id", &baseline.camera_id, &candidate.camera_id),
+        ("render_settings_sha256", &baseline.render_settings_sha256, &candidate.render_settings_sha256),
+        ("gpu_adapter", &baseline.gpu_adapter, &candidate.gpu_adapter),
+        ("gpu_driver", &baseline.gpu_driver, &candidate.gpu_driver),
+        ("render_backend", &baseline.render_backend, &candidate.render_backend),
+        ("operating_system", &baseline.operating_system, &candidate.operating_system),
+        ("rustc_version", &baseline.rustc_version, &candidate.rustc_version),
     ];
 
     for (field, left, right) in text_fields {
@@ -743,6 +743,52 @@ mod tests {
         let baseline = pixels(&[[0, 0, 0, 255]]);
         let candidate = pixels(&[[0, 0, 0, 255], [1, 1, 1, 255]]);
         assert!(calculate_metrics(&baseline, &candidate, 8).is_err());
+    }
+
+    fn qualified_context() -> CaptureMetadata {
+        CaptureMetadata {
+            source_commit: Some("a".repeat(40)),
+            fixture_id: Some("SCENE-LIGHT-01".to_owned()),
+            fixture_sha256: Some("b".repeat(64)),
+            simulation_seed: Some("7".to_owned()),
+            simulation_tick: Some("120".to_owned()),
+            quality_profile: Some("balanced-1080p".to_owned()),
+            camera_id: Some("main-camera".to_owned()),
+            renderer_version: Some("bevy-0.19.0".to_owned()),
+            render_settings_sha256: Some("c".repeat(64)),
+            gpu_adapter: Some("reference-gpu".to_owned()),
+            gpu_driver: Some("driver-1".to_owned()),
+            render_backend: Some("vulkan".to_owned()),
+            width_px: Some(1920),
+            height_px: Some(1080),
+            operating_system: Some("linux".to_owned()),
+            rustc_version: Some("rustc 1.96.0".to_owned()),
+        }
+    }
+
+    #[test]
+    fn equivalent_receipt_context_is_comparable() {
+        let metadata = qualified_context();
+        assert!(validate_context(&metadata, &metadata, false).is_ok());
+    }
+
+    #[test]
+    fn camera_or_settings_mismatch_is_rejected() {
+        let baseline = qualified_context();
+        let mut candidate = baseline.clone();
+        candidate.camera_id = Some("debug-camera".to_owned());
+        let error = validate_context(&baseline, &candidate, false)
+            .expect_err("camera mismatch must fail closed");
+        assert!(error.contains("camera_id"));
+    }
+
+    #[test]
+    fn renderer_version_change_requires_explicit_opt_in() {
+        let baseline = qualified_context();
+        let mut candidate = baseline.clone();
+        candidate.renderer_version = Some("bevy-0.20.0".to_owned());
+        assert!(validate_context(&baseline, &candidate, false).is_err());
+        assert!(validate_context(&baseline, &candidate, true).is_ok());
     }
 
     #[test]
