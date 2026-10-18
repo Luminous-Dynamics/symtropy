@@ -162,6 +162,7 @@ Each case binds scenario_id, semantic version, fixed seed, initial state and evi
 | MS-009 Economics under uncertainty | Test economic feasibility | Grade/price/energy/maintenance/closure assumptions change; report sensitivity and dominated/ineligible choices |
 | MS-010 Compound disturbance | Test graceful degradation | Combine selected failures while preserving explicit stop, retreat, inspection and recovery semantics |
 | MS-011 Brownfield reuse vs new build | Avoid assuming new excavation is the default | Compare reuse-as-is, rehabilitation, partial reuse plus targeted new excavation, new build and no-build on equivalent qualified service; unqualified site evidence blocks use-specific capacity |
+| MS-012 Rock-breakage + spoil-removal tournament | Avoid optimizing cutting in isolation | Compare compatible mechanical / hybrid / research technology profiles on equivalent specimen/geometry and full-cycle boundaries; keep cutting-only and full-cycle denominators separate; out-of-domain models cannot claim physical outputs |
 
 These cases are synthetic definitions, not a model of any actual mine or a claim that one source/architecture is suitable for a particular site.
 
@@ -237,6 +238,12 @@ Never rank literature studies on their headline percentage alone. Different stud
 ## 10.2 Reuse-first campaign extension
 
 Track the focused [BROWNFIELD-UNDERGROUND-001 issue #1951](https://github.com/Luminous-Dynamics/symtropy/issues/1951). The campaign benchmark includes a synthetic reuse-versus-new-build scenario, but it does not become an authoritative asset register, GIS, geotechnical solver or asset-reuse approval engine. Reuse may lose to new build or no-build when site evidence, costs, remediation or lifecycle risk justify that outcome.
+
+## 10.3 Rock-breakage technology tournament extension
+
+Track [ROCK-BREAKAGE-TOURNAMENT-001 issue #1952](https://github.com/Luminous-Dynamics/symtropy/issues/1952) for normalized, evidence-stratified comparison of mechanical cutting, integrated spoil extraction, and separately typed hybrid/non-mechanical rock-breaking candidates. In particular, keep the cutting-only versus full-cycle denominator explicit: a method that fragments rock faster can still lower campaign output if conveyance, oversize/fines handling, cooling, tool change, support, or recovery becomes limiting.
+
+The specialized tournament reuses Symtropy material/tool response contracts and Symthaea's deep-geothermal access technology evidence program; it does not add an unqualified response model to the executable evaluator. Its external case registry should preserve the measured scope of the recent South African in-stope cutter/vacuum trial and treat the reported laboratory plasma-assisted granite specific-energy reduction as a separate evidence class, not transferable mine-wide savings.
 
 ## 11. Implementation sequence
 

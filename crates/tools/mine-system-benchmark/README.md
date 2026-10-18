@@ -35,3 +35,7 @@ See [MINE_SYSTEM_BENCHMARK_V0_1.md](../../../docs/research/MINE_SYSTEM_BENCHMARK
 ## Next portfolio work
 
 The campaign extension for reuse-first comparisons is tracked in [BROWNFIELD-UNDERGROUND-001](https://github.com/Luminous-Dynamics/symtropy/issues/1951): compare existing-asset reuse, rehabilitation, partial reuse plus new excavation, new build, and no-build/remediation under equivalent service needs.
+
+## Rock-breakage research
+
+The specialized [ROCK-BREAKAGE-TOURNAMENT-001](https://github.com/Luminous-Dynamics/symtropy/issues/1952) work compares mechanical, hybrid and non-mechanical approaches using explicit evidence tiers and full-cycle output boundaries.
