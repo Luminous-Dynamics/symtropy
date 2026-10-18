@@ -406,6 +406,55 @@
         ],
         "prevention_claim": "not_established_without_impact_design"
       }
+    },
+    {
+      "id": "pirb-r5-network-spillover-01",
+      "track": "PIRB-5",
+      "domain": "fictional multi-community essential-service allocation",
+      "design_type": "before_after_only",
+      "causal_claim_requested": true,
+      "concurrent_factors": [
+        "region_wide_funding_change",
+        "seasonal_supply_shift"
+      ],
+      "network_scope": "hub plus three connected neighboring communities",
+      "outcomes": [
+        {
+          "group": "hub",
+          "service_gap_before": 12,
+          "service_gap_after": 4
+        },
+        {
+          "group": "near-community-a",
+          "service_gap_before": 8,
+          "service_gap_after": 6
+        },
+        {
+          "group": "near-community-b",
+          "service_gap_before": 6,
+          "service_gap_after": 13
+        },
+        {
+          "group": "outer-community-c",
+          "service_gap_before": 10,
+          "service_gap_after": 11
+        }
+      ],
+      "expected": {
+        "aggregate_gap_before": 36,
+        "aggregate_gap_after": 34,
+        "displacement_detected": true,
+        "improved_groups": [
+          "hub",
+          "near-community-a"
+        ],
+        "worsened_groups": [
+          "near-community-b",
+          "outer-community-c"
+        ],
+        "claim_status": "descriptive_only",
+        "improvement_claim": "qualified_with_displacement"
+      }
     }
   ]
 }
