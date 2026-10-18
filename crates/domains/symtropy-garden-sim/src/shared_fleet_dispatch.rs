@@ -398,7 +398,8 @@ pub fn plan_shared_fleet_dispatch_v1(
 
             match schedulable_travel_minutes(leg) {
                 Some((travel_minutes, metric)) => {
-                    let departure_minute = state.available_at_minute.max(request.requested_at_minute);
+                    let departure_minute =
+                        state.available_at_minute.max(request.requested_at_minute);
                     let Some(service_start_minute) =
                         departure_minute.checked_add(travel_minutes)
                     else {
@@ -910,7 +911,10 @@ fn validate_dispatch_input(
     blockers
 }
 
-fn blocker(code: SharedFleetDispatchBlockerCodeV1, record_ref: &str) -> SharedFleetDispatchBlockerV1 {
+fn blocker(
+    code: SharedFleetDispatchBlockerCodeV1,
+    record_ref: &str,
+) -> SharedFleetDispatchBlockerV1 {
     SharedFleetDispatchBlockerV1 {
         code,
         record_ref: record_ref.to_string(),
