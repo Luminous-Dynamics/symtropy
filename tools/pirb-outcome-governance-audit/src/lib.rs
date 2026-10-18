@@ -218,10 +218,7 @@ fn second_metric_version_requires_predecessor() {
     value["version"] = json!(2);
     value["version_control"]["predecessor_version"] = Value::Null;
     let errors = validation_errors(&value);
-    assert!(
-        !errors.is_empty(),
-        "version 2 cannot omit predecessor"
-    );
+    assert!(!errors.is_empty(), "version 2 cannot omit predecessor");
 }
 
 #[test]
