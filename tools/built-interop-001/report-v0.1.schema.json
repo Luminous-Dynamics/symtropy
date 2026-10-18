@@ -159,7 +159,7 @@
         "diagnostic_codes": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/diagnosticCode"
           }
         }
       }
@@ -223,6 +223,23 @@
           "type": "boolean"
         }
       }
+    },
+    "diagnosticCode": {
+      "enum": [
+        "NO_TARGET_OBSERVATION",
+        "DUPLICATE_TARGET_OBSERVATION",
+        "OBJECT_IDENTITY_MISMATCH",
+        "PRESERVED_CARRIES_TRANSFORM",
+        "PRESERVED_VALUE_OR_UNIT_MISMATCH",
+        "MISSING_OR_DUPLICATE_TRANSFORM_RULE",
+        "DECLARED_TRANSFORM_RESULT_MISMATCH",
+        "DECLARED_TRANSFORM_SCOPE_OR_NUMERIC_VALUE_INVALID",
+        "UNSUPPORTED_TARGET_PROPERTY",
+        "MISSING_TARGET_PROPERTY",
+        "CHANGED_TARGET_PROPERTY",
+        "TARGET_PROPERTY_NOT_EVALUATED",
+        "DUPLICATE_SOURCE_REQUIREMENT_ID"
+      ]
     }
   }
 }
