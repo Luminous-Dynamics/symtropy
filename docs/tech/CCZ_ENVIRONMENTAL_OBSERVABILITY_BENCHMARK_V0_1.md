@@ -61,7 +61,6 @@ These are finite-corpus software gates, not proof that actual ocean monitoring i
 From the repository root:
 
 ```sh
-cargo fmt --manifest-path tools/ccz-observability-bench/Cargo.toml -- --check
 cargo test --manifest-path tools/ccz-observability-bench/Cargo.toml
 cargo run --quiet --manifest-path tools/ccz-observability-bench/Cargo.toml -- \
   --corpus docs/tech/CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json \
