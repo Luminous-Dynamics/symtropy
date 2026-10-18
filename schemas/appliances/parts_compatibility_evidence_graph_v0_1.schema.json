@@ -1,0 +1,519 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:parts-compatibility-evidence-graph:0.1.0",
+  "title": "Exact-Model Parts Compatibility Evidence Graph v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "graph_id",
+    "as_of_date",
+    "target_market",
+    "status",
+    "claim_ceiling",
+    "models",
+    "parts",
+    "evidence",
+    "compatibility_claims",
+    "supplier_paths",
+    "benchmarks",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "graph_id": {
+      "const": "PARTS-EVIDENCE-001"
+    },
+    "as_of_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "target_market": {
+      "const": "ZA"
+    },
+    "status": {
+      "const": "synthetic_contract_examples_only"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_examples_are_not_real_fitment_supply_repair_or_safety_evidence"
+    },
+    "models": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/model"
+      }
+    },
+    "parts": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/part"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "compatibility_claims": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "supplier_paths": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    },
+    "benchmarks": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/benchmark"
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity_rule",
+        "evidence_hierarchy",
+        "unknown_policy",
+        "independence_rule",
+        "freshness_rule",
+        "winner_claim_allowed"
+      ],
+      "properties": {
+        "identity_rule": {
+          "const": "exact_model_revision_and_market_required_for_positive_fitment_claim"
+        },
+        "evidence_hierarchy": {
+          "const": "seller_claim_or_catalogue_listing_never_implies_physical_fit_function_or_safety_qualification"
+        },
+        "unknown_policy": {
+          "const": "absence_of_evidence_is_unknown_not_incompatible"
+        },
+        "independence_rule": {
+          "const": "supplier_paths_sharing_upstream_dependency_group_count_as_one_source"
+        },
+        "freshness_rule": {
+          "const": "expired_or_superseded_claim_cannot_be_current_fitment_evidence"
+        },
+        "winner_claim_allowed": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "family_id",
+        "model_token",
+        "revision_token",
+        "market_code",
+        "serial_scope",
+        "serial_from_token",
+        "serial_to_token",
+        "evidence_class"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "pattern": "^SYN-MODEL-[A-Z0-9-]+$"
+        },
+        "family_id": {
+          "enum": [
+            "F1-WASHER",
+            "F2-DISHWASHER",
+            "F3-REFRIGERATOR-FREEZER",
+            "F4-HEAT-PUMP-DRYER",
+            "F5-WASHER-DRYER-COMBO",
+            "F6-HEAT-PUMP-WATER-HEATER",
+            "F7-RESIDENTIAL-HVAC",
+            "F8-COOKING-APPLIANCES",
+            "F9-VENTILATION-HRV"
+          ]
+        },
+        "model_token": {
+          "type": "string",
+          "pattern": "^SYN-[A-Z0-9-]+$"
+        },
+        "revision_token": {
+          "type": "string",
+          "pattern": "^SYN-REV-[A-Z0-9-]+$"
+        },
+        "market_code": {
+          "enum": [
+            "ZA",
+            "EU",
+            "US",
+            "GLOBAL",
+            "UNKNOWN"
+          ]
+        },
+        "serial_scope": {
+          "enum": [
+            "known_window",
+            "all_serials_verified",
+            "unknown"
+          ]
+        },
+        "serial_from_token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "serial_to_token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic_fixture"
+        }
+      }
+    },
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "part_id",
+        "manufacturer_part_token",
+        "part_type",
+        "revision_token",
+        "safety_criticality",
+        "evidence_class"
+      ],
+      "properties": {
+        "part_id": {
+          "type": "string",
+          "pattern": "^SYN-PART-[A-Z0-9-]+$"
+        },
+        "manufacturer_part_token": {
+          "type": "string",
+          "pattern": "^SYN-MPN-[A-Z0-9-]+$"
+        },
+        "part_type": {
+          "type": "string",
+          "minLength": 2
+        },
+        "revision_token": {
+          "type": "string",
+          "pattern": "^SYN-PARTREV-[A-Z0-9-]+$"
+        },
+        "safety_criticality": {
+          "enum": [
+            "low",
+            "controlled",
+            "high"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic_fixture"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "evidence_kind",
+        "evidence_class",
+        "source_token",
+        "source_url",
+        "captured_on",
+        "artifact_sha256",
+        "empirical_eligible",
+        "notes"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "pattern": "^SYN-EV-[0-9]{3}$"
+        },
+        "evidence_kind": {
+          "enum": [
+            "manufacturer_catalogue",
+            "seller_claim",
+            "cross_reference",
+            "physical_fit_test",
+            "functional_test",
+            "negative_fit_test",
+            "supersession_record",
+            "safety_qualification",
+            "delivery_receipt"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic_fixture"
+        },
+        "source_token": {
+          "type": "string",
+          "pattern": "^SYN-SOURCE-[A-Z0-9-]+$"
+        },
+        "source_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "captured_on": {
+          "type": "string",
+          "format": "date"
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "empirical_eligible": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "model_id",
+        "model_revision_token",
+        "part_id",
+        "model_revision_scope",
+        "market_code",
+        "serial_scope",
+        "effective_from",
+        "effective_until",
+        "claim_status",
+        "physical_fit_check",
+        "functional_check",
+        "safety_qualification",
+        "evidence_ids",
+        "superseded_by_claim_id",
+        "empirical_eligible"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "pattern": "^SYN-COMP-[0-9]{3}$"
+        },
+        "model_id": {
+          "type": "string",
+          "pattern": "^SYN-MODEL-[A-Z0-9-]+$"
+        },
+        "model_revision_token": {
+          "type": "string",
+          "pattern": "^SYN-REV-[A-Z0-9-]+$"
+        },
+        "part_id": {
+          "type": "string",
+          "pattern": "^SYN-PART-[A-Z0-9-]+$"
+        },
+        "model_revision_scope": {
+          "enum": [
+            "exact_revision",
+            "verified_across_revisions",
+            "unknown_revision"
+          ]
+        },
+        "market_code": {
+          "enum": [
+            "ZA",
+            "EU",
+            "US",
+            "GLOBAL",
+            "UNKNOWN"
+          ]
+        },
+        "serial_scope": {
+          "enum": [
+            "known_window",
+            "all_serials_verified",
+            "unknown"
+          ]
+        },
+        "effective_from": {
+          "type": "string",
+          "format": "date"
+        },
+        "effective_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "claim_status": {
+          "enum": [
+            "manufacturer_listed_only",
+            "seller_claim_only",
+            "cross_reference_inferred",
+            "physical_fit_verified",
+            "functional_compatibility_verified",
+            "verified_incompatible",
+            "unknown",
+            "superseded"
+          ]
+        },
+        "physical_fit_check": {
+          "enum": [
+            "not_assessed",
+            "passed",
+            "failed"
+          ]
+        },
+        "functional_check": {
+          "enum": [
+            "not_assessed",
+            "passed",
+            "failed"
+          ]
+        },
+        "safety_qualification": {
+          "enum": [
+            "not_assessed",
+            "qualified_for_declared_scope",
+            "failed_for_declared_scope",
+            "not_applicable"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^SYN-EV-[0-9]{3}$"
+          }
+        },
+        "superseded_by_claim_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^SYN-COMP-[0-9]{3}$"
+        },
+        "empirical_eligible": {
+          "const": false
+        }
+      }
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_id",
+        "claim_id",
+        "supplier_token",
+        "upstream_dependency_group_token",
+        "commercial_state",
+        "evidence_ids",
+        "empirical_eligible"
+      ],
+      "properties": {
+        "path_id": {
+          "type": "string",
+          "pattern": "^SYN-PATH-[0-9]{3}$"
+        },
+        "claim_id": {
+          "type": "string",
+          "pattern": "^SYN-COMP-[0-9]{3}$"
+        },
+        "supplier_token": {
+          "type": "string",
+          "pattern": "^SYN-SUPPLIER-[A-Z0-9-]+$"
+        },
+        "upstream_dependency_group_token": {
+          "type": "string",
+          "pattern": "^SYN-UPSTREAM-[A-Z0-9-]+$"
+        },
+        "commercial_state": {
+          "enum": [
+            "listing_only",
+            "written_quote",
+            "accepted_order",
+            "delivered_inspected"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^SYN-EV-[0-9]{3}$"
+          }
+        },
+        "empirical_eligible": {
+          "const": false
+        }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "metric_id",
+        "target_hypothesis",
+        "status",
+        "measurement_rule"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^PC-B-[0-9]{3}$"
+        },
+        "metric_id": {
+          "enum": [
+            "exact_model_evidence_coverage",
+            "false_compatible_rate",
+            "wrong_order_rate",
+            "time_to_correct_part",
+            "independent_source_count",
+            "evidence_freshness"
+          ]
+        },
+        "target_hypothesis": {
+          "type": "string",
+          "minLength": 10
+        },
+        "status": {
+          "enum": [
+            "proposal_not_frozen",
+            "guardrail_contract_only"
+          ]
+        },
+        "measurement_rule": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    }
+  }
+}

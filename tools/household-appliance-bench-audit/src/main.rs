@@ -7,6 +7,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+mod compatibility;
 mod decision;
 mod experiment;
 mod faults;
@@ -530,6 +531,13 @@ fn run() -> Result<(), String> {
             "--experiment-schema and --experiment-plan must be supplied together".to_owned(),
         );
     }
+    let compatibility_schema_path = read_arg_path("--compatibility-schema");
+    let compatibility_graph_path = read_arg_path("--compatibility-graph");
+    if compatibility_schema_path.is_some() != compatibility_graph_path.is_some() {
+        return Err(
+            "--compatibility-schema and --compatibility-graph must be supplied together".to_owned(),
+        );
+    }
 
     let schema_raw = fs::read_to_string(&schema_path)
         .map_err(|error| format!("cannot read {}: {error}", schema_path.display()))?;
@@ -780,6 +788,45 @@ fn run() -> Result<(), String> {
             "physical_trials_started": false,
             "observed_outcome_count": 0,
             "winner_declared": false
+        });
+    }
+
+    if let (Some(compatibility_schema_path), Some(compatibility_graph_path)) =
+        (compatibility_schema_path, compatibility_graph_path)
+    {
+        let compatibility_schema_raw =
+            fs::read_to_string(&compatibility_schema_path).map_err(|error| {
+                format!("cannot read {}: {error}", compatibility_schema_path.display())
+            })?;
+        let compatibility_graph_raw =
+            fs::read_to_string(&compatibility_graph_path).map_err(|error| {
+                format!("cannot read {}: {error}", compatibility_graph_path.display())
+            })?;
+        let compatibility_summary = compatibility::audit_compatibility_texts(
+            &compatibility_schema_raw,
+            &compatibility_graph_raw,
+        )
+        .map_err(|errors| errors.join("\n"))?;
+
+        report["parts_compatibility_evidence_graph"] = json!({
+            "status": "PASS_SYNTHETIC_PARTS_COMPATIBILITY_CONTRACT_ONLY",
+            "model_count": compatibility_summary.model_count,
+            "part_count": compatibility_summary.part_count,
+            "claim_count": compatibility_summary.claim_count,
+            "evidence_count": compatibility_summary.evidence_count,
+            "supplier_path_count": compatibility_summary.supplier_path_count,
+            "functional_claim_examples_in_synthetic_fixture": compatibility_summary.functional_claim_examples,
+            "incompatibility_examples_in_synthetic_fixture": compatibility_summary.incompatible_claim_examples,
+            "unknown_claim_examples_in_synthetic_fixture": compatibility_summary.unknown_claim_examples,
+            "independent_delivered_groups_in_synthetic_fixture": compatibility_summary.independent_delivered_groups_in_fixture,
+            "benchmark_count": compatibility_summary.benchmark_count,
+            "schema_sha256": compatibility_summary.schema_sha256,
+            "graph_sha256": compatibility_summary.graph_sha256,
+            "schema_path": compatibility_schema_path.display().to_string(),
+            "graph_path": compatibility_graph_path.display().to_string(),
+            "real_compatibility_claims_established": false,
+            "purchase_authorized": false,
+            "product_safety_assessed": false
         });
     }
 

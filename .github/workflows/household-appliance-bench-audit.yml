@@ -15,6 +15,7 @@ on:
       - "docs/tech/CROSS_APPLIANCE_ARCHITECTURE_MORPHOLOGY_AND_HYBRIDS_V0_1.md"
       - "docs/tech/PROOF_CARRYING_REPAIR_OUTCOME_BENCHMARK_V0_1.md"
       - "docs/tech/REPAIRABILITY_FACTORIAL_EXPERIMENT_PLAN_V0_1.md"
+      - "docs/tech/PARTS_COMPATIBILITY_EVIDENCE_GRAPH_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -37,6 +38,7 @@ on:
       - "docs/tech/CROSS_APPLIANCE_ARCHITECTURE_MORPHOLOGY_AND_HYBRIDS_V0_1.md"
       - "docs/tech/PROOF_CARRYING_REPAIR_OUTCOME_BENCHMARK_V0_1.md"
       - "docs/tech/REPAIRABILITY_FACTORIAL_EXPERIMENT_PLAN_V0_1.md"
+      - "docs/tech/PARTS_COMPATIBILITY_EVIDENCE_GRAPH_V0_1.md"
       - "fixtures/appliances/**"
       - "schemas/appliances/**"
       - "fixtures/household_appliance/**"
@@ -84,3 +86,5 @@ jobs:
           --restoration-ledger fixtures/appliances/repair_restoration_evidence_v0_1.json
           --experiment-schema schemas/appliances/washer_repairability_factorial_plan_v0_1.schema.json
           --experiment-plan fixtures/appliances/washer_repairability_factorial_plan_v0_1.json
+          --compatibility-schema schemas/appliances/parts_compatibility_evidence_graph_v0_1.schema.json
+          --compatibility-graph fixtures/appliances/parts_compatibility_evidence_graph_v0_1.json
