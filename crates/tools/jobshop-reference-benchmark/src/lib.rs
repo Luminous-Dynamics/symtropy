@@ -52,6 +52,41 @@ pub struct ScheduledOperation {
     pub finish_time: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DispatchRule {
+    ShortestProcessingTime,
+    MostWorkRemaining,
+    MostOperationsRemaining,
+}
+
+impl DispatchRule {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ShortestProcessingTime => "spt",
+            Self::MostWorkRemaining => "mwkr",
+            Self::MostOperationsRemaining => "mor",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DispatchResult {
+    pub rule: DispatchRule,
+    pub makespan: u64,
+    pub lower_bound_makespan: u64,
+    pub schedule: Vec<ScheduledOperation>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Candidate {
+    job_index: usize,
+    operation_index: usize,
+    operation: Operation,
+    start_time: u64,
+    remaining_work: u64,
+    remaining_operations: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchmarkError {
     InvalidInteger {
@@ -338,6 +373,103 @@ pub fn solve_exact(instance: &Instance) -> Result<ExactResult, BenchmarkError> {
     })
 }
 
+
+
+/// Build a deterministic feasible schedule with a simple dispatching rule.
+/// At every step, select the next operation with the earliest feasible start;
+/// tie-break by the named rule and then by stable job/operation IDs. These
+/// rules are baselines, not optimal solvers. The resulting schedule is audited
+/// independently before being returned.
+pub fn dispatch_schedule(
+    instance: &Instance,
+    rule: DispatchRule,
+) -> Result<DispatchResult, BenchmarkError> {
+    let summary = summarize(instance)?;
+    let mut remaining_work = Vec::with_capacity(instance.jobs.len());
+    for job in &instance.jobs {
+        let mut remaining = vec![0_u64; job.len() + 1];
+        for operation_index in (0..job.len()).rev() {
+            remaining[operation_index] = remaining[operation_index + 1]
+                .checked_add(job[operation_index].duration)
+                .ok_or(BenchmarkError::ArithmeticOverflow)?;
+        }
+        remaining_work.push(remaining);
+    }
+
+    let mut next_operation = vec![0_usize; instance.jobs.len()];
+    let mut job_ready = vec![0_u64; instance.jobs.len()];
+    let mut machine_ready = vec![0_u64; instance.machine_count];
+    let mut schedule = Vec::with_capacity(summary.operation_count);
+
+    while schedule.len() < summary.operation_count {
+        let mut selected: Option<Candidate> = None;
+        for job_index in 0..instance.jobs.len() {
+            let operation_index = next_operation[job_index];
+            let Some(operation) = instance.jobs[job_index].get(operation_index).copied() else {
+                continue;
+            };
+            let candidate = Candidate {
+                job_index,
+                operation_index,
+                operation,
+                start_time: job_ready[job_index].max(machine_ready[operation.machine]),
+                remaining_work: remaining_work[job_index][operation_index],
+                remaining_operations: instance.jobs[job_index].len() - operation_index,
+            };
+            if selected
+                .as_ref()
+                .is_none_or(|current| candidate_precedes(candidate, *current, rule))
+            {
+                selected = Some(candidate);
+            }
+        }
+
+        let candidate = selected.ok_or(BenchmarkError::NoSchedule)?;
+        let finish_time = candidate
+            .start_time
+            .checked_add(candidate.operation.duration)
+            .ok_or(BenchmarkError::ArithmeticOverflow)?;
+        schedule.push(ScheduledOperation {
+            job_index: candidate.job_index,
+            operation_index: candidate.operation_index,
+            machine: candidate.operation.machine,
+            start_time: candidate.start_time,
+            finish_time,
+        });
+        next_operation[candidate.job_index] += 1;
+        job_ready[candidate.job_index] = finish_time;
+        machine_ready[candidate.operation.machine] = finish_time;
+    }
+
+    let makespan = verify_schedule(instance, &schedule)?;
+    Ok(DispatchResult {
+        rule,
+        makespan,
+        lower_bound_makespan: summary.lower_bound_makespan,
+        schedule,
+    })
+}
+
+fn candidate_precedes(left: Candidate, right: Candidate, rule: DispatchRule) -> bool {
+    if left.start_time != right.start_time {
+        return left.start_time < right.start_time;
+    }
+    let priority = match rule {
+        DispatchRule::ShortestProcessingTime => {
+            left.operation.duration.cmp(&right.operation.duration)
+        }
+        DispatchRule::MostWorkRemaining => {
+            right.remaining_work.cmp(&left.remaining_work)
+        }
+        DispatchRule::MostOperationsRemaining => {
+            right.remaining_operations.cmp(&left.remaining_operations)
+        }
+    };
+    priority
+        .then_with(|| left.job_index.cmp(&right.job_index))
+        .then_with(|| left.operation_index.cmp(&right.operation_index))
+        .is_lt()
+}
 
 /// Independently audit a concrete operation-level schedule. The verifier
 /// rechecks operation identity, machine assignment, duration, job precedence,
@@ -886,6 +1018,48 @@ mod tests {
             verify_schedule(&instance, &tampered),
             Err(BenchmarkError::InvalidSchedule(_))
         ));
+    }
+
+    #[test]
+    fn dispatch_rules_produce_audited_schedules_for_both_pinned_instances() {
+        let fixtures = [
+            include_str!("../fixtures/ta01.txt"),
+            include_str!("../fixtures/abz5.txt"),
+        ];
+        let rules = [
+            DispatchRule::ShortestProcessingTime,
+            DispatchRule::MostWorkRemaining,
+            DispatchRule::MostOperationsRemaining,
+        ];
+        for fixture in fixtures {
+            let instance = parse_classic_pair_format(fixture).expect("fixture parses");
+            for rule in rules {
+                let result =
+                    dispatch_schedule(&instance, rule).expect("dispatch rule creates a schedule");
+                assert_eq!(result.schedule.len(), instance.jobs.iter().map(Vec::len).sum());
+                assert!(result.makespan >= result.lower_bound_makespan);
+                assert_eq!(
+                    verify_schedule(&instance, &result.schedule)
+                        .expect("independent schedule audit succeeds"),
+                    result.makespan
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn dispatch_rules_are_deterministic_on_pinned_instances() {
+        let instance = parse_classic_pair_format(include_str!("../fixtures/ta01.txt"))
+            .expect("fixture parses");
+        for rule in [
+            DispatchRule::ShortestProcessingTime,
+            DispatchRule::MostWorkRemaining,
+            DispatchRule::MostOperationsRemaining,
+        ] {
+            let first = dispatch_schedule(&instance, rule).expect("first run succeeds");
+            let second = dispatch_schedule(&instance, rule).expect("second run succeeds");
+            assert_eq!(first, second);
+        }
     }
 
 }
