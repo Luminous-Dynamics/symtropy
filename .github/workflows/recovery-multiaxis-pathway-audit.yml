@@ -1,0 +1,105 @@
+name: Recovery Multi-Axis Pathway Audit
+
+on:
+  push:
+    branches: ["feat/recovery-multiaxis-pathway-audit-v0-1"]
+    paths:
+      - "docs/tech/recovery-multiaxis-pathway-corpus-v0.1.json"
+      - "docs/tech/MULTIAXIS_RECOVERY_PATHWAY_BENCHMARK_V0_1.md"
+      - "tools/recovery-multiaxis-pathway-audit/**"
+      - ".github/workflows/recovery-multiaxis-pathway-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/recovery-multiaxis-pathway-corpus-v0.1.json"
+      - "docs/tech/MULTIAXIS_RECOVERY_PATHWAY_BENCHMARK_V0_1.md"
+      - "tools/recovery-multiaxis-pathway-audit/**"
+      - ".github/workflows/recovery-multiaxis-pathway-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-multiaxis-pathway-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pathway-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Check formatting
+        run: cargo fmt --check --manifest-path tools/recovery-multiaxis-pathway-audit/Cargo.toml
+      - name: Run unit and adversarial tests
+        run: cargo test --manifest-path tools/recovery-multiaxis-pathway-audit/Cargo.toml
+      - name: Audit the frozen 868-case corpus and temporal controls at exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-multiaxis-pathway-audit/Cargo.toml -- \
+            docs/tech/recovery-multiaxis-pathway-corpus-v0.1.json \
+            --source-commit "$source_commit" > recovery-multiaxis-pathway-receipt.json
+          jq -e --arg head "$source_commit" '
+            .result == "pass"
+            and .schema_version == "recovery-multiaxis-pathway-corpus-v0.1"
+            and .algorithm_id == "multi-axis-recovery-pathway-audit-v0.1"
+            and .source_commit == $head
+            and .case_count == 868
+            and .temporal_evidence_record_count == 3
+            and .temporal_decision_count == 4
+            and .visible_history_group_count == 3
+            and .nonanticipativity_violation_count == 0
+            and .future_evidence_violation_count == 0
+            and .missing_evidence_reference_count == 0
+            and .temporal_actuation_authorized_count == 0
+            and .expected_temporal_counts_match == true
+            and .criteria_sensitivity_control_matches == true
+            and .criteria_regime_top_strategy_reversal == true
+            and .criteria_regime_rankings["protect-habitat-and-recover-material-v1"][0] == "rapid_material_recovery"
+            and .criteria_regime_rankings["biosecurity-priority-v2"][0] == "retain_inspect_replan"
+            and (.criteria_regime_rankings["protect-habitat-and-recover-material-v1"] | length) == 2
+            and (.criteria_regime_rankings["biosecurity-priority-v2"] | length) == 2
+            and ((.criteria_regime_rankings["protect-habitat-and-recover-material-v1"] | index("constraint-violating-high-yield-shortcut")) == null)
+            and ((.criteria_regime_rankings["biosecurity-priority-v2"] | index("constraint-violating-high-yield-shortcut")) == null)
+            and .expected_outcomes_match == true
+            and .aggregate_counts_match == true
+            and .all_synthetic == true
+            and .all_actuation_disabled == true
+            and .scope_counts.IN_SCOPE == 112
+            and .scope_counts.OUT_OF_SCOPE == 756
+            and .evidence_counts.SUFFICIENT == 292
+            and .evidence_counts.INSUFFICIENT == 576
+            and .hard_gate_counts.PASS == 218
+            and .hard_gate_counts.UNKNOWN == 542
+            and .hard_gate_counts.BLOCK == 108
+            and .timing_counts.ADEQUATE == 436
+            and .timing_counts.TOO_LATE == 432
+            and .disposition_counts.REVIEW_ONLY_CANDIDATE == 8
+            and .disposition_counts.HOLD_EVIDENCE == 80
+            and .disposition_counts.REASSESS_SCOPE == 756
+            and .disposition_counts.BLOCKED_HARD_GATE == 18
+            and .disposition_counts.REPLAN_TOO_LATE == 6
+            and .lock_in_warning_counts["true"] == 432
+            and .lock_in_warning_counts["false"] == 436
+            and (.case_results | length) == 868
+            and (.errors | length) == 0
+          ' recovery-multiaxis-pathway-receipt.json
+      - name: Upload deterministic pathway receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-multiaxis-pathway-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: recovery-multiaxis-pathway-receipt.json
+          if-no-files-found: warn
+          retention-days: 14
