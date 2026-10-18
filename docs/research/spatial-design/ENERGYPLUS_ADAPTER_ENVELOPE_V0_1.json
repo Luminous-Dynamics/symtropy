@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmark_id": "ENERGYPLUS-ADAPTER-ENVELOPE",
+  "version": "0.1.0",
+  "status": "package_pinned_schema_capture_pending_model_not_executed",
+  "claim_ceiling": "This A0 manifest pins a software package and declares an input/output envelope. It does not claim that EnergyPlus has been installed or executed, that a model has been validated, or that any physical building performance or safety result has been established.",
+  "references": {
+    "release_url": "https://github.com/NatLabRockies/EnergyPlus/releases/tag/v26.2.0",
+    "epjson_format_docs": "https://energyplus.readthedocs.io/en/v26.2.0/essentials/essentials.html",
+    "output_reference": "https://energyplus.readthedocs.io/en/v26.2.0/guides/input-output-reference/index.html",
+    "ashrae_standard_140": "https://data.ashrae.org/standard140/"
+  },
+  "engine": {
+    "name": "EnergyPlus",
+    "version": "26.2.0",
+    "git_tag": "v26.2.0",
+    "source_commit_sha": "4bd7a1f26fb749a83257855aba6760e26c8a3c8f",
+    "package": {
+      "platform": "ubuntu-24.04-x86_64",
+      "asset_name": "EnergyPlus-26.2.0-4bd7a1f26f-Linux-Ubuntu24.04-x86_64.run",
+      "download_url": "https://github.com/NatLabRockies/EnergyPlus/releases/download/v26.2.0/EnergyPlus-26.2.0-4bd7a1f26f-Linux-Ubuntu24.04-x86_64.run",
+      "sha256": "e602dbe95235e853f0f51d8e99702da4a951fdb4473ebe7f463bedd4f70532e8",
+      "size_bytes": 198937282,
+      "digest_source": "GitHub Release asset metadata for the exact v26.2.0 tag"
+    }
+  },
+  "input_schema": {
+    "format": "epJSON",
+    "revision": "EnergyPlus-v26.2.0-epJSON",
+    "source_url": "https://github.com/NatLabRockies/EnergyPlus/blob/v26.2.0/idd/Energy%2B.idd.in",
+    "unit_system": "SI",
+    "schema_sha256_policy": "required_in_each_run_receipt_after_capture_from_the_pinned_package",
+    "schema_capture_status": "pending_package_installation_and_schema_digest_capture"
+  },
+  "support_scope": {
+    "supported_host_platform": "ubuntu-24.04-x86_64",
+    "minimum_model_complexity": "single-zone reference model",
+    "native_solver_execution_implemented": false,
+    "weather_source_must_be_versioned": true,
+    "source_geometry_must_have_authoritative_revision": true,
+    "renders_or_collider_meshes_are_geometry_authority": false
+  },
+  "required_input_receipt_fields": [
+    "model_id",
+    "model_sha256",
+    "authoritative_geometry_revision",
+    "weather_id",
+    "weather_sha256",
+    "schedule_revision",
+    "schedule_sha256",
+    "configuration_sha256",
+    "epjson_schema_sha256",
+    "unit_system",
+    "timestep_minutes",
+    "run_start_date",
+    "run_end_date",
+    "warmup_max_days"
+  ],
+  "required_outputs": [
+    {
+      "name": "Zone Air Temperature",
+      "kind": "variable",
+      "units": "C",
+      "report_frequency": "timestep",
+      "claim_scope": "temperature trajectory only"
+    },
+    {
+      "name": "Electricity:Facility",
+      "kind": "meter",
+      "units": "J",
+      "report_frequency": "hourly",
+      "claim_scope": "facility electricity meter trajectory only"
+    }
+  ],
+  "dispositions": [
+    "eligible_for_reference_comparison",
+    "blocked",
+    "unknown"
+  ],
+  "gate_policy": {
+    "eligible_for_reference_comparison": "Exact package and input envelope match; process completed with exit code zero; convergence declared; no severe/fatal errors or partial run; all required outputs are present with declared units, frequencies, samples and content digests. This is not model validation or physical qualification.",
+    "blocked": "Run failed, did not converge, reported severe/fatal errors, or produced partial outputs.",
+    "unknown": "Pin or input provenance is missing/mismatched, or a required output/schema digest cannot be verified. Unknown must not be converted to numeric zero or a passing result."
+  },
+  "next_gates": [
+    {
+      "id": "A1",
+      "name": "software_capability_and_input_negative_controls",
+      "status": "not_implemented"
+    },
+    {
+      "id": "A2",
+      "name": "synthetic_trajectory_integration",
+      "status": "not_implemented"
+    },
+    {
+      "id": "A3",
+      "name": "independent_reference_and_held_out_calibration",
+      "status": "not_implemented"
+    }
+  ]
+}
