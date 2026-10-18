@@ -51,7 +51,10 @@
       "minimum": 0
     },
     "valid_until_sec": {
-      "type": "number"
+      "type": [
+        "number",
+        "null"
+      ]
     },
     "urgency": {
       "type": "number",
@@ -76,7 +79,10 @@
       "description": "Normalized uncertainty proxy. Calibration is evaluated separately."
     },
     "desired_planar_velocity_mps": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "minItems": 2,
       "maxItems": 2,
       "items": {
@@ -84,7 +90,10 @@
       }
     },
     "target": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
         "entity_ref": {
@@ -106,16 +115,37 @@
       },
       "anyOf": [
         {
+          "properties": {
+            "entity_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
           "required": [
             "entity_ref"
           ]
         },
         {
+          "properties": {
+            "position_world_m": {
+              "$ref": "#/$defs/position"
+            }
+          },
           "required": [
             "position_world_m"
           ]
         },
         {
+          "properties": {
+            "orientation_xyzw": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {
+                "type": "number"
+              }
+            }
+          },
           "required": [
             "orientation_xyzw"
           ]
@@ -130,7 +160,10 @@
       ]
     },
     "calibration_profile_id": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "minLength": 1
     },
     "provenance": {
@@ -161,11 +194,17 @@
           "minLength": 1
         },
         "observation_digest_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$"
         },
         "model_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
@@ -186,7 +225,17 @@
       "then": {
         "required": [
           "desired_planar_velocity_mps"
-        ]
+        ],
+        "properties": {
+          "desired_planar_velocity_mps": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        }
       }
     },
     {
@@ -206,7 +255,12 @@
       "then": {
         "required": [
           "target"
-        ]
+        ],
+        "properties": {
+          "target": {
+            "type": "object"
+          }
+        }
       }
     },
     {
@@ -223,7 +277,13 @@
       "then": {
         "required": [
           "calibration_profile_id"
-        ]
+        ],
+        "properties": {
+          "calibration_profile_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     {
@@ -247,9 +307,12 @@
       "then": {
         "properties": {
           "provenance": {
-            "required": [
-              "model_sha256"
-            ]
+            "properties": {
+              "model_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
           }
         }
       }
