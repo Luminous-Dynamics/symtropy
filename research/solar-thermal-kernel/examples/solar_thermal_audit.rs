@@ -148,6 +148,9 @@ fn verify_report(json: &str) -> Result<(), String> {
     if !boolean(json, "all_verifiers_passed")? {
         return Err("model-side verifier flag is false".to_owned());
     }
+    if text_field(json, "dni_fixture_id")? != "direct-beam-interval-001" {
+        return Err("unexpected direct-beam fixture id".to_owned());
+    }
     if boolean(json, "hardware_validated")? {
         return Err("synthetic fixture must not claim hardware validation".to_owned());
     }
@@ -156,6 +159,11 @@ fn verify_report(json: &str) -> Result<(), String> {
     // redefine this canonical fixture and still pass its own equations.
     for (key, expected) in [
         ("incident_solar_j", 1_000_000.0),
+        ("dni_direct_normal_irradiance_w_per_m2", 800.0),
+        ("dni_aperture_area_m2", 10.0),
+        ("dni_incidence_cosine", 0.5),
+        ("dni_unshaded_fraction", 0.8),
+        ("dni_duration_s", 3_600.0),
         ("optical_efficiency", 0.8),
         ("receiver_loss_j", 100_000.0),
         ("store_mass_kg", 1.0),
@@ -182,6 +190,26 @@ fn verify_report(json: &str) -> Result<(), String> {
     ] {
         near(&format!("canonical input {key}"), number(json, key)?, expected)?;
     }
+
+    // Independent direct-beam arithmetic. This fixture is intentionally
+    // separate from the downstream collector fixture, whose incident input
+    // is a different pinned synthetic value.
+    let dni = required_nonnegative(json, "dni_direct_normal_irradiance_w_per_m2")?;
+    let aperture = required_nonnegative(json, "dni_aperture_area_m2")?;
+    let incidence = number(json, "dni_incidence_cosine")?;
+    let unshaded = number(json, "dni_unshaded_fraction")?;
+    let dni_duration = required_nonnegative(json, "dni_duration_s")?;
+    if !(0.0..=1.0).contains(&incidence) || !(0.0..=1.0).contains(&unshaded) {
+        return Err("direct-beam geometry factors must be in [0, 1]".to_owned());
+    }
+    if aperture <= 0.0 || dni_duration <= 0.0 {
+        return Err("direct-beam aperture area and duration must be positive".to_owned());
+    }
+    let dni_expected_power = dni * aperture * incidence * unshaded;
+    let dni_expected_energy = dni_expected_power * dni_duration;
+    near("direct-beam incident power", number(json, "dni_incident_power_w")?, dni_expected_power)?;
+    near("direct-beam interval energy",
+        required_nonnegative(json, "dni_incident_energy_j")?, dni_expected_energy)?;
 
     let incident = required_nonnegative(json, "incident_solar_j")?;
     let optical_efficiency = number(json, "optical_efficiency")?;
@@ -731,6 +759,28 @@ mod tests {
         let tampered = report.replace(
             "\"temporal_period_1_useful_heat_delivered_j\":300000.000000000",
             "\"temporal_period_1_useful_heat_delivered_j\":301000.000000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_direct_beam_energy() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"dni_incident_energy_j\":11520000.000000000",
+            "\"dni_incident_energy_j\":11520001.000000000",
+        );
+        assert_ne!(tampered, report);
+        assert!(verify_report(&tampered).is_err());
+    }
+
+    #[test]
+    fn catches_tampered_direct_beam_input() {
+        let report = solar_thermal_kernel::canonical_demo_receipt().unwrap();
+        let tampered = report.replace(
+            "\"dni_direct_normal_irradiance_w_per_m2\":800.000000000",
+            "\"dni_direct_normal_irradiance_w_per_m2\":801.000000000",
         );
         assert_ne!(tampered, report);
         assert!(verify_report(&tampered).is_err());
