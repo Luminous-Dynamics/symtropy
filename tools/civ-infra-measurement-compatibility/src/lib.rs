@@ -208,10 +208,7 @@ struct NormalizedBin {
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
+    Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 pub fn evaluate_bytes(input_bytes: &[u8]) -> Result<CompatibilityReport, String> {
@@ -219,8 +216,8 @@ pub fn evaluate_bytes(input_bytes: &[u8]) -> Result<CompatibilityReport, String>
         return Err(format!("input byte count exceeds limit {MAX_INPUT_BYTES}"));
     }
     let input_sha256 = sha256_hex(input_bytes);
-    let input: CompatibilityInput = serde_json::from_slice(input_bytes)
-        .map_err(|err| format!("invalid compatibility input JSON: {err}"))?;
+    let input: CompatibilityInput =
+        serde_json::from_slice(input_bytes).map_err(|err| format!("invalid compatibility input JSON: {err}"))?;
     evaluate(&input, &input_sha256)
 }
 
@@ -242,27 +239,16 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
         validate_digest(digest, "model_artifact_sha256")?;
     }
     validate_interval(model.input_domain, "measurement_model.input_domain")?;
-    if model.input_domain.lower_ticks < 0
-        && model.transform == Transform::SquareNonNegativeDimensionless
-    {
+    if model.input_domain.lower_ticks < 0 && model.transform == Transform::SquareNonNegativeDimensionless {
         return Err("square_non_negative_dimensionless requires a non-negative model domain".to_owned());
     }
-    if model.transform == Transform::SquareNonNegativeDimensionless
-        && model.input_unit != Unit::Dimensionless
-    {
+    if model.transform == Transform::SquareNonNegativeDimensionless && model.input_unit != Unit::Dimensionless {
         return Err("square_non_negative_dimensionless requires dimensionless input".to_owned());
     }
-    validate_same_dimension(
-        output_unit(model),
-        model.model_discrepancy.unit,
-        "model discrepancy",
-    )?;
+    validate_same_dimension(output_unit(model), model.model_discrepancy.unit, "model discrepancy")?;
     validate_interval(model.model_discrepancy.interval, "model_discrepancy.interval")?;
     validate_name(&model.model_discrepancy.basis, "model_discrepancy.basis")?;
-    let discrepancy = canonical_interval(
-        model.model_discrepancy.unit,
-        model.model_discrepancy.interval,
-    )?;
+    let discrepancy = canonical_interval(model.model_discrepancy.unit, model.model_discrepancy.interval)?;
 
     if input.states.is_empty() {
         return Err("states must not be empty".to_owned());
@@ -301,10 +287,7 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
             .then_with(|| left.outcome_id.cmp(&right.outcome_id))
     });
 
-    let all_outcome_ids: Vec<String> = normalized_bins
-        .iter()
-        .map(|bin| bin.outcome_id.clone())
-        .collect();
+    let all_outcome_ids: Vec<String> = normalized_bins.iter().map(|bin| bin.outcome_id.clone()).collect();
     let mut state_ids = BTreeSet::new();
     let mut normalized_states = Vec::with_capacity(input.states.len());
     for state in &input.states {
@@ -420,17 +403,9 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
         .iter()
         .filter(|state| state.domain_status != DomainStatus::WithinModelDomain)
         .count();
-    let states_with_uncovered_output_regions = normalized_states
-        .iter()
-        .filter(|state| state.uncovered)
-        .count();
+    let states_with_uncovered_output_regions = normalized_states.iter().filter(|state| state.uncovered).count();
 
-    let observed_update = build_observed_update(
-        input.observed_value,
-        model,
-        &normalized_bins,
-        &normalized_states,
-    )?;
+    let observed_update = build_observed_update(input.observed_value, model, &normalized_bins, &normalized_states)?;
 
     Ok(CompatibilityReport {
         schema_version: SCHEMA_VERSION.to_owned(),
@@ -468,12 +443,16 @@ fn evaluate(input: &CompatibilityInput, input_sha256: &str) -> Result<Compatibil
             decision_signature_classes_before_observation: distinct_signatures.len(),
             worst_case_remaining_states_within_declared_outcome_bins: worst_case_remaining_states,
             worst_case_decision_signature_classes_within_declared_outcome_bins: worst_case_decision_signature_classes,
-            worst_case_decision_discordant_pairs_within_declared_outcome_bins: worst_case_decision_discordant_pairs_remaining,
+            worst_case_decision_discordant_pairs_within_declared_outcome_bins:
+                worst_case_decision_discordant_pairs_remaining,
             outcome_worst_case_is_conditional_on_declared_support: true,
             support_failure_preserves_prior: true,
             support_failure_preserved_state_count: normalized_states.len(),
             support_failure_preserved_decision_signature_classes: distinct_signatures.len(),
-            support_failure_preserved_decision_discordant_pairs: discordant_pairs(&signature_counts(&normalized_states, None)),
+            support_failure_preserved_decision_discordant_pairs: discordant_pairs(&signature_counts(
+                &normalized_states,
+                None,
+            )),
             outcomes_with_no_compatible_states,
             states_outside_model_domain,
             states_with_uncovered_output_regions,
@@ -518,8 +497,7 @@ fn build_observed_update(
     let observed_interval = canonical_point(observation)?;
     let matching_bins: Vec<&NormalizedBin> = bins
         .iter()
-        .filter(|bin| observed_interval.lower >= bin.interval.lower
-            && observed_interval.lower <= bin.interval.upper)
+        .filter(|bin| observed_interval.lower >= bin.interval.lower && observed_interval.lower <= bin.interval.upper)
         .collect();
 
     if matching_bins.is_empty() {
@@ -551,7 +529,10 @@ fn build_observed_update(
                 .predicted
                 .map(|interval| observed_interval.lower >= interval.lower && observed_interval.lower <= interval.upper)
                 .unwrap_or(false)
-                && state.compatible_outcomes.iter().any(|id| matching_bin_ids.contains(id.as_str()))
+                && state
+                    .compatible_outcomes
+                    .iter()
+                    .any(|id| matching_bin_ids.contains(id.as_str()))
         };
         if compatible {
             compatible_states.push(state.state_id.clone());
@@ -695,7 +676,10 @@ fn canonical_interval(unit: Unit, interval: Interval) -> Result<CanonicalInterva
 
 fn canonical_point(quantity: Quantity) -> Result<CanonicalInterval, String> {
     let value = canonical_value(quantity.unit, quantity.value_ticks, Rounding::Exact)?;
-    Ok(CanonicalInterval { lower: value, upper: value })
+    Ok(CanonicalInterval {
+        lower: value,
+        upper: value,
+    })
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -778,11 +762,7 @@ fn validate_digest(value: &str, label: &str) -> Result<(), String> {
 }
 
 fn choose2(value: u64) -> u64 {
-    if value < 2 {
-        0
-    } else {
-        value * (value - 1) / 2
-    }
+    if value < 2 { 0 } else { value * (value - 1) / 2 }
 }
 
 fn discordant_pairs(counts: &BTreeMap<String, u64>) -> u64 {
@@ -797,7 +777,10 @@ mod tests {
     use std::fs;
 
     fn interval(lower: i64, upper: i64) -> Interval {
-        Interval { lower_ticks: lower, upper_ticks: upper }
+        Interval {
+            lower_ticks: lower,
+            upper_ticks: upper,
+        }
     }
 
     fn state(id: &str, unit: Unit, lower: i64, upper: i64, signature: &str) -> StateEnvelope {
@@ -857,20 +840,24 @@ mod tests {
 
     #[test]
     fn fixture_evaluates_with_overlapping_compatibility() {
-        let input: CompatibilityInput = serde_json::from_str(include_str!("../fixtures/compatibility-v0.1.json"))
-            .expect("fixture parses");
+        let input: CompatibilityInput =
+            serde_json::from_str(include_str!("../fixtures/compatibility-v0.1.json")).expect("fixture parses");
         let report = evaluate(&input, &digest(&input)).expect("fixture evaluates");
         assert_eq!(report.state_count, 4);
         assert_eq!(report.outcome_count, 3);
         assert!(report.compatibility_edge_count >= report.state_count);
-        assert!(report.state_results.iter().any(|state| state.possible_outcome_ids.len() > 1));
+        assert!(
+            report
+                .state_results
+                .iter()
+                .any(|state| state.possible_outcome_ids.len() > 1)
+        );
     }
 
     #[test]
     fn converts_meter_and_millimeter_intervals_to_same_canonical_range() {
         let a = canonical_interval(Unit::Meter, interval(1_000_000, 1_200_000)).expect("meters");
-        let b = canonical_interval(Unit::Millimeter, interval(1_000_000_000, 1_200_000_000))
-            .expect("millimeters");
+        let b = canonical_interval(Unit::Millimeter, interval(1_000_000_000, 1_200_000_000)).expect("millimeters");
         assert_eq!(a.lower, b.lower);
         assert_eq!(a.upper, b.upper);
     }
@@ -894,27 +881,39 @@ mod tests {
             "synthetic bounded discrepancy for test only; not calibrated".to_owned();
         let report = evaluate(&input, &digest(&input)).expect("discrepancy widens output");
         assert_eq!(report.state_results[0].possible_outcome_ids, vec!["left", "right"]);
-        assert_eq!(report.state_results[0].predicted_output_interval, Some(interval(900_000_000, 1_300_000_000)));
+        assert_eq!(
+            report.state_results[0].predicted_output_interval,
+            Some(interval(900_000_000, 1_300_000_000))
+        );
         assert!(report.state_results[0].output_range_has_uncovered_regions);
         assert_eq!(report.model_discrepancy, input.measurement_model.model_discrepancy);
     }
 
     #[test]
     fn model_discrepancy_overflow_fails_closed() {
-        assert!(apply_model_discrepancy(
-            CanonicalInterval { lower: i64::MAX - 1, upper: i64::MAX },
-            CanonicalInterval { lower: 0, upper: 1 },
-        )
-        .unwrap_err()
-        .contains("overflow"));
+        assert!(
+            apply_model_discrepancy(
+                CanonicalInterval {
+                    lower: i64::MAX - 1,
+                    upper: i64::MAX
+                },
+                CanonicalInterval { lower: 0, upper: 1 },
+            )
+            .unwrap_err()
+            .contains("overflow")
+        );
     }
 
     #[test]
     fn nonlinear_square_transform_rounds_outward() {
         let result = transform_interval(
-            CanonicalInterval { lower: 1_000_001, upper: 2_000_001 },
+            CanonicalInterval {
+                lower: 1_000_001,
+                upper: 2_000_001,
+            },
             Transform::SquareNonNegativeDimensionless,
-        ).expect("square transform");
+        )
+        .expect("square transform");
         assert_eq!(result.lower, 1_000_002);
         assert_eq!(result.upper, 4_000_005);
     }
@@ -943,9 +942,8 @@ mod tests {
             bin("low", Unit::Meter, 0, 450_000),
             bin("high", Unit::Meter, 750_000, 1_000_000),
         ];
-        let report = evaluate_bytes(
-            serde_json::to_vec(&input).expect("input serializes").as_slice()
-        ).expect("input evaluates");
+        let report =
+            evaluate_bytes(serde_json::to_vec(&input).expect("input serializes").as_slice()).expect("input evaluates");
         let ambiguity = report.decision_ambiguity;
         assert!(ambiguity.outcome_worst_case_is_conditional_on_declared_support);
         assert!(ambiguity.support_failure_preserves_prior);
@@ -960,7 +958,10 @@ mod tests {
         let mut input = base_input();
         input.states = vec![state("outside", Unit::Meter, 2_100_000, 2_200_000, "decision-outside")];
         let report = evaluate(&input, &digest(&input)).expect("out of domain is represented");
-        assert_eq!(report.state_results[0].domain_status, DomainStatus::PartlyOrWhollyOutsideModelDomain);
+        assert_eq!(
+            report.state_results[0].domain_status,
+            DomainStatus::PartlyOrWhollyOutsideModelDomain
+        );
         assert_eq!(report.state_results[0].possible_outcome_ids.len(), input.outcomes.len());
         assert_eq!(report.decision_ambiguity.states_outside_model_domain, 1);
     }
@@ -968,9 +969,18 @@ mod tests {
     #[test]
     fn partially_out_of_domain_state_is_not_clipped_or_narrowed() {
         let mut input = base_input();
-        input.states = vec![state("crossing", Unit::Meter, 1_900_000, 2_100_000, "decision-crossing")];
+        input.states = vec![state(
+            "crossing",
+            Unit::Meter,
+            1_900_000,
+            2_100_000,
+            "decision-crossing",
+        )];
         let report = evaluate(&input, &digest(&input)).expect("partly out-of-domain state is retained");
-        assert_eq!(report.state_results[0].domain_status, DomainStatus::PartlyOrWhollyOutsideModelDomain);
+        assert_eq!(
+            report.state_results[0].domain_status,
+            DomainStatus::PartlyOrWhollyOutsideModelDomain
+        );
         assert_eq!(report.state_results[0].possible_outcome_ids.len(), input.outcomes.len());
         assert_eq!(report.state_results[0].predicted_output_interval, None);
     }
@@ -990,7 +1000,10 @@ mod tests {
     #[test]
     fn observation_outside_all_bins_preserves_prior_state_set() {
         let mut input = base_input();
-        input.observed_value = Some(Quantity { unit: Unit::Meter, value_ticks: 3_000_000 });
+        input.observed_value = Some(Quantity {
+            unit: Unit::Meter,
+            value_ticks: 3_000_000,
+        });
         let report = evaluate(&input, &digest(&input)).expect("out of support is a report");
         assert_eq!(report.observed_update.status, ObservedStatus::OutOfModelSupport);
         assert_eq!(report.observed_update.compatible_state_ids.len(), input.states.len());
@@ -1004,7 +1017,10 @@ mod tests {
             state("right", Unit::Meter, 850_000, 1_100_000, "signature-right"),
             state("far", Unit::Meter, 1_500_000, 1_700_000, "signature-far"),
         ];
-        input.observed_value = Some(Quantity { unit: Unit::Meter, value_ticks: 875_000 });
+        input.observed_value = Some(Quantity {
+            unit: Unit::Meter,
+            value_ticks: 875_000,
+        });
         let report = evaluate(&input, &digest(&input)).expect("supported observation");
         assert_eq!(report.observed_update.status, ObservedStatus::SupportedByModel);
         assert_eq!(report.observed_update.compatible_state_ids, vec!["left", "right"]);
@@ -1013,32 +1029,52 @@ mod tests {
     #[test]
     fn observation_inside_a_bin_but_outside_all_state_predictions_preserves_prior() {
         let mut input = base_input();
-        input.observed_value = Some(Quantity { unit: Unit::Meter, value_ticks: 1_900_000 });
+        input.observed_value = Some(Quantity {
+            unit: Unit::Meter,
+            value_ticks: 1_900_000,
+        });
         let report = evaluate(&input, &digest(&input)).expect("unsupported state prediction is represented");
         assert_eq!(report.observed_update.status, ObservedStatus::OutOfModelSupport);
         assert_eq!(report.observed_update.compatible_state_ids.len(), input.states.len());
-        assert!(report.observed_update.update_note.contains("no declared state output envelope supports it"));
+        assert!(
+            report
+                .observed_update
+                .update_note
+                .contains("no declared state output envelope supports it")
+        );
     }
 
     #[test]
     fn dimensionless_square_rejects_length_units() {
         let mut input = base_input();
         input.measurement_model.transform = Transform::SquareNonNegativeDimensionless;
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("requires dimensionless input"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("requires dimensionless input")
+        );
     }
 
     #[test]
     fn rejects_state_from_incompatible_dimension() {
         let mut input = base_input();
         input.states[0].input_unit = Unit::Dimensionless;
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("incompatible dimension"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("incompatible dimension")
+        );
     }
 
     #[test]
     fn rejects_reversed_intervals_and_unknown_model_version_fields() {
         let mut input = base_input();
         input.states[0].input_interval = interval(4, 3);
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("lower bound exceeds upper bound"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("lower bound exceeds upper bound")
+        );
         let mut value = serde_json::to_value(base_input()).expect("serialize");
         value["measurement_model"]["magic_prediction"] = serde_json::json!(0.999);
         assert!(serde_json::from_value::<CompatibilityInput>(value).is_err());
@@ -1048,32 +1084,60 @@ mod tests {
     fn rejects_bad_model_and_upstream_digests() {
         let mut input = base_input();
         input.measurement_model.model_artifact_sha256 = Some("bad".to_owned());
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("model_artifact_sha256"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("model_artifact_sha256")
+        );
         let mut input = base_input();
         input.states[0].upstream_report_sha256 = Some("bad".to_owned());
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("upstream_report_sha256"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("upstream_report_sha256")
+        );
     }
 
     #[test]
     fn rejects_empty_duplicate_state_and_outcome_ids() {
         let mut input = base_input();
         input.states[1].state_id = input.states[0].state_id.clone();
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("duplicate state_id"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("duplicate state_id")
+        );
         let mut input = base_input();
         input.outcomes[1].outcome_id = input.outcomes[0].outcome_id.clone();
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("duplicate outcome_id"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("duplicate outcome_id")
+        );
         let mut input = base_input();
         input.measurement_model.model_artifact_ref = " ".to_owned();
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("model_artifact_ref"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("model_artifact_ref")
+        );
     }
 
     #[test]
     fn observation_at_shared_boundary_matches_both_outcome_bins() {
         let mut input = base_input();
-        input.observed_value = Some(Quantity { unit: Unit::Millimeter, value_ticks: 800_000_000 });
+        input.observed_value = Some(Quantity {
+            unit: Unit::Millimeter,
+            value_ticks: 800_000_000,
+        });
         let report = evaluate(&input, &digest(&input)).expect("boundary observation");
         assert!(report.observed_update.matching_outcome_ids.contains(&"low".to_owned()));
-        assert!(report.observed_update.matching_outcome_ids.contains(&"middle".to_owned()));
+        assert!(
+            report
+                .observed_update
+                .matching_outcome_ids
+                .contains(&"middle".to_owned())
+        );
     }
 
     #[test]
@@ -1109,22 +1173,14 @@ mod tests {
             } else {
                 "synthetic-models/length-identity-v1".to_owned()
             };
-            input.measurement_model.input_unit = if square_world {
-                Unit::Dimensionless
-            } else {
-                Unit::Meter
-            };
+            input.measurement_model.input_unit = if square_world { Unit::Dimensionless } else { Unit::Meter };
             input.measurement_model.transform = if square_world {
                 Transform::SquareNonNegativeDimensionless
             } else {
                 Transform::Identity
             };
             input.measurement_model.input_domain = interval(0, 2_000_000);
-            let discrepancy_radius = if world % 4 == 0 || world % 4 == 3 {
-                25_000
-            } else {
-                0
-            };
+            let discrepancy_radius = if world % 4 == 0 || world % 4 == 3 { 25_000 } else { 0 };
             input.measurement_model.model_discrepancy = ModelDiscrepancy {
                 unit: if square_world { Unit::Dimensionless } else { Unit::Meter },
                 interval: interval(-discrepancy_radius, discrepancy_radius),
@@ -1190,12 +1246,10 @@ mod tests {
                     )
                 };
                 let discrepancy_factor = if square_world { 1 } else { 1000 };
-                let discrepancy_lo = i128::from(
-                    input.measurement_model.model_discrepancy.interval.lower_ticks,
-                ) * discrepancy_factor;
-                let discrepancy_hi = i128::from(
-                    input.measurement_model.model_discrepancy.interval.upper_ticks,
-                ) * discrepancy_factor;
+                let discrepancy_lo =
+                    i128::from(input.measurement_model.model_discrepancy.interval.lower_ticks) * discrepancy_factor;
+                let discrepancy_hi =
+                    i128::from(input.measurement_model.model_discrepancy.interval.upper_ticks) * discrepancy_factor;
                 let lo = base_lo + discrepancy_lo;
                 let hi = base_hi + discrepancy_hi;
                 for bin in &input.outcomes {
@@ -1218,15 +1272,19 @@ mod tests {
             let evaluated_pairs: BTreeSet<(String, String)> = report
                 .state_results
                 .iter()
-                .flat_map(|state| state.possible_outcome_ids.iter().map(move |outcome_id| {
-                    (state.state_id.clone(), outcome_id.clone())
-                }))
+                .flat_map(|state| {
+                    state
+                        .possible_outcome_ids
+                        .iter()
+                        .map(move |outcome_id| (state.state_id.clone(), outcome_id.clone()))
+                })
                 .collect();
             assert_eq!(evaluated_pairs, oracle_pairs);
             let oracle_edges = oracle_pairs.len();
-            let oracle_pairs_json: Vec<serde_json::Value> = oracle_pairs.iter().map(|(state_id, outcome_id)| {
-                serde_json::json!({ "state_id": state_id, "outcome_id": outcome_id })
-            }).collect();
+            let oracle_pairs_json: Vec<serde_json::Value> = oracle_pairs
+                .iter()
+                .map(|(state_id, outcome_id)| serde_json::json!({ "state_id": state_id, "outcome_id": outcome_id }))
+                .collect();
             generated_edges += oracle_edges;
             case_count += input.states.len() * input.outcomes.len();
             corpus.push(serde_json::json!({
@@ -1266,7 +1324,11 @@ mod tests {
     fn rejects_unsupported_schema_and_wrong_input_digest() {
         let mut input = base_input();
         input.schema_version = "v9".to_owned();
-        assert!(evaluate(&input, &digest(&input)).unwrap_err().contains("unsupported schema_version"));
+        assert!(
+            evaluate(&input, &digest(&input))
+                .unwrap_err()
+                .contains("unsupported schema_version")
+        );
         let input = base_input();
         assert!(evaluate(&input, "not-a-digest").unwrap_err().contains("input_sha256"));
     }
@@ -1288,14 +1350,19 @@ mod tests {
     #[test]
     fn public_byte_entrypoint_rejects_oversized_input_before_json_parse() {
         let oversized = vec![b' '; MAX_INPUT_BYTES + 1];
-        assert!(evaluate_bytes(&oversized)
-            .unwrap_err()
-            .contains("input byte count exceeds limit"));
+        assert!(
+            evaluate_bytes(&oversized)
+                .unwrap_err()
+                .contains("input byte count exceeds limit")
+        );
     }
 
     #[test]
     fn compatibility_work_bound_accepts_limit_and_rejects_over_limit() {
-        assert_eq!(validate_work_bound(100, 1_000).expect("limit accepted"), MAX_COMPATIBILITY_EDGES);
+        assert_eq!(
+            validate_work_bound(100, 1_000).expect("limit accepted"),
+            MAX_COMPATIBILITY_EDGES
+        );
         assert!(validate_work_bound(101, 1_000).unwrap_err().contains("exceeds limit"));
         assert!(validate_work_bound(usize::MAX, 2).unwrap_err().contains("overflow"));
     }
