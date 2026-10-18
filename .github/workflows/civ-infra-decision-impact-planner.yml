@@ -38,6 +38,14 @@ jobs:
           cargo --version
           git rev-parse HEAD
 
+      - name: TEMP diagnostic regenerate lockfile for repair
+        run: |
+          cargo generate-lockfile --manifest-path tools/civ-infra-decision-impact-planner/Cargo.toml
+          echo LOCK_B64_BEGIN
+          base64 -w0 tools/civ-infra-decision-impact-planner/Cargo.lock
+          echo
+          echo LOCK_B64_END
+
       - name: Run locked Rust tests and emit generated corpus receipt
         env:
           CIV_INFRA_DECISION_CORPUS_OUT: ${{ runner.temp }}/civ-infra-decision-impact-corpus.json
