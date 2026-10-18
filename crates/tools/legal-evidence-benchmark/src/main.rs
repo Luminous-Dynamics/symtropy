@@ -798,7 +798,7 @@ mod tests {
     fn bundled_fixture_is_valid_and_synthetic_only() {
         let benchmark = fixture();
         assert_eq!(benchmark.dataset_kind, "synthetic_only");
-        assert_eq!(benchmark.cases.len(), 10);
+        assert_eq!(benchmark.cases.len(), 11);
     }
 
     #[test]
@@ -1002,6 +1002,29 @@ mod tests {
         assert_eq!(parse_date("2024-02-29"), Some((2024, 2, 29)));
         assert_eq!(parse_date("2025-13-01"), None);
         assert_eq!(parse_date("not-a-date"), None);
+    }
+
+    #[test]
+    fn unresolved_authority_conflict_requires_abstention() {
+        let benchmark = fixture();
+        let mut submission = reference_submission(&benchmark);
+        let result = submission
+            .results
+            .iter_mut()
+            .find(|result| result.case_id == "SYN-CONFLICT-001")
+            .expect("conflict case exists");
+        result.action = Action::Answer;
+        result.claim_codes = vec!["PREFER_RULE_A_WITHOUT_CONFLICT_RULE".to_string()];
+        result.citations = vec![Citation {
+            authority_id: "coastland-conflict-rule-a".to_string(),
+            role: "binding_in_scope".to_string(),
+            span_id: "provision-a".to_string(),
+        }];
+        let report = evaluate(&benchmark, &submission).expect("evaluation runs");
+        assert!(!report.fixture_gate_passed);
+        assert!(report
+            .critical_failure_case_ids
+            .contains(&"SYN-CONFLICT-001".to_string()));
     }
 
     #[test]
