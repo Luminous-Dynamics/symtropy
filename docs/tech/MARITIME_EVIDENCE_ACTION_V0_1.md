@@ -16,13 +16,13 @@ The synthetic actual-arrival value belongs to a separate EvaluationTruth type. P
 - LatestIngestedPointEstimate: naive baseline that selects the latest-ingested planned-arrival observation without validating source age or conflicting claims.
 - FreshestValidatedSourcePointEstimate: selects the valid observation with the newest source-event timestamp, but does not resolve disagreement. This is a comparison baseline, not a safe authority.
 - FailClosedUncontestedOnly: abstains if any relevant observation is rejected, the target arrival conflicts, or the target value is not uniquely resolved.
-- BoundedWorstCaseContingency: treats valid planned-arrival values for the same port-call and same Pilot Boarding Place as a finite uncertainty set. It chooses the candidate window that minimizes worst predicted service cost across that set. It abstains if no admissible candidate remains or the location-context set itself conflicts.
+- BoundedWorstCaseContingency: treats valid planned-arrival values for the same port-call and same Pilot Boarding Place as a finite uncertainty set. It chooses the candidate window that minimizes worst predicted service cost across that set, but abstains if that worst-case cost is no better than the declared abstention cost. It also abstains if no admissible candidate remains or the location-context set itself conflicts.
 
 The score is intentionally small and explicit: waiting costs round up to minutes; lateness costs minutes; lateness beyond the window's grace adds a declared missed-window penalty. Abstention has an explicit declared cost and is not assumed free.
 
 ## Frozen synthetic controls
 
-Seven Rust unit tests currently cover:
+Eight Rust unit tests currently cover:
 1. Conflicting 12:00 and 13:00 planned arrivals with hidden actual arrival at 12:50.
 2. A clean two-source agreement where fail-closed must still choose a window.
 3. Stale-only data where freshness-based and robust policies abstain but the naive baseline still acts.
@@ -30,6 +30,7 @@ Seven Rust unit tests currently cover:
 5. Different Pilot Boarding Place contexts where timing robustness alone is insufficient.
 6. Input-row permutation invariance across all four policies.
 7. Separate oracle/regret evaluation, no-window abstention, and a nonzero abstention cost.
+8. Robust abstention when every candidate's worst-case cost is at least the declared abstention cost.
 
 The main illustrative scenario uses 12:00 and 13:00 candidate windows, 15-minute grace, a 100-minute missed-window penalty and a 130-minute abstention cost. In its synthetic conflict case, the latest-ingested point estimate picks the 12:00 window and incurs 150 cost-minutes against hidden truth at 12:50, while the robust envelope policy chooses 13:00 and incurs 10. This is an authored scenario calculation, not a measured port outcome or a Rust test result until CI confirms it.
 
