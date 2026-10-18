@@ -50,7 +50,7 @@ pub use audio::{AudioEmitter, RoboticAudioPlugin};
 pub use biometrics::{PlayerBiometrics, biometric_to_phi_system};
 #[cfg(feature = "human-animation")]
 pub use human_animation::{
-    AdaptedHumanMotionIntent, HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin,
+    HumanAnimationClips, HumanAnimationController, HumanAnimationPlugin,
     HumanLocomotionConfig, HumanLocomotionIntent, HumanMotion, SemanticIntentAdapterError,
     adapt_semantic_intent_to_locomotion_at,
 };
