@@ -1814,6 +1814,21 @@ mod tests {
     }
 
     #[test]
+    fn exact_decimal_arithmetic_preserves_source_precision() {
+        assert_eq!(subtract_decimal_strings("0.3", "0.2").as_deref(), Some("0.1"));
+        assert_eq!(
+            subtract_decimal_strings("0.2714", "0.1917").as_deref(),
+            Some("0.0797")
+        );
+        assert_eq!(
+            subtract_decimal_strings("354.08", "355.24").as_deref(),
+            Some("-1.16")
+        );
+        assert!(parse_decimal_parts("1e3").is_none());
+        assert!(parse_decimal_parts("NaN").is_none());
+    }
+
+    #[test]
     fn antikythera_full_vs_trimmed_posterior_deltas_match_source_table() {
         let raw = include_str!("../fixtures/antikythera-research-seed.json");
         let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
