@@ -51,9 +51,9 @@ Every fixture must declare units, time basis, scenario lineage, evidence class, 
 
 ## Executable v0.1 slice now present
 
-The branch also contains a first offline Rust reference package at [`crates/tools/industrial-coupling-benchmark/`](../tree/research/industrial-coupling-benchmark-v0-1-2026-10-18/crates/tools/industrial-coupling-benchmark). It implements exact enumeration over a bounded integer-kWh heat-transfer domain, a constant-temperature grade screen, heat-loss and cost ledgers, two-party surplus allocation, and a separate finite-domain optimality scan.
+The branch also contains a first offline Rust reference package at [`crates/tools/industrial-coupling-benchmark/`](../tree/research/industrial-coupling-benchmark-v0-1-2026-10-18/crates/tools/industrial-coupling-benchmark). It implements exact enumeration over a bounded integer-kWh heat-transfer domain, a constant-temperature grade screen, heat-loss and cost ledgers, two-party surplus allocation subject to each facility's minimum participation benefit, and a separate finite-domain optimality scan.
 
-It includes one synthetic positive case plus negative controls for incompatible temperature grade, uneconomic transfer, zero capacity, tampered accounting, invalid allocation shares, and an excessive search bound. Its ten unit tests are authored, but were **not executed in this editing environment** because a Rust toolchain was unavailable. GitHub Actions were queued at the latest exact-head inspection; no test pass is claimed.
+It includes one synthetic positive case plus negative controls for incompatible temperature grade, uneconomic transfer, zero capacity, tampered accounting, invalid allocation shares, reservation floors that veto otherwise-positive cooperation, and an excessive search bound. Its ten unit tests are authored, but were **not executed in this editing environment** because a Rust toolchain was unavailable. GitHub Actions were queued at the latest exact-head inspection; no test pass is claimed.
 
 This is intentionally narrower than INDUSTRIAL-COUPLING-001: it does not model time-dependent storage, temperature profiles, a heat-exchanger network, production schedules, real tariffs, measured facilities, or actual savings. It validates one integration seam and makes the next expansion testable without pretending the whole platform has been implemented.
 
