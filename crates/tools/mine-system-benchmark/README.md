@@ -7,8 +7,8 @@ A small, standard-library-only Rust reference evaluator for the first accounting
 This is deliberately a small semantic kernel, not an end-to-end physical mine simulator. It currently checks:
 - finite, non-negative ledger values and declared residual tolerances;
 - material-balance closure for one aggregate output stream per shift;
-- accepted product tonnage does not exceed accounted mass output;
-- reported energy intensity matches shift energy output divided by accepted saleable tonnes;
+- explicit saleable-product mass reconciles with accepted saleable tonnes and does not exceed aggregate accounted mass output;
+- reported energy intensity matches the declared end-use energy ledger divided by accepted saleable tonnes;
 - explicit qualification of evidence and hard constraints, with unknown/stale/conflicting/out-of-domain evidence failing closed;
 - product specification disposition and hard-constraint violations;
 - metric-only Pareto comparisons require the same comparison-basis identity and must be applied only after both candidates are eligible.
@@ -28,6 +28,6 @@ The package has no third-party dependencies and declares its own nested Cargo wo
 
 ## Claim ceiling
 
-The built-in example is synthetic. An `ELIGIBLE_SYNTHETIC` result means only that the provided synthetic values satisfy this prototype's declared gates. It is not a mine safety decision, engineering authorization, physical model validation, reserve/resource statement, economic feasibility result, or SMR approval.
+The built-in example is synthetic and separately records the product mass (42,000 kg) that corresponds to its 42.0 saleable tonnes per shift. An `ELIGIBLE_SYNTHETIC` result means only that the provided synthetic values satisfy this prototype's declared gates. It is not a mine safety decision, engineering authorization, physical model validation, reserve/resource statement, economic feasibility result, or SMR approval.
 
 See [MINE_SYSTEM_BENCHMARK_V0_1.md](../../../docs/research/MINE_SYSTEM_BENCHMARK_V0_1.md) and [issue #1933](https://github.com/Luminous-Dynamics/symtropy/issues/1933) for the broader benchmark contract.
