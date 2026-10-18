@@ -87,20 +87,30 @@ impl fmt::Display for BenchmarkError {
         match self {
             Self::InvalidScenario(message) => write!(f, "invalid scenario: {message}"),
             Self::ArithmeticOverflow => write!(f, "integer ledger arithmetic overflow"),
-            Self::SearchSpaceTooLarge { bound_kwh, maximum_kwh } => write!(
+            Self::SearchSpaceTooLarge {
+                bound_kwh,
+                maximum_kwh,
+            } => write!(
                 f,
                 "exact search bound {bound_kwh} kWh exceeds configured maximum {maximum_kwh} kWh"
             ),
             Self::InfeasiblePlan(message) => write!(f, "infeasible plan: {message}"),
             Self::AccountingMismatch(message) => write!(f, "accounting mismatch: {message}"),
-            Self::NonOptimalPlan => write!(f, "plan is feasible but not optimal for this exact case"),
+            Self::NonOptimalPlan => {
+                write!(f, "plan is feasible but not optimal for this exact case")
+            }
             Self::EmptyScenarioSet => write!(f, "robust evaluation needs at least one scenario"),
             Self::DuplicateScenarioId(id) => write!(f, "duplicate scenario identifier: {id}"),
             Self::TooManyScenarios { count, maximum } => write!(
-                f, "scenario count {count} exceeds configured maximum {maximum}"
+                f,
+                "scenario count {count} exceeds configured maximum {maximum}"
             ),
-            Self::RobustSearchTooLarge { evaluations, maximum } => write!(
-                f, "robust search requires {evaluations} scenario evaluations, above configured maximum {maximum}"
+            Self::RobustSearchTooLarge {
+                evaluations,
+                maximum,
+            } => write!(
+                f,
+                "robust search requires {evaluations} scenario evaluations, above configured maximum {maximum}"
             ),
         }
     }
@@ -111,7 +121,9 @@ impl std::error::Error for BenchmarkError {}
 impl Scenario {
     pub fn validate(&self) -> Result<(), BenchmarkError> {
         if self.scenario_id.trim().is_empty() {
-            return Err(BenchmarkError::InvalidScenario("scenario_id must not be empty"));
+            return Err(BenchmarkError::InvalidScenario(
+                "scenario_id must not be empty",
+            ));
         }
         if !(1..=10_000).contains(&self.transfer_efficiency_bps) {
             return Err(BenchmarkError::InvalidScenario(
@@ -193,7 +205,8 @@ fn assess_candidate(s: &Scenario, input_kwh: u64) -> Result<Option<Plan>, Benchm
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
     let surplus = (avoided as i128) - (real_cost as i128);
     let distributable = surplus.max(0) as u64;
-    let reserved = s.source_minimum_participation_surplus_milli
+    let reserved = s
+        .source_minimum_participation_surplus_milli
         .checked_add(s.sink_minimum_participation_surplus_milli)
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
     if surplus < reserved as i128 {
@@ -201,8 +214,8 @@ fn assess_candidate(s: &Scenario, input_kwh: u64) -> Result<Option<Plan>, Benchm
     }
     let remaining = distributable - reserved;
     let source_share = s.source_minimum_participation_surplus_milli
-        + (((remaining as u128) * (s.source_surplus_share_bps as u128)
-            / (BASIS_POINTS as u128)) as u64);
+        + (((remaining as u128) * (s.source_surplus_share_bps as u128) / (BASIS_POINTS as u128))
+            as u64);
     let sink_share = s.sink_minimum_participation_surplus_milli
         + (remaining - (source_share - s.source_minimum_participation_surplus_milli));
 
@@ -266,7 +279,10 @@ pub fn verify_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
     }
 
     let avoided = checked_cost(p.heat_delivered_kwh, s.avoided_utility_cost_milli_per_kwh)?;
-    let source_cost = checked_cost(p.transfer_input_kwh, s.source_opportunity_cost_milli_per_kwh)?;
+    let source_cost = checked_cost(
+        p.transfer_input_kwh,
+        s.source_opportunity_cost_milli_per_kwh,
+    )?;
     let variable_cost = checked_cost(
         p.transfer_input_kwh,
         s.transfer_variable_cost_milli_per_input_kwh,
@@ -287,7 +303,8 @@ pub fn verify_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
             "exchange destroys value versus the zero-exchange baseline",
         ));
     }
-    let reserved = s.source_minimum_participation_surplus_milli
+    let reserved = s
+        .source_minimum_participation_surplus_milli
         .checked_add(s.sink_minimum_participation_surplus_milli)
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
     if (net as u64) < reserved {
@@ -308,8 +325,8 @@ pub fn verify_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError> {
     let distributable = net as u64;
     let remaining = distributable - reserved;
     let expected_source_share = s.source_minimum_participation_surplus_milli
-        + (((remaining as u128) * (s.source_surplus_share_bps as u128)
-            / (BASIS_POINTS as u128)) as u64);
+        + (((remaining as u128) * (s.source_surplus_share_bps as u128) / (BASIS_POINTS as u128))
+            as u64);
     let expected_sink_share = s.sink_minimum_participation_surplus_milli
         + (remaining - (expected_source_share - s.source_minimum_participation_surplus_milli));
     if p.source_surplus_allocation_milli != expected_source_share
@@ -340,7 +357,8 @@ pub fn verify_optimal_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError>
             maximum_kwh: MAX_EXHAUSTIVE_TRANSFER_KWH,
         });
     }
-    let reservation_total = s.source_minimum_participation_surplus_milli
+    let reservation_total = s
+        .source_minimum_participation_surplus_milli
         .checked_add(s.sink_minimum_participation_surplus_milli)
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
     for q_in in 1..=upper {
@@ -373,7 +391,6 @@ pub fn verify_optimal_plan(s: &Scenario, p: &Plan) -> Result<(), BenchmarkError>
     }
     Ok(())
 }
-
 
 /// Choose one common exchange quantity that is feasible and meets both
 /// participants' reservation floors in every supplied scenario. The primary
@@ -458,10 +475,7 @@ pub fn evaluate_robust(scenarios: &[Scenario]) -> Result<RobustPlan, BenchmarkEr
 /// Audit the robust plan, recompute every scenario's ledgers, and independently
 /// rescan the bounded common-decision domain. A single bad scenario invalidates
 /// a nonzero exchange plan.
-pub fn verify_robust_plan(
-    scenarios: &[Scenario],
-    plan: &RobustPlan,
-) -> Result<(), BenchmarkError> {
+pub fn verify_robust_plan(scenarios: &[Scenario], plan: &RobustPlan) -> Result<(), BenchmarkError> {
     validate_scenario_set(scenarios)?;
     if plan.scenario_plans.len() != scenarios.len() {
         return Err(BenchmarkError::AccountingMismatch(
@@ -502,8 +516,7 @@ pub fn verify_robust_plan(
             .checked_add(outcome.network_surplus_milli)
             .ok_or(BenchmarkError::ArithmeticOverflow)?;
     }
-    if observed_worst != plan.worst_case_surplus_milli
-        || observed_total != plan.total_surplus_milli
+    if observed_worst != plan.worst_case_surplus_milli || observed_total != plan.total_surplus_milli
     {
         return Err(BenchmarkError::AccountingMismatch(
             "robust aggregate metrics do not match the per-scenario outcomes",
@@ -535,14 +548,9 @@ pub fn verify_robust_plan(
                 feasible_everywhere = false;
                 break;
             }
-            let avoided = checked_cost(
-                delivered,
-                scenario.avoided_utility_cost_milli_per_kwh,
-            )?;
-            let source_cost = checked_cost(
-                input_kwh,
-                scenario.source_opportunity_cost_milli_per_kwh,
-            )?;
+            let avoided = checked_cost(delivered, scenario.avoided_utility_cost_milli_per_kwh)?;
+            let source_cost =
+                checked_cost(input_kwh, scenario.source_opportunity_cost_milli_per_kwh)?;
             let variable_cost = checked_cost(
                 input_kwh,
                 scenario.transfer_variable_cost_milli_per_input_kwh,
@@ -715,7 +723,10 @@ mod tests {
     fn invalid_share_is_rejected() {
         let mut s = scenario();
         s.source_surplus_share_bps = 10_001;
-        assert!(matches!(evaluate(&s), Err(BenchmarkError::InvalidScenario(_))));
+        assert!(matches!(
+            evaluate(&s),
+            Err(BenchmarkError::InvalidScenario(_))
+        ));
     }
 
     #[test]
@@ -777,7 +788,6 @@ mod tests {
             Err(BenchmarkError::NonOptimalPlan)
         ));
     }
-
 
     fn conservative_scenario() -> Scenario {
         let mut s = scenario();
