@@ -630,7 +630,7 @@ mod tests {
         let header_len = b"P6\n12 4\n1023\n".len();
         let raster = &generated.bytes[header_len..];
         assert_eq!(&raster[0..6], &[0, 0, 0, 0, 0, 0]);
-        assert_eq!(&raster[6..12], &[0, 1, 0, 1, 0, 1]);
+        assert_eq!(&raster[12..18], &[0, 1, 0, 1, 0, 1]);
         assert_eq!(generated.report["raster"]["bytes_per_sample"], 2);
         assert_eq!(
             generated.report["raster"]["sixteen_bit_sample_byte_order"],
@@ -705,22 +705,13 @@ mod tests {
     }
 
     #[test]
-    fn recipe_cannot_claim_photometry_for_code_steps() {
+    fn recipe_cannot_self_promote_stimulus_status() {
         let mut manifest = parse_manifest();
-        manifest["stimuli"][1]["claim_limit"] =
-            Value::String("This proves physical luminance in nits".to_owned());
-        // The schema permits explanatory text, but semantic output status remains synthetic.
-        let generated = generate_stimulus(
-            &encoded(&manifest),
-            SCHEMA_TEXT,
-            "ODRH-STIM-NEARBLACK-001",
-        )
-        .expect("recipe may document an overclaim; report stays explicitly synthetic");
-        assert_eq!(generated.report["evidence_class"], "SYNTHETIC_STIMULUS");
-        assert_eq!(
-            generated.report["physical_output_validation"],
-            "NOT_PERFORMED"
-        );
+        manifest["stimuli"][1]["status"] = Value::String("QUALIFIED".to_owned());
+        assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
+            .expect_err("stimulus status cannot be promoted by editing the recipe")
+            .0
+            .contains("UNQUALIFIED"));
     }
 
     #[test]
@@ -743,7 +734,8 @@ mod tests {
     #[test]
     fn duplicate_stimulus_identity_is_rejected() {
         let mut manifest = parse_manifest();
-        manifest["stimuli"][1]["id"] = manifest["stimuli"][0]["id"].clone();
+        let first_id = manifest["stimuli"][0]["id"].clone();
+        manifest["stimuli"][1]["id"] = first_id;
         assert!(validate_manifest_str(&encoded(&manifest), SCHEMA_TEXT)
             .expect_err("duplicate stimulus IDs must fail")
             .0
