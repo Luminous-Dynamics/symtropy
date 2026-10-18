@@ -25,6 +25,8 @@ From the repository root:
 
 The CLI prints machine-readable JSON. Validation errors exit with code 2; a failed evaluation gate exits with code 1; a fixture-gate pass exits with code 0. The command is deterministic and performs no network access.
 
+The CI workflow also evaluates `fixtures/reference-submission-v0.1.json`. This is a synthetic oracle/control submission intended to exercise the evaluator itself; it is **not a measurement of any Symthaea or other production model**.
+
 ## Submission contract
 
 A submission has schema version 0.1.0, a non-empty system identifier, and exactly one result per benchmark case. Each result includes:
