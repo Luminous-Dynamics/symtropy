@@ -277,6 +277,7 @@ Use the public OpenPinch multi-period crude-preheat dataset as an independent re
 
 - Reference repository: [OpenPinch](https://github.com/waikato-ahuora-smart-energy-systems/OpenPinch), MIT license.
 - Reference release commit: `0f38afbf8565c295a619bb0baed1d77ee5884565` (v0.7.0).
+- Published source distribution: `openpinch-0.7.0.tar.gz`, SHA-256 `7645ef3a8d1c579eb619d3308ce7f33dfd5598d4a6cff2c55519bf4395a1d50a`; PyPI release provenance records the same publishing commit.
 - Fixture: `OpenPinch/tutorials/sample_cases/crude_preheat_train_multiperiod.json`; pinned Git blob object `d9f9b471b2a879a794bf057e6b4b677e2b9ca236` (this is a Git blob ID, not a SHA-256 digest).
 - Period IDs and weights: `turndown`, `base`, `peak`; weights `0.2, 0.6, 0.2`. Inputs include period-varying stream target temperatures and heat flows; temperatures are in °C and duties in kW. Convert explicitly before giving values to the Rust Kelvin/J model.
 - Reference execution sequence at that commit: `PinchProblem("crude_preheat_train_multiperiod.json")`, `validate()`, `target.all_periods.all_heat_integration()`, then `summary_frame(include_periods=True, include_weighted_average=True)`. Pin exact OpenPinch package/environment/solver versions with the generated baseline receipt.
