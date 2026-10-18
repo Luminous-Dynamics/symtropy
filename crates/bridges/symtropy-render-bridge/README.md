@@ -54,3 +54,32 @@ Early — the core projection API is stable; the 4D shader pipeline lands in Pha
 
 - [The Symtropy Book](https://github.com/luminous-dynamics/symtropy/tree/main/book) — overview and tutorials.
 - [ten Bosch, M. (2020). *N-Dimensional Rigid Body Dynamics*, SIGGRAPH](https://marctenbosch.com/) — theoretical foundation for 4D rotation.
+
+
+## Read-only contact observability (optional)
+
+Enable the `debug-gizmos` feature to add `PhysicsObservabilityPlugin`. It draws small contact-point crosses and contact-normal lines from the most recent physics manifolds. The plugin is optional, has an explicit per-frame contact limit, sanitizes non-finite data, and reads `PhysicsWorldRes2D` / `PhysicsWorldRes3D` through immutable Bevy resources.
+
+```toml
+symtropy-render-bridge = { version = "0.1", features = ["debug-gizmos"] }
+```
+
+```rust
+use bevy::prelude::*;
+use symtropy_render_bridge::{PhysicsObservabilityPlugin, PhysicsOverlayConfig};
+
+App::new()
+    .add_plugins(DefaultPlugins)
+    .add_plugins(PhysicsObservabilityPlugin)
+    .insert_resource(PhysicsOverlayConfig {
+        enabled: true,
+        show_points: true,
+        show_normals: true,
+        max_contact_points: 512,
+        ..default()
+    });
+```
+
+The host application must insert one or both of `PhysicsWorldRes2D` and `PhysicsWorldRes3D`, and enable Bevy gizmo rendering. A missing dimension's world resource is fine. Set `enabled = false` to disable the overlay. The extraction function `extract_contact_glyphs` can also be used without rendering to test recorded contacts or compare diagnostics.
+
+This view is deliberately read-only: it does not apply forces, mutate bodies or constraints, step the simulation, write to the physics ledger, or change authority. The unit tests validate finite projection, 2D/3D mapping, deterministic extraction, invalid-input rejection, and bounded output. These tests establish the software contract for the overlay; they do not validate the underlying physics solver.
