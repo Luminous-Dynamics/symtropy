@@ -169,5 +169,9 @@ fn toggle_review_pause(
         for mut player in &mut players {
             player.set_playing(!player.is_playing());
         }
+    } else if keys.just_pressed(KeyCode::KeyR) {
+        for mut player in &mut players {
+            player.restart();
+        }
     }
 }
