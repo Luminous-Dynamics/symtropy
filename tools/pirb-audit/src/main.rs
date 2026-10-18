@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use pirb_reference_audit::audit_corpus_json;
+use pirb_reference_audit::{audit_corpus_json, validate_corpus_schema};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::env;
@@ -67,6 +67,26 @@ fn main() -> ExitCode {
         }
     };
 
+    let schema_path = format!(
+        "{}/../../docs/schemas/peace-infrastructure-resilience-v0.1.schema.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let schema_input = match fs::read_to_string(&schema_path) {
+        Ok(schema) => schema,
+        Err(error) => {
+            eprintln!("could not read schema {}: {}", schema_path, error);
+            return ExitCode::FAILURE;
+        }
+    };
+    if let Err(errors) = validate_corpus_schema(&schema_input, &input) {
+        eprintln!("PIRB schema validation failed; refusing semantic audit:");
+        for error in errors {
+            eprintln!("- {error}");
+        }
+        return ExitCode::FAILURE;
+    }
+
+    let schema_sha256 = format!("{:x}", Sha256::digest(schema_input.as_bytes()));
     let corpus_sha256 = format!("{:x}", Sha256::digest(input.as_bytes()));
     let audit = audit_corpus_json(&input);
     let parsed = serde_json::from_str::<Value>(&input).ok();
@@ -104,6 +124,8 @@ fn main() -> ExitCode {
         "execution_claim": "synthetic_conformance_only",
         "corpus_path": path,
         "corpus_sha256": corpus_sha256,
+        "schema_path": schema_path,
+        "schema_sha256": schema_sha256,
         "source_commit": source_commit,
         "scenario_count": scenario_count,
         "scenarios": scenario_receipts,
