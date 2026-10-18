@@ -300,7 +300,29 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
         return Err(format!("{}: insufficient frame samples", path.display()));
     }
     if report.object_count == 0 || report.width_px == 0 || report.height_px == 0 {
-        return Err(format!("{}: object count and dimensions must be nonzero", path.display()));
+        return Err(format!(
+            "{}: object count and dimensions must be nonzero",
+            path.display()
+        ));
+    }
+    if report.object_count > 10_000 {
+        return Err(format!(
+            "{}: object_count exceeds the supported 10000-object fixture limit",
+            path.display()
+        ));
+    }
+    for (name, value) in [
+        ("camera_id", report.camera_id.as_str()),
+        ("renderer", report.renderer.as_str()),
+        ("profile", report.profile.as_str()),
+        ("sampling_method", report.sampling_method.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            return Err(format!(
+                "{}: required context field {name} is empty",
+                path.display()
+            ));
+        }
     }
     for (name, value) in [
         ("source_commit", report.source_commit.as_deref()),
@@ -322,8 +344,40 @@ fn validate_report(report: &FrameTimeReport, path: &Path) -> Result<(), String> 
             return Err(format!("{}: source_commit must be 40 or 64 hexadecimal characters", path.display()));
         }
     }
-    if report.p95_frame_interval_ms.is_none() || report.p99_frame_interval_ms.is_none() {
-        return Err(format!("{}: required frame-time percentiles are missing", path.display()));
+    let mean = required_number(
+        report.mean_frame_interval_ms,
+        &report.object_count,
+        "mean_frame_interval_ms",
+    )?;
+    let p50 = required_number(
+        report.p50_frame_interval_ms,
+        &report.object_count,
+        "p50_frame_interval_ms",
+    )?;
+    let p95 = required_number(
+        report.p95_frame_interval_ms,
+        &report.object_count,
+        "p95_frame_interval_ms",
+    )?;
+    let p99 = required_number(
+        report.p99_frame_interval_ms,
+        &report.object_count,
+        "p99_frame_interval_ms",
+    )?;
+    if mean < 0.0 || p50 > p95 || p95 > p99 {
+        return Err(format!(
+            "{}: frame-time mean/percentiles are inconsistent",
+            path.display()
+        ));
+    }
+    for (name, value) in [
+        ("over_16_67_ms_fraction", report.over_16_67_ms_fraction),
+        ("over_33_3_ms_fraction", report.over_33_3_ms_fraction),
+    ] {
+        let value = required_number(value, &report.object_count, name)?;
+        if value > 1.0 {
+            return Err(format!("{}: {name} must be within 0..=1", path.display()));
+        }
     }
     if !report.sample_window_start_secs.is_finite()
         || !report.sample_window_end_secs.is_finite()
