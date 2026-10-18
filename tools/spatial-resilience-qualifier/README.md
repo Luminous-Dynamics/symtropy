@@ -52,9 +52,10 @@ The adaptive-policy corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_A
 - identical duplicate-event delivery versus conflicting duplicate identity;
 - ambiguous same-tick event ordering;
 - a recovery window that extends past the horizon;
-- zero-length stability window and event beyond the declared horizon.
+- zero-length stability window and event beyond the declared horizon;
+- adaptive policy: stop with unresolved blocker, stale source revision, incomplete action partition, cycle, unreachable outcome, missing branch, depth-budget overrun and state-dependent terminal decision.
 
-51 unit and negative-control tests are authored. The prior 44-test version passed at exact commit `87398c530fa67e9ada48d768a60145c4e3d3cc05`; the seven adaptive-policy tests are new and must pass on the updated exact head before the expanded suite is considered qualified. The editing environment has no Cargo/rustc/rustfmt, so CI results must be interpreted at the exact commit: queued is not pass.
+57 unit and negative-control tests are authored. The prior 44-test version passed at exact commit `87398c530fa67e9ada48d768a60145c4e3d3cc05`; the seven adaptive-policy tests are new and must pass on the updated exact head before the expanded suite is considered qualified. The editing environment has no Cargo/rustc/rustfmt, so CI results must be interpreted at the exact commit: queued is not pass.
 
 ## Versioning and trust boundaries
 
