@@ -111,7 +111,10 @@ fn validation_errors(instance: &Value) -> Vec<String> {
 #[test]
 fn example_governance_history_is_semantically_consistent() {
     let errors = semantic_errors(&example_contract());
-    assert!(errors.is_empty(), "governance history rejected: {errors:#?}");
+    assert!(
+        errors.is_empty(),
+        "governance history rejected: {errors:#?}"
+    );
 }
 
 #[test]
@@ -120,7 +123,11 @@ fn duplicate_governance_event_ids_are_rejected() {
     let duplicate_id = value["governance_events"][2]["event_id"].clone();
     value["governance_events"][3]["event_id"] = duplicate_id;
     let errors = semantic_errors(&value);
-    assert!(errors.iter().any(|error| error.contains("event_id is duplicated")));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("event_id is duplicated"))
+    );
 }
 
 #[test]
@@ -128,7 +135,11 @@ fn governance_event_history_must_be_chronological() {
     let mut value = example_contract();
     value["governance_events"][3]["event_at"] = json!("2026-09-20T00:00:00Z");
     let errors = semantic_errors(&value);
-    assert!(errors.iter().any(|error| error.contains("moves backward")));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("moves backward"))
+    );
 }
 
 #[test]
@@ -136,7 +147,11 @@ fn active_metric_requires_current_version_activation_event() {
     let mut value = example_contract();
     value["governance_events"].as_array_mut().unwrap().pop();
     let errors = semantic_errors(&value);
-    assert!(errors.iter().any(|error| error.contains("approval event before its activation event")));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("approval event before its activation event"))
+    );
 }
 
 #[test]
@@ -144,23 +159,34 @@ fn future_version_events_are_rejected() {
     let mut value = example_contract();
     value["governance_events"][3]["metric_version"] = json!(2);
     let errors = semantic_errors(&value);
-    assert!(errors.iter().any(|error| error.contains("cannot exceed the current metric version")));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("cannot exceed the current metric version"))
+    );
 }
 
 #[test]
 fn challenge_after_activation_prevents_active_status_from_remaining_silent() {
     let mut value = example_contract();
-    value["governance_events"].as_array_mut().unwrap().push(json!({
-        "event_id": "event-challenged-v1",
-        "event_type": "challenged",
-        "metric_version": 1,
-        "event_at": "2026-10-02T00:00:00Z",
-        "actor_authority_reference": "synthetic:community-reviewer",
-        "evidence_references": ["synthetic:challenge-record:v1"],
-        "decision": "review_required"
-    }));
+    value["governance_events"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({
+            "event_id": "event-challenged-v1",
+            "event_type": "challenged",
+            "metric_version": 1,
+            "event_at": "2026-10-02T00:00:00Z",
+            "actor_authority_reference": "synthetic:community-reviewer",
+            "evidence_references": ["synthetic:challenge-record:v1"],
+            "decision": "review_required"
+        }));
     let errors = semantic_errors(&value);
-    assert!(errors.iter().any(|error| error.contains("must end its current-version governance history")));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("must end its current-version governance history"))
+    );
 }
 
 #[test]
