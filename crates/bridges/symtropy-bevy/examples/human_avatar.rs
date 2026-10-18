@@ -97,7 +97,15 @@ fn load_human_when_ready(
     mut graphs: ResMut<Assets<AnimationGraph>>,
     mut attempted: Local<bool>,
 ) {
-    if *attempted || !asset_server.is_loaded_with_dependencies(&asset.0) {
+    if *attempted {
+        return;
+    }
+    if let Some(LoadState::Failed(err)) = asset_server.get_load_state(&asset.0) {
+        error!("Failed to load human avatar asset: {err}");
+        *attempted = true;
+        return;
+    }
+    if !asset_server.is_loaded_with_dependencies(&asset.0) {
         return;
     }
     *attempted = true;
