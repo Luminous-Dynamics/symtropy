@@ -1,6 +1,6 @@
 # symtropy-bevy-scene
 
-Opinionated scene/camera/light scaffolding for Bevy 0.18 apps. Eliminates the
+Opinionated scene/camera/light scaffolding for Bevy 0.19 apps. Eliminates the
 camera-light-clear-color boilerplate every Symtropy demo otherwise repeats.
 
 ```toml
