@@ -1700,6 +1700,66 @@ mod tests {
     }
 
     #[test]
+    fn antikythera_full_vs_trimmed_posterior_deltas_match_source_table() {
+        let raw = include_str!("../fixtures/antikythera-research-seed.json");
+        let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
+        let report = validate(&data);
+        assert!(report.is_valid(), "{:#?}", report.issues);
+        assert_eq!(data.estimate_deltas.len(), 3);
+
+        let n354 = data.estimate_deltas.iter()
+            .find(|delta| delta.id == "antikythera:delta-posterior-n354-trimmed")
+            .unwrap();
+        let result = analyze_estimate_delta(&data, n354).unwrap();
+        assert!((result.delta_value - 0.0797).abs() < 1e-9);
+        assert_eq!(result.direction, DeltaDirection::Increase);
+
+        let n355 = data.estimate_deltas.iter()
+            .find(|delta| delta.id == "antikythera:delta-posterior-n355-trimmed")
+            .unwrap();
+        let result = analyze_estimate_delta(&data, n355).unwrap();
+        assert!((result.delta_value - (-0.0572)).abs() < 1e-9);
+        assert_eq!(result.direction, DeltaDirection::Decrease);
+
+        let n356 = data.estimate_deltas.iter()
+            .find(|delta| delta.id == "antikythera:delta-posterior-n356-trimmed")
+            .unwrap();
+        let result = analyze_estimate_delta(&data, n356).unwrap();
+        assert!((result.delta_value - (-0.1306)).abs() < 1e-9);
+        assert_eq!(result.direction, DeltaDirection::Decrease);
+        assert!(result.dependence_note.contains("not independent"));
+    }
+
+    #[test]
+    fn delta_rejects_mismatched_units_or_uncertainty_intervals() {
+        let mut data = fixture();
+        data.estimates = vec![
+            estimate_for_fixture("fixture:estimate-a", "fixture:claim-a"),
+            estimate_for_fixture("fixture:estimate-b", "fixture:claim-b"),
+        ];
+        data.estimates[0].interval = None;
+        data.estimates[0].kind = EstimateKind::ReportedPoint;
+        data.estimates[1].interval = None;
+        data.estimates[1].kind = EstimateKind::ReportedPoint;
+        data.estimates[1].unit = "seconds".to_owned();
+        data.estimate_deltas.push(EstimateDelta {
+            id: "fixture:delta".to_owned(),
+            baseline_estimate_id: "fixture:estimate-a".to_owned(),
+            perturbed_estimate_id: "fixture:estimate-b".to_owned(),
+            variant_description: "Synthetic mismatched units".to_owned(),
+            dependence_note: "Synthetic".to_owned(),
+            interpretation_limit: "Not an inference".to_owned(),
+        });
+        let report = validate(&data);
+        assert!(report.issues.iter().any(|item| {
+            item.record_id == "fixture:delta"
+                && item.code == ValidationCode::InvalidEstimateDelta
+                && item.message.contains("same quantity and unit")
+        }));
+        assert!(analyze_estimate_delta(&data, &data.estimate_deltas[0]).is_err());
+    }
+
+    #[test]
     fn antikythera_point_interval_diagnostics_are_descriptive_and_reproducible() {
         let raw = include_str!("../fixtures/antikythera-research-seed.json");
         let data: Dataset = serde_json::from_str(raw).expect("parse Antikythera research seed");
