@@ -192,6 +192,17 @@ struct AuditReceipt {
     errors: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TemporalSummary {
+    evidence_record_count: usize,
+    decision_count: usize,
+    visible_history_group_count: usize,
+    nonanticipativity_violation_count: usize,
+    future_evidence_violation_count: usize,
+    missing_evidence_reference_count: usize,
+    actuation_authorized_count: usize,
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     digest
@@ -509,8 +520,125 @@ fn evaluate_case(corpus: &Corpus, case: &PathwayCase) -> CaseResult {
     }
 }
 
+fn evaluate_temporal(corpus: &Corpus, errors: &mut Vec<String>) -> TemporalSummary {
+    let mut evidence_by_id: BTreeMap<String, &TemporalEvidenceRecord> = BTreeMap::new();
+    for record in &corpus.temporal_evidence_records {
+        if !is_nonempty(&record.evidence_id) {
+            errors.push("TEMPORAL_EVIDENCE_ID_EMPTY".to_string());
+        } else if evidence_by_id.insert(record.evidence_id.clone(), record).is_some() {
+            errors.push(format!("TEMPORAL_EVIDENCE_ID_DUPLICATE:{}", record.evidence_id));
+        }
+        if record.available_day < record.observed_day {
+            errors.push(format!("TEMPORAL_EVIDENCE_AVAILABLE_BEFORE_OBSERVED:{}", record.evidence_id));
+        }
+        if record.source_authenticity_status != "UNVERIFIED_SYNTHETIC" {
+            errors.push(format!("TEMPORAL_EVIDENCE_AUTHENTICITY_CEILING_VIOLATION:{}", record.evidence_id));
+        }
+    }
+
+    let mut decision_ids = BTreeSet::new();
+    let mut visible_history_actions: BTreeMap<(String, String, String), BTreeSet<String>> =
+        BTreeMap::new();
+    let mut future_violation_decisions = BTreeSet::new();
+    let mut missing_reference_decisions = BTreeSet::new();
+    let mut actuation_authorized_count = 0usize;
+
+    for decision in &corpus.temporal_policy_decisions {
+        if !is_nonempty(&decision.decision_id)
+            || !is_nonempty(&decision.policy_id)
+            || !is_nonempty(&decision.scenario_id)
+            || !is_nonempty(&decision.stage_id)
+            || !is_nonempty(&decision.visible_history_id)
+            || !is_nonempty(&decision.action_id)
+        {
+            errors.push(format!("TEMPORAL_DECISION_IDENTITY_EMPTY:{}", decision.decision_id));
+        }
+        if !decision_ids.insert(&decision.decision_id) {
+            errors.push(format!("TEMPORAL_DECISION_ID_DUPLICATE:{}", decision.decision_id));
+        }
+        if decision.evidence_refs.is_empty() {
+            missing_reference_decisions.insert(decision.decision_id.clone());
+            errors.push(format!("TEMPORAL_EVIDENCE_REFS_EMPTY:{}", decision.decision_id));
+        }
+        if decision.expected_actuation {
+            actuation_authorized_count += 1;
+            errors.push(format!("TEMPORAL_ACTUATION_AUTHORIZED:{}", decision.decision_id));
+        }
+
+        let key = (
+            decision.policy_id.clone(),
+            decision.stage_id.clone(),
+            decision.visible_history_id.clone(),
+        );
+        visible_history_actions
+            .entry(key)
+            .or_default()
+            .insert(decision.action_id.clone());
+
+        for reference in &decision.evidence_refs {
+            match evidence_by_id.get(reference) {
+                None => {
+                    missing_reference_decisions.insert(decision.decision_id.clone());
+                    errors.push(format!(
+                        "TEMPORAL_EVIDENCE_REFERENCE_MISSING:{}:{}",
+                        decision.decision_id, reference
+                    ));
+                }
+                Some(record)
+                    if record.observed_day > decision.decision_day
+                        || record.available_day > decision.decision_day =>
+                {
+                    future_violation_decisions.insert(decision.decision_id.clone());
+                    errors.push(format!(
+                        "FUTURE_INFORMATION_LEAKAGE:{}:{}",
+                        decision.decision_id, reference
+                    ));
+                }
+                Some(_) => {}
+            }
+        }
+    }
+
+    let mut nonanticipativity_violation_count = 0usize;
+    for ((policy_id, stage_id, history_id), actions) in &visible_history_actions {
+        if actions.len() > 1 {
+            nonanticipativity_violation_count += 1;
+            errors.push(format!(
+                "NONANTICIPATIVITY_VIOLATION:{policy_id}:{stage_id}:{history_id}"
+            ));
+        }
+    }
+
+    TemporalSummary {
+        evidence_record_count: corpus.temporal_evidence_records.len(),
+        decision_count: corpus.temporal_policy_decisions.len(),
+        visible_history_group_count: visible_history_actions.len(),
+        nonanticipativity_violation_count,
+        future_evidence_violation_count: future_violation_decisions.len(),
+        missing_evidence_reference_count: missing_reference_decisions.len(),
+        actuation_authorized_count,
+    }
+}
+
 fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>) -> AuditReceipt {
     validate_corpus(corpus, source_commit.as_deref(), &mut errors);
+    let temporal = evaluate_temporal(corpus, &mut errors);
+    let expected_temporal_counts_match =
+        temporal.evidence_record_count == corpus.expected_temporal_counts.evidence_record_count
+            && temporal.decision_count == corpus.expected_temporal_counts.decision_count
+            && temporal.visible_history_group_count
+                == corpus.expected_temporal_counts.visible_history_group_count
+            && temporal.nonanticipativity_violation_count
+                == corpus.expected_temporal_counts.nonanticipativity_violation_count
+            && temporal.future_evidence_violation_count
+                == corpus.expected_temporal_counts.future_evidence_violation_count
+            && temporal.missing_evidence_reference_count
+                == corpus.expected_temporal_counts.missing_evidence_reference_count
+            && temporal.actuation_authorized_count
+                == corpus.expected_temporal_counts.actuation_authorized_count;
+    if !expected_temporal_counts_match {
+        errors.push("TEMPORAL_EXPECTED_COUNTS_MISMATCH".to_string());
+    }
 
     let mut case_results: Vec<CaseResult> = corpus
         .cases
@@ -571,6 +699,11 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         && aggregate_counts_match
         && all_synthetic
         && all_actuation_disabled
+        && expected_temporal_counts_match
+        && temporal.nonanticipativity_violation_count == 0
+        && temporal.future_evidence_violation_count == 0
+        && temporal.missing_evidence_reference_count == 0
+        && temporal.actuation_authorized_count == 0
         && case_results.len() == corpus.expected_case_count;
 
     AuditReceipt {
@@ -580,6 +713,14 @@ fn audit(corpus: &Corpus, source_commit: Option<String>, mut errors: Vec<String>
         canonical_corpus_sha256: canonical_corpus_sha256(corpus),
         source_commit,
         case_count: case_results.len(),
+        temporal_evidence_record_count: temporal.evidence_record_count,
+        temporal_decision_count: temporal.decision_count,
+        visible_history_group_count: temporal.visible_history_group_count,
+        nonanticipativity_violation_count: temporal.nonanticipativity_violation_count,
+        future_evidence_violation_count: temporal.future_evidence_violation_count,
+        missing_evidence_reference_count: temporal.missing_evidence_reference_count,
+        temporal_actuation_authorized_count: temporal.actuation_authorized_count,
+        expected_temporal_counts_match,
         scope_counts,
         evidence_counts,
         hard_gate_counts,
