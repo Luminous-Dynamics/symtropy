@@ -56,6 +56,14 @@ jobs:
             and .algorithm_id == "multi-axis-recovery-pathway-audit-v0.1"
             and .source_commit == $head
             and .case_count == 864
+            and .temporal_evidence_record_count == 3
+            and .temporal_decision_count == 4
+            and .visible_history_group_count == 3
+            and .nonanticipativity_violation_count == 0
+            and .future_evidence_violation_count == 0
+            and .missing_evidence_reference_count == 0
+            and .temporal_actuation_authorized_count == 0
+            and .expected_temporal_counts_match == true
             and .expected_outcomes_match == true
             and .aggregate_counts_match == true
             and .all_synthetic == true
