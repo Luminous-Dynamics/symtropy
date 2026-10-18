@@ -24,7 +24,7 @@ The published [OpenBIM.rs IDS status page](https://github.com/openbimrs/ids#stat
 The direct IFC/IDS crate versions are exact in `Cargo.toml`:
 
 - `ifc-step = 0.5.0`
-- `ifc-model = 0.3.0`
+- `ifc-model = 0.3.1`
 - `openbim-core = 0.1.0`
 - `openbim-ids = 0.2.2`
 
