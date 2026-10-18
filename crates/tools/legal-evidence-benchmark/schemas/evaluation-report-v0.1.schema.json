@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/legal-evidence-benchmark-evaluation-receipt-v0.1.schema.json",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/evaluation-report-v0.1.schema.json",
   "title": "Legal Evidence Benchmark Evaluation Receipt v0.1",
   "type": "object",
   "additionalProperties": false,
