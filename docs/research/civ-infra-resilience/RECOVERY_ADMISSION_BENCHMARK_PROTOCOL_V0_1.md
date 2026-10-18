@@ -71,7 +71,7 @@ Store run receipts as downloadable CI artifacts and later sign them independentl
 
 ## 7. Existing evaluation practice to adapt
 
-Build repeatable elemental checks and composed mission scenarios rather than one aggregate score. NIST's response-robot evaluation uses task-oriented measurements for capabilities such as mobility, sensing, dexterity, endurance, communication, autonomy, logistics and safety; adapt the method of publishing tasks/measurements, not its physical-robot standards wholesale. W3C PROV offers a vocabulary for entities, activities and responsible agents. Neither reference validates this proposed benchmark; domain expert review remains required.
+Build repeatable elemental checks and composed mission scenarios rather than one aggregate score. NIST's [Performance of Emergency Response Robots](https://www.nist.gov/programs-projects/performance-emergency-response-robots) program uses task-oriented measurements for capabilities such as mobility, sensing, dexterity, endurance, communication, autonomy, logistics and safety; adapt the method of publishing tasks/measurements, not its physical-robot standards wholesale. The [W3C PROV Model Primer](https://www.w3.org/TR/prov-primer/) offers a vocabulary for entities, activities and responsible agents. Neither reference validates this proposed benchmark; domain expert review remains required.
 
 ## 8. Promotion gates
 
