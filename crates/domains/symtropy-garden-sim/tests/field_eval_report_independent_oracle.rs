@@ -38,14 +38,8 @@ fn frozen_field_report_fixture_matches_independent_expected_accounting() {
         in_window.outcome_evidence_kind,
         OutcomeEvidenceKindV1::FarmerDecisionEvent
     );
-    assert_eq!(
-        in_window.useful_window_evidence_ref,
-        "evt-study-001-window"
-    );
-    assert_eq!(
-        in_window.outcome_evidence_ref,
-        "evt-study-001-outcome"
-    );
+    assert_eq!(in_window.useful_window_evidence_ref, "evt-study-001-window");
+    assert_eq!(in_window.outcome_evidence_ref, "evt-study-001-outcome");
 
     let counts = report
         .outcome_counts
