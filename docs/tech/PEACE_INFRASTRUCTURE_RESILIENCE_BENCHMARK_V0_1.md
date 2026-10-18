@@ -58,6 +58,18 @@ These are interface intentions, not claims that integration is implemented.
 
 Adapters must declare source, time, spatial and population scope, units, freshness, access policy, uncertainty, transformation history, and responsible authority. No project should silently inherit another project's claims or permissions.
 
+## 3.1 Existing integration surfaces (reviewed 2026-10-18)
+
+Prefer composition with existing work; do not create parallel evidence, civic-case, or service-capacity authorities.
+
+- [Sol-Atlas PR #158: evidence and model-run contracts for civic intelligence](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/158) proposes versioned observations, run manifests, and evidence/reproducibility/calibration/causal-validity gates.
+- [Sol-Atlas PR #116: evidence-aware spatial-economic resilience analysis](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/116) proposes service floors, bounded capacity, network flow, explicit scenarios, and distributional analysis.
+- [Sol-Atlas PR #109: civic solutions portfolio and case ledger](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/109) proposes evidence-bearing multi-domain cases and independent resolution evidence.
+- [Sol-Atlas PR #103: Johannesburg essential-service reliability pilot](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/103) scopes a service-reliability pilot with explicit claim boundaries.
+- [Mycelix issue #5199: evidence and consent for community service agreements](https://github.com/Luminous-Dynamics/mycelix/issues/5199) tracks the downstream civic/mediation contract.
+
+These items were open draft work or an open issue at review time; they are not represented here as merged, integrated, deployed, or validated. This specification supplies a cross-project benchmark and claim boundary rather than replacing their implementation ownership.
+
 ## 4. Benchmark tracks
 
 ### PIRB-0 — Evidence and provenance
@@ -121,7 +133,7 @@ Use separate labels: NOT_RUN, PASS, FAIL, UNKNOWN, BLOCKED, and NOT_APPLICABLE. 
 
 ## 6. First reference corpus
 
-The initial synthetic corpus is intentionally small and adversarial. It covers:
+The shared fixture contract is specified in `../schemas/peace-infrastructure-resilience-v0.1.schema.json`. The initial synthetic corpus is intentionally small and adversarial. It covers:
 1. a resource allocation that maximizes total output while breaching a declared minimum-service floor;
 2. a proposed agreement missing a required party's acceptance;
 3. a safety-relevant capacity datum that is stale or missing;
