@@ -275,6 +275,35 @@ pub struct ModelComparison {
     /// Declares whether the comparison avoids a single aggregate winner or uses a defined rule.
     pub decision_rule: String,
     pub caveats: Vec<String>,
+    /// Evaluations are explicit; an axis without an assessment is not implied to have passed.
+    #[serde(default)]
+    pub assessments: Vec<ModelAssessment>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ModelAssessment {
+    pub model_id: String,
+    pub axis: String,
+    pub status: AssessmentStatus,
+    pub summary: String,
+    #[serde(default)]
+    pub estimate_ids: Vec<String>,
+    #[serde(default)]
+    pub evidence: Vec<EvidenceLink>,
+    #[serde(default)]
+    pub interpretation_note: Option<String>,
+    /// Required for independently reproduced results; identify the versioned run/test manifest.
+    #[serde(default)]
+    pub validation_artifact: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AssessmentStatus {
+    SourceReported,
+    IndependentlyReproduced,
+    Hypothesis,
+    NotEvaluated,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -303,6 +332,7 @@ pub enum ValidationCode {
     MissingModelReference,
     MissingEstimateReference,
     InvalidModelComparison,
+    InvalidModelAssessment,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -858,6 +888,84 @@ pub fn validate(dataset: &Dataset) -> ValidationReport {
                 "comparison caveats must not contain empty strings",
             );
         }
+
+        let mut assessment_keys = BTreeSet::new();
+        for assessment in &comparison.assessments {
+            if !comparison.model_ids.contains(&assessment.model_id)
+                || !model_ids.contains(&assessment.model_id)
+            {
+                issue(
+                    &mut issues,
+                    &comparison.id,
+                    ValidationCode::InvalidModelAssessment,
+                    format!("assessment refers to model '{}' outside this comparison", assessment.model_id),
+                );
+            }
+            if !comparison.evaluation_axes.contains(&assessment.axis) {
+                issue(
+                    &mut issues,
+                    &comparison.id,
+                    ValidationCode::InvalidModelAssessment,
+                    format!("assessment uses undeclared evaluation axis '{}'", assessment.axis),
+                );
+            }
+            if !assessment_keys.insert((assessment.model_id.as_str(), assessment.axis.as_str())) {
+                issue(
+                    &mut issues,
+                    &comparison.id,
+                    ValidationCode::InvalidModelAssessment,
+                    format!("duplicate assessment for model '{}' on axis '{}'", assessment.model_id, assessment.axis),
+                );
+            }
+            require_nonempty(&assessment.summary, &comparison.id, "assessment summary", &mut issues);
+            for estimate_id in &assessment.estimate_ids {
+                if !estimate_ids.contains(estimate_id) {
+                    issue(
+                        &mut issues,
+                        &comparison.id,
+                        ValidationCode::MissingEstimateReference,
+                        format!("assessment refers to unknown estimate ID '{estimate_id}'"),
+                    );
+                }
+            }
+
+            match assessment.status {
+                AssessmentStatus::SourceReported => {
+                    if !assessment.evidence.iter().any(|link| link.relation == EvidenceRelation::Supports) {
+                        issue(
+                            &mut issues,
+                            &comparison.id,
+                            ValidationCode::InvalidModelAssessment,
+                            "source_reported assessments require supporting evidence",
+                        );
+                    }
+                }
+                AssessmentStatus::IndependentlyReproduced => {
+                    if !assessment.evidence.iter().any(|link| link.relation == EvidenceRelation::Supports)
+                        || assessment.validation_artifact.as_deref().unwrap_or("").trim().is_empty()
+                    {
+                        issue(
+                            &mut issues,
+                            &comparison.id,
+                            ValidationCode::InvalidModelAssessment,
+                            "independently_reproduced assessments require supporting evidence and a versioned validation artifact",
+                        );
+                    }
+                }
+                AssessmentStatus::Hypothesis => {
+                    if assessment.interpretation_note.as_deref().unwrap_or("").trim().is_empty() {
+                        issue(
+                            &mut issues,
+                            &comparison.id,
+                            ValidationCode::InvalidModelAssessment,
+                            "hypothesis assessments require an explicit interpretation note",
+                        );
+                    }
+                }
+                AssessmentStatus::NotEvaluated => {}
+            }
+            validate_evidence_links(&comparison.id, &assessment.evidence, &source_ids, &mut issues);
+        }
     }
 
     // Report order is stable regardless of source/vector insertion order.
@@ -1222,6 +1330,7 @@ mod tests {
             evaluation_axes: vec!["residual".to_owned(), "assumption sensitivity".to_owned()],
             decision_rule: "Report axes separately; no aggregate winner".to_owned(),
             caveats: vec!["Synthetic fixture only".to_owned()],
+            assessments: vec![],
         }];
         let report = validate(&data);
         assert!(report.is_valid(), "{:#?}", report.issues);
@@ -1291,6 +1400,7 @@ mod tests {
             evaluation_axes: vec!["fit".to_owned()],
             decision_rule: "No aggregate score".to_owned(),
             caveats: vec![],
+            assessments: vec![],
         });
         let report = validate(&data);
         assert!(report.issues.iter().any(|item| {
