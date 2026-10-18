@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-garden-sim/fixtures/advice_service_link_cases.v1.schema.json",
+  "title": "Advice-to-service link synthetic contract cases",
+  "description": "Structural schema for frozen test scenarios. Structural validity does not authenticate referenced advice, consent, source data, or service outcomes.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "purpose",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "const": "synthetic_contract_cases"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "mutation",
+          "expected_disposition",
+          "expected_blockers"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^FASL-[0-9]{3}$"
+          },
+          "mutation": {
+            "enum": [
+              "no_link",
+              "valid_link",
+              "scope_mismatch",
+              "period_mismatch",
+              "task_mismatch",
+              "request_reference_mismatch",
+              "missing_authorization_ref",
+              "duplicate_outcome_ref",
+              "empty_outcome_ref",
+              "stale_link",
+              "disputed_link",
+              "unavailable_link",
+              "revoked_sharing",
+              "unsupported_schema",
+              "empty_advice_episode_ref",
+              "empty_source_ref",
+              "empty_recorded_time",
+              "empty_decision_ref",
+              "digest_shaped_source",
+              "pending_link"
+            ]
+          },
+          "expected_disposition": {
+            "enum": [
+              "unlinked_service_request",
+              "linked_reference_validated",
+              "requires_resolution",
+              "sharing_revoked",
+              "blocked"
+            ]
+          },
+          "expected_blockers": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "UnsupportedSchema",
+                "EmptyLinkId",
+                "EmptyServiceRequestReference",
+                "EmptyAdviceEpisodeReference",
+                "EmptyDecisionReference",
+                "EmptyScopeReference",
+                "EmptyPeriodReference",
+                "EmptyTaskCode",
+                "EmptySourceReference",
+                "InvalidRecordedTimestamp",
+                "RequestReferenceMismatch",
+                "ScopeMismatch",
+                "PeriodMismatch",
+                "TaskMismatch",
+                "MissingAuthorizationReference",
+                "EmptyAuthorizationReference",
+                "EmptyOutcomeReference",
+                "DuplicateOutcomeReference"
+              ]
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
