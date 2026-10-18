@@ -665,7 +665,7 @@ mod tests {
         // manifest. Editing both a fixture and its expected_decision must not
         // make the suite agree with itself silently.
         const EXPECTED: &[(&str, Decision)] = &[
-            ("01-complete-evidence-balanced", Decision::Eligible),
+            ("01-complete-evidence-and-external-bindings", Decision::Eligible),
             ("02-verified-payload-digest-mismatch", Decision::Blocked),
             ("03-required-material-lot-missing", Decision::Unresolved),
             ("04-mandatory-quality-gate-fails", Decision::Blocked),
