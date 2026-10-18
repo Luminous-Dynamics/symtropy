@@ -1716,6 +1716,99 @@ mod tests {
         }
     }
 
+    fn thermal_grid_2x2x2() -> RegularScalarGrid3D {
+        let mut metadata = metadata(
+            PhysicalQuantity::Temperature,
+            FieldUnit::Celsius,
+            DisplayRange { min: 0.0, max: 7.0 },
+        );
+        metadata.id = "thermal-grid-01".to_owned();
+        RegularScalarGrid3D {
+            metadata,
+            enabled: true,
+            dimensions: [2, 2, 2],
+            origin: [0.0, 0.0, 0.0],
+            spacing: [1.0, 1.0, 1.0],
+            values: (0..8).map(f64::from).collect(),
+            uncertainty: Some(vec![0.1; 8]),
+        }
+    }
+
+    #[test]
+    fn grid_dimensions_and_values_are_bounded_for_dense_thermal_frames() {
+        assert_eq!(grid_sample_count([640, 512, 1]).expect("image grid"), 327_680);
+        assert_eq!(
+            grid_sample_count([128, 128, 128]).expect("volume grid"),
+            2_097_152
+        );
+        assert!(grid_sample_count([usize::MAX, 8, 8]).is_err());
+
+        let grid = thermal_grid_2x2x2();
+        assert_eq!(validate_regular_scalar_grid(&grid).expect("valid grid"), 8);
+        let mut malformed = grid.clone();
+        malformed.values.pop();
+        assert!(validate_regular_scalar_grid(&malformed).is_err());
+
+        let mut malformed = grid;
+        malformed.uncertainty.as_mut().expect("uncertainty").pop();
+        assert!(validate_regular_scalar_grid(&malformed).is_err());
+    }
+
+    #[test]
+    fn regular_grid_slice_builds_indexed_surface_with_fixed_colors_and_normals() {
+        let grid = thermal_grid_2x2x2();
+        let request = GridSliceRequest {
+            grid_id: grid.metadata.id.clone(),
+            axis: GridAxis::Z,
+            index: 1,
+            stride: 1,
+            enabled: true,
+        };
+        let geometry = extract_grid_slice(&grid, &request, 16).expect("valid Z slice");
+        assert_eq!(geometry.width, 2);
+        assert_eq!(geometry.height, 2);
+        assert_eq!(geometry.positions.len(), 4);
+        assert_eq!(geometry.indices, vec![0, 1, 2, 1, 3, 2]);
+        assert_eq!(geometry.positions[0], [0.0, 0.0, 1.0]);
+        assert_eq!(geometry.normals[0], [0.0, 0.0, 1.0]);
+        assert_eq!(geometry.colors[3], [1.0, 0.96, 0.88, 1.0]);
+    }
+
+    #[test]
+    fn regular_grid_slice_rejects_bad_axis_and_honors_stride_edge() {
+        let grid = thermal_grid_2x2x2();
+        let invalid = GridSliceRequest {
+            grid_id: grid.metadata.id.clone(),
+            axis: GridAxis::Z,
+            index: 2,
+            stride: 1,
+            enabled: true,
+        };
+        assert!(extract_grid_slice(&grid, &invalid, 16).is_err());
+
+        let mut wrong_id = invalid.clone();
+        wrong_id.index = 0;
+        wrong_id.grid_id = "not-this-grid".to_owned();
+        assert!(extract_grid_slice(&grid, &wrong_id, 16).is_err());
+
+        let mut line_grid = grid.clone();
+        line_grid.dimensions = [5, 5, 1];
+        line_grid.values = (0..25).map(f64::from).collect();
+        line_grid.uncertainty = None;
+        let request = GridSliceRequest {
+            grid_id: line_grid.metadata.id.clone(),
+            axis: GridAxis::Z,
+            index: 0,
+            stride: 2,
+            enabled: true,
+        };
+        let geometry = extract_grid_slice(&line_grid, &request, 9).expect("strided slice");
+        assert_eq!((geometry.width, geometry.height), (3, 3));
+        assert_eq!(geometry.positions[2], [4.0, 0.0, 0.0]);
+        assert_eq!(geometry.positions[8], [4.0, 4.0, 0.0]);
+        assert!(extract_grid_slice(&line_grid, &request, 8).is_err());
+    }
+
     #[test]
     fn temperature_layer_keeps_units_and_fixed_scale_explicit() {
         let layer = ScalarFieldLayer {
@@ -2154,6 +2247,34 @@ mod tests {
             .serialized_sha256()
             .expect("changed frame still validates");
         assert_ne!(first, changed_digest);
+    }
+
+    #[test]
+    fn field_frame_round_trip_preserves_dense_grid_and_maps_it_to_layers() {
+        let mut frame = test_frame();
+        frame.scalar_grids.push(thermal_grid_2x2x2());
+        let json = frame.to_json().expect("dense grid frame serializes");
+        let decoded = FieldFrame::from_json(&json).expect("dense grid frame validates");
+        assert_eq!(decoded.scalar_grids, frame.scalar_grids);
+        let layers = decoded.to_layer_set().expect("grid projects to layer set");
+        assert_eq!(layers.scalar_grids.len(), 1);
+        assert!(layers.grid_slices.is_empty());
+    }
+
+    #[test]
+    fn field_frame_rejects_non_finite_dense_grid_values_and_duplicate_grid_ids() {
+        let mut frame = test_frame();
+        frame.scalar_grids.push(thermal_grid_2x2x2());
+        frame.scalar_grids[0].values[7] = f64::NAN;
+        assert!(frame.validate().is_err());
+
+        let mut frame = test_frame();
+        let grid = thermal_grid_2x2x2();
+        frame.scalar_grids.push(grid.clone());
+        let mut duplicate = grid;
+        duplicate.metadata.id = frame.scalar_layers[0].metadata.id.clone();
+        frame.scalar_grids.push(duplicate);
+        assert!(frame.validate().is_err());
     }
 
     #[test]
