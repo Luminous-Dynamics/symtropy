@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use habitat_calendar_oracle::evaluate_fixture_bytes;
-use habitat_calendar_oracle::provenance::evaluate_fixture_bytes as evaluate_provenance_fixture_bytes;
+use habitat_calendar_oracle::provenance::evaluate_fixture_bytes
+    as evaluate_provenance_fixture_bytes;
 use std::env;
 use std::fs;
 use std::process;
