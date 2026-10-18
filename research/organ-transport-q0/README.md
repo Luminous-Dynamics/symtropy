@@ -17,3 +17,10 @@ cargo test --manifest-path research/organ-transport-q0/Cargo.toml
 ```
 
 The crate owns a tiny workspace so it is not implicitly added to the production Symtropy workspace. Review licensing and domain ownership before product integration.
+
+## Shared evidence artifacts
+
+- [`benchmark-receipt.schema.json`](benchmark-receipt.schema.json) defines versioned receipts with context of use, evidence tier, exact code/config/input identity, assumptions, metrics, uncertainty, validation split, and an explicit claim ceiling. `PASS`, `FAIL`, `BLOCKED`, and `NOT_RUN` are distinct.
+- [`tube-reference-cases.v0.json`](tube-reference-cases.v0.json) pins baseline, pressure-reversal, zero-pressure, and negative-control examples. The file labels itself as a fixture specification; its existence does not claim any test ran.
+
+These are intended to make benchmark results comparable without pretending unlike contexts (for example, flow-only and barrier-function assays) are interchangeable. Future receipt producers must bind the digest to exact input bytes and must never promote a synthetic result into physical or biological validation.
