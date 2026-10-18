@@ -105,7 +105,9 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 /// integrity relative to those declarations, not the authenticity of the declarations.
 pub fn verify_bundle(root: &Path, manifest_bytes: &[u8]) -> Result<EvidenceBundleReport, String> {
     if manifest_bytes.len() > MAX_MANIFEST_BYTES {
-        return Err(format!("manifest byte count exceeds limit {MAX_MANIFEST_BYTES}"));
+        return Err(format!(
+            "manifest byte count exceeds limit {MAX_MANIFEST_BYTES}"
+        ));
     }
     let input_manifest_sha256 = sha256_hex(manifest_bytes);
     let manifest: EvidenceBundleManifest = serde_json::from_slice(manifest_bytes)
@@ -125,12 +127,19 @@ pub fn verify_bundle(root: &Path, manifest_bytes: &[u8]) -> Result<EvidenceBundl
         .artifacts
         .iter()
         .map(|artifact| {
-            verify_artifact(&canonical_root, artifact, &mut total_bytes_reserved_for_reads)
+            verify_artifact(
+                &canonical_root,
+                artifact,
+                &mut total_bytes_reserved_for_reads,
+            )
         })
         .collect::<Vec<_>>();
     artifacts.sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
 
-    let verified_artifact_count = artifacts.iter().filter(|item| item.issues.is_empty()).count();
+    let verified_artifact_count = artifacts
+        .iter()
+        .filter(|item| item.issues.is_empty())
+        .count();
     let failed_artifact_count = artifacts.len() - verified_artifact_count;
     let qualified = failed_artifact_count == 0 && !artifacts.is_empty();
 
@@ -268,13 +277,16 @@ fn verify_artifact(
             return result;
         }
     };
-    *total_bytes_reserved_for_reads = match (*total_bytes_reserved_for_reads).checked_add(read_limit) {
-        Some(total) => total,
-        None => {
-            result.issues.push(ArtifactIssue::AggregateByteLimitExceeded);
-            return result;
-        }
-    };
+    *total_bytes_reserved_for_reads =
+        match (*total_bytes_reserved_for_reads).checked_add(read_limit) {
+            Some(total) => total,
+            None => {
+                result
+                    .issues
+                    .push(ArtifactIssue::AggregateByteLimitExceeded);
+                return result;
+            }
+        };
 
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
     let mut bounded_reader = file.take(read_limit);
@@ -309,7 +321,10 @@ fn verify_artifact(
 
 fn validate_manifest(manifest: &EvidenceBundleManifest) -> Result<(), String> {
     if manifest.schema_version != SCHEMA_VERSION {
-        return Err(format!("unsupported schema_version {:?}", manifest.schema_version));
+        return Err(format!(
+            "unsupported schema_version {:?}",
+            manifest.schema_version
+        ));
     }
     validate_name(&manifest.bundle_id, "bundle_id")?;
     if manifest.claim_ceiling != CLAIM_CEILING {
@@ -331,10 +346,16 @@ fn validate_manifest(manifest: &EvidenceBundleManifest) -> Result<(), String> {
             return Err(format!("duplicate artifact_id {:?}", artifact.artifact_id));
         }
         validate_relative_path(&artifact.relative_path).map_err(|error| {
-            format!("invalid relative_path for {:?}: {error}", artifact.artifact_id)
+            format!(
+                "invalid relative_path for {:?}: {error}",
+                artifact.artifact_id
+            )
         })?;
         if !paths.insert(artifact.relative_path.clone()) {
-            return Err(format!("duplicate relative_path {:?}", artifact.relative_path));
+            return Err(format!(
+                "duplicate relative_path {:?}",
+                artifact.relative_path
+            ));
         }
         validate_digest(&artifact.expected_sha256, "expected_sha256")?;
         if artifact.expected_byte_len > MAX_ARTIFACT_BYTES {
@@ -363,12 +384,19 @@ fn validate_relative_path(value: &str) -> Result<PathBuf, String> {
         return Err("only normalized relative slash-separated paths are allowed".to_owned());
     }
     let parts = value.split('/').collect::<Vec<_>>();
-    if parts.iter().any(|part| part.is_empty() || *part == "." || *part == "..") {
-        return Err("empty, current-directory, or parent-directory components are forbidden".to_owned());
+    if parts
+        .iter()
+        .any(|part| part.is_empty() || *part == "." || *part == "..")
+    {
+        return Err(
+            "empty, current-directory, or parent-directory components are forbidden".to_owned(),
+        );
     }
     let path = Path::new(value);
     if path.is_absolute()
-        || path.components().any(|component| !matches!(component, Component::Normal(_)))
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
     {
         return Err("path must contain only normal relative components".to_owned());
     }
@@ -428,10 +456,7 @@ mod tests {
 
     #[test]
     fn aggregate_read_budget_includes_the_size_change_probe() {
-        assert_eq!(
-            bounded_read_length(10, 0, 20, 30),
-            Ok(11)
-        );
+        assert_eq!(bounded_read_length(10, 0, 20, 30), Ok(11));
         assert_eq!(
             bounded_read_length(10, 20, 20, 30),
             Err(ArtifactIssue::AggregateByteLimitExceeded)
@@ -455,7 +480,10 @@ mod tests {
             manifest.artifacts.push(artifact);
         }
         let error = verify_mutated(&manifest).expect_err("declared aggregate must exceed the cap");
-        assert!(error.contains("declared artifact bytes exceed total limit"), "{error}");
+        assert!(
+            error.contains("declared artifact bytes exceed total limit"),
+            "{error}"
+        );
     }
 
     #[test]
@@ -466,7 +494,12 @@ mod tests {
         assert_eq!(report.verified_artifact_count, 3);
         assert_eq!(report.failed_artifact_count, 0);
         assert_eq!(report.input_manifest_sha256, sha256_hex(MANIFEST));
-        assert!(report.artifacts.iter().all(|artifact| artifact.issues.is_empty()));
+        assert!(
+            report
+                .artifacts
+                .iter()
+                .all(|artifact| artifact.issues.is_empty())
+        );
     }
 
     #[test]
@@ -477,10 +510,24 @@ mod tests {
         let report = verify_mutated(&manifest).expect("well-formed but false claims are reported");
         assert!(!report.qualified);
         assert_eq!(report.failed_artifact_count, 2);
-        assert!(report.artifacts.iter().find(|item| item.artifact_id == "case-input-001")
-            .expect("case artifact").issues.contains(&ArtifactIssue::DigestMismatch));
-        assert!(report.artifacts.iter().find(|item| item.artifact_id == "model-artifact-001")
-            .expect("model artifact").issues.contains(&ArtifactIssue::ByteLengthMismatch));
+        assert!(
+            report
+                .artifacts
+                .iter()
+                .find(|item| item.artifact_id == "case-input-001")
+                .expect("case artifact")
+                .issues
+                .contains(&ArtifactIssue::DigestMismatch)
+        );
+        assert!(
+            report
+                .artifacts
+                .iter()
+                .find(|item| item.artifact_id == "model-artifact-001")
+                .expect("model artifact")
+                .issues
+                .contains(&ArtifactIssue::ByteLengthMismatch)
+        );
     }
 
     #[test]
@@ -489,13 +536,26 @@ mod tests {
         manifest.artifacts[0].relative_path = "absent/not-present.json".to_owned();
         let report = verify_mutated(&manifest).expect("missing artifact is a reportable result");
         assert!(!report.qualified);
-        assert!(report.artifacts.iter().find(|item| item.artifact_id == "case-input-001")
-            .expect("case artifact").issues.contains(&ArtifactIssue::Missing));
+        assert!(
+            report
+                .artifacts
+                .iter()
+                .find(|item| item.artifact_id == "case-input-001")
+                .expect("case artifact")
+                .issues
+                .contains(&ArtifactIssue::Missing)
+        );
     }
 
     #[test]
     fn parent_directory_and_windows_style_paths_are_rejected() {
-        for path in ["../outside.json", "cases/../../outside.json", "C:/outside.json", "cases\\outside.json", "/etc/passwd"] {
+        for path in [
+            "../outside.json",
+            "cases/../../outside.json",
+            "C:/outside.json",
+            "cases\\outside.json",
+            "/etc/passwd",
+        ] {
             let mut manifest = parsed_manifest();
             manifest.artifacts[0].relative_path = path.to_owned();
             let error = verify_mutated(&manifest).expect_err("unsafe path must be rejected");
@@ -507,11 +567,19 @@ mod tests {
     fn duplicate_ids_or_paths_are_rejected_before_resolution() {
         let mut manifest = parsed_manifest();
         manifest.artifacts[1].artifact_id = manifest.artifacts[0].artifact_id.clone();
-        assert!(verify_mutated(&manifest).unwrap_err().contains("duplicate artifact_id"));
+        assert!(
+            verify_mutated(&manifest)
+                .unwrap_err()
+                .contains("duplicate artifact_id")
+        );
 
         let mut manifest = parsed_manifest();
         manifest.artifacts[1].relative_path = manifest.artifacts[0].relative_path.clone();
-        assert!(verify_mutated(&manifest).unwrap_err().contains("duplicate relative_path"));
+        assert!(
+            verify_mutated(&manifest)
+                .unwrap_err()
+                .contains("duplicate relative_path")
+        );
     }
 
     #[cfg(unix)]
@@ -532,7 +600,11 @@ mod tests {
         let bytes = serde_json::to_vec(&manifest).expect("manifest serializes");
         let report = verify_bundle(&root, &bytes).expect("symlink issue is returned in report");
         assert!(!report.qualified);
-        assert!(report.artifacts[0].issues.contains(&ArtifactIssue::SymlinkDisallowed));
+        assert!(
+            report.artifacts[0]
+                .issues
+                .contains(&ArtifactIssue::SymlinkDisallowed)
+        );
         fs::remove_dir_all(temp).expect("temporary tree removed");
     }
 
@@ -543,20 +615,41 @@ mod tests {
         manifest.artifacts.reverse();
         let bytes = serde_json::to_vec(&manifest).expect("permuted manifest serializes");
         let permuted = verify_bundle(Path::new(ROOT), &bytes).expect("permuted manifest");
-        assert_ne!(baseline.input_manifest_sha256, permuted.input_manifest_sha256);
-        assert_eq!(
-            baseline.artifacts.iter().map(|a| &a.artifact_id).collect::<Vec<_>>(),
-            permuted.artifacts.iter().map(|a| &a.artifact_id).collect::<Vec<_>>()
+        assert_ne!(
+            baseline.input_manifest_sha256,
+            permuted.input_manifest_sha256
         );
-        assert_eq!(baseline.verified_artifact_count, permuted.verified_artifact_count);
+        assert_eq!(
+            baseline
+                .artifacts
+                .iter()
+                .map(|a| &a.artifact_id)
+                .collect::<Vec<_>>(),
+            permuted
+                .artifacts
+                .iter()
+                .map(|a| &a.artifact_id)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            baseline.verified_artifact_count,
+            permuted.verified_artifact_count
+        );
     }
 
     #[test]
     fn claims_cannot_smuggle_unknown_probability_fields() {
-        let mut value: serde_json::Value = serde_json::from_slice(MANIFEST).expect("manifest parses");
-        value.as_object_mut().expect("object")
+        let mut value: serde_json::Value =
+            serde_json::from_slice(MANIFEST).expect("manifest parses");
+        value
+            .as_object_mut()
+            .expect("object")
             .insert("magic_probability".to_owned(), serde_json::json!(0.99));
         let bytes = serde_json::to_vec(&value).expect("mutated manifest serializes");
-        assert!(verify_bundle(Path::new(ROOT), &bytes).unwrap_err().contains("unknown field"));
+        assert!(
+            verify_bundle(Path::new(ROOT), &bytes)
+                .unwrap_err()
+                .contains("unknown field")
+        );
     }
 }
