@@ -1,0 +1,13 @@
+{
+  "eventClassifierCode": "PLN",
+  "operationsEventTypeCode": "ARRI",
+  "facilityTypeCode": "PBPL",
+  "portCallPhaseTypeCode": null,
+  "portCallServiceTypeCode": null,
+  "eventDateTime": "2026-10-18T12:10:00Z",
+  "eventLocation": {
+    "locationName": "SYNTHETIC PILOT BOARDING PLACE",
+    "UNLocationCode": "ZZSYN"
+  },
+  "vessel": {"vesselIMONumber": "9990001"}
+}
