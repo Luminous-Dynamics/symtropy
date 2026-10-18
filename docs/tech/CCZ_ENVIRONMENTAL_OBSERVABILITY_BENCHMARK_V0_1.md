@@ -28,7 +28,7 @@ These are falsification-design anchors, not universal thresholds or interchangea
 
 ## Frozen synthetic corpus
 
-The corpus in [CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json](CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json) contains 18 named, adversarial cases. All source/sample identities and evidence states are explicitly synthetic; no real mine site, species census, field measurement or authorization is encoded.
+The corpus in [CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json](CCZ_ENVIRONMENTAL_OBSERVABILITY_CORPUS_V0_1.json) contains 19 named, adversarial cases. All source/sample identities and evidence states are explicitly synthetic; no real mine site, species census, field measurement or authorization is encoded.
 
 It includes:
 - Valid direct-track impact and far-field impact evidence without scope expansion.
