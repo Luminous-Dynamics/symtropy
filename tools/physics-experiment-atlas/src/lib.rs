@@ -481,8 +481,17 @@ fn rutherford_scattering_angle(coulomb_parameter: f64, kinetic_energy: f64, impa
 
 /// Serialize suite results without a runtime dependency. Floating-point values
 /// use scientific notation and stable field order for byte-for-byte replay.
+fn check_is_passing(entry: &ExperimentCheck) -> bool {
+    entry.passed
+        && entry.value.is_finite()
+        && entry.reference.is_finite()
+        && entry.absolute_tolerance.is_finite()
+        && entry.absolute_tolerance >= 0.0
+        && (entry.value - entry.reference).abs() <= entry.absolute_tolerance
+}
+
 pub fn json_report(checks: &[ExperimentCheck]) -> String {
-    let passed = checks.iter().filter(|entry| entry.passed).count();
+    let passed = checks.iter().filter(|entry| check_is_passing(entry)).count();
     let all_passed = !checks.is_empty() && passed == checks.len();
     let mut output = String::from(
         "{\"suite_id\":\"physics-experiment-atlas-v0.1\",\"claim_ceiling\":\"analytic and synthetic model checks only; no historical raw-data reproduction or apparatus validation\",\"passed\":",
@@ -501,7 +510,7 @@ pub fn json_report(checks: &[ExperimentCheck]) -> String {
             finite_json_number(entry.value),
             finite_json_number(entry.reference),
             finite_json_number(entry.absolute_tolerance),
-            entry.passed,
+            check_is_passing(entry),
             json_escape(entry.evidence_class),
             json_escape(entry.details),
         ));
@@ -621,13 +630,21 @@ mod tests {
             value: f64::NAN,
             reference: 0.0,
             absolute_tolerance: 1.0,
-            passed: false,
+            passed: true,
             evidence_class: "negative_control",
             details: "A non-finite result must not corrupt JSON output.",
         };
         let output = json_report(&[invalid]);
         assert!(output.contains("\"passed\":false"));
         assert!(output.contains("\"value\":null"));
+    }
+
+    #[test]
+    fn empty_json_report_fails_closed() {
+        let output = json_report(&[]);
+        assert!(output.contains("\"passed\":false"));
+        assert!(output.contains("\"check_count\":0"));
+        assert!(output.contains("\"passed_count\":0"));
     }
 
     #[test]
