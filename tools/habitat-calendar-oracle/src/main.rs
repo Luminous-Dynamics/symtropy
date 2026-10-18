@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use habitat_calendar_oracle::evaluate_fixture_bytes;
+use habitat_calendar_oracle::external_audit::audit_embedded_external_corpus;
 use habitat_calendar_oracle::provenance::evaluate_fixture_bytes
     as evaluate_provenance_fixture_bytes;
 use std::env;
@@ -20,6 +21,17 @@ fn write_json<T: serde::Serialize>(value: &T, label: &str) {
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
+    if args.first().is_some_and(|arg| arg == "--external-audit") {
+        match audit_embedded_external_corpus() {
+            Ok(report) => write_json(&report, "external CA-RCPSP audit report"),
+            Err(error) => {
+                eprintln!("{error}");
+                process::exit(2);
+            }
+        }
+        return;
+    }
+
     let provenance_mode = args.first().is_some_and(|arg| arg == "--provenance");
     let path = if provenance_mode {
         args.get(1)
