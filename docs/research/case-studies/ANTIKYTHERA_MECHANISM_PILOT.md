@@ -43,7 +43,7 @@ The last two are sensitivity estimates from related measurements and a shared so
 
 The seed defines three separate reconstruction models and one model-comparison group. Its explicit decision rule is to report axes separately instead of synthesizing a winner. Initial axes include fit to measured hole spacing, sensitivity to fracture handling, calendar-interpretation consistency, mechanical feasibility, dependence on missing geometry, and evidence provenance.
 
-The seed now also records six source-reported discrete posterior probabilities from Table 2 of Woan and Bayley (2024):
+The seed now records all 26 source-reported discrete posterior probability values from Table 2 of Woan and Bayley (2024), covering N=349–361 under full and trimmed data:
 
 | Integer hole count | Full data | Trimmed data | Delta (trimmed − full) |
 |---:|---:|---:|---:|
@@ -61,7 +61,9 @@ The seed now also records six source-reported discrete posterior probabilities f
 | 360 | 0.0008 | 0.0001 | −0.0007 |
 | 361 | 0.0001 | 0.0000 | −0.0001 |
 
-The paper describes its trimmed set as excluding short segments S5/S6 and the first and last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76, and 81). The paired deltas subtract source values rounded to four decimal places; they are not newly computed posterior probabilities.
+The full-data column sums to 0.9998 at displayed precision, while the trimmed column sums to 1.0000. The 0.0002 full-column difference is consistent with rounding each displayed probability to four decimals; the source values are preserved without renormalization. The paired deltas subtract source values rounded to four decimal places; they are not newly computed posterior probabilities.
+
+The paper describes its trimmed set as excluding short segments S5/S6 and the first and last holes of S1/S2/S3/S7 (holes 2, 23, 24, 32, 33, 69, 76, and 81). These are sensitivity variants of related measurements, not independent replications.
 
 The seed additionally declares four point-vs-interval probes. The analysis calculates only the candidate value's location relative to the reported interval and the arithmetic distance to the nearest bound:
 - 365 is 8.37 holes above the all-measurement interval [353.88, 356.63].
