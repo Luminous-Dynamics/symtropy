@@ -723,7 +723,9 @@ fn ensure_outputs_are_distinct(
     let report_path = normalized_destination_path(report_output)?;
     let diff_path = diff_output.map(normalized_destination_path).transpose()?;
     if diff_path.as_ref().is_some_and(|path| path == &report_path) {
-        return Err("report JSON and difference heatmap must use different output paths".to_owned());
+        return Err(
+            "report JSON and difference heatmap must use different output paths".to_owned(),
+        );
     }
 
     for input in inputs {
@@ -796,10 +798,7 @@ fn write_diff_heatmap(
 /// Build an inspectable heatmap over the exact pixel-aligned comparison.
 /// This is a review aid only: its colors encode raw maximum RGBA code-value
 /// deltas, not perceptual salience or correctness.
-fn build_diff_heatmap(
-    baseline: &RgbaImage,
-    candidate: &RgbaImage,
-) -> Result<RgbaImage, String> {
+fn build_diff_heatmap(baseline: &RgbaImage, candidate: &RgbaImage) -> Result<RgbaImage, String> {
     if baseline.dimensions() != candidate.dimensions() {
         return Err("heatmap inputs must have identical dimensions".to_owned());
     }
