@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/ENERGYPLUS_RUN_RECEIPT_V0_1.schema.json",
+  "title": "EnergyPlus run receipt envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "receipt_schema_version",
+    "engine",
+    "input",
+    "execution",
+    "outputs",
+    "claimed_gate",
+    "claimed_blocker_codes"
+  ],
+  "properties": {
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^EPLUS-RUN-[0-9]{3,6}$"
+    },
+    "receipt_schema_version": {
+      "const": "0.1.0"
+    },
+    "engine": {
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "git_tag",
+        "source_commit_sha",
+        "package_sha256",
+        "platform"
+      ],
+      "properties": {
+        "name": {
+          "const": "EnergyPlus"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "git_tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "package_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "format",
+        "schema_revision",
+        "schema_sha256",
+        "model_id",
+        "model_sha256",
+        "authoritative_geometry_revision",
+        "weather_id",
+        "weather_sha256",
+        "schedule_revision",
+        "schedule_sha256",
+        "configuration_sha256",
+        "unit_system",
+        "timestep_minutes",
+        "run_start_date",
+        "run_end_date",
+        "warmup_max_days",
+        "calendar_basis"
+      ],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": [
+            "epJSON",
+            "IDF"
+          ]
+        },
+        "schema_revision": {
+          "type": "string",
+          "minLength": 5
+        },
+        "schema_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "authoritative_geometry_revision": {
+          "type": "string",
+          "minLength": 3
+        },
+        "weather_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "weather_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "schedule_revision": {
+          "type": "string",
+          "minLength": 3
+        },
+        "schedule_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "unit_system": {
+          "type": "string",
+          "enum": [
+            "SI",
+            "IP"
+          ]
+        },
+        "timestep_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "multipleOf": 1
+        },
+        "run_start_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "run_end_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "warmup_max_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365
+        },
+        "calendar_basis": {
+          "type": "string",
+          "enum": [
+            "energyplus_standard_time_no_implicit_utc_conversion"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "run_status",
+        "exit_code",
+        "converged",
+        "severe_error_count",
+        "fatal_error_count",
+        "partial_outputs",
+        "run_log_sha256"
+      ],
+      "properties": {
+        "run_status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "failed",
+            "partial",
+            "not_started"
+          ]
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "converged": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "severe_error_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "fatal_error_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "partial_outputs": {
+          "type": "boolean"
+        },
+        "run_log_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "units",
+          "report_frequency",
+          "artifact_path",
+          "artifact_sha256",
+          "sample_count"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "variable",
+              "meter"
+            ]
+          },
+          "units": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_frequency": {
+            "type": "string",
+            "enum": [
+              "timestep",
+              "hourly",
+              "daily",
+              "run_period"
+            ]
+          },
+          "artifact_path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+          },
+          "artifact_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "claimed_gate": {
+      "type": "string",
+      "enum": [
+        "eligible_for_reference_comparison",
+        "blocked",
+        "unknown"
+      ]
+    },
+    "claimed_blocker_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_:-]{1,100}$"
+      },
+      "minItems": 0,
+      "maxItems": 100
+    }
+  }
+}
