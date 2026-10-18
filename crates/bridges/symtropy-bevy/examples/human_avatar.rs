@@ -77,9 +77,11 @@ fn setup_scene(
     ));
 
     commands.spawn((
-        Text::new(
-            "HUMAN AVATAR SMOKE TEST\n             1: Idle   2: Walk   3: Run   4: Talk/Gesture\n             Set SYMTROPY_HUMAN_AVATAR to an asset-relative GLB path",
-        ),
+        Text::new(concat!(
+            "HUMAN AVATAR SMOKE TEST\n",
+            "1: Idle   2: Walk   3: Run   4: Talk/Gesture\n",
+            "Set SYMTROPY_HUMAN_AVATAR to an asset-relative GLB path",
+        )),
         Node {
             position_type: PositionType::Absolute,
             top: px(12),
@@ -116,9 +118,10 @@ fn load_human_when_ready(
     };
 
     if gltf.named_animations.is_empty() {
-        error!(
-            "Human GLB contains no named animation clips. Use a rigged animated GLB for this smoke test."
-        );
+        error!(concat!(
+            "Human GLB contains no named animation clips. ",
+            "Use a rigged animated GLB for this smoke test."
+        ));
         return;
     }
 
