@@ -290,7 +290,11 @@ fn lower_bound_rejection(
     if case.tasks.iter().any(|task| {
         task.resource_demands
             .iter()
-            .any(|(resource, demand)| capacities.get(resource.as_str()).is_some_and(|cap| demand > cap))
+            .any(|(resource, demand)| {
+                capacities
+                    .get(resource.as_str())
+                    .is_some_and(|cap| demand > cap)
+            })
     }) {
         return Some("task_demand_exceeds_resource_capacity".to_owned());
     }
@@ -415,7 +419,6 @@ fn resource_fits(
     start: u32,
     finish: u32,
     existing: &[ScheduleStep],
-    durations: &[u32],
 ) -> bool {
     let task = &case.tasks[task_idx];
     let indexed = task_index(case);
@@ -450,9 +453,8 @@ fn resource_fits(
             }
         }
     }
-    // Existing tasks may use resources absent from this new task's demand map;
-    // they cannot conflict with it unless the new task consumes that resource.
-    let _ = durations;
+    // Existing tasks using resources absent from this task's demand map do not
+    // conflict with it because this task consumes none of that resource.
     true
 }
 
@@ -547,11 +549,20 @@ fn schedule_one_order(
     let latest_bound = case
         .tasks
         .iter()
-        .flat_map(|task| [task.earliest_start, task.latest_start.unwrap_or(0), task.latest_finish.unwrap_or(0)])
+        .flat_map(|task| {
+            [
+                task.earliest_start,
+                task.latest_start.unwrap_or(0),
+                task.latest_finish.unwrap_or(0),
+            ]
+        })
         .max()
         .unwrap_or(0);
     let max_duration = durations.iter().copied().max().unwrap_or(0);
-    let horizon = horizon_bound.checked_add(latest_bound)?.checked_add(max_duration)?.checked_add(1)?;
+    let horizon = horizon_bound
+        .checked_add(latest_bound)?
+        .checked_add(max_duration)?
+        .checked_add(1)?;
     if horizon > MAX_TIME_BOUND {
         return None;
     }
@@ -593,7 +604,7 @@ fn schedule_one_order(
                 let Some(finish) = start.checked_add(duration) else {
                     return None;
                 };
-                if resource_fits(case, *index, start, finish, &schedule, durations) {
+                if resource_fits(case, *index, start, finish, &schedule) {
                     placed = Some(ScheduleStep {
                         task_id: task.id.clone(),
                         start,
@@ -678,7 +689,9 @@ fn solve_scenario(case: &Case, upper: bool, enforce_deadline: bool) -> ScenarioR
             makespan: None,
             schedule: Vec::new(),
             validation_status: "NOT_APPLICABLE_NO_CANDIDATE".to_owned(),
-            rejection_reason: Some("all deterministic priority rules failed to construct a candidate".to_owned()),
+            rejection_reason: Some(
+                "all deterministic priority rules failed to construct a candidate".to_owned(),
+            ),
             priority_rules_tried: tried,
         },
     }
@@ -737,7 +750,9 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         });
         let robust_status = match upper_with_deadline.status.as_str() {
             "HEURISTIC_FEASIBLE_NOT_PROVEN_OPTIMAL" => "ROBUST_FEASIBLE_CANDIDATE",
-            "PROVEN_INFEASIBLE_PRECHECK" => "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT",
+            "PROVEN_INFEASIBLE_PRECHECK" => {
+                "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT"
+            }
             _ => "ROBUST_FEASIBILITY_NOT_ESTABLISHED",
         }
         .to_owned();
@@ -756,7 +771,8 @@ pub fn plan_fixture_bytes(bytes: &[u8]) -> Result<PlannerReport, String> {
         suite_id: fixture.suite_id,
         input_sha256: sha256_hex(bytes),
         input_bytes: bytes.len(),
-        algorithm: "deterministic_multi_priority_list_scheduling_with_independent_feasibility_validation".to_owned(),
+        algorithm: "deterministic_multi_priority_list_scheduling_with_independent_feasibility_validation"
+            .to_owned(),
         case_count: results.len(),
         all_returned_schedules_independently_validated: every_schedule_valid,
         claim_ceiling: CLAIM_CEILING.to_owned(),
