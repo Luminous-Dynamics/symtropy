@@ -6,7 +6,7 @@ use std::{env, fs, process};
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  humanity-history-validate <dataset.json>\n  humanity-history-validate analyze-contrasts <dataset.json>"
+        "usage:\n  humanity-history-validate <dataset.json>\n  humanity-history-validate analyze-sensitivity <dataset.json>"
     );
     process::exit(2);
 }
