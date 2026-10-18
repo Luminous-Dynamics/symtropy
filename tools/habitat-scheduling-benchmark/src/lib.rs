@@ -139,10 +139,10 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
         if reference.feasible {
             reference_feasible += 1;
         }
-        if reference.feasible && has_candidate {
+        if reference.feasible && candidate_validated {
             feasible_candidates += 1;
         }
-        let missed = reference.feasible && !has_candidate;
+        let missed = reference.feasible && !candidate_validated;
         if missed {
             misses += 1;
         }
@@ -207,7 +207,7 @@ pub fn evaluate_fixture_bytes(bytes: &[u8]) -> Result<BenchmarkReport, String> {
             && rows.iter().all(|row| {
                 row.heuristic_makespan.is_none() || row.candidate_independently_validated
             });
-    let no_false_infeasibility_claims = false_infeasible == 0 && candidate_conflicts == 0;
+    let no_false_infeasibility_claims = false_infeasible == 0;
     let coverage = if reference_feasible == 0 {
         1_000_000
     } else {
