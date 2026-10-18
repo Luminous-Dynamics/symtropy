@@ -595,11 +595,16 @@ impl<'a> PolicyWalker<'a> {
         self.active.remove(node_id);
     }
 
-    fn finish(mut self, root_node_id: &str) -> Value {
+    fn finish(
+        mut self,
+        root_node_id: &str,
+        initial_blockers: Vec<String>,
+    ) -> Value {
+        let initial_states = self.universe.to_vec();
         self.visit(
             root_node_id,
-            self.universe.to_vec(),
-            Vec::new(),
+            initial_states,
+            initial_blockers,
             0,
             0,
             0,
@@ -609,15 +614,26 @@ impl<'a> PolicyWalker<'a> {
         }
         let rejection_codes: Vec<String> = self.errors.into_iter().collect();
         let rejected = !rejection_codes.is_empty();
-        self.leaves
-            .sort_by(|left, right| left["leaf_node_id"].as_str().cmp(&right["leaf_node_id"].as_str()));
+        self.leaves.sort_by(|left, right| {
+            left["leaf_node_id"]
+                .as_str()
+                .cmp(&right["leaf_node_id"].as_str())
+        });
         json!({
             "policy_id": self.policy_id,
             "status": if rejected { "rejected" } else { "accepted" },
             "rejection_codes": rejection_codes,
             "worst_case_cost_units": if rejected { Value::Null } else { json!(self.worst_cost) },
-            "worst_case_duration_ticks": if rejected { Value::Null } else { json!(self.worst_duration) },
-            "worst_case_action_count": if rejected { Value::Null } else { json!(self.worst_actions) },
+            "worst_case_duration_ticks": if rejected {
+                Value::Null
+            } else {
+                json!(self.worst_duration)
+            },
+            "worst_case_action_count": if rejected {
+                Value::Null
+            } else {
+                json!(self.worst_actions)
+            },
             "leaf_count": if rejected { Value::Null } else { json!(self.leaves.len()) },
             "leaves": if rejected { Vec::<Value>::new() } else { self.leaves }
         })
@@ -634,7 +650,8 @@ fn evaluate_policy(
     let revision = case["state_revision"].as_str().unwrap_or("");
     let mut walker = PolicyWalker::new(revision, universe, candidates, actions, policy);
     let root = policy["root_node_id"].as_str().unwrap_or("");
-    walker.finish(root)
+    let blockers = strings(&case["unresolved_critical_unknown_ids"]).unwrap_or_default();
+    walker.finish(root, blockers)
 }
 
 pub fn validate_adaptive_policy_bytes(
@@ -775,7 +792,7 @@ pub fn validate_adaptive_policy_bytes(
             summary.fail(
                 "ADAPTIVE_CANDIDATE_STATE_COVERAGE",
                 format!("{path}.candidates"),
-                "Candidate IDs must be unique and every candidate must define one result per declared state.",
+                "Candidate IDs must be unique and each candidate must define one result per state.",
             );
             continue;
         };
