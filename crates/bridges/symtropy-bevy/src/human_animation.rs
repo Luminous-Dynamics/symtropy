@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Opt-in skeletal animation playback for human avatars loaded from rigged glTF/GLB assets.
 //!
 //! This module handles animation state and blending, not mesh creation, cognition,
