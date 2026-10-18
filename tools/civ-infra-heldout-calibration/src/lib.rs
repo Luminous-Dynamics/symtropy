@@ -186,7 +186,11 @@ fn evaluate(input: &CalibrationInput, input_sha256: &str) -> Result<CalibrationR
     let mut false_robust_feasible_count = 0usize;
     let mut reference_truth_miss_count = 0usize;
 
-    for record in input.records.iter().filter(|r| r.split == DataSplit::Calibration) {
+    for record in input
+        .records
+        .iter()
+        .filter(|r| r.split == DataSplit::Calibration)
+    {
         let reference = reference_interval(record);
         let truth = i128::from(record.synthetic_ground_truth_ticks);
         if !contains(&reference, truth) {
@@ -263,12 +267,7 @@ fn evaluate(input: &CalibrationInput, input_sha256: &str) -> Result<CalibrationR
         } else {
             truth >= limit
         };
-        let disposition = classify(
-            robust_lower,
-            robust_upper,
-            limit,
-            input.lower_is_better,
-        );
+        let disposition = classify(robust_lower, robust_upper, limit, input.lower_is_better);
         let calibrated_feasible = disposition == DecisionStatus::RobustFeasible;
         let changed = if nominal_feasible {
             disposition != DecisionStatus::RobustFeasible
@@ -400,7 +399,10 @@ fn contains(interval: &Interval, value: i128) -> bool {
 
 fn validate_input(input: &CalibrationInput) -> Result<(), String> {
     if input.schema_version != SCHEMA_VERSION {
-        return Err(format!("unsupported schema_version {:?}", input.schema_version));
+        return Err(format!(
+            "unsupported schema_version {:?}",
+            input.schema_version
+        ));
     }
     validate_name(&input.benchmark_id, "benchmark_id")?;
     validate_name(&input.quantity_kind, "quantity_kind")?;
@@ -431,7 +433,10 @@ fn validate_input(input: &CalibrationInput) -> Result<(), String> {
             ("site_id", record.site_id.as_str()),
             ("instrument_id", record.instrument_id.as_str()),
             ("model_family_id", record.model_family_id.as_str()),
-            ("applicability_domain_id", record.applicability_domain_id.as_str()),
+            (
+                "applicability_domain_id",
+                record.applicability_domain_id.as_str(),
+            ),
         ] {
             validate_name(value, label)?;
         }
@@ -443,7 +448,10 @@ fn validate_input(input: &CalibrationInput) -> Result<(), String> {
         }
         validate_digest(&record.case_input_sha256, "case_input_sha256")?;
         validate_digest(&record.model_artifact_sha256, "model_artifact_sha256")?;
-        validate_digest(&record.reference_artifact_sha256, "reference_artifact_sha256")?;
+        validate_digest(
+            &record.reference_artifact_sha256,
+            "reference_artifact_sha256",
+        )?;
 
         match record.split {
             DataSplit::Calibration => {
@@ -473,10 +481,14 @@ fn validate_input(input: &CalibrationInput) -> Result<(), String> {
         return Err("calibration/holdout leakage: site_id overlaps split boundary".to_owned());
     }
     if !calibration_instruments.is_disjoint(&holdout_instruments) {
-        return Err("calibration/holdout leakage: instrument_id overlaps split boundary".to_owned());
+        return Err(
+            "calibration/holdout leakage: instrument_id overlaps split boundary".to_owned(),
+        );
     }
     if !calibration_families.is_disjoint(&holdout_families) {
-        return Err("calibration/holdout leakage: model_family_id overlaps split boundary".to_owned());
+        return Err(
+            "calibration/holdout leakage: model_family_id overlaps split boundary".to_owned(),
+        );
     }
     Ok(())
 }
@@ -691,9 +703,15 @@ mod tests {
         let report = report_for(&input);
         assert_eq!(report.out_of_domain_holdout_count, 1);
         assert_eq!(report.qualified_holdout_count, 2);
-        let assessment = report.case_assessments.iter()
-            .find(|item| item.case_id == "heldout-safe").expect("assessment");
-        assert_eq!(assessment.disposition, DecisionStatus::NotQualifiedOutOfDomain);
+        let assessment = report
+            .case_assessments
+            .iter()
+            .find(|item| item.case_id == "heldout-safe")
+            .expect("assessment");
+        assert_eq!(
+            assessment.disposition,
+            DecisionStatus::NotQualifiedOutOfDomain
+        );
         assert_eq!(assessment.nominal_feasible, None);
     }
 
@@ -711,7 +729,9 @@ mod tests {
             let input = generated_world(world);
             let report = report_for(&input);
 
-            let calibration = input.records.iter()
+            let calibration = input
+                .records
+                .iter()
                 .filter(|record| record.split == DataSplit::Calibration)
                 .collect::<Vec<_>>();
             let mut oracle_lower = i128::MAX;
@@ -757,7 +777,8 @@ mod tests {
             .expect("top-level object")
             .insert("magic_probability".to_owned(), serde_json::json!(0.99));
         let bytes = serde_json::to_vec(&value).expect("mutated JSON serializes");
-        let error = evaluate_bytes(&bytes).expect_err("unknown probabilistic field must fail closed");
+        let error =
+            evaluate_bytes(&bytes).expect_err("unknown probabilistic field must fail closed");
         assert!(error.contains("unknown field"), "{error}");
     }
 
@@ -768,7 +789,10 @@ mod tests {
         input.records.reverse();
         let reordered = report_for(&input);
         assert_ne!(baseline.input_sha256, reordered.input_sha256);
-        assert_eq!(baseline.split_manifest_sha256, reordered.split_manifest_sha256);
+        assert_eq!(
+            baseline.split_manifest_sha256,
+            reordered.split_manifest_sha256
+        );
         assert_eq!(baseline.split_manifest_sha256.len(), 64);
     }
 

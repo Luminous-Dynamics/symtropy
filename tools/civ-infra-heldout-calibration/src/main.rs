@@ -31,7 +31,10 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("cannot write report {output_path:?}: {error}"))?;
         println!(
             "report_written={} input_sha256={} calibration_records={} holdout_records={} false_robust_feasible={}",
-            output_path, input_sha256, report.calibration_record_count, report.holdout_record_count,
+            output_path,
+            input_sha256,
+            report.calibration_record_count,
+            report.holdout_record_count,
             report.false_robust_feasible_count
         );
     } else {
