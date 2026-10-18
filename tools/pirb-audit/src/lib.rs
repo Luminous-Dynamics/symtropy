@@ -1186,6 +1186,18 @@ fn audit_adaptive_stop_rules(scenario: &Value, path: &str, findings: &mut Vec<Fi
     }
 
     if scenario
+        .pointer("/expected/case_count")
+        .and_then(Value::as_u64)
+        != Some(cases.len() as u64)
+    {
+        findings.push(finding(
+            "PIRB_STOP_RULE_CASE_COUNT_MISMATCH",
+            &format!("{path}.expected.case_count"),
+            "Declared stop-rule case count must equal the evaluated case count.",
+        ));
+    }
+
+    if scenario
         .pointer("/expected/claim_ceiling")
         .and_then(Value::as_str)
         != Some("Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator.")
@@ -1909,6 +1921,14 @@ mod tests {
     }
 
     #[test]
+    fn stop_rule_case_count_mismatch_is_rejected() {
+        let mut value = corpus();
+        value["scenarios"][11]["expected"]["case_count"] = json!(9);
+        let report = audit_corpus(&value);
+        assert!(has_code(&report, "PIRB_STOP_RULE_CASE_COUNT_MISMATCH"));
+    }
+
+    #[test]
     fn mandatory_floor_breach_cannot_continue() {
         let mut value = corpus();
         value["scenarios"][11]["stop_rule_cases"][0]["expected_transition"] = json!("CONTINUE");
@@ -1941,6 +1961,7 @@ mod tests {
     fn unregistered_stop_trigger_fails_closed() {
         let mut value = corpus();
         value["scenarios"][11]["stop_rule_cases"][9]["trigger"] = json!("unregistered-trigger");
+        value["scenarios"][11]["stop_rule_cases"][9]["expected_transition"] = json!("CONTINUE");
         let report = audit_corpus(&value);
         assert!(has_code(&report, "PIRB_STOP_RULE_TRIGGER_UNKNOWN"));
         assert!(has_code(&report, "PIRB_STOP_RULE_TRANSITION_MISMATCH"));
