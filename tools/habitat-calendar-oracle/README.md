@@ -43,3 +43,14 @@ A provenance pass is explicitly **not** evidence that UTC expansion is correct. 
 Run the strict metadata/provenance negative-control suite as a JSON report:
 
 - `cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- --provenance docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json`
+
+
+## External CA-RCPSP metric-integrity audit
+
+The crate also exposes a source-pinned audit over the 12 original CA-RCPSP instance files and the complete published result CSV, mirrored with attribution under `docs/research/external/ca-rcpsp-v1.0/`. It recomputes the longest required task duration for each instance and checks every result row labelled successful against that lower bound.
+
+- Research note: `docs/research/HABITAT_CA_RCPSP_SOURCE_AUDIT_V0_1.md`
+- Follow-up issue: https://github.com/Luminous-Dynamics/symtropy/issues/1950
+- Run: `cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- --external-audit`
+
+This audit deliberately preserves suspicious rows and returns a completed report with a discrepancy status. It is not a solver-ranking claim. A lower-bound finding means the reported metric/unit semantics need reconciliation before comparative claims are trusted.
